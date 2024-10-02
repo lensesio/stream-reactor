@@ -16,9 +16,16 @@
 package io.lenses.streamreactor.connect.http.sink.tpl.substitutions
 
 import cats.implicits.catsSyntaxOptionId
+import com.typesafe.scalalogging.LazyLogging
 
-object SubstitutionError {
-  def apply(msg: String): SubstitutionError = SubstitutionError(msg, Option.empty)
-  def apply(msg: String, throwable: Throwable): SubstitutionError = SubstitutionError(msg, throwable.some)
+object SubstitutionError extends LazyLogging {
+  def apply(msg: String): SubstitutionError = {
+    logger.error("SubstitutionError Raised: " + msg)
+    SubstitutionError(msg, Option.empty)
+  }
+  def apply(msg: String, throwable: Throwable): SubstitutionError = {
+    logger.error("SubstitutionError Raised: " + msg, throwable)
+    SubstitutionError(msg, throwable.some)
+  }
 }
 case class SubstitutionError(msg: String, throwable: Option[Throwable]) extends Throwable

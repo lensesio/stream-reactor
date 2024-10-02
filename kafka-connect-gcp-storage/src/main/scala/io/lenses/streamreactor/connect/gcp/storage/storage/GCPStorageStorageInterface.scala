@@ -29,6 +29,7 @@ import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.config.ObjectMetadata
 import io.lenses.streamreactor.connect.cloud.common.model.UploadableFile
 import io.lenses.streamreactor.connect.cloud.common.model.UploadableString
+import io.lenses.streamreactor.connect.cloud.common.storage.ExtensionFilter
 import io.lenses.streamreactor.connect.cloud.common.storage.FileCreateError
 import io.lenses.streamreactor.connect.cloud.common.storage.FileDeleteError
 import io.lenses.streamreactor.connect.cloud.common.storage.FileListError
@@ -48,8 +49,12 @@ import scala.collection.immutable.Seq
 import scala.jdk.CollectionConverters.IterableHasAsScala
 import scala.util.Try
 
-class GCPStorageStorageInterface(connectorTaskId: ConnectorTaskId, storage: Storage, avoidReumableUpload: Boolean)
-    extends StorageInterface[GCPStorageFileMetadata]
+class GCPStorageStorageInterface(
+  connectorTaskId:     ConnectorTaskId,
+  storage:             Storage,
+  avoidReumableUpload: Boolean,
+  extensionFilter:     Option[ExtensionFilter],
+) extends StorageInterface[GCPStorageFileMetadata]
     with LazyLogging {
   override def uploadFile(source: UploadableFile, bucket: String, path: String): Either[UploadError, Unit] = {
     logger.debug(s"[{}] GCP Uploading file from local {} to Storage {}:{}", connectorTaskId.show, source, bucket, path)
@@ -70,7 +75,7 @@ class GCPStorageStorageInterface(connectorTaskId: ConnectorTaskId, storage: Stor
         }
         logger.info(s"[{}] Completed upload from local {} to Storage {}:{}", connectorTaskId.show, source, bucket, path)
       }.toEither.leftMap { ex: Throwable =>
-        logger.error(s"[{}] Failed upload from local {} to Storage {}:{}",
+        logger.error(s"[{}] Failed upload from local {} to Storage {}:{}. Reason:{}",
                      connectorTaskId.show,
                      source,
                      bucket,
@@ -189,7 +194,10 @@ class GCPStorageStorageInterface(connectorTaskId: ConnectorTaskId, storage: Stor
           Option.when(accumulatedKeys.nonEmpty)(fnResultWrapperCreate(accumulatedKeys, latestCreated))
         case Some(page: Page[Blob]) =>
           val pages = page.getValues.asScala
-          val newKeys: Seq[E] = accumulatedKeys ++ pages.map(p => fnListElementCreate(p))
+          val newKeys: Seq[E] =
+            accumulatedKeys ++ pages.filter(p => extensionFilter.forall(_.filter(p.getName))).map(p =>
+              fnListElementCreate(p),
+            )
           val newLatestCreated = pages.lastOption.map(_.getCreateTimeOffsetDateTime.toInstant).orElse(latestCreated)
           listKeysRecursiveHelper(Option(page.getNextPage), newKeys, newLatestCreated)
       }
@@ -207,13 +215,15 @@ class GCPStorageStorageInterface(connectorTaskId: ConnectorTaskId, storage: Stor
     listFilesRecursive(
       bucket,
       prefix,
-      (accumulatedKeys: Seq[String], latestCreated: Option[Instant]) =>
+      (accumulatedKeys: Seq[String], latestCreated: Option[Instant]) => {
+        val filteredKeys = filterKeys(accumulatedKeys)
         ListOfKeysResponse[GCPStorageFileMetadata](
           bucket,
           prefix,
-          accumulatedKeys,
-          GCPStorageFileMetadata(accumulatedKeys.last, latestCreated.get),
-        ),
+          filteredKeys,
+          GCPStorageFileMetadata(filteredKeys.last, latestCreated.get),
+        )
+      },
       _.getName,
     )
 
@@ -224,15 +234,34 @@ class GCPStorageStorageInterface(connectorTaskId: ConnectorTaskId, storage: Stor
     listFilesRecursive(
       bucket,
       prefix,
-      (accumulatedKeys: Seq[GCPStorageFileMetadata], _: Option[Instant]) =>
+      (accumulatedKeys: Seq[GCPStorageFileMetadata], _: Option[Instant]) => {
+        val filteredKeys: Seq[GCPStorageFileMetadata] = filterKeys(accumulatedKeys)
         ListOfMetadataResponse[GCPStorageFileMetadata](
           bucket,
           prefix,
-          accumulatedKeys,
-          accumulatedKeys.last,
-        ),
+          filteredKeys,
+          filteredKeys.last,
+        )
+      },
       p => GCPStorageFileMetadata(p.getName, p.getCreateTimeOffsetDateTime.toInstant),
     )
+
+  trait Filterable[T] {
+    def filter(extensionFilter: ExtensionFilter, t: T): Boolean
+  }
+
+  implicit val stringFilterable: Filterable[String] = (extensionFilter: ExtensionFilter, t: String) =>
+    extensionFilter.filter(t)
+
+  implicit val metadataFilterable: Filterable[GCPStorageFileMetadata] =
+    (extensionFilter: ExtensionFilter, t: GCPStorageFileMetadata) => extensionFilter.filter(t.file)
+
+  def filterKeys[T: Filterable](accumulatedKeys: Seq[T]): Seq[T] = {
+    val filterable = implicitly[Filterable[T]]
+    extensionFilter
+      .map(ex => accumulatedKeys.filter(filterable.filter(ex, _)))
+      .getOrElse(accumulatedKeys)
+  }
 
   override def list(
     bucket:     String,
@@ -250,7 +279,7 @@ class GCPStorageStorageInterface(connectorTaskId: ConnectorTaskId, storage: Stor
       case Left(ex) => FileListError(ex, bucket, prefix).asLeft
       case Right(page) =>
         val pageValues = page.getValues.asScala
-        val keys       = pageValues.map(_.getName).filterNot(f => lastFile.map(_.file).contains(f)).toSeq
+        val keys       = filterKeys(pageValues.map(_.getName).toSeq).filterNot(f => lastFile.map(_.file).contains(f))
         logger.trace(
           s"[${connectorTaskId.show}] Last file: $lastFile, Prefix: $prefix Page: ${pageValues.map(_.getName)}, Keys: $keys",
         )

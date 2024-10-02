@@ -220,7 +220,7 @@ class SchemalessEnvelopeConverterTest extends AnyFunSuite with Matchers {
   }
 
   private def assertHeaders(record: SourceRecord): Assertion =
-    record.headers().asScala.map(h => h.key() -> h.value()).toMap shouldBe Map(
+    record.headers().asScala.map(h => h.key() -> h.value()).toMap shouldBe Map[String, Any](
       "header1" -> Header1Value,
       "header2" -> Header2Value,
       "header3" -> Header3Value,

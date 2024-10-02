@@ -1,0 +1,36 @@
+{
+  "type": "record",
+  "name": "Stitch",
+  "namespace": "io.lenses",
+  "doc": "Contains stitched metric data",
+  "fields": [
+    {
+      "name": "event_id",
+      "type": [
+        "null",
+        "string"
+      ],
+      "doc": "Unique event identifier",
+      "default": null
+    },
+    {
+      "name": "tenant_cd",
+      "type": [
+        "null",
+        {
+          "type": "enum",
+          "name": "Tenant",
+          "doc": "Tenant code id",
+          "symbols": [
+            "one",
+            "two",
+            "three"
+          ],
+          "default": "one"
+        }
+      ],
+      "doc": "Tenant code",
+      "default": null
+    }
+  ]
+}

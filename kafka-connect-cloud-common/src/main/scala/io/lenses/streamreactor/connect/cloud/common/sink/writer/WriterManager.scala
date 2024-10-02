@@ -18,21 +18,19 @@ package io.lenses.streamreactor.connect.cloud.common.sink.writer
 import cats.implicits._
 import com.typesafe.scalalogging.StrictLogging
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
-import io.lenses.streamreactor.connect.cloud.common.formats.writer.MessageDetail
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.FormatWriter
-import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
-import io.lenses.streamreactor.connect.cloud.common.model.Offset
+import io.lenses.streamreactor.connect.cloud.common.formats.writer.MessageDetail
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartitionOffset
+import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.sink
-import io.lenses.streamreactor.connect.cloud.common.sink.commit.CommitPolicy
-import io.lenses.streamreactor.connect.cloud.common.sink.config.PartitionField
-import io.lenses.streamreactor.connect.cloud.common.sink.naming.ObjectKeyBuilder
-import io.lenses.streamreactor.connect.cloud.common.sink.naming.KeyNamer
-import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexManager
 import io.lenses.streamreactor.connect.cloud.common.sink.BatchCloudSinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.FatalCloudSinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
+import io.lenses.streamreactor.connect.cloud.common.sink.commit.CommitPolicy
+import io.lenses.streamreactor.connect.cloud.common.sink.config.PartitionField
+import io.lenses.streamreactor.connect.cloud.common.sink.naming.KeyNamer
+import io.lenses.streamreactor.connect.cloud.common.sink.naming.ObjectKeyBuilder
 import io.lenses.streamreactor.connect.cloud.common.storage.FileMetadata
 import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
@@ -61,7 +59,7 @@ class WriterManager[SM <: FileMetadata](
   stagingFilenameFn: (TopicPartition, Map[PartitionField, String]) => Either[SinkError, File],
   objKeyBuilderFn:   (TopicPartition, Map[PartitionField, String]) => ObjectKeyBuilder,
   formatWriterFn:    (TopicPartition, File) => Either[SinkError, FormatWriter],
-  indexManager:      IndexManager[SM],
+  writerIndexer:     WriterIndexer[SM],
   transformerF:      MessageDetail => Either[RuntimeException, MessageDetail],
 )(
   implicit
@@ -70,8 +68,6 @@ class WriterManager[SM <: FileMetadata](
 ) extends StrictLogging {
 
   private val writers = mutable.Map.empty[MapKey, Writer[SM]]
-
-  private val seekedOffsets = mutable.Map.empty[TopicPartition, Offset]
 
   def commitAllWritersIfFlushRequired(): Either[BatchCloudSinkError, Unit] =
     if (writers.values.exists(_.shouldFlush)) {
@@ -125,32 +121,6 @@ class WriterManager[SM <: FileMetadata](
       ().asRight
     }
 
-  }
-
-  def open(partitions: Set[TopicPartition]): Either[SinkError, Map[TopicPartition, Offset]] = {
-    logger.debug(s"[{}] Received call to WriterManager.open", connectorTaskId.show)
-
-    partitions
-      .map(seekOffsetsForTopicPartition)
-      .partitionMap(identity) match {
-      case (throwables, _) if throwables.nonEmpty => BatchCloudSinkError(throwables).asLeft
-      case (_, offsets) =>
-        val seeked = offsets.flatten.map(
-          _.toTopicPartitionOffsetTuple,
-        ).toMap
-        seekedOffsets ++= seeked
-        seeked.asRight
-    }
-  }
-
-  private def seekOffsetsForTopicPartition(
-    topicPartition: TopicPartition,
-  ): Either[SinkError, Option[TopicPartitionOffset]] = {
-    logger.debug(s"[{}] seekOffsetsForTopicPartition {}", connectorTaskId.show, topicPartition)
-    for {
-      bucketAndPrefix <- bucketAndPrefixFn(topicPartition)
-      offset          <- indexManager.initialSeek(topicPartition, bucketAndPrefix.bucket)
-    } yield offset
   }
 
   def close(): Unit = {
@@ -244,11 +214,10 @@ class WriterManager[SM <: FileMetadata](
       new Writer(
         topicPartition,
         commitPolicy,
-        indexManager,
+        writerIndexer,
         () => stagingFilenameFn(topicPartition, partitionValues),
         objKeyBuilderFn(topicPartition, partitionValues),
         formatWriterFn.curried(topicPartition),
-        seekedOffsets.get(topicPartition),
       )
     }
   }

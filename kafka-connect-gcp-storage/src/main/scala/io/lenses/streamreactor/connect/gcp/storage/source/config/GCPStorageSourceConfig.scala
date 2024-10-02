@@ -23,6 +23,7 @@ import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodec
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
 import io.lenses.streamreactor.connect.cloud.common.source.config.CloudSourceBucketOptions
 import io.lenses.streamreactor.connect.cloud.common.source.config.PartitionSearcherOptions
+import io.lenses.streamreactor.connect.cloud.common.storage.ExtensionFilter
 import io.lenses.streamreactor.connect.gcp.common.auth.GCPConnectionConfig
 import io.lenses.streamreactor.connect.gcp.storage.model.location.GCPStorageLocationValidator
 import io.lenses.streamreactor.connect.gcp.storage.storage.GCPStorageFileMetadata
@@ -56,6 +57,7 @@ object GCPStorageSourceConfig extends PropsToConfigConverter[GCPStorageSourceCon
       sbo,
       gcpConfigDefBuilder.getCompressionCodec(),
       gcpConfigDefBuilder.getPartitionSearcherOptions(parsedValues),
+      gcpConfigDefBuilder.getSourceExtensionFilter,
     )
 
   }
@@ -67,4 +69,5 @@ case class GCPStorageSourceConfig(
   bucketOptions:     Seq[CloudSourceBucketOptions[GCPStorageFileMetadata]] = Seq.empty,
   compressionCodec:  CompressionCodec,
   partitionSearcher: PartitionSearcherOptions,
+  extensionFilter:   Option[ExtensionFilter],
 ) extends CloudSourceConfig[GCPStorageFileMetadata]

@@ -15,19 +15,20 @@
  */
 package io.lenses.streamreactor.connect.elastic6
 
-import io.lenses.kcql.Kcql
-import io.lenses.streamreactor.connect.elastic6.config.ElasticSettings
-import io.lenses.streamreactor.connect.elastic6.indexname.CreateIndex.getIndexName
+import cats.implicits.toBifunctorOps
 import com.sksamuel.elastic4s.bulk.BulkRequest
-import com.sksamuel.elastic4s.http.bulk.BulkResponse
 import com.sksamuel.elastic4s.http._
-import com.sksamuel.elastic4s.mappings.MappingDefinition
+import com.sksamuel.elastic4s.http.bulk.BulkResponse
 import com.typesafe.scalalogging.StrictLogging
+import io.lenses.kcql.Kcql
+import io.lenses.streamreactor.common.util.EitherUtils.unpackOrThrow
+import io.lenses.streamreactor.connect.elastic6.config.ElasticSettings
+import io.lenses.streamreactor.connect.elastic6.indexname.CreateIndex.getIndexNameForAutoCreate
 import org.apache.http.auth.AuthScope
 import org.apache.http.auth.UsernamePasswordCredentials
+import org.apache.http.client.config.RequestConfig.Builder
 import org.apache.http.impl.client.BasicCredentialsProvider
 import org.apache.http.impl.nio.client.HttpAsyncClientBuilder
-import org.elasticsearch.client.RestClientBuilder.HttpClientConfigCallback
 
 import scala.concurrent.Future
 
@@ -39,29 +40,29 @@ trait KElasticClient extends AutoCloseable {
 
 object KElasticClient extends StrictLogging {
 
-  def createHttpClient(settings: ElasticSettings, endpoints: Seq[ElasticNodeEndpoint]): KElasticClient =
-    if (settings.httpBasicAuthUsername.nonEmpty && settings.httpBasicAuthPassword.nonEmpty) {
-      lazy val provider = {
-        val provider = new BasicCredentialsProvider
-        val credentials =
-          new UsernamePasswordCredentials(settings.httpBasicAuthUsername, settings.httpBasicAuthPassword)
+  def createHttpClient(settings: ElasticSettings, endpoints: Seq[ElasticNodeEndpoint]): KElasticClient = {
+    val maybeProvider: Option[BasicCredentialsProvider] = {
+      for {
+        httpBasicAuthUsername <- Option.when(settings.httpBasicAuthUsername.nonEmpty)(settings.httpBasicAuthUsername)
+        httpBasicAuthPassword <- Option.when(settings.httpBasicAuthPassword.nonEmpty)(settings.httpBasicAuthPassword)
+      } yield {
+        val credentials = new UsernamePasswordCredentials(httpBasicAuthUsername, httpBasicAuthPassword)
+        val provider    = new BasicCredentialsProvider
         provider.setCredentials(AuthScope.ANY, credentials)
         provider
       }
-      val callback = new HttpClientConfigCallback {
-        override def customizeHttpClient(httpClientBuilder: HttpAsyncClientBuilder): HttpAsyncClientBuilder =
-          httpClientBuilder.setDefaultCredentialsProvider(provider)
-      }
-      val client: ElasticClient = ElasticClient(
-        ElasticProperties(endpoints),
-        requestConfigCallback    = NoOpRequestConfigCallback,
-        httpClientConfigCallback = callback,
-      )
-      new HttpKElasticClient(client)
-    } else {
-      val client: ElasticClient = ElasticClient(ElasticProperties(endpoints))
-      new HttpKElasticClient(client)
     }
+    val client: ElasticClient = ElasticClient(
+      ElasticProperties(endpoints),
+      (requestConfigBuilder: Builder) => requestConfigBuilder,
+      (httpClientBuilder: HttpAsyncClientBuilder) => {
+        maybeProvider.foreach(httpClientBuilder.setDefaultCredentialsProvider)
+        unpackOrThrow(settings.storesInfo.toSslContext).map(httpClientBuilder.setSSLContext(_))
+        httpClientBuilder
+      },
+    )
+    new HttpKElasticClient(client)
+  }
 }
 
 class HttpKElasticClient(client: ElasticClient) extends KElasticClient {
@@ -71,12 +72,11 @@ class HttpKElasticClient(client: ElasticClient) extends KElasticClient {
   override def index(kcql: Kcql): Unit = {
     require(kcql.isAutoCreate, s"Auto-creating indexes hasn't been enabled for target:${kcql.getTarget}")
 
-    val indexName = getIndexName(kcql)
-    client.execute {
-      Option(kcql.getDocType) match {
-        case None               => createIndex(indexName)
-        case Some(documentType) => createIndex(indexName).mappings(MappingDefinition(documentType))
-      }
+    getIndexNameForAutoCreate(kcql).leftMap(throw _).map {
+      indexName: String =>
+        client.execute {
+          createIndex(indexName)
+        }
     }
     ()
   }

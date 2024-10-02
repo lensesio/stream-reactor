@@ -22,6 +22,7 @@ import io.lenses.streamreactor.connect.cloud.common.sink.config.CloudSinkBucketO
 import io.lenses.streamreactor.connect.cloud.common.sink.config.IndexOptions
 import io.lenses.streamreactor.connect.cloud.common.source.config.CloudSourceBucketOptions
 import io.lenses.streamreactor.connect.cloud.common.source.config.PartitionSearcherOptions
+import io.lenses.streamreactor.connect.cloud.common.storage.ExtensionFilter
 import io.lenses.streamreactor.connect.cloud.common.storage.FileMetadata
 
 /**
@@ -55,7 +56,7 @@ trait CloudSinkConfig[CC] extends CloudConfig {
     *
     * @return The offset seeker options for the cloud sink.
     */
-  def indexOptions: IndexOptions
+  def indexOptions: Option[IndexOptions]
 
   /**
     * Retrieves the compression codec for the cloud sink.
@@ -99,4 +100,15 @@ trait CloudSourceConfig[MD <: FileMetadata] extends CloudConfig {
     * @return The partition searcher options for the cloud source.
     */
   def partitionSearcher: PartitionSearcherOptions
+
+  /**
+    * Retrieves the extension filter for the cloud source, if configured.
+    *
+    * The extension filter is used to include or exclude files
+    * based on their extensions when reading from the cloud source.
+    *
+    * @return Option containing the extension filter for the cloud source.
+    */
+  def extensionFilter: Option[ExtensionFilter]
+
 }

@@ -15,24 +15,6 @@
  */
 package io.lenses.streamreactor.connect.cloud.common.sink.conversion
 
-import io.lenses.streamreactor.connect.cloud.common.formats.writer.ArraySinkData
-import io.lenses.streamreactor.connect.cloud.common.formats.writer.BooleanSinkData
-import io.lenses.streamreactor.connect.cloud.common.formats.writer.ByteArraySinkData
-import io.lenses.streamreactor.connect.cloud.common.formats.writer.ByteSinkData
-import io.lenses.streamreactor.connect.cloud.common.formats.writer.DateSinkData
-import io.lenses.streamreactor.connect.cloud.common.formats.writer.DecimalSinkData
-import io.lenses.streamreactor.connect.cloud.common.formats.writer.DoubleSinkData
-import io.lenses.streamreactor.connect.cloud.common.formats.writer.FloatSinkData
-import io.lenses.streamreactor.connect.cloud.common.formats.writer.IntSinkData
-import io.lenses.streamreactor.connect.cloud.common.formats.writer.LongSinkData
-import io.lenses.streamreactor.connect.cloud.common.formats.writer.MapSinkData
-import io.lenses.streamreactor.connect.cloud.common.formats.writer.NullSinkData
-import io.lenses.streamreactor.connect.cloud.common.formats.writer.ShortSinkData
-import io.lenses.streamreactor.connect.cloud.common.formats.writer.SinkData
-import io.lenses.streamreactor.connect.cloud.common.formats.writer.StringSinkData
-import io.lenses.streamreactor.connect.cloud.common.formats.writer.StructSinkData
-import io.lenses.streamreactor.connect.cloud.common.formats.writer.TimeSinkData
-import io.lenses.streamreactor.connect.cloud.common.formats.writer.TimestampSinkData
 import org.apache.kafka.connect.data.Date
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.Struct

@@ -25,10 +25,10 @@ import software.amazon.awssdk.auth.credentials.AwsCredentials
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider
 import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration
-import software.amazon.awssdk.core.retry.RetryPolicy
-import software.amazon.awssdk.core.retry.backoff.FixedDelayBackoffStrategy
 import software.amazon.awssdk.http.apache.ApacheHttpClient
 import software.amazon.awssdk.regions.Region
+import software.amazon.awssdk.retries.api.RetryStrategy
+import software.amazon.awssdk.retries.api.internal.backoff.FixedDelayWithoutJitter
 import software.amazon.awssdk.services.s3.S3Client
 import software.amazon.awssdk.services.s3.S3Configuration
 
@@ -45,18 +45,6 @@ object AwsS3ClientCreator extends ClientCreator[S3ConnectionConfig, S3Client] {
 
   def make(config: S3ConnectionConfig): Either[Throwable, S3Client] =
     for {
-      retryPolicy <- Try {
-        RetryPolicy
-          .builder()
-          .numRetries(config.httpRetryConfig.getRetryLimit)
-          .backoffStrategy(
-            FixedDelayBackoffStrategy.create(Duration.ofMillis(config.httpRetryConfig.getRetryIntervalMillis)),
-          )
-          .build()
-      }.toEither
-
-      overrideConfig <- Try(ClientOverrideConfiguration.builder().retryPolicy(retryPolicy).build()).toEither
-
       s3Config <- Try {
         S3Configuration
           .builder
@@ -71,26 +59,60 @@ object AwsS3ClientCreator extends ClientCreator[S3ConnectionConfig, S3Client] {
         config.connectionPoolConfig.foreach(t => apacheHttpClientBuilder.maxConnections(t.maxConnections))
         apacheHttpClientBuilder.build()
       }.toEither
-      s3Client <- credentialsProvider(config).leftMap(new IllegalArgumentException(_)).flatMap { credsProv =>
-        Try(
-          S3Client
-            .builder()
-            .overrideConfiguration(overrideConfig)
-            .serviceConfiguration(s3Config)
-            .credentialsProvider(credsProv)
-            .httpClient(httpClient),
-        ).toEither
+      s3Client <- credentialsProvider(config)
+        .leftMap(new IllegalArgumentException(_))
+        .flatMap {
+          credsProv =>
+            Try(
+              S3Client
+                .builder()
+                .overrideConfiguration((clientOverrideConfigurationBuilder: ClientOverrideConfiguration.Builder) =>
+                  customiseOverrideConfiguration(config, clientOverrideConfigurationBuilder),
+                )
+                .serviceConfiguration(s3Config)
+                .credentialsProvider(credsProv)
+                .httpClient(httpClient),
+            ).toEither
 
-      }.map { builder =>
-        config
-          .region
-          .fold(builder)(reg => builder.region(Region.of(reg)))
-      }.map { builder =>
-        config.customEndpoint.fold(builder)(cE => builder.endpointOverride(URI.create(cE)))
-      }.flatMap { builder =>
-        Try(builder.build()).toEither
-      }
+        }.map { builder =>
+          config
+            .region
+            .fold(builder)(reg => builder.region(Region.of(reg)))
+        }.map { builder =>
+          config.customEndpoint.fold(builder)(cE => builder.endpointOverride(URI.create(cE)))
+        }.flatMap { builder =>
+          Try(builder.build()).toEither
+        }
     } yield s3Client
+
+  private def customiseOverrideConfiguration(
+    config:                             S3ConnectionConfig,
+    clientOverrideConfigurationBuilder: ClientOverrideConfiguration.Builder,
+  ): Unit = {
+    clientOverrideConfigurationBuilder
+      .retryStrategy { (retryStrategyBuilder: RetryStrategy.Builder[_, _]) =>
+        customiseRetryStrategy(config, retryStrategyBuilder)
+      }
+    ()
+  }
+
+  private def customiseRetryStrategy(
+    config:               S3ConnectionConfig,
+    retryStrategyBuilder: RetryStrategy.Builder[_, _],
+  ): Unit = {
+    retryStrategyBuilder
+      .maxAttempts(config.httpRetryConfig.getRetryLimit)
+
+    retryStrategyBuilder.backoffStrategy(
+      new FixedDelayWithoutJitter(
+        Duration.ofMillis(
+          config.httpRetryConfig.getRetryIntervalMillis,
+        ),
+      ),
+    )
+
+    ()
+  }
 
   private def credentialsFromConfig(awsConfig: S3ConnectionConfig): Either[String, AwsCredentialsProvider] =
     awsConfig.accessKey.zip(awsConfig.secretKey) match {

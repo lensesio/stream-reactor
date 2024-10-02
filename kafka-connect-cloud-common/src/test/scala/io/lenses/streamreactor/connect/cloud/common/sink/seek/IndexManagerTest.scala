@@ -17,14 +17,17 @@ package io.lenses.streamreactor.connect.cloud.common.sink.seek
 
 import cats.implicits.catsSyntaxEitherId
 import cats.implicits.catsSyntaxOptionId
+import cats.implicits.none
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.model.Offset
 import io.lenses.streamreactor.connect.cloud.common.model.Topic
 import io.lenses.streamreactor.connect.cloud.common.model.UploadableString
+import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.sink.FatalCloudSinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.NonFatalCloudSinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.IndexFilenames
 import io.lenses.streamreactor.connect.cloud.common.storage._
+import io.lenses.streamreactor.connect.cloud.common.utils.SampleData.cloudLocationValidator
 import org.mockito.ArgumentMatchers.any
 import org.mockito.ArgumentMatchers.anyString
 import org.mockito.ArgumentMatchers.{ eq => eqTo }
@@ -53,7 +56,11 @@ class IndexManagerTest extends AnyFlatSpec with MockitoSugar with EitherValues w
 
   private val maxIndexes = 5
 
-  private val indexManager = new IndexManager(maxIndexes, new IndexFilenames(".indexes"))
+  private val indexManager = new IndexManager(
+    maxIndexes,
+    new IndexFilenames(".indexes"),
+    _ => CloudLocation(targetPath, none, none, none).asRight,
+  )
 
   before {
     when(storageInterface.system()).thenReturn("TestaCloud")
@@ -375,4 +382,5 @@ class IndexManagerTest extends AnyFlatSpec with MockitoSugar with EitherValues w
     val result             = indexManager.handleSeekAndCleanErrors(fileNameParseError)
     result shouldBe a[NonFatalCloudSinkError]
   }
+
 }

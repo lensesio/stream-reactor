@@ -65,7 +65,7 @@ object DatalakeSinkConfig extends PropsToConfigConverter[DatalakeSinkConfig] {
 case class DatalakeSinkConfig(
   connectionConfig:     AzureConnectionConfig,
   bucketOptions:        Seq[CloudSinkBucketOptions] = Seq.empty,
-  indexOptions:         IndexOptions,
+  indexOptions:         Option[IndexOptions],
   compressionCodec:     CompressionCodec,
   errorPolicy:          ErrorPolicy,
   connectorRetryConfig: RetryConfig,

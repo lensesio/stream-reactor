@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,16 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.lenses.streamreactor.connect.cloud.common.sink.conversion
+package io.lenses.kcql.partitions;
 
-import io.lenses.streamreactor.connect.cloud.common.formats.writer.SinkData
-import org.apache.kafka.connect.sink.SinkRecord
+import lombok.Data;
 
-import scala.jdk.CollectionConverters.IterableHasAsScala
-
-object HeaderToStringConverter {
-
-  def apply(record: SinkRecord): Map[String, SinkData] = record.headers().asScala.map(header =>
-    header.key() -> ValueToSinkDataConverter(header.value(), Option(header.schema())),
-  ).toMap
+/**
+ * Indicates that the client has explicitly disabled partitions using the NoPartitions keyword.
+ */
+@Data
+public class NoPartitions implements PartitionConfig {
 }

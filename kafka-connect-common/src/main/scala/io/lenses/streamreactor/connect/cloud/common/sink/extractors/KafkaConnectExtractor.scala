@@ -27,6 +27,7 @@ import java.util
 import java.lang
 import java.nio.ByteBuffer
 import scala.jdk.CollectionConverters.MapHasAsJava
+import scala.util.Try
 
 object KafkaConnectExtractor extends LazyLogging {
 
@@ -36,8 +37,7 @@ object KafkaConnectExtractor extends LazyLogging {
   def extractFromValue(sinkRecord: SinkRecord, path: Option[String]): Either[Throwable, AnyRef] =
     extract(sinkRecord.value(), Option(sinkRecord.valueSchema()), path)
 
-  // TODO: test with all different types
-  private def extract(
+  private[extractors] def extract(
     extractFrom:   AnyRef,
     extractSchema: Option[Schema],
     maybePath:     Option[String],
@@ -58,12 +58,16 @@ object KafkaConnectExtractor extends LazyLogging {
       case (arrayVal: Array[_], _) => arrayVal.asRight
       case (decimal: BigDecimal, _) => decimal.asRight
       case (decimal: java.math.BigDecimal, _) => decimal.asRight
-      case null => null
+      case (null, _) => Right(null)
       case (structVal: Struct, Some(pnp)) => StructExtractor.extractPathFromStruct(structVal, pnp)
       case (mapVal: Map[_, _], Some(pnp)) => MapExtractor.extractPathFromMap(mapVal.asJava, pnp, extractSchema.orNull)
       case (mapVal: util.Map[_, _], Some(pnp)) => MapExtractor.extractPathFromMap(mapVal, pnp, extractSchema.orNull)
       case (listVal: util.List[_], Some(pnp)) => ArrayExtractor.extractPathFromArray(listVal, pnp, extractSchema.orNull)
-      case otherVal => new ConnectException("Unknown value type: " + otherVal.getClass.getName).asLeft
+      case (leftVal, rightVal) => new ConnectException(
+          s"Unknown value type: `${Try(leftVal.getClass.getName).getOrElse("undefined")}`, string representation: '${Try(
+            leftVal.toString,
+          ).getOrElse("undefined")}', path: `${rightVal.getOrElse("Empty")}`",
+        ).asLeft
     }
   }
 

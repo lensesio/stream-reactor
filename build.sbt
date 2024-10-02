@@ -1,5 +1,7 @@
 import Dependencies.Versions
+import Dependencies.`cyclopsPure`
 import Dependencies.`cyclops`
+import Dependencies.`lombok`
 import Dependencies.globalExcludeDeps
 import Dependencies.gson
 import Settings.*
@@ -17,6 +19,7 @@ lazy val subProjects: Seq[Project] = Seq(
   `test-utils`,
   `query-language`,
   `java-common`,
+  `sink-reporting`,
   `gcp-common`,
   common,
   `sql-common`,
@@ -70,7 +73,7 @@ lazy val `query-language` = (project in file("java-connectors/kafka-connect-quer
       Seq(
         name := "kafka-connect-query-language",
         description := "Kafka Connect compatible connectors to move data between Kafka and popular data stores",
-        libraryDependencies ++= Seq(cyclops),
+        libraryDependencies ++= Seq(cyclops, cyclopsPure, lombok),
         publish / skip := true,
       ),
   )
@@ -86,6 +89,21 @@ lazy val `java-common` = (project in file("java-connectors/kafka-connect-common"
       Seq(
         name := "kafka-connect-java-common",
         description := "Common components from java",
+        libraryDependencies ++= javaCommonDeps,
+        publish / skip := true,
+      ),
+  )
+  .configureAssembly(false)
+  .configureTests(javaCommonTestDeps)
+
+lazy val `sink-reporting` = (project in file("java-connectors/kafka-connect-sink-reporting"))
+  .dependsOn(`java-common`)
+  .dependsOn(`test-utils` % "test->test")
+  .settings(
+    settings ++
+      Seq(
+        name := "kafka-connect-sink-reporting",
+        description := "Common reporting components from java",
         libraryDependencies ++= javaCommonDeps,
         publish / skip := true,
       ),
@@ -322,6 +340,7 @@ lazy val elastic7 = (project in file("kafka-connect-elastic7"))
 
 lazy val http = (project in file("kafka-connect-http"))
   .dependsOn(common)
+  .dependsOn(`sink-reporting`)
   .dependsOn(`test-common` % "fun->compile")
   .settings(
     settings ++
@@ -541,7 +560,7 @@ Compile / generateFunModulesList :=
 
 Compile / generatePublishModulesList := {
 
-  val nonPublishableModulesFragments = Set("common", "utils", "query-language", "test")
+  val nonPublishableModulesFragments = Set("common", "utils", "query-language", "test", "reporting")
   val publishableModules = subProjects
     .filterNot(project => nonPublishableModulesFragments.exists(ignore => project.id.contains(ignore)))
 

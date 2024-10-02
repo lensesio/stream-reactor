@@ -20,10 +20,11 @@ import io.lenses.streamreactor.connect.http.sink.tpl.substitutions.SubstitutionE
 import io.lenses.streamreactor.connect.http.sink.tpl.substitutions.SubstitutionType
 import org.apache.kafka.connect.sink.SinkRecord
 
+import java.util.regex.Matcher
 import scala.util.matching.Regex
 object TemplateRenderer {
 
-  private val templatePattern: Regex = "\\{\\{(.*?)}}".r
+  private val templatePattern: Regex = "\\{\\{([^{}]*)}}".r
 
   // Method to render a single data entry with a template
   def render(data: SinkRecord, tplText: String): Either[SubstitutionError, String] =
@@ -31,12 +32,13 @@ object TemplateRenderer {
       templatePattern
         .replaceAllIn(
           tplText,
-          matchTag => {
-            val tag = matchTag.group(1).trim
-            getValue(tag, data)
-              .leftMap(throw _)
-              .merge
-          },
+          matchTag =>
+            Matcher.quoteReplacement {
+              val tag = matchTag.group(1).trim
+              getValue(tag, data)
+                .leftMap(throw _)
+                .merge
+            },
         ),
     )
 

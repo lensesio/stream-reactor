@@ -58,6 +58,14 @@ public interface ConfigSource {
   Optional<Double> getDouble(String key);
 
   /**
+   * Retrieves a Boolean property value associated with the given key.
+   *
+   * @param key the property key
+   * @return an {@link Optional} containing the property value if present, otherwise empty
+   */
+  Optional<Boolean> getBoolean(String key);
+
+  /**
    * Retrieves a Password property value associated with the given key.
    *
    * @param key the property key

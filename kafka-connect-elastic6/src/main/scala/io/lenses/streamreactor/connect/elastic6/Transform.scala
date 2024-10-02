@@ -39,13 +39,11 @@ private object Transform extends StrictLogging {
     schema:        Schema,
     value:         Any,
     withStructure: Boolean,
-  ): JsonNode = {
+  ): Option[JsonNode] = {
     def raiseException(msg: String, t: Throwable) = throw new IllegalArgumentException(msg, t)
 
-    if (value == null) {
-      if (schema == null || !schema.isOptional) {
-        raiseException("Null value is not allowed.", null)
-      } else null
+    if (Option(value).isEmpty) {
+      None
     } else {
       if (schema != null) {
         schema.`type`() match {
@@ -62,7 +60,7 @@ private object Transform extends StrictLogging {
               case Success(json) =>
                 Try(json.sql(fields, !withStructure)) match {
                   case Failure(e)  => raiseException(s"A KCQL exception occurred. ${e.getMessage}", e)
-                  case Success(jn) => jn
+                  case Success(jn) => Option(jn)
                 }
             }
 
@@ -72,7 +70,7 @@ private object Transform extends StrictLogging {
               case Failure(e) => raiseException("Invalid json", e)
               case Success(json) =>
                 Try(json.sql(fields, !withStructure)) match {
-                  case Success(jn) => jn
+                  case Success(jn) => Option(jn)
                   case Failure(e)  => raiseException(s"A KCQL exception occurred.${e.getMessage}", e)
                 }
             }
@@ -80,7 +78,7 @@ private object Transform extends StrictLogging {
           case Schema.Type.STRUCT =>
             val struct = value.asInstanceOf[Struct]
             Try(struct.sql(fields, !withStructure)) match {
-              case Success(s) => simpleJsonConverter.fromConnectData(s.schema(), s)
+              case Success(s) => Option(simpleJsonConverter.fromConnectData(s.schema(), s))
 
               case Failure(e) => raiseException(s"A KCQL error occurred.${e.getMessage}", e)
             }
@@ -95,7 +93,7 @@ private object Transform extends StrictLogging {
             val jsonNode: JsonNode =
               JacksonJson.mapper.setSerializationInclusion(JsonInclude.Include.ALWAYS).valueToTree[JsonNode](map)
             Try(jsonNode.sql(fields, !withStructure)) match {
-              case Success(j) => j
+              case Success(j) => Option(j)
               case Failure(e) => raiseException(s"A KCQL exception occurred.${e.getMessage}", e)
             }
           case s: String =>
@@ -103,7 +101,7 @@ private object Transform extends StrictLogging {
               case Failure(e) => raiseException("Invalid json.", e)
               case Success(json) =>
                 Try(json.sql(fields, !withStructure)) match {
-                  case Success(jn) => jn
+                  case Success(jn) => Option(jn)
                   case Failure(e)  => raiseException(s"A KCQL exception occurred.${e.getMessage}", e)
                 }
             }
@@ -114,7 +112,7 @@ private object Transform extends StrictLogging {
               case Success(json) =>
                 Try(json.sql(fields, !withStructure)) match {
                   case Failure(e)  => raiseException(s"A KCQL exception occurred. ${e.getMessage}", e)
-                  case Success(jn) => jn
+                  case Success(jn) => Option(jn)
                 }
             }
           //we take it as String

@@ -18,6 +18,6 @@ package io.lenses.streamreactor.connect.elastic7
 package object indexname {
 
   implicit class StringToOption(text: String) {
-    def toOption: Option[String] = if (text.nonEmpty) Some(text) else None
+    def toOption: Option[String] = Option.when(text.nonEmpty)(text)
   }
 }

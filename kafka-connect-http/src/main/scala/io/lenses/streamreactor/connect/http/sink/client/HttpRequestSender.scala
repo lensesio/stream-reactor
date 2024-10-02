@@ -15,19 +15,80 @@
  */
 package io.lenses.streamreactor.connect.http.sink.client
 import cats.effect.IO
+import cats.effect.Ref
 import cats.implicits.none
 import com.typesafe.scalalogging.LazyLogging
+import io.lenses.streamreactor.connect.http.sink.client.oauth2.cache.CachedAccessTokenProvider
+import io.lenses.streamreactor.connect.http.sink.client.oauth2.AccessToken
+import io.lenses.streamreactor.connect.http.sink.client.oauth2.AccessTokenProvider
+import io.lenses.streamreactor.connect.http.sink.client.oauth2.OAuth2AccessTokenProvider
 import io.lenses.streamreactor.connect.http.sink.tpl.ProcessedTemplate
 import org.http4s._
 import org.http4s.client.Client
 import org.http4s.headers.Authorization
 import org.http4s.headers.`Content-Type`
 import org.typelevel.ci.CIString
-class HttpRequestSender(
-  sinkName:       String,
-  authentication: Option[Authentication], // ssl, basic, oauth2, proxy
-  method:         Method,
-  client:         Client[IO],
+
+class NoAuthenticationHttpRequestSender(
+  sinkName: String,
+  method:   Method,
+  client:   Client[IO],
+) extends HttpRequestSender(sinkName, method, client) {
+
+  override protected def updateRequest(request: Request[IO]): IO[Request[IO]] = IO.pure(request)
+}
+
+class BasicAuthenticationHttpRequestSender(
+  sinkName: String,
+  method:   Method,
+  client:   Client[IO],
+  username: String,
+  password: String,
+) extends HttpRequestSender(sinkName, method, client) {
+
+  override protected def updateRequest(request: Request[IO]): IO[Request[IO]] =
+    IO.pure(request.putHeaders(Authorization(BasicCredentials(username, password))))
+}
+
+class OAuth2AuthenticationHttpRequestSender(
+  sinkName:      String,
+  method:        Method,
+  client:        Client[IO],
+  tokenProvider: AccessTokenProvider[IO],
+) extends HttpRequestSender(sinkName, method, client) {
+
+  override protected def updateRequest(request: Request[IO]): IO[Request[IO]] =
+    for {
+      token          <- tokenProvider.requestToken()
+      requestWithAuth = request.putHeaders(Authorization(Credentials.Token(AuthScheme.Bearer, token.value)))
+    } yield requestWithAuth
+}
+
+object HttpRequestSender {
+  def apply(
+    sinkName:       String,
+    method:         Method,
+    client:         Client[IO],
+    authentication: Authentication,
+  ): IO[HttpRequestSender] = authentication match {
+    case NoAuthentication => IO(new NoAuthenticationHttpRequestSender(sinkName, method, client))
+    case BasicAuthentication(username, password) =>
+      IO(new BasicAuthenticationHttpRequestSender(sinkName, method, client, username, password))
+    case OAuth2Authentication(uri, clientId, clientSecret, tokenProperty, clientScope, clientHeaders) =>
+      val rawHeaders = clientHeaders.map { case (k, v) => Header.Raw(CIString(k), v) }
+      val tokenProvider =
+        new OAuth2AccessTokenProvider(client, uri, clientId, clientSecret, clientScope, rawHeaders, tokenProperty)
+      for {
+        ref                <- Ref.of[IO, Option[AccessToken]](none)
+        cachedTokenProvider = new CachedAccessTokenProvider(tokenProvider, ref)
+      } yield new OAuth2AuthenticationHttpRequestSender(sinkName, method, client, cachedTokenProvider)
+  }
+}
+
+abstract class HttpRequestSender(
+  sinkName: String,
+  method:   Method,
+  client:   Client[IO],
 ) extends LazyLogging {
 
   private case class HeaderInfo(contentType: Option[`Content-Type`], headers: Headers)
@@ -61,6 +122,8 @@ class HttpRequestSender(
     }
   }
 
+  protected def updateRequest(request: Request[IO]): IO[Request[IO]]
+
   def sendHttpRequest(
     processedTemplate: ProcessedTemplate,
   ): IO[Unit] =
@@ -82,13 +145,8 @@ class HttpRequestSender(
       }
       requestWithContentType = clientHeaders.contentType.fold(request)(request.withContentType)
       // Add authentication if present
-      authenticatedRequest <- IO {
-        authentication.fold(requestWithContentType) {
-          case BasicAuthentication(username, password) =>
-            requestWithContentType.putHeaders(Authorization(BasicCredentials(username, password)))
-        }
-      }
-      _ <- IO.delay(logger.debug(s"[$sinkName] Auth: $authenticatedRequest"))
+      authenticatedRequest <- updateRequest(requestWithContentType)
+      _                    <- IO.delay(logger.debug(s"[$sinkName] Auth: $authenticatedRequest"))
       response <- client.expect[String](authenticatedRequest).onError(e =>
         IO {
           logger.error(s"[$sinkName] error writing to HTTP endpoint", e.getMessage)

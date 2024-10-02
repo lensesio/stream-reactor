@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,3 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package io.lenses.streamreactor.common.validation.validators;
+
+import io.lenses.kcql.Kcql;
+import java.util.List;
+
+/**
+ * Validator that ckecks if single {@link Kcql} statement is valid against some rules.
+ */
+public interface SingleKcqlValidator {
+
+  /**
+   * Validates single KCQL statement against specific rule.
+   * 
+   * @param kcql {@link Kcql} to be validated
+   * @return List of errors (can be empty if Kcql is valid)
+   */
+  List<String> validate(Kcql kcql);
+
+}

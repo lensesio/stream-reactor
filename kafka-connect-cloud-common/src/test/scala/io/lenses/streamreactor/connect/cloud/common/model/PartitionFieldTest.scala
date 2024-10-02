@@ -15,37 +15,30 @@
  */
 package io.lenses.streamreactor.connect.cloud.common.model
 
-import io.lenses.kcql.Kcql
+import io.lenses.kcql.partitions.Partitions
 import io.lenses.streamreactor.connect.cloud.common.sink.config._
 import org.mockito.MockitoSugar
+import org.scalatest.EitherValues
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-import java.util.Collections
-import scala.jdk.CollectionConverters.IteratorHasAsJava
+import java.util
 
-class PartitionFieldTest extends AnyFlatSpec with MockitoSugar with Matchers {
+class PartitionFieldTest extends AnyFlatSpec with MockitoSugar with Matchers with EitherValues {
 
-  val kcql: Kcql = mock[Kcql]
-
-  "partitionField.apply" should "return empty Seq if null kcql partitionBy supplied" in {
-    when(kcql.getPartitionBy).thenReturn(null)
-    PartitionField(kcql) should be(Seq.empty[PartitionField])
-  }
-
-  "partitionField.apply" should "return empty Seq if no kcql partitionBy supplied" in {
-    when(kcql.getPartitionBy).thenReturn(Collections.emptyIterator())
-    PartitionField(kcql) should be(Seq.empty[PartitionField])
+  "partitionField.apply" should "return empty Seq if empty kcql partitionBy supplied" in {
+    val partitions = new Partitions(util.List.of());
+    PartitionField(partitions).value should be(Seq.empty[PartitionField])
   }
 
   "partitionField.apply" should "parse partitions by whole key" in {
-    when(kcql.getPartitionBy).thenReturn(Seq("_key").iterator.asJava)
-    PartitionField(kcql) should be(Seq(WholeKeyPartitionField))
+    val partitions = new Partitions(util.List.of("_key"));
+    PartitionField(partitions).value should be(Seq(WholeKeyPartitionField))
   }
 
   "partitionField.apply" should "parse partitions by keys" in {
-    when(kcql.getPartitionBy).thenReturn(Seq("_key.fieldA", "_key.fieldB", "_key.field_c").iterator.asJava)
-    PartitionField(kcql) should be(
+    val partitions = new Partitions(util.List.of("_key.fieldA", "_key.fieldB", "_key.field_c"))
+    PartitionField(partitions).value should be(
       Seq(
         KeyPartitionField(PartitionNamePath("fieldA")),
         KeyPartitionField(PartitionNamePath("fieldB")),
@@ -55,8 +48,8 @@ class PartitionFieldTest extends AnyFlatSpec with MockitoSugar with Matchers {
   }
 
   "partitionField.apply" should "parse partitions by values by default" in {
-    when(kcql.getPartitionBy).thenReturn(Seq("fieldA", "fieldB", "field_c").iterator.asJava)
-    PartitionField(kcql) should be(
+    val partitions = new Partitions(util.List.of("fieldA", "fieldB", "field_c"))
+    PartitionField(partitions).value should be(
       Seq(
         ValuePartitionField(PartitionNamePath("fieldA")),
         ValuePartitionField(PartitionNamePath("fieldB")),
@@ -66,15 +59,15 @@ class PartitionFieldTest extends AnyFlatSpec with MockitoSugar with Matchers {
   }
 
   "partitionField.apply" should "parse partitions by values" in {
-    when(kcql.getPartitionBy).thenReturn(Seq("_value.fieldA", "_value.fieldB").iterator.asJava)
-    PartitionField(kcql) should be(Seq(ValuePartitionField(PartitionNamePath("fieldA")),
-                                       ValuePartitionField(PartitionNamePath("fieldB")),
+    val partitions = new Partitions(util.List.of("_value.fieldA", "_value.fieldB"))
+    PartitionField(partitions).value should be(Seq(ValuePartitionField(PartitionNamePath("fieldA")),
+                                                   ValuePartitionField(PartitionNamePath("fieldB")),
     ))
   }
 
   "partitionField.apply" should "parse nested partitions" in {
-    when(kcql.getPartitionBy).thenReturn(Seq("_value.userDetails.address.houseNumber", "_value.fieldB").iterator.asJava)
-    PartitionField(kcql) should be(
+    val partitions = new Partitions(util.List.of("_value.userDetails.address.houseNumber", "_value.fieldB"))
+    PartitionField(partitions).value should be(
       Seq(
         ValuePartitionField(PartitionNamePath("userDetails", "address", "houseNumber")),
         ValuePartitionField(PartitionNamePath("fieldB")),

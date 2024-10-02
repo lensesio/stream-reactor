@@ -8,6 +8,7 @@ project(':kafka-connect-azure-eventhubs') {
     dependencies {
         implementation project(':kafka-connect-common')
         implementation project(':kafka-connect-query-language')
+        testImplementation(project(path: ':test-utils', configuration: 'testArtifacts'))
 
         //        //azure-specific dependencies in case we want to change from kafka protocol
         //        implementation group: 'com.azure', name: 'azure-identity', version: '1.11.2'

@@ -27,7 +27,9 @@ import io.lenses.streamreactor.connect.http.sink.commit.HttpCommitContext
 import io.lenses.streamreactor.connect.http.sink.tpl.ProcessedTemplate
 import io.lenses.streamreactor.connect.http.sink.tpl.RenderedRecord
 import io.lenses.streamreactor.connect.http.sink.tpl.TemplateType
+import io.lenses.streamreactor.connect.reporting.ReportingController
 import org.mockito.ArgumentMatchers.any
+import org.mockito.ArgumentMatchersSugar.eqTo
 import org.mockito.MockitoSugar
 import org.scalatest.funsuite.AsyncFunSuiteLike
 import org.scalatest.matchers.should.Matchers
@@ -56,10 +58,13 @@ class HttpWriterTest extends AsyncIOSpec with AsyncFunSuiteLike with Matchers wi
                                   recordsQueueRef,
                                   commitContextRef,
                                   5,
+                                  false,
+                                  mock[ReportingController],
+                                  mock[ReportingController],
       )
       recordsToAdd = Seq(
-        RenderedRecord(topicPartition.atOffset(100), "record1", Seq.empty, None),
-        RenderedRecord(topicPartition.atOffset(101), "record2", Seq.empty, None),
+        RenderedRecord(topicPartition.atOffset(100), TIMESTAMP, "record1", Seq.empty, None),
+        RenderedRecord(topicPartition.atOffset(101), TIMESTAMP, "record2", Seq.empty, None),
       )
       _ <- httpWriter.add(recordsToAdd)
 
@@ -68,6 +73,7 @@ class HttpWriterTest extends AsyncIOSpec with AsyncFunSuiteLike with Matchers wi
       queue shouldBe Queue(recordsToAdd: _*)
     }
   }
+  private val TIMESTAMP = 125L
 
   test("process method should flush records when the queue is non-empty and commit policy requires flush") {
     val commitPolicy = CommitPolicy(Count(2L))
@@ -75,11 +81,14 @@ class HttpWriterTest extends AsyncIOSpec with AsyncFunSuiteLike with Matchers wi
     when(senderMock.sendHttpRequest(any[ProcessedTemplate])).thenReturn(IO.unit)
 
     val templateMock = mock[TemplateType]
-    when(templateMock.process(any[Seq[RenderedRecord]])).thenReturn(Right(ProcessedTemplate("a", "b", Seq.empty)))
+    when(templateMock.process(any[Seq[RenderedRecord]], eqTo(false))).thenReturn(Right(ProcessedTemplate("a",
+                                                                                                         "b",
+                                                                                                         Seq.empty,
+    )))
 
     val recordsToAdd = Seq(
-      RenderedRecord(topicPartition.atOffset(100), "record1", Seq.empty, None),
-      RenderedRecord(topicPartition.atOffset(101), "record2", Seq.empty, None),
+      RenderedRecord(topicPartition.atOffset(100), TIMESTAMP, "record1", Seq.empty, None),
+      RenderedRecord(topicPartition.atOffset(101), TIMESTAMP, "record2", Seq.empty, None),
     )
 
     {
@@ -94,6 +103,9 @@ class HttpWriterTest extends AsyncIOSpec with AsyncFunSuiteLike with Matchers wi
                                     recordsQueueRef,
                                     commitContextRef,
                                     5,
+                                    false,
+                                    mock[ReportingController],
+                                    mock[ReportingController],
         )
 
         _              <- httpWriter.add(recordsToAdd)
@@ -125,6 +137,9 @@ class HttpWriterTest extends AsyncIOSpec with AsyncFunSuiteLike with Matchers wi
                                   recordsQueueRef,
                                   commitContextRef,
                                   5,
+                                  false,
+                                  mock[ReportingController],
+                                  mock[ReportingController],
       )
 
       _              <- httpWriter.process()

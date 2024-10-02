@@ -34,6 +34,11 @@ trait IndexConfigKeys extends WithConnectorPrefix {
     s"Name of the indexes directory"
   private val INDEXES_DIRECTORY_NAME_DEFAULT = ".indexes"
 
+  val ENABLE_EXACTLY_ONCE = s"$connectorPrefix.exactly.once.enable"
+  private val ENABLE_EXACTLY_ONCE_DOC =
+    s"Exactly once is enabled by default.  It works by keeping an .indexes directory at the root of your bucket with subdirectories for indexes.  Exactly once support can be disabled and the default offset tracking from kafka can be used instead by setting this to false."
+  private val ENABLE_EXACTLY_ONCE_DEFAULT = true
+
   def addIndexSettingsToConfigDef(configDef: ConfigDef): ConfigDef =
     configDef
       .define(
@@ -58,11 +63,22 @@ trait IndexConfigKeys extends WithConnectorPrefix {
         ConfigDef.Width.LONG,
         INDEXES_DIRECTORY_NAME,
       )
+      .define(
+        ENABLE_EXACTLY_ONCE,
+        Type.BOOLEAN,
+        ENABLE_EXACTLY_ONCE_DEFAULT,
+        Importance.LOW,
+        ENABLE_EXACTLY_ONCE_DOC,
+        "Sink Seek",
+        3,
+        ConfigDef.Width.NONE,
+        ENABLE_EXACTLY_ONCE,
+      )
 }
 trait IndexSettings extends BaseSettings with IndexConfigKeys {
-  def getIndexSettings: IndexOptions =
-    IndexOptions(
+  def getIndexSettings: Option[IndexOptions] =
+    Option.when(getBoolean(ENABLE_EXACTLY_ONCE))(IndexOptions(
       getInt(SEEK_MAX_INDEX_FILES),
       getString(INDEXES_DIRECTORY_NAME),
-    )
+    ))
 }

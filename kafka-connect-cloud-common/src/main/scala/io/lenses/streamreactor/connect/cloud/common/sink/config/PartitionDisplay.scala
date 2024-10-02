@@ -15,7 +15,6 @@
  */
 package io.lenses.streamreactor.connect.cloud.common.sink.config
 
-import io.lenses.kcql.Kcql
 import enumeratum.Enum
 import enumeratum.EnumEntry
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.PartitionIncludeKeys
@@ -36,7 +35,6 @@ object PartitionDisplay extends Enum[PartitionDisplay] {
   case object Values extends PartitionDisplay
 
   def apply(
-    kcql:    Kcql,
     props:   KcqlProperties[PropsKeyEntry, PropsKeyEnum.type],
     default: PartitionDisplay,
   ): PartitionDisplay = fromProps(props).getOrElse(default)

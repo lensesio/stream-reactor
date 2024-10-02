@@ -15,17 +15,19 @@
  */
 package io.lenses.streamreactor.connect.elastic7
 
-import io.lenses.kcql.Kcql
-import io.lenses.streamreactor.connect.elastic7.config.ElasticSettings
-import io.lenses.streamreactor.connect.elastic7.indexname.CreateIndex.getIndexName
-import com.sksamuel.elastic4s.requests.bulk.BulkRequest
-import com.sksamuel.elastic4s.requests.bulk.BulkResponse
+import cats.implicits.toBifunctorOps
 import com.sksamuel.elastic4s.ElasticClient
 import com.sksamuel.elastic4s.ElasticNodeEndpoint
 import com.sksamuel.elastic4s.ElasticProperties
 import com.sksamuel.elastic4s.Response
 import com.sksamuel.elastic4s.http.JavaClient
+import com.sksamuel.elastic4s.requests.bulk.BulkRequest
+import com.sksamuel.elastic4s.requests.bulk.BulkResponse
 import com.typesafe.scalalogging.StrictLogging
+import io.lenses.kcql.Kcql
+import io.lenses.streamreactor.common.util.EitherUtils.unpackOrThrow
+import io.lenses.streamreactor.connect.elastic7.config.ElasticSettings
+import io.lenses.streamreactor.connect.elastic7.indexname.CreateIndex.getIndexNameForAutoCreate
 import org.apache.http.auth.AuthScope
 import org.apache.http.auth.UsernamePasswordCredentials
 import org.apache.http.client.config.RequestConfig.Builder
@@ -42,28 +44,31 @@ trait KElasticClient extends AutoCloseable {
 
 object KElasticClient extends StrictLogging {
 
-  def createHttpClient(settings: ElasticSettings, endpoints: Seq[ElasticNodeEndpoint]): KElasticClient =
-    if (settings.httpBasicAuthUsername.nonEmpty && settings.httpBasicAuthPassword.nonEmpty) {
-      lazy val provider = {
-        val provider = new BasicCredentialsProvider
-        val credentials =
-          new UsernamePasswordCredentials(settings.httpBasicAuthUsername, settings.httpBasicAuthPassword)
+  def createHttpClient(settings: ElasticSettings, endpoints: Seq[ElasticNodeEndpoint]): KElasticClient = {
+    val maybeProvider: Option[BasicCredentialsProvider] = {
+      for {
+        httpBasicAuthUsername <- Option.when(settings.httpBasicAuthUsername.nonEmpty)(settings.httpBasicAuthUsername)
+        httpBasicAuthPassword <- Option.when(settings.httpBasicAuthPassword.nonEmpty)(settings.httpBasicAuthPassword)
+      } yield {
+        val credentials = new UsernamePasswordCredentials(httpBasicAuthUsername, httpBasicAuthPassword)
+        val provider    = new BasicCredentialsProvider
         provider.setCredentials(AuthScope.ANY, credentials)
         provider
       }
-
-      val javaClient = JavaClient(
+    }
+    val client: ElasticClient = ElasticClient(
+      JavaClient(
         ElasticProperties(endpoints),
         (requestConfigBuilder: Builder) => requestConfigBuilder,
-        (httpClientBuilder: HttpAsyncClientBuilder) => httpClientBuilder.setDefaultCredentialsProvider(provider),
-      )
-
-      val client: ElasticClient = ElasticClient(javaClient)
-      new HttpKElasticClient(client)
-    } else {
-      val client: ElasticClient = ElasticClient(JavaClient(ElasticProperties(endpoints)))
-      new HttpKElasticClient(client)
-    }
+        (httpClientBuilder: HttpAsyncClientBuilder) => {
+          maybeProvider.foreach(httpClientBuilder.setDefaultCredentialsProvider)
+          unpackOrThrow(settings.storesInfo.toSslContext).map(httpClientBuilder.setSSLContext(_))
+          httpClientBuilder
+        },
+      ),
+    )
+    new HttpKElasticClient(client)
+  }
 }
 
 class HttpKElasticClient(client: ElasticClient) extends KElasticClient {
@@ -73,9 +78,11 @@ class HttpKElasticClient(client: ElasticClient) extends KElasticClient {
   override def index(kcql: Kcql): Unit = {
     require(kcql.isAutoCreate, s"Auto-creating indexes hasn't been enabled for target:${kcql.getTarget}")
 
-    val indexName = getIndexName(kcql)
-    client.execute {
-      createIndex(indexName)
+    getIndexNameForAutoCreate(kcql).leftMap(throw _).map {
+      indexName: String =>
+        client.execute {
+          createIndex(indexName)
+        }
     }
     ()
   }

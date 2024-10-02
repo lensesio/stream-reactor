@@ -29,7 +29,6 @@ import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.CloudCommitContext
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.CommitPolicy
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.ObjectKeyBuilder
-import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexManager
 import io.lenses.streamreactor.connect.cloud.common.storage._
 import org.apache.kafka.connect.data.Schema
 
@@ -40,18 +39,19 @@ import scala.util.Try
 class Writer[SM <: FileMetadata](
   topicPartition:    TopicPartition,
   commitPolicy:      CommitPolicy,
-  indexManager:      IndexManager[SM],
+  writerIndexer:     WriterIndexer[SM],
   stagingFilenameFn: () => Either[SinkError, File],
   objectKeyBuilder:  ObjectKeyBuilder,
   formatWriterFn:    File => Either[SinkError, FormatWriter],
-  lastSeekedOffset:  Option[Offset],
 )(
   implicit
   connectorTaskId:  ConnectorTaskId,
   storageInterface: StorageInterface[SM],
 ) extends LazyLogging {
 
-  private var writeState: WriteState = NoWriter(CommitState(topicPartition, lastSeekedOffset))
+  private val lastSeekedOffset: Option[Offset] = writerIndexer.getSeekedOffsetForTopicPartition(topicPartition)
+
+  var writeState: WriteState = NoWriter(CommitState(topicPartition, lastSeekedOffset))
 
   def write(messageDetail: MessageDetail): Either[SinkError, Unit] = {
 
@@ -117,10 +117,10 @@ class Writer[SM <: FileMetadata](
         for {
           key  <- objectKeyBuilder.build(uncommittedOffset, earliestRecordTimestamp, latestRecordTimestamp)
           path <- key.path.toRight(NonFatalCloudSinkError("No path exists within cloud location"))
-          indexFileName <- indexManager.write(
-            key.bucket,
-            path,
-            topicPartition.withOffset(uncommittedOffset),
+          maybeIndexFileName: Option[String] <- writerIndexer.writeIndex(topicPartition,
+                                                                         key.bucket,
+                                                                         uncommittedOffset,
+                                                                         path,
           )
           _ <- storageInterface.uploadFile(UploadableFile(file), key.bucket, path)
             .recover {
@@ -130,7 +130,7 @@ class Writer[SM <: FileMetadata](
             .leftMap {
               case UploadFailedError(exception, _) => NonFatalCloudSinkError(exception.getMessage, exception.some)
             }
-          _ <- indexManager.clean(key.bucket, indexFileName, topicPartition)
+          _ <- writerIndexer.cleanIndex(topicPartition, key, maybeIndexFileName)
           stateReset <- Try {
             logger.debug(s"[{}] Writer.resetState: Resetting state $writeState", connectorTaskId.show)
             writeState = uploadState.toNoWriter
@@ -180,46 +180,48 @@ class Writer[SM <: FileMetadata](
     * @param currentOffset the current offset
     * @return true if the given offset should be skipped, false otherwise
     */
-  def shouldSkip(currentOffset: Offset): Boolean = {
+  def shouldSkip(currentOffset: Offset): Boolean =
+    if (!writerIndexer.indexingEnabled()) false
+    else {
 
-    def largestOffset(maybeCommittedOffset: Option[Offset], uncommittedOffset: Offset): Offset = {
-      logger.trace(s"[{}] maybeCommittedOffset: {}, uncommittedOffset: {}",
-                   connectorTaskId.show,
-                   maybeCommittedOffset,
-                   uncommittedOffset,
-      )
-      (maybeCommittedOffset.toList :+ uncommittedOffset).max
-    }
-
-    def shouldSkipInternal(currentOffset: Offset, latestOffset: Option[Offset]): Boolean = {
-
-      def logSkipOutcome(currentOffset: Offset, latestOffset: Option[Offset], skipRecord: Boolean): Unit = {
-        val skipping = if (skipRecord) "SKIPPING" else "PROCESSING"
-        logger.debug(
-          s"[${connectorTaskId.show}] lastSeeked=$lastSeekedOffset current=${currentOffset.value} latest=$latestOffset - $skipping",
+      def largestOffset(maybeCommittedOffset: Option[Offset], uncommittedOffset: Offset): Offset = {
+        logger.trace(s"[{}] maybeCommittedOffset: {}, uncommittedOffset: {}",
+                     connectorTaskId.show,
+                     maybeCommittedOffset,
+                     uncommittedOffset,
         )
+        (maybeCommittedOffset.toList :+ uncommittedOffset).max
       }
 
-      val shouldSkip = if (latestOffset.isEmpty) {
-        false
-      } else if (latestOffset.exists(_ >= currentOffset)) {
-        true
-      } else {
-        false
-      }
-      logSkipOutcome(currentOffset, latestOffset, skipRecord = shouldSkip)
-      shouldSkip
-    }
+      def shouldSkipInternal(currentOffset: Offset, latestOffset: Option[Offset]): Boolean = {
 
-    writeState match {
-      case NoWriter(commitState) =>
-        shouldSkipInternal(currentOffset, commitState.committedOffset)
-      case Uploading(commitState, _, uncommittedOffset, _, _) =>
-        shouldSkipInternal(currentOffset, Option(largestOffset(commitState.committedOffset, uncommittedOffset)))
-      case Writing(commitState, _, _, uncommittedOffset, _, _) =>
-        shouldSkipInternal(currentOffset, Option(largestOffset(commitState.committedOffset, uncommittedOffset)))
+        def logSkipOutcome(currentOffset: Offset, latestOffset: Option[Offset], skipRecord: Boolean): Unit = {
+          val skipping = if (skipRecord) "SKIPPING" else "PROCESSING"
+          logger.debug(
+            s"[${connectorTaskId.show}] lastSeeked=${lastSeekedOffset.getOrElse("None")} current=${currentOffset.value} latest=${latestOffset.getOrElse("None")} - $skipping",
+          )
+        }
+
+        val shouldSkip = if (latestOffset.isEmpty) {
+          false
+        } else if (latestOffset.exists(_ >= currentOffset)) {
+          true
+        } else {
+          false
+        }
+        logSkipOutcome(currentOffset, latestOffset, skipRecord = shouldSkip)
+        shouldSkip
+      }
+
+      writeState match {
+        case NoWriter(commitState) =>
+          shouldSkipInternal(currentOffset, commitState.committedOffset)
+        case Uploading(commitState, _, uncommittedOffset, _, _) =>
+          shouldSkipInternal(currentOffset, Option(largestOffset(commitState.committedOffset, uncommittedOffset)))
+        case Writing(commitState, _, _, uncommittedOffset, _, _) =>
+          shouldSkipInternal(currentOffset, Option(largestOffset(commitState.committedOffset, uncommittedOffset)))
+      }
     }
-  }
 
   def hasPendingUpload: Boolean =
     writeState match {

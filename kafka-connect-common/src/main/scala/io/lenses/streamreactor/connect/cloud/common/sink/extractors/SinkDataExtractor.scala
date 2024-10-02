@@ -17,8 +17,13 @@ package io.lenses.streamreactor.connect.cloud.common.sink.extractors
 
 import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.cloud.common.formats.writer._
 import io.lenses.streamreactor.connect.cloud.common.sink.config.PartitionNamePath
+import io.lenses.streamreactor.connect.cloud.common.sink.conversion.ArraySinkData
+import io.lenses.streamreactor.connect.cloud.common.sink.conversion.ByteArraySinkData
+import io.lenses.streamreactor.connect.cloud.common.sink.conversion.MapSinkData
+import io.lenses.streamreactor.connect.cloud.common.sink.conversion.PrimitiveSinkData
+import io.lenses.streamreactor.connect.cloud.common.sink.conversion.SinkData
+import io.lenses.streamreactor.connect.cloud.common.sink.conversion.StructSinkData
 
 /**
   * Extracts values from a SinkData wrapper type

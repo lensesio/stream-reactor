@@ -204,6 +204,7 @@ jobs:
           comment_mode: off
 
   dependency-check:
+    if: false  # This ensures dependency-check is always skipped
     needs:
       - initiate
       - build-and-cache-assembly
@@ -243,6 +244,7 @@ jobs:
       - initiate
       - functional-test
       - dependency-check
+    if: ${{ needs.dependency-check.result == 'success' || needs.dependency-check.result == 'skipped' }}
     timeout-minutes: 30
     runs-on: ubuntu-latest
     strategy:

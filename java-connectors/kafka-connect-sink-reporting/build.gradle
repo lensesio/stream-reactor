@@ -1,0 +1,12 @@
+project(':kafka-connect-sink-reporting') {
+
+
+    test {
+        maxParallelForks = 1
+    }
+
+    dependencies {
+        implementation project(':kafka-connect-common')
+        testImplementation(project(path: ':test-utils', configuration: 'testArtifacts'))
+    }
+}

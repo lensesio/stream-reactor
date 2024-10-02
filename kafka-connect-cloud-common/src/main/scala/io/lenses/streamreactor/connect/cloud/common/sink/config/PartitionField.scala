@@ -14,13 +14,19 @@
  * limitations under the License.
  */
 package io.lenses.streamreactor.connect.cloud.common.sink.config
-
-import io.lenses.kcql.Kcql
+import cats.implicits._
+import cats.implicits.catsSyntaxEitherId
+import io.lenses.kcql.partitions.Partitions
 
 import java.time.format.DateTimeFormatter
 import java.util.TimeZone
-import scala.jdk.CollectionConverters.IteratorHasAsScala
+import scala.jdk.CollectionConverters.ListHasAsScala
 
+/**
+  * The `PartitionField` trait represents a field that can be used for partitioning data.
+  * It provides a method to get the name of the field and a flag to indicate if the field supports padding.
+  * Different types of partition fields are represented as case classes extending this trait.
+  */
 sealed trait PartitionField {
   def name(): String
 
@@ -29,44 +35,75 @@ sealed trait PartitionField {
 
 object PartitionField {
 
-  def apply(kcql: Kcql): Seq[PartitionField] =
-    Option(kcql.getPartitionBy)
-      .map(_.asScala)
-      .getOrElse(Nil)
-      .map { name =>
-        val split: Seq[String] = PartitionFieldSplitter.split(name)
-        PartitionSpecifier.withNameOption(split.head).fold(PartitionField(split))(hd =>
-          if (split.tail.isEmpty) PartitionField(hd) else PartitionField(hd, split.tail),
-        )
-      }.toSeq
+  /**
+    * Creates a sequence of `PartitionField` instances based on the provided `Partitions` instance.
+    *
+    * @param partitions The `Partitions` instance containing the partition specifications.
+    * @return Either a `Throwable` if an error occurred during the operation, or a `Seq[PartitionField]` containing the created `PartitionField` instances.
+    */
+  def apply(partitions: Partitions): Either[Throwable, Seq[PartitionField]] =
+    partitions.getPartitionBy.asScala.toSeq
+      .map {
+        spec =>
+          val split: Seq[String] = PartitionFieldSplitter.split(spec)
+          // if a PartitionSpecifier keyword is found, then use that with the tail of the list - otherwise default to the 'Value' keyword with the entirety of the list.
+          val (pSpec, pPath) = PartitionSpecifier.withNameOption(split.head) match {
+            case Some(partitionSpecifier) =>
+              partitionSpecifier -> split.tail
+            case None =>
+              PartitionSpecifier.Value -> split
+          }
 
-  def apply(valuePartitionPath: Seq[String]): PartitionField =
-    ValuePartitionField(PartitionNamePath(valuePartitionPath: _*))
+          if (pPath.isEmpty) PartitionField(pSpec) else PartitionField(pSpec, pPath)
 
-  def apply(partitionSpecifier: PartitionSpecifier): PartitionField =
+      }.sequence.leftMap(new IllegalArgumentException(_))
+
+  /**
+    * Creates a `PartitionField` instance for a value partition path.
+    *
+    * @param valuePartitionPath The sequence of strings representing the value partition path.
+    * @return Either a `String` error message if an error occurred during the operation, or a `PartitionField` instance.
+    */
+  def apply(valuePartitionPath: Seq[String]): Either[String, PartitionField] =
+    ValuePartitionField(PartitionNamePath(valuePartitionPath: _*)).asRight
+
+  /**
+    * Creates a `PartitionField` instance based on the provided `PartitionSpecifier`.
+    *
+    * @param partitionSpecifier The `PartitionSpecifier` to use when creating the `PartitionField`.
+    * @return Either a `String` error message if an error occurred during the operation, or a `PartitionField` instance.
+    */
+  def apply(partitionSpecifier: PartitionSpecifier): Either[String, PartitionField] =
     partitionSpecifier match {
-      case PartitionSpecifier.Key       => WholeKeyPartitionField
-      case PartitionSpecifier.Topic     => TopicPartitionField
-      case PartitionSpecifier.Partition => PartitionPartitionField
+      case PartitionSpecifier.Key       => WholeKeyPartitionField.asRight
+      case PartitionSpecifier.Topic     => TopicPartitionField.asRight
+      case PartitionSpecifier.Partition => PartitionPartitionField.asRight
       case PartitionSpecifier.Header =>
-        throw new IllegalArgumentException("cannot partition by Header partition field without path")
+        "cannot partition by Header partition field without path".asLeft
       case PartitionSpecifier.Value =>
-        throw new IllegalArgumentException("cannot partition by Value partition field without path")
+        "cannot partition by Value partition field without path".asLeft
       case PartitionSpecifier.Date =>
-        throw new IllegalArgumentException("cannot partition by Date partition field without format")
+        "cannot partition by Date partition field without format".asLeft
     }
 
-  def apply(partitionSpecifier: PartitionSpecifier, path: Seq[String]): PartitionField =
+  /**
+    * Creates a `PartitionField` instance based on the provided `PartitionSpecifier` and path.
+    *
+    * @param partitionSpecifier The `PartitionSpecifier` to use when creating the `PartitionField`.
+    * @param path               The sequence of strings representing the path.
+    * @return Either a `String` error message if an error occurred during the operation, or a `PartitionField` instance.
+    */
+  def apply(partitionSpecifier: PartitionSpecifier, path: Seq[String]): Either[String, PartitionField] =
     partitionSpecifier match {
-      case PartitionSpecifier.Key    => KeyPartitionField(PartitionNamePath(path: _*))
-      case PartitionSpecifier.Value  => ValuePartitionField(PartitionNamePath(path: _*))
-      case PartitionSpecifier.Header => HeaderPartitionField(PartitionNamePath(path: _*))
-      case PartitionSpecifier.Topic  => throw new IllegalArgumentException("partitioning by topic requires no path")
+      case PartitionSpecifier.Key    => KeyPartitionField(PartitionNamePath(path: _*)).asRight
+      case PartitionSpecifier.Value  => ValuePartitionField(PartitionNamePath(path: _*)).asRight
+      case PartitionSpecifier.Header => HeaderPartitionField(PartitionNamePath(path: _*)).asRight
+      case PartitionSpecifier.Topic  => "partitioning by topic requires no path".asLeft
       case PartitionSpecifier.Partition =>
-        throw new IllegalArgumentException("partitioning by partition requires no path")
+        "partitioning by partition requires no path".asLeft
       case PartitionSpecifier.Date =>
-        if (path.size == 1) DatePartitionField(path.head)
-        else throw new IllegalArgumentException("only one format should be provided for date")
+        if (path.size == 1) DatePartitionField(path.head).asRight
+        else "only one format should be provided for date".asLeft
     }
 
 }

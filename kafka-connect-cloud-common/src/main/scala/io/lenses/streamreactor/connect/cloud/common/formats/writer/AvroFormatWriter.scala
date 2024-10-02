@@ -27,6 +27,7 @@ import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodecName.Z
 import io.lenses.streamreactor.connect.cloud.common.sink.conversion.ToAvroDataConverter
 import io.lenses.streamreactor.connect.cloud.common.stream.CloudOutputStream
 import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
+import io.lenses.streamreactor.connect.cloud.common.sink.conversion.SinkData
 import org.apache.avro.Schema
 import org.apache.avro.file.CodecFactory
 import org.apache.avro.file.DataFileWriter

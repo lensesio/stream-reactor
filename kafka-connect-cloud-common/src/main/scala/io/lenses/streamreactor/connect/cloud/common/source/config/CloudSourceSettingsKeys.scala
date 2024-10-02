@@ -39,6 +39,49 @@ trait CloudSourceSettingsKeys extends WithConnectorPrefix {
     "Comma-separated list of directory prefixes to exclude from the partition search"
   private val PARTITION_SEARCH_INDEX_EXCLUDES_DEFAULT: String = ".indexes"
 
+  protected val SOURCE_EXTENSION_EXCLUDES: String = s"$connectorPrefix.source.extension.excludes"
+  private val SOURCE_EXTENSION_EXCLUDES_DOC: String =
+    "Comma-separated list of file extensions to exclude from the source file search. If not configured, no files will be excluded. When used in conjunction with 'source.extension.includes', files must match the includes list and not match the excludes list to be considered."
+  private val SOURCE_EXTENSION_EXCLUDES_DEFAULT: String = null
+
+  protected val SOURCE_EXTENSION_INCLUDES: String = s"$connectorPrefix.source.extension.includes"
+  private val SOURCE_EXTENSION_INCLUDES_DOC: String =
+    "Comma-separated list of file extensions to include in the source file search. If not configured, all files are considered. When used in conjunction with 'source.extension.excludes', files must match the includes list and not match the excludes list to be considered."
+  private val SOURCE_EXTENSION_INCLUDES_DEFAULT: String = null
+
+  /**
+    * Adds source filtering settings to the provided ConfigDef.
+    *
+    * The settings include the file extensions to include and exclude when searching for source files.
+    *
+    * @param configDef The ConfigDef to which the settings are added.
+    * @return The ConfigDef with the added settings.
+    */
+  def addSourceFilteringSettings(configDef: ConfigDef): ConfigDef =
+    configDef
+      .define(
+        SOURCE_EXTENSION_EXCLUDES,
+        Type.STRING,
+        SOURCE_EXTENSION_EXCLUDES_DEFAULT,
+        Importance.LOW,
+        SOURCE_EXTENSION_EXCLUDES_DOC,
+        "Source Filtering",
+        2,
+        ConfigDef.Width.LONG,
+        SOURCE_EXTENSION_EXCLUDES,
+      )
+      .define(
+        SOURCE_EXTENSION_INCLUDES,
+        Type.STRING,
+        SOURCE_EXTENSION_INCLUDES_DEFAULT,
+        Importance.LOW,
+        SOURCE_EXTENSION_INCLUDES_DOC,
+        "Source Filtering",
+        1,
+        ConfigDef.Width.LONG,
+        SOURCE_EXTENSION_INCLUDES,
+      )
+
   def addSourceOrderingSettings(configDef: ConfigDef): ConfigDef =
     configDef
       .define(
@@ -100,15 +143,15 @@ trait CloudSourceSettingsKeys extends WithConnectorPrefix {
       )
 
   val SOURCE_PARTITION_EXTRACTOR_TYPE = s"$connectorPrefix.source.partition.extractor.type"
-  val SOURCE_PARTITION_EXTRACTOR_TYPE_DOC =
+  private val SOURCE_PARTITION_EXTRACTOR_TYPE_DOC =
     "If you want to read to specific partitions when running the source.  Options are 'hierarchical' (to match the sink's hierarchical file storage pattern) and 'regex' (supply a custom regex).  Any other value will ignore original partitions and they should be evenly distributed through available partitions (Kafka dependent)."
 
-  val SOURCE_PARTITION_EXTRACTOR_REGEX     = s"$connectorPrefix.source.partition.extractor.regex"
-  val SOURCE_PARTITION_EXTRACTOR_REGEX_DOC = "If reading filename from regex, supply the regex here."
+  val SOURCE_PARTITION_EXTRACTOR_REGEX             = s"$connectorPrefix.source.partition.extractor.regex"
+  private val SOURCE_PARTITION_EXTRACTOR_REGEX_DOC = "If reading filename from regex, supply the regex here."
 
-  val SOURCE_ORDERING_TYPE:         String = s"$connectorPrefix.ordering.type"
-  val SOURCE_ORDERING_TYPE_DOC:     String = "AlphaNumeric (the default)"
-  val SOURCE_ORDERING_TYPE_DEFAULT: String = "AlphaNumeric"
+  val SOURCE_ORDERING_TYPE:                 String = s"$connectorPrefix.ordering.type"
+  private val SOURCE_ORDERING_TYPE_DOC:     String = "AlphaNumeric (the default)"
+  private val SOURCE_ORDERING_TYPE_DEFAULT: String = "AlphaNumeric"
 
   def addSourcePartitionExtractorSettings(configDef: ConfigDef): ConfigDef = configDef.define(
     SOURCE_PARTITION_EXTRACTOR_TYPE,

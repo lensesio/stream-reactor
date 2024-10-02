@@ -1,5 +1,6 @@
 package io.lenses.streamreactor.connect.test
 
+import cats.implicits._
 import cats.effect.IO
 import cats.effect.kernel.Resource
 import cats.effect.testing.scalatest.AsyncIOSpec
@@ -34,6 +35,8 @@ class HttpSinkTest
     with LazyLogging
     with EitherValues
     with HttpConfiguration {
+  private val BatchSizeSingleRecord    = 1
+  private val BatchSizeMultipleRecords = 2
 
   private val stringSerializer  = classOf[StringSerializer]
   private val stringProducer    = createProducer[String, String](stringSerializer, stringSerializer)
@@ -63,11 +66,12 @@ class HttpSinkTest
     .withNetwork(network)
 
   override val connectorModule: String = "http"
-  private var randomTestId = UUID.randomUUID().toString
-  private def topic        = "topic" + randomTestId
+  private var randomTestId:     String = _
+  private var topic:            String = _
 
   before {
     randomTestId = UUID.randomUUID().toString
+    topic        = "topic" + randomTestId
   }
 
   override def beforeAll(): Unit = {
@@ -85,12 +89,14 @@ class HttpSinkTest
     setUpWiremockResponse()
 
     val record = "My First Record"
-    sendRecordWithProducer(stringProducer,
-                           stringConverters,
-                           randomTestId,
-                           topic,
-                           record,
-                           "My Static Content Template",
+    sendRecordsWithProducer(stringProducer,
+                            stringConverters,
+                            randomTestId,
+                            topic,
+                            "My Static Content Template",
+                            BatchSizeSingleRecord,
+                            false,
+                            record,
     ).asserting {
       requests =>
         requests.size should be(1)
@@ -105,12 +111,20 @@ class HttpSinkTest
     setUpWiremockResponse()
 
     val record = "My First Record"
-    sendRecordWithProducer(stringProducer, stringConverters, randomTestId, topic, record, "{{value}}").asserting {
+    sendRecordsWithProducer(stringProducer,
+                            stringConverters,
+                            randomTestId,
+                            topic,
+                            record,
+                            BatchSizeSingleRecord,
+                            false,
+                            "{{value}}",
+    ).asserting {
       requests =>
         requests.size should be(1)
         val firstRequest = requests.head
+        new String(firstRequest.getBody) should be(record)
         firstRequest.getMethod should be(RequestMethod.POST)
-        new String(firstRequest.getBody) should be("My First Record")
     }
   }
 
@@ -118,13 +132,15 @@ class HttpSinkTest
 
     setUpWiremockResponse()
 
-    sendRecordWithProducer[String, Order](
+    sendRecordsWithProducer[String, Order](
       orderProducer,
       jsonConverters,
       randomTestId,
       topic,
-      Order(1, "myOrder product", 1.3d, 10),
       "product: {{value.product}}",
+      BatchSizeSingleRecord,
+      false,
+      Order(1, "myOrder product", 1.3d, 10),
     ).asserting {
       requests =>
         requests.size should be(1)
@@ -138,13 +154,15 @@ class HttpSinkTest
 
     setUpWiremockResponse()
 
-    sendRecordWithProducer[String, Order](
+    sendRecordsWithProducer[String, Order](
       orderProducer,
       stringConverters,
       randomTestId,
       topic,
-      Order(1, "myOrder product", 1.3d, 10),
       "whole product message: {{value}}",
+      BatchSizeSingleRecord,
+      false,
+      Order(1, "myOrder product", 1.3d, 10),
     ).asserting {
       requests =>
         requests.size should be(1)
@@ -156,18 +174,45 @@ class HttpSinkTest
     }
   }
 
+  test("batched dynamic string template containing whole json message should be sent to endpoint") {
+
+    setUpWiremockResponse()
+
+    sendRecordsWithProducer[String, Order](
+      orderProducer,
+      stringConverters,
+      randomTestId,
+      topic,
+      "{\"data\":[{{#message}}{{value}},{{/message}}]}",
+      BatchSizeMultipleRecords,
+      true,
+      Order(1, "myOrder product", 1.3d, 10),
+      Order(2, "another product", 1.4d, 109),
+    ).asserting {
+      requests =>
+        requests.size should be(1)
+        val firstRequest = requests.head
+        firstRequest.getMethod should be(RequestMethod.POST)
+        new String(firstRequest.getBody) should be(
+          "{\"data\":[{\"id\":1,\"product\":\"myOrder product\",\"price\":1.3,\"qty\":10,\"created\":null},{\"id\":2,\"product\":\"another product\",\"price\":1.4,\"qty\":109,\"created\":null}]}",
+        )
+    }
+  }
+
   test("dynamic string template containing avro message fields should be sent to endpoint") {
 
     setUpWiremockResponse()
 
     val order = Order(1, "myOrder product", 1.3d, 10, "March").toRecord
-    sendRecordWithProducer[String, GenericRecord](
+    sendRecordsWithProducer[String, GenericRecord](
       avroOrderProducer,
       avroConverters,
       randomTestId,
       topic,
-      order,
       "product: {{value.product}}",
+      BatchSizeSingleRecord,
+      false,
+      order,
     ).asserting {
       requests =>
         requests.size should be(1)
@@ -188,25 +233,30 @@ class HttpSinkTest
     ()
   }
 
-  private def sendRecordWithProducer[K, V](
+  private def sendRecordsWithProducer[K, V](
     producer:        Resource[IO, KafkaProducer[K, V]],
     converters:      Map[String, String],
     randomTestId:    String,
     topic:           String,
-    record:          V,
     contentTemplate: String,
+    batchSize:       Int,
+    jsonTidy:        Boolean,
+    record:          V*,
   ): IO[List[LoggedRequest]] =
     producer.use {
       producer =>
-        createConnectorResource(randomTestId, topic, contentTemplate, converters).use {
+        createConnectorResource(randomTestId, topic, contentTemplate, converters, batchSize, jsonTidy).use {
           _ =>
-            IO {
-              sendRecord[K, V](topic, producer, record)
-              eventually {
-                verify(postRequestedFor(urlEqualTo(s"/$randomTestId")))
-                findAll(postRequestedFor(urlEqualTo(s"/$randomTestId"))).asScala.toList
+            record.map {
+              rec => IO(sendRecord[K, V](topic, producer, rec))
+            }.sequence
+              .map { _ =>
+                eventually {
+                  verify(postRequestedFor(urlEqualTo(s"/$randomTestId")))
+                  findAll(postRequestedFor(urlEqualTo(s"/$randomTestId"))).asScala.toList
+                }
               }
-            }
+
         }
     }
   private def sendRecord[K, V](topic: String, producer: KafkaProducer[K, V], record: V): Unit = {
@@ -219,6 +269,8 @@ class HttpSinkTest
     topic:           String,
     contentTemplate: String,
     converters:      Map[String, String],
+    batchSize:       Int,
+    jsonTidy:        Boolean,
   ): Resource[IO, String] =
     createConnector(
       sinkConfig(
@@ -229,6 +281,8 @@ class HttpSinkTest
         Seq(),
         topic,
         converters,
+        batchSize,
+        jsonTidy,
       ),
     )
 

@@ -70,7 +70,7 @@ class TemplateTest extends AnyFunSuiteLike with Matchers with EitherValues {
 
     val rendered = processedTemplate.renderRecords(Seq(record))
 
-    val processed = processedTemplate.process(rendered.value)
+    val processed = processedTemplate.process(rendered.value, true)
     processed.value.endpoint should be("http://myExampleGroup.uk.example.com/10/Abcd1234/myTopic")
 
     processed.value.content should be(
@@ -116,7 +116,7 @@ class TemplateTest extends AnyFunSuiteLike with Matchers with EitherValues {
 
     val rendered = processedTemplate.renderRecords(records)
 
-    val processed = processedTemplate.process(rendered.value)
+    val processed = processedTemplate.process(rendered.value, true)
     processed.value.endpoint should be("http://myExampleGroup.uk.example.com/10/Abcd1234/myTopic")
 
     normalized(processed.value.content) should be(
@@ -175,7 +175,7 @@ class TemplateTest extends AnyFunSuiteLike with Matchers with EitherValues {
 
     val rendered = processedTemplate.renderRecords(records)
 
-    val processed = processedTemplate.process(rendered.value)
+    val processed = processedTemplate.process(rendered.value, true)
     processed.value.endpoint should be("http://myExampleGroup.uk.example.com/10/Abcd1234/myTopic")
 
     normalized(processed.value.content) should be(

@@ -15,10 +15,10 @@
  */
 package io.lenses.streamreactor.connect.cloud.common.sink.extractors
 
-import io.lenses.streamreactor.connect.cloud.common.formats.writer.ArraySinkData
-import io.lenses.streamreactor.connect.cloud.common.formats.writer.MapSinkData
-import io.lenses.streamreactor.connect.cloud.common.formats.writer.StructSinkData
 import io.lenses.streamreactor.connect.cloud.common.sink.config.PartitionNamePath
+import io.lenses.streamreactor.connect.cloud.common.sink.conversion.ArraySinkData
+import io.lenses.streamreactor.connect.cloud.common.sink.conversion.MapSinkData
+import io.lenses.streamreactor.connect.cloud.common.sink.conversion.StructSinkData
 import io.lenses.streamreactor.connect.cloud.common.sink.extractors.ExtractorErrorType.MissingValue
 import io.lenses.streamreactor.connect.cloud.common.sink.extractors.ExtractorErrorType.UnexpectedType
 import io.lenses.streamreactor.connect.cloud.common.sink.extractors.ExtractorError

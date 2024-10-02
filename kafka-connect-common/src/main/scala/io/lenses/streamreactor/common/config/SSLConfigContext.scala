@@ -15,19 +15,10 @@
  */
 package io.lenses.streamreactor.common.config
 
-import io.circe.Decoder
-import io.circe.Encoder
-import io.circe.generic.semiauto.deriveDecoder
-import io.circe.generic.semiauto.deriveEncoder
-
 import java.io.FileInputStream
 import java.security.KeyStore
 import java.security.SecureRandom
-import javax.net.ssl.KeyManager
-import javax.net.ssl.KeyManagerFactory
-import javax.net.ssl.SSLContext
-import javax.net.ssl.TrustManagerFactory
-import javax.net.ssl.TrustManager
+import javax.net.ssl._
 
 /**
   * Created by andrew@datamountaineer.com on 14/04/16.
@@ -44,7 +35,7 @@ object SSLConfigContext {
     * @return a SSLContext
     */
   private def getSSLContext(config: SSLConfig): SSLContext = {
-    val useClientCertAuth = config.useClientCert
+    val useClientCertAuth = config.keyStorePath.isDefined && config.keyStorePass.isDefined
 
     //is client certification authentication set
     val keyManagers: Array[KeyManager] = if (useClientCertAuth) {
@@ -101,14 +92,6 @@ case class SSLConfig(
   trustStorePass: String,
   keyStorePath:   Option[String],
   keyStorePass:   Option[String],
-  useClientCert:  Boolean = false,
-  keyStoreType:   String  = "JKS",
-  trustStoreType: String  = "JKS",
+  keyStoreType:   String = "JKS",
+  trustStoreType: String = "JKS",
 )
-
-object SSLConfig {
-
-  implicit val decoder: Decoder[SSLConfig] = deriveDecoder
-  implicit val encoder: Encoder[SSLConfig] = deriveEncoder
-
-}

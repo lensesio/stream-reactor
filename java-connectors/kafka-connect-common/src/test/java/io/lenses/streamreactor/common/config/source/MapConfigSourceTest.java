@@ -24,6 +24,7 @@ class MapConfigSourceTest extends ConfigSourceTestBase {
     return new MapConfigSource(
         Map.of(
             USERNAME_KEY, USERNAME_VALUE,
-            PASSWORD_KEY, PASSWORD_VALUE));
+            PASSWORD_KEY, PASSWORD_VALUE,
+            BOOLEAN_KEY, BOOLEAN_VALUE));
   }
 }

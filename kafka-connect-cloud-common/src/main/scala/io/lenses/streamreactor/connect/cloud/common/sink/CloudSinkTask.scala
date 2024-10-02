@@ -26,12 +26,13 @@ import io.lenses.streamreactor.connect.cloud.common.config.traits.CloudSinkConfi
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskIdCreator
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.MessageDetail
-import io.lenses.streamreactor.connect.cloud.common.formats.writer.NullSinkData
 import io.lenses.streamreactor.connect.cloud.common.model.Offset
 import io.lenses.streamreactor.connect.cloud.common.model.Topic
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
-import io.lenses.streamreactor.connect.cloud.common.sink.conversion.HeaderToStringConverter
+import io.lenses.streamreactor.connect.cloud.common.sink.conversion.HeaderToSinkDataConverter
+import io.lenses.streamreactor.connect.cloud.common.sink.conversion.NullSinkData
 import io.lenses.streamreactor.connect.cloud.common.sink.conversion.ValueToSinkDataConverter
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexManager
 import io.lenses.streamreactor.connect.cloud.common.sink.writer.WriterManager
 import io.lenses.streamreactor.connect.cloud.common.storage.FileMetadata
 import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
@@ -69,8 +70,10 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
   private val writerManagerCreator = new WriterManagerCreator[MD, C]()
 
   private var logMetrics = false
-  private var writerManager:    WriterManager[MD] = _
-  implicit var connectorTaskId: ConnectorTaskId   = _
+  private var writerManager:     WriterManager[MD]        = _
+  private var maybeIndexManager: Option[IndexManager[MD]] = _
+
+  implicit var connectorTaskId: ConnectorTaskId = _
 
   override def version(): String = manifest.getVersion()
 
@@ -89,7 +92,11 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
     val props          = MapUtils.mergeProps(contextProps, fallbackProps.asScala.toMap)
     val errOrWriterMan = createWriterMan(props)
 
-    errOrWriterMan.leftMap(throw _).foreach(writerManager = _)
+    errOrWriterMan.leftMap(throw _).foreach {
+      case (mim, wm) =>
+        maybeIndexManager = mim
+        writerManager     = wm
+    }
   }
 
   private def rollback(topicPartitions: Set[TopicPartition]): Unit =
@@ -157,7 +164,7 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
               val msgDetails = MessageDetail(
                 key     = key,
                 value   = ValueToSinkDataConverter(record.value(), Option(record.valueSchema())),
-                headers = HeaderToStringConverter(record),
+                headers = HeaderToSinkDataConverter(record),
                 TimestampUtils.parseTime(Option(record.timestamp()).map(_.toLong))(_ =>
                   logger.debug(
                     s"Record timestamp is invalid ${record.timestamp()}",
@@ -217,29 +224,30 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
     actualOffsets
   }
 
-  override def open(partitions: util.Collection[KafkaTopicPartition]): Unit = {
-    val partitionsDebug = partitions.asScala.map(tp => s"${tp.topic()}-${tp.partition()}").mkString(",")
-    logger.debug(s"[{}] Open partitions", connectorTaskId.show, partitionsDebug: Any)
+  override def open(partitions: util.Collection[KafkaTopicPartition]): Unit =
+    maybeIndexManager.foreach {
+      indexManager =>
+        val partitionsDebug = partitions.asScala.map(tp => s"${tp.topic()}-${tp.partition()}").mkString(",")
+        logger.debug(s"[{}] Open partitions", connectorTaskId.show, partitionsDebug: Any)
 
-    val topicPartitions = partitions.asScala
-      .map(tp => TopicPartition(Topic(tp.topic), tp.partition))
-      .toSet
+        val topicPartitions = partitions.asScala
+          .map(tp => TopicPartition(Topic(tp.topic), tp.partition))
+          .toSet
 
-    handleErrors(
-      for {
-        tpoMap <- writerManager.open(topicPartitions)
-      } yield {
-        tpoMap.foreach {
-          case (topicPartition, offset) =>
-            logger.debug(
-              s"[${connectorTaskId.show}] Seeking to ${topicPartition.topic.value}-${topicPartition.partition}:${offset.value}",
-            )
-            context.offset(topicPartition.toKafka, offset.value)
-        }
-      },
-    )
-
-  }
+        handleErrors(
+          for {
+            tpoMap <- indexManager.open(topicPartitions)
+          } yield {
+            tpoMap.foreach {
+              case (topicPartition, offset) =>
+                logger.debug(
+                  s"[${connectorTaskId.show}] Seeking to ${topicPartition.topic.value}-${topicPartition.partition}:${offset.value}",
+                )
+                context.offset(topicPartition.toKafka, offset.value)
+            }
+          },
+        )
+    }
 
   /**
     * Whenever close is called, the topics and partitions assigned to this task
@@ -269,17 +277,21 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
 
   def convertPropsToConfig(connectorTaskId: ConnectorTaskId, props: Map[String, String]): Either[Throwable, C]
 
-  private def createWriterMan(props: Map[String, String]): Either[Throwable, WriterManager[MD]] =
+  private def createWriterMan(
+    props: Map[String, String],
+  ): Either[Throwable, (Option[IndexManager[MD]], WriterManager[MD])] =
     for {
       config          <- convertPropsToConfig(connectorTaskId, props)
       s3Client        <- createClient(config.connectionConfig)
       storageInterface = createStorageInterface(connectorTaskId, config, s3Client)
       _               <- setRetryInterval(config)
-      writerManager   <- Try(writerManagerCreator.from(config)(connectorTaskId, storageInterface)).toEither
-      _               <- initializeFromConfig(config)
+      (maybeIndexManager, writerManager) <- Try(
+        writerManagerCreator.from(config)(connectorTaskId, storageInterface),
+      ).toEither
+      _ <- initializeFromConfig(config)
     } yield {
       logMetrics = config.logMetrics
-      writerManager
+      (maybeIndexManager, writerManager)
     }
 
   private def initializeFromConfig(config: C): Either[Throwable, Unit] =

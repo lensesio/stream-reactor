@@ -15,7 +15,6 @@
  */
 package io.lenses.streamreactor.connect.cloud.common.sink.conversion
 
-import io.lenses.streamreactor.connect.cloud.common.formats.writer.MapSinkData
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 

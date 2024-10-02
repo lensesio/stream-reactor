@@ -2094,6 +2094,50 @@ abstract class CoreSinkTaskTestCases[
 
   }
 
+  unitUnderTest should "use custom partitioning without any partitions" in {
+
+    val task = createSinkTask()
+
+    val props = (defaultProps + (
+      s"$prefix.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName NOPARTITION PROPERTIES('${FlushCount.entryName}'=1)",
+    )).asJava
+
+    task.start(props)
+    task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
+    task.put(headerPartitionedRecords.asJava)
+    task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
+    task.stop()
+
+    val list = listBucketPath(BucketName, "streamReactorBackups/")
+    list.size should be(6)
+
+    remoteFileAsString(
+      BucketName,
+      "streamReactorBackups/myTopic(1_000000000000).json",
+    ) should be("""{"name":"first","title":"primary","salary":null}""")
+    remoteFileAsString(
+      BucketName,
+      "streamReactorBackups/myTopic(1_000000000001).json",
+    ) should be("""{"name":"second","title":"secondary","salary":100.0}""")
+    remoteFileAsString(
+      BucketName,
+      "streamReactorBackups/myTopic(1_000000000002).json",
+    ) should be("""{"name":"third","title":"primary","salary":100.0}""")
+    remoteFileAsString(
+      BucketName,
+      "streamReactorBackups/myTopic(1_000000000003).json",
+    ) should be("""{"name":"first","title":null,"salary":200.0}""")
+    remoteFileAsString(
+      BucketName,
+      "streamReactorBackups/myTopic(1_000000000004).json",
+    ) should be("""{"name":"second","title":null,"salary":100.0}""")
+    remoteFileAsString(
+      BucketName,
+      "streamReactorBackups/myTopic(1_000000000005).json",
+    ) should be("""{"name":"third","title":null,"salary":100.0}""")
+
+  }
+
   private def createSinkRecord(partition: Int, valueStruct: Struct, offset: Int, headers: lang.Iterable[Header]) =
     new SinkRecord(TopicName,
                    partition,

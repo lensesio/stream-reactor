@@ -36,8 +36,8 @@ class TestSSLConfigContext extends AnyWordSpec with Matchers with BeforeAndAfter
     val keystorePath       = getClass.getResource("/stc_keystore.jks").getPath
     val trustStorePassword = "erZHDS9Eo0CcNo"
     val keystorePassword   = "8yJQLUnGkwZxOw"
-    sslConfig         = SSLConfig(trustStorePath, trustStorePassword, Some(keystorePath), Some(keystorePassword), true)
-    sslConfigNoClient = SSLConfig(trustStorePath, trustStorePassword, Some(keystorePath), Some(keystorePassword), false)
+    sslConfig         = SSLConfig(trustStorePath, trustStorePassword, Some(keystorePath), Some(keystorePassword))
+    sslConfigNoClient = SSLConfig(trustStorePath, trustStorePassword, None, None)
   }
 
   "SSLConfigContext" should {
