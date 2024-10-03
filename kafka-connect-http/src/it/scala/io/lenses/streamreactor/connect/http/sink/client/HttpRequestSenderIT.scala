@@ -94,7 +94,7 @@ class HttpRequestSenderIT
                 .withHeader("Content-Type", equalTo("application/xml"))
                 .withRequestBody(new EqualToPattern("mycontent")),
             )
-            response.value should be(HttpResponseSuccess(200, HttpResponseBody))
+            response.value should be(HttpResponseSuccess(200, HttpResponseBody.some))
         }
     }
 
@@ -131,7 +131,7 @@ class HttpRequestSenderIT
                 .withBasicAuth(new BasicCredentials("myUser", "myPassword"))
                 .withRequestBody(new EqualToPattern("mycontent")),
             )
-            response.value should be(HttpResponseSuccess(200, HttpResponseBody))
+            response.value should be(HttpResponseSuccess(200, HttpResponseBody.some))
         }
     }
   }

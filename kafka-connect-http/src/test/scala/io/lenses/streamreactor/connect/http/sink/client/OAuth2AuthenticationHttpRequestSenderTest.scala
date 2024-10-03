@@ -18,6 +18,7 @@ package io.lenses.streamreactor.connect.http.sink.client
 import cats.effect.IO
 import cats.effect.kernel.Resource
 import cats.effect.testing.scalatest.AsyncIOSpec
+import cats.implicits.catsSyntaxOptionId
 import io.lenses.streamreactor.connect.http.sink.client.oauth2.AccessToken
 import io.lenses.streamreactor.connect.http.sink.client.oauth2.AccessTokenProvider
 import io.lenses.streamreactor.connect.http.sink.tpl.ProcessedTemplate
@@ -40,12 +41,16 @@ class OAuth2AuthenticationHttpRequestSenderTest
     with MockitoSugar
     with EitherValues {
 
+  private val StatusCodeOK      = 200
+  private val ResponseContentOK = "OK"
   "OAuth2AuthenticationHttpRequestSender" - {
     "should attach the OAuth2 token header to the request" in {
       val sinkName = "sink"
       val method   = Method.POST
       val client: Client[IO] = mock[Client[IO]]
-      when(client.run(any[Request[IO]])).thenReturn(Resource.pure(Response[IO](status = Status.Ok).withEntity("OK")))
+      when(client.run(any[Request[IO]])).thenReturn(
+        Resource.pure(Response[IO](status = Status.Ok).withEntity(ResponseContentOK)),
+      )
 
       val token = "token"
       val tokenProvider = new AccessTokenProvider[IO] {
@@ -74,7 +79,7 @@ class OAuth2AuthenticationHttpRequestSenderTest
           capturedRequest.headers.headers should contain(Header.Raw(CIString("header"), "value"))
           capturedRequest.headers.headers should contain(Header.Raw(CIString("Authorization"), s"Bearer $token"))
 
-          response.value should be(HttpResponseSuccess(200, "OK"))
+          response.value should be(HttpResponseSuccess(StatusCodeOK, ResponseContentOK.some))
       }
     }
   }

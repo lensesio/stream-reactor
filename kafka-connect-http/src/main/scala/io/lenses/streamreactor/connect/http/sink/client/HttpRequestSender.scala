@@ -16,14 +16,16 @@
 package io.lenses.streamreactor.connect.http.sink.client
 import cats.effect.IO
 import cats.effect.Ref
+import cats.implicits.catsSyntaxEitherId
 import cats.implicits.catsSyntaxOptionId
 import cats.implicits.none
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.http.sink.client.oauth2.cache.CachedAccessTokenProvider
 import io.lenses.streamreactor.connect.http.sink.client.oauth2.AccessToken
 import io.lenses.streamreactor.connect.http.sink.client.oauth2.AccessTokenProvider
 import io.lenses.streamreactor.connect.http.sink.client.oauth2.OAuth2AccessTokenProvider
+import io.lenses.streamreactor.connect.http.sink.client.oauth2.cache.CachedAccessTokenProvider
 import io.lenses.streamreactor.connect.http.sink.tpl.ProcessedTemplate
+import org.http4s.EntityDecoder
 import org.http4s._
 import org.http4s.client.Client
 import org.http4s.headers.Authorization
@@ -162,6 +164,14 @@ abstract class HttpRequestSender(
       _                    <- IO.delay(logger.trace(s"[$sinkName] Response: $response"))
     } yield response
 
+  implicit val optionStringDecoder: EntityDecoder[IO, Option[String]] =
+    EntityDecoder.decodeBy(MediaType.text.plain) { msg =>
+      DecodeResult.success(msg.as[String].map {
+        case body if body.nonEmpty => body.some
+        case _                     => none
+      })
+    }
+
   /**
     * Executes the HTTP request and handles any errors that occur.
     *
@@ -175,26 +185,29 @@ abstract class HttpRequestSender(
     authenticatedRequest: Request[IO],
   ): IO[Either[HttpResponseFailure, HttpResponseSuccess]] =
     client.run(authenticatedRequest).use { response =>
-      response.as[String].map { body =>
-        if (response.status.isSuccess) {
-          Right(HttpResponseSuccess(response.status.code, body))
-        } else {
-          Left(
+      response.as[Option[String]].map {
+        body =>
+          if (response.status.isSuccess) {
+            HttpResponseSuccess(response.status.code, body).asRight[HttpResponseFailure]
+          } else {
             HttpResponseFailure(
               message         = "Request failed with error response",
               cause           = Option.empty,
               statusCode      = response.status.code.some,
-              responseContent = body.some,
-            ),
-          )
-        }
+              responseContent = body,
+            ).asLeft[HttpResponseSuccess]
+          }
+
       }
     }.handleErrorWith { error =>
-      IO.pure(Left(HttpResponseFailure(
-        message         = error.getMessage,
-        cause           = error.some,
-        statusCode      = none,
-        responseContent = none,
-      )))
+      IO.pure(
+        HttpResponseFailure(
+          message         = error.getMessage,
+          cause           = error.some,
+          statusCode      = none,
+          responseContent = none,
+        ).asLeft[HttpResponseSuccess],
+      )
     }
+
 }

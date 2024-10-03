@@ -25,7 +25,7 @@ import io.lenses.streamreactor.common.exception.StreamReactorException
   */
 case class HttpResponseSuccess(
   statusCode:      Int,
-  responseContent: String,
+  responseContent: Option[String],
 )
 
 /**

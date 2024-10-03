@@ -83,7 +83,7 @@ class HttpWriterTest extends AsyncIOSpec with AsyncFunSuiteLike with Matchers wi
   test("process method should flush records when the queue is non-empty and commit policy requires flush") {
     val commitPolicy = CommitPolicy(Count(2L))
     val senderMock   = mock[HttpRequestSender]
-    when(senderMock.sendHttpRequest(any[ProcessedTemplate])).thenReturn(IO(HttpResponseSuccess(200, "OK").asRight))
+    when(senderMock.sendHttpRequest(any[ProcessedTemplate])).thenReturn(IO(HttpResponseSuccess(200, "OK".some).asRight))
 
     val templateMock = mock[TemplateType]
     when(templateMock.process(any[Seq[RenderedRecord]], eqTo(false))).thenReturn(Right(ProcessedTemplate("a",

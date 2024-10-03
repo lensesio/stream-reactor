@@ -226,7 +226,7 @@ class HttpWriter(
             reportRecord(
               none,
               success.statusCode.some,
-              success.responseContent.some,
+              success.responseContent,
             ),
           ),
         )
