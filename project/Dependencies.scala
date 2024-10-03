@@ -78,16 +78,17 @@ object Dependencies {
     val jerseyCommonVersion = "3.1.8"
 
     val calciteVersion = "1.34.0"
-    val awsSdkVersion  = "2.27.5"
+    val awsSdkVersion  = "2.28.13"
 
     val azureDataLakeVersion              = "12.21.0"
     val azureIdentityVersion              = "1.13.3"
     val azureCoreVersion                  = "1.53.0"
-    val msal4jVersion                     = "1.16.0"
+    val msal4jVersion                     = "1.16.1"
     val msal4jPersistenceExtensionVersion = "1.3.0"
     val gcpCloudVersion                   = "2.44.1"
     val gcpCloudStorageVersion            = "2.43.1"
 
+    val woodstoxVersion     = "7.0.0"
     val jacksonVersion      = "2.18.0"
     val json4sVersion       = "4.0.7"
     val mockitoScalaVersion = "1.17.37"
@@ -137,9 +138,12 @@ object Dependencies {
     val gsonVersion  = "2.11.0"
 
     val classGraphVersion           = "4.8.174"
-    val nimbusJoseJwtVersion        = "9.37.3"
+    val nimbusJoseJwtVersion        = "9.40"
     val hadoopVersion               = "3.4.0"
     val hadoopShadedProtobufVersion = "1.2.0"
+
+    val airCompressorVersion = "2.0.2"
+    val zstdVersion          = "1.5.6-4"
 
     trait ElasticVersions {
       val elastic4sVersion, elasticSearchVersion, jnaVersion: String
@@ -308,7 +312,7 @@ object Dependencies {
   val jacksonModuleScala: ModuleID =
     "com.fasterxml.jackson.module" %% "jackson-module-scala" % jacksonVersion
   val woodstoxCore: ModuleID =
-    "com.fasterxml.woodstox" % "woodstox-core" % "6.6.1"
+    "com.fasterxml.woodstox" % "woodstox-core" % woodstoxVersion
   val jsonSmart: ModuleID =
     "net.minidev" % "json-smart" % jsonSmartVersion
 
@@ -391,8 +395,8 @@ object Dependencies {
 
   lazy val classGraph    = "io.github.classgraph" % "classgraph"    % classGraphVersion
   lazy val nimbusJoseJwt = hiveExcludes("com.nimbusds" % "nimbus-jose-jwt" % nimbusJoseJwtVersion)
-  lazy val airCompressor = "io.airlift"           % "aircompressor" % "2.0"
-  lazy val zstd          = "com.github.luben"     % "zstd-jni"      % "1.5.6-2"
+  lazy val airCompressor = "io.airlift"           % "aircompressor" % airCompressorVersion
+  lazy val zstd          = "com.github.luben"     % "zstd-jni"      % zstdVersion
 
   // testcontainers module only
   lazy val festAssert = "org.easytesting" % "fest-assert" % "1.4"
