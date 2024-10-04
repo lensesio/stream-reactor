@@ -15,31 +15,15 @@
  */
 package io.lenses.streamreactor.connect.reporting.model;
 
-import cyclops.data.tuple.Tuple2;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.Getter;
-import org.apache.kafka.common.TopicPartition;
-
-import java.util.List;
-
 /**
- * Represents a reporting record that contains data specific to a connector.
- *
- * @param <C> the type of connector-specific record data
+ * This marker interface represents data specific to a record for a
+ * certain connector. Implementations of this interface should
+ * provide the necessary details that are specific to a particular
+ * connector.
+ * This sits inside a ReportingRecord providing the data that is
+ * bespoke for a given connector.
+ * 
+ * @see io.lenses.streamreactor.connect.reporting.model.ReportingRecord
  */
-@AllArgsConstructor
-@Getter
-@Data
-public class ReportingRecord<C extends ConnectorSpecificRecordData> {
-
-  private TopicPartition topicPartition;
-  private Long offset;
-  private Long timestamp;
-  private String endpoint;
-  private String payload;
-  private List<Tuple2<String, String>> headers;
-
-  private C connectorSpecific;
-
+public interface ConnectorSpecificRecordData {
 }

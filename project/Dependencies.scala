@@ -188,13 +188,15 @@ object Dependencies {
   val scalatest = "org.scalatest" %% "scalatest" % scalatestVersion
   val scalatestPlusScalaCheck =
     "org.scalatestplus" %% "scalatestplus-scalacheck" % scalatestPlusScalaCheckVersion
-  val scalaCheck     = "org.scalacheck" %% "scalacheck"     % scalaCheckVersion
-  val `mockitoScala` = "org.mockito"    %% "mockito-scala"  % mockitoScalaVersion
-  val `mockitoJava`  = "org.mockito"     % "mockito-inline" % mockitoJavaVersion
+  val scalaCheck            = "org.scalacheck" %% "scalacheck"            % scalaCheckVersion
+  val `mockitoScala`        = "org.mockito"    %% "mockito-scala"         % mockitoScalaVersion
+  val `mockitoJava`         = "org.mockito"     % "mockito-inline"        % mockitoJavaVersion
+  val `mockitoJunitJupiter` = "org.mockito"     % "mockito-junit-jupiter" % junitJupiterVersion
 
   val `junitJupiter`       = "org.junit.jupiter" % "junit-jupiter-api"    % junitJupiterVersion
   val `junitJupiterParams` = "org.junit.jupiter" % "junit-jupiter-params" % junitJupiterVersion
-  val `assertjCore`        = "org.assertj"       % "assertj-core"         % assertjCoreVersion
+
+  val `assertjCore` = "org.assertj" % "assertj-core" % assertjCoreVersion
 
   val `cyclops`     = "com.oath.cyclops" % "cyclops"      % cyclopsVersion
   val `cyclopsPure` = "com.oath.cyclops" % "cyclops-pure" % cyclopsVersion
@@ -476,7 +478,7 @@ trait Dependencies {
 
   val javaCommonDeps: Seq[ModuleID] = Seq(lombok, kafkaConnectJson, kafkaClients, cyclops, `cyclopsPure`)
   val javaCommonTestDeps: Seq[ModuleID] =
-    Seq(junitJupiter, junitJupiterParams, assertjCore, `mockitoJava`, logback) ++ bouncyCastle
+    Seq(junitJupiter, junitJupiterParams, assertjCore, `mockitoJava`, mockitoJunitJupiter, logback) ++ bouncyCastle
 
   //Specific modules dependencies
 

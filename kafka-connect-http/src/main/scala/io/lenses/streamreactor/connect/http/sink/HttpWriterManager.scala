@@ -35,6 +35,8 @@ import io.lenses.streamreactor.connect.http.sink.client.HttpRequestSender
 import io.lenses.streamreactor.connect.http.sink.commit.HttpCommitContext
 import io.lenses.streamreactor.connect.http.sink.commit.HttpCommitPolicy
 import io.lenses.streamreactor.connect.http.sink.config.HttpSinkConfig
+import io.lenses.streamreactor.connect.http.sink.reporter.model.HttpFailureConnectorSpecificRecordData
+import io.lenses.streamreactor.connect.http.sink.reporter.model.HttpSuccessConnectorSpecificRecordData
 import io.lenses.streamreactor.connect.http.sink.tpl.RenderedRecord
 import io.lenses.streamreactor.connect.http.sink.tpl.TemplateType
 import io.lenses.streamreactor.connect.reporting.ReportingController
@@ -132,8 +134,8 @@ class HttpWriterManager(
   errorThreshold:             Int,
   uploadSyncPeriod:           Int,
   tidyJson:                   Boolean,
-  errorReportingController:   ReportingController,
-  successReportingController: ReportingController,
+  errorReportingController:   ReportingController[HttpFailureConnectorSpecificRecordData],
+  successReportingController: ReportingController[HttpSuccessConnectorSpecificRecordData],
 )(
   implicit
   t: Temporal[IO],

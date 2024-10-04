@@ -19,6 +19,8 @@ import cyclops.control.Option;
 import io.lenses.streamreactor.common.config.source.MapConfigSource;
 import io.lenses.streamreactor.connect.reporting.config.ReportProducerConfigConst;
 import io.lenses.streamreactor.connect.reporting.config.ReporterConfig;
+import io.lenses.streamreactor.connect.reporting.model.ConnectorSpecificRecordData;
+import io.lenses.streamreactor.connect.reporting.model.RecordConverter;
 import io.lenses.streamreactor.connect.reporting.model.ReportingRecord;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -28,14 +30,20 @@ import lombok.val;
 import org.apache.kafka.common.config.AbstractConfig;
 
 import java.util.Map;
+import java.util.function.Function;
 
+/**
+ * @param <C> the type of connector-specific record data
+ */
 @Slf4j
 @AllArgsConstructor(access = AccessLevel.PROTECTED)
-public class ReportingController {
+public class ReportingController<C extends ConnectorSpecificRecordData> {
 
-  protected Option<ReportSender> reportSender;
+  protected Option<ReportSender<C>> reportSender;
 
-  public static ReportingController fromConfig(Map<String, Object> senderConfig) {
+  public static <C extends ConnectorSpecificRecordData> ReportingController<C> fromConfig(
+      Function<ReportingMessagesConfig, RecordConverter<C>> recordConverter,
+      Map<String, Object> senderConfig) {
 
     val configSource = new MapConfigSource(senderConfig);
 
@@ -43,9 +51,9 @@ public class ReportingController {
         configSource.getBoolean(
             ReportProducerConfigConst.REPORTING_ENABLED_CONFIG).orElse(false);
 
-    val reportSenderOption =
-        (senderEnabled) ? Option.of(ReportSender.fromConfigMap(senderConfig)) : Option.<ReportSender>none();
-    return new ReportingController(reportSenderOption);
+    final Option<ReportSender<C>> reportSenderOption =
+        (senderEnabled) ? Option.of(ReportSender.fromConfigMap(recordConverter, senderConfig)) : Option.none();
+    return new ReportingController<>(reportSenderOption);
 
   }
 
@@ -54,7 +62,7 @@ public class ReportingController {
    * 
    * @param report a {@link ReportingRecord} instance
    */
-  public void enqueue(ReportingRecord report) {
+  public void enqueue(ReportingRecord<C> report) {
     reportSender.forEach(sender -> sender.enqueue(report));
   }
 
@@ -76,16 +84,28 @@ public class ReportingController {
   @NoArgsConstructor(access = AccessLevel.PRIVATE)
   public static class ErrorReportingController {
 
-    public static ReportingController fromAbstractConfig(AbstractConfig connectorConfig) {
-      return ReportingController.fromConfig(ReporterConfig.getErrorReportingProducerConfig(connectorConfig));
+    public static <C extends ConnectorSpecificRecordData> ReportingController<C> fromAbstractConfig(
+        Function<ReportingMessagesConfig, RecordConverter<C>> recordConverterFn,
+        AbstractConfig connectorConfig
+    ) {
+      return ReportingController.fromConfig(
+          recordConverterFn,
+          ReporterConfig.getErrorReportingProducerConfig(connectorConfig)
+      );
     }
   }
 
   @NoArgsConstructor(access = AccessLevel.PRIVATE)
   public static class SuccessReportingController {
 
-    public static ReportingController fromAbstractConfig(AbstractConfig connectorConfig) {
-      return ReportingController.fromConfig(ReporterConfig.getSuccessReportingProducerConfig(connectorConfig));
+    public static <C extends ConnectorSpecificRecordData> ReportingController<C> fromAbstractConfig(
+        Function<ReportingMessagesConfig, RecordConverter<C>> recordConverter,
+        AbstractConfig connectorConfig
+    ) {
+      return ReportingController.fromConfig(
+          recordConverter,
+          ReporterConfig.getSuccessReportingProducerConfig(connectorConfig)
+      );
     }
   }
 

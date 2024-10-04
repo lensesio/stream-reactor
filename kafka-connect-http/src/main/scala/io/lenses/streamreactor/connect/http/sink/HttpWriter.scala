@@ -18,8 +18,6 @@ package io.lenses.streamreactor.connect.http.sink
 import cats.effect.IO
 import cats.effect.Ref
 import cats.effect.unsafe.implicits.global
-import cats.implicits.catsSyntaxOptionId
-import cats.implicits.none
 import com.typesafe.scalalogging.LazyLogging
 import cyclops.data.tuple
 import io.lenses.streamreactor.common.utils.CyclopsToScalaOption.convertToCyclopsOption
@@ -32,10 +30,13 @@ import io.lenses.streamreactor.connect.http.sink.client.HttpRequestSender
 import io.lenses.streamreactor.connect.http.sink.client.HttpResponseFailure
 import io.lenses.streamreactor.connect.http.sink.client.HttpResponseSuccess
 import io.lenses.streamreactor.connect.http.sink.commit.HttpCommitContext
+import io.lenses.streamreactor.connect.http.sink.reporter.model.HttpFailureConnectorSpecificRecordData
+import io.lenses.streamreactor.connect.http.sink.reporter.model.HttpSuccessConnectorSpecificRecordData
 import io.lenses.streamreactor.connect.http.sink.tpl.ProcessedTemplate
 import io.lenses.streamreactor.connect.http.sink.tpl.RenderedRecord
 import io.lenses.streamreactor.connect.http.sink.tpl.TemplateType
 import io.lenses.streamreactor.connect.reporting.ReportingController
+import io.lenses.streamreactor.connect.reporting.model.ConnectorSpecificRecordData
 import io.lenses.streamreactor.connect.reporting.model.ReportingRecord
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 
@@ -52,8 +53,8 @@ class HttpWriter(
   commitContextRef: Ref[IO, HttpCommitContext],
   errorThreshold:   Int,
   tidyJson:         Boolean,
-  errorReporter:    ReportingController,
-  successReporter:  ReportingController,
+  errorReporter:    ReportingController[HttpFailureConnectorSpecificRecordData],
+  successReporter:  ReportingController[HttpSuccessConnectorSpecificRecordData],
 ) extends LazyLogging {
   private val maybeBatchSize: Option[Int] = commitPolicy.conditions.collectFirst {
     case Count(maxCount) => maxCount.toInt
@@ -194,39 +195,36 @@ class HttpWriter(
   ): IO[Unit] = {
     val maxRecord = OffsetMergeUtils.maxRecord(renderedRecords)
 
-    val reportRecord = (
-      error:      Option[String],
-      statusCode: Option[Int],
-      content:    Option[String],
-    ) =>
-      new ReportingRecord(
+    def reportRecord[C <: ConnectorSpecificRecordData]: C => ReportingRecord[C] = (connectorSpecific: C) =>
+      new ReportingRecord[C](
         maxRecord.topicPartitionOffset.toTopicPartition.toKafka,
         maxRecord.topicPartitionOffset.offset.value,
         maxRecord.timestamp,
         processedTemplate.endpoint,
         processedTemplate.content,
         convertToCyclopsTuples(processedTemplate.headers),
-        convertToCyclopsOption(error),
-        convertToCyclopsOption(statusCode.map(_.toInt)),
-        convertToCyclopsOption(content),
+        connectorSpecific,
       )
 
     responseIo.flatMap {
       case Left(error) => IO(
           errorReporter.enqueue(
-            reportRecord(
-              error.getMessage.some,
-              error.statusCode,
-              error.responseContent,
+            reportRecord[HttpFailureConnectorSpecificRecordData](
+              new HttpFailureConnectorSpecificRecordData(
+                convertToCyclopsOption(error.statusCode).map(_.toInt),
+                convertToCyclopsOption(error.responseContent),
+                error.getMessage,
+              ),
             ),
           ),
         ) *> IO.raiseError(error)
       case Right(success) => IO(
           successReporter.enqueue(
-            reportRecord(
-              none,
-              success.statusCode.some,
-              success.responseContent,
+            reportRecord[HttpSuccessConnectorSpecificRecordData](
+              new HttpSuccessConnectorSpecificRecordData(
+                success.statusCode,
+                convertToCyclopsOption(success.responseContent),
+              ),
             ),
           ),
         )

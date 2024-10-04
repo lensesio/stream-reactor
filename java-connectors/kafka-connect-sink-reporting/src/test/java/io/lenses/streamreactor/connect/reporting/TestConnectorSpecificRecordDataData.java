@@ -13,19 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.lenses.streamreactor.connect.reporting.model;
+package io.lenses.streamreactor.connect.reporting;
 
-import lombok.AccessLevel;
-import lombok.NoArgsConstructor;
+import io.lenses.streamreactor.connect.reporting.model.ConnectorSpecificRecordData;
 
-@NoArgsConstructor(access = AccessLevel.PRIVATE)
-public class ReportHeadersConstants {
-
-  public static final String INPUT_OFFSET = "input_offset";
-  public static final String INPUT_TIMESTAMP = "input_timestamp";
-  public static final String INPUT_PARTITION = "input_partition";
-  public static final String INPUT_TOPIC = "input_topic";
-  public static final String INPUT_KEY = "input_key";
-  public static final String INPUT_PAYLOAD = "input_payload";
+public class TestConnectorSpecificRecordDataData implements ConnectorSpecificRecordData {
 
 }
