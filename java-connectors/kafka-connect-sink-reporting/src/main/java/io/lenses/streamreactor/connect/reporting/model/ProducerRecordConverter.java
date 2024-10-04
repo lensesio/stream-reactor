@@ -27,6 +27,10 @@ import org.apache.kafka.common.header.internals.RecordHeader;
 import java.io.IOException;
 import java.util.List;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import static java.util.function.Function.identity;
 
 @NoArgsConstructor
 @Slf4j
@@ -48,25 +52,14 @@ public class ProducerRecordConverter {
   }
 
   private Option<List<Header>> convertToHeaders(ReportingRecord originalRecord) {
-    return Try.withCatch(() -> List.<Header>of(
-        new RecordHeader(ReportHeadersConstants.INPUT_TOPIC, originalRecord.getTopicPartition().topic().getBytes()),
-        new RecordHeader(ReportHeadersConstants.INPUT_PARTITION, String.valueOf(originalRecord.getTopicPartition()
-            .partition()).getBytes()),
-        new RecordHeader(ReportHeadersConstants.INPUT_OFFSET, String.valueOf(originalRecord.getOffset()).getBytes()),
-        new RecordHeader(ReportHeadersConstants.INPUT_TIMESTAMP, String.valueOf(originalRecord.getTimestamp())
-            .getBytes()),
-        new RecordHeader(ReportHeadersConstants.INPUT_KEY, null),
-        new RecordHeader(ReportHeadersConstants.INPUT_PAYLOAD, Try.withCatch(() -> originalRecord.getPayload()
-            .getBytes()).orElseGet(EMPTY_BYTES)),
-        new RecordHeader(ReportHeadersConstants.ERROR, originalRecord.getError().map(String::getBytes).orElseGet(
-            EMPTY_BYTES)),
-        new RecordHeader(ReportHeadersConstants.RESPONSE_CONTENT, originalRecord.getResponseContent().map(
-            String::getBytes).orElseGet(
-                EMPTY_BYTES)),
-        new RecordHeader(ReportHeadersConstants.RESPONSE_STATUS, originalRecord.getResponseStatusCode().map(
-            String::valueOf).map(String::getBytes).orElseGet(
-                EMPTY_BYTES))
-    ), IOException.class)
+    return Try.withCatch(() -> Stream.of(
+        buildStandardHeaders(originalRecord),
+        getErrorHeader(originalRecord).stream(),
+        getResponseContent(originalRecord).stream(),
+        getStatusCode(originalRecord).stream()
+    )
+        .flatMap(identity())
+        .collect(Collectors.toUnmodifiableList()), IOException.class)
         .peekFailed(f -> log.warn(
             String.format("Couldn't transform record to Report. Report won't be sent. Topic=%s, Offset=%s",
                 originalRecord.getTopicPartition().topic(),
@@ -74,5 +67,37 @@ public class ProducerRecordConverter {
             ),
             f
         )).toOption();
+  }
+
+  private static Stream<Header> buildStandardHeaders(ReportingRecord originalRecord) {
+    return Stream.of(
+        new RecordHeader(ReportHeadersConstants.INPUT_TOPIC, originalRecord.getTopicPartition().topic()
+            .getBytes()),
+        new RecordHeader(ReportHeadersConstants.INPUT_PARTITION, String.valueOf(originalRecord.getTopicPartition()
+            .partition()).getBytes()),
+        new RecordHeader(ReportHeadersConstants.INPUT_OFFSET, String.valueOf(originalRecord.getOffset())
+            .getBytes()),
+        new RecordHeader(ReportHeadersConstants.INPUT_TIMESTAMP, String.valueOf(originalRecord.getTimestamp())
+            .getBytes()),
+        new RecordHeader(ReportHeadersConstants.INPUT_KEY, null),
+        new RecordHeader(ReportHeadersConstants.INPUT_PAYLOAD, Try.withCatch(() -> originalRecord.getPayload()
+            .getBytes()).orElseGet(EMPTY_BYTES))
+    );
+  }
+
+  private static Option<Header> getErrorHeader(ReportingRecord originalRecord) {
+    return originalRecord.getError().map(
+        error -> new RecordHeader(ReportHeadersConstants.ERROR, error.getBytes()));
+  }
+
+  private static Option<Header> getResponseContent(ReportingRecord originalRecord) {
+    return originalRecord.getResponseContent().map(
+        error -> new RecordHeader(ReportHeadersConstants.RESPONSE_CONTENT, error.getBytes()));
+  }
+
+  private static Option<Header> getStatusCode(ReportingRecord originalRecord) {
+    return originalRecord.getResponseStatusCode().map(
+        String::valueOf).map(
+            error -> new RecordHeader(ReportHeadersConstants.RESPONSE_STATUS, error.getBytes()));
   }
 }
