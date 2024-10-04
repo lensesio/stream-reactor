@@ -50,7 +50,7 @@ object Dependencies {
 
     val enumeratumVersion = "1.7.4"
 
-    val http4sVersion    = "1.0.0-M32"
+    val http4sVersion    = "1.0.0-M42"
     val http4sJdkVersion = "1.0.0-M1"
     val avroVersion      = "1.11.3"
     val avro4sVersion    = "4.1.2"
