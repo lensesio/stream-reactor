@@ -28,7 +28,21 @@ class TemplateRenderer[X <: SubstitutionType](substitutionType: Enum[X]) {
 
   private val templatePattern: Regex = "\\{\\{([^{}]*)}}".r
 
-  // Method to render a single data entry with a template
+  private val nullSubstitutionError:           SubstitutionError = SubstitutionError("SubstitutionType returned null")
+  private val noTagSpecifiedSubstitutionError: SubstitutionError = SubstitutionError("No tag specified")
+  private val invalidSubstitutionTypeSubstitutionErrorFn: String => SubstitutionError = k =>
+    SubstitutionError(s"Couldn't find `$k` SubstitutionType")
+
+  /**
+    * Renders a single data entry with a template.
+    *
+    * This method takes a `SinkRecord` and a template text, and replaces the placeholders
+    * in the template with the corresponding values from the `SinkRecord`.
+    *
+    * @param data the `SinkRecord` containing the data to be rendered
+    * @param tplText the template text with placeholders to be replaced
+    * @return either a `SubstitutionError` if an error occurs, or the rendered string
+    */
   def render(data: SinkRecord, tplText: String): Either[SubstitutionError, String] =
     Either.catchOnly[SubstitutionError](
       templatePattern
@@ -37,16 +51,15 @@ class TemplateRenderer[X <: SubstitutionType](substitutionType: Enum[X]) {
           matchTag =>
             Matcher.quoteReplacement {
               val tag = Option(matchTag.group(1)).getOrElse("").trim
-              getValue(tag, data)
+              getTagValueFromData(tag, data)
                 .leftMap(throw _)
                 .merge
             },
         ),
     )
 
-// Helper method to get the value for a given tag from data
-  private[renderer] def getValue(tag: String, data: SinkRecord): Either[SubstitutionError, String] = {
-    val tagOpt = Option(tag).filter(_.nonEmpty).toRight(SubstitutionError("No tag specified"))
+  private[renderer] def getTagValueFromData(tag: String, data: SinkRecord): Either[SubstitutionError, String] = {
+    val tagOpt = Option(tag).filter(_.nonEmpty).toRight(noTagSpecifiedSubstitutionError)
     tagOpt.flatMap { t =>
       val locs    = t.split("\\.", 2)
       val key     = locs.headOption.map(_.toLowerCase).getOrElse("")
@@ -57,11 +70,9 @@ class TemplateRenderer[X <: SubstitutionType](substitutionType: Enum[X]) {
         case (k, loc) =>
           for {
             sType <- substitutionType.withNameInsensitiveOption(k).toRight(
-              SubstitutionError(s"Couldn't find `$k` SubstitutionType"),
+              invalidSubstitutionTypeSubstitutionErrorFn(k),
             )
-            value <- sType.get(loc, data).map(_.toString).leftMap(_ =>
-              SubstitutionError("SubstitutionType returned null"),
-            )
+            value <- sType.get(loc, data).map(_.toString).leftMap(_ => nullSubstitutionError)
           } yield value
       }
     }

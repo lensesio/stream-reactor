@@ -29,6 +29,8 @@ import org.scalatest.matchers.should.Matchers
 class TemplateRendererTest extends AnyFunSuiteLike with Matchers with EitherValues {
 
   private val templateRenderer = new TemplateRenderer(SubstitutionType)
+  private val testSinkRecord   = new SinkRecord("topic", 0, null, null, null, null, 0)
+  private val testValue        = "testValue"
 
   test("renderRecords should tidy json commas if set") {
 
@@ -60,20 +62,17 @@ class TemplateRendererTest extends AnyFunSuiteLike with Matchers with EitherValu
       .replaceAll("(?s)\\s+", " ").trim
 
   test("getValue should return SubstitutionError when tag is null") {
-    val data   = new SinkRecord("topic", 0, null, null, null, null, 0)
-    val result = templateRenderer.getValue(null, data)
+    val result = templateRenderer.getTagValueFromData(null, testSinkRecord)
     result.left.value.msg shouldBe "No tag specified"
   }
 
   test("getValue should handle valid tags correctly") {
-    val data   = new SinkRecord("topic", 0, null, null, null, null, 0)
-    val result = templateRenderer.getValue("#message", data)
+    val result = templateRenderer.getTagValueFromData("#message", testSinkRecord)
     result shouldBe Right("")
   }
 
   test("getValue should return SubstitutionError for unknown substitution type") {
-    val data    = new SinkRecord("topic", 0, null, null, null, null, 0)
-    val result  = templateRenderer.getValue("unknownType", data)
+    val result  = templateRenderer.getTagValueFromData("unknownType", testSinkRecord)
     val leftVal = result.left.value
     leftVal.msg should be("Couldn't find `unknowntype` SubstitutionType")
   }
@@ -81,7 +80,7 @@ class TemplateRendererTest extends AnyFunSuiteLike with Matchers with EitherValu
   case object TestSubstitutionType extends SubstitutionType {
     override def get(locator: Option[String], sinkRecord: SinkRecord): Either[SubstitutionError, AnyRef] =
       locator match {
-        case Some(_) => Right("TestValue")
+        case Some(_) => Right(testValue)
         case None    => Left(SubstitutionError("SubstitutionType returned null"))
       }
   }
@@ -92,14 +91,14 @@ class TemplateRendererTest extends AnyFunSuiteLike with Matchers with EitherValu
   }
 
   test("getValue should handle test locator successfully") {
-    val data   = new SinkRecord("topic", 0, null, null, null, null, 0)
-    val result = new TemplateRenderer(TestSubstitutionTypeEnum).getValue("testsubstitutiontype.name", data)
-    result.value shouldBe "TestValue"
+    val result =
+      new TemplateRenderer(TestSubstitutionTypeEnum).getTagValueFromData("testsubstitutiontype.name", testSinkRecord)
+    result.value shouldBe testValue
   }
 
   test("getValue should handle None locator without throwing NPE") {
-    val data   = new SinkRecord("topic", 0, null, null, null, null, 0)
-    val result = new TemplateRenderer(TestSubstitutionTypeEnum).getValue("testsubstitutiontype", data)
+    val result =
+      new TemplateRenderer(TestSubstitutionTypeEnum).getTagValueFromData("testsubstitutiontype", testSinkRecord)
     result.left.value.getMessage shouldBe "SubstitutionType returned null"
   }
 }

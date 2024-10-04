@@ -15,15 +15,15 @@
  */
 package io.lenses.streamreactor.connect.http.sink.tpl.substitutions
 
-import cats.implicits.catsSyntaxEitherId
 import org.apache.kafka.connect.sink.SinkRecord
 
 case object Header extends SubstitutionType {
   def get(locator: Option[String], sinkRecord: SinkRecord): Either[SubstitutionError, AnyRef] =
-    locator.map { loc =>
-      Option(sinkRecord.headers().lastWithName(loc)) match {
-        case Some(header) => Option(header.value()).toRight(SubstitutionError("Header value is null"))
-        case None         => SubstitutionError(s"Header with name `$loc` not found").asLeft
-      }
-    }.getOrElse(SubstitutionError("Invalid locator for path").asLeft)
+    for {
+      loc <- locator.toRight(SubstitutionError("No header specified for substitution"))
+      header <- Option(sinkRecord.headers().lastWithName(loc)).toRight(SubstitutionError(
+        s"Header with name `$loc` not found",
+      ))
+      value <- Option(header.value()).toRight(SubstitutionError(s"Header value for `$loc` is null"))
+    } yield value
 }

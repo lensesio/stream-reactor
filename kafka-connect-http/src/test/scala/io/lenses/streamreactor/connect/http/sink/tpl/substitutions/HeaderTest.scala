@@ -40,13 +40,13 @@ class HeaderTest extends AnyFunSuiteLike with Matchers {
     val headers    = new ConnectHeaders().add("test-header", null, null)
     val sinkRecord = new SinkRecord("topic", 0, null, null, null, null, 0, null, null, headers)
     val result     = Header.get(Some("test-header"), sinkRecord)
-    result shouldBe Left(SubstitutionError("Header value is null"))
+    result shouldBe Left(SubstitutionError("Header value for `test-header` is null"))
   }
 
   test("Header.get should return an error when the locator is None") {
     val headers    = new ConnectHeaders()
     val sinkRecord = new SinkRecord("topic", 0, null, null, null, null, 0, null, null, headers)
     val result     = Header.get(None, sinkRecord)
-    result shouldBe Left(SubstitutionError("Invalid locator for path"))
+    result shouldBe Left(SubstitutionError("No header specified for substitution"))
   }
 }
