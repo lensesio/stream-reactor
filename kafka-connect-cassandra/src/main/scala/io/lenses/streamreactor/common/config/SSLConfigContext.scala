@@ -24,6 +24,13 @@ import javax.net.ssl._
   * Created by andrew@datamountaineer.com on 14/04/16.
   * stream-reactor
   */
+
+/**
+  * For a solution that can be shared between java and scala please see
+  * [[io.lenses.streamreactor.common.security.StoresInfo]], which can
+  * be used in conjunction with withClientSslSupport in [[org.apache.kafka.common.config.ConfigDef]]
+  */
+@deprecated("Please use io.lenses.streamreactor.common.security.StoresInfo")
 object SSLConfigContext {
   def apply(config: SSLConfig): SSLContext =
     getSSLContext(config)

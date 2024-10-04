@@ -22,11 +22,13 @@ import org.scalatest.wordspec.AnyWordSpec
 import javax.net.ssl.KeyManager
 import javax.net.ssl.SSLContext
 import javax.net.ssl.TrustManager
+import scala.annotation.nowarn
 
 /**
   * Created by andrew@datamountaineer.com on 19/04/16.
   * stream-reactor
   */
+@nowarn("cat=deprecation")
 class TestSSLConfigContext extends AnyWordSpec with Matchers with BeforeAndAfter {
   var sslConfig:         SSLConfig = null
   var sslConfigNoClient: SSLConfig = null
