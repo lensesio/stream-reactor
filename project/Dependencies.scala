@@ -73,7 +73,7 @@ object Dependencies {
 
     val dnsJavaVersion  = "3.6.2"
     val wiremockVersion = "3.9.1"
-    val parquetVersion  = "1.14.1"
+    val parquetVersion  = "1.14.2"
 
     val jerseyCommonVersion = "3.1.8"
 
