@@ -15,17 +15,17 @@
  */
 package io.lenses.streamreactor.connect.http.sink.tpl.substitutions
 
-import cats.implicits.catsSyntaxOptionId
-import com.typesafe.scalalogging.LazyLogging
+import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.sink.SinkRecord
+import org.scalatest.funsuite.AnyFunSuiteLike
+import org.scalatest.matchers.should.Matchers
 
-object SubstitutionError extends LazyLogging {
-  def apply(msg: String): SubstitutionError = {
-    logger.error("SubstitutionError Raised: " + msg)
-    SubstitutionError(msg, Option.empty)
+class ValueTest extends AnyFunSuiteLike with Matchers {
+
+  test("Value.get should return the extracted value when the locator is valid") {
+    val sinkRecord = new SinkRecord("topic", 0, null, null, Schema.STRING_SCHEMA, "test-value", 0)
+    val result     = Value.get(Some("valid-locator"), sinkRecord)
+    result shouldBe Right("test-value")
   }
-  def apply(msg: String, throwable: Throwable): SubstitutionError = {
-    logger.error("SubstitutionError Raised: " + msg, throwable)
-    SubstitutionError(msg, throwable.some)
-  }
+
 }
-case class SubstitutionError(msg: String, throwable: Option[Throwable]) extends Throwable(msg, throwable.orNull)

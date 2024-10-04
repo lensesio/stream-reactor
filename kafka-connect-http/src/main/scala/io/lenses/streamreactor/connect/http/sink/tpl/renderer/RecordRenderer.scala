@@ -21,9 +21,12 @@ import io.lenses.streamreactor.connect.cloud.common.model.Topic
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartitionOffset
 import io.lenses.streamreactor.connect.http.sink.tpl.substitutions.SubstitutionError
 import io.lenses.streamreactor.connect.http.sink.tpl.RenderedRecord
+import io.lenses.streamreactor.connect.http.sink.tpl.substitutions.SubstitutionType
 import org.apache.kafka.connect.sink.SinkRecord
 
 object RecordRenderer {
+
+  private val templateRenderer = new TemplateRenderer[SubstitutionType](SubstitutionType)
 
   def renderRecords(
     data:        Seq[SinkRecord],
@@ -42,7 +45,7 @@ object RecordRenderer {
       Topic(sinkRecord.topic()).withPartition(sinkRecord.kafkaPartition()).withOffset(Offset(sinkRecord.kafkaOffset()))
 
     for {
-      recordRend:   String <- TemplateRenderer.render(sinkRecord, contentTpl)
+      recordRend:   String <- templateRenderer.render(sinkRecord, contentTpl)
       headersRend:  Seq[(String, String)] <- renderHeaders(sinkRecord, headers)
       endpointRend: Option[String] <- renderEndpoint(sinkRecord, endpointTpl)
     } yield RenderedRecord(topicPartitionOffset, sinkRecord.timestamp(), recordRend, headersRend, endpointRend)
@@ -55,8 +58,8 @@ object RecordRenderer {
     header match {
       case (hKey, hVal) =>
         for {
-          k <- TemplateRenderer.render(sinkRecord, hKey)
-          v <- TemplateRenderer.render(sinkRecord, hVal)
+          k <- templateRenderer.render(sinkRecord, hKey)
+          v <- templateRenderer.render(sinkRecord, hVal)
         } yield k -> v
     }
 
@@ -70,6 +73,6 @@ object RecordRenderer {
     sinkRecord:  SinkRecord,
     endpointTpl: Option[String],
   ): Either[SubstitutionError, Option[String]] =
-    endpointTpl.map(tpl => TemplateRenderer.render(sinkRecord, tpl)).sequence
+    endpointTpl.map(tpl => templateRenderer.render(sinkRecord, tpl)).sequence
 
 }

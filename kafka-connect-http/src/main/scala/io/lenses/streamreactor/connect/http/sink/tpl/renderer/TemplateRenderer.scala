@@ -16,17 +16,33 @@
 package io.lenses.streamreactor.connect.http.sink.tpl.renderer
 
 import cats.implicits._
+import enumeratum.Enum
 import io.lenses.streamreactor.connect.http.sink.tpl.substitutions.SubstitutionError
 import io.lenses.streamreactor.connect.http.sink.tpl.substitutions.SubstitutionType
 import org.apache.kafka.connect.sink.SinkRecord
 
 import java.util.regex.Matcher
 import scala.util.matching.Regex
-object TemplateRenderer {
+
+class TemplateRenderer[X <: SubstitutionType](substitutionType: Enum[X]) {
 
   private val templatePattern: Regex = "\\{\\{([^{}]*)}}".r
 
-  // Method to render a single data entry with a template
+  private val nullSubstitutionError:           SubstitutionError = SubstitutionError("SubstitutionType returned null")
+  private val noTagSpecifiedSubstitutionError: SubstitutionError = SubstitutionError("No tag specified")
+  private val invalidSubstitutionTypeSubstitutionErrorFn: String => SubstitutionError = k =>
+    SubstitutionError(s"Couldn't find `$k` SubstitutionType")
+
+  /**
+    * Renders a single data entry with a template.
+    *
+    * This method takes a `SinkRecord` and a template text, and replaces the placeholders
+    * in the template with the corresponding values from the `SinkRecord`.
+    *
+    * @param data the `SinkRecord` containing the data to be rendered
+    * @param tplText the template text with placeholders to be replaced
+    * @return either a `SubstitutionError` if an error occurs, or the rendered string
+    */
   def render(data: SinkRecord, tplText: String): Either[SubstitutionError, String] =
     Either.catchOnly[SubstitutionError](
       templatePattern
@@ -34,25 +50,31 @@ object TemplateRenderer {
           tplText,
           matchTag =>
             Matcher.quoteReplacement {
-              val tag = matchTag.group(1).trim
-              getValue(tag, data)
+              val tag = Option(matchTag.group(1)).getOrElse("").trim
+              getTagValueFromData(tag, data)
                 .leftMap(throw _)
                 .merge
             },
         ),
     )
 
-  // Helper method to get the value for a given tag from data
-  private def getValue(tag: String, data: SinkRecord): Either[SubstitutionError, String] = {
-    val locs = tag.split("\\.", 2)
-    (locs(0).toLowerCase, locs.lift(1)) match {
-      case ("#message", _) => "".asRight
-      case ("/message", _) => "".asRight
-      case (key: String, locator: Option[String]) =>
-        SubstitutionType.withNameInsensitiveOption(key) match {
-          case Some(sType) => sType.get(locator, data).map(_.toString)
-          case None        => SubstitutionError(s"Couldn't find $key SubstitutionType").asLeft
-        }
+  private[renderer] def getTagValueFromData(tag: String, data: SinkRecord): Either[SubstitutionError, String] = {
+    val tagOpt = Option(tag).filter(_.nonEmpty).toRight(noTagSpecifiedSubstitutionError)
+    tagOpt.flatMap { t =>
+      val locs    = t.split("\\.", 2)
+      val key     = locs.headOption.map(_.toLowerCase).getOrElse("")
+      val locator = locs.lift(1)
+
+      (key, locator) match {
+        case ("#message", _) | ("/message", _) => Right("")
+        case (k, loc) =>
+          for {
+            sType <- substitutionType.withNameInsensitiveOption(k).toRight(
+              invalidSubstitutionTypeSubstitutionErrorFn(k),
+            )
+            value <- sType.get(loc, data).map(_.toString).leftMap(_ => nullSubstitutionError)
+          } yield value
+      }
     }
   }
 
