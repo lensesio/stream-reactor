@@ -38,8 +38,7 @@ import scala.jdk.CollectionConverters.SeqHasAsJava
 import scala.util.Failure
 import scala.util.Try
 
-/**
-  * <h1>MongoJsonWriter</h1>
+/** <h1>MongoJsonWriter</h1>
   * Mongo Json writer for Kafka connect
   * Writes a list of Kafka connect sink records to Mongo using the JSON support.
   */
@@ -64,8 +63,7 @@ class MongoWriter(settings: MongoSettings, mongoClient: MongoClient)
   //initialize error tracker
   initialize(settings.taskRetries, settings.errorPolicy)
 
-  /**
-    * Write SinkRecords to MongoDb.
+  /** Write SinkRecords to MongoDb.
     *
     * @param records A list of SinkRecords from Kafka Connect to write.
     */
@@ -79,8 +77,7 @@ class MongoWriter(settings: MongoSettings, mongoClient: MongoClient)
     ()
   }
 
-  /**
-    * Write SinkRecords to MongoDb
+  /** Write SinkRecords to MongoDb
     *
     * @param records A list of SinkRecords from Kafka Connect to write.
     * @return boolean indication successful write.

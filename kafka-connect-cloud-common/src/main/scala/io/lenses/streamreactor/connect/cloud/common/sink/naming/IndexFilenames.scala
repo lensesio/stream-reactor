@@ -25,20 +25,17 @@ import scala.util.Try
 
 class IndexFilenames(directoryFileName: String) {
 
-  /**
-    * Generate the filename for the index file.
+  /** Generate the filename for the index file.
     */
   def indexFilename(topic: String, partition: Int, offset: Long)(implicit connectorTaskId: ConnectorTaskId): String =
     f"${indexForTopicPartition(topic, partition)}$offset%020d"
 
-  /**
-    * Generate the directory of the index for a given topic and partition
+  /** Generate the directory of the index for a given topic and partition
     */
   def indexForTopicPartition(topic: String, partition: Int)(implicit connectorTaskId: ConnectorTaskId): String =
     f"$directoryFileName/${connectorTaskId.name}/$topic/$partition%05d/"
 
-  /**
-    * Parses the filename of the index file, converting it to a TopicPartitionOffset
+  /** Parses the filename of the index file, converting it to a TopicPartitionOffset
     *
     * @param maybeIndex option of the index filename
     * @return either an error, or a TopicPartitionOffset
@@ -53,8 +50,7 @@ class IndexFilenames(directoryFileName: String) {
       } yield topicPartition.withOffset(offset),
     ).sequence
 
-  /**
-    * Parses an index filename and returns an offset
+  /** Parses an index filename and returns an offset
     */
   private def offsetFromIndex(indexFilename: String): Either[Throwable, Offset] = {
     val lastIndex = indexFilename.lastIndexOf("/")

@@ -168,8 +168,7 @@ object InfluxPoint {
       )
   }
 
-  /**
-    * Flatten an array writing each element as a new field with the following convention:
+  /** Flatten an array writing each element as a new field with the following convention:
     * "name": ["a", "b", "c"] => name0 = "a", name1 = "b", name3 = "c"
     */
   private def flattenArray(builder: Point)(field: String, value: java.util.List[_]) = {

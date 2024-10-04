@@ -20,8 +20,7 @@ import org.apache.kafka.connect.data.SchemaBuilder
 import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.source.SourceRecord
 
-/**
-  * Created by andrew@datamountaineer.com on 31/08/2017.
+/** Created by andrew@datamountaineer.com on 31/08/2017.
   * Default (Template) Project
   */
 object SourceRecordProducers {

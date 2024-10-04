@@ -26,8 +26,7 @@ import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
 
-/**
-  * Created by andrew@datamountaineer.com on 27/08/2017.
+/** Created by andrew@datamountaineer.com on 27/08/2017.
   * stream-reactor
   */
 case class MqttSinkSettings(

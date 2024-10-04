@@ -36,8 +36,7 @@ import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
 
-/**
-  * A generic Redis `writer` that can store data into Redis streams / KCQL
+/** A generic Redis `writer` that can store data into Redis streams / KCQL
   *
   * Requires KCQL syntax:   INSERT .. SELECT .. STOREAS stream
   *
@@ -84,7 +83,8 @@ class RedisStreams(sinkSettings: RedisSinkSettings, jedis: Jedis)
   def insert(records: Map[String, Seq[SinkRecord]]): Unit =
     records.foreach(
       {
-        case (topic, sinkRecords: Seq[SinkRecord]) => {
+        case (topic, sinkRecords: Seq[SinkRecord]) =>
+          {
             val topicSettings: Set[RedisKCQLSetting] = sinkSettings.kcqlSettings.filter(_.kcqlConfig.getSource == topic)
             if (topicSettings.isEmpty)
               logger.warn(s"No KCQL statement set for [$topic]")

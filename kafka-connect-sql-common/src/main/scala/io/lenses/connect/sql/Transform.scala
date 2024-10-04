@@ -59,7 +59,8 @@ private object Transform extends StrictLogging {
             val array = value match {
               case a: Array[Byte] => a
               case b: ByteBuffer  => b.array()
-              case _ => raiseException("Invalid payload:$other for schema Schema.BYTES.", None)
+              case _ =>
+                raiseException("Invalid payload:$other for schema Schema.BYTES.", None)
                 throw new IllegalArgumentException()
             }
 
