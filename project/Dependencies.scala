@@ -40,7 +40,7 @@ object Dependencies {
     val scalatestPlusScalaCheckVersion = "3.1.0.0-RC2"
     val scalaCheckVersion              = "1.18.1"
 
-    val junitJupiterVersion = "5.11.0"
+    val junitJupiterVersion = "5.11.2"
     val assertjCoreVersion  = "3.26.3"
 
     val cyclopsVersion = "10.4.1"
