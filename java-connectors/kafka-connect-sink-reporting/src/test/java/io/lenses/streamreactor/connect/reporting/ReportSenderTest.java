@@ -66,6 +66,8 @@ class ReportSenderTest {
     mockReportingRecord = mock(ReportingRecord.class);
     when(mockReportingRecord.getTopicPartition()).thenReturn(topicPartition);
     when(mockReportingRecord.getError()).thenReturn(Option.none());
+    when(mockReportingRecord.getResponseContent()).thenReturn(Option.none());
+    when(mockReportingRecord.getResponseStatusCode()).thenReturn(Option.none());
     reportSender =
         new ReportSender(converter, "test-client-id", mockReportHolder, mockProducer, mockExecutorService, reportTopic);
 

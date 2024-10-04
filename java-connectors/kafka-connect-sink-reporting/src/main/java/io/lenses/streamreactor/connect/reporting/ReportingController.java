@@ -16,6 +16,7 @@
 package io.lenses.streamreactor.connect.reporting;
 
 import cyclops.control.Option;
+import io.lenses.streamreactor.common.config.source.MapConfigSource;
 import io.lenses.streamreactor.connect.reporting.config.ReportProducerConfigConst;
 import io.lenses.streamreactor.connect.reporting.config.ReporterConfig;
 import io.lenses.streamreactor.connect.reporting.model.ReportingRecord;
@@ -36,9 +37,11 @@ public class ReportingController {
 
   public static ReportingController fromConfig(Map<String, Object> senderConfig) {
 
+    val configSource = new MapConfigSource(senderConfig);
+
     val senderEnabled =
-        getEnabledBoolean(senderConfig
-            .getOrDefault(ReportProducerConfigConst.REPORTING_ENABLED_CONFIG, "false"));
+        configSource.getBoolean(
+            ReportProducerConfigConst.REPORTING_ENABLED_CONFIG).orElse(false);
 
     val reportSenderOption =
         (senderEnabled) ? Option.of(ReportSender.fromConfigMap(senderConfig)) : Option.<ReportSender>none();
@@ -68,18 +71,6 @@ public class ReportingController {
    */
   public void close() {
     reportSender.forEach(ReportSender::close);
-  }
-
-  private static boolean getEnabledBoolean(Object o) {
-    //TODO: check if we have something like
-    // io.lenses.streamreactor.connect.cloud.common.config.ConfigParse#getBoolean
-    if (Boolean.class.isAssignableFrom(o.getClass())) {
-      return (Boolean) o;
-    }
-    if (String.class.isAssignableFrom(o.getClass())) {
-      return Boolean.parseBoolean((String) o);
-    }
-    return false;
   }
 
   @NoArgsConstructor(access = AccessLevel.PRIVATE)
