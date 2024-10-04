@@ -44,8 +44,7 @@ import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
 
-/**
-  * <h1>CassandraJsonWriter</h1>
+/** <h1>CassandraJsonWriter</h1>
   * Cassandra Json writer for Kafka connect
   * Writes a list of Kafka connect sink records to Cassandra using the JSON support.
   */
@@ -67,16 +66,14 @@ class CassandraJsonWriter(connection: CassandraConnection, settings: CassandraSi
 
   private val deleteStructFields = settings.deleteStructFields
 
-  /**
-    * Get a connection to cassandra based on the config
+  /** Get a connection to cassandra based on the config
     */
   private def getSession: Option[Session] = {
     val t = Try(connection.cluster.connect(settings.keySpace))
     handleTry[Session](t)
   }
 
-  /**
-    * Cache the preparedStatements per topic rather than create them every time
+  /** Cache the preparedStatements per topic rather than create them every time
     * Each one is an insert statement aligned to topics.
     *
     * @return A Map of topic->(target -> preparedStatements).
@@ -102,8 +99,7 @@ class CassandraJsonWriter(connection: CassandraConnection, settings: CassandraSi
       Some(session.prepare(settings.deleteStatement))
     else None
 
-  /**
-    * Build a preparedStatement for the given topic.
+  /** Build a preparedStatement for the given topic.
     *
     * @param table The table name to prepare the statement for.
     * @return A prepared statement for the given topic.
@@ -125,8 +121,7 @@ class CassandraJsonWriter(connection: CassandraConnection, settings: CassandraSi
     handleTry[PreparedStatement](t)
   }
 
-  /**
-    * Write SinkRecords to Cassandra (aSync per topic partition) in Json.
+  /** Write SinkRecords to Cassandra (aSync per topic partition) in Json.
     *
     * @param records A list of SinkRecords from Kafka Connect to write.
     */
@@ -146,8 +141,7 @@ class CassandraJsonWriter(connection: CassandraConnection, settings: CassandraSi
       val _ = write(records.groupBy(r => new TopicPartition(r.topic(), r.kafkaPartition())))
     }
 
-  /**
-    * Write SinkRecords to Cassandra (aSync) in Json
+  /** Write SinkRecords to Cassandra (aSync) in Json
     *
     * @param records A Map of [[TopicPartition]] -> [[SinkRecord]] from Kafka Connect to write.
     * @return boolean indication successful write.
@@ -249,8 +243,7 @@ class CassandraJsonWriter(connection: CassandraConnection, settings: CassandraSi
         throw e
     }
 
-  /**
-    * Closed down the driver session and cluster.
+  /** Closed down the driver session and cluster.
     */
   def close(): Unit = {
     logger.info("Shutting down Cassandra driver session and cluster.")

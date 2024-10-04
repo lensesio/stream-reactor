@@ -220,13 +220,14 @@ class HttpWriterManager(
       failures <- IO(writersResult.collect {
         case Left(error: Throwable) => error
       })
-      _ <- if (failures.nonEmpty) {
-        logger.error(s"[$sinkName] Some writer processes failed: $failures")
-        failures.traverse(errCallback)
-      } else {
-        logger.debug(s"[$sinkName] All writer processes completed successfully")
-        IO.unit
-      }
+      _ <-
+        if (failures.nonEmpty) {
+          logger.error(s"[$sinkName] Some writer processes failed: $failures")
+          failures.traverse(errCallback)
+        } else {
+          logger.debug(s"[$sinkName] All writer processes completed successfully")
+          IO.unit
+        }
     } yield ()
 
   def process(): IO[List[Either[Throwable, Unit]]] = {

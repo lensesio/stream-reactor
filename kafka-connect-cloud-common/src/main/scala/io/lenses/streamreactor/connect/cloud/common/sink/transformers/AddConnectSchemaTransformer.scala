@@ -34,8 +34,7 @@ import scala.jdk.CollectionConverters.CollectionHasAsScala
 import scala.jdk.CollectionConverters.MapHasAsScala
 import scala.jdk.CollectionConverters.SeqHasAsJava
 
-/**
-  * When JSON converter is used the Connect framework does not provide the schema  for payloads like Array[?] of Map[String, ?].
+/** When JSON converter is used the Connect framework does not provide the schema  for payloads like Array[?] of Map[String, ?].
   * For all the other payload types, there is no transformation.
   * This class is responsible for adapting the message payload to one with a schema.
   */
@@ -51,8 +50,9 @@ class AddConnectSchemaTransformer(topic: Topic, settings: DataStorageSettings) e
       if (settings.hasEnvelope && (settings.key || settings.value)) {
         for {
           key <- if (settings.key) AddConnectSchemaTransformer.qualifyWithSchema(message.key) else message.key.asRight
-          value <- if (settings.value) AddConnectSchemaTransformer.qualifyWithSchema(message.value)
-          else message.value.asRight
+          value <-
+            if (settings.value) AddConnectSchemaTransformer.qualifyWithSchema(message.value)
+            else message.value.asRight
         } yield {
           if ((key eq message.key) && (value eq message.value)) message
           else

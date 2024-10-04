@@ -25,8 +25,7 @@ import io.lenses.kcql.partitions.NoPartitions
 import io.lenses.kcql.partitions.Partitions
 import io.lenses.streamreactor.connect.config.kcqlprops.KcqlProperties
 
-/**
-  * The `PartitionSpecifier` object is used to specify the type of partitioning to be applied.
+/** The `PartitionSpecifier` object is used to specify the type of partitioning to be applied.
   * It provides different options for partitioning such as by Key, Value, Header, Topic, Partition, and Date.
   */
 case class PartitionSelection(
@@ -57,7 +56,8 @@ object PartitionSelection {
           fields: Seq[PartitionField] <- PartitionField(partitions)
         } yield {
           fields match {
-            case partitions if partitions.nonEmpty => PartitionSelection(
+            case partitions if partitions.nonEmpty =>
+              PartitionSelection(
                 isCustom = true,
                 partitions,
                 PartitionDisplay(props, KeysAndValues),

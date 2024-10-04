@@ -30,11 +30,10 @@ class TemplateRenderer[X <: SubstitutionType](substitutionType: Enum[X]) {
 
   private val nullSubstitutionError:           SubstitutionError = SubstitutionError("SubstitutionType returned null")
   private val noTagSpecifiedSubstitutionError: SubstitutionError = SubstitutionError("No tag specified")
-  private val invalidSubstitutionTypeSubstitutionErrorFn: String => SubstitutionError = k =>
-    SubstitutionError(s"Couldn't find `$k` SubstitutionType")
+  private val invalidSubstitutionTypeSubstitutionErrorFn: String => SubstitutionError =
+    k => SubstitutionError(s"Couldn't find `$k` SubstitutionType")
 
-  /**
-    * Renders a single data entry with a template.
+  /** Renders a single data entry with a template.
     *
     * This method takes a `SinkRecord` and a template text, and replaces the placeholders
     * in the template with the corresponding values from the `SinkRecord`.

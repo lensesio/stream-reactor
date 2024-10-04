@@ -20,15 +20,13 @@ import cyclops.control.{ Option => CyclopsOption }
 import scala.jdk.OptionConverters.RichOptional
 import scala.{ Option => ScalaOption }
 
-/**
-  * Utility object for converting Cyclops Option to Scala Option.
+/** Utility object for converting Cyclops Option to Scala Option.
   *
   * This object provides a method to convert an instance of Cyclops Option to a Scala Option.
   */
 object CyclopsToScalaOption {
 
-  /**
-    * Converts a Cyclops Option to a Scala Option.
+  /** Converts a Cyclops Option to a Scala Option.
     *
     * This method converts an instance of Cyclops Option to a Scala Option.
     *

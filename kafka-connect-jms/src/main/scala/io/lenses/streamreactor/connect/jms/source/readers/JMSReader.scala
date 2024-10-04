@@ -27,8 +27,7 @@ import jakarta.jms.Message
 import jakarta.jms.MessageConsumer
 import scala.util.Try
 
-/**
-  * Created by andrew@datamountaineer.com on 10/03/2017.
+/** Created by andrew@datamountaineer.com on 10/03/2017.
   * stream-reactor
   */
 class JMSReader(settings: JMSSettings) extends StrictLogging {

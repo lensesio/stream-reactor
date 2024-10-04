@@ -38,8 +38,7 @@ object SinkRecordConverterHelper extends StrictLogging {
 
   implicit final class SinkRecordExtension(val record: SinkRecord) extends AnyVal {
 
-    /**
-      * make new sink record, taking fields
+    /** make new sink record, taking fields
       * from the key, value and headers
       */
     def newFilteredRecordAsStruct(projections: Projections): Struct = {

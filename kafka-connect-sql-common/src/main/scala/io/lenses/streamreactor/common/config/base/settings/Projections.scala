@@ -120,11 +120,12 @@ object Projections extends StrictLogging {
       k.getSource -> k.getFields.asScala
         .filterNot(f => f.getName.startsWith("_key.") || f.getName.startsWith("_header."))
         .map { f =>
-          val name = if (f.hasParents) {
-            s"${f.getParentFields.asScala.mkString(".")}.${f.getName}"
-          } else {
-            f.getName
-          }
+          val name =
+            if (f.hasParents) {
+              s"${f.getParentFields.asScala.mkString(".")}.${f.getName}"
+            } else {
+              f.getName
+            }
 
           name -> f.getAlias
         }
@@ -136,11 +137,12 @@ object Projections extends StrictLogging {
       k.getSource -> k.getFields.asScala
         .filter(f => f.getName.startsWith("_key."))
         .map { f =>
-          val name = if (f.hasParents) {
-            s"${f.getParentFields.asScala.mkString(".")}.${f.getName}"
-          } else {
-            f.getName
-          }
+          val name =
+            if (f.hasParents) {
+              s"${f.getParentFields.asScala.mkString(".")}.${f.getName}"
+            } else {
+              f.getName
+            }
 
           name.replaceFirst("_key.", "") -> f.getAlias
         }.toMap
@@ -151,11 +153,12 @@ object Projections extends StrictLogging {
       k.getSource -> k.getFields.asScala
         .filter(f => f.getName.startsWith("_header."))
         .map { f =>
-          val name = if (f.hasParents) {
-            s"${f.getParentFields.asScala.mkString(".")}.${f.getName}"
-          } else {
-            f.getName
-          }
+          val name =
+            if (f.hasParents) {
+              s"${f.getParentFields.asScala.mkString(".")}.${f.getName}"
+            } else {
+              f.getName
+            }
 
           name.replaceFirst("_header.", "") -> f.getAlias
         }.toMap

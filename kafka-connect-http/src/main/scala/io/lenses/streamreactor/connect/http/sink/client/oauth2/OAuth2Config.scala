@@ -68,8 +68,7 @@ object OAuth2Config {
        |""".stripMargin
   val OAuth2ClientHeadersSeparatorDefault = ":"
 
-  /**
-    * Appends the OAuth2 ConfigDefs to the provided ConfigDef
+  /** Appends the OAuth2 ConfigDefs to the provided ConfigDef
     * @param config
     * @return
     */

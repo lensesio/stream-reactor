@@ -94,11 +94,12 @@ class HttpWriter(
     e =>
       for {
         uniqueError: Option[Throwable] <- addErrorToCommitContext(e)
-        res <- if (uniqueError.nonEmpty) {
-          IO(logger.error("Error in HttpWriter", e)) *> IO.raiseError(e)
-        } else {
-          IO(logger.error("Error in HttpWriter but not reached threshold so ignoring", e)) *> IO.unit
-        }
+        res <-
+          if (uniqueError.nonEmpty) {
+            IO(logger.error("Error in HttpWriter", e)) *> IO.raiseError(e)
+          } else {
+            IO(logger.error("Error in HttpWriter but not reached threshold so ignoring", e)) *> IO.unit
+          }
       } yield res
   }
 
@@ -148,14 +149,15 @@ class HttpWriter(
       _ <- IO.delay(logger.trace(s"[$sinkName] Updating sink context to: $flushEvalCommitContext"))
       shouldFlush: Boolean <- IO.pure(commitPolicy.shouldFlush(flushEvalCommitContext))
       _ <- IO.delay(logger.trace(s"[$sinkName] Should flush? $shouldFlush"))
-      _ <- if (shouldFlush) {
-        for {
-          _                 <- IO.delay(logger.trace(s"[$sinkName] Flushing batch"))
-          processedTemplate <- flush(batch)
-        } yield processedTemplate
-      } else {
-        IO.unit
-      }
+      _ <-
+        if (shouldFlush) {
+          for {
+            _                 <- IO.delay(logger.trace(s"[$sinkName] Flushing batch"))
+            processedTemplate <- flush(batch)
+          } yield processedTemplate
+        } else {
+          IO.unit
+        }
     } yield {
       if (shouldFlush) {
         updateCommitContextPostCommit(currentCommitContext = flushEvalCommitContext)

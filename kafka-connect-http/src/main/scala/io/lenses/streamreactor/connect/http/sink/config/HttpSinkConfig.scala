@@ -154,8 +154,7 @@ object HttpSinkConfig {
     }
   }
 
-  /**
-    * Extracts the headers, and if Content-Type is not set, it will be added to the headers
+  /** Extracts the headers, and if Content-Type is not set, it will be added to the headers
     * @param headers - the headers string "key1:value1;key2:value2"
     * @return
     */
