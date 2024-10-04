@@ -30,6 +30,7 @@ import javax.net.ssl._
   * [[io.lenses.streamreactor.common.security.StoresInfo]], which can
   * be used in conjunction with withClientSslSupport in [[org.apache.kafka.common.config.ConfigDef]]
   */
+@deprecated("Please use io.lenses.streamreactor.common.security.StoresInfo")
 object SSLConfigContext {
   def apply(config: SSLConfig): SSLContext =
     getSSLContext(config)

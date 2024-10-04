@@ -28,6 +28,8 @@ import com.datastax.driver.core._
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.AbstractConfig
 
+import scala.annotation.nowarn
+
 /**
   * Set up a Casssandra connection
   */
@@ -131,6 +133,7 @@ object CassandraConnection extends StrictLogging {
         trustStoreType = connectorConfig.getString(CassandraConfigConstants.TRUST_STORE_TYPE),
       )
 
+      @nowarn("cat=deprecation")
       val context = SSLConfigContext(sslConfig)
       //val cipherSuites: Array[String] = Array("TLS_RSA_WITH_AES_128_CBC_SHA", "TLS_RSA_WITH_AES_256_CBC_SHA")
       val sSLOptions = new RemoteEndpointAwareJdkSSLOptions.Builder
