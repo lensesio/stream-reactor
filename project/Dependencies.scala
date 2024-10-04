@@ -45,7 +45,7 @@ object Dependencies {
 
     val cyclopsVersion = "10.4.1"
 
-    val kafkaVersion:     String = "3.8.0"
+    val kafkaVersion:     String = "7.7.1-ce"
     val confluentVersion: String = "7.7.0"
 
     val enumeratumVersion = "1.7.4"
