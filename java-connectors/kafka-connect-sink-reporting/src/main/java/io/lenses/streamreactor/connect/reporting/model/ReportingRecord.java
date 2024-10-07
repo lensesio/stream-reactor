@@ -15,13 +15,10 @@
  */
 package io.lenses.streamreactor.connect.reporting.model;
 
-import cyclops.data.tuple.Tuple2;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.Getter;
 import org.apache.kafka.common.TopicPartition;
-
-import java.util.List;
 
 /**
  * Represents a reporting record that contains data specific to a connector.
@@ -38,7 +35,6 @@ public class ReportingRecord<C extends ConnectorSpecificRecordData> {
   private Long timestamp;
   private String endpoint;
   private String payload;
-  private List<Tuple2<String, String>> headers;
 
   private C connectorSpecific;
 

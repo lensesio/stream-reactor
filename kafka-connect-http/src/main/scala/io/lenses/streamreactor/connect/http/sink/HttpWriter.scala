@@ -19,7 +19,6 @@ import cats.effect.IO
 import cats.effect.Ref
 import cats.effect.unsafe.implicits.global
 import com.typesafe.scalalogging.LazyLogging
-import cyclops.data.tuple
 import io.lenses.streamreactor.common.utils.CyclopsToScalaOption.convertToCyclopsOption
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.CommitPolicy
@@ -40,9 +39,7 @@ import io.lenses.streamreactor.connect.reporting.model.ConnectorSpecificRecordDa
 import io.lenses.streamreactor.connect.reporting.model.ReportingRecord
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 
-import java.util
 import scala.collection.immutable.Queue
-import scala.jdk.CollectionConverters.SeqHasAsJava
 
 class HttpWriter(
   sinkName:         String,
@@ -202,7 +199,6 @@ class HttpWriter(
         maxRecord.timestamp,
         processedTemplate.endpoint,
         processedTemplate.content,
-        convertToCyclopsTuples(processedTemplate.headers),
         connectorSpecific,
       )
 
@@ -210,7 +206,7 @@ class HttpWriter(
       case Left(error) => IO(
           errorReporter.enqueue(
             reportRecord[HttpFailureConnectorSpecificRecordData](
-              new HttpFailureConnectorSpecificRecordData(
+              HttpFailureConnectorSpecificRecordData(
                 convertToCyclopsOption(error.statusCode).map(_.toInt),
                 convertToCyclopsOption(error.responseContent),
                 error.getMessage,
@@ -221,7 +217,7 @@ class HttpWriter(
       case Right(success) => IO(
           successReporter.enqueue(
             reportRecord[HttpSuccessConnectorSpecificRecordData](
-              new HttpSuccessConnectorSpecificRecordData(
+              HttpSuccessConnectorSpecificRecordData(
                 success.statusCode,
                 convertToCyclopsOption(success.responseContent),
               ),
@@ -230,10 +226,5 @@ class HttpWriter(
         )
     }
   }
-
-  private def convertToCyclopsTuples(headers: Seq[(String, String)]): util.List[tuple.Tuple2[String, String]] =
-    headers.map {
-      case (hk, hv) => new tuple.Tuple2(hk, hv)
-    }.asJava
 
 }
