@@ -16,7 +16,12 @@
 package io.lenses.streamreactor.connect.http.sink.client
 
 import cats.effect.IO
+import cats.effect.Resource
 import cats.effect.testing.scalatest.AsyncIOSpec
+import cats.implicits.catsSyntaxOptionId
+import cats.implicits.none
+import org.mockito.ArgumentMatchers.any
+import org.scalatest.EitherValues
 //import cats.implicits.catsSyntaxOptionId
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.BasicCredentials
@@ -24,12 +29,10 @@ import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.client.WireMock._
 import com.github.tomakehurst.wiremock.matching.EqualToPattern
 import io.lenses.streamreactor.connect.http.sink.tpl.ProcessedTemplate
-import org.http4s.EntityDecoder
 import org.http4s.Method
 import org.http4s.Request
 import org.http4s.client.Client
 import org.http4s.jdkhttpclient.JdkHttpClient
-import org.mockito.ArgumentMatchers
 import org.mockito.MockitoSugar
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.BeforeAndAfterEach
@@ -42,7 +45,8 @@ class HttpRequestSenderIT
     with BeforeAndAfterAll
     with BeforeAndAfterEach
     with MockitoSugar
-    with Matchers {
+    with Matchers
+    with EitherValues {
 
   private val Host = "localhost"
 
@@ -60,11 +64,12 @@ class HttpRequestSenderIT
 
   override protected def beforeEach(): Unit = wireMockServer.resetRequests()
 
+  private val HttpResponseBody = "Hello world!"
   test("should send a PUT request by default") {
 
     stubFor(put(urlEqualTo(expectedUrl))
       .willReturn(aResponse.withHeader("Content-Type", "text/plain")
-        .withBody("Hello world!")))
+        .withBody(HttpResponseBody)))
 
     JdkHttpClient.simple[IO].use {
       client =>
@@ -89,7 +94,7 @@ class HttpRequestSenderIT
                 .withHeader("Content-Type", equalTo("application/xml"))
                 .withRequestBody(new EqualToPattern("mycontent")),
             )
-            response should be(())
+            response.value should be(HttpResponseSuccess(200, HttpResponseBody.some))
         }
     }
 
@@ -101,7 +106,7 @@ class HttpRequestSenderIT
       post(urlEqualTo(expectedUrl))
         .withBasicAuth("myUser", "myPassword")
         .willReturn(aResponse.withHeader("Content-Type", "text/plain")
-          .withBody("Hello world!")),
+          .withBody(HttpResponseBody)),
     )
 
     JdkHttpClient.simple[IO].use {
@@ -126,25 +131,17 @@ class HttpRequestSenderIT
                 .withBasicAuth(new BasicCredentials("myUser", "myPassword"))
                 .withRequestBody(new EqualToPattern("mycontent")),
             )
-            response should be(())
+            response.value should be(HttpResponseSuccess(200, HttpResponseBody.some))
         }
     }
-
   }
 
   test("should error when client is thoroughly broken") {
 
     val expectedException = new IllegalArgumentException("No fun allowed today")
     val mockClient        = mock[Client[IO]]
-
-    when(mockClient.expect[String](
-      ArgumentMatchers.any[Request[IO]],
-    )(
-      ArgumentMatchers.any[EntityDecoder[IO, String]],
-    )).thenReturn(
-      IO.raiseError(
-        expectedException,
-      ),
+    when(mockClient.run(any[Request[IO]])).thenReturn(
+      Resource.eval(IO.raiseError(expectedException)),
     )
 
     val requestSender = new NoAuthenticationHttpRequestSender(
@@ -157,7 +154,11 @@ class HttpRequestSenderIT
       "mycontent",
       Seq("X-Awesome-Header" -> "stream-reactor"),
     )
-    requestSender.sendHttpRequest(processedTemplate).assertThrows[IllegalArgumentException]
+    requestSender.sendHttpRequest(processedTemplate).asserting {
+      response =>
+        response.left.value should be(HttpResponseFailure("No fun allowed today", expectedException.some, none, none))
+    }
+
   }
 
 }

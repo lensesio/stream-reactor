@@ -36,5 +36,7 @@ public class ReportingRecord {
   private String payload;
   private List<Tuple2<String, String>> headers;
   private Option<String> error;
+  private Option<Integer> responseStatusCode;
+  private Option<String> responseContent;
 
 }
