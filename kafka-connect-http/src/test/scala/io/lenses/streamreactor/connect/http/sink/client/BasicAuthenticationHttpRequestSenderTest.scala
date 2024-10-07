@@ -14,33 +14,33 @@
  * limitations under the License.
  */
 package io.lenses.streamreactor.connect.http.sink.client
-
 import cats.effect.IO
+import cats.effect.kernel.Resource
 import cats.effect.unsafe.IORuntime
 import io.lenses.streamreactor.connect.http.sink.tpl.ProcessedTemplate
-import org.http4s.client.Client
-import org.http4s.implicits.http4sLiteralsSyntax
-import org.http4s.EntityDecoder
 import org.http4s.Header
 import org.http4s.Method
 import org.http4s.Request
+import org.http4s.Response
+import org.http4s.Status
+import org.http4s.client.Client
+import org.http4s.implicits.http4sLiteralsSyntax
 import org.mockito.ArgumentCaptor
 import org.mockito.ArgumentMatchers.any
-import org.mockito.Mockito.when
-import org.mockito.MockitoSugar.mock
+import org.mockito.MockitoSugar
 import org.scalatest.funsuite.AnyFunSuiteLike
 import org.scalatest.matchers.should.Matchers
 import org.typelevel.ci.CIString
 
-class BasicAuthenticationHttpRequestSenderTest extends AnyFunSuiteLike with Matchers {
+class BasicAuthenticationHttpRequestSenderTest extends AnyFunSuiteLike with Matchers with MockitoSugar {
   test("attaches the authorization header to the request") {
     implicit val runtime: IORuntime = IORuntime.global
+
     val sinkName = "sink"
     val method   = Method.POST
-    val client: Client[IO] = mock[Client[IO]]
 
-    val requestCaptor: ArgumentCaptor[Request[IO]] = ArgumentCaptor.forClass(classOf[Request[IO]])
-    when(client.expect[String](requestCaptor.capture())(any[EntityDecoder[IO, String]])).thenReturn(IO.pure("OK"))
+    val client: Client[IO] = mock[Client[IO]]
+    when(client.run(any[Request[IO]])).thenReturn(Resource.pure(Response[IO](status = Status.Ok).withEntity("OK")))
 
     val userName = "user"
     val password = "password"
@@ -52,6 +52,9 @@ class BasicAuthenticationHttpRequestSenderTest extends AnyFunSuiteLike with Matc
     )
 
     sender.sendHttpRequest(template).unsafeRunSync()
+
+    val requestCaptor: ArgumentCaptor[Request[IO]] = ArgumentCaptor.forClass(classOf[Request[IO]])
+    verify(client).run(requestCaptor.capture())
 
     // Verify the request sent
     val capturedRequest: Request[IO] = requestCaptor.getValue

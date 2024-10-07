@@ -28,5 +28,7 @@ public class ReportHeadersConstants {
   public static final String INPUT_KEY = "input_key";
   public static final String INPUT_PAYLOAD = "input_payload";
   public static final String ERROR = "error_message";
+  public static final String RESPONSE_CONTENT = "response_content";
+  public static final String RESPONSE_STATUS = "response_status_code";
 
 }
