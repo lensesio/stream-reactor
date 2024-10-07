@@ -38,17 +38,17 @@ object Dependencies {
     // libraries versions
     val scalatestVersion               = "3.2.19"
     val scalatestPlusScalaCheckVersion = "3.1.0.0-RC2"
-    val scalaCheckVersion              = "1.18.0"
+    val scalaCheckVersion              = "1.18.1"
 
-    val junitJupiterVersion = "5.11.0"
+    val junitJupiterVersion = "5.11.2"
     val assertjCoreVersion  = "3.26.3"
 
     val cyclopsVersion = "10.4.1"
 
     val kafkaVersion:     String = "3.8.0"
-    val confluentVersion: String = "7.7.0"
+    val confluentVersion: String = "7.7.1"
 
-    val enumeratumVersion = "1.7.4"
+    val enumeratumVersion = "1.7.5"
 
     val http4sVersion    = "1.0.0-M32"
     val http4sJdkVersion = "1.0.0-M1"
@@ -73,15 +73,15 @@ object Dependencies {
 
     val dnsJavaVersion  = "3.6.2"
     val wiremockVersion = "3.9.1"
-    val parquetVersion  = "1.14.1"
+    val parquetVersion  = "1.14.2"
 
     val jerseyCommonVersion = "3.1.8"
 
     val calciteVersion = "1.34.0"
-    val awsSdkVersion  = "2.28.13"
+    val awsSdkVersion  = "2.28.15"
 
     val azureDataLakeVersion              = "12.21.0"
-    val azureIdentityVersion              = "1.13.3"
+    val azureIdentityVersion              = "1.14.0"
     val azureCoreVersion                  = "1.53.0"
     val msal4jVersion                     = "1.16.1"
     val msal4jPersistenceExtensionVersion = "1.3.0"
@@ -100,7 +100,7 @@ object Dependencies {
     val lz4Version = "1.8.0"
 
     val bouncyCastleVersion = "1.78.1"
-    val nettyVersion        = "4.1.112.Final"
+    val nettyVersion        = "4.1.114.Final"
 
     val cassandraDriverVersion = "3.11.5"
     val jsonPathVersion        = "2.9.0"
@@ -120,11 +120,11 @@ object Dependencies {
 
     val commonsNetVersion      = "3.11.1"
     val commonsCodecVersion    = "1.17.1"
-    val commonsCompressVersion = "1.27.0"
+    val commonsCompressVersion = "1.27.1"
     val commonsConfigVersion   = "2.11.0"
     val commonsIOVersion       = "2.17.0"
     val commonsHttpVersion     = "4.5.14"
-    val commonsLang3Version    = "3.16.0"
+    val commonsLang3Version    = "3.17.0"
     val jschVersion            = "0.2.20"
 
     val minaVersion           = "2.2.3"
@@ -134,7 +134,7 @@ object Dependencies {
 
     val mongoDbVersion = "3.12.14"
 
-    val jedisVersion = "5.1.4"
+    val jedisVersion = "5.1.5"
     val gsonVersion  = "2.11.0"
 
     val classGraphVersion           = "4.8.174"
@@ -157,8 +157,8 @@ object Dependencies {
 
     object Elastic7Versions extends ElasticVersions {
       override val elastic4sVersion:     String = "7.17.4"
-      override val elasticSearchVersion: String = "7.17.23"
-      override val jnaVersion:           String = "5.14.0"
+      override val elasticSearchVersion: String = "7.17.24"
+      override val jnaVersion:           String = "5.15.0"
     }
 
   }
@@ -418,8 +418,8 @@ trait Dependencies {
   import Versions._
 
   val loggingDeps: Seq[ModuleID] = Seq(
-    "org.apache.logging.log4j" % "log4j-api"      % "2.23.1",
-    "org.apache.logging.log4j" % "log4j-to-slf4j" % "2.23.1",
+    "org.apache.logging.log4j" % "log4j-api"      % "2.24.1",
+    "org.apache.logging.log4j" % "log4j-to-slf4j" % "2.24.1",
     log4jToSlf4j,
     jclToSlf4j,
     logback,
