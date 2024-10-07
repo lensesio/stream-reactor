@@ -40,8 +40,9 @@ object Dependencies {
     val scalatestPlusScalaCheckVersion = "3.1.0.0-RC2"
     val scalaCheckVersion              = "1.18.1"
 
-    val junitJupiterVersion = "5.11.2"
-    val assertjCoreVersion  = "3.26.3"
+    val mockitoJunitJupiterVersion = "5.11.0"
+    val junitJupiterVersion        = "5.11.2"
+    val assertjCoreVersion         = "3.26.3"
 
     val cyclopsVersion = "10.4.1"
 
@@ -191,7 +192,7 @@ object Dependencies {
   val scalaCheck            = "org.scalacheck" %% "scalacheck"            % scalaCheckVersion
   val `mockitoScala`        = "org.mockito"    %% "mockito-scala"         % mockitoScalaVersion
   val `mockitoJava`         = "org.mockito"     % "mockito-inline"        % mockitoJavaVersion
-  val `mockitoJunitJupiter` = "org.mockito"     % "mockito-junit-jupiter" % junitJupiterVersion
+  val `mockitoJunitJupiter` = "org.mockito"     % "mockito-junit-jupiter" % mockitoJunitJupiterVersion
 
   val `junitJupiter`       = "org.junit.jupiter" % "junit-jupiter-api"    % junitJupiterVersion
   val `junitJupiterParams` = "org.junit.jupiter" % "junit-jupiter-params" % junitJupiterVersion
