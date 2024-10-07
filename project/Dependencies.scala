@@ -73,19 +73,19 @@ object Dependencies {
 
     val dnsJavaVersion  = "3.6.2"
     val wiremockVersion = "3.9.1"
-    val parquetVersion  = "1.14.2"
+    val parquetVersion  = "1.14.3"
 
     val jerseyCommonVersion = "3.1.8"
 
     val calciteVersion = "1.34.0"
-    val awsSdkVersion  = "2.28.15"
+    val awsSdkVersion  = "2.28.16"
 
     val azureDataLakeVersion              = "12.21.0"
     val azureIdentityVersion              = "1.14.0"
     val azureCoreVersion                  = "1.53.0"
     val msal4jVersion                     = "1.16.1"
     val msal4jPersistenceExtensionVersion = "1.3.0"
-    val gcpCloudVersion                   = "2.44.1"
+    val gcpCloudVersion                   = "2.45.0"
     val gcpCloudStorageVersion            = "2.43.1"
 
     val woodstoxVersion     = "7.0.0"
