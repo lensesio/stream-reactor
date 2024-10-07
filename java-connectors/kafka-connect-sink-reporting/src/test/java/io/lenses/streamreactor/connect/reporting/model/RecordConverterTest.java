@@ -29,7 +29,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.Collections;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
@@ -107,7 +106,7 @@ class RecordConverterTest {
   private ReportingRecord<TestConnectorSpecificRecordDataData> createReportingRecord() {
 
     return new ReportingRecord<>(new TopicPartition(TOPIC, PARTITION), OFFSET,
-        TIMESTAMP, ENDPOINT, JSON_PAYLOAD, Collections.emptyList(), specificData
+        TIMESTAMP, ENDPOINT, JSON_PAYLOAD, specificData
     );
   }
 
