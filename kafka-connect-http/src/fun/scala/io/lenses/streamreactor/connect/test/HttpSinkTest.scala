@@ -193,10 +193,14 @@ class HttpSinkTest
       Order(2, "another product", 1.4d, 109),
     ).asserting {
       requests =>
+        logger.info("Requests size: {}", requests.size)
+
         requests.size should be(1)
         val firstRequest = requests.head
         firstRequest.getMethod should be(RequestMethod.POST)
-        new String(firstRequest.getBody) should be(
+        logger.info("First request: {}", firstRequest)
+        logger.info("First request body: {}", firstRequest.getBodyAsString)
+        firstRequest.getBodyAsString should be(
           "{\"data\":[{\"id\":1,\"product\":\"myOrder product\",\"price\":1.3,\"qty\":10,\"created\":null},{\"id\":2,\"product\":\"another product\",\"price\":1.4,\"qty\":109,\"created\":null}]}",
         )
     }
