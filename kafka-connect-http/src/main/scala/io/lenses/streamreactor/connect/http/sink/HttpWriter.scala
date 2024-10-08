@@ -17,6 +17,7 @@ package io.lenses.streamreactor.connect.http.sink
 
 import cats.effect.IO
 import cats.effect.Ref
+import cats.effect.std.Semaphore
 import cats.effect.unsafe.implicits.global
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.common.utils.CyclopsToScalaOption.convertToCyclopsOption
@@ -39,19 +40,20 @@ import io.lenses.streamreactor.connect.reporting.model.ConnectorSpecificRecordDa
 import io.lenses.streamreactor.connect.reporting.model.ReportingRecord
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 
-import scala.collection.immutable.Queue
+import scala.collection.mutable
 
 class HttpWriter(
   sinkName:         String,
   commitPolicy:     CommitPolicy,
   sender:           HttpRequestSender,
   template:         TemplateType,
-  recordsQueueRef:  Ref[IO, Queue[RenderedRecord]],
+  recordsQueue:     mutable.Queue[RenderedRecord],
   commitContextRef: Ref[IO, HttpCommitContext],
   errorThreshold:   Int,
   tidyJson:         Boolean,
   errorReporter:    ReportingController[HttpFailureConnectorSpecificRecordData],
   successReporter:  ReportingController[HttpSuccessConnectorSpecificRecordData],
+  queueLock:        Semaphore[IO],
 ) extends LazyLogging {
   private val maybeBatchSize: Option[Int] = commitPolicy.conditions.collectFirst {
     case Count(maxCount) => maxCount.toInt
@@ -61,46 +63,35 @@ class HttpWriter(
 
   // adds records to the queue.  Returns immediately - processing occurs asynchronously.
   def add(newRecords: Seq[RenderedRecord]): IO[Unit] =
-    recordsQueueRef.modify { currentQueue =>
-      val updatedQueue = currentQueue.enqueueAll(newRecords)
-      (updatedQueue, ())
+    queueLock.permit.use { _ =>
+      IO(recordsQueue.enqueueAll(newRecords)).void // Discard the result of enqueueAll
     }
 
   // called on a loop to process the queue
-  def process(): IO[Unit] = {
-    for {
-      _ <- IO(
-        logger.debug(s"[$sinkName] HttpWriter.process, queue size: ${recordsQueueRef.get.map(_.size).unsafeRunSync()}"),
-      )
-      recordQueue <- recordsQueueRef.get
-      res <- recordQueue match {
-        case recordsQueue: Queue[RenderedRecord] if recordsQueue.nonEmpty =>
-          for {
-            _          <- IO(logger.debug(s"[$sinkName] Queue is not empty"))
-            takeHowMany = maybeBatchSize.getOrElse(recordsQueue.size)
-            _          <- IO(logger.debug(s"[$sinkName] Required batch size is $takeHowMany"))
-
-            batch: Queue[RenderedRecord] <- IO(recordsQueue.take(takeHowMany))
-            _      <- IO(logger.info(s"[$sinkName] Batch of ${batch.size}"))
-            _      <- modifyCommitContext(batch)
-            refSet <- recordsQueueRef.set(dequeueN(recordsQueue, takeHowMany))
-          } yield refSet
-        case _ =>
-          IO(logger.trace(s"[$sinkName] Empty record queue"))
-      }
-      _ <- resetErrorsInCommitContext()
-    } yield res
-  }.onError {
-    e =>
+  def process(): IO[Unit] =
+    queueLock.permit.use { _ =>
       for {
-        uniqueError: Option[Throwable] <- addErrorToCommitContext(e)
-        res <- if (uniqueError.nonEmpty) {
-          IO(logger.error("Error in HttpWriter", e)) *> IO.raiseError(e)
-        } else {
-          IO(logger.error("Error in HttpWriter but not reached threshold so ignoring", e)) *> IO.unit
-        }
-      } yield res
-  }
+        _           <- IO(logger.debug(s"[$sinkName] HttpWriter.process, queue size: ${recordsQueue.size}"))
+        takeHowMany <- IO.pure(maybeBatchSize.getOrElse(recordsQueue.size))
+        batch: mutable.Queue[RenderedRecord] <- IO(recordsQueue.take(takeHowMany))
+        _               <- IO(logger.info(s"[$sinkName] Batch of ${batch.size} / $takeHowMany"))
+        _               <- modifyCommitContext(batch)
+        removedElements <- IO(recordsQueue.removeHeadWhile(batch.contains(_)))
+        _               <- resetErrorsInCommitContext()
+
+      } yield removedElements
+
+    }.onError {
+      e =>
+        for {
+          uniqueError: Option[Throwable] <- addErrorToCommitContext(e)
+          res <- if (uniqueError.nonEmpty) {
+            IO(logger.error("Error in HttpWriter", e)) *> IO.raiseError(e)
+          } else {
+            IO(logger.error("Error in HttpWriter but not reached threshold so ignoring", e)) *> IO.unit
+          }
+        } yield res
+    } *> IO.unit
 
   def preCommit(
     initialOffsetAndMetaMap: Map[TopicPartition, OffsetAndMetadata],
@@ -141,17 +132,17 @@ class HttpWriter(
 
   private def updateCommitContextIfFlush(
     cc:    HttpCommitContext,
-    batch: Queue[RenderedRecord],
+    batch: mutable.Queue[RenderedRecord],
   ): IO[HttpCommitContext] =
     for {
-      flushEvalCommitContext: HttpCommitContext <- IO.pure(createCommitContextForEvaluation(batch, cc))
+      flushEvalCommitContext: HttpCommitContext <- IO.pure(createCommitContextForEvaluation(batch.toSeq, cc))
       _ <- IO.delay(logger.trace(s"[$sinkName] Updating sink context to: $flushEvalCommitContext"))
       shouldFlush: Boolean <- IO.pure(commitPolicy.shouldFlush(flushEvalCommitContext))
       _ <- IO.delay(logger.trace(s"[$sinkName] Should flush? $shouldFlush"))
       _ <- if (shouldFlush) {
         for {
           _                 <- IO.delay(logger.trace(s"[$sinkName] Flushing batch"))
-          processedTemplate <- flush(batch)
+          processedTemplate <- flush(batch.toSeq)
         } yield processedTemplate
       } else {
         IO.unit
@@ -164,7 +155,7 @@ class HttpWriter(
       }
     }
 
-  private def modifyCommitContext(batch: Queue[RenderedRecord]): IO[Unit] = {
+  private def modifyCommitContext(batch: mutable.Queue[RenderedRecord]): IO[Unit] = {
     logger.trace(s"[$sinkName] modifyCommitContext for batch of ${batch.size}")
 
     commitContextRef.modify {
@@ -173,11 +164,6 @@ class HttpWriter(
           .map((_, ())).unsafeRunSync()
     }
   }
-
-  private def dequeueN[A](rQ: Queue[A], n: Int): Queue[A] =
-    rQ.splitAt(n) match {
-      case (_, remaining) => remaining
-    }
 
   private def flush(records: Seq[RenderedRecord]): IO[ProcessedTemplate] =
     for {

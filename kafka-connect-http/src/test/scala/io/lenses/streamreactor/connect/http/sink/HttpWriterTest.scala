@@ -17,6 +17,7 @@ package io.lenses.streamreactor.connect.http.sink
 
 import cats.effect.IO
 import cats.effect.Ref
+import cats.effect.std.Semaphore
 import cats.effect.testing.scalatest.AsyncIOSpec
 import cats.implicits.catsSyntaxEitherId
 import cats.implicits.catsSyntaxOptionId
@@ -42,6 +43,7 @@ import org.scalatest.funsuite.AsyncFunSuiteLike
 import org.scalatest.matchers.should.Matchers
 
 import scala.collection.immutable.Queue
+import scala.collection.mutable
 
 class HttpWriterTest extends AsyncIOSpec with AsyncFunSuiteLike with Matchers with MockitoSugar {
 
@@ -55,30 +57,33 @@ class HttpWriterTest extends AsyncIOSpec with AsyncFunSuiteLike with Matchers wi
     val commitPolicy = CommitPolicy(Count(2L))
     val senderMock   = mock[HttpRequestSender]
     val templateMock = mock[TemplateType]
+    val recordsQueue = mutable.Queue[RenderedRecord]()
+    val recordsToAdd = Seq(
+      RenderedRecord(topicPartition.atOffset(100), TIMESTAMP, "record1", Seq.empty, None),
+      RenderedRecord(topicPartition.atOffset(101), TIMESTAMP, "record2", Seq.empty, None),
+    )
 
-    for {
-      recordsQueueRef  <- Ref.of[IO, Queue[RenderedRecord]](Queue.empty)
-      commitContextRef <- Ref.of[IO, HttpCommitContext](HttpCommitContext.default("My Sink"))
-      httpWriter = new HttpWriter(sinkName,
-                                  commitPolicy,
-                                  senderMock,
-                                  templateMock,
-                                  recordsQueueRef,
-                                  commitContextRef,
-                                  5,
-                                  false,
-                                  mock[ReportingController[HttpFailureConnectorSpecificRecordData]],
-                                  mock[ReportingController[HttpSuccessConnectorSpecificRecordData]],
-      )
-      recordsToAdd = Seq(
-        RenderedRecord(topicPartition.atOffset(100), TIMESTAMP, "record1", Seq.empty, None),
-        RenderedRecord(topicPartition.atOffset(101), TIMESTAMP, "record2", Seq.empty, None),
-      )
-      _ <- httpWriter.add(recordsToAdd)
+    {
+      for {
+        commitContextRef <- Ref.of[IO, HttpCommitContext](HttpCommitContext.default("My Sink"))
+        queueLock        <- Semaphore[IO](1)
+        httpWriter = new HttpWriter(sinkName,
+                                    commitPolicy,
+                                    senderMock,
+                                    templateMock,
+                                    recordsQueue,
+                                    commitContextRef,
+                                    5,
+                                    false,
+                                    mock[ReportingController[HttpFailureConnectorSpecificRecordData]],
+                                    mock[ReportingController[HttpSuccessConnectorSpecificRecordData]],
+                                    queueLock,
+        )
 
-      queue <- recordsQueueRef.get
-    } yield {
-      queue shouldBe Queue(recordsToAdd: _*)
+        _ <- httpWriter.add(recordsToAdd)
+      } yield recordsToAdd
+    } asserting { _ =>
+      recordsQueue shouldBe Queue(recordsToAdd: _*)
     }
   }
 
@@ -93,6 +98,8 @@ class HttpWriterTest extends AsyncIOSpec with AsyncFunSuiteLike with Matchers wi
                                                                                                          Seq.empty,
     )))
 
+    val recordsQueue = new mutable.Queue[RenderedRecord]()
+
     val recordsToAdd = Seq(
       RenderedRecord(topicPartition.atOffset(100), TIMESTAMP, "record1", Seq.empty, None),
       RenderedRecord(topicPartition.atOffset(101), TIMESTAMP, "record2", Seq.empty, None),
@@ -100,29 +107,29 @@ class HttpWriterTest extends AsyncIOSpec with AsyncFunSuiteLike with Matchers wi
 
     {
       for {
-        recordsQueueRef  <- Ref.of[IO, Queue[RenderedRecord]](Queue.empty)
         commitContextRef <- Ref.of[IO, HttpCommitContext](defaultContext)
-
+        queueLock        <- Semaphore[IO](1)
         httpWriter = new HttpWriter(sinkName,
                                     commitPolicy,
                                     senderMock,
                                     templateMock,
-                                    recordsQueueRef,
+                                    recordsQueue,
                                     commitContextRef,
                                     5,
                                     false,
                                     mock[ReportingController[HttpFailureConnectorSpecificRecordData]],
                                     mock[ReportingController[HttpSuccessConnectorSpecificRecordData]],
+                                    queueLock,
         )
 
         _              <- httpWriter.add(recordsToAdd)
         _              <- httpWriter.process()
         updatedContext <- commitContextRef.get
-        updatedQueue   <- recordsQueueRef.get
-      } yield {
+      } yield updatedContext
+    }.asserting {
+      updatedContext =>
         updatedContext should not be defaultContext
-        updatedQueue shouldBe empty
-      }
+        recordsQueue shouldBe empty
     }
   }
 
@@ -134,31 +141,32 @@ class HttpWriterTest extends AsyncIOSpec with AsyncFunSuiteLike with Matchers wi
                                                                                                404.some,
                                                                                                none,
     ).asLeft))
+    val recordsQueue = mutable.Queue[RenderedRecord]()
 
     val templateMock = mock[TemplateType]
 
     for {
-      recordsQueueRef  <- Ref.of[IO, Queue[RenderedRecord]](Queue.empty)
       commitContextRef <- Ref.of[IO, HttpCommitContext](defaultContext)
+      queueLock        <- Semaphore[IO](1)
 
       httpWriter = new HttpWriter(sinkName,
                                   commitPolicy,
                                   senderMock,
                                   templateMock,
-                                  recordsQueueRef,
+                                  recordsQueue,
                                   commitContextRef,
                                   5,
                                   false,
                                   mock[ReportingController[HttpFailureConnectorSpecificRecordData]],
                                   mock[ReportingController[HttpSuccessConnectorSpecificRecordData]],
+                                  queueLock,
       )
 
       _              <- httpWriter.process()
       updatedContext <- commitContextRef.get
-      updatedQueue   <- recordsQueueRef.get
     } yield {
       updatedContext shouldBe defaultContext
-      updatedQueue shouldBe empty
+      recordsQueue shouldBe empty
     }
   }
 }
