@@ -59,7 +59,7 @@ class HttpWriter(
       IO(recordsQueue.enqueueAll(newRecords))
     }
 
-  class NoBatchYetError extends Exception
+  private class NoBatchYetError extends Exception
 
   // called on a loop to process the queue
   def process(): IO[Unit] =

@@ -52,7 +52,8 @@ class RecordsQueueTest extends AnyFunSuiteLike with MockitoSugar with Matchers {
     val recordsQueue = new RecordsQueue(mutable.Queue(record1, record2), commitPolicy, () => defaultContext)
     val batchInfo    = recordsQueue.takeBatch()
     batchInfo.batch.get.toSeq should contain theSameElementsInOrderAs Seq(record1, record2)
-    batchInfo.totalQueueSize shouldBe 0
+    // takeBatch should not alter queue
+    batchInfo.totalQueueSize shouldBe 2
   }
 
   test("takeBatch should return an empty batch when the queue is empty") {

@@ -39,9 +39,10 @@ class RecordsQueue(
 
   def takeBatch(): BatchInfo = {
     val accumulatedRecords = mutable.Buffer[RenderedRecord]()
+    val queueIter          = recordsQueue.iterator
 
-    while (recordsQueue.nonEmpty && !commitContextShouldFlush(accumulatedRecords.toSeq)) {
-      accumulatedRecords += recordsQueue.dequeue()
+    while (queueIter.hasNext && !commitContextShouldFlush(accumulatedRecords.toSeq)) {
+      accumulatedRecords += queueIter.next()
     }
 
     BatchInfo(

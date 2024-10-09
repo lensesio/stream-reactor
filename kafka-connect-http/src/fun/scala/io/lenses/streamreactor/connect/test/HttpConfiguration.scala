@@ -32,6 +32,8 @@ trait HttpConfiguration extends LazyLogging {
         HttpSinkConfigDef.HttpRequestHeadersProp -> ConfigValue(headerTemplates.mkString(",")),
         HttpSinkConfigDef.AuthenticationTypeProp -> ConfigValue("none"), //NoAuthentication
         HttpSinkConfigDef.BatchCountProp         -> ConfigValue(batchSize),
+        HttpSinkConfigDef.BatchSizeProp          -> ConfigValue(100_000_000),
+        HttpSinkConfigDef.TimeIntervalProp       -> ConfigValue(100_000_000),
         HttpSinkConfigDef.JsonTidyProp           -> ConfigValue(jsonTidy),
         ERROR_REPORTING_ENABLED_PROP             -> ConfigValue("false"),
         SUCCESS_REPORTING_ENABLED_PROP           -> ConfigValue("false"),
