@@ -29,6 +29,8 @@ import io.lenses.streamreactor.connect.http.sink.client.HttpRequestSender
 import io.lenses.streamreactor.connect.http.sink.client.HttpResponseFailure
 import io.lenses.streamreactor.connect.http.sink.client.HttpResponseSuccess
 import io.lenses.streamreactor.connect.http.sink.commit.HttpCommitContext
+import io.lenses.streamreactor.connect.http.sink.reporter.model.HttpFailureConnectorSpecificRecordData
+import io.lenses.streamreactor.connect.http.sink.reporter.model.HttpSuccessConnectorSpecificRecordData
 import io.lenses.streamreactor.connect.http.sink.tpl.ProcessedTemplate
 import io.lenses.streamreactor.connect.http.sink.tpl.RenderedRecord
 import io.lenses.streamreactor.connect.http.sink.tpl.TemplateType
@@ -43,7 +45,8 @@ import scala.collection.immutable.Queue
 
 class HttpWriterTest extends AsyncIOSpec with AsyncFunSuiteLike with Matchers with MockitoSugar {
 
-  private val sinkName = "MySinkName"
+  private val sinkName  = "MySinkName"
+  private val TIMESTAMP = 125L
 
   private val topicPartition: TopicPartition    = Topic("myTopic").withPartition(1)
   private val defaultContext: HttpCommitContext = HttpCommitContext.default("My Sink")
@@ -64,8 +67,8 @@ class HttpWriterTest extends AsyncIOSpec with AsyncFunSuiteLike with Matchers wi
                                   commitContextRef,
                                   5,
                                   false,
-                                  mock[ReportingController],
-                                  mock[ReportingController],
+                                  mock[ReportingController[HttpFailureConnectorSpecificRecordData]],
+                                  mock[ReportingController[HttpSuccessConnectorSpecificRecordData]],
       )
       recordsToAdd = Seq(
         RenderedRecord(topicPartition.atOffset(100), TIMESTAMP, "record1", Seq.empty, None),
@@ -78,7 +81,6 @@ class HttpWriterTest extends AsyncIOSpec with AsyncFunSuiteLike with Matchers wi
       queue shouldBe Queue(recordsToAdd: _*)
     }
   }
-  private val TIMESTAMP = 125L
 
   test("process method should flush records when the queue is non-empty and commit policy requires flush") {
     val commitPolicy = CommitPolicy(Count(2L))
@@ -109,8 +111,8 @@ class HttpWriterTest extends AsyncIOSpec with AsyncFunSuiteLike with Matchers wi
                                     commitContextRef,
                                     5,
                                     false,
-                                    mock[ReportingController],
-                                    mock[ReportingController],
+                                    mock[ReportingController[HttpFailureConnectorSpecificRecordData]],
+                                    mock[ReportingController[HttpSuccessConnectorSpecificRecordData]],
         )
 
         _              <- httpWriter.add(recordsToAdd)
@@ -147,8 +149,8 @@ class HttpWriterTest extends AsyncIOSpec with AsyncFunSuiteLike with Matchers wi
                                   commitContextRef,
                                   5,
                                   false,
-                                  mock[ReportingController],
-                                  mock[ReportingController],
+                                  mock[ReportingController[HttpFailureConnectorSpecificRecordData]],
+                                  mock[ReportingController[HttpSuccessConnectorSpecificRecordData]],
       )
 
       _              <- httpWriter.process()

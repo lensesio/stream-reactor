@@ -18,7 +18,7 @@ package io.lenses.streamreactor.connect.reporting.model;
 import cyclops.control.Option;
 import cyclops.control.Try;
 import io.lenses.streamreactor.connect.reporting.ReportingMessagesConfig;
-import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.header.Header;
@@ -26,37 +26,63 @@ import org.apache.kafka.common.header.internals.RecordHeader;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static java.util.function.Function.identity;
 
-@NoArgsConstructor
+/**
+ * Converts a {@link ReportingRecord} to a {@link ProducerRecord} with headers.
+ *
+ * @param <C> the type of connector-specific record data
+ */
+@AllArgsConstructor
 @Slf4j
-public class ProducerRecordConverter {
+public class RecordConverter<C extends ConnectorSpecificRecordData> {
+
+  private final ReportingMessagesConfig messagesConfig;
+  private final Function<C, Stream<Header>> specificDataHeaderConverter;
 
   private static final Supplier<byte[]> EMPTY_BYTES = ""::getBytes;
 
-  public Option<ProducerRecord<byte[], String>> convert(ReportingRecord source,
-      ReportingMessagesConfig messagesConfig) {
+  /**
+   * Converts a {@link ReportingRecord} to a {@link ProducerRecord}.
+   *
+   * @param source the reporting record to convert
+   * @return an {@link Option} containing the producer record, or {@link Option#none()} if conversion fails
+   */
+  public Option<ProducerRecord<byte[], String>> convert(ReportingRecord<C> source) {
     return convertToHeaders(source)
         .flatMap(headers -> createRecord(headers, source, messagesConfig));
 
   }
 
+  /**
+   * Creates a {@link ProducerRecord} from the given headers and source record.
+   *
+   * @param headers        the headers to include in the producer record
+   * @param source         the source reporting record
+   * @param messagesConfig the configuration for reporting messages
+   * @return an {@link Option} containing the producer record, or {@link Option#none()} if creation fails
+   */
   private Option<ProducerRecord<byte[], String>> createRecord(List<Header> headers,
-      ReportingRecord source, ReportingMessagesConfig messagesConfig) {
+      ReportingRecord<C> source, ReportingMessagesConfig messagesConfig) {
     return Option.of(new ProducerRecord<>(messagesConfig.getReportTopic(),
         messagesConfig.getReportTopicPartition().orElseGet(() -> null), null, null, source.getPayload(), headers));
   }
 
-  private Option<List<Header>> convertToHeaders(ReportingRecord originalRecord) {
+  /**
+   * Converts the given reporting record to a list of headers.
+   *
+   * @param originalRecord the reporting record to convert
+   * @return an {@link Option} containing the list of headers, or {@link Option#none()} if conversion fails
+   */
+  private Option<List<Header>> convertToHeaders(ReportingRecord<C> originalRecord) {
     return Try.withCatch(() -> Stream.of(
         buildStandardHeaders(originalRecord),
-        getErrorHeader(originalRecord).stream(),
-        getResponseContent(originalRecord).stream(),
-        getStatusCode(originalRecord).stream()
+        specificDataHeaderConverter.apply(originalRecord.getConnectorSpecific())
     )
         .flatMap(identity())
         .collect(Collectors.toUnmodifiableList()), IOException.class)
@@ -69,7 +95,13 @@ public class ProducerRecordConverter {
         )).toOption();
   }
 
-  private static Stream<Header> buildStandardHeaders(ReportingRecord originalRecord) {
+  /**
+   * Builds the standard headers for the given reporting record.
+   *
+   * @param originalRecord the reporting record
+   * @return a stream of standard headers
+   */
+  private Stream<Header> buildStandardHeaders(ReportingRecord<C> originalRecord) {
     return Stream.of(
         new RecordHeader(ReportHeadersConstants.INPUT_TOPIC, originalRecord.getTopicPartition().topic()
             .getBytes()),
@@ -85,19 +117,4 @@ public class ProducerRecordConverter {
     );
   }
 
-  private static Option<Header> getErrorHeader(ReportingRecord originalRecord) {
-    return originalRecord.getError().map(
-        error -> new RecordHeader(ReportHeadersConstants.ERROR, error.getBytes()));
-  }
-
-  private static Option<Header> getResponseContent(ReportingRecord originalRecord) {
-    return originalRecord.getResponseContent().map(
-        error -> new RecordHeader(ReportHeadersConstants.RESPONSE_CONTENT, error.getBytes()));
-  }
-
-  private static Option<Header> getStatusCode(ReportingRecord originalRecord) {
-    return originalRecord.getResponseStatusCode().map(
-        String::valueOf).map(
-            error -> new RecordHeader(ReportHeadersConstants.RESPONSE_STATUS, error.getBytes()));
-  }
 }

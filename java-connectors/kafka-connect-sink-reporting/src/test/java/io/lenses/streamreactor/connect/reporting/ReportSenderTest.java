@@ -17,64 +17,56 @@ package io.lenses.streamreactor.connect.reporting;
 
 import cyclops.control.Option;
 import io.lenses.streamreactor.connect.reporting.config.ReportProducerConfigConst;
-import io.lenses.streamreactor.connect.reporting.model.ProducerRecordConverter;
+import io.lenses.streamreactor.connect.reporting.model.RecordConverter;
 import io.lenses.streamreactor.connect.reporting.model.ReportingRecord;
-import lombok.val;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.kafka.common.serialization.StringSerializer;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Duration;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.eq;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+@ExtendWith(MockitoExtension.class)
 class ReportSenderTest {
 
   private static final TopicPartition topicPartition = new TopicPartition("myTopic", 5);
   private static final ReportingMessagesConfig reportTopic = new ReportingMessagesConfig("test-topic", Option.of(1));
 
-  private ReportSender reportSender;
-  private ReportHolder mockReportHolder;
+  @Mock
+  private ReportHolder<TestConnectorSpecificRecordDataData> mockReportHolder;
+  @Mock
   private Producer<byte[], String> mockProducer;
+  @Mock
   private ScheduledExecutorService mockExecutorService;
-  private ReportingRecord mockReportingRecord;
-  private Map<String, Object> senderConfig;
+  @Mock
+  private ReportingRecord<TestConnectorSpecificRecordDataData> mockReportingRecord;
+  @Mock
+  private RecordConverter<TestConnectorSpecificRecordDataData> recordConverter;
 
-  @BeforeEach
-  void setUp() {
-    val converter = new ProducerRecordConverter();
-    mockReportHolder = mock(ReportHolder.class);
-    mockProducer = mock(Producer.class);
-    mockExecutorService = mock(ScheduledExecutorService.class);
-    mockReportingRecord = mock(ReportingRecord.class);
-    when(mockReportingRecord.getTopicPartition()).thenReturn(topicPartition);
-    when(mockReportingRecord.getError()).thenReturn(Option.none());
-    when(mockReportingRecord.getResponseContent()).thenReturn(Option.none());
-    when(mockReportingRecord.getResponseStatusCode()).thenReturn(Option.none());
-    reportSender =
-        new ReportSender(converter, "test-client-id", mockReportHolder, mockProducer, mockExecutorService, reportTopic);
+  @Mock
+  private ProducerRecord<byte[], String> producerRecord;
+  private final Map<String, Object> senderConfig = Map.of(ReportProducerConfigConst.TOPIC, "test-topic");
 
-    senderConfig = new HashMap<>();
-    senderConfig.put(ReportProducerConfigConst.TOPIC, "test-topic");
-
-  }
+  @InjectMocks
+  private ReportSender<TestConnectorSpecificRecordDataData> reportSender;
 
   @Test
   void testEnqueue() {
@@ -86,6 +78,7 @@ class ReportSenderTest {
   @Test
   void testStart() {
     when(mockReportHolder.pollReport()).thenReturn(Option.of(mockReportingRecord));
+    when(recordConverter.convert(mockReportingRecord)).thenReturn(Option.of(producerRecord));
 
     reportSender.start();
 
@@ -98,7 +91,7 @@ class ReportSenderTest {
     capturedRunnable.run();
 
     verify(mockReportHolder, times(1)).pollReport();
-    verify(mockProducer, times(1)).send(any(ProducerRecord.class));
+    verify(mockProducer, times(1)).send(producerRecord);
   }
 
   @Test

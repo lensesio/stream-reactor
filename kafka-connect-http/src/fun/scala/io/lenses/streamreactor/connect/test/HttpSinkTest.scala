@@ -22,6 +22,9 @@ import org.scalatest.funsuite.AsyncFunSuiteLike
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.BeforeAndAfter
 import org.scalatest.EitherValues
+import org.scalatest.time.Millis
+import org.scalatest.time.Seconds
+import org.scalatest.time.Span
 
 import java.util.UUID
 import scala.jdk.CollectionConverters.ListHasAsScala
@@ -251,7 +254,7 @@ class HttpSinkTest
               rec => IO(sendRecord[K, V](topic, producer, rec))
             }.sequence
               .map { _ =>
-                eventually {
+                eventually(timeout(Span(10, Seconds)), interval(Span(500, Millis))) {
                   verify(postRequestedFor(urlEqualTo(s"/$randomTestId")))
                   findAll(postRequestedFor(urlEqualTo(s"/$randomTestId"))).asScala.toList
                 }

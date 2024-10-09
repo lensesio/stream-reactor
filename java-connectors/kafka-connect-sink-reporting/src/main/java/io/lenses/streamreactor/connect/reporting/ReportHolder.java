@@ -17,24 +17,28 @@ package io.lenses.streamreactor.connect.reporting;
 
 import cyclops.control.Option;
 import cyclops.control.Try;
+import io.lenses.streamreactor.connect.reporting.model.ConnectorSpecificRecordData;
 import io.lenses.streamreactor.connect.reporting.model.ReportingRecord;
 import lombok.AllArgsConstructor;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * @param <C> the type of connector-specific record data
+ */
 @AllArgsConstructor
-public class ReportHolder {
+public class ReportHolder<C extends ConnectorSpecificRecordData> {
 
   private static final int DEFAULT_OFFER_TIME_MILLIS = 300;
   private static final int DEFAULT_POLL_TIME_MILLIS = 100;
 
-  private final BlockingQueue<ReportingRecord> reportsToSend;
+  private final BlockingQueue<ReportingRecord<C>> reportsToSend;
 
   /**
    * Offers Report to be queued for ReportSender to send. Since reporting is non-critical operation,
    * if it fails, the connector just leaves it.
    */
-  public void enqueueReport(ReportingRecord recordReport) {
+  public void enqueueReport(ReportingRecord<C> recordReport) {
     Try.withCatch(() -> reportsToSend.offer(recordReport, DEFAULT_OFFER_TIME_MILLIS, TimeUnit.MILLISECONDS));
   }
 
@@ -43,7 +47,7 @@ public class ReportHolder {
    *
    * @return RecordReport instance or null if the specified waiting time elapses before an element is available
    */
-  public Option<ReportingRecord> pollReport() {
+  public Option<ReportingRecord<C>> pollReport() {
     return Try.withCatch(() -> reportsToSend.poll(DEFAULT_POLL_TIME_MILLIS, TimeUnit.MILLISECONDS),
         InterruptedException.class).toOption();
   }

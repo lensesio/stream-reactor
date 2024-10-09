@@ -26,9 +26,16 @@ import io.lenses.streamreactor.connect.http.sink.client.HttpMethod
 import io.lenses.streamreactor.connect.http.sink.config.HttpSinkConfigDef.AuthenticationTypeProp
 import io.lenses.streamreactor.connect.http.sink.config.HttpSinkConfigDef.BasicAuthenticationPasswordProp
 import io.lenses.streamreactor.connect.http.sink.config.HttpSinkConfigDef.BasicAuthenticationUsernameProp
+import io.lenses.streamreactor.connect.http.sink.reporter.converter.HttpFailureSpecificHeaderRecordConverter
+import io.lenses.streamreactor.connect.http.sink.reporter.converter.HttpSuccessSpecificHeaderRecordConverter
+import io.lenses.streamreactor.connect.http.sink.reporter.model.HttpFailureConnectorSpecificRecordData
+import io.lenses.streamreactor.connect.http.sink.reporter.model.HttpSuccessConnectorSpecificRecordData
 import io.lenses.streamreactor.connect.reporting.ReportingController
 import io.lenses.streamreactor.connect.reporting.ReportingController.ErrorReportingController
 import io.lenses.streamreactor.connect.reporting.ReportingController.SuccessReportingController
+import io.lenses.streamreactor.connect.reporting.ReportingMessagesConfig
+import io.lenses.streamreactor.connect.reporting.model.ConnectorSpecificRecordData
+import io.lenses.streamreactor.connect.reporting.model.RecordConverter
 import org.apache.kafka.common.config.AbstractConfig
 
 import java.net.MalformedURLException
@@ -86,8 +93,8 @@ case class HttpSinkConfig(
   retries:                    RetriesConfig,
   timeout:                    TimeoutConfig,
   tidyJson:                   Boolean,
-  errorReportingController:   ReportingController,
-  successReportingController: ReportingController,
+  errorReportingController:   ReportingController[HttpFailureConnectorSpecificRecordData],
+  successReportingController: ReportingController[HttpSuccessConnectorSpecificRecordData],
 )
 
 object HttpSinkConfig {
@@ -118,13 +125,29 @@ object HttpSinkConfig {
         .map(_.asScala.toList).filter(_.nonEmpty)
         .getOrElse(Nil)
         .traverse(v => Try(v.toInt).toEither.leftMap(e => new IllegalArgumentException(s"Invalid status code: $v", e)))
-      retries                  = RetriesConfig(maxRetries, maxTimeoutMs, onStatusCodes)
-      connectionTimeoutMs      = connectConfig.getInt(HttpSinkConfigDef.ConnectionTimeoutMsProp)
-      timeout                  = TimeoutConfig(connectionTimeoutMs)
-      jsonTidy                 = connectConfig.getBoolean(HttpSinkConfigDef.JsonTidyProp)
-      errorReportingController = createAndStartController(ErrorReportingController.fromAbstractConfig(connectConfig))
+      retries             = RetriesConfig(maxRetries, maxTimeoutMs, onStatusCodes)
+      connectionTimeoutMs = connectConfig.getInt(HttpSinkConfigDef.ConnectionTimeoutMsProp)
+      timeout             = TimeoutConfig(connectionTimeoutMs)
+      jsonTidy            = connectConfig.getBoolean(HttpSinkConfigDef.JsonTidyProp)
+      errorReportingController = createAndStartController(
+        ErrorReportingController.fromAbstractConfig[HttpFailureConnectorSpecificRecordData](
+          (reportingMessagesConfig: ReportingMessagesConfig) =>
+            new RecordConverter(
+              reportingMessagesConfig,
+              HttpFailureSpecificHeaderRecordConverter.apply,
+            ),
+          connectConfig,
+        ),
+      )
       successReportingController = createAndStartController(
-        SuccessReportingController.fromAbstractConfig(connectConfig),
+        SuccessReportingController.fromAbstractConfig[HttpSuccessConnectorSpecificRecordData](
+          (reportingMessagesConfig: ReportingMessagesConfig) =>
+            new RecordConverter(
+              reportingMessagesConfig,
+              HttpSuccessSpecificHeaderRecordConverter.apply,
+            ),
+          connectConfig,
+        ),
       )
     } yield HttpSinkConfig(
       method,
@@ -183,7 +206,9 @@ object HttpSinkConfig {
     }
   }
 
-  private def createAndStartController(controller: ReportingController): ReportingController = {
+  private def createAndStartController[C <: ConnectorSpecificRecordData](
+    controller: ReportingController[C],
+  ): ReportingController[C] = {
     controller.start()
     controller
   }

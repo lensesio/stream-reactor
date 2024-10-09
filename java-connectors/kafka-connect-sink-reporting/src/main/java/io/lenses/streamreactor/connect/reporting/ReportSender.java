@@ -23,7 +23,8 @@ import io.lenses.streamreactor.common.config.source.MapConfigSource;
 import io.lenses.streamreactor.common.exception.StreamReactorException;
 import io.lenses.streamreactor.common.util.StringUtils;
 import io.lenses.streamreactor.connect.reporting.config.ReportProducerConfigConst;
-import io.lenses.streamreactor.connect.reporting.model.ProducerRecordConverter;
+import io.lenses.streamreactor.connect.reporting.model.ConnectorSpecificRecordData;
+import io.lenses.streamreactor.connect.reporting.model.RecordConverter;
 import io.lenses.streamreactor.connect.reporting.model.ReportingRecord;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -43,15 +44,19 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static io.lenses.streamreactor.common.util.EitherUtils.unpackOrThrow;
 
+/**
+ * @param <C> the type of connector-specific record data
+ */
 @Slf4j
 @AllArgsConstructor
 @Getter
-public class ReportSender {
+public class ReportSender<C extends ConnectorSpecificRecordData> {
 
   private static final String CLIENT_ID_PREFIX = "http-sink-reporter-";
   private static final String TOPIC_ERROR = "If reporting is enabled then reporting kafka topic must be specified";
@@ -61,14 +66,13 @@ public class ReportSender {
   private static final int DEFAULT_QUEUES_SIZE = 1000;
   private static final Integer PARTITION_NOT_DEFINED = -1;
 
-  private final ProducerRecordConverter producerRecordConverter;
   private final String reportingClientId;
-  private final ReportHolder reportHolder;
+  private final RecordConverter<C> recordConverter;
+  private final ReportHolder<C> reportHolder;
   private final Producer<byte[], String> producer;
   private final ScheduledExecutorService executorService;
-  private final ReportingMessagesConfig reportingMessagesConfig;
 
-  public void enqueue(ReportingRecord report) {
+  public void enqueue(ReportingRecord<C> report) {
     reportHolder.enqueueReport(report);
   }
 
@@ -78,7 +82,7 @@ public class ReportSender {
         () -> reportHolder.pollReport().forEach(
             report -> {
               Option<ProducerRecord<byte[], String>> optionalReport =
-                  producerRecordConverter.convert(report, reportingMessagesConfig);
+                  recordConverter.convert(report);
               Try.runWithCatch(() -> optionalReport.map(producer::send))
                   .toFailedOption()
                   .stream()
@@ -93,7 +97,9 @@ public class ReportSender {
     producer.close(Duration.ofMillis(DEFAULT_CLOSE_DURATION_IN_MILLIS));
   }
 
-  protected static ReportSender fromConfigMap(Map<String, Object> senderConfig) {
+  protected static <C extends ConnectorSpecificRecordData> ReportSender<C> fromConfigMap(
+      Function<ReportingMessagesConfig, RecordConverter<C>> recordConverter,
+      Map<String, Object> senderConfig) {
 
     val configSource = new MapConfigSource(senderConfig);
 
@@ -105,13 +111,12 @@ public class ReportSender {
     final String reportingClientId = CLIENT_ID_PREFIX + UUID.randomUUID();
 
     val producer = createKafkaProducer(senderConfig, reportingClientId);
-    val queue = new ArrayBlockingQueue<ReportingRecord>(DEFAULT_QUEUES_SIZE);
-    val reportHolder = new ReportHolder(queue);
+    val queue = new ArrayBlockingQueue<ReportingRecord<C>>(DEFAULT_QUEUES_SIZE);
+    val reportHolder = new ReportHolder<C>(queue);
     val executorService = Executors.newScheduledThreadPool(1);
 
-    val producerRecordConverter = new ProducerRecordConverter();
-    return new ReportSender(producerRecordConverter, reportingClientId, reportHolder, producer, executorService,
-        reportingMessagesConfig);
+    return new ReportSender<>(reportingClientId, recordConverter.apply(reportingMessagesConfig), reportHolder, producer,
+        executorService);
   }
 
   private static Either<StreamReactorException, String> getReportTopic(ConfigSource mapConfigSource) {

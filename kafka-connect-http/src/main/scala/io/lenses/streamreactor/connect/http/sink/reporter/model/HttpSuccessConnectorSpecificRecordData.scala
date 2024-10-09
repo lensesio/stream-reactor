@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,21 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.lenses.streamreactor.common.config.base.intf;
+package io.lenses.streamreactor.connect.http.sink.reporter.model
 
-import org.apache.kafka.common.config.ConfigException;
+import cyclops.control.Option
+import io.lenses.streamreactor.connect.reporting.model.ConnectorSpecificRecordData
 
-import java.util.List;
-import java.util.stream.Collectors;
-
-/**
- * Picks out the settings required from KCQL
- */
-public abstract class Converter<S, T> {
-
-  public List<T> convertAll(List<S> source) throws ConfigException {
-    return source.stream().map(this::convert).collect(Collectors.toList());
-  }
-
-  protected abstract T convert(S source) throws ConfigException;
-}
+case class HttpSuccessConnectorSpecificRecordData(
+  responseStatusCode: Integer,
+  responseContent:    Option[String],
+) extends ConnectorSpecificRecordData

@@ -40,8 +40,9 @@ object Dependencies {
     val scalatestPlusScalaCheckVersion = "3.1.0.0-RC2"
     val scalaCheckVersion              = "1.18.1"
 
-    val junitJupiterVersion = "5.11.2"
-    val assertjCoreVersion  = "3.26.3"
+    val mockitoJunitJupiterVersion = "5.11.0"
+    val junitJupiterVersion        = "5.11.2"
+    val assertjCoreVersion         = "3.26.3"
 
     val cyclopsVersion = "10.4.1"
 
@@ -188,13 +189,15 @@ object Dependencies {
   val scalatest = "org.scalatest" %% "scalatest" % scalatestVersion
   val scalatestPlusScalaCheck =
     "org.scalatestplus" %% "scalatestplus-scalacheck" % scalatestPlusScalaCheckVersion
-  val scalaCheck     = "org.scalacheck" %% "scalacheck"     % scalaCheckVersion
-  val `mockitoScala` = "org.mockito"    %% "mockito-scala"  % mockitoScalaVersion
-  val `mockitoJava`  = "org.mockito"     % "mockito-inline" % mockitoJavaVersion
+  val scalaCheck            = "org.scalacheck" %% "scalacheck"            % scalaCheckVersion
+  val `mockitoScala`        = "org.mockito"    %% "mockito-scala"         % mockitoScalaVersion
+  val `mockitoJava`         = "org.mockito"     % "mockito-inline"        % mockitoJavaVersion
+  val `mockitoJunitJupiter` = "org.mockito"     % "mockito-junit-jupiter" % mockitoJunitJupiterVersion
 
   val `junitJupiter`       = "org.junit.jupiter" % "junit-jupiter-api"    % junitJupiterVersion
   val `junitJupiterParams` = "org.junit.jupiter" % "junit-jupiter-params" % junitJupiterVersion
-  val `assertjCore`        = "org.assertj"       % "assertj-core"         % assertjCoreVersion
+
+  val `assertjCore` = "org.assertj" % "assertj-core" % assertjCoreVersion
 
   val `cyclops`     = "com.oath.cyclops" % "cyclops"      % cyclopsVersion
   val `cyclopsPure` = "com.oath.cyclops" % "cyclops-pure" % cyclopsVersion
@@ -476,7 +479,7 @@ trait Dependencies {
 
   val javaCommonDeps: Seq[ModuleID] = Seq(lombok, kafkaConnectJson, kafkaClients, cyclops, `cyclopsPure`)
   val javaCommonTestDeps: Seq[ModuleID] =
-    Seq(junitJupiter, junitJupiterParams, assertjCore, `mockitoJava`, logback) ++ bouncyCastle
+    Seq(junitJupiter, junitJupiterParams, assertjCore, `mockitoJava`, mockitoJunitJupiter, logback) ++ bouncyCastle
 
   //Specific modules dependencies
 
