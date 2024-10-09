@@ -15,7 +15,10 @@
  */
 package io.lenses.streamreactor.connect.http.sink
 
+import scala.util.control.Breaks._
 import cats.data.NonEmptySeq
+import cats.implicits.catsSyntaxOptionId
+import cats.implicits.none
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.CommitPolicy
 import io.lenses.streamreactor.connect.http.sink.OffsetMergeUtils.createCommitContextForEvaluation
 import io.lenses.streamreactor.connect.http.sink.commit.HttpCommitContext
@@ -32,23 +35,34 @@ class RecordsQueue(
   def enqueueAll(records: Seq[RenderedRecord]): Unit =
     recordsQueue.enqueueAll(records)
 
-  private def commitContextShouldFlush(combinedRecords: Seq[RenderedRecord]): Boolean =
-    commitPolicy.shouldFlush(
-      createCommitContextForEvaluation(combinedRecords, fnGetCommitContext()),
-    )
-
   def takeBatch(): BatchInfo = {
     val accumulatedRecords = mutable.Buffer[RenderedRecord]()
     val queueIter          = recordsQueue.iterator
 
-    while (queueIter.hasNext && !commitContextShouldFlush(accumulatedRecords.toSeq)) {
-      accumulatedRecords += queueIter.next()
+    var finalCommitContext: Option[HttpCommitContext] = none
+    breakable {
+      while (queueIter.hasNext) {
+        accumulatedRecords += queueIter.next()
+        val commitContext = createCommitContextForEvaluation(accumulatedRecords.toSeq, fnGetCommitContext())
+        if (commitPolicy.shouldFlush(commitContext)) {
+          finalCommitContext = commitContext.some
+          break()
+        }
+      }
     }
 
-    BatchInfo(
-      NonEmptySeq.fromSeq(accumulatedRecords.toSeq),
-      recordsQueue.size,
-    )
+    (finalCommitContext, NonEmptySeq.fromSeq(accumulatedRecords.toSeq)) match {
+      case (Some(context), Some(records)) =>
+        NonEmptyBatchInfo(
+          records,
+          context,
+          recordsQueue.size,
+        )
+      case (_, _) =>
+        EmptyBatchInfo(recordsQueue.size)
+
+    }
+
   }
 
   def dequeue(nonEmptyBatch: NonEmptySeq[RenderedRecord]): Unit = {

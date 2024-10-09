@@ -46,21 +46,29 @@ class RecordsQueueTest extends AnyFunSuiteLike with MockitoSugar with Matchers {
     recordsQueue.recordsQueue should contain theSameElementsInOrderAs records
   }
 
-  test("takeBatch should return a batch of records when commit policy does not require flush") {
+  test("takeBatch should not return a batch of records when commit policy does not require flush") {
     val commitPolicy = mock[CommitPolicy]
     when(commitPolicy.shouldFlush(any[HttpCommitContext])).thenReturn(false)
     val recordsQueue = new RecordsQueue(mutable.Queue(record1, record2), commitPolicy, () => defaultContext)
     val batchInfo    = recordsQueue.takeBatch()
-    batchInfo.batch.get.toSeq should contain theSameElementsInOrderAs Seq(record1, record2)
-    // takeBatch should not alter queue
-    batchInfo.totalQueueSize shouldBe 2
+    batchInfo match {
+      case EmptyBatchInfo(totalQueueSize) => totalQueueSize shouldBe 2
+      case NonEmptyBatchInfo(_, _, _) =>
+        fail("Should not be an empty batch info")
+
+    }
+
   }
 
   test("takeBatch should return an empty batch when the queue is empty") {
     val recordsQueue = new RecordsQueue(mutable.Queue.empty[RenderedRecord], mock[CommitPolicy], () => defaultContext)
     val batchInfo    = recordsQueue.takeBatch()
-    batchInfo.batch shouldBe empty
-    batchInfo.totalQueueSize shouldBe 0
+    batchInfo match {
+      case EmptyBatchInfo(totalQueueSize) =>
+        totalQueueSize shouldBe 0
+      case NonEmptyBatchInfo(batch, updatedCommitContext, totalQueueSize) => fail("Should be an empty BatchInfo")
+    }
+
   }
 
   test("dequeue should remove the specified records from the queue") {

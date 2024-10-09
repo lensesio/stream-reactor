@@ -53,9 +53,11 @@ class HttpWriterTest extends AsyncIOSpec with AsyncFunSuiteLike with Matchers wi
   private val record2      = RenderedRecord(topicPartition.atOffset(101), timestamp, "record2", Seq.empty, None)
   private val recordsToAdd = Seq(record1, record2)
 
+  private val senderMock   = mock[HttpRequestSender]
+  private val templateMock = mock[TemplateType]
+
   test("add method should add records to the queue") {
-    val senderMock   = mock[HttpRequestSender]
-    val templateMock = mock[TemplateType]
+
     val batchInfo    = mock[BatchInfo]
     val recordsQueue = mockRecordQueue(batchInfo)
 
@@ -84,18 +86,18 @@ class HttpWriterTest extends AsyncIOSpec with AsyncFunSuiteLike with Matchers wi
   }
 
   test("process method should flush records when the queue is non-empty and commit policy requires flush") {
-    val senderMock = mock[HttpRequestSender]
     when(senderMock.sendHttpRequest(any[ProcessedTemplate])).thenReturn(IO(HttpResponseSuccess(200, "OK".some).asRight))
 
-    val templateMock = mock[TemplateType]
     when(templateMock.process(any[Seq[RenderedRecord]], eqTo(false))).thenReturn(Right(ProcessedTemplate("a",
                                                                                                          "b",
                                                                                                          Seq.empty,
     )))
 
-    val batchInfo = mock[BatchInfo]
-    when(batchInfo.batch).thenReturn(Some(NonEmptySeq.of(record1, record2)))
-    when(batchInfo.totalQueueSize).thenReturn(100)
+    val batchInfo = NonEmptyBatchInfo(
+      NonEmptySeq.of(record1, record2),
+      defaultContext,
+      100,
+    )
 
     val recordsQueue = mockRecordQueue(batchInfo)
 
@@ -116,7 +118,6 @@ class HttpWriterTest extends AsyncIOSpec with AsyncFunSuiteLike with Matchers wi
                                     queueLock,
         )
 
-        _              <- httpWriter.add(recordsToAdd)
         _              <- httpWriter.process()
         updatedContext <- commitContextRef.get
       } yield updatedContext
@@ -128,14 +129,14 @@ class HttpWriterTest extends AsyncIOSpec with AsyncFunSuiteLike with Matchers wi
   }
 
   test("process method should not flush records when the queue is empty") {
-    val senderMock = mock[HttpRequestSender]
+
     when(senderMock.sendHttpRequest(any[ProcessedTemplate])).thenReturn(IO(HttpResponseFailure("fail",
                                                                                                none,
                                                                                                404.some,
                                                                                                none,
     ).asLeft))
 
-    val recordsQueue: RecordsQueue = mockRecordQueue(BatchInfo(Option.empty, 0))
+    val recordsQueue: RecordsQueue = mockRecordQueue(EmptyBatchInfo(0))
 
     val templateMock = mock[TemplateType]
 

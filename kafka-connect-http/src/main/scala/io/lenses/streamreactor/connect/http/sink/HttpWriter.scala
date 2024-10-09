@@ -22,7 +22,6 @@ import cats.effect.unsafe.implicits.global
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.common.utils.CyclopsToScalaOption.convertToCyclopsOption
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
-import io.lenses.streamreactor.connect.http.sink.OffsetMergeUtils.createCommitContextForEvaluation
 import io.lenses.streamreactor.connect.http.sink.OffsetMergeUtils.updateCommitContextPostCommit
 import io.lenses.streamreactor.connect.http.sink.client.HttpRequestSender
 import io.lenses.streamreactor.connect.http.sink.client.HttpResponseFailure
@@ -59,25 +58,24 @@ class HttpWriter(
       IO(recordsQueue.enqueueAll(newRecords))
     }
 
-  private class NoBatchYetError extends Exception
+  private case class NoBatchYetError(queueSize: Int) extends Exception
 
   // called on a loop to process the queue
   def process(): IO[Unit] =
     queueLock.permit.use { _ =>
       for {
         batchInfo <- IO(recordsQueue.takeBatch())
-        nonEmptyBatch <- batchInfo.batch match {
-          case Some(batch) =>
-            IO(
+        nonEmptyBatchInfo <- batchInfo match {
+          case EmptyBatchInfo(totalQueueSize) => IO.raiseError(NoBatchYetError(totalQueueSize))
+          case nonEmptyBatchInfo @ NonEmptyBatchInfo(batch, _, totalQueueSize) => IO(
               logger.debug(
-                s"[$sinkName] HttpWriter.process, batch of ${batchInfo.batch.size}, queue size: ${batchInfo.totalQueueSize}",
+                s"[$sinkName] HttpWriter.process, batch of ${batch.length}, queue size: $totalQueueSize",
               ),
             )
-              .map(_ => batch)
-          case None => IO.raiseError(new NoBatchYetError())
+              .map(_ => nonEmptyBatchInfo)
         }
-        _               <- modifyCommitContext(nonEmptyBatch.toSeq)
-        removedElements <- IO(recordsQueue.dequeue(nonEmptyBatch))
+        _               <- modifyCommitContext(nonEmptyBatchInfo)
+        removedElements <- IO(recordsQueue.dequeue(nonEmptyBatchInfo.batch))
         _               <- resetErrorsInCommitContext()
 
       } yield removedElements
@@ -132,16 +130,15 @@ class HttpWriter(
       commitContext => commitContext.resetErrors
     } *> IO.unit
 
-  private def modifyCommitContext(batch: Seq[RenderedRecord]): IO[Unit] = {
-    logger.trace(s"[$sinkName] modifyCommitContext for batch of ${batch.size}")
+  private def modifyCommitContext(batch: NonEmptyBatchInfo): IO[Unit] = {
+    logger.trace(s"[$sinkName] modifyCommitContext for batch of ${batch.batch.length}")
 
     commitContextRef.modify {
       cc: HttpCommitContext =>
         (for {
-          flushEvalCommitContext: HttpCommitContext <- IO.pure(createCommitContextForEvaluation(batch, cc))
-          _ <- IO.delay(logger.trace(s"[$sinkName] Updating sink context to: $flushEvalCommitContext"))
-          _ <- flush(batch)
-        } yield updateCommitContextPostCommit(currentCommitContext = flushEvalCommitContext))
+          _ <- IO.delay(logger.trace(s"[$sinkName] Updating sink context to: ${batch.updatedCommitContext}"))
+          _ <- flush(batch.batch.toSeq)
+        } yield updateCommitContextPostCommit(currentCommitContext = batch.updatedCommitContext))
           .map((_, ())).unsafeRunSync()
     }
   }

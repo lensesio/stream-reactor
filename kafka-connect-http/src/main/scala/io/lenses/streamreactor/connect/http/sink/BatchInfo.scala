@@ -16,9 +16,16 @@
 package io.lenses.streamreactor.connect.http.sink
 
 import cats.data.NonEmptySeq
+import io.lenses.streamreactor.connect.http.sink.commit.HttpCommitContext
 import io.lenses.streamreactor.connect.http.sink.tpl.RenderedRecord
 
-case class BatchInfo(
-  batch:          Option[NonEmptySeq[RenderedRecord]],
-  totalQueueSize: Int,
-)
+sealed trait BatchInfo {
+  def totalQueueSize: Int
+}
+case class EmptyBatchInfo(totalQueueSize: Int) extends BatchInfo
+
+case class NonEmptyBatchInfo(
+  batch:                NonEmptySeq[RenderedRecord],
+  updatedCommitContext: HttpCommitContext,
+  totalQueueSize:       Int,
+) extends BatchInfo
