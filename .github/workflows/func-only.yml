@@ -1,0 +1,47 @@
+name: Functional Tests Only
+
+on: workflow_dispatch
+
+jobs:
+  run-func-tests:
+    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        module: ["http"]
+        connectImageVersion: [ 7.3.1, 6.2.2 ]
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'sbt'
+      - name: Get version
+        id: version
+        shell: bash
+        run: |
+          if [ "${{ inputs.version }}" != "" ]; then
+            echo "version=${{ inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "version=$(git describe --tags --always)" >> $GITHUB_OUTPUT
+          fi
+      - name: Build assembly
+        env:
+          JVM_OPTS: -Xmx3200m
+          VERSION: ${{ steps.version.outputs.version }}
+        run: sbt "project ${{ matrix.module }};set assembly / test := {}" assembly
+      - name: Run tests
+        run: sbt "project ${{ matrix.module }}" fun:test
+        env:
+          JVM_OPTS: -Xmx3200m
+          CONNECT_IMAGE_VERSION: ${{matrix.connectImageVersion}}
+      - name: Publish test results
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        if: always()
+        with:
+          files: "**/target/**/test-reports/*.xml"
+          check_name: ${{ matrix.module }}-${{ matrix.connectImageVersion }}-fun-results
+          comment_mode: off
