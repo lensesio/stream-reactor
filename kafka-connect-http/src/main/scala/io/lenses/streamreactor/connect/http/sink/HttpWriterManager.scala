@@ -23,6 +23,7 @@ import cats.effect.kernel.Deferred
 import cats.effect.kernel.Outcome
 import cats.effect.kernel.Temporal
 import cats.effect.std.Semaphore
+import cats.effect.unsafe.implicits.global
 import cats.implicits.toTraverseOps
 import com.typesafe.scalalogging.LazyLogging
 import com.typesafe.scalalogging.StrictLogging
@@ -37,6 +38,7 @@ import io.lenses.streamreactor.connect.http.sink.commit.HttpCommitPolicy
 import io.lenses.streamreactor.connect.http.sink.config.HttpSinkConfig
 import io.lenses.streamreactor.connect.http.sink.reporter.model.HttpFailureConnectorSpecificRecordData
 import io.lenses.streamreactor.connect.http.sink.reporter.model.HttpSuccessConnectorSpecificRecordData
+import io.lenses.streamreactor.connect.http.sink.tpl.RenderedRecord
 import io.lenses.streamreactor.connect.http.sink.tpl.TemplateType
 import io.lenses.streamreactor.connect.reporting.ReportingController
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
@@ -142,14 +144,18 @@ class HttpWriterManager(
 ) extends LazyLogging {
   private def createNewHttpWriter(): IO[HttpWriter] =
     for {
+      commitPolicy     <- IO.pure(commitPolicy)
       semaphore        <- Semaphore(1)
       commitContextRef <- Ref.of[IO, HttpCommitContext](HttpCommitContext.default(sinkName))
     } yield new HttpWriter(
-      sinkName         = sinkName,
-      commitPolicy     = commitPolicy,
-      sender           = httpRequestSender,
-      template         = template,
-      recordsQueue     = mutable.Queue(),
+      sinkName = sinkName,
+      sender   = httpRequestSender,
+      template = template,
+      recordsQueue = new RecordsQueue(
+        mutable.Queue[RenderedRecord](),
+        commitPolicy,
+        () => commitContextRef.get.unsafeRunSync(),
+      ),
       commitContextRef = commitContextRef,
       errorThreshold   = errorThreshold,
       tidyJson         = tidyJson,
