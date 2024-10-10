@@ -34,6 +34,8 @@ import static io.lenses.streamreactor.connect.azure.servicebus.mapping.ServiceBu
 
 import java.util.Map;
 
+import java.util.Optional;
+import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
@@ -79,23 +81,39 @@ public class ServiceBusToSourceRecordMapper {
   }
 
   private static Struct createStructFromServiceBusMessage(final ServiceBusReceivedMessage serviceBusMessage) {
-    return new Struct(VALUE_SCHEMA)
-        .put(DELIVERY_COUNT, serviceBusMessage.getDeliveryCount())
-        .put(ENQUEUED_TIME_UTC, serviceBusMessage.getEnqueuedTime().toEpochSecond())
-        .put(CONTENT_TYPE, serviceBusMessage.getContentType())
-        .put(LABEL, AzureServiceBusSourceConnector.class.getSimpleName())
-        .put(CORRELATION_ID, serviceBusMessage.getCorrelationId())
-        .put(PARTITION_KEY, serviceBusMessage.getPartitionKey())
-        .put(REPLY_TO, serviceBusMessage.getReplyTo())
-        .put(REPLY_TO_SESSION_ID, serviceBusMessage.getReplyToSessionId())
-        .put(DEAD_LETTER_SOURCE, serviceBusMessage.getDeadLetterSource())
-        .put(TIME_TO_LIVE, serviceBusMessage.getTimeToLive().toMillis())
-        .put(LOCKED_UNTIL_UTC, serviceBusMessage.getLockedUntil().toEpochSecond())
-        .put(SEQUENCE_NUMBER, serviceBusMessage.getSequenceNumber())
-        .put(SESSION_ID, serviceBusMessage.getSessionId())
-        .put(LOCK_TOKEN, serviceBusMessage.getLockToken())
-        .put(MESSAGE_BODY, serviceBusMessage.getBody().toBytes())
-        .put(GET_TO, serviceBusMessage.getTo());
+    Struct struct =
+        new Struct(VALUE_SCHEMA)
+            .put(DELIVERY_COUNT, serviceBusMessage.getDeliveryCount())
+            .put(ENQUEUED_TIME_UTC, serviceBusMessage.getEnqueuedTime().toEpochSecond())
+            .put(LABEL, AzureServiceBusSourceConnector.class.getSimpleName())
+            .put(TIME_TO_LIVE, serviceBusMessage.getTimeToLive().toMillis())
+            .put(MESSAGE_BODY, serviceBusMessage.getBody().toBytes())
+            .put(GET_TO, serviceBusMessage.getTo());
+
+    addOptionalSchemaValues(struct, serviceBusMessage);
+
+    return struct;
+  }
+
+  private static void addOptionalSchemaValues(Struct struct, ServiceBusReceivedMessage serviceBusMessage) {
+    addOptionalSchemaValueIfExists(struct, serviceBusMessage.getContentType(), CONTENT_TYPE);
+    addOptionalSchemaValueIfExists(struct, serviceBusMessage.getCorrelationId(), CORRELATION_ID);
+    addOptionalSchemaValueIfExists(struct, serviceBusMessage.getPartitionKey(), PARTITION_KEY);
+    addOptionalSchemaValueIfExists(struct, serviceBusMessage.getReplyTo(), REPLY_TO);
+    addOptionalSchemaValueIfExists(struct, serviceBusMessage.getReplyToSessionId(), REPLY_TO_SESSION_ID);
+    addOptionalSchemaValueIfExists(struct, serviceBusMessage.getDeadLetterSource(), DEAD_LETTER_SOURCE);
+    addOptionalSchemaValueIfExists(struct, serviceBusMessage.getSequenceNumber(), SEQUENCE_NUMBER);
+    addOptionalSchemaValueIfExists(struct, serviceBusMessage.getSessionId(), SESSION_ID);
+    addOptionalSchemaValueIfExists(struct, serviceBusMessage.getLockToken(), LOCK_TOKEN);
+    addOptionalSchemaValueIfExists(struct, serviceBusMessage.getTo(), GET_TO);
+
+    Optional.ofNullable(serviceBusMessage.getLockedUntil())
+        .ifPresent(lu -> struct.put(LOCKED_UNTIL_UTC, lu.toEpochSecond()));
+
+  }
+
+  private static void addOptionalSchemaValueIfExists(Struct struct, Object value, Field field) {
+    Optional.ofNullable(value).ifPresent(val -> struct.put(field, val));
   }
 
 }

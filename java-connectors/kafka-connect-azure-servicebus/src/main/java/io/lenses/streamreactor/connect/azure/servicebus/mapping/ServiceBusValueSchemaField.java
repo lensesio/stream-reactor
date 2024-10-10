@@ -30,9 +30,9 @@ public class ServiceBusValueSchemaField {
   static final Field ENQUEUED_TIME_UTC =
       new Field(SchemaFieldConstants.ENQUEUED_TIME_UTC, 1, Schema.INT64_SCHEMA);
   static final Field CONTENT_TYPE =
-      new Field(SchemaFieldConstants.CONTENT_TYPE, 2, Schema.STRING_SCHEMA);
+      new Field(SchemaFieldConstants.CONTENT_TYPE, 2, Schema.OPTIONAL_STRING_SCHEMA);
   static final Field LABEL =
-      new Field(SchemaFieldConstants.LABEL, 3, Schema.STRING_SCHEMA);
+      new Field(SchemaFieldConstants.LABEL, 3, Schema.OPTIONAL_STRING_SCHEMA);
   static final Field CORRELATION_ID =
       new Field(SchemaFieldConstants.CORRELATION_ID, 4, Schema.OPTIONAL_STRING_SCHEMA);
   static final Field MESSAGE_PROPERTIES =
@@ -56,7 +56,7 @@ public class ServiceBusValueSchemaField {
   static final Field LOCK_TOKEN =
       new Field(SchemaFieldConstants.LOCK_TOKEN, 14, Schema.OPTIONAL_STRING_SCHEMA);
   static final Field MESSAGE_BODY =
-      new Field(SchemaFieldConstants.MESSAGE_BODY, 15, Schema.BYTES_SCHEMA);
+      new Field(SchemaFieldConstants.MESSAGE_BODY, 15, Schema.OPTIONAL_BYTES_SCHEMA);
   static final Field GET_TO =
       new Field(SchemaFieldConstants.GET_TO, 16, Schema.OPTIONAL_STRING_SCHEMA);
 

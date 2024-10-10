@@ -28,7 +28,6 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.source.SourceRecord;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 
 import com.azure.core.util.BinaryData;
 import com.azure.messaging.servicebus.ServiceBusReceivedMessage;
@@ -84,6 +83,50 @@ class ServiceBusToSourceRecordMapperTest {
 
   }
 
+  @Test
+  void mapSingleSourceRecordAllowsForOptionalScemaFieldsToBeNull() {
+    //given
+    ServiceBusReceivedMessage busMessage = prepareMessageBusWithOnlyRequiredFields();
+    AzureServiceBusPartitionKey partitionKey = new AzureServiceBusPartitionKey(OUTPUT_TOPIC, PARTITION_KEY);
+    AzureServiceBusOffsetMarker busOffsetMarker = new AzureServiceBusOffsetMarker(SEQUENCE_NUMBER);
+
+    //when
+    SourceRecord sourceRecord =
+        ServiceBusToSourceRecordMapper.mapSingleServiceBusMessage(busMessage, OUTPUT_TOPIC, partitionKey,
+            busOffsetMarker);
+
+    //then
+    assertThat(sourceRecord)
+        .returns(TIME_NOW.toEpochSecond(), from(SourceRecord::timestamp))
+        .returns(partitionKey, from(SourceRecord::sourcePartition))
+        .returns(null, from(SourceRecord::kafkaPartition))
+        .returns(busOffsetMarker, from(SourceRecord::sourceOffset))
+        .returns(OUTPUT_TOPIC, from(SourceRecord::topic))
+        .returns(Schema.STRING_SCHEMA, from(SourceRecord::keySchema))
+        .returns(ServiceBusToSourceRecordMapper.VALUE_SCHEMA, from(SourceRecord::valueSchema));
+
+    Struct valueStruct = (Struct) sourceRecord.value();
+
+    assertThat(valueStruct)
+        .returns(DELIVERY_COUNT, from(v -> v.get(ServiceBusValueSchemaField.DELIVERY_COUNT)))
+        .returns(TIME_NOW.toEpochSecond(), from(v -> v.get(ServiceBusValueSchemaField.ENQUEUED_TIME_UTC)))
+        .returns(null, from(v -> v.get(ServiceBusValueSchemaField.CONTENT_TYPE)))
+        .returns(LABEL, from(v -> v.get(ServiceBusValueSchemaField.LABEL)))
+        .returns(null, from(v -> v.get(ServiceBusValueSchemaField.CORRELATION_ID)))
+        .returns(null, from(v -> v.get(ServiceBusValueSchemaField.PARTITION_KEY)))
+        .returns(null, from(v -> v.get(ServiceBusValueSchemaField.REPLY_TO)))
+        .returns(null, from(v -> v.get(ServiceBusValueSchemaField.REPLY_TO_SESSION_ID)))
+        .returns(null, from(v -> v.get(ServiceBusValueSchemaField.DEAD_LETTER_SOURCE)))
+        .returns(TIME_TO_LIVE.toMillis(), from(v -> v.get(ServiceBusValueSchemaField.TIME_TO_LIVE)))
+        .returns(null, from(v -> v.get(ServiceBusValueSchemaField.LOCKED_UNTIL_UTC)))
+        .returns(SEQUENCE_NUMBER, from(v -> v.get(ServiceBusValueSchemaField.SEQUENCE_NUMBER)))
+        .returns(null, from(v -> v.get(ServiceBusValueSchemaField.SESSION_ID)))
+        .returns(null, from(v -> v.get(ServiceBusValueSchemaField.LOCK_TOKEN)))
+        .returns(MESSAGE_BODY, from(v -> v.get(ServiceBusValueSchemaField.MESSAGE_BODY)))
+        .returns(DELIVERY_COUNT, from(v -> v.get(ServiceBusValueSchemaField.DELIVERY_COUNT)));
+
+  }
+
   private void assertMappedStructValues(Struct valueStruct) {
     assertThat(valueStruct)
         .returns(DELIVERY_COUNT, from(v -> v.get(ServiceBusValueSchemaField.DELIVERY_COUNT)))
@@ -110,22 +153,48 @@ class ServiceBusToSourceRecordMapperTest {
     BinaryData bodyBinary = mock(BinaryData.class);
     when(bodyBinary.toBytes()).thenReturn(MESSAGE_BODY);
 
-    Mockito.when(busReceivedMessage.getMessageId()).thenReturn(MESSAGE_ID);
-    Mockito.when(busReceivedMessage.getDeliveryCount()).thenReturn(DELIVERY_COUNT);
-    Mockito.when(busReceivedMessage.getEnqueuedTime()).thenReturn(TIME_NOW);
-    Mockito.when(busReceivedMessage.getContentType()).thenReturn(CONTENT_TYPE);
-    Mockito.when(busReceivedMessage.getCorrelationId()).thenReturn(CORRELATION_ID);
-    Mockito.when(busReceivedMessage.getPartitionKey()).thenReturn(PARTITION_KEY);
-    Mockito.when(busReceivedMessage.getReplyTo()).thenReturn(REPLY_TO);
-    Mockito.when(busReceivedMessage.getReplyToSessionId()).thenReturn(REPLY_TO_SESSION_ID);
-    Mockito.when(busReceivedMessage.getDeadLetterSource()).thenReturn(DEAD_LETTER_SOURCE);
-    Mockito.when(busReceivedMessage.getTimeToLive()).thenReturn(TIME_TO_LIVE);
-    Mockito.when(busReceivedMessage.getLockedUntil()).thenReturn(TIME_NOW);
-    Mockito.when(busReceivedMessage.getSequenceNumber()).thenReturn(SEQUENCE_NUMBER);
-    Mockito.when(busReceivedMessage.getSessionId()).thenReturn(SESSION_ID);
-    Mockito.when(busReceivedMessage.getLockToken()).thenReturn(LOCK_TOKEN);
-    Mockito.when(busReceivedMessage.getBody()).thenReturn(bodyBinary);
-    Mockito.when(busReceivedMessage.getTo()).thenReturn(GET_TO);
+    when(busReceivedMessage.getMessageId()).thenReturn(MESSAGE_ID);
+    when(busReceivedMessage.getDeliveryCount()).thenReturn(DELIVERY_COUNT);
+    when(busReceivedMessage.getEnqueuedTime()).thenReturn(TIME_NOW);
+    when(busReceivedMessage.getContentType()).thenReturn(CONTENT_TYPE);
+    when(busReceivedMessage.getCorrelationId()).thenReturn(CORRELATION_ID);
+    when(busReceivedMessage.getPartitionKey()).thenReturn(PARTITION_KEY);
+    when(busReceivedMessage.getReplyTo()).thenReturn(REPLY_TO);
+    when(busReceivedMessage.getReplyToSessionId()).thenReturn(REPLY_TO_SESSION_ID);
+    when(busReceivedMessage.getDeadLetterSource()).thenReturn(DEAD_LETTER_SOURCE);
+    when(busReceivedMessage.getTimeToLive()).thenReturn(TIME_TO_LIVE);
+    when(busReceivedMessage.getLockedUntil()).thenReturn(TIME_NOW);
+    when(busReceivedMessage.getSequenceNumber()).thenReturn(SEQUENCE_NUMBER);
+    when(busReceivedMessage.getSessionId()).thenReturn(SESSION_ID);
+    when(busReceivedMessage.getLockToken()).thenReturn(LOCK_TOKEN);
+    when(busReceivedMessage.getBody()).thenReturn(bodyBinary);
+    when(busReceivedMessage.getTo()).thenReturn(GET_TO);
+
+    return busReceivedMessage;
+  }
+
+  private ServiceBusReceivedMessage prepareMessageBusWithOnlyRequiredFields() {
+    ServiceBusReceivedMessage busReceivedMessage = mock(ServiceBusReceivedMessage.class);
+
+    BinaryData bodyBinary = mock(BinaryData.class);
+    when(bodyBinary.toBytes()).thenReturn(MESSAGE_BODY);
+
+    when(busReceivedMessage.getMessageId()).thenReturn(MESSAGE_ID);
+    when(busReceivedMessage.getDeliveryCount()).thenReturn(DELIVERY_COUNT);
+    when(busReceivedMessage.getEnqueuedTime()).thenReturn(TIME_NOW);
+    when(busReceivedMessage.getContentType()).thenReturn(null);
+    when(busReceivedMessage.getCorrelationId()).thenReturn(null);
+    when(busReceivedMessage.getPartitionKey()).thenReturn(null);
+    when(busReceivedMessage.getReplyTo()).thenReturn(null);
+    when(busReceivedMessage.getReplyToSessionId()).thenReturn(null);
+    when(busReceivedMessage.getDeadLetterSource()).thenReturn(null);
+    when(busReceivedMessage.getTimeToLive()).thenReturn(TIME_TO_LIVE);
+    when(busReceivedMessage.getLockedUntil()).thenReturn(null);
+    when(busReceivedMessage.getSequenceNumber()).thenReturn(SEQUENCE_NUMBER);
+    when(busReceivedMessage.getSessionId()).thenReturn(null);
+    when(busReceivedMessage.getLockToken()).thenReturn(null);
+    when(busReceivedMessage.getBody()).thenReturn(bodyBinary);
+    when(busReceivedMessage.getTo()).thenReturn(null);
 
     return busReceivedMessage;
   }
