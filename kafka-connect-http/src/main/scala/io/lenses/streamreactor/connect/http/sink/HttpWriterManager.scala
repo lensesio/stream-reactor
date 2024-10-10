@@ -15,7 +15,6 @@
  */
 package io.lenses.streamreactor.connect.http.sink
 
-import cats.effect.FiberIO
 import cats.effect.IO
 import cats.effect.Ref
 import cats.effect.Resource
@@ -98,7 +97,7 @@ object HttpWriterManager extends StrictLogging {
         config.authentication,
       )
       commitPolicy = config.batch.toCommitPolicy
-
+      writersLock <- Mutex[IO]
     } yield new HttpWriterManager(
       sinkName,
       template,
@@ -106,6 +105,7 @@ object HttpWriterManager extends StrictLogging {
       if (commitPolicy.conditions.nonEmpty) commitPolicy else HttpCommitPolicy.Default,
       cResRel,
       httpWritersMap,
+      writersLock,
       terminate,
       config.errorThreshold,
       config.uploadSyncPeriod,
@@ -132,6 +132,7 @@ class HttpWriterManager(
   commitPolicy:               CommitPolicy,
   val close:                  IO[Unit],
   writers:                    mutable.Map[Topic, HttpWriter],
+  writersLock:                Mutex[IO],
   deferred:                   Deferred[IO, Either[Throwable, Unit]],
   errorThreshold:             Int,
   uploadSyncPeriod:           Int,
@@ -170,13 +171,15 @@ class HttpWriterManager(
   }
 
   def getWriter(topic: Topic): IO[HttpWriter] =
-    writers.get(topic) match {
-      case Some(writer) => IO.pure(writer)
-      case None =>
-        for {
-          newWriter <- createNewHttpWriter()
-          _          = writers.put(topic, newWriter)
-        } yield newWriter
+    writersLock.lock.surround {
+      writers.get(topic) match {
+        case Some(writer) => IO.pure(writer)
+        case None =>
+          for {
+            newWriter <- createNewHttpWriter()
+            _          = writers.put(topic, newWriter)
+          } yield newWriter
+      }
     }
 
   // answers the question: what have you committed?
@@ -188,14 +191,15 @@ class HttpWriterManager(
         case (TopicPartition(topic, _), _) => topic
       })
 
-    for {
-      curr <- currentOffsetsGroupedIO
-
-      res <- writers.toList.traverse {
-        case (topic, writer) =>
-          writer.preCommit(curr(topic))
-      }.map(_.flatten.toMap)
-    } yield res
+    writersLock.lock.surround {
+      for {
+        curr <- currentOffsetsGroupedIO
+        res <- writers.toList.traverse {
+          case (topic, writer) =>
+            writer.preCommit(curr(topic))
+        }.map(_.flatten.toMap)
+      } yield res
+    }
   }
 
   def start(errCallback: Throwable => IO[Unit]): IO[Unit] = {
@@ -232,32 +236,30 @@ class HttpWriterManager(
       }
     } yield ()
 
-  def process(): IO[List[Either[Throwable, Unit]]] = {
-    logger.trace(s"[$sinkName] WriterManager.process()")
-    if (writers.isEmpty) {
-      logger.info(s"[$sinkName] HttpWriterManager has no writers.  Perhaps no records have been put to the sink yet.")
-    }
-
-    // Create an IO action for each writer to process it in parallel
-    val fiberIOs: List[IO[FiberIO[_]]] = writers.map {
-      case (id, writer) =>
-        logger.trace(s"[$sinkName] starting process for writer $id")
-        writer.process().start
-    }.toList
-
-    // Return a list of Fibers
-    fiberIOs.traverse { e =>
-      val f = e.flatMap(_.join.attempt).flatMap {
-        case Left(value: Throwable) => IO.pure(Left(value))
-        case Right(value: Outcome[IO, Throwable, _]) => value match {
-            case Outcome.Succeeded(_)   => IO.pure(Right(()))
-            case Outcome.Errored(error) => IO.pure(Left(error))
-            case Outcome.Canceled()     => IO.raiseError(new RuntimeException("IO canceled"))
+  private def process(): IO[List[Either[Throwable, Unit]]] =
+    for {
+      _ <- IO.delay(logger.trace(s"[$sinkName] WriterManager.process()"))
+      fiberIOs <- writersLock.lock.surround {
+        for {
+          _ <- IO.whenA(writers.isEmpty) {
+            IO.delay(logger.info(
+              s"[$sinkName] HttpWriterManager has no writers. Perhaps no records have been put to the sink yet.",
+            ))
           }
+          fiberIOs = writers.toList.map {
+            case (id, writer) =>
+              IO.delay(logger.trace(s"[$sinkName] starting process for writer $id")) *> writer.process().attempt.start
+          }
+        } yield fiberIOs
       }
-      f
-
-    }
-  }
+      fibers <- fiberIOs.sequence
+      results <- fibers.traverse { fiber =>
+        fiber.join.flatMap {
+          case Outcome.Succeeded(io) => io
+          case Outcome.Errored(e)    => IO.pure(Left(e))
+          case Outcome.Canceled()    => IO.raiseError(new RuntimeException("IO canceled"))
+        }
+      }
+    } yield results
 
 }
