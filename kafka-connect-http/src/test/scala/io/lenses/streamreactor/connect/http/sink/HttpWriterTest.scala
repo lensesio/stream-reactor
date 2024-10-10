@@ -18,7 +18,7 @@ package io.lenses.streamreactor.connect.http.sink
 import cats.data.NonEmptySeq
 import cats.effect.IO
 import cats.effect.Ref
-import cats.effect.std.Semaphore
+import cats.effect.std.Mutex
 import cats.effect.testing.scalatest.AsyncIOSpec
 import cats.implicits.catsSyntaxEitherId
 import cats.implicits.catsSyntaxOptionId
@@ -64,7 +64,7 @@ class HttpWriterTest extends AsyncIOSpec with AsyncFunSuiteLike with Matchers wi
     {
       for {
         commitContextRef <- Ref.of[IO, HttpCommitContext](HttpCommitContext.default("My Sink"))
-        queueLock        <- Semaphore[IO](1)
+        queueLock        <- Mutex[IO]
         httpWriter = new HttpWriter(sinkName,
                                     senderMock,
                                     templateMock,
@@ -105,7 +105,7 @@ class HttpWriterTest extends AsyncIOSpec with AsyncFunSuiteLike with Matchers wi
 
       for {
         commitContextRef <- Ref.of[IO, HttpCommitContext](defaultContext)
-        queueLock        <- Semaphore[IO](1)
+        queueLock        <- Mutex[IO]
         httpWriter = new HttpWriter(sinkName,
                                     senderMock,
                                     templateMock,
@@ -143,7 +143,7 @@ class HttpWriterTest extends AsyncIOSpec with AsyncFunSuiteLike with Matchers wi
     {
       for {
         commitContextRef <- Ref.of[IO, HttpCommitContext](defaultContext)
-        queueLock        <- Semaphore[IO](1)
+        queueLock        <- Mutex[IO]
 
         httpWriter = new HttpWriter(sinkName,
                                     senderMock,

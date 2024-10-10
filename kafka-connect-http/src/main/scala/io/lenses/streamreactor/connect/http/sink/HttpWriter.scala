@@ -17,7 +17,7 @@ package io.lenses.streamreactor.connect.http.sink
 
 import cats.effect.IO
 import cats.effect.Ref
-import cats.effect.std.Semaphore
+import cats.effect.std.Mutex
 import cats.effect.unsafe.implicits.global
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.common.utils.CyclopsToScalaOption.convertToCyclopsOption
@@ -47,14 +47,14 @@ class HttpWriter(
   tidyJson:         Boolean,
   errorReporter:    ReportingController[HttpFailureConnectorSpecificRecordData],
   successReporter:  ReportingController[HttpSuccessConnectorSpecificRecordData],
-  queueLock:        Semaphore[IO],
+  queueLock:        Mutex[IO],
 ) extends LazyLogging {
 
   // TODO: feedback to kafka a warning if the queue gets too large
 
   // adds records to the queue.  Returns immediately - processing occurs asynchronously.
   def add(newRecords: Seq[RenderedRecord]): IO[Unit] =
-    queueLock.permit.use { _ =>
+    queueLock.lock.surround {
       IO(recordsQueue.enqueueAll(newRecords))
     }
 
@@ -62,7 +62,7 @@ class HttpWriter(
 
   // called on a loop to process the queue
   def process(): IO[Unit] =
-    queueLock.permit.use { _ =>
+    queueLock.lock.surround {
       for {
         batchInfo <- IO(recordsQueue.takeBatch())
         nonEmptyBatchInfo <- batchInfo match {

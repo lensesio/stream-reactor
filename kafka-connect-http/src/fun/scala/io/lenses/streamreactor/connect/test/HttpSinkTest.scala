@@ -27,6 +27,7 @@ import org.scalatest.time.Seconds
 import org.scalatest.time.Span
 
 import java.util.UUID
+import java.util.concurrent.TimeUnit
 import scala.concurrent.Future
 import scala.jdk.CollectionConverters.ListHasAsScala
 
@@ -274,7 +275,7 @@ class HttpSinkTest
   private def sendRecord[K, V](topic: String, producer: KafkaProducer[K, V], record: V): IO[Unit] =
     for {
       producerRecord <- IO.pure(new ProducerRecord[K, V](topic, record))
-      scalaFuture     = IO(Future(producer.send(producerRecord).get))
+      scalaFuture     = IO(Future(producer.send(producerRecord).get(10, TimeUnit.SECONDS)))
       _              <- IO.fromFuture(scalaFuture)
       _              <- IO(producer.flush())
     } yield ()

@@ -66,7 +66,7 @@ class RecordsQueueTest extends AnyFunSuiteLike with MockitoSugar with Matchers {
     batchInfo match {
       case EmptyBatchInfo(totalQueueSize) =>
         totalQueueSize shouldBe 0
-      case NonEmptyBatchInfo(batch, updatedCommitContext, totalQueueSize) => fail("Should be an empty BatchInfo")
+      case NonEmptyBatchInfo(_, _, _) => fail("Should be an empty BatchInfo")
     }
 
   }

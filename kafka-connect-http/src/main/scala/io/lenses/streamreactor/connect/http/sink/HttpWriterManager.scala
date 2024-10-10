@@ -22,7 +22,7 @@ import cats.effect.Resource
 import cats.effect.kernel.Deferred
 import cats.effect.kernel.Outcome
 import cats.effect.kernel.Temporal
-import cats.effect.std.Semaphore
+import cats.effect.std.Mutex
 import cats.effect.unsafe.implicits.global
 import cats.implicits.toTraverseOps
 import com.typesafe.scalalogging.LazyLogging
@@ -145,7 +145,7 @@ class HttpWriterManager(
   private def createNewHttpWriter(): IO[HttpWriter] =
     for {
       commitPolicy     <- IO.pure(commitPolicy)
-      semaphore        <- Semaphore(1)
+      semaphore        <- Mutex[IO]
       commitContextRef <- Ref.of[IO, HttpCommitContext](HttpCommitContext.default(sinkName))
     } yield new HttpWriter(
       sinkName = sinkName,
