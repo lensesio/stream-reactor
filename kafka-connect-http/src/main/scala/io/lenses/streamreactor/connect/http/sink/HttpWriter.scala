@@ -58,31 +58,26 @@ class HttpWriter(
       IO(recordsQueue.enqueueAll(newRecords))
     }
 
-  private case class NoBatchYetError(queueSize: Int) extends Exception
-
-  // called on a loop to process the queue
   def process(): IO[Unit] =
     queueLock.lock.surround {
       for {
         batchInfo <- IO(recordsQueue.takeBatch())
-        nonEmptyBatchInfo <- batchInfo match {
-          case EmptyBatchInfo(totalQueueSize) => IO.raiseError(NoBatchYetError(totalQueueSize))
-          case nonEmptyBatchInfo @ NonEmptyBatchInfo(batch, _, totalQueueSize) => IO(
-              logger.debug(
-                s"[$sinkName] HttpWriter.process, batch of ${batch.length}, queue size: $totalQueueSize",
-              ),
-            )
-              .map(_ => nonEmptyBatchInfo)
+        _ <- batchInfo match {
+          case EmptyBatchInfo(totalQueueSize) =>
+            IO(logger.debug(s"[$sinkName] No batch yet, queue size: $totalQueueSize"))
+          case nonEmptyBatchInfo @ NonEmptyBatchInfo(batch, _, totalQueueSize) =>
+            for {
+              _ <- IO(
+                logger.debug(s"[$sinkName] HttpWriter.process, batch of ${batch.length}, queue size: $totalQueueSize"),
+              )
+              _               <- modifyCommitContext(nonEmptyBatchInfo)
+              removedElements <- IO(recordsQueue.dequeue(batch))
+              _               <- resetErrorsInCommitContext()
+            } yield removedElements
         }
-        _               <- modifyCommitContext(nonEmptyBatchInfo)
-        removedElements <- IO(recordsQueue.dequeue(nonEmptyBatchInfo.batch))
-        _               <- resetErrorsInCommitContext()
-
-      } yield removedElements
-
+      } yield ()
     }.handleErrorWith {
-      case _: NoBatchYetError => IO.unit
-      case e =>
+      e =>
         for {
           uniqueError: Option[Throwable] <- addErrorToCommitContext(e)
           _ <- if (uniqueError.nonEmpty) {
@@ -90,8 +85,8 @@ class HttpWriter(
           } else {
             IO(logger.error("Error in HttpWriter but not reached threshold so ignoring", e)) *> IO.unit
           }
-        } yield IO.unit
-    } *> IO.unit
+        } yield ()
+    }
 
   def preCommit(
     initialOffsetAndMetaMap: Map[TopicPartition, OffsetAndMetadata],
