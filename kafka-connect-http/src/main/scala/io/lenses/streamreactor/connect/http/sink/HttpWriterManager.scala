@@ -85,7 +85,7 @@ object HttpWriterManager extends StrictLogging {
     )
 
     val clientResource: Resource[IO, Client[IO]] = JdkHttpClient[IO](httpClient)
-    val httpWritersMap = mutable.Map[Topic, HttpWriter]()
+    val writersMap = mutable.Map[Topic, HttpWriter]()
 
     for {
       (client, cResRel) <- clientResource.allocated
@@ -104,7 +104,7 @@ object HttpWriterManager extends StrictLogging {
       sender,
       if (commitPolicy.conditions.nonEmpty) commitPolicy else HttpCommitPolicy.Default,
       cResRel,
-      httpWritersMap,
+      writersMap,
       writersLock,
       terminate,
       config.errorThreshold,
@@ -131,7 +131,7 @@ class HttpWriterManager(
   httpRequestSender:          HttpRequestSender,
   commitPolicy:               CommitPolicy,
   val close:                  IO[Unit],
-  writers:                    mutable.Map[Topic, HttpWriter],
+  writersMap:                 mutable.Map[Topic, HttpWriter],
   writersLock:                Mutex[IO],
   deferred:                   Deferred[IO, Either[Throwable, Unit]],
   errorThreshold:             Int,
@@ -146,23 +146,19 @@ class HttpWriterManager(
   private def createNewHttpWriter(): IO[HttpWriter] =
     for {
       commitPolicy     <- IO.pure(commitPolicy)
-      semaphore        <- Mutex[IO]
+      recordsQueueLock <- Mutex[IO]
       commitContextRef <- Ref.of[IO, HttpCommitContext](HttpCommitContext.default(sinkName))
     } yield new HttpWriter(
       sinkName = sinkName,
       sender   = httpRequestSender,
       template = template,
-      recordsQueue = new RecordsQueue(
-        mutable.Queue[RenderedRecord](),
-        commitPolicy,
-        () => commitContextRef.get.unsafeRunSync(),
-      ),
-      commitContextRef = commitContextRef,
+      recordsQueue =
+        new RecordsQueue(mutable.Queue[RenderedRecord](), recordsQueueLock, commitContextRef, commitPolicy),
       errorThreshold   = errorThreshold,
       tidyJson         = tidyJson,
       errorReporter    = errorReportingController,
       successReporter  = successReportingController,
-      semaphore,
+      commitContextRef = commitContextRef,
     )
 
   def closeReportingControllers(): Unit = {
@@ -172,13 +168,9 @@ class HttpWriterManager(
 
   def getWriter(topic: Topic): IO[HttpWriter] =
     writersLock.lock.surround {
-      writers.get(topic) match {
-        case Some(writer) => IO.pure(writer)
-        case None =>
-          for {
-            newWriter <- createNewHttpWriter()
-            _          = writers.put(topic, newWriter)
-          } yield newWriter
+      IO {
+        writersMap
+          .getOrElseUpdate(topic, createNewHttpWriter().unsafeRunSync())
       }
     }
 
@@ -194,7 +186,7 @@ class HttpWriterManager(
     writersLock.lock.surround {
       for {
         curr <- currentOffsetsGroupedIO
-        res <- writers.toList.traverse {
+        res <- writersMap.toList.traverse {
           case (topic, writer) =>
             writer.preCommit(curr(topic))
         }.map(_.flatten.toMap)
@@ -241,12 +233,12 @@ class HttpWriterManager(
       _ <- IO.delay(logger.trace(s"[$sinkName] WriterManager.process()"))
       fiberIOs <- writersLock.lock.surround {
         for {
-          _ <- IO.whenA(writers.isEmpty) {
+          _ <- IO.whenA(writersMap.isEmpty) {
             IO.delay(logger.info(
               s"[$sinkName] HttpWriterManager has no writers. Perhaps no records have been put to the sink yet.",
             ))
           }
-          fiberIOs = writers.toList.map {
+          fiberIOs = writersMap.toList.map {
             case (id, writer) =>
               IO.delay(logger.trace(s"[$sinkName] starting process for writer $id")) *> writer.process().attempt.start
           }
@@ -257,9 +249,8 @@ class HttpWriterManager(
         fiber.join.flatMap {
           case Outcome.Succeeded(io) => io
           case Outcome.Errored(e)    => IO.pure(Left(e))
-          case Outcome.Canceled()    => IO.raiseError(new RuntimeException("IO canceled"))
+          case Outcome.Canceled()    => IO.pure(Left(new RuntimeException("IO canceled")))
         }
       }
     } yield results
-
 }

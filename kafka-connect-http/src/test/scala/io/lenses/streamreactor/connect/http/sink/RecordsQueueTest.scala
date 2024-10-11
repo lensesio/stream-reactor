@@ -16,6 +16,10 @@
 package io.lenses.streamreactor.connect.http.sink
 
 import cats.data.NonEmptySeq
+import cats.effect.IO
+import cats.effect.kernel.Ref
+import cats.effect.std.Mutex
+import cats.effect.testing.scalatest.AsyncIOSpec
 import io.lenses.streamreactor.connect.cloud.common.model.Topic
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.CommitPolicy
@@ -23,12 +27,12 @@ import io.lenses.streamreactor.connect.http.sink.commit.HttpCommitContext
 import io.lenses.streamreactor.connect.http.sink.tpl.RenderedRecord
 import org.mockito.ArgumentMatchers.any
 import org.mockito.MockitoSugar
-import org.scalatest.funsuite.AnyFunSuiteLike
+import org.scalatest.funsuite.AsyncFunSuiteLike
 import org.scalatest.matchers.should.Matchers
 
 import scala.collection.mutable
 
-class RecordsQueueTest extends AnyFunSuiteLike with MockitoSugar with Matchers {
+class RecordsQueueTest extends AsyncFunSuiteLike with AsyncIOSpec with MockitoSugar with Matchers {
 
   private val timestamp = 125L
 
@@ -40,46 +44,81 @@ class RecordsQueueTest extends AnyFunSuiteLike with MockitoSugar with Matchers {
   private val record2 = RenderedRecord(topicPartition.atOffset(101), timestamp, "record2", Seq.empty, None)
 
   test("enqueueAll should add all records to the queue") {
-    val recordsQueue = new RecordsQueue(mutable.Queue.empty[RenderedRecord], mock[CommitPolicy], () => defaultContext)
-    val records      = Seq(record1, record2)
-    recordsQueue.enqueueAll(records)
-    recordsQueue.recordsQueue should contain theSameElementsInOrderAs records
+    val records = Seq(record1, record2)
+
+    {
+      for {
+        commitContext <- Ref[IO].of(defaultContext)
+        mutex         <- Mutex[IO]
+        recordsQueue   = new RecordsQueue(mutable.Queue.empty[RenderedRecord], mutex, commitContext, mock[CommitPolicy])
+        _             <- recordsQueue.enqueueAll(records)
+      } yield recordsQueue
+    } asserting {
+      recordsQueue =>
+        recordsQueue.recordsQueue should contain theSameElementsInOrderAs records
+    }
   }
 
   test("takeBatch should not return a batch of records when commit policy does not require flush") {
     val commitPolicy = mock[CommitPolicy]
     when(commitPolicy.shouldFlush(any[HttpCommitContext])).thenReturn(false)
-    val recordsQueue = new RecordsQueue(mutable.Queue(record1, record2), commitPolicy, () => defaultContext)
-    val batchInfo    = recordsQueue.takeBatch()
-    batchInfo match {
+
+    {
+      for {
+        commitContext <- Ref[IO].of(defaultContext)
+        mutex         <- Mutex[IO]
+        recordsQueue   = new RecordsQueue(mutable.Queue(record1, record2), mutex, commitContext, commitPolicy)
+        batchInfo     <- recordsQueue.takeBatch()
+      } yield batchInfo
+    } asserting {
       case EmptyBatchInfo(totalQueueSize) => totalQueueSize shouldBe 2
-      case NonEmptyBatchInfo(_, _, _) =>
-        fail("Should not be an empty batch info")
-
+      case NonEmptyBatchInfo(_, _, _)     => fail("Should be an empty batch info")
     }
-
   }
 
   test("takeBatch should return an empty batch when the queue is empty") {
-    val recordsQueue = new RecordsQueue(mutable.Queue.empty[RenderedRecord], mock[CommitPolicy], () => defaultContext)
-    val batchInfo    = recordsQueue.takeBatch()
-    batchInfo match {
-      case EmptyBatchInfo(totalQueueSize) =>
-        totalQueueSize shouldBe 0
-      case NonEmptyBatchInfo(_, _, _) => fail("Should be an empty BatchInfo")
+    {
+      for {
+        commitContext <- Ref[IO].of(defaultContext)
+        mutex         <- Mutex[IO]
+        recordsQueue   = new RecordsQueue(mutable.Queue.empty[RenderedRecord], mutex, commitContext, mock[CommitPolicy])
+        batchInfo     <- recordsQueue.takeBatch()
+      } yield batchInfo
+    } asserting {
+      case EmptyBatchInfo(totalQueueSize) => totalQueueSize shouldBe 0
+      case NonEmptyBatchInfo(_, _, _)     => fail("Should be an empty BatchInfo")
     }
-
   }
 
   test("dequeue should remove the specified records from the queue") {
-    val recordsQueue = new RecordsQueue(mutable.Queue(record1, record2), mock[CommitPolicy], () => defaultContext)
-    recordsQueue.dequeue(NonEmptySeq.of(record1))
-    recordsQueue.recordsQueue should contain theSameElementsInOrderAs Seq(record2)
+    val records = NonEmptySeq.of(record1)
+
+    {
+      for {
+        commitContext <- Ref[IO].of(defaultContext)
+        mutex         <- Mutex[IO]
+        recordsQueue   = new RecordsQueue(mutable.Queue(record1, record2), mutex, commitContext, mock[CommitPolicy])
+        _             <- recordsQueue.dequeue(records)
+      } yield recordsQueue
+    } asserting {
+      recordsQueue =>
+        recordsQueue.recordsQueue should contain theSameElementsInOrderAs Seq(record2)
+    }
   }
 
   test("dequeue should do nothing if the specified records are not in the queue") {
-    val recordsQueue = new RecordsQueue(mutable.Queue(record1), mock[CommitPolicy], () => defaultContext)
-    recordsQueue.dequeue(NonEmptySeq.of(record2))
-    recordsQueue.recordsQueue should contain theSameElementsInOrderAs Seq(record1)
+    val records = NonEmptySeq.of(record2)
+
+    {
+      for {
+        commitContext <- Ref[IO].of(defaultContext)
+        mutex         <- Mutex[IO]
+        recordsQueue   = new RecordsQueue(mutable.Queue(record1), mutex, commitContext, mock[CommitPolicy])
+        _             <- recordsQueue.dequeue(records)
+      } yield recordsQueue
+    } asserting {
+      recordsQueue =>
+        recordsQueue.recordsQueue should contain theSameElementsInOrderAs Seq(record1)
+    }
   }
 }

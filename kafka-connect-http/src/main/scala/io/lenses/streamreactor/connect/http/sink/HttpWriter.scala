@@ -15,10 +15,9 @@
  */
 package io.lenses.streamreactor.connect.http.sink
 
+import cats.data.NonEmptySeq
 import cats.effect.IO
 import cats.effect.Ref
-import cats.effect.std.Mutex
-import cats.effect.unsafe.implicits.global
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.common.utils.CyclopsToScalaOption.convertToCyclopsOption
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
@@ -42,51 +41,58 @@ class HttpWriter(
   sender:           HttpRequestSender,
   template:         TemplateType,
   recordsQueue:     RecordsQueue,
-  commitContextRef: Ref[IO, HttpCommitContext],
   errorThreshold:   Int,
   tidyJson:         Boolean,
   errorReporter:    ReportingController[HttpFailureConnectorSpecificRecordData],
   successReporter:  ReportingController[HttpSuccessConnectorSpecificRecordData],
-  queueLock:        Mutex[IO],
+  commitContextRef: Ref[IO, HttpCommitContext],
 ) extends LazyLogging {
 
   // TODO: feedback to kafka a warning if the queue gets too large
 
   // adds records to the queue.  Returns immediately - processing occurs asynchronously.
   def add(newRecords: Seq[RenderedRecord]): IO[Unit] =
-    queueLock.lock.surround {
-      IO(recordsQueue.enqueueAll(newRecords))
-    }
+    recordsQueue.enqueueAll(newRecords)
 
-  def process(): IO[Unit] =
-    queueLock.lock.surround {
+  def process(): IO[Unit] = {
+    for {
+      batchInfo <- recordsQueue.takeBatch()
+      _ <- batchInfo match {
+        case EmptyBatchInfo(totalQueueSize) =>
+          IO(logger.debug(s"[$sinkName] No batch yet, queue size: $totalQueueSize"))
+        case nonEmptyBatchInfo @ NonEmptyBatchInfo(batch, _, totalQueueSize) =>
+          processBatch(nonEmptyBatchInfo, batch, totalQueueSize)
+      }
+    } yield ()
+  }.handleErrorWith {
+    e =>
       for {
-        batchInfo <- IO(recordsQueue.takeBatch())
-        _ <- batchInfo match {
-          case EmptyBatchInfo(totalQueueSize) =>
-            IO(logger.debug(s"[$sinkName] No batch yet, queue size: $totalQueueSize"))
-          case nonEmptyBatchInfo @ NonEmptyBatchInfo(batch, _, totalQueueSize) =>
-            for {
-              _ <- IO(
-                logger.debug(s"[$sinkName] HttpWriter.process, batch of ${batch.length}, queue size: $totalQueueSize"),
-              )
-              _               <- modifyCommitContext(nonEmptyBatchInfo)
-              removedElements <- IO(recordsQueue.dequeue(batch))
-              _               <- resetErrorsInCommitContext()
-            } yield removedElements
+        uniqueError: Option[Throwable] <- addErrorToCommitContext(e)
+        _ <- if (uniqueError.nonEmpty) {
+          IO(logger.error("Error in HttpWriter", e)) *> IO.raiseError(e)
+        } else {
+          IO(logger.error("Error in HttpWriter but not reached threshold so ignoring", e)) *> IO.unit
         }
       } yield ()
-    }.handleErrorWith {
-      e =>
-        for {
-          uniqueError: Option[Throwable] <- addErrorToCommitContext(e)
-          _ <- if (uniqueError.nonEmpty) {
-            IO(logger.error("Error in HttpWriter", e)) *> IO.raiseError(e)
-          } else {
-            IO(logger.error("Error in HttpWriter but not reached threshold so ignoring", e)) *> IO.unit
-          }
-        } yield ()
-    }
+  }
+
+  private def processBatch(
+    nonEmptyBatchInfo: NonEmptyBatchInfo,
+    batch:             NonEmptySeq[RenderedRecord],
+    totalQueueSize:    Int,
+  ) =
+    for {
+      _ <- IO(
+        logger.debug(s"[$sinkName] HttpWriter.process, batch of ${batch.length}, queue size: $totalQueueSize"),
+      )
+      _                   <- IO.delay(logger.trace(s"[$sinkName] modifyCommitContext for batch of ${nonEmptyBatchInfo.batch.length}"))
+      _                   <- flush(nonEmptyBatchInfo.batch.toSeq)
+      updatedCommitContext = updateCommitContextPostCommit(nonEmptyBatchInfo.updatedCommitContext)
+      _                   <- IO.delay(logger.trace(s"[$sinkName] Updating sink context to: $updatedCommitContext"))
+      _                   <- commitContextRef.set(updatedCommitContext)
+      removedElements     <- recordsQueue.dequeue(batch)
+      _                   <- resetErrorsInCommitContext()
+    } yield removedElements
 
   def preCommit(
     initialOffsetAndMetaMap: Map[TopicPartition, OffsetAndMetadata],
@@ -106,48 +112,35 @@ class HttpWriter(
       case _ => initialOffsetAndMetaMap
     }.orElse(IO(Map.empty[TopicPartition, OffsetAndMetadata]))
 
-  private def addErrorToCommitContext(e: Throwable): IO[Option[Throwable]] = {
-    val updatedCC = commitContextRef.getAndUpdate {
+  private def addErrorToCommitContext(e: Throwable): IO[Option[Throwable]] =
+    commitContextRef.getAndUpdate {
       commitContext => commitContext.addError(e)
-    }
-    val maxError = updatedCC.map(cc =>
+    }.map(cc =>
       cc
         .errors
         .maxByOption { case (_, errSeq) => errSeq.size }
         .filter { case (_, errSeq) => errSeq.size > errorThreshold }
-        .flatMap(_._2.headOption),
+        .flatMap {
+          case (_, errSeq) => errSeq.headOption
+        },
     )
-    maxError
-  }
 
   private def resetErrorsInCommitContext(): IO[Unit] =
     commitContextRef.getAndUpdate {
       commitContext => commitContext.resetErrors
     } *> IO.unit
 
-  private def modifyCommitContext(batch: NonEmptyBatchInfo): IO[Unit] = {
-    logger.trace(s"[$sinkName] modifyCommitContext for batch of ${batch.batch.length}")
-
-    commitContextRef.modify {
-      cc: HttpCommitContext =>
-        (for {
-          _ <- IO.delay(logger.trace(s"[$sinkName] Updating sink context to: ${batch.updatedCommitContext}"))
-          _ <- flush(batch.batch.toSeq)
-        } yield updateCommitContextPostCommit(currentCommitContext = batch.updatedCommitContext))
-          .map((_, ())).unsafeRunSync()
-    }
-  }
-
   private def flush(records: Seq[RenderedRecord]): IO[ProcessedTemplate] =
     for {
-      processed <- IO.fromEither(template.process(records, tidyJson))
-      _         <- reportResult(records, processed, sender.sendHttpRequest(processed))
+      processed  <- IO.fromEither(template.process(records, tidyJson))
+      httpResult <- sender.sendHttpRequest(processed)
+      _          <- reportResult(records, processed, httpResult)
     } yield processed
 
   private def reportResult(
     renderedRecords:   Seq[RenderedRecord],
     processedTemplate: ProcessedTemplate,
-    responseIo:        IO[Either[HttpResponseFailure, HttpResponseSuccess]],
+    responseIo:        Either[HttpResponseFailure, HttpResponseSuccess],
   ): IO[Unit] = {
     val maxRecord = OffsetMergeUtils.maxRecord(renderedRecords)
 
@@ -161,7 +154,7 @@ class HttpWriter(
         connectorSpecific,
       )
 
-    responseIo.flatMap {
+    responseIo match {
       case Left(error) => IO(
           errorReporter.enqueue(
             reportRecord[HttpFailureConnectorSpecificRecordData](

@@ -18,7 +18,6 @@ package io.lenses.streamreactor.connect.http.sink
 import cats.data.NonEmptySeq
 import cats.effect.IO
 import cats.effect.Ref
-import cats.effect.std.Mutex
 import cats.effect.testing.scalatest.AsyncIOSpec
 import cats.implicits.catsSyntaxEitherId
 import cats.implicits.catsSyntaxOptionId
@@ -64,17 +63,15 @@ class HttpWriterTest extends AsyncIOSpec with AsyncFunSuiteLike with Matchers wi
     {
       for {
         commitContextRef <- Ref.of[IO, HttpCommitContext](HttpCommitContext.default("My Sink"))
-        queueLock        <- Mutex[IO]
         httpWriter = new HttpWriter(sinkName,
                                     senderMock,
                                     templateMock,
                                     recordsQueue,
-                                    commitContextRef,
                                     5,
                                     false,
                                     mock[ReportingController[HttpFailureConnectorSpecificRecordData]],
                                     mock[ReportingController[HttpSuccessConnectorSpecificRecordData]],
-                                    queueLock,
+                                    commitContextRef,
         )
 
         _ <- httpWriter.add(recordsToAdd)
@@ -105,17 +102,15 @@ class HttpWriterTest extends AsyncIOSpec with AsyncFunSuiteLike with Matchers wi
 
       for {
         commitContextRef <- Ref.of[IO, HttpCommitContext](defaultContext)
-        queueLock        <- Mutex[IO]
         httpWriter = new HttpWriter(sinkName,
                                     senderMock,
                                     templateMock,
                                     recordsQueue,
-                                    commitContextRef,
                                     5,
                                     false,
                                     mock[ReportingController[HttpFailureConnectorSpecificRecordData]],
                                     mock[ReportingController[HttpSuccessConnectorSpecificRecordData]],
-                                    queueLock,
+                                    commitContextRef,
         )
 
         _              <- httpWriter.process()
@@ -143,18 +138,15 @@ class HttpWriterTest extends AsyncIOSpec with AsyncFunSuiteLike with Matchers wi
     {
       for {
         commitContextRef <- Ref.of[IO, HttpCommitContext](defaultContext)
-        queueLock        <- Mutex[IO]
-
         httpWriter = new HttpWriter(sinkName,
                                     senderMock,
                                     templateMock,
                                     recordsQueue,
-                                    commitContextRef,
                                     5,
                                     false,
                                     mock[ReportingController[HttpFailureConnectorSpecificRecordData]],
                                     mock[ReportingController[HttpSuccessConnectorSpecificRecordData]],
-                                    queueLock,
+                                    commitContextRef,
         )
 
         _              <- httpWriter.process()
@@ -170,7 +162,8 @@ class HttpWriterTest extends AsyncIOSpec with AsyncFunSuiteLike with Matchers wi
 
   private def mockRecordQueue(batchInfo: BatchInfo) = {
     val recordsQueue = mock[RecordsQueue]
-    when(recordsQueue.takeBatch()).thenReturn(batchInfo)
+    when(recordsQueue.takeBatch()).thenReturn(IO(batchInfo))
+    when(recordsQueue.enqueueAll(any[Seq[RenderedRecord]])).thenReturn(IO.unit)
     recordsQueue
   }
 }
