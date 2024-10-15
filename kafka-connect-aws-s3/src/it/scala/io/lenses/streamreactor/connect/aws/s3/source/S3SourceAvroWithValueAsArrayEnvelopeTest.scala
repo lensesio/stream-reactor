@@ -121,8 +121,9 @@ class S3SourceAvroWithValueAsArrayEnvelopeTest
       val value: Array[Byte] = sourceRecord.value().asInstanceOf[Array[Byte]]
       value should be(Array[Byte](1, 2, 3, 4, 5, 6, 7, 8, 9))
 
-      sourceRecord.headers().asScala.map(h => h.key() -> h.value()).toMap[String, Any] should be(Map[String, Any]("header1" -> "value1",
-                                                                                        "header2" -> 123456789L,
+      sourceRecord.headers().asScala.map(h => h.key() -> h.value()).toMap[String, Any] should be(Map[String, Any](
+        "header1" -> "value1",
+        "header2" -> 123456789L,
       ))
 
       sourceRecord.sourcePartition().asScala shouldBe Map("container" -> BucketName, "prefix" -> s"$MyPrefix/avro/")

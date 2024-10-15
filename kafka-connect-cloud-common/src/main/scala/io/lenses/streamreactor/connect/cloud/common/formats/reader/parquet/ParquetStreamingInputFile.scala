@@ -27,7 +27,7 @@ class ParquetStreamingInputFile(fileSize: Long, newStreamF: () => SeekableInputS
 
   override def newStream(): SeekableInputStream = {
     val stream = newStreamF()
-    logger.debug(s"Creating new stream for file $stream")
+    logger.info(s"Creating new stream for file $stream")
     stream
   }
 

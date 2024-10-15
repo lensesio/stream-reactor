@@ -59,7 +59,7 @@ case class ReaderBuilderContext(
 )
 
 sealed trait FormatSelection {
-  def toStreamReader(input: ReaderBuilderContext): CloudStreamReader
+  def toStreamReader(input: ReaderBuilderContext): Either[Throwable, CloudStreamReader]
 
   def availableCompressionCodecs: Map[CompressionCodecName, Boolean] = Map(UNCOMPRESSED -> false)
 
@@ -118,7 +118,7 @@ case object JsonFormatSelection extends FormatSelection {
 
   override def toStreamReader(
     input: ReaderBuilderContext,
-  ): CloudStreamReader = {
+  ): Either[Throwable, CloudStreamReader] = {
     val inner = new TextStreamReader(input.stream)
     val converter = if (input.hasEnvelope) {
       new SchemalessEnvelopeConverter(input.watermarkPartition,
@@ -132,7 +132,7 @@ case object JsonFormatSelection extends FormatSelection {
       converters.TextConverter(input)
     }
 
-    new DelegateIteratorCloudStreamReader[String](inner, converter, input.bucketAndPath)
+    new DelegateIteratorCloudStreamReader[String](inner, converter, input.bucketAndPath).asRight
   }
 
   override def extension: String = "json"
@@ -152,7 +152,7 @@ case object AvroFormatSelection extends FormatSelection {
 
   override def toStreamReader(
     input: ReaderBuilderContext,
-  ): CloudStreamReader = {
+  ): Either[Throwable, CloudStreamReader] = {
 
     val inner = new AvroStreamReader(input.stream)
     val converter = if (input.hasEnvelope) {
@@ -170,7 +170,7 @@ case object AvroFormatSelection extends FormatSelection {
                                   input.metadata.lastModified,
       )
     }
-    new DelegateIteratorCloudStreamReader(inner, converter, input.bucketAndPath)
+    new DelegateIteratorCloudStreamReader(inner, converter, input.bucketAndPath).asRight
 
   }
 
@@ -192,8 +192,8 @@ case object ParquetFormatSelection extends FormatSelection {
 
   override def toStreamReader(
     input: ReaderBuilderContext,
-  ): CloudStreamReader = {
-    val inner = ParquetStreamReader.apply(input.stream, input.metadata.size, input.recreateInputStreamF)
+  ): Either[Throwable, CloudStreamReader] = {
+    val inner = ParquetStreamReader(input.metadata.size, input.recreateInputStreamF)
     val converter = if (input.hasEnvelope) {
       new SchemaAndValueEnvelopeConverter(input.watermarkPartition,
                                           input.targetTopic,
@@ -209,7 +209,9 @@ case object ParquetFormatSelection extends FormatSelection {
                                   input.metadata.lastModified,
       )
     }
-    new DelegateIteratorCloudStreamReader(inner, converter, input.bucketAndPath)
+    inner.map {
+      is => new DelegateIteratorCloudStreamReader(is, converter, input.bucketAndPath)
+    }
   }
 
   override def extension: String = "parquet"
@@ -219,7 +221,7 @@ case object ParquetFormatSelection extends FormatSelection {
 case class TextFormatSelection(readTextMode: Option[ReadTextMode]) extends FormatSelection {
   override def toStreamReader(
     input: ReaderBuilderContext,
-  ): CloudStreamReader = {
+  ): Either[Throwable, CloudStreamReader] = {
     val inner = TextStreamReader(
       readTextMode,
       input.stream,
@@ -229,7 +231,7 @@ case class TextFormatSelection(readTextMode: Option[ReadTextMode]) extends Forma
       inner,
       converter,
       input.bucketAndPath,
-    )
+    ).asRight
   }
 
   override def extension: String = "text"
@@ -239,14 +241,14 @@ case class TextFormatSelection(readTextMode: Option[ReadTextMode]) extends Forma
 case class CsvFormatSelection(formatOptions: Set[FormatOptions]) extends FormatSelection {
   override def toStreamReader(
     input: ReaderBuilderContext,
-  ): CloudStreamReader = {
+  ): Either[Throwable, CloudStreamReader] = {
     val inner     = new CsvStreamReader(input.stream, hasHeaders = formatOptions.contains(WithHeaders))
     val converter = converters.TextConverter(input)
     new DelegateIteratorCloudStreamReader(
       inner,
       converter,
       input.bucketAndPath,
-    )
+    ).asRight
   }
 
   override def extension: String = "csv"
@@ -256,7 +258,7 @@ case class CsvFormatSelection(formatOptions: Set[FormatOptions]) extends FormatS
 object BytesFormatSelection extends FormatSelection {
   override def toStreamReader(
     input: ReaderBuilderContext,
-  ): CloudStreamReader = {
+  ): Either[Throwable, CloudStreamReader] = {
 
     val inner = new BytesStreamFileReader(input.stream, input.metadata.size)
     val converter = new BytesOutputRowConverter(input.watermarkPartition,
@@ -269,7 +271,7 @@ object BytesFormatSelection extends FormatSelection {
       inner,
       converter,
       input.bucketAndPath,
-    )
+    ).asRight
   }
 
   override def extension: String = "bytes"

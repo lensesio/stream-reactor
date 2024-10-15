@@ -15,6 +15,7 @@
  */
 package io.lenses.streamreactor.connect.cloud.common.formats.parquet
 
+import cats.implicits.catsSyntaxEitherId
 import io.lenses.streamreactor.connect.cloud.common.formats.reader.parquet.ParquetSeekableInputStream
 import io.lenses.streamreactor.connect.cloud.common.formats.reader.parquet.ParquetStreamingInputFile
 import org.mockito.MockitoSugar
@@ -29,11 +30,10 @@ class ParquetStreamingInputFileTest extends AnyFlatSpec with Matchers with Mocki
 
   "newStream" should "return a new stream ready to read" in {
 
-    val byteArrayInputStream = new ByteArrayInputStream(bytes)
     val target =
       new ParquetStreamingInputFile(
         bytes.length.toLong,
-        () => new ParquetSeekableInputStream(byteArrayInputStream, () => new ByteArrayInputStream(bytes)),
+        () => new ParquetSeekableInputStream(() => new ByteArrayInputStream(bytes).asRight),
       )
 
     target.newStream().read().toChar should be('a')
@@ -41,11 +41,10 @@ class ParquetStreamingInputFileTest extends AnyFlatSpec with Matchers with Mocki
 
   "getLength" should "return length of the stream" in {
 
-    val byteArrayInputStream = new ByteArrayInputStream(bytes)
     val target =
       new ParquetStreamingInputFile(
         bytes.length.toLong,
-        () => new ParquetSeekableInputStream(byteArrayInputStream, () => new ByteArrayInputStream(bytes)),
+        () => new ParquetSeekableInputStream(() => new ByteArrayInputStream(bytes).asRight),
       )
     target.getLength should be(26)
 

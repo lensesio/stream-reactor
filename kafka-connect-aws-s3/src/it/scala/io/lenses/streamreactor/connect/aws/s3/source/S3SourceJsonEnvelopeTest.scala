@@ -65,8 +65,9 @@ class S3SourceJsonEnvelopeTest
 
       sourceRecord.value() shouldBe """{"id":"1","name":"John Smith","email":"js@johnsmith.com","card":"1234567890","ip":"192.168.0.2","country":"UK","currency":"GBP","timestamp":"2020-01-01T00:00:00.000Z"}"""
 
-      sourceRecord.headers().asScala.map(h => h.key() -> h.value()).toMap should be(Map[String, Any]("header1" -> "value1",
-                                                                                        "header2" -> 123456789L,
+      sourceRecord.headers().asScala.map(h => h.key() -> h.value()).toMap should be(Map[String, Any](
+        "header1" -> "value1",
+        "header2" -> 123456789L,
       ))
 
       sourceRecord.sourcePartition().asScala shouldBe Map("container" -> BucketName, "prefix" -> s"$MyPrefix/json/")

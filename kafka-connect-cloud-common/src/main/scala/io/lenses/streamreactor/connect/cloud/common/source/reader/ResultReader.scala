@@ -88,7 +88,7 @@ object ResultReader extends LazyLogging {
       )
 
       partition = partitionFn(path).map(Int.box).orNull
-      reader = format.toStreamReader(
+      reader <- format.toStreamReader(
         ReaderBuilderContext(
           inputStream,
           pathWithLine,

@@ -15,6 +15,7 @@
  */
 package io.lenses.streamreactor.connect.cloud.common.formats.reader
 
+import cats.implicits.catsSyntaxEitherId
 import io.confluent.connect.avro.AvroData
 import io.lenses.streamreactor.connect.cloud.common.formats.reader.parquet.ParquetSeekableInputStream
 import io.lenses.streamreactor.connect.cloud.common.formats.reader.parquet.ParquetStreamingInputFile
@@ -48,23 +49,18 @@ class ParquetStreamReader(
 
 }
 
+// recreateInputStreamFn = Either[Throwable, InputStream]
+// recreateSeekableInputStreamFn = Either[Throwable, SeekableInputStream]
+
 object ParquetStreamReader {
   def apply(
-    input:     InputStream,
     size:      Long,
     recreateF: () => Either[Throwable, InputStream],
-  ): ParquetStreamReader = {
+  ): Either[Throwable, ParquetStreamReader] = {
+
     val inputFile = new ParquetStreamingInputFile(
       size,
-      () =>
-        new ParquetSeekableInputStream(
-          input,
-          () =>
-            recreateF() match {
-              case Left(throwable) => throw throwable
-              case Right(value)    => value
-            },
-        ),
+      () => new ParquetSeekableInputStream(() => recreateF()),
     )
     val avroParquetReader: ParquetReader[GenericRecord] = {
       val conf = new Configuration
@@ -73,6 +69,6 @@ object ParquetStreamReader {
       AvroParquetReader.builder[GenericRecord](inputFile).withConf(conf).build()
     }
 
-    new ParquetStreamReader(avroParquetReader)
+    new ParquetStreamReader(avroParquetReader).asRight
   }
 }

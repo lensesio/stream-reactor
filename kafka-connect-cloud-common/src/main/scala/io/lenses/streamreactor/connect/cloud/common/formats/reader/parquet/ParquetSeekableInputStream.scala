@@ -15,39 +15,21 @@
  */
 package io.lenses.streamreactor.connect.cloud.common.formats.reader.parquet
 
+import cats.implicits.toBifunctorOps
 import com.typesafe.scalalogging.LazyLogging
-import org.apache.parquet.io.DelegatingSeekableInputStream
 import org.apache.parquet.io.SeekableInputStream
 
+import java.io.EOFException
 import java.io.InputStream
 import java.nio.ByteBuffer
 
-class ParquetSeekableInputStream(is: InputStream, recreateStreamF: () => InputStream)
+class ParquetSeekableInputStream(recreateStreamF: () => Either[Throwable, InputStream])
     extends SeekableInputStream
     with LazyLogging {
 
-  /**
-    * The InceptionDelegatingInputStream delegates to a DelegatingInputStream for the read operations (so as to avoid
-    * duplication of all the read code, and it delegates to the outer class for the position and seeking operations.
-    *
-    * This is obviously a massive workaround for the design of the library we are using as we cannot supply a HTTP input
-    * stream that is seekable and therefore we need to recreate the inputStream if we want to seek backwards.
-    *
-    * We will therefore need to also recreate the InceptionDelegatingInputStream in the event we want to seek backwards.
-    *
-    * @param inputStream the actual inputStream containing Parquet data from the cloud
-    */
-  private class InceptionDelegatingInputStream(inputStream: InputStream)
-      extends DelegatingSeekableInputStream(inputStream) {
-    override def getPos: Long = ParquetSeekableInputStream.this.getPos
-
-    override def seek(newPos: Long): Unit = ParquetSeekableInputStream.this.seek(newPos)
-  }
-
   private var pos: Long = 0
 
-  private var inputStream:          InputStream                   = is
-  private var inceptionInputStream: DelegatingSeekableInputStream = new InceptionDelegatingInputStream(inputStream)
+  private var inputStream: InputStream = recreateStreamF().leftMap(throw _).merge
 
   override def getPos: Long = {
     logger.debug("Retrieving position: " + pos)
@@ -55,28 +37,107 @@ class ParquetSeekableInputStream(is: InputStream, recreateStreamF: () => InputSt
   }
 
   override def seek(newPos: Long): Unit = {
-    logger.debug(s"Seeking from $pos to position $newPos")
     if (newPos < pos) {
-      //recreate the stream
+      logger.debug(s"Seeking from $pos to position $newPos - (Going backwards!)")
+
       inputStream.close()
-      inputStream          = recreateStreamF()
-      inceptionInputStream = new InceptionDelegatingInputStream(inputStream)
-      inputStream.skip(newPos)
+      logger.debug("before input stream: {}", inputStream)
+      inputStream = recreateStreamF().leftMap(throw _).merge
+      logger.debug("after input stream: {}", inputStream)
+
+      val skipped = inputStream.skip(newPos)
+      logger.debug(s"Attempted to skip to $newPos, actually skipped $skipped bytes")
+
+      if (skipped != newPos) {
+        throw new EOFException(s"Failed to seek to position $newPos, only skipped $skipped bytes")
+      }
     } else {
-      inputStream.skip(newPos - pos)
+      logger.debug(s"Seeking from $pos to position $newPos")
+      val skipped = inputStream.skip(newPos - pos)
+      logger.debug(s"Attempted to skip to ${newPos - pos}, actually skipped $skipped bytes")
+
+      if (skipped != (newPos - pos)) {
+        throw new EOFException(s"Failed to seek to position $newPos, only skipped $skipped bytes")
+      }
     }
     pos = newPos
 
   }
 
-  override def readFully(bytes: Array[Byte]): Unit = inceptionInputStream.readFully(bytes)
+  override def read(buf: ByteBuffer): Int = {
+    val bytesToRead = buf.remaining()
+    val tempArray   = new Array[Byte](bytesToRead)
+    val bytesRead   = inputStream.read(tempArray, 0, bytesToRead)
 
-  override def readFully(bytes: Array[Byte], start: Int, len: Int): Unit =
-    inceptionInputStream.readFully(bytes, start, len)
+    if (bytesRead == -1) {
+      return -1
+    }
 
-  override def read(buf: ByteBuffer): Int = inceptionInputStream.read(buf)
+    buf.put(tempArray, 0, bytesRead)
+    pos += bytesRead
+    bytesRead
+  }
 
-  override def readFully(buf: ByteBuffer): Unit = inceptionInputStream.readFully(buf)
+  override def readFully(bytes: Array[Byte]): Unit = {
+    var bytesRead = 0
+    while (bytesRead < bytes.length) {
+      val result = inputStream.read(bytes, bytesRead, bytes.length - bytesRead)
+      logger.debug(s"Read $result bytes, total bytes read: ${bytesRead + result}")
 
-  override def read(): Int = inceptionInputStream.read()
+      if (result == -1) {
+        throw new EOFException(s"Reached the end of stream with ${bytes.length - bytesRead} bytes left to read")
+      }
+      bytesRead += result
+      pos += result
+    }
+  }
+
+  override def readFully(bytes: Array[Byte], start: Int, len: Int): Unit = {
+    var bytesRead = 0
+    while (bytesRead < len) {
+      val result = inputStream.read(bytes, start + bytesRead, len - bytesRead)
+      logger.debug(s"Read $result bytes, total bytes read: ${bytesRead + result}")
+
+      if (result == -1) {
+        throw new EOFException(s"Reached the end of stream with ${len - bytesRead} bytes left to read")
+      }
+      bytesRead += result
+      pos += result
+    }
+  }
+
+  override def readFully(buf: ByteBuffer): Unit = {
+    val bytesToRead = buf.remaining()
+    val tempArray   = new Array[Byte](bytesToRead)
+    var bytesRead   = 0
+
+    while (bytesRead < bytesToRead) {
+      val result = inputStream.read(tempArray, bytesRead, bytesToRead - bytesRead)
+      logger.debug(s"Read $result bytes, total bytes read: ${bytesRead + result}")
+
+      if (result == -1) {
+        throw new EOFException(s"Reached the end of stream with ${bytesToRead - bytesRead} bytes left to read")
+      }
+      bytesRead += result
+      pos += result
+    }
+
+    buf.put(tempArray, 0, bytesRead)
+    ()
+  }
+
+  override def read(): Int = {
+    val result = inputStream.read()
+    if (result != -1) {
+      pos += 1
+    }
+    result
+  }
+
+  override def skip(n: Long): Long = {
+    super.skip(n)
+    pos = pos + n
+    n
+  }
+
 }
