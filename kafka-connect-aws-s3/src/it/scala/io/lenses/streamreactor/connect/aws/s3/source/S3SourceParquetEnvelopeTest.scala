@@ -156,8 +156,9 @@ class S3SourceParquetEnvelopeTest
       valStruct.getString("currency") should be("GBP")
       valStruct.getString("timestamp") should be("2020-01-01T00:00:00.000Z")
 
-      sourceRecord.headers().asScala.map(h => h.key() -> h.value()).toMap[String, Any] should be(Map[String, Any]("header1" -> "value1",
-                                                                                        "header2" -> 123456789L,
+      sourceRecord.headers().asScala.map(h => h.key() -> h.value()).toMap[String, Any] should be(Map[String, Any](
+        "header1" -> "value1",
+        "header2" -> 123456789L,
       ))
 
       sourceRecord.sourcePartition().asScala shouldBe Map("container" -> BucketName, "prefix" -> s"$MyPrefix/parquet/")

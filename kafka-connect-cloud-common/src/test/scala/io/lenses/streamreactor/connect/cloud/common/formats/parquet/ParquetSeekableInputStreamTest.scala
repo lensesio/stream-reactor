@@ -15,37 +15,42 @@
  */
 package io.lenses.streamreactor.connect.cloud.common.formats.parquet
 
+import cats.implicits.catsSyntaxEitherId
 import io.lenses.streamreactor.connect.cloud.common.formats.reader.parquet.ParquetSeekableInputStream
+import org.scalatest.EitherValues
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 import java.io.ByteArrayInputStream
 
-class ParquetSeekableInputStreamTest extends AnyFlatSpec with Matchers {
+class ParquetSeekableInputStreamTest extends AnyFlatSpec with Matchers with EitherValues {
 
   private val bytes = "abcdefghijklmnopqrstuvwxyz".getBytes
 
-  private val byteStreamF = () => new ByteArrayInputStream(bytes)
+  private val byteStreamF = () => new ByteArrayInputStream(bytes).asRight
 
   "seek" should "deliver the correct character when seeking from new stream" in {
 
-    val seekableInputStream = new ParquetSeekableInputStream(byteStreamF(), byteStreamF)
+    val seekableInputStream = new ParquetSeekableInputStream(byteStreamF)
     seekableInputStream.seek(5)
     seekableInputStream.read().toChar should be('f')
   }
 
-  "seek" should "deliver the correct character when seeking from already read stream" in {
+  "skip" should "deliver the correct character when seeking from already read stream" in {
 
-    val seekableInputStream = new ParquetSeekableInputStream(byteStreamF(), byteStreamF)
+    val seekableInputStream = new ParquetSeekableInputStream(byteStreamF)
     seekableInputStream.read().toChar should be('a')
     seekableInputStream.read().toChar should be('b')
-    seekableInputStream.seek(5)
+    seekableInputStream.skip(5)
     seekableInputStream.read().toChar should be('h')
+    seekableInputStream.seek(5)
+    seekableInputStream.read().toChar should be('f')
+
   }
 
   "seek" should "should enable you to go backwards" in {
 
-    val seekableInputStream = new ParquetSeekableInputStream(byteStreamF(), byteStreamF)
+    val seekableInputStream = new ParquetSeekableInputStream(byteStreamF)
     seekableInputStream.seek(5)
     seekableInputStream.read().toChar should be('f')
     seekableInputStream.seek(0)

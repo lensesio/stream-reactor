@@ -73,9 +73,12 @@ class KeysExtractorTest extends AnyWordSpec with Matchers {
 
     "extract embedded keys out of a Map (including Dates)" in {
       val actual = KeysExtractor.fromMap(
-        Map[String, Any]("A" -> 0,
-            "B" -> "0",
-            "C" -> Map[String, Any]("M" -> "1000", "N" -> Map[String, Any]("X" -> new java.util.Date(10L), "Y" -> 100).asJava).asJava,
+        Map[String, Any](
+          "A" -> 0,
+          "B" -> "0",
+          "C" -> Map[String, Any]("M" -> "1000",
+                                  "N" -> Map[String, Any]("X" -> new java.util.Date(10L), "Y" -> 100).asJava,
+          ).asJava,
         ).asJava,
         ListSet("B", "C.M", "C.N.X"),
       )

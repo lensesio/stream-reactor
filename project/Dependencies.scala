@@ -40,7 +40,7 @@ object Dependencies {
     val scalatestPlusScalaCheckVersion = "3.1.0.0-RC2"
     val scalaCheckVersion              = "1.18.1"
 
-    val mockitoJunitJupiterVersion = "5.11.0"
+    val mockitoJunitJupiterVersion = "5.14.1"
     val junitJupiterVersion        = "5.11.2"
     val assertjCoreVersion         = "3.26.3"
 
@@ -53,7 +53,7 @@ object Dependencies {
 
     val http4sVersion    = "1.0.0-M32"
     val http4sJdkVersion = "1.0.0-M1"
-    val avroVersion      = "1.11.3"
+    val avroVersion      = "1.11.4"
     val avro4sVersion    = "4.1.2"
 
     val catsEffectVersion     = "3.5.4"
@@ -69,7 +69,7 @@ object Dependencies {
 
     val lombokVersion = "1.18.34"
 
-    val logbackVersion      = "1.5.9"
+    val logbackVersion      = "1.5.10"
     val scalaLoggingVersion = "3.9.5"
 
     val dnsJavaVersion  = "3.6.2"
@@ -79,15 +79,15 @@ object Dependencies {
     val jerseyCommonVersion = "3.1.9"
 
     val calciteVersion = "1.34.0"
-    val awsSdkVersion  = "2.28.17"
+    val awsSdkVersion  = "2.28.21"
 
     val azureDataLakeVersion              = "12.21.0"
     val azureIdentityVersion              = "1.14.0"
     val azureCoreVersion                  = "1.53.0"
-    val msal4jVersion                     = "1.16.1"
+    val msal4jVersion                     = "1.16.2"
     val msal4jPersistenceExtensionVersion = "1.3.0"
     val gcpCloudVersion                   = "2.45.0"
-    val gcpCloudStorageVersion            = "2.43.1"
+    val gcpCloudStorageVersion            = "2.43.2"
 
     val woodstoxVersion     = "7.0.0"
     val jacksonVersion      = "2.18.0"
@@ -138,13 +138,13 @@ object Dependencies {
     val jedisVersion = "5.1.5"
     val gsonVersion  = "2.11.0"
 
-    val classGraphVersion           = "4.8.174"
+    val classGraphVersion           = "4.8.177"
     val nimbusJoseJwtVersion        = "9.41.2"
     val hadoopVersion               = "3.4.0"
     val hadoopShadedProtobufVersion = "1.2.0"
 
     val airCompressorVersion = "2.0.2"
-    val zstdVersion          = "1.5.6-4"
+    val zstdVersion          = "1.5.6-6"
 
     trait ElasticVersions {
       val elastic4sVersion, elasticSearchVersion, jnaVersion: String

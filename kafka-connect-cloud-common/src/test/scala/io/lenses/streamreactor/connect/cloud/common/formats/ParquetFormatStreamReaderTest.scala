@@ -15,30 +15,30 @@
  */
 package io.lenses.streamreactor.connect.cloud.common.formats
 
+import cats.implicits.toBifunctorOps
 import io.lenses.streamreactor.connect.cloud.common.formats.reader.ParquetStreamReader
 import org.apache.kafka.connect.data.Struct
+import org.scalatest.EitherValues
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 import java.io.InputStream
+import java.nio.file.Files
+import java.nio.file.Paths
 import scala.util.Try
+import scala.util.Using
 
-class ParquetFormatStreamReaderTest extends AnyFlatSpec with Matchers {
+class ParquetFormatStreamReaderTest extends AnyFlatSpec with Matchers with EitherValues {
 
   "iteration" should "read parquet files" in {
-    val inputStreamFn: () => InputStream = () => getClass.getResourceAsStream("/parquet/1.parquet")
-    val streamSize = {
-      val stream = inputStreamFn()
-      try {
-        val size = stream.readAllBytes().length
-        size
-      } finally {
-        stream.close()
-      }
-    }
+
+    val inputStreamFn: () => Either[Throwable, InputStream] =
+      () => Try(getClass.getResourceAsStream("/parquet/1.parquet")).toEither
+    val streamSize: Long =
+      Using.resource(inputStreamFn())(_.map(_.readAllBytes().length))(_.foreach(_.close)).value.toLong
     val target =
-      ParquetStreamReader(inputStreamFn(), streamSize.toLong, () => Try(inputStreamFn()).toEither)
-    val list = target.toList
+      ParquetStreamReader(streamSize, () => inputStreamFn())
+    val list = target.value.toList
     list should have size 200
     list.head.value().asInstanceOf[Struct].getString("name") should be(
       "dbiriwtgyelferkqjmgvmakxreoPnovkObfyjSCzhsaidymngstfqgkbocypzglotuahzMojaViltqGmJpBnrIew",
@@ -50,6 +50,21 @@ class ParquetFormatStreamReaderTest extends AnyFlatSpec with Matchers {
       "cfmfgbDpeklnFumaugcdcHokwtockrhsyflNqKbuwsAnXpxqzicbLzleviwhZaaIaylptfegvwFwe",
     )
 
+  }
+
+  "iteration" should "read really big parquet files" in {
+    val bigParquetFile = "/parquet-sample-data/flights-1m.parquet"
+    val inputStreamFn: () => Either[Throwable, InputStream] =
+      () => Try(getClass.getResourceAsStream(bigParquetFile)).toEither
+    val fileSize = getFileSize(bigParquetFile)
+    val target =
+      ParquetStreamReader(fileSize, () => inputStreamFn())
+    target.value.size should be(1_000_000)
+  }
+
+  private def getFileSize(fileName: String): Long = {
+    val filePath = Paths.get(getClass.getResource(fileName).toURI)
+    Try(Files.size(filePath)).toEither.leftMap(throw _).merge
   }
 
 }
