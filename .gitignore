@@ -99,3 +99,5 @@ gradle-test-modules.txt
 project/.bloop/
 project/metals.sbt
 project/project/
+
+kafka-connect-cloud-common/src/test/resources/parquet-sample-data/*

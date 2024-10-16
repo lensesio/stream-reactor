@@ -117,8 +117,9 @@ class S3SourceAvroWithValueAsOptionalArrayEnvelopeTest
       val value: Array[Byte] = sourceRecord.value().asInstanceOf[Array[Byte]]
       value shouldBe null
 
-      sourceRecord.headers().asScala.map(h => h.key() -> h.value()).toMap should be(Map[String, Any]("header1" -> "value1",
-                                                                                        "header2" -> 123456789L,
+      sourceRecord.headers().asScala.map(h => h.key() -> h.value()).toMap should be(Map[String, Any](
+        "header1" -> "value1",
+        "header2" -> 123456789L,
       ))
 
       sourceRecord.sourcePartition().asScala shouldBe Map("container" -> BucketName, "prefix" -> s"$MyPrefix/avro/")
@@ -234,11 +235,14 @@ class S3SourceAvroWithValueAsOptionalArrayMixValuesEnvelopeTest
       val value: Array[Byte] = sourceRecord.value().asInstanceOf[Array[Byte]]
       value shouldBe "value".getBytes()
 
-      sourceRecord.headers().asScala.map(h => h.key() -> h.value()).toMap should be(Map[String, Any]("header1" -> "value1",
-                                                                                        "header2" -> 123456789L,
+      sourceRecord.headers().asScala.map(h => h.key() -> h.value()).toMap should be(Map[String, Any](
+        "header1" -> "value1",
+        "header2" -> 123456789L,
       ))
 
-      sourceRecord.sourcePartition().asScala shouldBe Map[String, Any]("container" -> BucketName, "prefix" -> s"$MyPrefix/avro/")
+      sourceRecord.sourcePartition().asScala shouldBe Map[String, Any]("container" -> BucketName,
+                                                                       "prefix"    -> s"$MyPrefix/avro/",
+      )
       val sourceOffsetMap = sourceRecord.sourceOffset().asScala
       sourceOffsetMap("path") shouldBe s"$MyPrefix/avro/0"
       sourceOffsetMap("line") shouldBe "0"
