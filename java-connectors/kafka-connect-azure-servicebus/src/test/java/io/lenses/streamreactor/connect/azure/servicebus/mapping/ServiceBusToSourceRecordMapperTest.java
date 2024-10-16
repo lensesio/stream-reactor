@@ -70,7 +70,6 @@ class ServiceBusToSourceRecordMapperTest {
 
     //then
     assertThat(sourceRecord)
-        .returns(TIME_NOW.toEpochSecond(), from(SourceRecord::timestamp))
         .returns(partitionKey, from(SourceRecord::sourcePartition))
         .returns(null, from(SourceRecord::kafkaPartition))
         .returns(busOffsetMarker, from(SourceRecord::sourceOffset))
@@ -84,7 +83,7 @@ class ServiceBusToSourceRecordMapperTest {
   }
 
   @Test
-  void mapSingleSourceRecordAllowsForOptionalScemaFieldsToBeNull() {
+  void mapSingleSourceRecordAllowsForOptionalSchemaFieldsToBeNull() {
     //given
     ServiceBusReceivedMessage busMessage = prepareMessageBusWithOnlyRequiredFields();
     AzureServiceBusPartitionKey partitionKey = new AzureServiceBusPartitionKey(OUTPUT_TOPIC, PARTITION_KEY);
@@ -97,7 +96,6 @@ class ServiceBusToSourceRecordMapperTest {
 
     //then
     assertThat(sourceRecord)
-        .returns(TIME_NOW.toEpochSecond(), from(SourceRecord::timestamp))
         .returns(partitionKey, from(SourceRecord::sourcePartition))
         .returns(null, from(SourceRecord::kafkaPartition))
         .returns(busOffsetMarker, from(SourceRecord::sourceOffset))
@@ -109,7 +107,7 @@ class ServiceBusToSourceRecordMapperTest {
 
     assertThat(valueStruct)
         .returns(DELIVERY_COUNT, from(v -> v.get(ServiceBusValueSchemaField.DELIVERY_COUNT)))
-        .returns(TIME_NOW.toEpochSecond(), from(v -> v.get(ServiceBusValueSchemaField.ENQUEUED_TIME_UTC)))
+        .returns(TIME_NOW.toInstant().toEpochMilli(), from(v -> v.get(ServiceBusValueSchemaField.ENQUEUED_TIME_UTC)))
         .returns(null, from(v -> v.get(ServiceBusValueSchemaField.CONTENT_TYPE)))
         .returns(LABEL, from(v -> v.get(ServiceBusValueSchemaField.LABEL)))
         .returns(null, from(v -> v.get(ServiceBusValueSchemaField.CORRELATION_ID)))
@@ -130,7 +128,7 @@ class ServiceBusToSourceRecordMapperTest {
   private void assertMappedStructValues(Struct valueStruct) {
     assertThat(valueStruct)
         .returns(DELIVERY_COUNT, from(v -> v.get(ServiceBusValueSchemaField.DELIVERY_COUNT)))
-        .returns(TIME_NOW.toEpochSecond(), from(v -> v.get(ServiceBusValueSchemaField.ENQUEUED_TIME_UTC)))
+        .returns(TIME_NOW.toInstant().toEpochMilli(), from(v -> v.get(ServiceBusValueSchemaField.ENQUEUED_TIME_UTC)))
         .returns(CONTENT_TYPE, from(v -> v.get(ServiceBusValueSchemaField.CONTENT_TYPE)))
         .returns(LABEL, from(v -> v.get(ServiceBusValueSchemaField.LABEL)))
         .returns(CORRELATION_ID, from(v -> v.get(ServiceBusValueSchemaField.CORRELATION_ID)))
@@ -139,7 +137,7 @@ class ServiceBusToSourceRecordMapperTest {
         .returns(REPLY_TO_SESSION_ID, from(v -> v.get(ServiceBusValueSchemaField.REPLY_TO_SESSION_ID)))
         .returns(DEAD_LETTER_SOURCE, from(v -> v.get(ServiceBusValueSchemaField.DEAD_LETTER_SOURCE)))
         .returns(TIME_TO_LIVE.toMillis(), from(v -> v.get(ServiceBusValueSchemaField.TIME_TO_LIVE)))
-        .returns(TIME_NOW.toEpochSecond(), from(v -> v.get(ServiceBusValueSchemaField.LOCKED_UNTIL_UTC)))
+        .returns(TIME_NOW.toInstant().toEpochMilli(), from(v -> v.get(ServiceBusValueSchemaField.LOCKED_UNTIL_UTC)))
         .returns(SEQUENCE_NUMBER, from(v -> v.get(ServiceBusValueSchemaField.SEQUENCE_NUMBER)))
         .returns(SESSION_ID, from(v -> v.get(ServiceBusValueSchemaField.SESSION_ID)))
         .returns(LOCK_TOKEN, from(v -> v.get(ServiceBusValueSchemaField.LOCK_TOKEN)))

@@ -32,18 +32,16 @@ import static io.lenses.streamreactor.connect.azure.servicebus.mapping.ServiceBu
 import static io.lenses.streamreactor.connect.azure.servicebus.mapping.ServiceBusValueSchemaField.SESSION_ID;
 import static io.lenses.streamreactor.connect.azure.servicebus.mapping.ServiceBusValueSchemaField.TIME_TO_LIVE;
 
+import com.azure.messaging.servicebus.ServiceBusReceivedMessage;
+import io.lenses.streamreactor.connect.azure.servicebus.source.AzureServiceBusSourceConnector;
+import java.time.Instant;
 import java.util.Map;
-
 import java.util.Optional;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.source.SourceRecord;
-
-import com.azure.messaging.servicebus.ServiceBusReceivedMessage;
-
-import io.lenses.streamreactor.connect.azure.servicebus.source.AzureServiceBusSourceConnector;
 
 /**
  * Class that maps {@link ServiceBusReceivedMessage} to Kafka Connect {@link SourceRecord}.
@@ -77,14 +75,14 @@ public class ServiceBusToSourceRecordMapper {
 
     Struct valueObject = createStructFromServiceBusMessage(serviceBusMessage);
     return new AzureServiceBusSourceRecord(partitionKey, offsetMap, outputTopic, key,
-        VALUE_SCHEMA, valueObject, serviceBusMessage.getEnqueuedTime().toEpochSecond());
+        VALUE_SCHEMA, valueObject, Instant.now().toEpochMilli());
   }
 
   private static Struct createStructFromServiceBusMessage(final ServiceBusReceivedMessage serviceBusMessage) {
     Struct struct =
         new Struct(VALUE_SCHEMA)
             .put(DELIVERY_COUNT, serviceBusMessage.getDeliveryCount())
-            .put(ENQUEUED_TIME_UTC, serviceBusMessage.getEnqueuedTime().toEpochSecond())
+            .put(ENQUEUED_TIME_UTC, serviceBusMessage.getEnqueuedTime().toInstant().toEpochMilli())
             .put(LABEL, AzureServiceBusSourceConnector.class.getSimpleName())
             .put(TIME_TO_LIVE, serviceBusMessage.getTimeToLive().toMillis())
             .put(MESSAGE_BODY, serviceBusMessage.getBody().toBytes())
@@ -108,7 +106,7 @@ public class ServiceBusToSourceRecordMapper {
     addOptionalSchemaValueIfExists(struct, serviceBusMessage.getTo(), GET_TO);
 
     Optional.ofNullable(serviceBusMessage.getLockedUntil())
-        .ifPresent(lu -> struct.put(LOCKED_UNTIL_UTC, lu.toEpochSecond()));
+        .ifPresent(lu -> struct.put(LOCKED_UNTIL_UTC, lu.toInstant().toEpochMilli()));
 
   }
 
