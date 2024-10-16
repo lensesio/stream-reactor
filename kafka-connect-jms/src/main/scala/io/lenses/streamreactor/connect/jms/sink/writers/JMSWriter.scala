@@ -57,8 +57,7 @@ case class JMSWriter(settings: JMSSettings)
   //initialize error tracker
   initialize(settings.retries, settings.errorPolicy)
 
-  /**
-    * Convert to a JMS record from a SinkRecord based
+  /** Convert to a JMS record from a SinkRecord based
     * on the specified format in KCQL
     */
   def createJMSRecord(record: SinkRecord): (String, Message) = {
@@ -66,8 +65,7 @@ case class JMSWriter(settings: JMSSettings)
     converter.convert(record, provider.session, settingsMap(record.topic()))
   }
 
-  /**
-    * Write the records
+  /** Write the records
     */
   def write(records: Seq[SinkRecord]): Option[Unit] = {
     //convert and send, commit the session if good
@@ -89,8 +87,7 @@ case class JMSWriter(settings: JMSSettings)
     }
   }
 
-  /**
-    * Send the messages to the JMS destination
+  /** Send the messages to the JMS destination
     */
   def send(messages: Seq[(String, Message)]): Unit =
     messages.foreach({ case (name, message) => producers(name).send(message) })

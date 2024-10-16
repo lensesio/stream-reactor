@@ -33,8 +33,7 @@ import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.jdk.CollectionConverters.MapHasAsScala
 import scala.jdk.CollectionConverters.SeqHasAsJava
 
-/**
-  * Creates an envelope for the message detail. It is expected the Key and/or Value, if used to have a Connect schema attached.
+/** Creates an envelope for the message detail. It is expected the Key and/or Value, if used to have a Connect schema attached.
   * @param settings The settings for the data storage for the topic
   */
 case class SchemalessEnvelopeTransformer(topic: Topic, settings: DataStorageSettings) extends Transformer {
@@ -55,8 +54,7 @@ case class SchemalessEnvelopeTransformer(topic: Topic, settings: DataStorageSett
 
 object SchemalessEnvelopeTransformer {
 
-  /**
-    * Creates an envelope schema for the message detail. This is a schema that contains the key, value and headers and metadata.
+  /** Creates an envelope schema for the message detail. This is a schema that contains the key, value and headers and metadata.
     * Key and Value schema is set optional to handle null data (i.e. deletes as tombstones)
     * {{{
     *   {

@@ -27,8 +27,7 @@ object HttpSuccessSpecificHeaderRecordConverter {
   val headerNameResponseContent = "response_content"
   val headerNameStatusCode      = "response_status_code"
 
-  /**
-    * Converts an HttpSuccessConnectorSpecificRecordData to a Stream of Kafka Headers.
+  /** Converts an HttpSuccessConnectorSpecificRecordData to a Stream of Kafka Headers.
     *
     * @param originalRecord the HttpSuccessConnectorSpecificRecordData to convert
     * @return a Stream of Kafka Headers

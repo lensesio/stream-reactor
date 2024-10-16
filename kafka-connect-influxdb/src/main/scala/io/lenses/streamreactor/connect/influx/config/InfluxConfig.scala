@@ -150,8 +150,7 @@ object InfluxConfig {
     )
 }
 
-/**
-  * <h1>InfluxSinkConfig</h1>
+/** <h1>InfluxSinkConfig</h1>
   *
   * Holds config, extends AbstractConfig.
   */
