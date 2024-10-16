@@ -69,17 +69,17 @@ object Dependencies {
 
     val lombokVersion = "1.18.34"
 
-    val logbackVersion      = "1.5.8"
+    val logbackVersion      = "1.5.9"
     val scalaLoggingVersion = "3.9.5"
 
     val dnsJavaVersion  = "3.6.2"
     val wiremockVersion = "3.9.1"
     val parquetVersion  = "1.14.3"
 
-    val jerseyCommonVersion = "3.1.8"
+    val jerseyCommonVersion = "3.1.9"
 
     val calciteVersion = "1.34.0"
-    val awsSdkVersion  = "2.28.16"
+    val awsSdkVersion  = "2.28.17"
 
     val azureDataLakeVersion              = "12.21.0"
     val azureIdentityVersion              = "1.14.0"
