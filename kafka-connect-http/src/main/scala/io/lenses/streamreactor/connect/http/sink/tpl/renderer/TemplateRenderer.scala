@@ -28,8 +28,9 @@ class TemplateRenderer[X <: SubstitutionType](substitutionType: Enum[X]) {
 
   private val templatePattern: Regex = "\\{\\{([^{}]*)}}".r
 
-  private val nullSubstitutionError:           SubstitutionError = SubstitutionError("SubstitutionType returned null")
-  private val noTagSpecifiedSubstitutionError: SubstitutionError = SubstitutionError("No tag specified")
+  private val nullSubstitutionErrorFn: () => SubstitutionError = () =>
+    SubstitutionError("SubstitutionType returned null")
+  private val noTagSpecifiedSubstitutionErrorFn: () => SubstitutionError = () => SubstitutionError("No tag specified")
   private val invalidSubstitutionTypeSubstitutionErrorFn: String => SubstitutionError = k =>
     SubstitutionError(s"Couldn't find `$k` SubstitutionType")
 
@@ -59,7 +60,7 @@ class TemplateRenderer[X <: SubstitutionType](substitutionType: Enum[X]) {
     )
 
   private[renderer] def getTagValueFromData(tag: String, data: SinkRecord): Either[SubstitutionError, String] = {
-    val tagOpt = Option(tag).filter(_.nonEmpty).toRight(noTagSpecifiedSubstitutionError)
+    val tagOpt = Option(tag).filter(_.nonEmpty).toRight(noTagSpecifiedSubstitutionErrorFn())
     tagOpt.flatMap { t =>
       val locs    = t.split("\\.", 2)
       val key     = locs.headOption.map(_.toLowerCase).getOrElse("")
@@ -72,7 +73,7 @@ class TemplateRenderer[X <: SubstitutionType](substitutionType: Enum[X]) {
             sType <- substitutionType.withNameInsensitiveOption(k).toRight(
               invalidSubstitutionTypeSubstitutionErrorFn(k),
             )
-            value <- sType.get(loc, data).map(_.toString).leftMap(_ => nullSubstitutionError)
+            value <- sType.get(loc, data).map(_.toString).leftMap(_ => nullSubstitutionErrorFn())
           } yield value
       }
     }

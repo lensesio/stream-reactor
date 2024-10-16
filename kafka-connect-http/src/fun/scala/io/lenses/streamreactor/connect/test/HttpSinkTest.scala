@@ -27,6 +27,8 @@ import org.scalatest.time.Seconds
 import org.scalatest.time.Span
 
 import java.util.UUID
+import java.util.concurrent.TimeUnit
+import scala.concurrent.Future
 import scala.jdk.CollectionConverters.ListHasAsScala
 
 class HttpSinkTest
@@ -193,10 +195,14 @@ class HttpSinkTest
       Order(2, "another product", 1.4d, 109),
     ).asserting {
       requests =>
+        logger.info("Requests size: {}", requests.size)
+
         requests.size should be(1)
         val firstRequest = requests.head
         firstRequest.getMethod should be(RequestMethod.POST)
-        new String(firstRequest.getBody) should be(
+        logger.info("First request: {}", firstRequest)
+        logger.info("First request body: {}", firstRequest.getBodyAsString)
+        firstRequest.getBodyAsString should be(
           "{\"data\":[{\"id\":1,\"product\":\"myOrder product\",\"price\":1.3,\"qty\":10,\"created\":null},{\"id\":2,\"product\":\"another product\",\"price\":1.4,\"qty\":109,\"created\":null}]}",
         )
     }
@@ -250,22 +256,29 @@ class HttpSinkTest
       producer =>
         createConnectorResource(randomTestId, topic, contentTemplate, converters, batchSize, jsonTidy).use {
           _ =>
-            record.map {
-              rec => IO(sendRecord[K, V](topic, producer, rec))
-            }.sequence
-              .map { _ =>
-                eventually(timeout(Span(10, Seconds)), interval(Span(500, Millis))) {
-                  verify(postRequestedFor(urlEqualTo(s"/$randomTestId")))
-                  findAll(postRequestedFor(urlEqualTo(s"/$randomTestId"))).asScala.toList
-                }
+            record.map(
+              sendRecord[K, V](topic, producer, _)
+                .handleError { error =>
+                  logger.error("Error encountered sending record via producer", error)
+                  fail("Error encountered sending record via producer")
+                },
+            ).sequence.map { _ =>
+              eventually(timeout(Span(10, Seconds)), interval(Span(500, Millis))) {
+                verify(postRequestedFor(urlEqualTo(s"/$randomTestId")))
+                findAll(postRequestedFor(urlEqualTo(s"/$randomTestId"))).asScala.toList
               }
+            }
 
         }
     }
-  private def sendRecord[K, V](topic: String, producer: KafkaProducer[K, V], record: V): Unit = {
-    producer.send(new ProducerRecord[K, V](topic, record)).get
-    producer.flush()
-  }
+
+  private def sendRecord[K, V](topic: String, producer: KafkaProducer[K, V], record: V): IO[Unit] =
+    for {
+      producerRecord <- IO.pure(new ProducerRecord[K, V](topic, record))
+      scalaFuture     = IO(Future(producer.send(producerRecord).get(10, TimeUnit.SECONDS)))
+      _              <- IO.fromFuture(scalaFuture)
+      _              <- IO(producer.flush())
+    } yield ()
 
   def createConnectorResource(
     randomTestId:    String,

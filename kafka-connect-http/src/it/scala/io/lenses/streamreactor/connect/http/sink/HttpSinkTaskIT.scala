@@ -61,7 +61,7 @@ class HttpSinkTaskIT extends AsyncFunSuite with AsyncIOSpec with Eventually {
       config: Map[String, String] = Map(
         HttpSinkConfigDef.HttpMethodProp         -> HttpMethod.Post.toString,
         HttpSinkConfigDef.HttpEndpointProp       -> s"http://$Host:${server.port()}/awesome/endpoint",
-        HttpSinkConfigDef.HttpRequestContentProp -> "test",
+        HttpSinkConfigDef.HttpRequestContentProp -> "test {{value.name}}",
         HttpSinkConfigDef.AuthenticationTypeProp -> noAuthentication,
         HttpSinkConfigDef.BatchCountProp         -> "1",
         ERROR_REPORTING_ENABLED_PROP             -> "false",

@@ -15,14 +15,12 @@
  */
 package io.lenses.streamreactor.connect.http.sink
 
-import cats.effect.FiberIO
 import cats.effect.IO
 import cats.effect.Ref
 import cats.effect.Resource
 import cats.effect.kernel.Deferred
 import cats.effect.kernel.Outcome
 import cats.effect.kernel.Temporal
-import cats.implicits.catsSyntaxOptionId
 import cats.implicits.toTraverseOps
 import com.typesafe.scalalogging.LazyLogging
 import com.typesafe.scalalogging.StrictLogging
@@ -53,7 +51,21 @@ import java.time.Duration
 import scala.collection.immutable.Queue
 import scala.concurrent.duration.DurationInt
 
+/**
+  * The `HttpWriterManager` object provides a factory method to create an instance of `HttpWriterManager`.
+  */
 object HttpWriterManager extends StrictLogging {
+
+  /**
+    * Creates an instance of `HttpWriterManager`.
+    *
+    * @param sinkName The name of the sink.
+    * @param config The HTTP sink configuration.
+    * @param template The template type.
+    * @param terminate A deferred value to signal termination.
+    * @param t An implicit `Temporal` instance.
+    * @return An `IO` action that creates an `HttpWriterManager`.
+    */
   def apply(
     sinkName:  String,
     config:    HttpSinkConfig,
@@ -85,10 +97,11 @@ object HttpWriterManager extends StrictLogging {
     )
 
     val clientResource: Resource[IO, Client[IO]] = JdkHttpClient[IO](httpClient)
+
     for {
       (client, cResRel) <- clientResource.allocated
       retriableClient    = Retry(retriablePolicy)(client)
-      httpWritersRef    <- Ref.of[IO, Map[Topic, HttpWriter]](Map.empty)
+      writersRef        <- Ref.of[IO, Map[Topic, HttpWriter]](Map.empty)
       sender <- HttpRequestSender(
         sinkName,
         config.method.toHttp4sMethod,
@@ -103,7 +116,7 @@ object HttpWriterManager extends StrictLogging {
       sender,
       if (commitPolicy.conditions.nonEmpty) commitPolicy else HttpCommitPolicy.Default,
       cResRel,
-      httpWritersRef,
+      writersRef,
       terminate,
       config.errorThreshold,
       config.uploadSyncPeriod,
@@ -113,9 +126,14 @@ object HttpWriterManager extends StrictLogging {
     )
   }
 
-  /*
-    Returns true if parameter is a Left or if the response contains a retriable status(as per HTTP spec)
-   */
+  /**
+    * Determines if the result is an error or contains a retriable status code.
+    *
+    * @param result The result to check.
+    * @param statusCodes The set of retriable status codes.
+    * @tparam F The effect type.
+    * @return `true` if the result is an error or contains a retriable status code, `false` otherwise.
+    */
   def isErrorOrRetriableStatus[F[_]](result: Either[Throwable, Response[F]], statusCodes: Set[Int]): Boolean =
     result match {
       case Right(resp)                     => statusCodes(resp.status.code)
@@ -123,6 +141,24 @@ object HttpWriterManager extends StrictLogging {
       case _                               => true
     }
 }
+
+/**
+  * The `HttpWriterManager` class manages HTTP writers and handles the logic for processing and committing records.
+  *
+  * @param sinkName The name of the sink.
+  * @param template The template type.
+  * @param httpRequestSender The HTTP request sender.
+  * @param commitPolicy The commit policy.
+  * @param close An `IO` action to close the manager.
+  * @param writersRef A reference to the map of HTTP writers.
+  * @param deferred A deferred value to signal termination.
+  * @param errorThreshold The error threshold.
+  * @param uploadSyncPeriod The upload synchronization period.
+  * @param tidyJson Whether to tidy JSON.
+  * @param errorReportingController The error reporting controller.
+  * @param successReportingController The success reporting controller.
+  * @param t An implicit `Temporal` instance.
+  */
 class HttpWriterManager(
   sinkName:                   String,
   template:                   TemplateType,
@@ -141,44 +177,62 @@ class HttpWriterManager(
   t: Temporal[IO],
 ) extends LazyLogging {
 
-  private def createNewHttpWriter(): HttpWriter =
-    new HttpWriter(
-      sinkName     = sinkName,
-      commitPolicy = commitPolicy,
-      sender       = httpRequestSender,
-      template     = template,
-      Ref.unsafe[IO, Queue[RenderedRecord]](Queue()),
-      Ref.unsafe[IO, HttpCommitContext](HttpCommitContext.default(sinkName)),
-      errorThreshold,
-      tidyJson,
-      errorReportingController,
-      successReportingController,
+  /**
+    * Creates a new HTTP writer.
+    *
+    * @return An `IO` action that creates a new `HttpWriter`.
+    */
+  private def createNewHttpWriter(): IO[HttpWriter] =
+    for {
+      commitPolicy     <- IO.pure(commitPolicy)
+      recordsQueueRef  <- Ref.of[IO, Queue[RenderedRecord]](Queue.empty)
+      commitContextRef <- Ref.of[IO, HttpCommitContext](HttpCommitContext.default(sinkName))
+    } yield new HttpWriter(
+      sinkName = sinkName,
+      sender   = httpRequestSender,
+      template = template,
+      recordsQueue =
+        new RecordsQueue(recordsQueueRef, commitContextRef, commitPolicy),
+      errorThreshold   = errorThreshold,
+      tidyJson         = tidyJson,
+      errorReporter    = errorReportingController,
+      successReporter  = successReportingController,
+      commitContextRef = commitContextRef,
     )
 
+  /**
+    * Closes the reporting controllers.
+    */
   def closeReportingControllers(): Unit = {
     errorReportingController.close()
     successReportingController.close()
   }
 
-  def getWriter(topic: Topic): IO[HttpWriter] = {
-    var foundWriter = Option.empty[HttpWriter]
-    for {
-      _ <- writersRef.getAndUpdate {
-        writers =>
-          foundWriter = writers.get(topic)
-          if (foundWriter.nonEmpty) {
-            writers // no update
-          } else {
-            val newWriter = createNewHttpWriter()
-            foundWriter = newWriter.some
-            writers + (topic -> newWriter)
-          }
-      }
-      o <- IO.fromOption(foundWriter)(new IllegalStateException("No writer found"))
-    } yield o
-  }
+  /**
+    * Gets or creates an HTTP writer for the given topic.
+    *
+    * @param topic The topic for which to get or create the writer.
+    * @return An `IO` action that returns the `HttpWriter`.
+    */
+  def getWriter(topic: Topic): IO[HttpWriter] =
+    writersRef.access.flatMap {
+      case (currentValue, updater) =>
+        currentValue.get(topic) match {
+          case Some(value) => IO.pure(value)
+          case None => for {
+              newWriter <- createNewHttpWriter()
+              _         <- updater(currentValue + (topic -> newWriter))
+            } yield newWriter
+        }
+    }
 
-  // answers the question: what have you committed?
+  /**
+    * Pre-commits the current offsets.
+    * (answers the question: what have you committed?)
+    *
+    * @param currentOffsets The current offsets.
+    * @return An `IO` action that returns the pre-committed offsets.
+    */
   def preCommit(currentOffsets: Map[TopicPartition, OffsetAndMetadata]): IO[Map[TopicPartition, OffsetAndMetadata]] = {
 
     val currentOffsetsGroupedIO: IO[Map[Topic, Map[TopicPartition, OffsetAndMetadata]]] = IO
@@ -195,8 +249,15 @@ class HttpWriterManager(
           writer.preCommit(curr(topic))
       }.map(_.flatten.toMap)
     } yield res
+
   }
 
+  /**
+    * Starts the `HttpWriterManager`.
+    *
+    * @param errCallback The error callback.
+    * @return An `IO` action that starts the manager.
+    */
   def start(errCallback: Throwable => IO[Unit]): IO[Unit] = {
     import scala.concurrent.duration._
     for {
@@ -214,6 +275,13 @@ class HttpWriterManager(
     } yield ()
   }
 
+  /**
+    * Handles the result of the writer processes.
+    *
+    * @param writersResult The result of the writer processes.
+    * @param errCallback The error callback.
+    * @return An `IO` action that handles the result.
+    */
   private def handleResult(
     writersResult: List[Either[Throwable, _]],
     errCallback:   Throwable => IO[Unit],
@@ -231,34 +299,46 @@ class HttpWriterManager(
       }
     } yield ()
 
-  def process(): IO[List[Either[Throwable, Unit]]] = {
-    logger.trace(s"[$sinkName] WriterManager.process()")
-    writersRef.get.flatMap { writersMap =>
-      if (writersMap.isEmpty) {
-        logger.info(s"[$sinkName] HttpWriterManager has no writers.  Perhaps no records have been put to the sink yet.")
+  /**
+    * Processes the writers.
+    *
+    * @return An `IO` action that processes the writers.
+    */
+  private def process(): IO[List[Either[Throwable, Unit]]] =
+    for {
+      // Log the start of the processing
+      _ <- IO.delay(logger.trace(s"[$sinkName] WriterManager.process()"))
+
+      // Retrieve the current writers
+      writers <- writersRef.get
+
+      // Log if there are no writers
+      _ <- IO.whenA(writers.isEmpty) {
+        IO.delay(
+          logger.info(
+            s"[$sinkName] HttpWriterManager has no writers. " +
+              "Perhaps no records have been put to the sink yet.",
+          ),
+        )
       }
 
-      // Create an IO action for each writer to process it in parallel
-      val fiberIOs: List[IO[FiberIO[_]]] = writersMap.map {
+      // Create a list of fiber-starting IO operations for each writer
+      fiberIOs = writers.toList.map {
         case (id, writer) =>
-          logger.trace(s"[$sinkName] starting process for writer $id")
-          writer.process().start
-      }.toList
-
-      // Return a list of Fibers
-      fiberIOs.traverse { e =>
-        val f = e.flatMap(_.join.attempt).flatMap {
-          case Left(value: Throwable) => IO.pure(Left(value))
-          case Right(value: Outcome[IO, Throwable, _]) => value match {
-              case Outcome.Succeeded(_)   => IO.pure(Right(()))
-              case Outcome.Errored(error) => IO.pure(Left(error))
-              case Outcome.Canceled()     => IO.raiseError(new RuntimeException("IO canceled"))
-            }
-        }
-        f
+          IO.delay(logger.trace(s"[$sinkName] Starting process for writer $id")) *>
+            writer.process().attempt.start
       }
 
-    }
-  }
+      // Execute all fiber-starting IO operations sequentially
+      fibers <- fiberIOs.sequence
 
+      // Collect the results from all fibers
+      results <- fibers.traverse { fiber =>
+        fiber.join.flatMap {
+          case Outcome.Succeeded(io) => io
+          case Outcome.Errored(e)    => IO.pure(Left(e))
+          case Outcome.Canceled()    => IO.pure(Left(new RuntimeException("IO canceled")))
+        }
+      }
+    } yield results
 }
