@@ -30,8 +30,7 @@ import java.nio.ByteBuffer
 import java.time.Instant
 import scala.jdk.CollectionConverters.ListHasAsScala
 
-/**
-  * It expects the payload to be the envelope:
+/** It expects the payload to be the envelope:
   *
   * {{{
   *  {
@@ -91,13 +90,15 @@ class SchemaAndValueEnvelopeConverter(
         }
     }
 
-    val partition = if (fields.contains("metadata")) {
-      struct.get("metadata").asInstanceOf[org.apache.kafka.connect.data.Struct].getInt32("partition")
-    } else this.partition
+    val partition =
+      if (fields.contains("metadata")) {
+        struct.get("metadata").asInstanceOf[org.apache.kafka.connect.data.Struct].getInt32("partition")
+      } else this.partition
 
-    val timestamp: Long = if (fields.contains("metadata")) {
-      struct.get("metadata").asInstanceOf[org.apache.kafka.connect.data.Struct].getInt64("timestamp")
-    } else instantF().toEpochMilli
+    val timestamp: Long =
+      if (fields.contains("metadata")) {
+        struct.get("metadata").asInstanceOf[org.apache.kafka.connect.data.Struct].getInt64("timestamp")
+      } else instantF().toEpochMilli
 
     new SourceRecord(
       watermarkPartition,

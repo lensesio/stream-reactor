@@ -24,8 +24,7 @@ import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexManager
 import io.lenses.streamreactor.connect.cloud.common.storage.FileMetadata
 
-/**
-  * The `WriterIndexer` class provides the indexing operations for a Writer.
+/** The `WriterIndexer` class provides the indexing operations for a Writer.
   * It handles the optional nature of the `IndexManager` and provides methods for writing and cleaning the index.
   *
   * @constructor create a new `WriterIndexer` with an optional `IndexManager`.
@@ -36,8 +35,7 @@ class WriterIndexer[SM <: FileMetadata](maybeIndexManager: Option[IndexManager[S
 
   def indexingEnabled(): Boolean = maybeIndexManager.nonEmpty
 
-  /**
-    * Executes a function with the `IndexManager` and a provided value if both are present.
+  /** Executes a function with the `IndexManager` and a provided value if both are present.
     *
     * @param option An optional value of type `A`. If present, the function `f` will be executed with this value and the `IndexManager`.
     * @param f      A function that takes an `IndexManager` and a value of type `A` and returns an `Either[SinkError, B]`.
@@ -55,8 +53,7 @@ class WriterIndexer[SM <: FileMetadata](maybeIndexManager: Option[IndexManager[S
     } yield f(indexManager, value)
   }.sequence
 
-  /**
-    * Writes an index entry.
+  /** Writes an index entry.
     *
     * @param topicPartition The `TopicPartition` for which to write the index entry.
     * @param bucket The bucket in which the index entry is to be written.
@@ -74,8 +71,7 @@ class WriterIndexer[SM <: FileMetadata](maybeIndexManager: Option[IndexManager[S
       indexManager.write(bucket, path, topicPartition.withOffset(uncommittedOffset))
     }
 
-  /**
-    * Cleans an index entry.
+  /** Cleans an index entry.
     *
     * @param topicPartition The `TopicPartition` for which to clean the index entry.
     * @param key The `CloudLocation` of the index entry to be cleaned.

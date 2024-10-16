@@ -15,8 +15,7 @@
  */
 package io.lenses.streamreactor.connect.cloud.common.sink.extractors
 
-/**
-  * Object responsible for splitting a path string into segments.
+/** Object responsible for splitting a path string into segments.
   * The path string is expected to contain segments separated by dots ('.').
   * Segments can be quoted to include dots as part of the segment.
   *
@@ -28,8 +27,7 @@ package io.lenses.streamreactor.connect.cloud.common.sink.extractors
   */
 object QuotedPathSplitter {
 
-  /**
-    * Splits a path string into segments.
+  /** Splits a path string into segments.
     * The path string is expected to contain segments separated by dots ('.').
     * Segments can be quoted to include dots as part of the segment.
     *

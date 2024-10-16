@@ -20,8 +20,7 @@ import enumeratum.EnumEntry
 
 import scala.collection.immutable
 
-/**
-  * The `PartitionSpecifier` object is an enumeration used to specify the type of partitioning to be applied.
+/** The `PartitionSpecifier` object is an enumeration used to specify the type of partitioning to be applied.
   * It provides different options for partitioning such as by Key, Value, Header, Topic, Partition, and Date.
   * Generally this is used transitively as the specifier will be mapped to a specific type of 'PartitionField' along with the value.
   */

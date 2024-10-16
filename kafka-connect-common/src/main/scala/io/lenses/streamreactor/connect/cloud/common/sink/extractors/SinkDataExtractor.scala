@@ -25,13 +25,11 @@ import io.lenses.streamreactor.connect.cloud.common.sink.conversion.PrimitiveSin
 import io.lenses.streamreactor.connect.cloud.common.sink.conversion.SinkData
 import io.lenses.streamreactor.connect.cloud.common.sink.conversion.StructSinkData
 
-/**
-  * Extracts values from a SinkData wrapper type
+/** Extracts values from a SinkData wrapper type
   */
 object SinkDataExtractor extends LazyLogging {
 
-  /**
-    * Returns the value of a struct as a String for text output
+  /** Returns the value of a struct as a String for text output
     */
   def extractPathFromSinkData(
     sinkData:     SinkData,

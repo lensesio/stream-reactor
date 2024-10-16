@@ -19,8 +19,7 @@ import java.io.BufferedReader
 import java.io.InputStream
 import java.io.InputStreamReader
 
-/**
-  * Reads records from an input stream. A record starts when a line matching start is found and ends when a line matching
+/** Reads records from an input stream. A record starts when a line matching start is found and ends when a line matching
   * end is found. The start and end lines are included in the record.
   * If the file ends and there is no end, the record is ignored
   *

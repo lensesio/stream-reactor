@@ -40,8 +40,7 @@ object SinkRecordConverter extends StrictLogging {
 
   ISO_DATE_FORMAT.setTimeZone(TimeZone.getTimeZone("UTC"))
 
-  /**
-    * Creates a Mongo document from a HashMap
+  /** Creates a Mongo document from a HashMap
     *
     * @param map
     * @return
@@ -55,8 +54,7 @@ object SinkRecordConverter extends StrictLogging {
     doc
   }
 
-  /**
-    * Creates a Mongo document from a the Kafka Struct
+  /** Creates a Mongo document from a the Kafka Struct
     *
     * @param record
     * @return
@@ -237,8 +235,7 @@ object SinkRecordConverter extends StrictLogging {
     convertToDocument(record.valueSchema(), record.value()).asInstanceOf[Document]
   }
 
-  /**
-    * Creates a Mongo document from Json
+  /** Creates a Mongo document from Json
     *
     * @param record - The instance to the json node
     * @return An instance of a mongo document
@@ -293,8 +290,7 @@ object SinkRecordConverter extends StrictLogging {
     doc
   }
 
-  /**
-    * Convert timestamps based on settings' jsonDateTimeFields.
+  /** Convert timestamps based on settings' jsonDateTimeFields.
     * @param doc
     * @return Unit - the input document is modified in-place!
     */
@@ -330,7 +326,10 @@ object SinkRecordConverter extends StrictLogging {
           case n: Int if n > 1 => {
             val testVal = lastDoc.get(head.get)
             testVal match {
-              case subDoc: java.util.Map[String, Object] @unchecked => // Document implements Map, HashMap is used sometimes too for subdocs
+              case subDoc: java.util.Map[
+                    String,
+                    Object,
+                  ] @unchecked => // Document implements Map, HashMap is used sometimes too for subdocs
                 convertValue(remainingParts.tail, subDoc)
               case subList: java.util.List[_] =>
                 subList.asScala.foreach {

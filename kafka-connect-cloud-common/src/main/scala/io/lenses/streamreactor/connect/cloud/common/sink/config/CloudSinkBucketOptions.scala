@@ -95,8 +95,7 @@ object CloudSinkBucketOptions extends LazyLogging {
       }
     }.toSeq.traverse(identity)
 
-  /**
-    * When non-envelope storage is used the fast seeks cannot not be achieved since the data stored does
+  /** When non-envelope storage is used the fast seeks cannot not be achieved since the data stored does
     * not guarantee the timestamp is present. Therefore, we use the V0 key namer.
     *
     * @param keyNameVersion

@@ -17,8 +17,7 @@ package io.lenses.streamreactor.connect.cloud.common.utils
 
 object MapUtils {
 
-  /**
-    * Kafka Connect provides properties both in the SinkTask.start as
+  /** Kafka Connect provides properties both in the SinkTask.start as
     * well as enables reading the properties via the Connector contextProps.
     * This is a simple utility to merge the properties from both sources.
     *

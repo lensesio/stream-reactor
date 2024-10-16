@@ -24,8 +24,7 @@ import org.apache.kafka.connect.connector.ConnectRecord
 import scala.collection.immutable.Seq
 import scala.collection.mutable
 
-/**
-  * Created by andrew@datamountaineer.com on 03/03/2017.
+/** Created by andrew@datamountaineer.com on 03/03/2017.
   * kafka-connect-common
   */
 case class ProgressCounter(periodMillis: Int = 60000) extends StrictLogging {

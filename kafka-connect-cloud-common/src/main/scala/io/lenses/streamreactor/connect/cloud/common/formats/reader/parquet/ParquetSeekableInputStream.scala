@@ -23,8 +23,7 @@ import java.io.EOFException
 import java.io.InputStream
 import java.nio.ByteBuffer
 
-/**
-  * A custom implementation of `SeekableInputStream` for reading Parquet files.
+/** A custom implementation of `SeekableInputStream` for reading Parquet files.
   * This class supports seeking to a specific position in the input stream and reading data.
   *
   * @param recreateStreamF a function that recreates the input stream.
@@ -39,8 +38,7 @@ class ParquetSeekableInputStream(recreateStreamF: () => Either[Throwable, InputS
   private var inputStream: InputStream = recreateStreamF().leftMap(throw _).merge
   private val maxChunkSize = 10 * 1024 * 1024 // 10 MB
 
-  /**
-    * Returns the current position in the input stream.
+  /** Returns the current position in the input stream.
     *
     * @return the current position.
     */
@@ -49,8 +47,7 @@ class ParquetSeekableInputStream(recreateStreamF: () => Either[Throwable, InputS
     pos
   }
 
-  /**
-    * Seeks to the specified position in the input stream.
+  /** Seeks to the specified position in the input stream.
     *
     * @param requestedPos the position to seek to.
     * @throws EOFException if the end of the stream is reached before the requested position.
@@ -62,21 +59,21 @@ class ParquetSeekableInputStream(recreateStreamF: () => Either[Throwable, InputS
       inputStream = recreateStreamF().leftMap(throw _).merge
       logger.trace("reloading input stream, old input stream ref: {}, new input stream: {}", oldIsRef, inputStream)
     }
-    val bytesToSkip = if (requestedPos < pos) {
-      logger.debug(s"Seeking from $pos to position $requestedPos - (Going backwards!)")
-      reloadInputStream()
-      requestedPos
-    } else {
-      logger.debug(s"Seeking from $pos to position $requestedPos")
-      requestedPos - pos
-    }
+    val bytesToSkip =
+      if (requestedPos < pos) {
+        logger.debug(s"Seeking from $pos to position $requestedPos - (Going backwards!)")
+        reloadInputStream()
+        requestedPos
+      } else {
+        logger.debug(s"Seeking from $pos to position $requestedPos")
+        requestedPos - pos
+      }
     val skipped = inputStream.skip(bytesToSkip)
     validateSeek(requestedPos, bytesToSkip, skipped)
     pos = requestedPos
   }
 
-  /**
-    * Reads data from the input stream in chunks and handles the end-of-stream condition.
+  /** Reads data from the input stream in chunks and handles the end-of-stream condition.
     *
     * @param buffer the array to read data into.
     * @param offset the start offset in the array.
@@ -97,8 +94,7 @@ class ParquetSeekableInputStream(recreateStreamF: () => Either[Throwable, InputS
     totalBytesRead
   }
 
-  /**
-    * Reads data from the input stream into the specified `ByteBuffer`.
+  /** Reads data from the input stream into the specified `ByteBuffer`.
     *
     * @param buf the buffer to read data into.
     * @return the number of bytes read, or -1 if the end of the stream is reached.
@@ -111,8 +107,7 @@ class ParquetSeekableInputStream(recreateStreamF: () => Either[Throwable, InputS
     bytesRead
   }
 
-  /**
-    * Reads data from the input stream into the specified byte array.
+  /** Reads data from the input stream into the specified byte array.
     *
     * @param bytes the array to read data into.
     * @throws EOFException if the end of the stream is reached before the array is filled.
@@ -122,8 +117,7 @@ class ParquetSeekableInputStream(recreateStreamF: () => Either[Throwable, InputS
     validateBytesRead(bytes.length, bytesRead)
   }
 
-  /**
-    * Reads data from the input stream into the specified byte array starting at the given offset.
+  /** Reads data from the input stream into the specified byte array starting at the given offset.
     *
     * @param bytes the array to read data into.
     * @param start the start offset in the array.
@@ -135,8 +129,7 @@ class ParquetSeekableInputStream(recreateStreamF: () => Either[Throwable, InputS
     validateBytesRead(len, bytesRead)
   }
 
-  /**
-    * Reads data from the input stream into the specified `ByteBuffer`.
+  /** Reads data from the input stream into the specified `ByteBuffer`.
     *
     * @param buf the buffer to read data into.
     * @throws EOFException if the end of the stream is reached before the buffer is filled.
@@ -150,8 +143,7 @@ class ParquetSeekableInputStream(recreateStreamF: () => Either[Throwable, InputS
     ()
   }
 
-  /**
-    * Reads data from the input stream into the specified byte array.
+  /** Reads data from the input stream into the specified byte array.
     * This method uses chunking to handle large reads efficiently.
     *
     * @param bytes the array to read data into.
@@ -159,8 +151,7 @@ class ParquetSeekableInputStream(recreateStreamF: () => Either[Throwable, InputS
     */
   override def read(bytes: Array[Byte]): Int = readInChunks(bytes, 0, bytes.length)
 
-  /**
-    * Reads the next byte of data from the input stream.
+  /** Reads the next byte of data from the input stream.
     *
     * @return the next byte of data, or -1 if the end of the stream is reached.
     */
@@ -172,8 +163,7 @@ class ParquetSeekableInputStream(recreateStreamF: () => Either[Throwable, InputS
     result
   }
 
-  /**
-    * Skips over and discards the specified number of bytes from the input stream.
+  /** Skips over and discards the specified number of bytes from the input stream.
     *
     * @param n the number of bytes to skip.
     * @return the actual number of bytes skipped.
@@ -184,8 +174,7 @@ class ParquetSeekableInputStream(recreateStreamF: () => Either[Throwable, InputS
     skipped
   }
 
-  /**
-    * Validates that the seek operation was successful.
+  /** Validates that the seek operation was successful.
     *
     * @param requestedPos the requested position.
     * @param bytesToSkip the number of bytes to skip.
@@ -200,8 +189,7 @@ class ParquetSeekableInputStream(recreateStreamF: () => Either[Throwable, InputS
     }
   }
 
-  /**
-    * Validates that the number of bytes read matches the expected number of bytes to read.
+  /** Validates that the number of bytes read matches the expected number of bytes to read.
     * Throws an `EOFException` if the end of the stream is reached before the expected number of bytes is read.
     *
     * @param bytesToRead the expected number of bytes to read.
