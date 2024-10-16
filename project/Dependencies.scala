@@ -84,10 +84,10 @@ object Dependencies {
     val azureDataLakeVersion              = "12.21.0"
     val azureIdentityVersion              = "1.14.0"
     val azureCoreVersion                  = "1.53.0"
-    val msal4jVersion                     = "1.16.1"
+    val msal4jVersion                     = "1.16.2"
     val msal4jPersistenceExtensionVersion = "1.3.0"
     val gcpCloudVersion                   = "2.45.0"
-    val gcpCloudStorageVersion            = "2.43.1"
+    val gcpCloudStorageVersion            = "2.43.2"
 
     val woodstoxVersion     = "7.0.0"
     val jacksonVersion      = "2.18.0"
@@ -139,12 +139,12 @@ object Dependencies {
     val gsonVersion  = "2.11.0"
 
     val classGraphVersion           = "4.8.177"
-    val nimbusJoseJwtVersion        = "9.40"
+    val nimbusJoseJwtVersion        = "9.41.2"
     val hadoopVersion               = "3.4.0"
     val hadoopShadedProtobufVersion = "1.2.0"
 
     val airCompressorVersion = "2.0.2"
-    val zstdVersion          = "1.5.6-4"
+    val zstdVersion          = "1.5.6-6"
 
     trait ElasticVersions {
       val elastic4sVersion, elasticSearchVersion, jnaVersion: String
