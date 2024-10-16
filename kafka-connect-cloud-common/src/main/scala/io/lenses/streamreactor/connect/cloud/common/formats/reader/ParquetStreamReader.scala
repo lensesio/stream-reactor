@@ -49,9 +49,6 @@ class ParquetStreamReader(
 
 }
 
-// recreateInputStreamFn = Either[Throwable, InputStream]
-// recreateSeekableInputStreamFn = Either[Throwable, SeekableInputStream]
-
 object ParquetStreamReader {
   def apply(
     size:      Long,
