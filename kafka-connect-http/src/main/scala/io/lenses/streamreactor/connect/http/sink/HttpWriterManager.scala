@@ -21,8 +21,6 @@ import cats.effect.Resource
 import cats.effect.kernel.Deferred
 import cats.effect.kernel.Outcome
 import cats.effect.kernel.Temporal
-import cats.effect.std.Mutex
-import cats.effect.unsafe.implicits.global
 import cats.implicits.toTraverseOps
 import com.typesafe.scalalogging.LazyLogging
 import com.typesafe.scalalogging.StrictLogging
@@ -50,10 +48,24 @@ import org.http4s.jdkhttpclient.JdkHttpClient
 
 import java.net.http.HttpClient
 import java.time.Duration
-import scala.collection.mutable
+import scala.collection.immutable.Queue
 import scala.concurrent.duration.DurationInt
 
+/**
+  * The `HttpWriterManager` object provides a factory method to create an instance of `HttpWriterManager`.
+  */
 object HttpWriterManager extends StrictLogging {
+
+  /**
+    * Creates an instance of `HttpWriterManager`.
+    *
+    * @param sinkName The name of the sink.
+    * @param config The HTTP sink configuration.
+    * @param template The template type.
+    * @param terminate A deferred value to signal termination.
+    * @param t An implicit `Temporal` instance.
+    * @return An `IO` action that creates an `HttpWriterManager`.
+    */
   def apply(
     sinkName:  String,
     config:    HttpSinkConfig,
@@ -85,11 +97,11 @@ object HttpWriterManager extends StrictLogging {
     )
 
     val clientResource: Resource[IO, Client[IO]] = JdkHttpClient[IO](httpClient)
-    val writersMap = mutable.Map[Topic, HttpWriter]()
 
     for {
       (client, cResRel) <- clientResource.allocated
       retriableClient    = Retry(retriablePolicy)(client)
+      writersRef        <- Ref.of[IO, Map[Topic, HttpWriter]](Map.empty)
       sender <- HttpRequestSender(
         sinkName,
         config.method.toHttp4sMethod,
@@ -97,15 +109,14 @@ object HttpWriterManager extends StrictLogging {
         config.authentication,
       )
       commitPolicy = config.batch.toCommitPolicy
-      writersLock <- Mutex[IO]
+
     } yield new HttpWriterManager(
       sinkName,
       template,
       sender,
       if (commitPolicy.conditions.nonEmpty) commitPolicy else HttpCommitPolicy.Default,
       cResRel,
-      writersMap,
-      writersLock,
+      writersRef,
       terminate,
       config.errorThreshold,
       config.uploadSyncPeriod,
@@ -115,9 +126,14 @@ object HttpWriterManager extends StrictLogging {
     )
   }
 
-  /*
-    Returns true if parameter is a Left or if the response contains a retriable status(as per HTTP spec)
-   */
+  /**
+    * Determines if the result is an error or contains a retriable status code.
+    *
+    * @param result The result to check.
+    * @param statusCodes The set of retriable status codes.
+    * @tparam F The effect type.
+    * @return `true` if the result is an error or contains a retriable status code, `false` otherwise.
+    */
   def isErrorOrRetriableStatus[F[_]](result: Either[Throwable, Response[F]], statusCodes: Set[Int]): Boolean =
     result match {
       case Right(resp)                     => statusCodes(resp.status.code)
@@ -125,14 +141,31 @@ object HttpWriterManager extends StrictLogging {
       case _                               => true
     }
 }
+
+/**
+  * The `HttpWriterManager` class manages HTTP writers and handles the logic for processing and committing records.
+  *
+  * @param sinkName The name of the sink.
+  * @param template The template type.
+  * @param httpRequestSender The HTTP request sender.
+  * @param commitPolicy The commit policy.
+  * @param close An `IO` action to close the manager.
+  * @param writersRef A reference to the map of HTTP writers.
+  * @param deferred A deferred value to signal termination.
+  * @param errorThreshold The error threshold.
+  * @param uploadSyncPeriod The upload synchronization period.
+  * @param tidyJson Whether to tidy JSON.
+  * @param errorReportingController The error reporting controller.
+  * @param successReportingController The success reporting controller.
+  * @param t An implicit `Temporal` instance.
+  */
 class HttpWriterManager(
   sinkName:                   String,
   template:                   TemplateType,
   httpRequestSender:          HttpRequestSender,
   commitPolicy:               CommitPolicy,
   val close:                  IO[Unit],
-  writersMap:                 mutable.Map[Topic, HttpWriter],
-  writersLock:                Mutex[IO],
+  writersRef:                 Ref[IO, Map[Topic, HttpWriter]],
   deferred:                   Deferred[IO, Either[Throwable, Unit]],
   errorThreshold:             Int,
   uploadSyncPeriod:           Int,
@@ -143,17 +176,23 @@ class HttpWriterManager(
   implicit
   t: Temporal[IO],
 ) extends LazyLogging {
+
+  /**
+    * Creates a new HTTP writer.
+    *
+    * @return An `IO` action that creates a new `HttpWriter`.
+    */
   private def createNewHttpWriter(): IO[HttpWriter] =
     for {
       commitPolicy     <- IO.pure(commitPolicy)
-      recordsQueueLock <- Mutex[IO]
+      recordsQueueRef  <- Ref.of[IO, Queue[RenderedRecord]](Queue.empty)
       commitContextRef <- Ref.of[IO, HttpCommitContext](HttpCommitContext.default(sinkName))
     } yield new HttpWriter(
       sinkName = sinkName,
       sender   = httpRequestSender,
       template = template,
       recordsQueue =
-        new RecordsQueue(mutable.Queue[RenderedRecord](), recordsQueueLock, commitContextRef, commitPolicy),
+        new RecordsQueue(recordsQueueRef, commitContextRef, commitPolicy),
       errorThreshold   = errorThreshold,
       tidyJson         = tidyJson,
       errorReporter    = errorReportingController,
@@ -161,20 +200,39 @@ class HttpWriterManager(
       commitContextRef = commitContextRef,
     )
 
+  /**
+    * Closes the reporting controllers.
+    */
   def closeReportingControllers(): Unit = {
     errorReportingController.close()
     successReportingController.close()
   }
 
+  /**
+    * Gets or creates an HTTP writer for the given topic.
+    *
+    * @param topic The topic for which to get or create the writer.
+    * @return An `IO` action that returns the `HttpWriter`.
+    */
   def getWriter(topic: Topic): IO[HttpWriter] =
-    writersLock.lock.surround {
-      IO {
-        writersMap
-          .getOrElseUpdate(topic, createNewHttpWriter().unsafeRunSync())
-      }
+    writersRef.access.flatMap {
+      case (currentValue, updater) =>
+        currentValue.get(topic) match {
+          case Some(value) => IO.pure(value)
+          case None => for {
+              newWriter <- createNewHttpWriter()
+              _         <- updater(currentValue + (topic -> newWriter))
+            } yield newWriter
+        }
     }
 
-  // answers the question: what have you committed?
+  /**
+    * Pre-commits the current offsets.
+    * (answers the question: what have you committed?)
+    *
+    * @param currentOffsets The current offsets.
+    * @return An `IO` action that returns the pre-committed offsets.
+    */
   def preCommit(currentOffsets: Map[TopicPartition, OffsetAndMetadata]): IO[Map[TopicPartition, OffsetAndMetadata]] = {
 
     val currentOffsetsGroupedIO: IO[Map[Topic, Map[TopicPartition, OffsetAndMetadata]]] = IO
@@ -183,17 +241,23 @@ class HttpWriterManager(
         case (TopicPartition(topic, _), _) => topic
       })
 
-    writersLock.lock.surround {
-      for {
-        curr <- currentOffsetsGroupedIO
-        res <- writersMap.toList.traverse {
-          case (topic, writer) =>
-            writer.preCommit(curr(topic))
-        }.map(_.flatten.toMap)
-      } yield res
-    }
+    for {
+      curr    <- currentOffsetsGroupedIO
+      writers <- writersRef.get
+      res <- writers.toList.traverse {
+        case (topic, writer) =>
+          writer.preCommit(curr(topic))
+      }.map(_.flatten.toMap)
+    } yield res
+
   }
 
+  /**
+    * Starts the `HttpWriterManager`.
+    *
+    * @param errCallback The error callback.
+    * @return An `IO` action that starts the manager.
+    */
   def start(errCallback: Throwable => IO[Unit]): IO[Unit] = {
     import scala.concurrent.duration._
     for {
@@ -211,6 +275,13 @@ class HttpWriterManager(
     } yield ()
   }
 
+  /**
+    * Handles the result of the writer processes.
+    *
+    * @param writersResult The result of the writer processes.
+    * @param errCallback The error callback.
+    * @return An `IO` action that handles the result.
+    */
   private def handleResult(
     writersResult: List[Either[Throwable, _]],
     errCallback:   Throwable => IO[Unit],
@@ -228,21 +299,27 @@ class HttpWriterManager(
       }
     } yield ()
 
+  /**
+    * Processes the writers.
+    *
+    * @return An `IO` action that processes the writers.
+    */
   private def process(): IO[List[Either[Throwable, Unit]]] =
     for {
       _ <- IO.delay(logger.trace(s"[$sinkName] WriterManager.process()"))
-      fiberIOs <- writersLock.lock.surround {
-        for {
-          _ <- IO.whenA(writersMap.isEmpty) {
-            IO.delay(logger.info(
-              s"[$sinkName] HttpWriterManager has no writers. Perhaps no records have been put to the sink yet.",
-            ))
-          }
-          fiberIOs = writersMap.toList.map {
-            case (id, writer) =>
-              IO.delay(logger.trace(s"[$sinkName] starting process for writer $id")) *> writer.process().attempt.start
-          }
-        } yield fiberIOs
+      fiberIOs <- writersRef.get.flatMap {
+        writers =>
+          for {
+            _ <- IO.whenA(writers.isEmpty) {
+              IO.delay(logger.info(
+                s"[$sinkName] HttpWriterManager has no writers. Perhaps no records have been put to the sink yet.",
+              ))
+            }
+            fiberIOs = writers.toList.map {
+              case (id, writer) =>
+                IO.delay(logger.trace(s"[$sinkName] starting process for writer $id")) *> writer.process().attempt.start
+            }
+          } yield fiberIOs
       }
       fibers <- fiberIOs.sequence
       results <- fibers.traverse { fiber =>

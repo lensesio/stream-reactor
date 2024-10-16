@@ -18,7 +18,6 @@ package io.lenses.streamreactor.connect.http.sink
 import cats.data.NonEmptySeq
 import cats.effect.IO
 import cats.effect.kernel.Ref
-import cats.effect.std.Mutex
 import cats.effect.testing.scalatest.AsyncIOSpec
 import io.lenses.streamreactor.connect.cloud.common.model.Topic
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
@@ -30,7 +29,7 @@ import org.mockito.MockitoSugar
 import org.scalatest.funsuite.AsyncFunSuiteLike
 import org.scalatest.matchers.should.Matchers
 
-import scala.collection.mutable
+import scala.collection.immutable.Queue
 
 class RecordsQueueTest extends AsyncFunSuiteLike with AsyncIOSpec with MockitoSugar with Matchers {
 
@@ -44,18 +43,18 @@ class RecordsQueueTest extends AsyncFunSuiteLike with AsyncIOSpec with MockitoSu
   private val record2 = RenderedRecord(topicPartition.atOffset(101), timestamp, "record2", Seq.empty, None)
 
   test("enqueueAll should add all records to the queue") {
-    val records = Seq(record1, record2)
-
     {
       for {
-        commitContext <- Ref[IO].of(defaultContext)
-        mutex         <- Mutex[IO]
-        recordsQueue   = new RecordsQueue(mutable.Queue.empty[RenderedRecord], mutex, commitContext, mock[CommitPolicy])
-        _             <- recordsQueue.enqueueAll(records)
-      } yield recordsQueue
+        commitContext   <- Ref[IO].of(defaultContext)
+        recordsQueueRef <- Ref[IO].of(Queue.empty[RenderedRecord])
+        recordsQueue     = new RecordsQueue(recordsQueueRef, commitContext, mock[CommitPolicy])
+        _               <- recordsQueue.enqueueAll(Seq(record1, record2))
+        refValue        <- recordsQueueRef.get
+      } yield refValue
     } asserting {
-      recordsQueue =>
-        recordsQueue.recordsQueue should contain theSameElementsInOrderAs records
+      backingQueue =>
+        backingQueue.size should be(2)
+        backingQueue should contain theSameElementsInOrderAs Seq(record1, record2)
     }
   }
 
@@ -65,10 +64,10 @@ class RecordsQueueTest extends AsyncFunSuiteLike with AsyncIOSpec with MockitoSu
 
     {
       for {
-        commitContext <- Ref[IO].of(defaultContext)
-        mutex         <- Mutex[IO]
-        recordsQueue   = new RecordsQueue(mutable.Queue(record1, record2), mutex, commitContext, commitPolicy)
-        batchInfo     <- recordsQueue.takeBatch()
+        commitContext   <- Ref[IO].of(defaultContext)
+        recordsQueueRef <- Ref[IO].of(Queue(record1, record2))
+        recordsQueue     = new RecordsQueue(recordsQueueRef, commitContext, commitPolicy)
+        batchInfo       <- recordsQueue.takeBatch()
       } yield batchInfo
     } asserting {
       case EmptyBatchInfo(totalQueueSize) => totalQueueSize shouldBe 2
@@ -79,10 +78,10 @@ class RecordsQueueTest extends AsyncFunSuiteLike with AsyncIOSpec with MockitoSu
   test("takeBatch should return an empty batch when the queue is empty") {
     {
       for {
-        commitContext <- Ref[IO].of(defaultContext)
-        mutex         <- Mutex[IO]
-        recordsQueue   = new RecordsQueue(mutable.Queue.empty[RenderedRecord], mutex, commitContext, mock[CommitPolicy])
-        batchInfo     <- recordsQueue.takeBatch()
+        commitContext   <- Ref[IO].of(defaultContext)
+        recordsQueueRef <- Ref[IO].of(Queue.empty[RenderedRecord])
+        recordsQueue     = new RecordsQueue(recordsQueueRef, commitContext, mock[CommitPolicy])
+        batchInfo       <- recordsQueue.takeBatch()
       } yield batchInfo
     } asserting {
       case EmptyBatchInfo(totalQueueSize) => totalQueueSize shouldBe 0
@@ -95,14 +94,15 @@ class RecordsQueueTest extends AsyncFunSuiteLike with AsyncIOSpec with MockitoSu
 
     {
       for {
-        commitContext <- Ref[IO].of(defaultContext)
-        mutex         <- Mutex[IO]
-        recordsQueue   = new RecordsQueue(mutable.Queue(record1, record2), mutex, commitContext, mock[CommitPolicy])
-        _             <- recordsQueue.dequeue(records)
-      } yield recordsQueue
+        commitContext   <- Ref[IO].of(defaultContext)
+        recordsQueueRef <- Ref[IO].of(Queue(record1, record2))
+        recordsQueue     = new RecordsQueue(recordsQueueRef, commitContext, mock[CommitPolicy])
+        _               <- recordsQueue.dequeue(records)
+        refValue        <- recordsQueueRef.get
+      } yield refValue
     } asserting {
-      recordsQueue =>
-        recordsQueue.recordsQueue should contain theSameElementsInOrderAs Seq(record2)
+      backingQueue =>
+        backingQueue should contain theSameElementsInOrderAs Seq(record2)
     }
   }
 
@@ -111,14 +111,15 @@ class RecordsQueueTest extends AsyncFunSuiteLike with AsyncIOSpec with MockitoSu
 
     {
       for {
-        commitContext <- Ref[IO].of(defaultContext)
-        mutex         <- Mutex[IO]
-        recordsQueue   = new RecordsQueue(mutable.Queue(record1), mutex, commitContext, mock[CommitPolicy])
-        _             <- recordsQueue.dequeue(records)
-      } yield recordsQueue
+        commitContext   <- Ref[IO].of(defaultContext)
+        recordsQueueRef <- Ref[IO].of(Queue(record1))
+        recordsQueue     = new RecordsQueue(recordsQueueRef, commitContext, mock[CommitPolicy])
+        _               <- recordsQueue.dequeue(records)
+        refValue        <- recordsQueueRef.get
+      } yield refValue
     } asserting {
-      recordsQueue =>
-        recordsQueue.recordsQueue should contain theSameElementsInOrderAs Seq(record1)
+      backingQueue =>
+        backingQueue should contain theSameElementsInOrderAs Seq(record1)
     }
   }
 }
