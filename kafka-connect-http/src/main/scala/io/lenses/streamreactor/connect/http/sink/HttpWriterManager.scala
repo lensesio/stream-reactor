@@ -306,22 +306,33 @@ class HttpWriterManager(
     */
   private def process(): IO[List[Either[Throwable, Unit]]] =
     for {
+      // Log the start of the processing
       _ <- IO.delay(logger.trace(s"[$sinkName] WriterManager.process()"))
-      fiberIOs <- writersRef.get.flatMap {
-        writers =>
-          for {
-            _ <- IO.whenA(writers.isEmpty) {
-              IO.delay(logger.info(
-                s"[$sinkName] HttpWriterManager has no writers. Perhaps no records have been put to the sink yet.",
-              ))
-            }
-            fiberIOs = writers.toList.map {
-              case (id, writer) =>
-                IO.delay(logger.trace(s"[$sinkName] starting process for writer $id")) *> writer.process().attempt.start
-            }
-          } yield fiberIOs
+
+      // Retrieve the current writers
+      writers <- writersRef.get
+
+      // Log if there are no writers
+      _ <- IO.whenA(writers.isEmpty) {
+        IO.delay(
+          logger.info(
+            s"[$sinkName] HttpWriterManager has no writers. " +
+              "Perhaps no records have been put to the sink yet.",
+          ),
+        )
       }
+
+      // Create a list of fiber-starting IO operations for each writer
+      fiberIOs = writers.toList.map {
+        case (id, writer) =>
+          IO.delay(logger.trace(s"[$sinkName] Starting process for writer $id")) *>
+            writer.process().attempt.start
+      }
+
+      // Execute all fiber-starting IO operations sequentially
       fibers <- fiberIOs.sequence
+
+      // Collect the results from all fibers
       results <- fibers.traverse { fiber =>
         fiber.join.flatMap {
           case Outcome.Succeeded(io) => io
