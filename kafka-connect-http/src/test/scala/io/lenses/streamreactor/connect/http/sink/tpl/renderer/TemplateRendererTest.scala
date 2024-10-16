@@ -96,9 +96,9 @@ class TemplateRendererTest extends AnyFunSuiteLike with Matchers with EitherValu
     result.value shouldBe testValue
   }
 
-  test("getValue should handle None locator without throwing NPE") {
+  test("getValue should handle locator that returns null without throwing NPE") {
     val result =
-      new TemplateRenderer(TestSubstitutionTypeEnum).getTagValueFromData("testsubstitutiontype", testSinkRecord)
-    result.left.value.getMessage shouldBe "SubstitutionType returned null"
+      new TemplateRenderer(SubstitutionType).getTagValueFromData("value", testSinkRecord)
+    result.value shouldBe ""
   }
 }
