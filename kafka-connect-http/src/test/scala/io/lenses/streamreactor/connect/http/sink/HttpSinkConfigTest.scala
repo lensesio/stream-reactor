@@ -23,6 +23,7 @@ import io.lenses.streamreactor.connect.http.sink.client.NoAuthentication
 import io.lenses.streamreactor.connect.http.sink.config.HttpSinkConfigDef.ErrorThresholdDefault
 import io.lenses.streamreactor.connect.http.sink.config.HttpSinkConfigDef.UploadSyncPeriodDefault
 import io.lenses.streamreactor.connect.http.sink.config._
+import org.apache.kafka.common.config.ConfigException
 import org.scalatest.EitherValues
 import org.scalatest.funsuite.AnyFunSuiteLike
 import org.scalatest.matchers.should.Matchers
@@ -120,5 +121,83 @@ class HttpSinkConfigTest extends AnyFunSuiteLike with Matchers with EitherValues
     httpSinkConfig.errorReportingController == null shouldBe false
     httpSinkConfig.successReportingController == null shouldBe false
 
+  }
+
+  test("NullPayloadHandler should be NullLiteralNullPayloadHandler when configured as 'null'") {
+    val httpSinkConfig = HttpSinkConfig.from(
+      Map(
+        HttpSinkConfigDef.HttpMethodProp         -> "put",
+        HttpSinkConfigDef.HttpEndpointProp       -> "http://myaddress.example.com",
+        HttpSinkConfigDef.HttpRequestContentProp -> "<note>\n<to>Dave</to>\n<from>Jason</from>\n<body>Hooray for Kafka Connect!</body>\n</note>",
+        HttpSinkConfigDef.NullPayloadHandler     -> "null",
+        ERROR_REPORTING_ENABLED_PROP             -> "false",
+        SUCCESS_REPORTING_ENABLED_PROP           -> "false",
+      ),
+    ).value
+
+    httpSinkConfig.nullPayloadHandler should be(NullLiteralNullPayloadHandler)
+  }
+
+  test("NullPayloadHandler should be ErrorNullPayloadHandler when configured as 'error'") {
+    val httpSinkConfig = HttpSinkConfig.from(
+      Map(
+        HttpSinkConfigDef.HttpMethodProp         -> "put",
+        HttpSinkConfigDef.HttpEndpointProp       -> "http://myaddress.example.com",
+        HttpSinkConfigDef.HttpRequestContentProp -> "<note>\n<to>Dave</to>\n<from>Jason</from>\n<body>Hooray for Kafka Connect!</body>\n</note>",
+        HttpSinkConfigDef.NullPayloadHandler     -> "error",
+        ERROR_REPORTING_ENABLED_PROP             -> "false",
+        SUCCESS_REPORTING_ENABLED_PROP           -> "false",
+      ),
+    ).value
+
+    httpSinkConfig.nullPayloadHandler should be(ErrorNullPayloadHandler)
+  }
+
+  test("NullPayloadHandler should be EmptyStringNullPayloadHandler when configured as 'empty'") {
+    val httpSinkConfig = HttpSinkConfig.from(
+      Map(
+        HttpSinkConfigDef.HttpMethodProp         -> "put",
+        HttpSinkConfigDef.HttpEndpointProp       -> "http://myaddress.example.com",
+        HttpSinkConfigDef.HttpRequestContentProp -> "<note>\n<to>Dave</to>\n<from>Jason</from>\n<body>Hooray for Kafka Connect!</body>\n</note>",
+        HttpSinkConfigDef.NullPayloadHandler     -> "empty",
+        ERROR_REPORTING_ENABLED_PROP             -> "false",
+        SUCCESS_REPORTING_ENABLED_PROP           -> "false",
+      ),
+    ).value
+
+    httpSinkConfig.nullPayloadHandler should be(EmptyStringNullPayloadHandler)
+  }
+
+  test("NullPayloadHandler should be CustomNullPayloadHandler when configured as 'custom' with a custom value") {
+    val customValue = "customValue"
+    val httpSinkConfig = HttpSinkConfig.from(
+      Map(
+        HttpSinkConfigDef.HttpMethodProp           -> "put",
+        HttpSinkConfigDef.HttpEndpointProp         -> "http://myaddress.example.com",
+        HttpSinkConfigDef.HttpRequestContentProp   -> "<note>\n<to>Dave</to>\n<from>Jason</from>\n<body>Hooray for Kafka Connect!</body>\n</note>",
+        HttpSinkConfigDef.NullPayloadHandler       -> "custom",
+        HttpSinkConfigDef.CustomNullPayloadHandler -> customValue,
+        ERROR_REPORTING_ENABLED_PROP               -> "false",
+        SUCCESS_REPORTING_ENABLED_PROP             -> "false",
+      ),
+    ).value
+
+    httpSinkConfig.nullPayloadHandler should be(CustomNullPayloadHandler(customValue))
+  }
+
+  test("NullPayloadHandler should throw ConfigException for an invalid handler name") {
+    val result = HttpSinkConfig.from(
+      Map(
+        HttpSinkConfigDef.HttpMethodProp         -> "put",
+        HttpSinkConfigDef.HttpEndpointProp       -> "http://myaddress.example.com",
+        HttpSinkConfigDef.HttpRequestContentProp -> "<note>\n<to>Dave</to>\n<from>Jason</from>\n<body>Hooray for Kafka Connect!</body>\n</note>",
+        HttpSinkConfigDef.NullPayloadHandler     -> "invalidHandler",
+        ERROR_REPORTING_ENABLED_PROP             -> "false",
+        SUCCESS_REPORTING_ENABLED_PROP           -> "false",
+      ),
+    )
+
+    result.left.value shouldBe a[ConfigException]
+    result.left.value.getMessage shouldBe "Invalid null payload handler specified"
   }
 }

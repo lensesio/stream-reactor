@@ -64,7 +64,7 @@ class HttpSinkTask extends SinkTask with LazyLogging with JarManifestProvided {
 
     (for {
       config        <- IO.fromEither(HttpSinkConfig.from(propsAsScala))
-      template       = RawTemplate(config.endpoint, config.content, config.headers)
+      template       = RawTemplate(config.endpoint, config.content, config.headers, config.nullPayloadHandler)
       writerManager <- HttpWriterManager.apply(sinkName, config, template, deferred)
       _             <- writerManager.start(refUpdateCallback)
     } yield {

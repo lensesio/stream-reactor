@@ -16,6 +16,7 @@
 package io.lenses.streamreactor.connect.http.sink.tpl
 
 import com.typesafe.scalalogging.LazyLogging
+import io.lenses.streamreactor.connect.http.sink.config.ErrorNullPayloadHandler
 import org.apache.kafka.connect.sink.SinkRecord
 import org.mockito.MockitoSugar.mock
 import org.mockito.MockitoSugar.when
@@ -34,6 +35,7 @@ class RawTemplateTest extends AnyFunSuite with Matchers with EitherValues with L
         ("HeaderKey1", "HeaderValue1"),
         ("HeaderKey2", "HeaderValue2"),
       ),
+      nullPayloadHandler = ErrorNullPayloadHandler,
     )
 
     val sinkRecord = mock[SinkRecord]
@@ -58,6 +60,7 @@ class RawTemplateTest extends AnyFunSuite with Matchers with EitherValues with L
         ("HeaderKey1-{{topic}}", "HeaderValue1-{{topic}}"),
         ("HeaderKey2-{{partition}}", "HeaderValue2-{{partition}}"),
       ),
+      nullPayloadHandler = ErrorNullPayloadHandler,
     )
 
     val sinkRecord = mock[SinkRecord]

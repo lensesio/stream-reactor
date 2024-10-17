@@ -88,6 +88,7 @@ case class HttpSinkConfig(
   headers:                    List[(String, String)],
   ssl:                        StoresInfo,
   batch:                      BatchConfig,
+  nullPayloadHandler:         NullPayloadHandler,
   errorThreshold:             Int,
   uploadSyncPeriod:           Int,
   retries:                    RetriesConfig,
@@ -115,8 +116,12 @@ object HttpSinkConfig {
         connectConfig,
         AuthenticationKeys(BasicAuthenticationUsernameProp, BasicAuthenticationPasswordProp, AuthenticationTypeProp),
       )
-      ssl             <- CyclopsToScalaEither.convertToScalaEither(StoresInfo.fromConfig(connectConfig))
-      batch            = BatchConfig.from(connectConfig)
+      ssl  <- CyclopsToScalaEither.convertToScalaEither(StoresInfo.fromConfig(connectConfig))
+      batch = BatchConfig.from(connectConfig)
+      nullPayloadHandler <- NullPayloadHandler(
+        connectConfig.getString(HttpSinkConfigDef.NullPayloadHandler),
+        connectConfig.getString(HttpSinkConfigDef.CustomNullPayloadHandler),
+      )
       errorThreshold   = connectConfig.getInt(HttpSinkConfigDef.ErrorThresholdProp)
       uploadSyncPeriod = connectConfig.getInt(HttpSinkConfigDef.UploadSyncPeriodProp)
       maxRetries       = connectConfig.getInt(HttpSinkConfigDef.RetriesMaxRetriesProp)
@@ -157,6 +162,7 @@ object HttpSinkConfig {
       headers,
       ssl,
       batch,
+      nullPayloadHandler,
       errorThreshold,
       uploadSyncPeriod,
       retries,
