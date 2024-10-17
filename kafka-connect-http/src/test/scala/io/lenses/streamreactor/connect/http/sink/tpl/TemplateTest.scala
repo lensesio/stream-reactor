@@ -15,6 +15,7 @@
  */
 package io.lenses.streamreactor.connect.http.sink.tpl
 
+import io.lenses.streamreactor.connect.http.sink.config.ErrorNullPayloadHandler
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaBuilder
 import org.apache.kafka.connect.data.Struct
@@ -66,6 +67,7 @@ class TemplateTest extends AnyFunSuiteLike with Matchers with EitherValues {
           |  <groupDomain>{{value.groupDomain}}</groupDomain>
           |</xml>""".stripMargin,
       Seq(),
+      nullPayloadHandler = ErrorNullPayloadHandler,
     )
 
     val rendered = processedTemplate.renderRecords(Seq(record))
@@ -112,6 +114,7 @@ class TemplateTest extends AnyFunSuiteLike with Matchers with EitherValues {
       endpoint = "http://{{value.groupDomain}}.example.com/{{value.orderNo}}/{{value.employeeId}}/{{topic}}",
       content  = multiTemplate,
       Seq(),
+      nullPayloadHandler = ErrorNullPayloadHandler,
     )
 
     val rendered = processedTemplate.renderRecords(records)
@@ -171,6 +174,7 @@ class TemplateTest extends AnyFunSuiteLike with Matchers with EitherValues {
       endpoint = "http://{{value.groupDomain}}.example.com/{{value.orderNo}}/{{value.employeeId}}/{{topic}}",
       content  = normalized(multiTemplate),
       Seq(),
+      nullPayloadHandler = ErrorNullPayloadHandler,
     )
 
     val rendered = processedTemplate.renderRecords(records)

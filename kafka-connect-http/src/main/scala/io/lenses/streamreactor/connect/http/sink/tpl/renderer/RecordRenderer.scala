@@ -19,6 +19,7 @@ import cats.implicits._
 import io.lenses.streamreactor.connect.cloud.common.model.Offset
 import io.lenses.streamreactor.connect.cloud.common.model.Topic
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartitionOffset
+import io.lenses.streamreactor.connect.http.sink.config.NullPayloadHandler
 import io.lenses.streamreactor.connect.http.sink.tpl.substitutions.SubstitutionError
 import io.lenses.streamreactor.connect.http.sink.tpl.RenderedRecord
 import io.lenses.streamreactor.connect.http.sink.tpl.substitutions.SubstitutionType
@@ -29,50 +30,55 @@ object RecordRenderer {
   private val templateRenderer = new TemplateRenderer[SubstitutionType](SubstitutionType)
 
   def renderRecords(
-    data:        Seq[SinkRecord],
-    endpointTpl: Option[String],
-    contentTpl:  String,
-    headers:     Seq[(String, String)],
+    data:               Seq[SinkRecord],
+    endpointTpl:        Option[String],
+    contentTpl:         String,
+    headers:            Seq[(String, String)],
+    nullPayloadHandler: NullPayloadHandler,
   ): Either[SubstitutionError, Seq[RenderedRecord]] =
-    data.map(renderRecord(_, endpointTpl, contentTpl, headers)).sequence
+    data.map(renderRecord(_, endpointTpl, contentTpl, headers, nullPayloadHandler)).sequence
   def renderRecord(
-    sinkRecord:  SinkRecord,
-    endpointTpl: Option[String],
-    contentTpl:  String,
-    headers:     Seq[(String, String)],
+    sinkRecord:         SinkRecord,
+    endpointTpl:        Option[String],
+    contentTpl:         String,
+    headers:            Seq[(String, String)],
+    nullPayloadHandler: NullPayloadHandler,
   ): Either[SubstitutionError, RenderedRecord] = {
     val topicPartitionOffset: TopicPartitionOffset =
       Topic(sinkRecord.topic()).withPartition(sinkRecord.kafkaPartition()).withOffset(Offset(sinkRecord.kafkaOffset()))
 
     for {
-      recordRend:   String <- templateRenderer.render(sinkRecord, contentTpl)
-      headersRend:  Seq[(String, String)] <- renderHeaders(sinkRecord, headers)
-      endpointRend: Option[String] <- renderEndpoint(sinkRecord, endpointTpl)
+      recordRend:   String <- templateRenderer.render(sinkRecord, contentTpl, nullPayloadHandler)
+      headersRend:  Seq[(String, String)] <- renderHeaders(sinkRecord, headers, nullPayloadHandler)
+      endpointRend: Option[String] <- renderEndpoint(sinkRecord, endpointTpl, nullPayloadHandler)
     } yield RenderedRecord(topicPartitionOffset, sinkRecord.timestamp(), recordRend, headersRend, endpointRend)
   }
 
   private def renderHeader(
-    sinkRecord: SinkRecord,
-    header:     (String, String),
+    sinkRecord:         SinkRecord,
+    header:             (String, String),
+    nullPayloadHandler: NullPayloadHandler,
   ): Either[SubstitutionError, (String, String)] =
     header match {
       case (hKey, hVal) =>
         for {
-          k <- templateRenderer.render(sinkRecord, hKey)
-          v <- templateRenderer.render(sinkRecord, hVal)
+          k <- templateRenderer.render(sinkRecord, hKey, nullPayloadHandler)
+          v <- templateRenderer.render(sinkRecord, hVal, nullPayloadHandler)
         } yield k -> v
     }
 
   private def renderHeaders(
-    sinkRecord: SinkRecord,
-    headers:    Seq[(String, String)],
+    sinkRecord:         SinkRecord,
+    headers:            Seq[(String, String)],
+    nullPayloadHandler: NullPayloadHandler,
   ): Either[SubstitutionError, Seq[(String, String)]] =
-    headers.map(h => renderHeader(sinkRecord, h)).sequence
+    headers.map(h => renderHeader(sinkRecord, h, nullPayloadHandler)).sequence
 
   private def renderEndpoint(
-    sinkRecord:  SinkRecord,
-    endpointTpl: Option[String],
+    sinkRecord:         SinkRecord,
+    endpointTpl:        Option[String],
+    nullPayloadHandler: NullPayloadHandler,
   ): Either[SubstitutionError, Option[String]] =
-    endpointTpl.map(tpl => templateRenderer.render(sinkRecord, tpl)).sequence
+    endpointTpl.map(tpl => templateRenderer.render(sinkRecord, tpl, nullPayloadHandler)).sequence
 
 }

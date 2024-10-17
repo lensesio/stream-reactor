@@ -18,6 +18,7 @@ package io.lenses.streamreactor.connect.http.sink.tpl
 import cats.implicits.catsSyntaxEitherId
 import cats.implicits.catsSyntaxOptionId
 import cats.implicits.toTraverseOps
+import io.lenses.streamreactor.connect.http.sink.config.NullPayloadHandler
 import io.lenses.streamreactor.connect.http.sink.tpl.JsonTidy.cleanUp
 import io.lenses.streamreactor.connect.http.sink.tpl.renderer.RecordRenderer
 import io.lenses.streamreactor.connect.http.sink.tpl.substitutions.SubstitutionError
@@ -26,14 +27,19 @@ import org.apache.kafka.connect.sink.SinkRecord
 object RawTemplate {
   private val innerTemplatePattern = """\{\{#message}}([\s\S]*?)\{\{/message}}""".r
 
-  def apply(endpoint: String, content: String, headers: Seq[(String, String)]): TemplateType =
+  def apply(
+    endpoint:           String,
+    content:            String,
+    headers:            Seq[(String, String)],
+    nullPayloadHandler: NullPayloadHandler,
+  ): TemplateType =
     innerTemplatePattern.findFirstMatchIn(content) match {
       case Some(innerTemplate) =>
         val start = content.substring(0, innerTemplate.start)
         val end   = content.substring(innerTemplate.end)
-        TemplateWithInnerLoop(endpoint, start, end, innerTemplate.group(1), headers)
+        TemplateWithInnerLoop(endpoint, start, end, innerTemplate.group(1), headers, nullPayloadHandler)
       case None =>
-        SimpleTemplate(endpoint, content, headers)
+        SimpleTemplate(endpoint, content, headers, nullPayloadHandler)
     }
 }
 
@@ -48,13 +54,14 @@ trait TemplateType {
 
 // this template type will require individual requests, the messages can't be batched
 case class SimpleTemplate(
-  endpoint: String,
-  content:  String,
-  headers:  Seq[(String, String)],
+  endpoint:           String,
+  content:            String,
+  headers:            Seq[(String, String)],
+  nullPayloadHandler: NullPayloadHandler,
 ) extends TemplateType {
 
   override def renderRecords(records: Seq[SinkRecord]): Either[SubstitutionError, Seq[RenderedRecord]] =
-    RecordRenderer.renderRecords(records, endpoint.some, content, headers)
+    RecordRenderer.renderRecords(records, endpoint.some, content, headers, nullPayloadHandler)
 
   override def process(records: Seq[RenderedRecord], tidyJson: Boolean): Either[SubstitutionError, ProcessedTemplate] =
     records.headOption match {
@@ -65,11 +72,12 @@ case class SimpleTemplate(
 }
 
 case class TemplateWithInnerLoop(
-  endpoint:      String,
-  prefixContent: String,
-  suffixContent: String,
-  innerTemplate: String,
-  headers:       Seq[(String, String)],
+  endpoint:           String,
+  prefixContent:      String,
+  suffixContent:      String,
+  innerTemplate:      String,
+  headers:            Seq[(String, String)],
+  nullPayloadHandler: NullPayloadHandler,
 ) extends TemplateType {
 
   override def renderRecords(records: Seq[SinkRecord]): Either[SubstitutionError, Seq[RenderedRecord]] =
@@ -80,6 +88,7 @@ case class TemplateWithInnerLoop(
           Option.when(i == 0)(endpoint),
           innerTemplate,
           headers,
+          nullPayloadHandler,
         )
     }.sequence
 

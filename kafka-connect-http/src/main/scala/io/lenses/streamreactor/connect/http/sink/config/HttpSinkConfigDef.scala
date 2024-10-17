@@ -146,6 +146,18 @@ object HttpSinkConfigDef {
       |Tidy the output json.
       |""".stripMargin
 
+  val CustomNullPayloadHandler: String = "connect.http.null.payload.handler.custom"
+  val CustomNullPayloadHandlerDoc: String =
+    """
+      |Custom string to use in place of a null template.
+      |""".stripMargin
+
+  val NullPayloadHandler: String = "connect.http.null.payload.handler"
+  val NullPayloadHandlerDoc: String =
+    s"""
+       |Literal to output in templates in place of a null payload.  Values are `error` (raises an error), `empty` (empty string, eg ""), `null` (the literal 'null') or `custom` (a string of your choice, as defined by `$CustomNullPayloadHandler`). `Defaults to `error`.
+       |""".stripMargin
+
   val config: ConfigDef = {
     val configDef = new ConfigDef()
       .withClientSslSupport()
@@ -265,6 +277,20 @@ object HttpSinkConfigDef {
         false,
         Importance.HIGH,
         JsonTidyPropDoc,
+      )
+      .define(
+        NullPayloadHandler,
+        Type.STRING,
+        "error",
+        Importance.HIGH,
+        NullPayloadHandlerDoc,
+      )
+      .define(
+        CustomNullPayloadHandler,
+        Type.STRING,
+        "",
+        Importance.HIGH,
+        CustomNullPayloadHandlerDoc,
       )
     ReporterConfig.withErrorRecordReportingSupport(configDef)
     ReporterConfig.withSuccessRecordReportingSupport(configDef)
