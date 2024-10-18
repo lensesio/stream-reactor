@@ -1,5 +1,5 @@
 plugins {
-    id 'com.gradleup.shadow' version '8.3.2'
+    id 'com.gradleup.shadow' version '8.3.3'
     id 'com.diffplug.spotless' version "6.25.0"
     id 'java'
     id 'java-library'
@@ -214,6 +214,7 @@ task releaseModuleList() {
         "test-utils",
         "kafka-connect-cloud-common",
         "kafka-connect-common",
+        "kafka-connect-gcp-common",
         "kafka-connect-query-language",
         "kafka-connect-sink-reporting"
     ]
