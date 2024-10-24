@@ -19,8 +19,7 @@ import java.io.InputStream
 import scala.io.BufferedSource
 import scala.io.Source
 
-/**
-  * Reads the lines from the input stream if the line starts with a given prefix
+/** Reads the lines from the input stream if the line starts with a given prefix
   *
   * @param input
   * @param prefix

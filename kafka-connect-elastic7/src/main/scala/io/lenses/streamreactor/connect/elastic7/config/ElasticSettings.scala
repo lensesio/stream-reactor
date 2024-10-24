@@ -21,8 +21,7 @@ import io.lenses.streamreactor.common.errors.ErrorPolicy
 import io.lenses.streamreactor.common.security.StoresInfo
 import io.lenses.streamreactor.common.util.EitherUtils.unpackOrThrow
 
-/**
-  * Created by andrew@datamountaineer.com on 13/05/16.
+/** Created by andrew@datamountaineer.com on 13/05/16.
   * stream-reactor-maven
   */
 case class ElasticSettings(

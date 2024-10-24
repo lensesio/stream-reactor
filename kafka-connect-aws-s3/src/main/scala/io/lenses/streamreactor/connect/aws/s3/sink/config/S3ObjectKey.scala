@@ -65,8 +65,7 @@ object S3ObjectKey {
 
   }
 
-  /**
-    * Validates a prefix is valid. It should not start and end with /.
+  /** Validates a prefix is valid. It should not start and end with /.
     * Allows 0-9,a-z,A-Z,!, - , _, ., *, ', ), (, and /.
     * Does not start and end with /
     *

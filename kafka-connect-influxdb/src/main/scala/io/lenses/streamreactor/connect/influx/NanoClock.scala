@@ -20,8 +20,7 @@ import java.time.Clock
 import java.time.Instant
 import java.time.ZoneId
 
-/**
-  * Trying to work against JVM time precision where Nano support is not provided until Java 9.
+/** Trying to work against JVM time precision where Nano support is not provided until Java 9.
   * @param clock
   */
 class NanoClock(val clock: Clock) {

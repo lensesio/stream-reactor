@@ -31,8 +31,7 @@ import java.time.Instant
 
 case class AccessTokenResponse(token: String, tokenType: String, expiresIn: Option[Long]) {
 
-  /**
-    * Convert the response to an access token.
+  /** Convert the response to an access token.
     * @param startTimestamp - The epoch time before the token request was issued. This is used to calculate the expiry time.
     * @return
     */

@@ -15,8 +15,7 @@
  */
 package io.lenses.streamreactor.connect.cloud.common.storage
 
-/**
-  * A class used to filter files based on their extensions.
+/** A class used to filter files based on their extensions.
   * It allows to include or exclude files with certain extensions.
   *
   * @constructor create a new ExtensionFilter with allowed and excluded extensions.
@@ -28,8 +27,7 @@ class ExtensionFilter(
   val excludedExtensions: Set[String],
 ) {
 
-  /**
-    * Filters the metadata of a file based on its extension.
+  /** Filters the metadata of a file based on its extension.
     *
     * @param metadata the metadata of the file to be filtered.
     * @return true if the file passes the filter, false otherwise.
@@ -37,8 +35,7 @@ class ExtensionFilter(
   def filter[MD <: FileMetadata](metadata: MD): Boolean =
     ExtensionFilter.performFilterLogic(metadata.file.toLowerCase, allowedExtensions, excludedExtensions)
 
-  /**
-    * Filters a file based on its name.
+  /** Filters a file based on its name.
     *
     * @param fileName the name of the file to be filtered.
     * @return true if the file passes the filter, false otherwise.

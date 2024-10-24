@@ -51,13 +51,11 @@ import java.time.Duration
 import scala.collection.immutable.Queue
 import scala.concurrent.duration.DurationInt
 
-/**
-  * The `HttpWriterManager` object provides a factory method to create an instance of `HttpWriterManager`.
+/** The `HttpWriterManager` object provides a factory method to create an instance of `HttpWriterManager`.
   */
 object HttpWriterManager extends StrictLogging {
 
-  /**
-    * Creates an instance of `HttpWriterManager`.
+  /** Creates an instance of `HttpWriterManager`.
     *
     * @param sinkName The name of the sink.
     * @param config The HTTP sink configuration.
@@ -126,8 +124,7 @@ object HttpWriterManager extends StrictLogging {
     )
   }
 
-  /**
-    * Determines if the result is an error or contains a retriable status code.
+  /** Determines if the result is an error or contains a retriable status code.
     *
     * @param result The result to check.
     * @param statusCodes The set of retriable status codes.
@@ -142,8 +139,7 @@ object HttpWriterManager extends StrictLogging {
     }
 }
 
-/**
-  * The `HttpWriterManager` class manages HTTP writers and handles the logic for processing and committing records.
+/** The `HttpWriterManager` class manages HTTP writers and handles the logic for processing and committing records.
   *
   * @param sinkName The name of the sink.
   * @param template The template type.
@@ -177,8 +173,7 @@ class HttpWriterManager(
   t: Temporal[IO],
 ) extends LazyLogging {
 
-  /**
-    * Creates a new HTTP writer.
+  /** Creates a new HTTP writer.
     *
     * @return An `IO` action that creates a new `HttpWriter`.
     */
@@ -200,16 +195,14 @@ class HttpWriterManager(
       commitContextRef = commitContextRef,
     )
 
-  /**
-    * Closes the reporting controllers.
+  /** Closes the reporting controllers.
     */
   def closeReportingControllers(): Unit = {
     errorReportingController.close()
     successReportingController.close()
   }
 
-  /**
-    * Gets or creates an HTTP writer for the given topic.
+  /** Gets or creates an HTTP writer for the given topic.
     *
     * @param topic The topic for which to get or create the writer.
     * @return An `IO` action that returns the `HttpWriter`.
@@ -226,8 +219,7 @@ class HttpWriterManager(
         }
     }
 
-  /**
-    * Pre-commits the current offsets.
+  /** Pre-commits the current offsets.
     * (answers the question: what have you committed?)
     *
     * @param currentOffsets The current offsets.
@@ -252,8 +244,7 @@ class HttpWriterManager(
 
   }
 
-  /**
-    * Starts the `HttpWriterManager`.
+  /** Starts the `HttpWriterManager`.
     *
     * @param errCallback The error callback.
     * @return An `IO` action that starts the manager.
@@ -275,8 +266,7 @@ class HttpWriterManager(
     } yield ()
   }
 
-  /**
-    * Handles the result of the writer processes.
+  /** Handles the result of the writer processes.
     *
     * @param writersResult The result of the writer processes.
     * @param errCallback The error callback.
@@ -290,17 +280,17 @@ class HttpWriterManager(
       failures <- IO(writersResult.collect {
         case Left(error: Throwable) => error
       })
-      _ <- if (failures.nonEmpty) {
-        logger.error(s"[$sinkName] Some writer processes failed: $failures")
-        failures.traverse(errCallback)
-      } else {
-        logger.debug(s"[$sinkName] All writer processes completed successfully")
-        IO.unit
-      }
+      _ <-
+        if (failures.nonEmpty) {
+          logger.error(s"[$sinkName] Some writer processes failed: $failures")
+          failures.traverse(errCallback)
+        } else {
+          logger.debug(s"[$sinkName] All writer processes completed successfully")
+          IO.unit
+        }
     } yield ()
 
-  /**
-    * Processes the writers.
+  /** Processes the writers.
     *
     * @return An `IO` action that processes the writers.
     */

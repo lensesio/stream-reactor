@@ -23,8 +23,7 @@ import io.lenses.streamreactor.connect.cloud.common.sink.BatchCloudSinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
 import io.lenses.streamreactor.connect.cloud.common.storage.FileMetadata
 
-/**
-  * Manages the commit operations for writers.
+/** Manages the commit operations for writers.
   *
   * @param fnGetWriters Function to retrieve the current map of writers.
   * @param connectorTaskId Implicit task ID for logging purposes.
@@ -37,8 +36,7 @@ class WriterCommitManager[SM <: FileMetadata](
   connectorTaskId: ConnectorTaskId,
 ) extends LazyLogging {
 
-  /**
-    * Commits writers that have pending uploads.
+  /** Commits writers that have pending uploads.
     *
     * @return Either a SinkError or Unit if successful.
     */
@@ -47,8 +45,7 @@ class WriterCommitManager[SM <: FileMetadata](
       case (_, writer) => writer.hasPendingUpload
     }
 
-  /**
-    * Commits writers for a specific topic partition.
+  /** Commits writers for a specific topic partition.
     *
     * @param topicPartition The topic partition to commit writers for.
     * @return Either a BatchCloudSinkError or Unit if successful.
@@ -59,8 +56,7 @@ class WriterCommitManager[SM <: FileMetadata](
         mapKey.topicPartition == topicPartition
     }
 
-  /**
-    * Commits writers that should be flushed.
+  /** Commits writers that should be flushed.
     *
     * @return Either a BatchCloudSinkError or Unit if successful.
     */
@@ -69,8 +65,7 @@ class WriterCommitManager[SM <: FileMetadata](
       case (_, writer) => writer.shouldFlush
     }
 
-  /**
-    * Commits writers that should be flushed for a specific topic partition.
+  /** Commits writers that should be flushed for a specific topic partition.
     *
     * @param topicPartition The topic partition to commit flushable writers for.
     * @return Either a BatchCloudSinkError or Unit if successful.
@@ -80,8 +75,7 @@ class WriterCommitManager[SM <: FileMetadata](
       case (MapKey(tp, _), writer) => tp == topicPartition && writer.shouldFlush
     }
 
-  /**
-    * Commits writers based on a filter function.
+  /** Commits writers based on a filter function.
     *
     * @param keyValueFilterFn The filter function to determine which writers to commit.
     * @return Either a BatchCloudSinkError or Unit if successful.

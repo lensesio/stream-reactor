@@ -49,9 +49,9 @@ object RecordRenderer {
       Topic(sinkRecord.topic()).withPartition(sinkRecord.kafkaPartition()).withOffset(Offset(sinkRecord.kafkaOffset()))
 
     for {
-      recordRend:   String <- templateRenderer.render(sinkRecord, contentTpl, nullPayloadHandler)
+      recordRend:   String                <- templateRenderer.render(sinkRecord, contentTpl, nullPayloadHandler)
       headersRend:  Seq[(String, String)] <- renderHeaders(sinkRecord, headers, nullPayloadHandler)
-      endpointRend: String <- templateRenderer.render(sinkRecord, endpointTpl, nullPayloadHandler)
+      endpointRend: String                <- templateRenderer.render(sinkRecord, endpointTpl, nullPayloadHandler)
     } yield RenderedRecord(topicPartitionOffset, sinkRecord.timestamp(), recordRend, headersRend, endpointRend)
   }
 
