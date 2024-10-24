@@ -47,7 +47,10 @@ class RecordsQueue(
     * @return An `IO` action that enqueues the records.
     */
   def enqueueAll(records: NonEmptySeq[RenderedRecord]): IO[Unit] =
-    recordsQueue.getAndUpdate(q => q ++ records.toSeq).void
+    for {
+      _ <- IO.delay(logger.debug(s"${records.length} records added to $recordsQueue"))
+      _ <- IO(recordsQueue.getAndUpdate(q => q ++ records.toSeq).void)
+    } yield ()
 
   /**
     * Takes a batch of records from the queue based on the commit policy.
@@ -60,7 +63,9 @@ class RecordsQueue(
       queueState <- recordsQueue.get.map { records =>
         (foldRecordsToFindCommit(initialContext, records), records.size)
       }
+
       (result, size) = queueState
+      _             <- IO.delay(logger.debug(s"$size records taken from $recordsQueue"))
     } yield (result, size)
   }.map {
     case (Left((records: Seq[RenderedRecord], lastContext: HttpCommitContext)), size) =>
