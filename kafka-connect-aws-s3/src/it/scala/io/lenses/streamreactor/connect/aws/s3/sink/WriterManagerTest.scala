@@ -46,4 +46,5 @@ class WriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyContainerT
     val result = wm.preCommit(Map(topicPartition -> new OffsetAndMetadata(999)))
     result should be(Map())
   }
+
 }

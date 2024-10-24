@@ -180,7 +180,7 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
           }
 
           if (records.isEmpty) {
-            handleErrors(writerManager.commitAllWritersIfFlushRequired())
+            handleErrors(writerManager.commitFlushableWriters())
           }
         }
       }
