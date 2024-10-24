@@ -15,6 +15,8 @@
  */
 package io.lenses.streamreactor.connect.http.sink
 
+import cats.Order
+import cats.data.NonEmptySeq
 import cats.effect.Deferred
 import cats.effect.IO
 import cats.effect.Ref
@@ -87,15 +89,14 @@ class HttpSinkTask extends SinkTask with LazyLogging with JarManifestProvided {
         storedErrors.map(_.getMessage).mkString(";"))
 
     } else {
-
+      implicit val order = Order.fromOrdering(Topic.orderingByTopicValue)
       logger.trace(s"[$sinkName] building template")
       val template = maybeTemplate.getOrElse(throw new IllegalStateException("No template available in put"))
       val writerManager =
         maybeWriterManager.getOrElse(throw new IllegalStateException("No writer manager available in put"))
 
-      records
-        .asScala
-        .toSeq
+      NonEmptySeq
+        .fromSeqUnsafe(records.asScala.toSeq)
         .map {
           rec =>
             Topic(rec.topic()).withPartition(rec.kafkaPartition()).withOffset(Offset(rec.kafkaOffset())) -> rec

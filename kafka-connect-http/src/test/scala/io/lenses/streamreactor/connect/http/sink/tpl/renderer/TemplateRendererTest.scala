@@ -15,6 +15,7 @@
  */
 package io.lenses.streamreactor.connect.http.sink.tpl.renderer
 
+import cats.data.NonEmptySeq
 import enumeratum.CirceEnum
 import enumeratum.Enum
 import io.lenses.streamreactor.connect.http.sink.config.CustomNullPayloadHandler
@@ -42,7 +43,7 @@ class TemplateRendererTest extends AnyFunSuiteLike with Matchers with EitherValu
     val record2 = new SinkRecord("myTopic", 0, null, null, Schema.STRING_SCHEMA, "\"m2\"", 10)
     val record3 = new SinkRecord("myTopic", 0, null, null, Schema.STRING_SCHEMA, "\"m3\"", 10)
 
-    val records = Seq(record1, record2, record3)
+    val records = NonEmptySeq.of(record1, record2, record3)
 
     val processedTemplate = RawTemplate(
       endpoint = "http://www.example.com",

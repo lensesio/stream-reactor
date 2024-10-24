@@ -39,8 +39,10 @@ class RecordsQueueTest extends AsyncFunSuiteLike with AsyncIOSpec with MockitoSu
 
   private val topicPartition: TopicPartition = Topic("myTopic").withPartition(1)
 
-  private val record1 = RenderedRecord(topicPartition.atOffset(100), timestamp, "record1", Seq.empty, None)
-  private val record2 = RenderedRecord(topicPartition.atOffset(101), timestamp, "record2", Seq.empty, None)
+  private val testEndpoint = "https://mytestendpoint.example.com"
+
+  private val record1 = RenderedRecord(topicPartition.atOffset(100), timestamp, "record1", Seq.empty, testEndpoint)
+  private val record2 = RenderedRecord(topicPartition.atOffset(101), timestamp, "record2", Seq.empty, testEndpoint)
 
   test("enqueueAll should add all records to the queue") {
     {
@@ -48,7 +50,7 @@ class RecordsQueueTest extends AsyncFunSuiteLike with AsyncIOSpec with MockitoSu
         commitContext   <- Ref[IO].of(defaultContext)
         recordsQueueRef <- Ref[IO].of(Queue.empty[RenderedRecord])
         recordsQueue     = new RecordsQueue(recordsQueueRef, commitContext, mock[CommitPolicy])
-        _               <- recordsQueue.enqueueAll(Seq(record1, record2))
+        _               <- recordsQueue.enqueueAll(NonEmptySeq.of(record1, record2))
         refValue        <- recordsQueueRef.get
       } yield refValue
     } asserting {

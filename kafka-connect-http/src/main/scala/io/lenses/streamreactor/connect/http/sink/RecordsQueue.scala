@@ -46,8 +46,8 @@ class RecordsQueue(
     * @param records The records to be enqueued.
     * @return An `IO` action that enqueues the records.
     */
-  def enqueueAll(records: Seq[RenderedRecord]): IO[Unit] =
-    recordsQueue.getAndUpdate(q => q ++ records).void
+  def enqueueAll(records: NonEmptySeq[RenderedRecord]): IO[Unit] =
+    recordsQueue.getAndUpdate(q => q ++ records.toSeq).void
 
   /**
     * Takes a batch of records from the queue based on the commit policy.

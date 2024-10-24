@@ -15,6 +15,7 @@
  */
 package io.lenses.streamreactor.connect.http.sink.tpl
 
+import cats.data.NonEmptySeq
 import io.lenses.streamreactor.connect.http.sink.config.ErrorNullPayloadHandler
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaBuilder
@@ -70,7 +71,7 @@ class TemplateTest extends AnyFunSuiteLike with Matchers with EitherValues {
       nullPayloadHandler = ErrorNullPayloadHandler,
     )
 
-    val rendered = processedTemplate.renderRecords(Seq(record))
+    val rendered = processedTemplate.renderRecords(NonEmptySeq.of(record))
 
     val processed = processedTemplate.process(rendered.value, true)
     processed.value.endpoint should be("http://myExampleGroup.uk.example.com/10/Abcd1234/myTopic")
@@ -108,7 +109,7 @@ class TemplateTest extends AnyFunSuiteLike with Matchers with EitherValues {
     val record1 = new SinkRecord("myTopic", 0, null, null, valueSchema, value1, 9)
     val record2 = new SinkRecord("myTopic", 0, null, null, valueSchema, value2, 10)
 
-    val records = Seq(record1, record2)
+    val records = NonEmptySeq.of(record1, record2)
 
     val processedTemplate = RawTemplate(
       endpoint = "http://{{value.groupDomain}}.example.com/{{value.orderNo}}/{{value.employeeId}}/{{topic}}",
@@ -168,7 +169,7 @@ class TemplateTest extends AnyFunSuiteLike with Matchers with EitherValues {
     val record1 = new SinkRecord("myTopic", 0, null, null, valueSchema, value1, 9)
     val record2 = new SinkRecord("myTopic", 0, null, null, valueSchema, value2, 10)
 
-    val records = Seq(record1, record2)
+    val records = NonEmptySeq.of(record1, record2)
 
     val processedTemplate = RawTemplate(
       endpoint = "http://{{value.groupDomain}}.example.com/{{value.orderNo}}/{{value.employeeId}}/{{topic}}",

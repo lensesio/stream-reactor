@@ -51,7 +51,7 @@ class HttpWriter(
   // TODO: feedback to kafka a warning if the queue gets too large
 
   // adds records to the queue.  Returns immediately - processing occurs asynchronously.
-  def add(newRecords: Seq[RenderedRecord]): IO[Unit] =
+  def add(newRecords: NonEmptySeq[RenderedRecord]): IO[Unit] =
     recordsQueue.enqueueAll(newRecords)
 
   def process(): IO[Unit] = {
@@ -86,7 +86,7 @@ class HttpWriter(
         logger.debug(s"[$sinkName] HttpWriter.process, batch of ${batch.length}, queue size: $totalQueueSize"),
       )
       _                   <- IO.delay(logger.trace(s"[$sinkName] modifyCommitContext for batch of ${nonEmptyBatchInfo.batch.length}"))
-      _                   <- flush(nonEmptyBatchInfo.batch.toSeq)
+      _                   <- flush(nonEmptyBatchInfo.batch)
       updatedCommitContext = updateCommitContextPostCommit(nonEmptyBatchInfo.updatedCommitContext)
       _                   <- IO.delay(logger.trace(s"[$sinkName] Updating sink context to: $updatedCommitContext"))
       _                   <- commitContextRef.set(updatedCommitContext)
@@ -130,7 +130,7 @@ class HttpWriter(
       commitContext => commitContext.resetErrors
     } *> IO.unit
 
-  private def flush(records: Seq[RenderedRecord]): IO[ProcessedTemplate] =
+  private def flush(records: NonEmptySeq[RenderedRecord]): IO[ProcessedTemplate] =
     for {
       processed  <- IO.fromEither(template.process(records, tidyJson))
       httpResult <- sender.sendHttpRequest(processed)
@@ -138,11 +138,11 @@ class HttpWriter(
     } yield processed
 
   private def reportResult(
-    renderedRecords:   Seq[RenderedRecord],
+    renderedRecords:   NonEmptySeq[RenderedRecord],
     processedTemplate: ProcessedTemplate,
     responseIo:        Either[HttpResponseFailure, HttpResponseSuccess],
   ): IO[Unit] = {
-    val maxRecord = OffsetMergeUtils.maxRecord(renderedRecords)
+    val maxRecord = OffsetMergeUtils.maxRecord(renderedRecords.toSeq)
 
     def reportRecord[C <: ConnectorSpecificRecordData]: C => ReportingRecord[C] = (connectorSpecific: C) =>
       new ReportingRecord[C](

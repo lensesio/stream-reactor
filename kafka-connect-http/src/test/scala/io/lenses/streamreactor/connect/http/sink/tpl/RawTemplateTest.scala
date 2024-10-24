@@ -15,6 +15,7 @@
  */
 package io.lenses.streamreactor.connect.http.sink.tpl
 
+import cats.data.NonEmptySeq
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.http.sink.config.ErrorNullPayloadHandler
 import org.apache.kafka.connect.sink.SinkRecord
@@ -42,7 +43,7 @@ class RawTemplateTest extends AnyFunSuite with Matchers with EitherValues with L
     when(sinkRecord.key()).thenReturn("KeyData")
     when(sinkRecord.value()).thenReturn("ValueData")
 
-    val rendered = template.renderRecords(Seq(sinkRecord))
+    val rendered = template.renderRecords(NonEmptySeq.of(sinkRecord))
 
     val processedTemplate = template.process(rendered.value, true)
     processedTemplate.value.endpoint should be("Endpoint: KeyData")
@@ -74,7 +75,7 @@ class RawTemplateTest extends AnyFunSuite with Matchers with EitherValues with L
       "HeaderKey2-100"     -> "HeaderValue2-100",
     )
 
-    val rendered = template.renderRecords(Seq(sinkRecord))
+    val rendered = template.renderRecords(NonEmptySeq.of(sinkRecord))
 
     val processedTemplate = template.process(rendered.value, true)
     processedTemplate.value.headers shouldBe headerResults

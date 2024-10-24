@@ -26,6 +26,8 @@ object Topic {
 
   val All: Topic = Topic("*")
 
+  implicit def orderingByTopicValue: Ordering[Topic] =
+    Ordering.by[Topic, String](_.value)
 }
 
 object Offset {

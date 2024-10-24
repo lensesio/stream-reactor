@@ -48,9 +48,9 @@ class HttpWriterTest extends AsyncIOSpec with AsyncFunSuiteLike with Matchers wi
   private val topicPartition: TopicPartition    = Topic("myTopic").withPartition(1)
   private val defaultContext: HttpCommitContext = HttpCommitContext.default("My Sink")
 
-  private val record1      = RenderedRecord(topicPartition.atOffset(100), timestamp, "record1", Seq.empty, None)
-  private val record2      = RenderedRecord(topicPartition.atOffset(101), timestamp, "record2", Seq.empty, None)
-  private val recordsToAdd = Seq(record1, record2)
+  private val record1      = RenderedRecord(topicPartition.atOffset(100), timestamp, "record1", Seq.empty, "")
+  private val record2      = RenderedRecord(topicPartition.atOffset(101), timestamp, "record2", Seq.empty, "")
+  private val recordsToAdd = NonEmptySeq.of(record1, record2)
 
   private val senderMock   = mock[HttpRequestSender]
   private val templateMock = mock[TemplateType]
@@ -85,13 +85,14 @@ class HttpWriterTest extends AsyncIOSpec with AsyncFunSuiteLike with Matchers wi
   test("process method should flush records when the queue is non-empty and commit policy requires flush") {
     when(senderMock.sendHttpRequest(any[ProcessedTemplate])).thenReturn(IO(HttpResponseSuccess(200, "OK".some).asRight))
 
-    when(templateMock.process(any[Seq[RenderedRecord]], eqTo(false))).thenReturn(Right(ProcessedTemplate("a",
-                                                                                                         "b",
-                                                                                                         Seq.empty,
+    when(templateMock.process(eqTo(recordsToAdd), eqTo(false))).thenReturn(Right(ProcessedTemplate(
+      "a",
+      "b",
+      Seq.empty,
     )))
 
     val batchInfo = NonEmptyBatchInfo(
-      NonEmptySeq.of(record1, record2),
+      recordsToAdd,
       defaultContext,
       100,
     )
@@ -118,7 +119,7 @@ class HttpWriterTest extends AsyncIOSpec with AsyncFunSuiteLike with Matchers wi
       } yield updatedContext
     }.asserting {
       updatedContext =>
-        verify(recordsQueue).dequeue(NonEmptySeq.of(record1, record2))
+        verify(recordsQueue).dequeue(recordsToAdd)
         updatedContext should not be defaultContext
     }
   }
@@ -163,7 +164,7 @@ class HttpWriterTest extends AsyncIOSpec with AsyncFunSuiteLike with Matchers wi
   private def mockRecordQueue(batchInfo: BatchInfo) = {
     val recordsQueue = mock[RecordsQueue]
     when(recordsQueue.takeBatch()).thenReturn(IO(batchInfo))
-    when(recordsQueue.enqueueAll(any[Seq[RenderedRecord]])).thenReturn(IO.unit)
+    when(recordsQueue.enqueueAll(recordsToAdd)).thenReturn(IO.unit)
     recordsQueue
   }
 }

@@ -22,5 +22,5 @@ case class RenderedRecord(
   timestamp:            Long,
   recordRendered:       String,
   headersRendered:      Seq[(String, String)],
-  endpointRendered:     Option[String], // only for the first 1
+  endpointRendered:     String,
 )

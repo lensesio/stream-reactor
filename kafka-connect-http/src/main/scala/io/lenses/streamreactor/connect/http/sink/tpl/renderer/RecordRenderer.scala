@@ -15,6 +15,7 @@
  */
 package io.lenses.streamreactor.connect.http.sink.tpl.renderer
 
+import cats.data.NonEmptySeq
 import cats.implicits._
 import io.lenses.streamreactor.connect.cloud.common.model.Offset
 import io.lenses.streamreactor.connect.cloud.common.model.Topic
@@ -30,16 +31,16 @@ object RecordRenderer {
   private val templateRenderer = new TemplateRenderer[SubstitutionType](SubstitutionType)
 
   def renderRecords(
-    data:               Seq[SinkRecord],
-    endpointTpl:        Option[String],
+    data:               NonEmptySeq[SinkRecord],
+    endpointTpl:        String,
     contentTpl:         String,
     headers:            Seq[(String, String)],
     nullPayloadHandler: NullPayloadHandler,
-  ): Either[SubstitutionError, Seq[RenderedRecord]] =
+  ): Either[SubstitutionError, NonEmptySeq[RenderedRecord]] =
     data.map(renderRecord(_, endpointTpl, contentTpl, headers, nullPayloadHandler)).sequence
   def renderRecord(
     sinkRecord:         SinkRecord,
-    endpointTpl:        Option[String],
+    endpointTpl:        String,
     contentTpl:         String,
     headers:            Seq[(String, String)],
     nullPayloadHandler: NullPayloadHandler,
@@ -50,7 +51,7 @@ object RecordRenderer {
     for {
       recordRend:   String <- templateRenderer.render(sinkRecord, contentTpl, nullPayloadHandler)
       headersRend:  Seq[(String, String)] <- renderHeaders(sinkRecord, headers, nullPayloadHandler)
-      endpointRend: Option[String] <- renderEndpoint(sinkRecord, endpointTpl, nullPayloadHandler)
+      endpointRend: String <- templateRenderer.render(sinkRecord, endpointTpl, nullPayloadHandler)
     } yield RenderedRecord(topicPartitionOffset, sinkRecord.timestamp(), recordRend, headersRend, endpointRend)
   }
 
@@ -73,12 +74,5 @@ object RecordRenderer {
     nullPayloadHandler: NullPayloadHandler,
   ): Either[SubstitutionError, Seq[(String, String)]] =
     headers.map(h => renderHeader(sinkRecord, h, nullPayloadHandler)).sequence
-
-  private def renderEndpoint(
-    sinkRecord:         SinkRecord,
-    endpointTpl:        Option[String],
-    nullPayloadHandler: NullPayloadHandler,
-  ): Either[SubstitutionError, Option[String]] =
-    endpointTpl.map(tpl => templateRenderer.render(sinkRecord, tpl, nullPayloadHandler)).sequence
 
 }
