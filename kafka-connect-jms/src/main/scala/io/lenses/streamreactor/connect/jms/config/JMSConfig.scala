@@ -277,8 +277,7 @@ object JMSConfig {
     )
 }
 
-/**
-  * <h1>JMSSinkConfig</h1>
+/** <h1>JMSSinkConfig</h1>
   *
   * Holds config, extends AbstractConfig.
   */

@@ -26,8 +26,7 @@ import io.lenses.streamreactor.connect.http.sink.tpl.RenderedRecord
 
 import scala.collection.immutable.Queue
 
-/**
-  * The `RecordsQueue` class manages a queue of `RenderedRecord` objects and handles the logic for
+/** The `RecordsQueue` class manages a queue of `RenderedRecord` objects and handles the logic for
   * enqueuing, dequeuing, and processing batches of records based on a commit policy.
   *
   * @param recordsQueue The mutable queue holding the `RenderedRecord` objects.
@@ -40,8 +39,7 @@ class RecordsQueue(
   commitPolicy:     CommitPolicy,
 ) extends LazyLogging {
 
-  /**
-    * Enqueues a sequence of `RenderedRecord` objects into the queue.
+  /** Enqueues a sequence of `RenderedRecord` objects into the queue.
     *
     * @param records The records to be enqueued.
     * @return An `IO` action that enqueues the records.
@@ -49,8 +47,7 @@ class RecordsQueue(
   def enqueueAll(records: NonEmptySeq[RenderedRecord]): IO[Unit] =
     recordsQueue.getAndUpdate(q => q ++ records.toSeq).void
 
-  /**
-    * Takes a batch of records from the queue based on the commit policy.
+  /** Takes a batch of records from the queue based on the commit policy.
     *
     * @return An `IO` action that returns a `BatchInfo` object representing the batch of records.
     */
@@ -73,8 +70,7 @@ class RecordsQueue(
       EmptyBatchInfo(size)
   }
 
-  /**
-    * Iterates through the queue until the records trigger a commit based on the commit policy.
+  /** Iterates through the queue until the records trigger a commit based on the commit policy.
     * Uses `foldM` to fold over the queue and stop at the first record that triggers a commit.
     * If the commit policy is met, it returns a `Left` with the batch of records and the updated commit context.
     * If the commit policy is not met, it returns a `Right` with the batch of records and the updated commit context.
@@ -99,8 +95,7 @@ class RecordsQueue(
         )
     }
 
-  /**
-    * Dequeues a non-empty batch of `RenderedRecord` objects from the queue.
+  /** Dequeues a non-empty batch of `RenderedRecord` objects from the queue.
     *
     * @param nonEmptyBatch The batch of records to be dequeued.
     * @return An `IO` action that dequeues the records.

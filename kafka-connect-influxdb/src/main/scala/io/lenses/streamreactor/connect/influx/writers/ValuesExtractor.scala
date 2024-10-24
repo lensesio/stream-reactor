@@ -26,8 +26,7 @@ import scala.jdk.CollectionConverters.MapHasAsScala
 
 object ValuesExtractor {
 
-  /**
-    * Extracts all the keys and values from the source json. It will ignore the fields present in the ignored collection
+  /** Extracts all the keys and values from the source json. It will ignore the fields present in the ignored collection
     *
     * @param node    -  The source json to extract all the key and values. Only ObjectNode is accepted - those are the ones accepting fields
     * @param ignored - A collection of keys to ignore
@@ -65,8 +64,7 @@ object ValuesExtractor {
         )
     }
 
-  /**
-    * Extracts the value for the given field path from the specified Json
+  /** Extracts the value for the given field path from the specified Json
     *
     * @param node      - The Json to extract the field value
     * @param fieldPath - The path to the field to get the value for.
@@ -152,8 +150,7 @@ object ValuesExtractor {
     innerExtract(node, fieldPath)
   }
 
-  /**
-    * Extracts all the fields and values from the source struct. It will ignore the fields present in the ignored collection
+  /** Extracts all the fields and values from the source struct. It will ignore the fields present in the ignored collection
     *
     * @param struct  -  An instance of Kafka Connect [[Struct]] json to extract all the fields and values from. If the fields resolve to Struct/Map/Array and error is thrown
     * @param ignored - A collection of keys to ignore
@@ -215,8 +212,7 @@ object ValuesExtractor {
         field.name() -> actualValue
       }
 
-  /**
-    * Extracts the value for the given field path from the a Kafka Connect Struct
+  /** Extracts the value for the given field path from the a Kafka Connect Struct
     *
     * @param struct    - The Kafka Connect Struct to extract the field value from
     * @param fieldPath - The path to the field to get the value for.
@@ -364,8 +360,7 @@ object ValuesExtractor {
     innerExtract(field, struct.get(field), fieldPath.tail)
   }
 
-  /**
-    * Extracts all the keys and values from the input map. It will ignore the keys present in the ignored collection
+  /** Extracts all the keys and values from the input map. It will ignore the keys present in the ignored collection
     *
     * @param map     -  The source map to extract all the key and values
     * @param ignored - A collection of keys to ignore
@@ -387,8 +382,7 @@ object ValuesExtractor {
           }
       }.toSeq
 
-  /**
-    * Extracts the value for the given field path from the specified map.
+  /** Extracts the value for the given field path from the specified map.
     *
     * @param map       - The map to extract the field value
     * @param fieldPath - The path to the field to get the value for.

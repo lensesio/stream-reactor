@@ -24,8 +24,7 @@ import scala.annotation.tailrec
 
 object KeyUtils {
 
-  /**
-    * Traverse a JSON structure, returning a list of the values of the given fields.
+  /** Traverse a JSON structure, returning a list of the values of the given fields.
     *
     * @param json
     * @param fieldNames
@@ -36,8 +35,7 @@ object KeyUtils {
     fieldNames map { f => JsonPath.read[Object](document, f) }
   }
 
-  /**
-    * Traverse a Struct, returning a list of the values of the given fields.
+  /** Traverse a Struct, returning a list of the values of the given fields.
     *
     * @param struct
     * @param schema

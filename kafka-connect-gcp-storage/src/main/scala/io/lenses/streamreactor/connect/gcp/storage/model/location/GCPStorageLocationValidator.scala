@@ -19,8 +19,7 @@ import cats.data.Validated
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
 
-/**
-  * This is a best-efforts validator for GCP bucket names.  It won't validate DNS, ownership etc but it will allow the sink to fail fast in case an obvious error is made (eg. IP addresses used).
+/** This is a best-efforts validator for GCP bucket names.  It won't validate DNS, ownership etc but it will allow the sink to fail fast in case an obvious error is made (eg. IP addresses used).
   */
 object GCPStorageLocationValidator extends CloudLocationValidator {
   private val ContainerNamePattern       = "^[a-z0-9][a-z0-9-\\_\\.]{1,61}[a-z0-9]$".r
@@ -33,8 +32,7 @@ object GCPStorageLocationValidator extends CloudLocationValidator {
       } yield location,
     )
 
-  /**
-    * From [[https://cloud.google.com/storage/docs/buckets#naming Google Cloud Docs]]
+  /** From [[https://cloud.google.com/storage/docs/buckets#naming Google Cloud Docs]]
     * Your bucket names must meet the following requirements:
     *
     * <li>Bucket names can only contain lowercase letters, numeric characters, dashes (-), underscores (_), and dots (.). Spaces are not allowed. Names containing dots require verification.<li>

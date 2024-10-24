@@ -36,16 +36,14 @@ object SinkRecordConverter {
 
   ISO_DATE_FORMAT.setTimeZone(TimeZone.getTimeZone("UTC"))
 
-  /**
-    * Creates a Azure Document Db document from a HashMap
+  /** Creates a Azure Document Db document from a HashMap
     *
     * @param map
     * @return
     */
   def fromMap(map: util.Map[String, AnyRef]): Document = new Document(Json.toJson(map))
 
-  /**
-    * Creates an Azure DocumentDb document from a the Kafka Struct
+  /** Creates an Azure DocumentDb document from a the Kafka Struct
     *
     * @param record
     * @return
@@ -177,8 +175,7 @@ object SinkRecordConverter {
       }
   }
 
-  /**
-    * Creates an Azure Document DB document from Json
+  /** Creates an Azure Document DB document from Json
     *
     * @param record - The instance to the json node
     * @return An instance of a Azure Document DB document

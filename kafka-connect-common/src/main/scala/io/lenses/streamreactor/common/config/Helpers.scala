@@ -19,8 +19,7 @@ import io.lenses.kcql.Kcql
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.ConfigException
 
-/**
-  * Created by andrew@datamountaineer.com on 13/05/16.
+/** Created by andrew@datamountaineer.com on 13/05/16.
   * kafka-connect-common
   */
 

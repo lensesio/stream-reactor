@@ -31,8 +31,7 @@ import redis.clients.jedis.Jedis
 import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.util.Try
 
-/**
-  * A generic Redis `writer` that can store data into Redis PubSub / KCQL
+/** A generic Redis `writer` that can store data into Redis PubSub / KCQL
   *
   * Requires KCQL syntax:   INSERT .. SELECT .. STOREAS PubSub
   *
@@ -91,7 +90,8 @@ class RedisPubSub(sinkSettings: RedisSinkSettings, jedis: Jedis)
   def insert(records: Map[String, Seq[SinkRecord]]): Unit =
     records.foreach(
       {
-        case (topic, sinkRecords: Seq[SinkRecord]) => {
+        case (topic, sinkRecords: Seq[SinkRecord]) =>
+          {
             val topicSettings: Set[RedisKCQLSetting] = sinkSettings.kcqlSettings.filter(_.kcqlConfig.getSource == topic)
             if (topicSettings.isEmpty)
               logger.warn(s"No KCQL statement set for [$topic]")

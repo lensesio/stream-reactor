@@ -38,8 +38,7 @@ case class InfluxSettings(
 
 object InfluxSettings {
 
-  /**
-    * Creates an instance of InfluxSettings from a InfluxSinkConfig
+  /** Creates an instance of InfluxSettings from a InfluxSinkConfig
     *
     * @param config : The map of all provided configurations
     * @return An instance of InfluxSettings

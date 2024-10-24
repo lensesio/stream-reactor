@@ -29,8 +29,7 @@ import org.apache.kafka.connect.errors.ConnectException
 import scala.jdk.CollectionConverters.IterableHasAsScala
 import scala.jdk.CollectionConverters.SeqHasAsJava
 
-/**
-  * Created by caio@caiooliveira.eti.br on 17/01/18.
+/** Created by caio@caiooliveira.eti.br on 17/01/18.
   * stream-reactor
   */
 class CassandraTypeConverter(private val codecRegistry: CodecRegistry, private val setting: CassandraSourceSetting)
@@ -45,8 +44,7 @@ class CassandraTypeConverter(private val codecRegistry: CodecRegistry, private v
 
   def asJavaType(dataType: DataType): Class[_] = codecRegistry.codecFor(dataType).getJavaType.getRawType
 
-  /**
-    * get the columns that are to be placed in the Source Record
+  /** get the columns that are to be placed in the Source Record
     * by removing the ignore columns from the select columns
     *
     * @return the comma separated columns
@@ -55,8 +53,7 @@ class CassandraTypeConverter(private val codecRegistry: CodecRegistry, private v
     //TODO do we need to get the list of columns everytime?
     row.getColumnDefinitions.asScala.filter(cd => !ignoreList.contains(cd.getName)).toList
 
-  /**
-    * Convert a Cassandra row to a SourceRecord
+  /** Convert a Cassandra row to a SourceRecord
     *
     * @param row The Cassandra resultset row to convert
     * @return a SourceRecord
@@ -78,8 +75,7 @@ class CassandraTypeConverter(private val codecRegistry: CodecRegistry, private v
     struct
   }
 
-  /**
-    * Extract the Cassandra data type can convert to the Connect type
+  /** Extract the Cassandra data type can convert to the Connect type
     *
     * @param columnDef The cassandra column def to convert
     * @param row       The cassandra row to extract the data from
@@ -120,8 +116,7 @@ class CassandraTypeConverter(private val codecRegistry: CodecRegistry, private v
       case a @ _                  => throw new ConnectException(s"Unsupported Cassandra type $a.")
     }
 
-  /**
-    * Extract the Cassandra collection data type can convert to the Connect type
+  /** Extract the Cassandra collection data type can convert to the Connect type
     *
     * @param columnDef The cassandra column def to convert
     * @param row       The cassandra row to extract the data from
@@ -143,8 +138,7 @@ class CassandraTypeConverter(private val codecRegistry: CodecRegistry, private v
     }
   }
 
-  /**
-    * Convert a set of CQL columns from a Cassandra row to a
+  /** Convert a set of CQL columns from a Cassandra row to a
     * Connect schema
     *
     * @param cols A set of Column Definitions
@@ -156,8 +150,7 @@ class CassandraTypeConverter(private val codecRegistry: CodecRegistry, private v
     builder.build()
   }
 
-  /**
-    * Map the Cassandra DataType to the Connect types
+  /** Map the Cassandra DataType to the Connect types
     *
     * @param dataType The cassandra column definition
     * @return the Connect schema type
@@ -183,8 +176,7 @@ class CassandraTypeConverter(private val codecRegistry: CodecRegistry, private v
       case a @ _                                                      => throw new ConnectException(s"Unsupported Cassandra type $a.")
     }
 
-  /**
-    * Map the Cassandra DataType Collection to the Connect types
+  /** Map the Cassandra DataType Collection to the Connect types
     *
     * @param dataType The cassandra column definition
     * @return the Connect schema type

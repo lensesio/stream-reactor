@@ -221,8 +221,7 @@ class DatalakeStorageInterface(connectorTaskId: ConnectorTaskId, client: DataLak
     }.sequence
   } yield ()
 
-  /**
-    * Gets the system name for use in log messages.
+  /** Gets the system name for use in log messages.
     *
     * @return
     */

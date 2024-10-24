@@ -34,8 +34,7 @@ import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
 
-/**
-  * Created by andrew@datamountaineer.com on 10/03/2017.
+/** Created by andrew@datamountaineer.com on 10/03/2017.
   * stream-reactor
   */
 case class JMSSessionProvider(
@@ -189,8 +188,7 @@ object JMSSessionProvider extends StrictLogging {
         }
     }
 
-  /**
-    * Construct the properties for the initial context
+  /** Construct the properties for the initial context
     * adding in anything in the extra properties for solace or ibm
     */
   private def getProps(settings: JMSSettings) = {

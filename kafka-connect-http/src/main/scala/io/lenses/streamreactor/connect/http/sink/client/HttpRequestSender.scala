@@ -127,8 +127,7 @@ abstract class HttpRequestSender(
 
   protected def updateRequest(request: Request[IO]): IO[Request[IO]]
 
-  /**
-    * Sends an HTTP request based on the provided processed template.
+  /** Sends an HTTP request based on the provided processed template.
     *
     * This method constructs an HTTP request using the provided template,
     * adds necessary headers and authentication, and sends the request using the client.
@@ -172,8 +171,7 @@ abstract class HttpRequestSender(
       })
     }
 
-  /**
-    * Executes the HTTP request and handles any errors that occur.
+  /** Executes the HTTP request and handles any errors that occur.
     *
     * This method sends the authenticated HTTP request using the provided client,
     * processes the response, and handles any errors that may occur during the request.
