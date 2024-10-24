@@ -49,7 +49,7 @@ class RecordsQueue(
   def enqueueAll(records: NonEmptySeq[RenderedRecord]): IO[Unit] =
     for {
       _ <- IO.delay(logger.debug(s"${records.length} records added to $recordsQueue"))
-      _ <- IO(recordsQueue.getAndUpdate(q => q ++ records.toSeq).void)
+      _ <- recordsQueue.getAndUpdate(q => q ++ records.toSeq).void
     } yield ()
 
   /**

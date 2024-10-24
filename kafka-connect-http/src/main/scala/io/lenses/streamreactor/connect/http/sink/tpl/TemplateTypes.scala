@@ -72,7 +72,7 @@ case class SimpleTemplate(
     records.head match {
       case RenderedRecord(_, _, recordRendered, headersRendered, endpointRendered) =>
         logger.debug(
-          s"Processed template with endpoint=${records.head.endpointRendered}, tidyJson=$tidyJson, recordRendered=$recordRendered",
+          s"Processed template with tidyJson=$tidyJson",
         )
         ProcessedTemplate(endpointRendered, recordRendered, headersRendered).asRight
     }
@@ -111,7 +111,7 @@ case class TemplateWithInnerLoop(
     }
     val contentOrError = fnContextFix(prefixContent + replaceWith + suffixContent)
     logger.debug(
-      s"Processed template with endpoint=${records.head.endpointRendered} prefixContent=$prefixContent, suffixContent=$suffixContent, replaceWith=$replaceWith, tidyJson=$tidyJson, contentOrError=$contentOrError",
+      s"Processed template with prefixContent=$prefixContent, suffixContent=$suffixContent, tidyJson=$tidyJson",
     )
     ProcessedTemplate(
       endpoint = records.head.endpointRendered,
