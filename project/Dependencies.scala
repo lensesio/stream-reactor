@@ -41,7 +41,7 @@ object Dependencies {
     val scalaCheckVersion              = "1.18.1"
 
     val mockitoJunitJupiterVersion = "5.14.2"
-    val junitJupiterVersion        = "5.11.2"
+    val junitJupiterVersion        = "5.11.3"
     val assertjCoreVersion         = "3.26.3"
 
     val cyclopsVersion = "10.4.1"
@@ -73,23 +73,23 @@ object Dependencies {
     val scalaLoggingVersion = "3.9.5"
 
     val dnsJavaVersion  = "3.6.2"
-    val wiremockVersion = "3.9.1"
+    val wiremockVersion = "3.9.2"
     val parquetVersion  = "1.14.3"
 
     val jerseyCommonVersion = "3.1.9"
 
     val calciteVersion = "1.34.0"
-    val awsSdkVersion  = "2.28.23"
+    val awsSdkVersion  = "2.28.29"
 
     val azureDataLakeVersion              = "12.21.0"
     val azureIdentityVersion              = "1.14.0"
     val azureCoreVersion                  = "1.53.0"
     val msal4jVersion                     = "1.17.2"
     val msal4jPersistenceExtensionVersion = "1.3.0"
-    val gcpCloudVersion                   = "2.45.0"
+    val gcpCloudVersion                   = "2.46.0"
     val gcpCloudStorageVersion            = "2.44.0"
 
-    val woodstoxVersion     = "7.0.0"
+    val woodstoxVersion     = "7.1.0"
     val jacksonVersion      = "2.18.0"
     val json4sVersion       = "4.0.7"
     val mockitoScalaVersion = "1.17.37"
@@ -158,7 +158,7 @@ object Dependencies {
 
     object Elastic7Versions extends ElasticVersions {
       override val elastic4sVersion:     String = "7.17.4"
-      override val elasticSearchVersion: String = "7.17.24"
+      override val elasticSearchVersion: String = "7.17.25"
       override val jnaVersion:           String = "5.15.0"
     }
 
