@@ -18,6 +18,7 @@ package io.lenses.streamreactor.connect.http.sink.tpl
 import cats.data.NonEmptySeq
 import cats.implicits.catsSyntaxEitherId
 import cats.implicits.toTraverseOps
+import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.http.sink.config.NullPayloadHandler
 import io.lenses.streamreactor.connect.http.sink.tpl.JsonTidy.cleanUp
 import io.lenses.streamreactor.connect.http.sink.tpl.renderer.RecordRenderer
@@ -58,7 +59,8 @@ case class SimpleTemplate(
   content:            String,
   headers:            Seq[(String, String)],
   nullPayloadHandler: NullPayloadHandler,
-) extends TemplateType {
+) extends TemplateType
+    with LazyLogging {
 
   override def renderRecords(records: NonEmptySeq[SinkRecord]): Either[SubstitutionError, NonEmptySeq[RenderedRecord]] =
     RecordRenderer.renderRecords(records, endpoint, content, headers, nullPayloadHandler)
@@ -69,6 +71,9 @@ case class SimpleTemplate(
   ): Either[SubstitutionError, ProcessedTemplate] =
     records.head match {
       case RenderedRecord(_, _, recordRendered, headersRendered, endpointRendered) =>
+        logger.debug(
+          s"Processed template with tidyJson=$tidyJson",
+        )
         ProcessedTemplate(endpointRendered, recordRendered, headersRendered).asRight
     }
 }
@@ -80,7 +85,8 @@ case class TemplateWithInnerLoop(
   innerTemplate:      String,
   headers:            Seq[(String, String)],
   nullPayloadHandler: NullPayloadHandler,
-) extends TemplateType {
+) extends TemplateType
+    with LazyLogging {
 
   override def renderRecords(records: NonEmptySeq[SinkRecord]): Either[SubstitutionError, NonEmptySeq[RenderedRecord]] =
     records.map {
@@ -104,7 +110,9 @@ case class TemplateWithInnerLoop(
       if (tidyJson) cleanUp(content) else content
     }
     val contentOrError = fnContextFix(prefixContent + replaceWith + suffixContent)
-
+    logger.debug(
+      s"Processed template with prefixContent=$prefixContent, suffixContent=$suffixContent, tidyJson=$tidyJson",
+    )
     ProcessedTemplate(
       endpoint = records.head.endpointRendered,
       content  = contentOrError,

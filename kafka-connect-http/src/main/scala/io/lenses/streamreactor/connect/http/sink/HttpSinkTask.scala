@@ -43,7 +43,9 @@ import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.jdk.CollectionConverters.MapHasAsScala
 
 class HttpSinkTask extends SinkTask with LazyLogging with JarManifestProvided {
-  implicit val runtime:           IORuntime                 = IORuntime.global
+  implicit val runtime:       IORuntime    = IORuntime.global
+  implicit val topicOrdering: Order[Topic] = Order.fromOrdering(Topic.orderingByTopicValue)
+
   private var maybeTemplate:      Option[TemplateType]      = Option.empty
   private var maybeWriterManager: Option[HttpWriterManager] = Option.empty
   private var maybeSinkName:      Option[String]            = Option.empty
@@ -82,51 +84,53 @@ class HttpSinkTask extends SinkTask with LazyLogging with JarManifestProvided {
   override def put(records: util.Collection[SinkRecord]): Unit = {
 
     logger.debug(s"[$sinkName] put call with ${records.size()} records")
-    val storedErrors = errorRef.get.unsafeRunSync()
 
-    if (storedErrors.nonEmpty) {
-      throw new ConnectException(s"Previous operation failed with error: " +
-        storedErrors.map(_.getMessage).mkString(";"))
-
-    } else {
-      implicit val order = Order.fromOrdering(Topic.orderingByTopicValue)
-      logger.trace(s"[$sinkName] building template")
-      val template = maybeTemplate.getOrElse(throw new IllegalStateException("No template available in put"))
-      val writerManager =
-        maybeWriterManager.getOrElse(throw new IllegalStateException("No writer manager available in put"))
-
-      NonEmptySeq
-        .fromSeqUnsafe(records.asScala.toSeq)
-        .map {
-          rec =>
-            Topic(rec.topic()).withPartition(rec.kafkaPartition()).withOffset(Offset(rec.kafkaOffset())) -> rec
-        }
-        .groupBy {
-          case (tpo, _) => tpo.topic
-        }
-        .foreach {
-          case (tp, records) =>
-            val recs           = records.map(_._2)
-            val eitherRendered = template.renderRecords(recs)
-            eitherRendered match {
-              case Left(ex) =>
-                logger.error(s"[$sinkName] Template Rendering Failure", ex)
-                IO.raiseError(ex)
-              // rendering errors can not be recovered from as configuration should be amended
-
-              case Right(renderedRecs) =>
-                logger.trace(s"[$sinkName] Rendered successful: $renderedRecs")
-                writerManager
-                  .getWriter(tp)
-                  .flatMap {
-                    writer =>
-                      writer.add(renderedRecs)
-                  }
-                  .unsafeRunSync()
-            }
-
-        }
+    val storedErrors    = errorRef.get.unsafeRunSync()
+    val nonEmptyRecords = NonEmptySeq.fromSeq(records.asScala.toSeq)
+    (storedErrors, nonEmptyRecords) match {
+      case (errors, _) if errors.nonEmpty =>
+        handleStoredErrors(errors)
+      case (_, None) =>
+        logger.debug(s"[$sinkName] no records seen, continuing")
+      case (_, Some(records)) =>
+        logger.trace(s"[$sinkName] processing records")
+        processRecords(records)
     }
+  }
+
+  private def handleStoredErrors(storedErrors: List[Throwable]): Unit =
+    throw new ConnectException(s"Previous operation failed with error: " +
+      storedErrors.map(_.getMessage).mkString(";"))
+
+  private def processRecords(
+    nonEmptyRecords: NonEmptySeq[SinkRecord],
+  ): Unit = {
+
+    val template = maybeTemplate.getOrElse(throw new IllegalStateException("No template available in put"))
+    val writerManager =
+      maybeWriterManager.getOrElse(throw new IllegalStateException("No writer manager available in put"))
+
+    nonEmptyRecords
+      .map { rec =>
+        Topic(rec.topic()).withPartition(rec.kafkaPartition()).withOffset(Offset(rec.kafkaOffset())) -> rec
+      }
+      .groupBy { case (tpo, _) => tpo.topic }
+      .foreach {
+        case (tp, records) =>
+          val recs           = records.map(_._2)
+          val eitherRendered = template.renderRecords(recs)
+          eitherRendered match {
+            case Left(ex) =>
+              logger.error(s"[$sinkName] Template Rendering Failure", ex)
+              IO.raiseError(ex)
+            case Right(renderedRecs) =>
+              logger.trace(s"[$sinkName] Rendered successful: $renderedRecs")
+              writerManager
+                .getWriter(tp)
+                .flatMap(writer => writer.add(renderedRecs))
+                .unsafeRunSync()
+          }
+      }
   }
 
   override def preCommit(
@@ -177,4 +181,5 @@ class HttpSinkTask extends SinkTask with LazyLogging with JarManifestProvided {
       }
       _ <- deferred.complete(().asRight)
     } yield ()).unsafeRunSync()
+
 }
