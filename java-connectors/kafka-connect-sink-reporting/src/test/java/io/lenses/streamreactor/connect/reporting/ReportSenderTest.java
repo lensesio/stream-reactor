@@ -22,6 +22,7 @@ import io.lenses.streamreactor.connect.reporting.model.ReportingRecord;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.kafka.common.serialization.StringSerializer;
@@ -35,6 +36,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -52,6 +54,10 @@ class ReportSenderTest {
 
   @Mock
   private ReportHolder<TestConnectorSpecificRecordDataData> mockReportHolder;
+
+  @Mock
+  private ScheduledFuture<RecordMetadata> future;
+
   @Mock
   private Producer<byte[], String> mockProducer;
   @Mock
@@ -63,6 +69,7 @@ class ReportSenderTest {
 
   @Mock
   private ProducerRecord<byte[], String> producerRecord;
+
   private final Map<String, Object> senderConfig = Map.of(ReportProducerConfigConst.TOPIC, "test-topic");
 
   @InjectMocks
@@ -77,14 +84,16 @@ class ReportSenderTest {
 
   @Test
   void testStart() {
+
     when(mockReportHolder.pollReport()).thenReturn(Option.of(mockReportingRecord));
     when(recordConverter.convert(mockReportingRecord)).thenReturn(Option.of(producerRecord));
+    when(mockProducer.send(producerRecord)).thenReturn(future);
 
     reportSender.start();
 
     ArgumentCaptor<Runnable> runnableCaptor = ArgumentCaptor.forClass(Runnable.class);
-    verify(mockExecutorService, times(1)).scheduleWithFixedDelay(runnableCaptor.capture(), eq(0L), eq(1L), eq(
-        TimeUnit.SECONDS));
+    verify(mockExecutorService, times(1)).scheduleWithFixedDelay(runnableCaptor.capture(), eq(0L), eq(50L), eq(
+        TimeUnit.MILLISECONDS));
 
     // Execute the captured runnable
     Runnable capturedRunnable = runnableCaptor.getValue();
