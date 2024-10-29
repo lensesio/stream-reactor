@@ -37,12 +37,13 @@ import scala.math.Ordered.orderingToOrdered
 import scala.util.Try
 
 class Writer[SM <: FileMetadata](
-  topicPartition:    TopicPartition,
-  commitPolicy:      CommitPolicy,
-  writerIndexer:     WriterIndexer[SM],
-  stagingFilenameFn: () => Either[SinkError, File],
-  objectKeyBuilder:  ObjectKeyBuilder,
-  formatWriterFn:    File => Either[SinkError, FormatWriter],
+  topicPartition:                TopicPartition,
+  commitPolicy:                  CommitPolicy,
+  writerIndexer:                 WriterIndexer[SM],
+  stagingFilenameFn:             () => Either[SinkError, File],
+  objectKeyBuilder:              ObjectKeyBuilder,
+  formatWriterFn:                File => Either[SinkError, FormatWriter],
+  rolloverOnSchemaChangeEnabled: Boolean,
 )(
   implicit
   connectorTaskId:  ConnectorTaskId,
@@ -230,13 +231,14 @@ class Writer[SM <: FileMetadata](
     }
 
   def shouldRollover(schema: Schema): Boolean =
-    rolloverOnSchemaChange &&
+    rolloverOnSchemaChangeEnabled &&
+      rolloverOnSchemaChange &&
       schemaHasChanged(schema)
 
-  private def schemaHasChanged(schema: Schema): Boolean =
+  protected[writer] def schemaHasChanged(schema: Schema): Boolean =
     writeState.getCommitState.lastKnownSchema.exists(_ != schema)
 
-  private def rolloverOnSchemaChange: Boolean =
+  protected[writer] def rolloverOnSchemaChange: Boolean =
     writeState match {
       case w: Writing => w.formatWriter.rolloverFileOnSchemaChange()
       case _ => false

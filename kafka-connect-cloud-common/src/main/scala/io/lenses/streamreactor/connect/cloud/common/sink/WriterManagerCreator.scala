@@ -140,6 +140,7 @@ class WriterManagerCreator[MD <: FileMetadata, SC <: CloudSinkConfig[_]] extends
       formatWriterFn,
       writerIndexer,
       transformers.transform,
+      config.rolloverOnSchemaChangeEnabled,
     )
     (indexManager, writerManager)
   }

@@ -22,6 +22,7 @@ import io.lenses.streamreactor.connect.cloud.common.config.CloudConfigDef
 import io.lenses.streamreactor.connect.cloud.common.config.IndexConfigKeys
 import io.lenses.streamreactor.connect.cloud.common.sink.config.FlushConfigKeys
 import io.lenses.streamreactor.connect.cloud.common.sink.config.LocalStagingAreaConfigKeys
+import io.lenses.streamreactor.connect.cloud.common.sink.config.SchemaChangeConfigKeys
 import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.PaddingStrategyConfigKeys
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.Importance
@@ -32,7 +33,8 @@ object S3SinkConfigDef
     with FlushConfigKeys
     with LocalStagingAreaConfigKeys
     with PaddingStrategyConfigKeys
-    with IndexConfigKeys {
+    with IndexConfigKeys
+    with SchemaChangeConfigKeys {
 
   override def connectorPrefix: String = CONNECTOR_PREFIX
 
@@ -49,6 +51,7 @@ object S3SinkConfigDef
     addLocalStagingAreaToConfigDef(configDef)
     addPaddingToConfigDef(configDef)
     addIndexSettingsToConfigDef(configDef)
+    withSchemaChangeConfig(configDef)
   }
 
 }

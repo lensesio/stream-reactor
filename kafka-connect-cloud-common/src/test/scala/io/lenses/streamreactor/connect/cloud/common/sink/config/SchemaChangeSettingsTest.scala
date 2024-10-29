@@ -15,16 +15,21 @@
  */
 package io.lenses.streamreactor.connect.cloud.common.sink.config
 
-import io.lenses.streamreactor.common.config.base.traits.KcqlSettings
-import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.PaddingStrategySettings
-import io.lenses.streamreactor.connect.cloud.common.config.CompressionCodecSettings
-import io.lenses.streamreactor.connect.cloud.common.config.IndexSettings
+import org.apache.kafka.common.config.ConfigDef
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
-trait CloudSinkConfigDefBuilder
-    extends KcqlSettings
-    with FlushSettings
-    with LocalStagingAreaSettings
-    with PaddingStrategySettings
-    with CompressionCodecSettings
-    with IndexSettings
-    with SchemaChangeSettings {}
+class SchemaChangeSettingsTest extends AnyFlatSpec with Matchers {
+
+  "withSchemaChangeConfig" should "define schema change rollover config with default value" in {
+
+    val configDef = new SchemaChangeConfigKeys {
+      override def connectorPrefix: String = "connector"
+    }.withSchemaChangeConfig(new ConfigDef())
+    val configKey = configDef.configKeys().get("connector.schema.change.rollover")
+
+    configKey.defaultValue shouldBe true
+    configKey.documentation shouldBe "Roll over on schema change."
+  }
+
+}
