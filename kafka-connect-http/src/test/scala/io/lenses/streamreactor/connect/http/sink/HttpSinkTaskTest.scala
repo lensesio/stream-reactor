@@ -15,12 +15,14 @@
  */
 package io.lenses.streamreactor.connect.http.sink
 
+import org.apache.kafka.connect.sink.SinkRecord
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.EitherValues
 import org.scalatest.funsuite.AnyFunSuiteLike
 import org.scalatest.matchers.should.Matchers
 
 import java.util
+import scala.jdk.CollectionConverters.SeqHasAsJava
 
 class HttpSinkTaskTest extends AnyFunSuiteLike with Matchers with EitherValues with BeforeAndAfterEach {
 
@@ -33,4 +35,10 @@ class HttpSinkTaskTest extends AnyFunSuiteLike with Matchers with EitherValues w
     }
   }
 
+  test("put method should handle null records collection") {
+
+    noException should be thrownBy {
+      httpSinkTask.put(List[SinkRecord](null).asJava)
+    }
+  }
 }
