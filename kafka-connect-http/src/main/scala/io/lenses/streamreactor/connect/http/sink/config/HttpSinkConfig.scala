@@ -19,10 +19,14 @@ import cats.implicits.toBifunctorOps
 import cats.implicits.toTraverseOps
 import io.lenses.streamreactor.common.security.StoresInfo
 import io.lenses.streamreactor.common.utils.CyclopsToScalaEither
-import io.lenses.streamreactor.connect.cloud.common.sink.commit._
 import io.lenses.streamreactor.connect.http.sink.client.Authentication
 import io.lenses.streamreactor.connect.http.sink.client.AuthenticationKeys
 import io.lenses.streamreactor.connect.http.sink.client.HttpMethod
+import io.lenses.streamreactor.connect.http.sink.commit.BatchPolicy
+import io.lenses.streamreactor.connect.http.sink.commit.BatchPolicyCondition
+import io.lenses.streamreactor.connect.http.sink.commit.Count
+import io.lenses.streamreactor.connect.http.sink.commit.FileSize
+import io.lenses.streamreactor.connect.http.sink.commit.Interval
 import io.lenses.streamreactor.connect.http.sink.config.HttpSinkConfigDef.AuthenticationTypeProp
 import io.lenses.streamreactor.connect.http.sink.config.HttpSinkConfigDef.BasicAuthenticationPasswordProp
 import io.lenses.streamreactor.connect.http.sink.config.HttpSinkConfigDef.BasicAuthenticationUsernameProp
@@ -50,14 +54,15 @@ case class BatchConfig(
   batchSize:    Option[Long],
   timeInterval: Option[Long],
 ) {
-  def toCommitPolicy: CommitPolicy = {
-    val conditions: Seq[CommitPolicyCondition] = Seq(
+
+  def toBatchPolicy: BatchPolicy = {
+    val conditions: Seq[BatchPolicyCondition] = Seq(
       batchCount.map(Count),
       batchSize.map(FileSize),
       timeInterval.map(inter => Interval(Duration.ofSeconds(inter), Clock.systemDefaultZone())),
     ).flatten
 
-    CommitPolicy(conditions: _*)
+    BatchPolicy(conditions: _*)
   }
 }
 

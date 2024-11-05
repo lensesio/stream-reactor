@@ -163,7 +163,7 @@ class HttpWriterTest extends AsyncIOSpec with AsyncFunSuiteLike with Matchers wi
 
   private def mockRecordQueue(batchInfo: BatchInfo) = {
     val recordsQueue = mock[RecordsQueue]
-    when(recordsQueue.takeBatch()).thenReturn(IO(batchInfo))
+    when(recordsQueue.popBatch()).thenReturn(IO(batchInfo))
     when(recordsQueue.enqueueAll(recordsToAdd)).thenReturn(IO.unit)
     recordsQueue
   }

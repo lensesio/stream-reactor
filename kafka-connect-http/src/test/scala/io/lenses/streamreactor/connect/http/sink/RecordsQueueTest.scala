@@ -13,6 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+/*
+ * Copyright 2017-2024 Lenses.io Ltd
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.lenses.streamreactor.connect.http.sink
 
 import cats.data.NonEmptySeq
@@ -21,7 +36,8 @@ import cats.effect.kernel.Ref
 import cats.effect.testing.scalatest.AsyncIOSpec
 import io.lenses.streamreactor.connect.cloud.common.model.Topic
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
-import io.lenses.streamreactor.connect.cloud.common.sink.commit.CommitPolicy
+import io.lenses.streamreactor.connect.http.sink.commit.BatchPolicy
+import io.lenses.streamreactor.connect.http.sink.commit.BatchResult
 import io.lenses.streamreactor.connect.http.sink.commit.HttpCommitContext
 import io.lenses.streamreactor.connect.http.sink.tpl.RenderedRecord
 import org.mockito.ArgumentMatchers.any
@@ -49,7 +65,7 @@ class RecordsQueueTest extends AsyncFunSuiteLike with AsyncIOSpec with MockitoSu
       for {
         commitContext   <- Ref[IO].of(defaultContext)
         recordsQueueRef <- Ref[IO].of(Queue.empty[RenderedRecord])
-        recordsQueue     = new RecordsQueue(recordsQueueRef, commitContext, mock[CommitPolicy])
+        recordsQueue     = new RecordsQueue(recordsQueueRef, commitContext, mock[BatchPolicy])
         _               <- recordsQueue.enqueueAll(NonEmptySeq.of(record1, record2))
         refValue        <- recordsQueueRef.get
       } yield refValue
@@ -61,15 +77,18 @@ class RecordsQueueTest extends AsyncFunSuiteLike with AsyncIOSpec with MockitoSu
   }
 
   test("takeBatch should not return a batch of records when commit policy does not require flush") {
-    val commitPolicy = mock[CommitPolicy]
-    when(commitPolicy.shouldFlush(any[HttpCommitContext])).thenReturn(false)
+    val commitPolicy = mock[BatchPolicy]
+    when(commitPolicy.shouldBatch(any[HttpCommitContext])).thenReturn(BatchResult(fitsInBatch          = false,
+                                                                                  triggerReached       = false,
+                                                                                  greedyTriggerReached = false,
+    ))
 
     {
       for {
         commitContext   <- Ref[IO].of(defaultContext)
         recordsQueueRef <- Ref[IO].of(Queue(record1, record2))
         recordsQueue     = new RecordsQueue(recordsQueueRef, commitContext, commitPolicy)
-        batchInfo       <- recordsQueue.takeBatch()
+        batchInfo       <- recordsQueue.popBatch()
       } yield batchInfo
     } asserting {
       case EmptyBatchInfo(totalQueueSize) => totalQueueSize shouldBe 2
@@ -82,8 +101,8 @@ class RecordsQueueTest extends AsyncFunSuiteLike with AsyncIOSpec with MockitoSu
       for {
         commitContext   <- Ref[IO].of(defaultContext)
         recordsQueueRef <- Ref[IO].of(Queue.empty[RenderedRecord])
-        recordsQueue     = new RecordsQueue(recordsQueueRef, commitContext, mock[CommitPolicy])
-        batchInfo       <- recordsQueue.takeBatch()
+        recordsQueue     = new RecordsQueue(recordsQueueRef, commitContext, mock[BatchPolicy])
+        batchInfo       <- recordsQueue.popBatch()
       } yield batchInfo
     } asserting {
       case EmptyBatchInfo(totalQueueSize) => totalQueueSize shouldBe 0
@@ -98,7 +117,7 @@ class RecordsQueueTest extends AsyncFunSuiteLike with AsyncIOSpec with MockitoSu
       for {
         commitContext   <- Ref[IO].of(defaultContext)
         recordsQueueRef <- Ref[IO].of(Queue(record1, record2))
-        recordsQueue     = new RecordsQueue(recordsQueueRef, commitContext, mock[CommitPolicy])
+        recordsQueue     = new RecordsQueue(recordsQueueRef, commitContext, mock[BatchPolicy])
         _               <- recordsQueue.dequeue(records)
         refValue        <- recordsQueueRef.get
       } yield refValue
@@ -115,7 +134,7 @@ class RecordsQueueTest extends AsyncFunSuiteLike with AsyncIOSpec with MockitoSu
       for {
         commitContext   <- Ref[IO].of(defaultContext)
         recordsQueueRef <- Ref[IO].of(Queue(record1))
-        recordsQueue     = new RecordsQueue(recordsQueueRef, commitContext, mock[CommitPolicy])
+        recordsQueue     = new RecordsQueue(recordsQueueRef, commitContext, mock[BatchPolicy])
         _               <- recordsQueue.dequeue(records)
         refValue        <- recordsQueueRef.get
       } yield refValue

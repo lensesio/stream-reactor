@@ -28,10 +28,10 @@ import io.lenses.streamreactor.common.util.EitherUtils.unpackOrThrow
 import io.lenses.streamreactor.common.utils.CyclopsToScalaOption.convertToScalaOption
 import io.lenses.streamreactor.connect.cloud.common.model.Topic
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
-import io.lenses.streamreactor.connect.cloud.common.sink.commit.CommitPolicy
 import io.lenses.streamreactor.connect.http.sink.client.HttpRequestSender
+import io.lenses.streamreactor.connect.http.sink.commit.BatchPolicy
+import io.lenses.streamreactor.connect.http.sink.commit.HttpBatchPolicy
 import io.lenses.streamreactor.connect.http.sink.commit.HttpCommitContext
-import io.lenses.streamreactor.connect.http.sink.commit.HttpCommitPolicy
 import io.lenses.streamreactor.connect.http.sink.config.HttpSinkConfig
 import io.lenses.streamreactor.connect.http.sink.reporter.model.HttpFailureConnectorSpecificRecordData
 import io.lenses.streamreactor.connect.http.sink.reporter.model.HttpSuccessConnectorSpecificRecordData
@@ -108,13 +108,13 @@ object HttpWriterManager extends StrictLogging {
         retriableClient,
         config.authentication,
       )
-      commitPolicy = config.batch.toCommitPolicy
+      batchPolicy = config.batch.toBatchPolicy
 
     } yield new HttpWriterManager(
       sinkName,
       template,
       sender,
-      if (commitPolicy.conditions.nonEmpty) commitPolicy else HttpCommitPolicy.Default,
+      if (batchPolicy.conditions.nonEmpty) batchPolicy else HttpBatchPolicy.Default,
       cResRel,
       writersRef,
       terminate,
@@ -163,7 +163,7 @@ class HttpWriterManager(
   sinkName:                   String,
   template:                   TemplateType,
   httpRequestSender:          HttpRequestSender,
-  commitPolicy:               CommitPolicy,
+  batchPolicy:                BatchPolicy,
   val close:                  IO[Unit],
   writersRef:                 Ref[IO, Map[Topic, HttpWriter]],
   deferred:                   Deferred[IO, Either[Throwable, Unit]],
@@ -184,7 +184,7 @@ class HttpWriterManager(
     */
   private def createNewHttpWriter(): IO[HttpWriter] =
     for {
-      commitPolicy     <- IO.pure(commitPolicy)
+      batchPolicy      <- IO.pure(batchPolicy)
       recordsQueueRef  <- Ref.of[IO, Queue[RenderedRecord]](Queue.empty)
       commitContextRef <- Ref.of[IO, HttpCommitContext](HttpCommitContext.default(sinkName))
     } yield new HttpWriter(
@@ -192,7 +192,7 @@ class HttpWriterManager(
       sender   = httpRequestSender,
       template = template,
       recordsQueue =
-        new RecordsQueue(recordsQueueRef, commitContextRef, commitPolicy),
+        new RecordsQueue(recordsQueueRef, commitContextRef, batchPolicy),
       errorThreshold   = errorThreshold,
       tidyJson         = tidyJson,
       errorReporter    = errorReportingController,

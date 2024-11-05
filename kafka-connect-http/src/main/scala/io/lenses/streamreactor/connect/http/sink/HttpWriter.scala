@@ -56,7 +56,7 @@ class HttpWriter(
 
   def process(): IO[Unit] = {
     for {
-      batchInfo <- recordsQueue.takeBatch()
+      batchInfo <- recordsQueue.popBatch()
       _ <- batchInfo match {
         case EmptyBatchInfo(totalQueueSize) =>
           IO(logger.debug(s"[$sinkName] No batch yet, queue size: $totalQueueSize"))
