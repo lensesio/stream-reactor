@@ -46,6 +46,7 @@ import java.net.MalformedURLException
 import java.net.URL
 import java.time.Clock
 import java.time.Duration
+import scala.concurrent.duration.FiniteDuration
 import scala.jdk.CollectionConverters._
 import scala.util.Try
 
@@ -101,6 +102,8 @@ case class HttpSinkConfig(
   tidyJson:                   Boolean,
   errorReportingController:   ReportingController[HttpFailureConnectorSpecificRecordData],
   successReportingController: ReportingController[HttpSuccessConnectorSpecificRecordData],
+  maxQueueSize:               Int,
+  maxQueueOfferTimeout:       FiniteDuration,
 )
 
 object HttpSinkConfig {
@@ -159,6 +162,12 @@ object HttpSinkConfig {
           connectConfig,
         ),
       )
+
+      maxQueueSize = connectConfig.getInt(HttpSinkConfigDef.MaxQueueSizeProp)
+      maxQueueOfferTimeout = FiniteDuration(
+        connectConfig.getLong(HttpSinkConfigDef.MaxQueueOfferTimeoutProp),
+        scala.concurrent.duration.MILLISECONDS,
+      )
     } yield HttpSinkConfig(
       method,
       endpoint,
@@ -175,6 +184,8 @@ object HttpSinkConfig {
       jsonTidy,
       errorReportingController,
       successReportingController,
+      maxQueueSize,
+      maxQueueOfferTimeout,
     )
   }
 

@@ -26,6 +26,7 @@ import com.typesafe.scalalogging.LazyLogging
 import com.typesafe.scalalogging.StrictLogging
 import io.lenses.streamreactor.common.util.EitherUtils.unpackOrThrow
 import io.lenses.streamreactor.common.utils.CyclopsToScalaOption.convertToScalaOption
+import io.lenses.streamreactor.connect.cloud.common.model.Offset
 import io.lenses.streamreactor.connect.cloud.common.model.Topic
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
 import io.lenses.streamreactor.connect.http.sink.client.HttpRequestSender
@@ -50,6 +51,7 @@ import java.net.http.HttpClient
 import java.time.Duration
 import scala.collection.immutable.Queue
 import scala.concurrent.duration.DurationInt
+import scala.concurrent.duration.FiniteDuration
 
 /**
   * The `HttpWriterManager` object provides a factory method to create an instance of `HttpWriterManager`.
@@ -123,6 +125,8 @@ object HttpWriterManager extends StrictLogging {
       config.tidyJson,
       config.errorReportingController,
       config.successReportingController,
+      config.maxQueueSize,
+      config.maxQueueOfferTimeout,
     )
   }
 
@@ -172,6 +176,8 @@ class HttpWriterManager(
   tidyJson:                   Boolean,
   errorReportingController:   ReportingController[HttpFailureConnectorSpecificRecordData],
   successReportingController: ReportingController[HttpSuccessConnectorSpecificRecordData],
+  maxQueueSize:               Int,
+  maxQueueOfferTimeout:       FiniteDuration,
 )(
   implicit
   t: Temporal[IO],
@@ -184,15 +190,21 @@ class HttpWriterManager(
     */
   private def createNewHttpWriter(): IO[HttpWriter] =
     for {
-      batchPolicy      <- IO.pure(batchPolicy)
       recordsQueueRef  <- Ref.of[IO, Queue[RenderedRecord]](Queue.empty)
       commitContextRef <- Ref.of[IO, HttpCommitContext](HttpCommitContext.default(sinkName))
+      offsetsRef       <- Ref.of[IO, Map[TopicPartition, Offset]](Map.empty)
     } yield new HttpWriter(
       sinkName = sinkName,
       sender   = httpRequestSender,
       template = template,
       recordsQueue =
-        new RecordsQueue(recordsQueueRef, commitContextRef, batchPolicy),
+        new RecordsQueue(recordsQueueRef,
+                         commitContextRef,
+                         batchPolicy,
+                         maxQueueSize,
+                         maxQueueOfferTimeout,
+                         offsetsRef,
+        ),
       errorThreshold   = errorThreshold,
       tidyJson         = tidyJson,
       errorReporter    = errorReportingController,

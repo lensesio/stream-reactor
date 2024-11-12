@@ -34,18 +34,21 @@ import cats.data.NonEmptySeq
 import cats.effect.IO
 import cats.effect.kernel.Ref
 import cats.effect.testing.scalatest.AsyncIOSpec
+import io.lenses.streamreactor.connect.cloud.common.model.Offset
 import io.lenses.streamreactor.connect.cloud.common.model.Topic
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
 import io.lenses.streamreactor.connect.http.sink.commit.BatchPolicy
 import io.lenses.streamreactor.connect.http.sink.commit.BatchResult
 import io.lenses.streamreactor.connect.http.sink.commit.HttpCommitContext
 import io.lenses.streamreactor.connect.http.sink.tpl.RenderedRecord
+import org.apache.kafka.connect.errors.RetriableException
 import org.mockito.ArgumentMatchers.any
 import org.mockito.MockitoSugar
 import org.scalatest.funsuite.AsyncFunSuiteLike
 import org.scalatest.matchers.should.Matchers
 
 import scala.collection.immutable.Queue
+import scala.concurrent.duration.DurationInt
 
 class RecordsQueueTest extends AsyncFunSuiteLike with AsyncIOSpec with MockitoSugar with Matchers {
 
@@ -59,13 +62,15 @@ class RecordsQueueTest extends AsyncFunSuiteLike with AsyncIOSpec with MockitoSu
 
   private val record1 = RenderedRecord(topicPartition.atOffset(100), timestamp, "record1", Seq.empty, testEndpoint)
   private val record2 = RenderedRecord(topicPartition.atOffset(101), timestamp, "record2", Seq.empty, testEndpoint)
+  private val record3 = RenderedRecord(topicPartition.atOffset(102), timestamp, "record3", Seq.empty, testEndpoint)
 
   test("enqueueAll should add all records to the queue") {
     {
       for {
         commitContext   <- Ref[IO].of(defaultContext)
         recordsQueueRef <- Ref[IO].of(Queue.empty[RenderedRecord])
-        recordsQueue     = new RecordsQueue(recordsQueueRef, commitContext, mock[BatchPolicy])
+        offsetsRef      <- Ref[IO].of(Map.empty[TopicPartition, Offset])
+        recordsQueue     = new RecordsQueue(recordsQueueRef, commitContext, mock[BatchPolicy], 10000, 1.minute, offsetsRef)
         _               <- recordsQueue.enqueueAll(NonEmptySeq.of(record1, record2))
         refValue        <- recordsQueueRef.get
       } yield refValue
@@ -87,7 +92,8 @@ class RecordsQueueTest extends AsyncFunSuiteLike with AsyncIOSpec with MockitoSu
       for {
         commitContext   <- Ref[IO].of(defaultContext)
         recordsQueueRef <- Ref[IO].of(Queue(record1, record2))
-        recordsQueue     = new RecordsQueue(recordsQueueRef, commitContext, commitPolicy)
+        offsetsRef      <- Ref[IO].of(Map.empty[TopicPartition, Offset])
+        recordsQueue     = new RecordsQueue(recordsQueueRef, commitContext, commitPolicy, 10000, 1.minute, offsetsRef)
         batchInfo       <- recordsQueue.popBatch()
       } yield batchInfo
     } asserting {
@@ -101,7 +107,8 @@ class RecordsQueueTest extends AsyncFunSuiteLike with AsyncIOSpec with MockitoSu
       for {
         commitContext   <- Ref[IO].of(defaultContext)
         recordsQueueRef <- Ref[IO].of(Queue.empty[RenderedRecord])
-        recordsQueue     = new RecordsQueue(recordsQueueRef, commitContext, mock[BatchPolicy])
+        offsetsRef      <- Ref[IO].of(Map.empty[TopicPartition, Offset])
+        recordsQueue     = new RecordsQueue(recordsQueueRef, commitContext, mock[BatchPolicy], 10000, 1.minute, offsetsRef)
         batchInfo       <- recordsQueue.popBatch()
       } yield batchInfo
     } asserting {
@@ -117,7 +124,8 @@ class RecordsQueueTest extends AsyncFunSuiteLike with AsyncIOSpec with MockitoSu
       for {
         commitContext   <- Ref[IO].of(defaultContext)
         recordsQueueRef <- Ref[IO].of(Queue(record1, record2))
-        recordsQueue     = new RecordsQueue(recordsQueueRef, commitContext, mock[BatchPolicy])
+        offsetsRef      <- Ref[IO].of(Map.empty[TopicPartition, Offset])
+        recordsQueue     = new RecordsQueue(recordsQueueRef, commitContext, mock[BatchPolicy], 10000, 1.minute, offsetsRef)
         _               <- recordsQueue.dequeue(records)
         refValue        <- recordsQueueRef.get
       } yield refValue
@@ -134,13 +142,80 @@ class RecordsQueueTest extends AsyncFunSuiteLike with AsyncIOSpec with MockitoSu
       for {
         commitContext   <- Ref[IO].of(defaultContext)
         recordsQueueRef <- Ref[IO].of(Queue(record1))
-        recordsQueue     = new RecordsQueue(recordsQueueRef, commitContext, mock[BatchPolicy])
+        offsetsRef      <- Ref[IO].of(Map.empty[TopicPartition, Offset])
+        recordsQueue     = new RecordsQueue(recordsQueueRef, commitContext, mock[BatchPolicy], 10000, 1.minute, offsetsRef)
         _               <- recordsQueue.dequeue(records)
         refValue        <- recordsQueueRef.get
       } yield refValue
     } asserting {
       backingQueue =>
         backingQueue should contain theSameElementsInOrderAs Seq(record1)
+    }
+  }
+
+  test("enqueue all should throw RetriableException if the queue size is exceeded") {
+    val records      = NonEmptySeq.of(record1, record2)
+    val commitPolicy = mock[BatchPolicy]
+
+    val ioAction = for {
+      commitContext   <- Ref[IO].of(defaultContext)
+      recordsQueueRef <- Ref[IO].of(Queue.empty[RenderedRecord])
+      offsetsRef      <- Ref[IO].of(Map.empty[TopicPartition, Offset])
+      recordsQueue     = new RecordsQueue(recordsQueueRef, commitContext, commitPolicy, 1, 2.seconds, offsetsRef)
+      _               <- recordsQueue.enqueueAll(records)
+    } yield ()
+
+    ioAction.attempt.map {
+      case Left(e: RetriableException) =>
+        e.getMessage should be("Enqueue timed out and records remain")
+      case Left(e) =>
+        fail(s"Expected RetriableException but got ${e}")
+      case Right(_) =>
+        fail("Expected RetriableException but enqueueAll succeeded")
+    }
+
+  }
+
+  test(" does not enqueue a record which was enqueued before") {
+    val records      = NonEmptySeq.of(record1, record2)
+    val commitPolicy = mock[BatchPolicy]
+    val newRecords   = NonEmptySeq.of(record2, record3)
+
+    val ioAction = for {
+      commitContext   <- Ref[IO].of(defaultContext)
+      recordsQueueRef <- Ref[IO].of(Queue.empty[RenderedRecord])
+      offsetsRef      <- Ref[IO].of(Map.empty[TopicPartition, Offset])
+      recordsQueue     = new RecordsQueue(recordsQueueRef, commitContext, commitPolicy, 10000, 1.minute, offsetsRef)
+      _               <- recordsQueue.enqueueAll(records)
+      _               <- recordsQueue.enqueueAll(newRecords)
+      queue           <- recordsQueueRef.get
+    } yield queue.toList
+
+    ioAction asserting {
+      queue =>
+        queue should contain theSameElementsInOrderAs List(record1, record2, record3)
+    }
+  }
+
+  test("enqueue when the queue size is 1") {
+    val records      = NonEmptySeq.of(record1)
+    val commitPolicy = mock[BatchPolicy]
+    val newRecords   = NonEmptySeq.of(record2)
+
+    val ioAction = for {
+      commitContext   <- Ref[IO].of(defaultContext)
+      recordsQueueRef <- Ref[IO].of(Queue.empty[RenderedRecord])
+      offsetsRef      <- Ref[IO].of(Map.empty[TopicPartition, Offset])
+      recordsQueue     = new RecordsQueue(recordsQueueRef, commitContext, commitPolicy, 1, 10.seconds, offsetsRef)
+      _               <- recordsQueue.enqueueAll(records)
+      _               <- recordsQueue.dequeue(records)
+      _               <- recordsQueue.enqueueAll(newRecords)
+      queue           <- recordsQueueRef.get
+    } yield queue.toList
+
+    ioAction asserting {
+      queue =>
+        queue should contain theSameElementsInOrderAs List(record2)
     }
   }
 }

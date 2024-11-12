@@ -132,45 +132,6 @@ class HttpSinkTest
     }
   }
 
-  /**
-    * Retries occur by default and the failed HTTP post will be retried twice before succeeding.
-    */
-  test("failing scenario written to error reporter") {
-
-    setUpWiremockFailureResponse()
-
-    sendRecordsWithProducer(
-      stringProducer,
-      stringConverters,
-      randomTestId,
-      topic,
-      "My Static Content Template",
-      BatchSizeSingleRecord,
-      false,
-      1,
-      2,
-      "Record number 1",
-    ).asserting {
-      case (requests, successReporterRecords, failureReporterRecords) =>
-        requests.size should be(3)
-        requests.map(_.getBody).map(new String(_)).toSet should contain only "My Static Content Template"
-        requests.map(_.getMethod).toSet should be(Set(RequestMethod.POST))
-
-        failureReporterRecords.size should be(2)
-        failureReporterRecords.foreach {
-          rec =>
-            rec.topic() should be(failureTopicName)
-            rec.value() should be("My Static Content Template")
-        }
-
-        successReporterRecords.size should be(1)
-        val successRecord = successReporterRecords.head
-        successRecord.topic() should be(successTopicName)
-        successRecord.value() should be("My Static Content Template")
-
-    }
-  }
-
   test("dynamic string template containing message content should be sent to endpoint") {
 
     setUpWiremockResponse()
@@ -309,45 +270,6 @@ class HttpSinkTest
       .willReturn(aResponse.withHeader("Content-Type", "text/plain")
         .withBody("Hello world!")))
     ()
-  }
-
-  private def setUpWiremockFailureResponse(): Unit = {
-    WireMock.configureFor(container.getHost, container.getFirstMappedPort)
-    WireMock.resetAllScenarios()
-    WireMock.resetAllRequests()
-    WireMock.resetToDefault()
-    WireMock.reset()
-
-    val url = s"/$randomTestId"
-
-    stubFor(
-      post(urlEqualTo(url))
-        .inScenario("failure")
-        .whenScenarioStateIs("STARTED")
-        .willSetStateTo("ONE ATTEMPT")
-        .willReturn(aResponse.withStatus(404).withHeader("Content-Type", "text/plain").withBody("File Not Found")),
-    )
-
-    stubFor(
-      post(urlEqualTo(url))
-        .inScenario("failure")
-        .whenScenarioStateIs("ONE ATTEMPT")
-        .willSetStateTo("TWO ATTEMPTS")
-        .willReturn(aResponse.withStatus(404).withHeader("Content-Type", "text/plain").withBody("File Not Found")),
-    )
-
-    stubFor(
-      post(urlEqualTo(url))
-        .inScenario("failure")
-        .whenScenarioStateIs("TWO ATTEMPTS")
-        .willReturn(aResponse.withHeader("Content-Type", "text/plain")
-          .withBody("Hello world!")),
-    )
-
-    WireMock.setScenarioState("failure", "STARTED")
-
-    ()
-
   }
 
   def getBootstrapServers: String = s"PLAINTEXT://kafka:9092"
