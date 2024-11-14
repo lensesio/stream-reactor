@@ -45,7 +45,7 @@ object CloudSinkBucketOptions extends LazyLogging {
                                  |
                                  |Replace WITH_FLUSH_COUNT with: PROPERTIES('${FlushCount.entryName}'=123).
                                  |Replace WITH_FLUSH_SIZE with: PROPERTIES('${FlushSize.entryName}'=456).
-                                 |Replace WITH_FLUSH_Interval with: PROPERTIES('${FlushInterval}'=789).""".stripMargin
+                                 |Replace WITH_FLUSH_Interval with: PROPERTIES('${FlushInterval.entryName}'=789).""".stripMargin
 
   val WithPartitionerError = s"""
                                 |Invalid KCQL setting. WITHPARTITIONER feature has been replaced.
