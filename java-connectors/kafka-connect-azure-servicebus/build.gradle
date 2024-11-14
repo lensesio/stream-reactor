@@ -11,7 +11,7 @@ project(':kafka-connect-azure-servicebus') {
         testImplementation(project(path: ':test-utils', configuration: 'testArtifacts'))
 
         // Azure Service Bus dependencies
-        implementation group: 'com.azure', name: 'azure-core', version: '1.53.0'
-        implementation group: 'com.azure', name: 'azure-messaging-servicebus', version: '7.17.4'
+        implementation group: 'com.azure', name: 'azure-core', version: '1.54.0'
+        implementation group: 'com.azure', name: 'azure-messaging-servicebus', version: '7.17.5'
     }
 }
