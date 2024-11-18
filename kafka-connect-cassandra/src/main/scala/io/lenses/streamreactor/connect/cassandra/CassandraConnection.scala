@@ -26,6 +26,7 @@ import com.datastax.driver.core.policies.RoundRobinPolicy
 import com.datastax.driver.core.policies.TokenAwarePolicy
 import com.datastax.driver.core._
 import com.typesafe.scalalogging.StrictLogging
+import io.lenses.streamreactor.common.codec.ConvenienceCodecs
 import org.apache.kafka.common.config.AbstractConfig
 
 import scala.annotation.nowarn
@@ -65,12 +66,15 @@ object CassandraConnection extends StrictLogging {
       case LoadBalancingPolicy.LATENCY_AWARE =>
         LatencyAwarePolicy.builder(DCAwareRoundRobinPolicy.builder().build()).build()
     }
-
+    val codecRegistry = CodecRegistry.DEFAULT_INSTANCE
+    codecRegistry.register(ConvenienceCodecs.ALL_INSTANCES: _*)
+    
     val builder: Builder = Cluster
       .builder()
       .withoutJMXReporting()
       .addContactPoints(contactPoints.split(","): _*)
       .withPort(port)
+      .withCodecRegistry(codecRegistry)
       .withSocketOptions(new SocketOptions()
         .setConnectTimeoutMillis(connectTimeout)
         .setReadTimeoutMillis(readTimeout))

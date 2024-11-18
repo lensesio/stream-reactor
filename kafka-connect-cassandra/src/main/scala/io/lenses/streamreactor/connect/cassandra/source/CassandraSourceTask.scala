@@ -171,7 +171,7 @@ class CassandraSourceTask extends SourceTask with StrictLogging with JarManifest
     // available for publishing to Kafka
     val records = if (!queue.isEmpty) {
       val sendSize = if (queue.size() > batchSize.get) batchSize.get else queue.size()
-      logger.info(s"Sending $sendSize records for connector $name")
+      logger.debug(s"Sending $sendSize records for connector $name")
       QueueHelpers.drainQueue(queue, batchSize.get).asScala.toList
     } else {
       List[SourceRecord]()

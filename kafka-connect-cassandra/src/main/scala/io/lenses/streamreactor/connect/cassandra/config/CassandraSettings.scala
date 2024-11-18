@@ -55,7 +55,7 @@ object LoadBalancingPolicy extends Enumeration {
 case class CassandraSourceSetting(
   kcql:                    Kcql,
   keySpace:                String,
-  primaryKeyColumn:        Option[String] = None,
+  primaryKeyColumns:        List[String] = List(),
   timestampColType:        TimestampType,
   pollInterval:            Long           = CassandraConfigConstants.DEFAULT_POLL_INTERVAL,
   consistencyLevel:        Option[ConsistencyLevel],
@@ -142,7 +142,7 @@ object CassandraSettings extends StrictLogging {
         throw new ConfigException("You should specify a bucketFormat while using BUCKETTIMESERIES")
       }
 
-      if (timestampType != TimestampType.NONE && tCols.size != 1) {
+      if (timestampType != TimestampType.NONE && timestampType != TimestampType.TOKEN && tCols.size != 1) {
         throw new ConfigException("Only one primary key column is allowed to be specified in Incremental mode. " +
           s"Received ${tCols.mkString(",")} for source ${r.getSource}")
       }
@@ -150,7 +150,7 @@ object CassandraSettings extends StrictLogging {
       CassandraSourceSetting(
         kcql                    = r,
         keySpace                = keySpace,
-        primaryKeyColumn        = tCols.headOption,
+        primaryKeyColumns        = tCols,
         timestampColType        = timestampType,
         pollInterval            = pollInterval,
         errorPolicy             = errorPolicy,

@@ -28,7 +28,6 @@ import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.Importance
 import org.apache.kafka.common.config.ConfigDef.Type
 
-import scala.collection.immutable.ListSet
 import scala.jdk.CollectionConverters.ListHasAsScala
 
 /**
@@ -530,9 +529,9 @@ trait CassandraFieldsSettings {
 
   def getKCQL: Set[Kcql]
 
-  def getPrimaryKeyCols(kcql: Set[Kcql] = getKCQL): Map[String, Set[String]] =
+  def getPrimaryKeyCols(kcql: Set[Kcql] = getKCQL): Map[String, List[String]] =
     kcql.toList
-      .map(k => (k.getSource, ListSet(k.getPrimaryKeys.asScala.map(p => p.getName).reverse.toSeq: _*).toSet))
+      .map(k => (k.getSource, k.getPrimaryKeys.asScala.map(p => p.getName).toList))
       .toMap
 
   def getFields(kcql: Set[Kcql] = getKCQL): Map[String, Seq[Field]] =

@@ -15,10 +15,8 @@
  */
 package io.lenses.streamreactor.connect.cassandra.source
 
-import io.lenses.streamreactor.connect.cassandra.config.CassandraConfigConstants
-import io.lenses.streamreactor.connect.cassandra.config.CassandraSourceSetting
-import io.lenses.streamreactor.connect.cassandra.config.TimestampType
 import com.typesafe.scalalogging.StrictLogging
+import io.lenses.streamreactor.connect.cassandra.config.{CassandraConfigConstants, CassandraSourceSetting, TimestampType}
 import org.apache.kafka.common.config.ConfigException
 
 import scala.jdk.CollectionConverters.ListHasAsScala
@@ -136,43 +134,52 @@ class CqlGenerator(private val setting: CassandraSourceSetting) extends StrictLo
     }
   }
 
+  private def checkCqlForPrimaryKey(pkCols: List[String]) = {
+    logger.info(s"checking CQL for PK: $pkCols")
+    if (pkCols.exists(pkCol => !selectColumns.contains(pkCol)) && !selectColumns.contentEquals("*")) {
+      val msg = s"the primary key column (pkCol) must appear in the SELECT statement"
+      logger.error(msg)
+      throw new ConfigException(msg)
+    }
+  }
+
   private def generateCqlForTokenMode: String = {
-    val pkCol = setting.primaryKeyColumn.getOrElse("")
-    checkCqlForPrimaryKey(pkCol)
-    val whereClause = s" WHERE token($pkCol) > token(?) LIMIT $limitRowsSize"
+    val pkCols = setting.primaryKeyColumns
+    checkCqlForPrimaryKey(pkCols)
+    val whereClause = s" WHERE token(${pkCols.mkString(",")}) > token(${pkCols.map(_ => "?").mkString(",")}) LIMIT $limitRowsSize"
     generateCqlForBulkMode + whereClause
   }
 
   private def generateCqlForTokenModeNoOffset: String = {
-    val pkCol = setting.primaryKeyColumn.getOrElse("")
+    val pkCol = setting.primaryKeyColumns
     checkCqlForPrimaryKey(pkCol)
     val whereClause = s" LIMIT $limitRowsSize"
     generateCqlForBulkMode + whereClause
   }
 
   private def generateCqlForTimeUuidMode: String = {
-    val pkCol = setting.primaryKeyColumn.getOrElse("")
+    val pkCol = setting.primaryKeyColumns.headOption.getOrElse("")
     checkCqlForPrimaryKey(pkCol)
     val whereClause = s" WHERE $pkCol > maxTimeuuid(?) AND $pkCol <= minTimeuuid(?) ALLOW FILTERING"
     generateCqlForBulkMode + whereClause
   }
 
   private def generateCqlForTimestampMode: String = {
-    val pkCol = setting.primaryKeyColumn.getOrElse("")
+    val pkCol = setting.primaryKeyColumns.headOption.getOrElse("")
     checkCqlForPrimaryKey(pkCol)
     val whereClause = s" WHERE $pkCol > ? AND $pkCol <= ? ALLOW FILTERING"
     generateCqlForBulkMode + whereClause
   }
 
   private def generateCqlForDseSearchTimestampMode: String = {
-    val pkCol = setting.primaryKeyColumn.getOrElse("")
+    val pkCol = setting.primaryKeyColumns.headOption.getOrElse("")
     checkCqlForPrimaryKey(pkCol)
     val whereClause = s" WHERE solr_query=?"
     generateCqlForBulkMode + whereClause
   }
 
   private def generateCqlForBucketTimeSeriesMode: String = {
-    val pkCol = setting.primaryKeyColumn.getOrElse("")
+    val pkCol = setting.primaryKeyColumns.headOption.getOrElse("")
     checkCqlForPrimaryKey(pkCol)
     val whereClause = s" WHERE $pkCol > ? AND $pkCol <= ? AND ${setting.bucketFieldName} IN ?"
     generateCqlForBulkMode + whereClause
