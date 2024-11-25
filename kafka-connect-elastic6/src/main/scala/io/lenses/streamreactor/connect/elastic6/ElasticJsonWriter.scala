@@ -145,11 +145,13 @@ class ElasticJsonWriter(client: KElasticClient, settings: ElasticSettings)
                   )
                 } else {
                   TransformAndExtractPK(
-                    kcqlValue.fields,
-                    kcqlValue.primaryKeysPath,
+                    kcqlValue,
                     r.valueSchema(),
                     r.value(),
                     kcql.hasRetainStructure,
+                    r.keySchema(),
+                    r.key(),
+                    r.headers(),
                   )
                 }
                 val idFromPk = pks.mkString(settings.pkJoinerSeparator)
@@ -211,15 +213,13 @@ class ElasticJsonWriter(client: KElasticClient, settings: ElasticSettings)
     pks.mkString(settings.pkJoinerSeparator)
   }
 
-  private case class KcqlValues(
-    fields:               Seq[Field],
-    ignoredFields:        Seq[Field],
-    primaryKeysPath:      Seq[Vector[String]],
-    behaviorOnNullValues: NullValueBehavior,
-  )
-
 }
-
+case class KcqlValues(
+  fields:               Seq[Field],
+  ignoredFields:        Seq[Field],
+  primaryKeysPath:      Seq[Vector[String]],
+  behaviorOnNullValues: NullValueBehavior,
+)
 case object IndexableJsonNode extends Indexable[JsonNode] {
   override def json(t: JsonNode): String = t.toString
 }

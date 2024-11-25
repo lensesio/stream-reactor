@@ -140,10 +140,12 @@ class ElasticJsonWriter(client: KElasticClient, settings: ElasticSettings)
                   (Transform(kcqlValue.fields, r.valueSchema(), r.value(), kcql.hasRetainStructure), Seq.empty)
                 } else {
                   TransformAndExtractPK(kcqlValue,
-                                        kcqlValue.primaryKeysPath,
                                         r.valueSchema(),
                                         r.value(),
                                         kcql.hasRetainStructure,
+                                        r.keySchema(),
+                                        r.key(),
+                                        r.headers(),
                   )
                 }
                 val idFromPk = pks.mkString(settings.pkJoinerSeparator)
