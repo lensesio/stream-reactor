@@ -67,6 +67,10 @@ abstract class CloudSourceTask[MD <: FileMetadata, C <: CloudSourceConfig[MD], C
 
   implicit var connectorTaskId: ConnectorTaskId = _
 
+  // Member variable for delayMs
+  @volatile
+  private var delayMs: Option[Long] = _
+
   /**
     * Start sets up readers for every configured connection in the properties
     */
@@ -87,6 +91,9 @@ abstract class CloudSourceTask[MD <: FileMetadata, C <: CloudSourceConfig[MD], C
       cancelledRef           = result.cancelledRef.some
       partitionDiscoveryLoop = fiber.some
     }).unsafeRunSync()
+
+    // Initialize delayMs from the configuration
+    delayMs = contextProperties.get("connect.s3.poll.interval.ms").map(_.toLong)
   }
 
   override def stop(): Unit = {
@@ -98,10 +105,14 @@ abstract class CloudSourceTask[MD <: FileMetadata, C <: CloudSourceConfig[MD], C
     logger.info(s"Stopped S3 source task")
   }
 
-  override def poll(): util.List[SourceRecord] =
+  override def poll(): util.List[SourceRecord] = {
+    if (delayMs.exists(_ > 0)) {
+      Thread.sleep(delayMs.get)
+    }
     s3SourceTaskState.fold(Collections.emptyList[SourceRecord]()) { state =>
       state.poll().unsafeRunSync().asJava
     }
+  }
 
   private def stopInternal(state: CloudSourceTaskState, signal: Ref[IO, Boolean], fiber: FiberIO[Unit]): Unit = {
     (for {
