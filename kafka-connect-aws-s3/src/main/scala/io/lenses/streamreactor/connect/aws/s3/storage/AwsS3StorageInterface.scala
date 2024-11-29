@@ -25,6 +25,7 @@ import io.lenses.streamreactor.connect.cloud.common.storage.FileCreateError
 import io.lenses.streamreactor.connect.cloud.common.storage.FileDeleteError
 import io.lenses.streamreactor.connect.cloud.common.storage.FileListError
 import io.lenses.streamreactor.connect.cloud.common.storage.FileLoadError
+import io.lenses.streamreactor.connect.cloud.common.storage.FileMoveError
 import io.lenses.streamreactor.connect.cloud.common.storage.ListOfKeysResponse
 import io.lenses.streamreactor.connect.cloud.common.storage.ListOfMetadataResponse
 import io.lenses.streamreactor.connect.cloud.common.storage.ListResponse
@@ -295,4 +296,33 @@ class AwsS3StorageInterface(
     * @return
     */
   override def system(): String = "S3"
+
+  override def mvFile(
+    oldBucket: String,
+    oldPath:   String,
+    newBucket: String,
+    newPath:   String,
+  ): Either[FileMoveError, Unit] = {
+    val headObjectRequest = HeadObjectRequest.builder().bucket(oldBucket).key(oldPath).build()
+    Try(s3Client.headObject(headObjectRequest)) match {
+      case Failure(ex: NoSuchKeyException) =>
+        logger.warn("Object ({}/{}) doesn't exist to move", oldBucket, oldPath, ex)
+        ().asRight
+      case Failure(ex) =>
+        logger.error("Object ({}/{}) could not be retrieved", ex)
+        FileMoveError(ex, oldPath, newPath).asLeft
+      case Success(_) =>
+        Try {
+          s3Client.copyObject(
+            CopyObjectRequest.builder().sourceKey(oldPath).destinationKey(newPath).sourceBucket(
+              oldBucket,
+            ).destinationBucket(
+              newBucket,
+            ).build(),
+          )
+          s3Client.deleteObject(DeleteObjectRequest.builder().bucket(oldBucket).key(oldPath).build())
+        }.toEither.leftMap(FileMoveError(_, oldPath, newPath)).void
+    }
+  }
+
 }

@@ -33,7 +33,7 @@ class S3SourceTask
       S3FileMetadata,
       S3SourceConfig,
       S3Client,
-    ]
+    ]("/aws-s3-source-ascii.txt")
     with LazyLogging {
 
   val validator: CloudLocationValidator = S3LocationValidator
@@ -41,10 +41,10 @@ class S3SourceTask
   override def createStorageInterface(
     connectorTaskId: ConnectorTaskId,
     config:          S3SourceConfig,
-    s3Client:        S3Client,
+    client:          S3Client,
   ): AwsS3StorageInterface =
     new AwsS3StorageInterface(connectorTaskId = connectorTaskId,
-                              s3Client        = s3Client,
+                              s3Client        = client,
                               batchDelete     = config.batchDelete,
                               extensionFilter = config.extensionFilter,
     )
@@ -59,6 +59,6 @@ class S3SourceTask
 
   override def connectorPrefix: String = CONNECTOR_PREFIX
 
-  override def createDirectoryLister(connectorTaskId: ConnectorTaskId, s3Client: S3Client): DirectoryLister =
-    new AwsS3DirectoryLister(connectorTaskId, s3Client)
+  override def createDirectoryLister(connectorTaskId: ConnectorTaskId, client: S3Client): DirectoryLister =
+    new AwsS3DirectoryLister(connectorTaskId, client)
 }

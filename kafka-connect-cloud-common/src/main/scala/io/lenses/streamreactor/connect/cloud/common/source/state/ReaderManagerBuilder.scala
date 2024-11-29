@@ -34,7 +34,7 @@ import org.apache.kafka.connect.errors.ConnectException
 object ReaderManagerBuilder {
   def apply[M <: FileMetadata](
     root:             CloudLocation,
-    path:             String,
+    path:             CloudLocation,
     storageInterface: StorageInterface[M],
     connectorTaskId:  ConnectorTaskId,
     contextOffsetFn:  CloudLocation => Option[CloudLocation],
@@ -49,11 +49,10 @@ object ReaderManagerBuilder {
           new ConnectException(s"No root found for path:$path"),
         ),
       )
-      ref        <- Ref[IO].of(Option.empty[ResultReader])
-      adaptedRoot = root.copy(prefix = Some(path))
-      adaptedSbo  = sbo.copy[M](sourceBucketAndPrefix = adaptedRoot)
-      listingFn   = adaptedSbo.createBatchListerFn(storageInterface)
-      source = contextOffsetFn(adaptedRoot).fold {
+      ref       <- Ref[IO].of(Option.empty[ResultReader])
+      adaptedSbo = sbo.copy[M](sourceBucketAndPrefix = path)
+      listingFn  = adaptedSbo.createBatchListerFn(storageInterface)
+      source = contextOffsetFn(path).fold {
         new CloudSourceFileQueue[M](connectorTaskId, listingFn)
       } { location =>
         CloudSourceFileQueue.from[M](
@@ -64,6 +63,8 @@ object ReaderManagerBuilder {
         )
       }
     } yield new ReaderManager(
+      root,
+      path,
       sbo.recordsLimit,
       source,
       ResultReader.create(sbo.format,
@@ -75,6 +76,8 @@ object ReaderManagerBuilder {
       ),
       connectorTaskId,
       ref,
+      storageInterface,
+      sbo.postProcessAction,
     )
 
 }

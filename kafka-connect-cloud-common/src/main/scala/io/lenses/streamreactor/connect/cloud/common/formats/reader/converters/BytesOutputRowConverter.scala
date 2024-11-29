@@ -32,10 +32,10 @@ class BytesOutputRowConverter(
   location:           CloudLocation,
   lastModified:       Instant,
 ) extends Converter[BytesOutputRow] {
-  override def convert(row: BytesOutputRow, index: Long): SourceRecord =
+  override def convert(row: BytesOutputRow, index: Long, lastLine: Boolean): SourceRecord =
     new SourceRecord(
       watermarkPartition,
-      SourceWatermark.offset(location, index, lastModified),
+      SourceWatermark.offset(location, index, lastModified, lastLine),
       topic.value,
       partition,
       Schema.BYTES_SCHEMA,
