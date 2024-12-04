@@ -44,6 +44,11 @@ jobs:
 
   create-release:
     runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      id-token: write
+      contents: write
+      attestations: write
     needs:
       - validate-tag
       - build
@@ -77,13 +82,22 @@ jobs:
           key: assembly-java-${{ github.run_id }}
           fail-on-cache-miss: true
 
+      - name: Generate SBOM
+        uses: anchore/sbom-action@v0
+        with:
+          format: 'spdx-json'
+          path: java-connectors/release
+          artifact-name: '${{ matrix.module }}-${{ env.TAG }}.sbom.spdx.json'
+          output-file: ${{ github.workspace }}/${{ matrix.module }}-${{ env.TAG }}.sbom.spdx.json
+          upload-release-assets: false
+
       - name: Package Connector
         shell: bash
         run: |
           JAVA_RELEASE_FOLDER=java-connectors/release
           FOLDER=${{ matrix.module }}-${{ env.TAG }}
           mkdir -p $FOLDER
-          cp $JAVA_RELEASE_FOLDER/${{ matrix.module }}*.jar LICENSE $FOLDER/
+          cp $JAVA_RELEASE_FOLDER/${{ matrix.module }}*.jar LICENSE ${{ matrix.module }}-${{ env.TAG }}.sbom.spdx.json $FOLDER/
           zip -r "$FOLDER.zip" $FOLDER/
 
       - name: Upload binaries to release
@@ -93,3 +107,14 @@ jobs:
           asset_name: "${{ matrix.module }}-${{ env.TAG }}.zip"
           release_name: 'Stream Reactor ${{ env.TAG }}'
           prerelease: ${{ env.DRAFT_RELEASE }}
+
+      - name: Generate SBOM attestation
+        uses: actions/attest-sbom@v1
+        with:
+          subject-path: ${{ matrix.module }}-${{ env.TAG }}.zip
+          sbom-path: '${{ matrix.module }}-${{ env.TAG }}.sbom.spdx.json'
+
+      - name: Generate artifact attestation
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-path: ${{ matrix.module }}-${{ env.TAG }}.zip

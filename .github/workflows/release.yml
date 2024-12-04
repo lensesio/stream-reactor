@@ -103,6 +103,11 @@ jobs:
 
   create-release:
     runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      id-token: write
+      contents: write
+      attestations: write
     needs:
       - validate-tag
       - build
@@ -137,6 +142,15 @@ jobs:
           key: assembly-${{ matrix.module }}-${{ github.run_id }}
           fail-on-cache-miss: true
 
+      - name: Generate SBOM
+        uses: anchore/sbom-action@v0
+        with:
+          format: 'spdx-json'
+          path: 'kafka-connect-${{ matrix.module }}/target/libs/'
+          artifact-name: 'kafka-connect-${{ matrix.module }}-${{ env.TAG }}.sbom.spdx.json'
+          output-file: ${{ github.workspace }}/kafka-connect-${{ matrix.module }}-${{ env.TAG }}.sbom.spdx.json
+          upload-release-assets: false
+
       - name: Package Connector
         shell: bash
         # It's BASH so we have to use find instead of globbed (**) cp for subdirs with depth >1
@@ -144,7 +158,7 @@ jobs:
           FOLDER=kafka-connect-${{ matrix.module }}-${{ env.TAG }}
           mkdir -p $FOLDER
           find . -type f -path "*/target/libs/*.jar" -exec cp "{}" $FOLDER/ \;
-          cp LICENSE $FOLDER/
+          cp LICENSE kafka-connect-${{ matrix.module }}-${{ env.TAG }}.sbom.spdx.json $FOLDER/
           zip -r "$FOLDER.zip" $FOLDER/
 
       - name: Upload binaries to release
@@ -154,3 +168,14 @@ jobs:
           asset_name: "kafka-connect-${{ matrix.module }}-${{ env.TAG }}.zip"
           release_name: 'Stream Reactor ${{ env.TAG }}'
           prerelease: ${{ env.DRAFT_RELEASE }}
+
+      - name: Generate SBOM attestation
+        uses: actions/attest-sbom@v1
+        with:
+          subject-path: kafka-connect-${{ matrix.module }}-${{ env.TAG }}.zip
+          sbom-path: 'kafka-connect-${{ matrix.module }}-${{ env.TAG }}.sbom.spdx.json'
+
+      - name: Generate artifact attestation
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-path: kafka-connect-${{ matrix.module }}-${{ env.TAG }}.zip
