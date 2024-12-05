@@ -29,6 +29,7 @@ import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskIdCreator
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
+import io.lenses.streamreactor.connect.cloud.common.source.SourceWatermark.readOffsetWatermark
 import io.lenses.streamreactor.connect.cloud.common.source.distribution.CloudPartitionSearcher
 import io.lenses.streamreactor.connect.cloud.common.source.distribution.PartitionSearcher
 import io.lenses.streamreactor.connect.cloud.common.source.reader.PartitionDiscovery
@@ -40,14 +41,16 @@ import io.lenses.streamreactor.connect.cloud.common.storage.DirectoryLister
 import io.lenses.streamreactor.connect.cloud.common.storage.FileMetadata
 import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
 import io.lenses.streamreactor.connect.cloud.common.utils.MapUtils
+import org.apache.kafka.clients.producer.RecordMetadata
 import org.apache.kafka.connect.source.SourceRecord
 import org.apache.kafka.connect.source.SourceTask
 
 import java.util
 import java.util.Collections
 import scala.jdk.CollectionConverters._
-abstract class CloudSourceTask[MD <: FileMetadata, C <: CloudSourceConfig[MD], CT]
-    extends SourceTask
+abstract class CloudSourceTask[MD <: FileMetadata, C <: CloudSourceConfig[MD], CT](
+  sinkAsciiArtResource: String,
+) extends SourceTask
     with LazyLogging
     with WithConnectorPrefix
     with JarManifestProvided {
@@ -58,7 +61,7 @@ abstract class CloudSourceTask[MD <: FileMetadata, C <: CloudSourceConfig[MD], C
     SourceContextReader.getCurrentOffset(() => context)
 
   @volatile
-  private var s3SourceTaskState: Option[CloudSourceTaskState] = None
+  private var cloudSourceTaskState: Option[CloudSourceTaskState] = None
 
   @volatile
   private var cancelledRef: Option[Ref[IO, Boolean]] = None
@@ -72,9 +75,9 @@ abstract class CloudSourceTask[MD <: FileMetadata, C <: CloudSourceConfig[MD], C
     */
   override def start(props: util.Map[String, String]): Unit = {
 
-    printAsciiHeader(manifest, "/aws-s3-source-ascii.txt")
+    printAsciiHeader(manifest, sinkAsciiArtResource)
 
-    logger.debug(s"Received call to S3SourceTask.start with ${props.size()} properties")
+    logger.debug(s"Received call to CloudSourceTask.start with ${props.size()} properties")
 
     val contextProperties: Map[String, String] =
       Option(context).flatMap(c => Option(c.configs()).map(_.asScala.toMap)).getOrElse(Map.empty)
@@ -83,23 +86,23 @@ abstract class CloudSourceTask[MD <: FileMetadata, C <: CloudSourceConfig[MD], C
       result <- make(validator, connectorPrefix, mergedProperties, contextOffsetFn)
       fiber  <- result.partitionDiscoveryLoop.start
     } yield {
-      s3SourceTaskState      = result.some
+      cloudSourceTaskState   = result.some
       cancelledRef           = result.cancelledRef.some
       partitionDiscoveryLoop = fiber.some
     }).unsafeRunSync()
   }
 
   override def stop(): Unit = {
-    logger.info(s"Stopping S3 source task")
-    (s3SourceTaskState, cancelledRef, partitionDiscoveryLoop) match {
+    logger.info(s"Stopping cloud source task")
+    (cloudSourceTaskState, cancelledRef, partitionDiscoveryLoop) match {
       case (Some(state), Some(signal), Some(fiber)) => stopInternal(state, signal, fiber)
       case _                                        => logger.info("There is no state to stop.")
     }
-    logger.info(s"Stopped S3 source task")
+    logger.info(s"Stopped cloud source task")
   }
 
   override def poll(): util.List[SourceRecord] =
-    s3SourceTaskState.fold(Collections.emptyList[SourceRecord]()) { state =>
+    cloudSourceTaskState.fold(Collections.emptyList[SourceRecord]()) { state =>
       state.poll().unsafeRunSync().asJava
     }
 
@@ -113,7 +116,7 @@ abstract class CloudSourceTask[MD <: FileMetadata, C <: CloudSourceConfig[MD], C
     } yield ()).unsafeRunSync()
     cancelledRef           = None
     partitionDiscoveryLoop = None
-    s3SourceTaskState      = None
+    cloudSourceTaskState   = None
   }
 
   def createClient(config: C): Either[Throwable, CT]
@@ -127,15 +130,15 @@ abstract class CloudSourceTask[MD <: FileMetadata, C <: CloudSourceConfig[MD], C
     for {
       connectorTaskId <- IO.fromEither(new ConnectorTaskIdCreator(connectorPrefix).fromProps(props))
       config          <- IO.fromEither(convertPropsToConfig(connectorTaskId, props))
-      s3Client        <- IO.fromEither(createClient(config))
-      storageInterface: StorageInterface[MD] <- IO.delay(createStorageInterface(connectorTaskId, config, s3Client))
+      client          <- IO.fromEither(createClient(config))
+      storageInterface: StorageInterface[MD] <- IO.delay(createStorageInterface(connectorTaskId, config, client))
 
-      directoryLister    <- IO.delay(createDirectoryLister(connectorTaskId, s3Client))
+      directoryLister    <- IO.delay(createDirectoryLister(connectorTaskId, client))
       partitionSearcher  <- IO.delay(createPartitionSearcher(directoryLister, connectorTaskId, config))
       readerManagerState <- Ref[IO].of(ReaderManagerState(Seq.empty, Seq.empty))
       cancelledRef       <- Ref[IO].of(false)
     } yield {
-      val readerManagerCreateFn: (CloudLocation, String) => IO[ReaderManager] = (root, path) => {
+      val readerManagerCreateFn: (CloudLocation, CloudLocation) => IO[ReaderManager] = (root, path) => {
         ReaderManagerBuilder(
           root,
           path,
@@ -152,14 +155,18 @@ abstract class CloudSourceTask[MD <: FileMetadata, C <: CloudSourceConfig[MD], C
                                                           readerManagerState,
                                                           cancelledRef,
       )
-      CloudSourceTaskState(readerManagerState.get.map(_.readerManagers), cancelledRef, partitionDiscoveryLoop)
+      CloudSourceTaskState(
+        readerManagerState.get.map(_.readerManagers.map(rm => rm.path.toKey -> rm).toMap),
+        cancelledRef,
+        partitionDiscoveryLoop,
+      )
     }
 
-  def createStorageInterface(connectorTaskId: ConnectorTaskId, config: C, s3Client: CT): StorageInterface[MD]
+  def createStorageInterface(connectorTaskId: ConnectorTaskId, config: C, client: CT): StorageInterface[MD]
 
   def convertPropsToConfig(connectorTaskId: ConnectorTaskId, props: Map[String, String]): Either[Throwable, C]
 
-  def createDirectoryLister(connectorTaskId: ConnectorTaskId, s3Client: CT): DirectoryLister
+  def createDirectoryLister(connectorTaskId: ConnectorTaskId, client: CT): DirectoryLister
 
   def getFilesLimit(config: C): CloudLocation => Either[Throwable, Int] = {
     cloudLocation =>
@@ -180,4 +187,25 @@ abstract class CloudSourceTask[MD <: FileMetadata, C <: CloudSourceConfig[MD], C
       config.partitionSearcher,
       connectorTaskId,
     )
+
+  override def commitRecord(record: SourceRecord, metadata: RecordMetadata): Unit = {
+    val _ = for {
+      sourcePartition <- SourceWatermark.partitionMapToSourceRoot(
+        record.sourcePartition().asScala.toMap,
+      )(validator)
+
+      offsetWatermark <- readOffsetWatermark(sourcePartition, record.sourceOffset().asScala.toMap)
+    } yield {
+      if (offsetWatermark.isLastLine) {
+        logger.info(
+          "CommitRecord - sourcePartition: {}, offsetWatermark: {}, isLastLine: {}",
+          sourcePartition,
+          offsetWatermark,
+          offsetWatermark.isLastLine,
+          cloudSourceTaskState,
+        )
+        cloudSourceTaskState.foreach(_.commitRecord(sourcePartition, offsetWatermark).unsafeRunSync())
+      }
+    }
+  }
 }

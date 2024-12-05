@@ -13,19 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.lenses.streamreactor.connect.cloud.common.source
+package io.lenses.streamreactor.connect.elastic6
 
-object ContextConstants {
-
-  val ContainerKey = "container"
-
-  val PrefixKey = "prefix"
-
-  val PathKey = "path"
-
-  val LineKey = "line"
-
-  val TimeStampKey = "ts"
-
-  val LastLine = "last"
+object KafkaMessageParts {
+  val Key    = "_key"
+  val Value  = "_value"
+  val Header = "_header"
+  val Topic  = "_topic"
 }

@@ -110,7 +110,7 @@ class TaskToSenderBridgeTest {
     assertTrue(configException.isEmpty());
     verify(topicPartition, times(4)).topic();
     verify(sinkMapping, times(2)).getInputKafkaTopic();
-    verify(sinkMapping).getProperties();
+    verify(sinkMapping, times(2)).getProperties();
     verify(sinkMapping).getOutputServiceBusName();
     verify(senderFacade).initializePartition(topicPartition);
   }

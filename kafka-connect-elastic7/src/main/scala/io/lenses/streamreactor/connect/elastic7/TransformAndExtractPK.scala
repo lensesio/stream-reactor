@@ -17,14 +17,11 @@ package io.lenses.streamreactor.connect.elastic7
 
 import com.fasterxml.jackson.databind.JsonNode
 import com.typesafe.scalalogging.StrictLogging
-import io.lenses.connect.sql.StructSql._
-import io.lenses.json.sql.JacksonJson
 import io.lenses.json.sql.JsonSql._
 import io.lenses.streamreactor.connect.json.SimpleJsonConverter
 import org.apache.kafka.connect.data.Schema
-import org.apache.kafka.connect.data.Struct
+import org.apache.kafka.connect.header.Headers
 
-import java.nio.ByteBuffer
 import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
@@ -33,94 +30,88 @@ private object TransformAndExtractPK extends StrictLogging {
   lazy val simpleJsonConverter = new SimpleJsonConverter()
 
   def apply(
-    kcqlValues:       KcqlValues,
-    primaryKeysPaths: Seq[Vector[String]],
-    schema:           Schema,
-    value:            Any,
-    withStructure:    Boolean,
-  ): (Option[JsonNode], Seq[Any]) = {
-    def raiseException(msg: String, t: Throwable) = throw new IllegalArgumentException(msg, t)
-
+    kcqlValues:    KcqlValues,
+    schema:        Schema,
+    value:         Any,
+    withStructure: Boolean,
+    keySchema:     Schema,
+    key:           Any,
+    headers:       Headers,
+  ): (Option[JsonNode], Seq[Any]) =
     if (value == null) {
       (None, Seq.empty)
     } else {
-      if (schema != null) {
-        schema.`type`() match {
-          case Schema.Type.BYTES =>
-            //we expected to be json
-            val array = value match {
-              case a: Array[Byte] => a
-              case b: ByteBuffer  => b.array()
-              case other => raiseException(s"Invalid payload:$other for schema Schema.BYTES.", null)
-            }
-
-            Try(JacksonJson.mapper.readTree(array)) match {
-              case Failure(e) => raiseException("Invalid json.", e)
-              case Success(json) =>
-                Try(json.sql(kcqlValues.fields, !withStructure)) match {
-                  case Failure(e) => raiseException(s"A KCQL exception occurred. ${e.getMessage}", e)
-                  case Success(jn) =>
-                    (Option(jn), primaryKeysPaths.map(PrimaryKeyExtractor.extract(json, _)))
-                }
-            }
-
-          case Schema.Type.STRING =>
-            //we expected to be json
-            Try(JacksonJson.asJson(value.asInstanceOf[String])) match {
-              case Failure(e) => raiseException("Invalid json", e)
-              case Success(json) =>
-                Try(json.sql(kcqlValues.fields, !withStructure)) match {
-                  case Success(jn) => (Option(jn), primaryKeysPaths.map(PrimaryKeyExtractor.extract(json, _)))
-                  case Failure(e)  => raiseException(s"A KCQL exception occurred.${e.getMessage}", e)
-                }
-            }
-
-          case Schema.Type.STRUCT =>
-            val struct = value.asInstanceOf[Struct]
-            Try(struct.sql(kcqlValues.fields, !withStructure)) match {
-              case Success(s) =>
-                (Option(simpleJsonConverter.fromConnectData(s.schema(), s)),
-                 primaryKeysPaths.map(PrimaryKeyExtractor.extract(struct, _)),
-                )
-
-              case Failure(e) => raiseException(s"A KCQL error occurred.${e.getMessage}", e)
-            }
-
-          case other => raiseException(s"Can't transform Schema type:$other.", null)
+      val result = for {
+        jsonNode       <- extractJsonNode(value, schema)
+        transformedJson = jsonNode.sql(kcqlValues.fields, !withStructure)
+        keyJsonNodeOpt: Option[JsonNode] <- if (hasKeyFieldPath(kcqlValues.primaryKeysPath))
+          extractOptionalJsonNode(key, keySchema)
+        else Try(Option.empty[JsonNode])
+      } yield {
+        val primaryKeys = kcqlValues.primaryKeysPath.map { path =>
+          extractPrimaryKey(path, jsonNode, keyJsonNodeOpt, headers)
         }
-      } else {
-        //we can handle java.util.Map (this is what JsonConverter can spit out)
-        value match {
-          case m: java.util.Map[_, _] =>
-            val map = m.asInstanceOf[java.util.Map[String, Any]]
-            val jsonNode: JsonNode = JacksonJson.mapper.valueToTree[JsonNode](map)
-            Try(jsonNode.sql(kcqlValues.fields, !withStructure)) match {
-              case Success(j) => (Option(j), primaryKeysPaths.map(PrimaryKeyExtractor.extract(jsonNode, _)))
-              case Failure(e) => raiseException(s"A KCQL exception occurred.${e.getMessage}", e)
-            }
-          case s: String =>
-            Try(JacksonJson.asJson(s)) match {
-              case Failure(e) => raiseException("Invalid json.", e)
-              case Success(json) =>
-                Try(json.sql(kcqlValues.fields, !withStructure)) match {
-                  case Success(jn) => (Option(jn), primaryKeysPaths.map(PrimaryKeyExtractor.extract(json, _)))
-                  case Failure(e)  => raiseException(s"A KCQL exception occurred.${e.getMessage}", e)
-                }
-            }
+        (Option(transformedJson), primaryKeys)
+      }
 
-          case b: Array[Byte] =>
-            Try(JacksonJson.mapper.readTree(b)) match {
-              case Failure(e) => raiseException("Invalid json.", e)
-              case Success(json) =>
-                Try(json.sql(kcqlValues.fields, !withStructure)) match {
-                  case Failure(e)  => raiseException(s"A KCQL exception occurred. ${e.getMessage}", e)
-                  case Success(jn) => (Option(jn), primaryKeysPaths.map(PrimaryKeyExtractor.extract(json, _)))
-                }
-            }
-          //we take it as String
-          case other => raiseException(s"Value:$other is not handled!", null)
-        }
+      result match {
+        case Success(value) => value
+        case Failure(e)     => throw e
       }
     }
-  }
+
+  private def hasKeyFieldPath(paths: Seq[Vector[String]]): Boolean =
+    paths.exists(_.head == KafkaMessageParts.Key)
+
+  private def extractJsonNode(value: Any, schema: Schema): Try[JsonNode] =
+    JsonPayloadExtractor.extractJsonNode(value, schema) match {
+      case Left(error)       => Failure(new IllegalArgumentException(error))
+      case Right(Some(node)) => Success(node)
+      case Right(None)       => Failure(new IllegalArgumentException("Failed to extract JsonNode from value"))
+    }
+
+  private def extractOptionalJsonNode(value: Any, schema: Schema): Try[Option[JsonNode]] =
+    if (value == null) Success(None)
+    else {
+      JsonPayloadExtractor.extractJsonNode(value, schema) match {
+        case Left(error)    => Failure(new IllegalArgumentException(error))
+        case Right(nodeOpt) => Success(nodeOpt)
+      }
+    }
+
+  private def extractPrimaryKey(
+    path:           Vector[String],
+    jsonNode:       JsonNode,
+    keyJsonNodeOpt: Option[JsonNode],
+    headers:        Headers,
+  ): Any =
+    path.head match {
+      case KafkaMessageParts.Key =>
+        keyJsonNodeOpt match {
+          case Some(keyNode) => PrimaryKeyExtractor.extract(keyNode, path.tail, "_key.")
+          case None =>
+            throw new IllegalArgumentException(
+              s"Key path '${path.mkString(".")}' has a null value",
+            )
+        }
+      case KafkaMessageParts.Value =>
+        PrimaryKeyExtractor.extract(jsonNode, path.tail)
+      case KafkaMessageParts.Header =>
+        if (path.tail.size != 1) {
+          throw new IllegalArgumentException(
+            s"Invalid field selection for '${path.mkString(".")}'. " +
+              s"Headers lookup only supports single-level keys. Nested header keys are not supported.",
+          )
+        }
+        headers.lastWithName(path.tail.head) match {
+          case null => throw new IllegalArgumentException(s"Header with key '${path.tail.head}' not found")
+          case header => header.value() match {
+              case value: String => value
+              case null => throw new IllegalArgumentException(s"Header '${path.tail.head}' has a null value")
+              case _    => throw new IllegalArgumentException(s"Header '${path.tail.head}' is not a string")
+            }
+        }
+      case _ =>
+        PrimaryKeyExtractor.extract(jsonNode, path)
+    }
 }

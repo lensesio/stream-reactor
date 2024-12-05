@@ -20,6 +20,7 @@ import static io.lenses.streamreactor.connect.azure.servicebus.util.ServiceBusTy
 import com.azure.messaging.servicebus.ServiceBusClientBuilder;
 import com.azure.messaging.servicebus.ServiceBusClientBuilder.ServiceBusSenderClientBuilder;
 import com.azure.messaging.servicebus.ServiceBusException;
+import com.azure.messaging.servicebus.ServiceBusMessage;
 import com.azure.messaging.servicebus.ServiceBusMessageBatch;
 import com.azure.messaging.servicebus.ServiceBusSenderClient;
 import cyclops.control.Try;
@@ -27,6 +28,7 @@ import java.util.AbstractMap.SimpleEntry;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
@@ -50,6 +52,7 @@ public class ServiceBusSenderFacade {
   private final Consumer<Map<TopicPartition, OffsetAndMetadata>> commitOffsetFunction;
   private final String originalKafkaTopicName;
   private final ServiceBusSenderClient sender;
+  private final Boolean batchEnabled;
 
   /**
    * Constructs Facade from {@link ServiceBusConnectionDetails} object.
@@ -59,7 +62,7 @@ public class ServiceBusSenderFacade {
   public static ServiceBusSenderFacade fromConnectionDetails(ServiceBusConnectionDetails serviceBusConnectionDetails) {
     return new ServiceBusSenderFacade(serviceBusConnectionDetails.getUpdateOffsetFunction(),
         serviceBusConnectionDetails.getOriginalKafkaTopicName(),
-        initializeServiceBusClient(serviceBusConnectionDetails));
+        initializeServiceBusClient(serviceBusConnectionDetails), serviceBusConnectionDetails.isBatchEnabled());
   }
 
   /**
@@ -87,11 +90,31 @@ public class ServiceBusSenderFacade {
    */
   public Optional<ServiceBusException> sendMessages(Collection<ServiceBusMessageWrapper> serviceBusMessages) {
     Map<Integer, Long> highestOffsetsPerPartitions = calculateHighestOffsetsPerPartitions(serviceBusMessages);
-    ServiceBusMessageBatch senderMessageBatch = createMessageBatch(serviceBusMessages);
-    Optional<ServiceBusException> sendExceptions = submitBatch(senderMessageBatch);
+    Optional<ServiceBusException> sendExceptions;
+
+    if (batchEnabled) {
+      ServiceBusMessageBatch senderMessageBatch = createMessageBatch(serviceBusMessages);
+      sendExceptions = submitBatch(senderMessageBatch);
+    } else {
+      sendExceptions = sendMessagesSeparately(serviceBusMessages);
+    }
+
     commitPartitionOffsets(highestOffsetsPerPartitions);
 
     return sendExceptions;
+  }
+
+  private Optional<ServiceBusException> sendMessagesSeparately(
+      Collection<ServiceBusMessageWrapper> serviceBusMessages) {
+    List<ServiceBusMessage> messages =
+        serviceBusMessages.stream()
+            .map(ServiceBusMessageWrapper::getServiceBusMessage)
+            .flatMap(Optional::stream)
+            .collect(Collectors.toUnmodifiableList());
+
+    return messages.isEmpty() ? Optional.empty() : Try.runWithCatch(() -> sender.sendMessages(messages),
+        ServiceBusException.class)
+        .failureGet().toOptional();
   }
 
   private Optional<ServiceBusException> submitBatch(ServiceBusMessageBatch senderMessageBatch) {
