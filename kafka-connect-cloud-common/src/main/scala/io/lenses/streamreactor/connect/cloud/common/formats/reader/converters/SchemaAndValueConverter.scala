@@ -31,10 +31,10 @@ class SchemaAndValueConverter(
   location:           CloudLocation,
   lastModified:       Instant,
 ) extends Converter[SchemaAndValue] {
-  override def convert(schemaAndValue: SchemaAndValue, index: Long): SourceRecord =
+  override def convert(schemaAndValue: SchemaAndValue, index: Long, lastLine: Boolean): SourceRecord =
     new SourceRecord(
       watermarkPartition,
-      SourceWatermark.offset(location, index, lastModified),
+      SourceWatermark.offset(location, index, lastModified, lastLine),
       topic.value,
       partition,
       null,

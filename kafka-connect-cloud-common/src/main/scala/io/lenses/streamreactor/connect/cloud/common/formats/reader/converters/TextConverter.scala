@@ -32,10 +32,10 @@ class TextConverter(
   location:           CloudLocation,
   lastModified:       Instant,
 ) extends Converter[String] {
-  override def convert(value: String, index: Long): SourceRecord =
+  override def convert(value: String, index: Long, lastLine: Boolean): SourceRecord =
     new SourceRecord(
       watermarkPartition,
-      SourceWatermark.offset(location, index, lastModified),
+      SourceWatermark.offset(location, index, lastModified, lastLine),
       topic.value,
       partition,
       null,

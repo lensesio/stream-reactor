@@ -227,4 +227,14 @@ class DatalakeStorageInterface(connectorTaskId: ConnectorTaskId, client: DataLak
     * @return
     */
   override def system(): String = "Azure Datalake"
+
+  override def mvFile(
+    oldBucket: String,
+    oldPath:   String,
+    newBucket: String,
+    newPath:   String,
+  ): Either[FileMoveError, Unit] =
+    Try(client.getFileSystemClient(oldBucket).getFileClient(oldPath).rename(newBucket, newPath)).toEither.leftMap(
+      FileMoveError(_, oldPath, newPath),
+    ).void
 }

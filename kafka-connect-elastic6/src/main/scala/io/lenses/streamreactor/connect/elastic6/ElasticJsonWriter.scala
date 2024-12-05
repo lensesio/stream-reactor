@@ -25,17 +25,21 @@ import io.lenses.streamreactor.common.errors.ErrorHandler
 import io.lenses.streamreactor.common.schemas.ConverterUtil
 import io.lenses.streamreactor.connect.elastic6.config.ElasticSettings
 import io.lenses.streamreactor.connect.elastic6.indexname.CreateIndex
-import com.fasterxml.jackson.databind.JsonNode
+import com.sksamuel.elastic4s.bulk.BulkCompatibleRequest
+import com.sksamuel.elastic4s.delete.DeleteByIdRequest
 import io.lenses.sql.Field
 import com.sksamuel.elastic4s.Index
-import com.sksamuel.elastic4s.Indexable
 import com.sksamuel.elastic4s.http.ElasticDsl._
+import com.sksamuel.elastic4s.http.Response
+import com.sksamuel.elastic4s.http.bulk.BulkResponse
 import com.typesafe.scalalogging.StrictLogging
+import io.lenses.json.sql.JacksonJson
 import io.lenses.streamreactor.connect.elastic6.NullValueBehavior.NullValueBehavior
 import io.lenses.streamreactor.connect.elastic6.config.ElasticConfigConstants.BEHAVIOR_ON_NULL_VALUES_PROPERTY
 import org.apache.kafka.connect.sink.SinkRecord
 
 import scala.annotation.nowarn
+import scala.collection.immutable
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.concurrent.Await
@@ -117,86 +121,126 @@ class ElasticJsonWriter(client: KElasticClient, settings: ElasticSettings)
     * @param records A list of SinkRecords
     */
   def insert(records: Map[String, Vector[SinkRecord]]): Unit = {
+    logger.info(s"Inserting ${records.size} records")
     val fut = records.flatMap {
       case (topic, sinkRecords) =>
-        val kcqls = topicKcqlMap.getOrElse(
+        logger.debug(s"Inserting ${sinkRecords.size} records from $topic")
+        val kcqls: Seq[Kcql] = topicKcqlMap.getOrElse(
           topic,
           throw new IllegalArgumentException(
             s"$topic hasn't been configured in KCQL. Configured topics is ${topicKcqlMap.keys.mkString(",")}",
           ),
         )
-
-        //we might have multiple inserts from the same Kafka Message
-        kcqls.flatMap { kcql =>
-          val kcqlValue = kcqlMap.get(kcql)
+        kcqls.flatMap { kcql: Kcql =>
+          val kcqlValue: KcqlValues = kcqlMap.get(kcql)
           sinkRecords.grouped(settings.batchSize)
             .map { batch =>
-              val indexes = batch.flatMap { r =>
-                val i            = CreateIndex.getIndexName(kcql, r).leftMap(throw _).merge
-                val documentType = Option(kcql.getDocType).getOrElse(i)
-                val (json, pks) = if (kcqlValue.primaryKeysPath.isEmpty) {
-                  (Transform(
-                     kcqlValue.fields,
-                     r.valueSchema(),
-                     r.value(),
-                     kcql.hasRetainStructure,
-                   ),
-                   Seq.empty,
-                  )
-                } else {
-                  TransformAndExtractPK(
-                    kcqlValue.fields,
-                    kcqlValue.primaryKeysPath,
-                    r.valueSchema(),
-                    r.value(),
-                    kcql.hasRetainStructure,
-                  )
-                }
-                val idFromPk = pks.mkString(settings.pkJoinerSeparator)
-
-                if (json.isEmpty || json.exists(_.isEmpty)) {
-                  (kcqlValue.behaviorOnNullValues) match {
-                    case NullValueBehavior.DELETE =>
-                      Some(deleteById(new Index(i), documentType, if (idFromPk.isEmpty) autoGenId(r) else idFromPk))
-
-                    case NullValueBehavior.FAIL =>
-                      throw new IllegalStateException(
-                        s"$topic KCQL mapping is configured to fail on null value, yet it occurred.",
-                      )
-
-                    case NullValueBehavior.IGNORE =>
-                      return None
-                  }
-
-                } else {
-                  kcql.getWriteMode match {
-                    case WriteModeEnum.INSERT =>
-                      Some(
-                        indexInto(i / documentType)
-                          .id(if (idFromPk.isEmpty) autoGenId(r) else idFromPk)
-                          .pipeline(kcql.getPipeline)
-                          .source(json.get.toString),
-                      )
-
-                    case WriteModeEnum.UPSERT =>
-                      require(pks.nonEmpty, "Error extracting primary keys")
-                      Some(update(idFromPk)
-                        .in(i / documentType)
-                        .docAsUpsert(json.get)(IndexableJsonNode))
-                  }
-
-                }
+              batch.flatMap { r =>
+                processRecord(topic, kcql, kcqlValue, r)
               }
-
-              client.execute(bulk(indexes).refreshImmediately)
+            }
+            .filter(_.nonEmpty)
+            .map { indexes =>
+              client.execute(bulk(indexes))
             }
         }
     }
 
+    handleResponse(fut)
+  }
+
+  private def handleTombstone(
+    topic:        String,
+    kcqlValue:    KcqlValues,
+    r:            SinkRecord,
+    i:            String,
+    idFromPk:     String,
+    documentType: String,
+  ): Option[DeleteByIdRequest] =
+    kcqlValue.behaviorOnNullValues match {
+      case NullValueBehavior.DELETE =>
+        val identifier = if (idFromPk.isEmpty) autoGenId(r) else idFromPk
+        logger.debug(
+          s"Deleting tombstone record: ${r.topic()} ${r.kafkaPartition()} ${r.kafkaOffset()}. Index: $i, Identifier: $identifier",
+        )
+        Some(deleteById(new Index(i), documentType, identifier))
+
+      case NullValueBehavior.FAIL =>
+        logger.error(
+          s"Tombstone record received ${r.topic()} ${r.kafkaPartition()} ${r.kafkaOffset()}. $topic KCQL mapping is configured to fail on tombstone records.",
+        )
+        throw new IllegalStateException(
+          s"$topic KCQL mapping is configured to fail on tombstone records.",
+        )
+
+      case NullValueBehavior.IGNORE =>
+        logger.info(
+          s"Ignoring tombstone record received. for ${r.topic()} ${r.kafkaPartition()} ${r.kafkaOffset()}.",
+        )
+        None
+    }
+
+  private def processRecord(
+    topic:     String,
+    kcql:      Kcql,
+    kcqlValue: KcqlValues,
+    r:         SinkRecord,
+  ): Option[BulkCompatibleRequest] = {
+    val i            = CreateIndex.getIndexName(kcql, r).leftMap(throw _).merge
+    val documentType = Option(kcql.getDocType).getOrElse(i)
+    val (json, pks) = if (kcqlValue.primaryKeysPath.isEmpty) {
+      (Transform(kcqlValue.fields, r.valueSchema(), r.value(), kcql.hasRetainStructure), Seq.empty)
+    } else {
+      TransformAndExtractPK(kcqlValue,
+                            r.valueSchema(),
+                            r.value(),
+                            kcql.hasRetainStructure,
+                            r.keySchema(),
+                            r.key(),
+                            r.headers(),
+      )
+    }
+    val idFromPk = pks.mkString(settings.pkJoinerSeparator)
+
+    json.filterNot(_.isEmpty) match {
+      case Some(value) =>
+        kcql.getWriteMode match {
+          case WriteModeEnum.INSERT =>
+            Some(
+              indexInto(i / documentType)
+                .id(if (idFromPk.isEmpty) autoGenId(r) else idFromPk)
+                .pipeline(kcql.getPipeline)
+                .source(value.toString),
+            )
+
+          case WriteModeEnum.UPSERT =>
+            require(pks.nonEmpty, "Error extracting primary keys")
+            Some(update(idFromPk)
+              .in(i / documentType)
+              .docAsUpsert(value.toString))
+        }
+      case None =>
+        handleTombstone(topic, kcqlValue, r, i, idFromPk, documentType)
+    }
+  }
+
+  private def handleResponse(fut: immutable.Iterable[Future[Response[BulkResponse]]]): Unit = {
     handleTry(
-      Try(
-        Await.result(Future.sequence(fut), settings.writeTimeout.seconds),
-      ),
+      Try {
+        val result: immutable.Iterable[Response[BulkResponse]] =
+          Await.result(Future.sequence(fut), settings.writeTimeout.seconds)
+        val errors = result.filter(_.isError).map(_.error)
+        if (errors.nonEmpty) {
+          logger.error(s"Error writing to Elastic Search: ${JacksonJson.asJson(errors)}")
+          throw new RuntimeException(s"Error writing to Elastic Search: ${errors.map(_.reason)}")
+        }
+        logger.info(
+          s"Inserted ${result.size} records. ${result.map { r =>
+            s"Items: ${r.result.items.size} took ${r.result.took}ms."
+          }.mkString(",")}",
+        )
+        result
+      },
     )
     ()
   }
@@ -211,15 +255,10 @@ class ElasticJsonWriter(client: KElasticClient, settings: ElasticSettings)
     pks.mkString(settings.pkJoinerSeparator)
   }
 
-  private case class KcqlValues(
-    fields:               Seq[Field],
-    ignoredFields:        Seq[Field],
-    primaryKeysPath:      Seq[Vector[String]],
-    behaviorOnNullValues: NullValueBehavior,
-  )
-
 }
-
-case object IndexableJsonNode extends Indexable[JsonNode] {
-  override def json(t: JsonNode): String = t.toString
-}
+case class KcqlValues(
+  fields:               Seq[Field],
+  ignoredFields:        Seq[Field],
+  primaryKeysPath:      Seq[Vector[String]],
+  behaviorOnNullValues: NullValueBehavior,
+)

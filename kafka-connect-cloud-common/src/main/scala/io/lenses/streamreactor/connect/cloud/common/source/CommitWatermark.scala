@@ -15,17 +15,6 @@
  */
 package io.lenses.streamreactor.connect.cloud.common.source
 
-object ContextConstants {
+import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 
-  val ContainerKey = "container"
-
-  val PrefixKey = "prefix"
-
-  val PathKey = "path"
-
-  val LineKey = "line"
-
-  val TimeStampKey = "ts"
-
-  val LastLine = "last"
-}
+case class CommitWatermark(cloudLocation: CloudLocation, isLastLine: Boolean)

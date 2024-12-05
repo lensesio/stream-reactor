@@ -59,7 +59,15 @@ class Writer[SM <: FileMetadata](
     def innerMessageWrite(writingState: Writing): Either[NonFatalCloudSinkError, Unit] =
       writingState.formatWriter.write(messageDetail) match {
         case Left(err: Throwable) =>
-          logger.error(err.getMessage)
+          logger.error(
+            s"An error occurred while writing using ${writingState.formatWriter.getClass.getSimpleName}. " +
+              s"Details: Topic-Partition: ${messageDetail.topic.value}-${messageDetail.partition}, " +
+              s"Offset: ${messageDetail.offset.value}, " +
+              s"Key: ${messageDetail.key}, " +
+              s"Value: ${messageDetail.value}, " +
+              s"Headers: ${messageDetail.headers}.",
+            err,
+          )
           NonFatalCloudSinkError(err.getMessage, err.some).asLeft
         case Right(_) =>
           writeState =
