@@ -42,10 +42,8 @@ class AwsS3StorageInterfaceTest
     val s3Client         = mock[S3Client]
     val storageInterface = new AwsS3StorageInterface(mock[ConnectorTaskId], s3Client, batchDelete = false, None)
 
-    val copyObjectResponse: CopyObjectResponse = CopyObjectResponse.builder().build()
-    when(s3Client.copyObject(any[CopyObjectRequest])).thenReturn(copyObjectResponse)
-    val deleteObjectResponse: DeleteObjectResponse = DeleteObjectResponse.builder().build()
-    when(s3Client.deleteObject(any[DeleteObjectRequest])).thenReturn(deleteObjectResponse)
+    when(s3Client.copyObject(any[CopyObjectRequest])).thenAnswer(CopyObjectResponse.builder().build())
+    when(s3Client.deleteObject(any[DeleteObjectRequest])).thenAnswer(DeleteObjectResponse.builder().build())
 
     val result = storageInterface.mvFile("oldBucket", "oldPath", "newBucket", "newPath")
 
@@ -72,10 +70,8 @@ class AwsS3StorageInterfaceTest
     val s3Client         = mock[S3Client]
     val storageInterface = new AwsS3StorageInterface(mock[ConnectorTaskId], s3Client, batchDelete = false, None)
 
-    val headObjectResponse: HeadObjectResponse = HeadObjectResponse.builder().build()
-    when(s3Client.headObject(any[HeadObjectRequest])).thenReturn(headObjectResponse)
-    val copyObjectResponse: CopyObjectResponse = CopyObjectResponse.builder().build()
-    when(s3Client.copyObject(any[CopyObjectRequest])).thenReturn(copyObjectResponse)
+    when(s3Client.headObject(any[HeadObjectRequest])).thenAnswer(HeadObjectResponse.builder().build())
+    when(s3Client.copyObject(any[CopyObjectRequest])).thenAnswer(CopyObjectResponse.builder().build())
     when(s3Client.deleteObject(any[DeleteObjectRequest])).thenThrow(new RuntimeException("Delete failed"))
 
     val result = storageInterface.mvFile("oldBucket", "oldPath", "newBucket", "newPath")
@@ -91,8 +87,7 @@ class AwsS3StorageInterfaceTest
     val storageInterface = new AwsS3StorageInterface(mock[ConnectorTaskId], s3Client, batchDelete = false, None)
 
     when(s3Client.headObject(any[HeadObjectRequest])).thenThrow(NoSuchKeyException.builder().build())
-    val copyObjectResponse: CopyObjectResponse = CopyObjectResponse.builder().build()
-    when(s3Client.copyObject(any[CopyObjectRequest])).thenReturn(copyObjectResponse)
+    when(s3Client.copyObject(any[CopyObjectRequest])).thenAnswer(CopyObjectResponse.builder().build())
     when(s3Client.deleteObject(any[DeleteObjectRequest])).thenThrow(new RuntimeException("Delete failed"))
 
     val result = storageInterface.mvFile("oldBucket", "oldPath", "newBucket", "newPath")
