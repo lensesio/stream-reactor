@@ -13,19 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.lenses.streamreactor.connect.cloud.common.source
+package io.lenses.streamreactor.connect.cloud.common.source.config.kcqlprops
 
-object ContextConstants {
+import enumeratum.Enum
+import enumeratum.EnumEntry
 
-  val ContainerKey = "container"
+sealed trait PostProcessActionEntry extends EnumEntry {}
 
-  val PrefixKey = "prefix"
+object PostProcessActionEnum extends Enum[PostProcessActionEntry] {
 
-  val PathKey = "path"
+  override val values = findValues
 
-  val LineKey = "line"
-
-  val TimeStampKey = "ts"
-
-  val LastLine = "last"
+  case object Delete extends PostProcessActionEntry
+  case object Move   extends PostProcessActionEntry
 }

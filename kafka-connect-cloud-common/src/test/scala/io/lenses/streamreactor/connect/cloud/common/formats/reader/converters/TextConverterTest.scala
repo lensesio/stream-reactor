@@ -35,14 +35,17 @@ class TextConverterTest extends AnyFunSuite with Matchers {
     val lastModified = Instant.ofEpochMilli(1000)
 
     val actual =
-      new TextConverter(Map("a" -> "1").asJava, Topic("topic1"), 1, location, lastModified).convert("value", 1)
+      new TextConverter(Map("a" -> "1").asJava, Topic("topic1"), 1, location, lastModified).convert("value",
+                                                                                                    1,
+                                                                                                    lastLine = true,
+      )
 
     actual.valueSchema().`type`() shouldBe Schema.STRING_SCHEMA.`type`()
     actual.value() shouldBe "value"
     actual.topic() shouldBe "topic1"
     actual.kafkaPartition() shouldBe 1
     actual.sourcePartition() shouldBe Map("a" -> "1").asJava
-    actual.sourceOffset() shouldBe Map("line" -> "1", "path" -> "a/b/c.txt", "ts" -> "1000").asJava
+    actual.sourceOffset() shouldBe Map("line" -> "1", "path" -> "a/b/c.txt", "ts" -> "1000", "last" -> "t").asJava
     actual.key() shouldBe null
     actual.keySchema() shouldBe null
     actual.headers().size() shouldBe 0
