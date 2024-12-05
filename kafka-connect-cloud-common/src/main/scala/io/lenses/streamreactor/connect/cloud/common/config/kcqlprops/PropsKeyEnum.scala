@@ -61,4 +61,11 @@ object PropsKeyEnum extends Enum[PropsKeyEntry] {
 
   case object FlushInterval extends PropsKeyEntry("flush.interval")
 
+  // enum - copy, move, delete, tag, execute lambda trigger
+  case object PostProcessAction extends PropsKeyEntry("post.process.action")
+
+  case object PostProcessActionBucket extends PropsKeyEntry("post.process.action.bucket")
+
+  case object PostProcessActionPrefix extends PropsKeyEntry("post.process.action.prefix")
+
 }

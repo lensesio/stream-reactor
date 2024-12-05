@@ -34,6 +34,7 @@ import io.lenses.streamreactor.connect.cloud.common.storage.FileCreateError
 import io.lenses.streamreactor.connect.cloud.common.storage.FileDeleteError
 import io.lenses.streamreactor.connect.cloud.common.storage.FileListError
 import io.lenses.streamreactor.connect.cloud.common.storage.FileLoadError
+import io.lenses.streamreactor.connect.cloud.common.storage.FileMoveError
 import io.lenses.streamreactor.connect.cloud.common.storage.ListOfKeysResponse
 import io.lenses.streamreactor.connect.cloud.common.storage.ListOfMetadataResponse
 import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
@@ -45,8 +46,9 @@ import java.nio.channels.Channels
 import java.nio.file.Files
 import java.time.Instant
 import scala.annotation.tailrec
-import scala.collection.immutable.Seq
 import scala.jdk.CollectionConverters.IterableHasAsScala
+import scala.util.Failure
+import scala.util.Success
 import scala.util.Try
 
 class GCPStorageStorageInterface(
@@ -312,4 +314,55 @@ class GCPStorageStorageInterface(
     * @return
     */
   override def system(): String = "GCP Storage"
+
+  override def mvFile(
+    oldBucket: String,
+    oldPath:   String,
+    newBucket: String,
+    newPath:   String,
+  ): Either[FileMoveError, Unit] = {
+
+    val sourceBlobId = BlobId.of(oldBucket, oldPath)
+    val sourceBlob   = Try(storage.get(sourceBlobId)).map(Option(_)).map(_.filter(_.exists()))
+    sourceBlob match {
+      case Success(None) =>
+        logger.warn("Object ({}/{}) doesn't exist to move", oldBucket, oldPath)
+        ().asRight
+      case Failure(ex) =>
+        logger.error("Object ({}/{}) could not be retrieved", ex)
+        FileMoveError(ex, oldPath, newPath).asLeft
+      case Success(Some(_: Blob)) =>
+        Try {
+          val destinationBlobId = BlobId.of(newBucket, newPath)
+          val destinationBlob   = Option(storage.get(newBucket, newPath))
+          val precondition: Storage.BlobTargetOption = decideMovePrecondition(destinationBlob)
+
+          storage.copy(
+            Storage.CopyRequest.newBuilder()
+              .setSource(sourceBlobId)
+              .setTarget(destinationBlobId, precondition)
+              .build(),
+          )
+
+          // Delete the original blob to complete the move operation
+          storage.delete(sourceBlobId)
+        }.toEither.leftMap(FileMoveError(_, oldPath, newPath)).void
+    }
+  }
+
+  /**
+    * Decides the precondition for moving a blob based on the existence of the destination blob.
+    *
+    * @param destinationBlob An optional Blob object representing the destination blob.
+    * @return A Storage.BlobTargetOption indicating the precondition for the move operation.
+    *         If the destination blob does not exist, returns Storage.BlobTargetOption.doesNotExist().
+    *         If the destination blob exists, returns Storage.BlobTargetOption.generationMatch() with the blob's generation.
+    */
+  private def decideMovePrecondition(destinationBlob: Option[Blob]): Storage.BlobTargetOption =
+    destinationBlob match {
+      case None =>
+        Storage.BlobTargetOption.doesNotExist()
+      case Some(blob) =>
+        Storage.BlobTargetOption.generationMatch(blob.getGeneration)
+    }
 }

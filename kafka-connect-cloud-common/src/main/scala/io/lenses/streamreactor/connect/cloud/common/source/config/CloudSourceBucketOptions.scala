@@ -48,6 +48,8 @@ object CloudSourceBucketOptions {
           //extract the envelope. of not present default to false
           hasEnvelope <- config.extractEnvelope(sourceProps)
 
+          postProcessAction <- PostProcessAction(source.prefix, sourceProps)
+
         } yield CloudSourceBucketOptions[M](
           source,
           kcql.getTarget,
@@ -57,6 +59,7 @@ object CloudSourceBucketOptions {
           partitionExtractor = partitionExtractor,
           orderingType       = config.extractOrderingType,
           hasEnvelope        = hasEnvelope.getOrElse(false),
+          postProcessAction  = postProcessAction,
         )
     }.toSeq.traverse(identity)
 
@@ -71,6 +74,7 @@ case class CloudSourceBucketOptions[M <: FileMetadata](
   partitionExtractor:    Option[PartitionExtractor],
   orderingType:          OrderingType,
   hasEnvelope:           Boolean,
+  postProcessAction:     Option[PostProcessAction],
 ) {
   def createBatchListerFn(
     storageInterface: StorageInterface[M],
