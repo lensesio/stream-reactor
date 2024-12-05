@@ -34,7 +34,7 @@ class GCPStorageSourceTask
       GCPStorageFileMetadata,
       GCPStorageSourceConfig,
       Storage,
-    ]
+    ]("/gcpstorage-sink-ascii.txt")
     with LazyLogging {
 
   val validator: CloudLocationValidator = GCPStorageLocationValidator
@@ -42,10 +42,10 @@ class GCPStorageSourceTask
   override def createStorageInterface(
     connectorTaskId: ConnectorTaskId,
     config:          GCPStorageSourceConfig,
-    storage:         Storage,
+    client:          Storage,
   ): GCPStorageStorageInterface =
     new GCPStorageStorageInterface(connectorTaskId,
-                                   storage             = storage,
+                                   storage             = client,
                                    avoidReumableUpload = false,
                                    extensionFilter     = config.extensionFilter,
     )
@@ -60,6 +60,6 @@ class GCPStorageSourceTask
 
   override def connectorPrefix: String = CONNECTOR_PREFIX
 
-  override def createDirectoryLister(connectorTaskId: ConnectorTaskId, s3Client: Storage): DirectoryLister =
-    new GCPStorageDirectoryLister(connectorTaskId, s3Client)
+  override def createDirectoryLister(connectorTaskId: ConnectorTaskId, client: Storage): DirectoryLister =
+    new GCPStorageDirectoryLister(connectorTaskId, client)
 }

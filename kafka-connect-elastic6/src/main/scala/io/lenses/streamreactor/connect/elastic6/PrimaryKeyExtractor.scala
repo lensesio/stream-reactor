@@ -25,13 +25,13 @@ import scala.jdk.CollectionConverters.IteratorHasAsScala
 import scala.jdk.CollectionConverters.ListHasAsScala
 
 object PrimaryKeyExtractor {
-  def extract(node: JsonNode, path: Vector[String]): Any = {
+  def extract(node: JsonNode, path: Vector[String], prefix: String = ""): Any = {
     @tailrec
     def innerExtract(n: JsonNode, p: Vector[String]): Any = {
       def checkValidPath(): Unit =
         if (p.nonEmpty) {
           throw new IllegalArgumentException(
-            s"Invalid field selection for '${path.mkString(".")}'. It doesn't resolve to a primitive field",
+            s"Invalid field selection for '$prefix${path.mkString(".")}'. It doesn't resolve to a primitive field",
           )
         }
 
@@ -79,24 +79,24 @@ object PrimaryKeyExtractor {
         case node: ObjectNode =>
           if (p.isEmpty) {
             throw new IllegalArgumentException(
-              s"Invalid field selection for '${path.mkString(".")}'. The path is not resolving to a primitive field",
+              s"Invalid field selection for '$prefix${path.mkString(".")}'. The path is not resolving to a primitive field",
             )
           }
           val childNode = Option(node.get(p.head)).getOrElse {
             throw new IllegalArgumentException(
-              s"Invalid field selection for '${path.mkString(".")}'. Can't find ${p.head} field. Field found are:${node.fieldNames().asScala.mkString(",")}",
+              s"Invalid field selection for '$prefix${path.mkString(".")}'. Can't find ${p.head} field. Field found are:${node.fieldNames().asScala.mkString(",")}",
             )
           }
 
           innerExtract(childNode, p.tail)
         case _: ArrayNode =>
           throw new IllegalArgumentException(
-            s"Invalid field selection for '${path.mkString(".")}'. The path is involving an array structure",
+            s"Invalid field selection for '$prefix${path.mkString(".")}'. The path is involving an array structure",
           )
 
         case other =>
           throw new IllegalArgumentException(
-            s"Invalid field selection for '${path.mkString(".")}'. $other is not handled",
+            s"Invalid field selection for '$prefix${path.mkString(".")}'. $other is not handled",
           )
       }
     }

@@ -29,6 +29,7 @@ import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
 import io.lenses.streamreactor.connect.cloud.common.source.config.PartitionSearcherOptions
 import io.lenses.streamreactor.connect.cloud.common.source.config.PartitionSearcherOptions.ExcludeIndexes
+import io.lenses.streamreactor.connect.cloud.common.source.config.PostProcessAction
 import io.lenses.streamreactor.connect.cloud.common.source.distribution.CloudPartitionSearcher
 import io.lenses.streamreactor.connect.cloud.common.source.distribution.PartitionSearcherResponse
 import io.lenses.streamreactor.connect.cloud.common.source.files.SourceFileQueue
@@ -36,6 +37,7 @@ import io.lenses.streamreactor.connect.cloud.common.source.reader.PartitionDisco
 import io.lenses.streamreactor.connect.cloud.common.source.reader.ReaderManager
 import io.lenses.streamreactor.connect.cloud.common.source.reader.ReaderManagerState
 import io.lenses.streamreactor.connect.cloud.common.source.reader.ResultReader
+import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
 import org.mockito.MockitoSugar
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
@@ -44,9 +46,12 @@ import scala.concurrent.duration.DurationInt
 
 class S3PartitionDiscoveryTest extends AnyFlatSpecLike with Matchers with MockitoSugar {
   private implicit val cloudLocationValidator: CloudLocationValidator = S3LocationValidator
-  private val connectorTaskId:                 ConnectorTaskId        = ConnectorTaskId("sinkName", 1, 1)
+  private val root = CloudLocation("bucket", "path".some)
+  private val connectorTaskId: ConnectorTaskId = ConnectorTaskId("sinkName", 1, 1)
 
   private val fFilesLimit: CloudLocation => Either[Throwable, Int] = _ => 1000.asRight
+  private val storageInterface    = mock[StorageInterface[_]]
+  private val noPostProcessAction = Option.empty[PostProcessAction]
 
   "PartitionDiscovery" should "discover all partitions" in {
     val fileQueueProcessor: SourceFileQueue = mock[SourceFileQueue]
@@ -78,12 +83,19 @@ class S3PartitionDiscoveryTest extends AnyFlatSpecLike with Matchers with Mockit
           connectorTaskId,
         ).find,
         (_, _) =>
-          IO(new ReaderManager(limit,
-                               fileQueueProcessor,
-                               _ => Left(new RuntimeException()),
-                               connectorTaskId,
-                               readerRef,
-          )),
+          IO(
+            new ReaderManager(
+              root,
+              root,
+              limit,
+              fileQueueProcessor,
+              _ => Left(new RuntimeException()),
+              connectorTaskId,
+              readerRef,
+              storageInterface,
+              noPostProcessAction,
+            ),
+          ),
         state,
         cancelledRef,
       ).start
@@ -146,12 +158,18 @@ class S3PartitionDiscoveryTest extends AnyFlatSpecLike with Matchers with Mockit
           connectorTaskId,
         ).find,
         (_, _) =>
-          IO(new ReaderManager(limit,
-                               fileQueueProcessor,
-                               _ => Left(new RuntimeException()),
-                               connectorTaskId,
-                               readerRef,
-          )),
+          IO(
+            new ReaderManager(root,
+                              root,
+                              limit,
+                              fileQueueProcessor,
+                              _ => Left(new RuntimeException()),
+                              connectorTaskId,
+                              readerRef,
+                              storageInterface,
+                              noPostProcessAction,
+            ),
+          ),
         state,
         cancelledRef,
       ).start
@@ -206,12 +224,18 @@ class S3PartitionDiscoveryTest extends AnyFlatSpecLike with Matchers with Mockit
           connectorTaskId,
         ).find,
         (_, _) =>
-          IO(new ReaderManager(limit,
-                               fileQueueProcessor,
-                               _ => Left(new RuntimeException()),
-                               connectorTaskId,
-                               readerRef,
-          )),
+          IO(
+            new ReaderManager(root,
+                              root,
+                              limit,
+                              fileQueueProcessor,
+                              _ => Left(new RuntimeException()),
+                              connectorTaskId,
+                              readerRef,
+                              storageInterface,
+                              noPostProcessAction,
+            ),
+          ),
         state,
         cancelledRef,
       ).start
@@ -271,7 +295,19 @@ class S3PartitionDiscoveryTest extends AnyFlatSpecLike with Matchers with Mockit
             (
               _,
               _,
-            ) => IO(new ReaderManager(limit, fileQueueProcessor, _ => Left(new RuntimeException()), taskId, readerRef)),
+            ) =>
+              IO(
+                new ReaderManager(root,
+                                  root,
+                                  limit,
+                                  fileQueueProcessor,
+                                  _ => Left(new RuntimeException()),
+                                  taskId,
+                                  readerRef,
+                                  storageInterface,
+                                  noPostProcessAction,
+                ),
+              ),
             state,
             cancelledRef,
           ).start

@@ -47,7 +47,7 @@ object Dependencies {
     val cyclopsVersion = "10.4.1"
 
     val kafkaVersion:     String = "3.8.0"
-    val confluentVersion: String = "7.7.1"
+    val confluentVersion: String = "7.7.2"
 
     val enumeratumVersion = "1.7.5"
 
@@ -56,7 +56,7 @@ object Dependencies {
     val avroVersion      = "1.12.0"
     val avro4sVersion    = "4.1.2"
 
-    val catsEffectVersion     = "3.5.4"
+    val catsEffectVersion     = "3.5.7"
     val `cats-effect-testing` = "1.5.0"
 
     val antlr4Version: String = "4.13.2"
@@ -67,30 +67,30 @@ object Dependencies {
     // build plugins version
     val betterMonadicForVersion = "0.3.1"
 
-    val lombokVersion = "1.18.34"
+    val lombokVersion = "1.18.36"
 
     val logbackVersion      = "1.5.11"
     val scalaLoggingVersion = "3.9.5"
 
     val dnsJavaVersion  = "3.6.2"
-    val wiremockVersion = "3.9.2"
-    val parquetVersion  = "1.14.3"
+    val wiremockVersion = "3.10.0"
+    val parquetVersion  = "1.14.4"
 
     val jerseyCommonVersion = "3.1.9"
 
     val calciteVersion = "1.34.0"
-    val awsSdkVersion  = "2.28.29"
+    val awsSdkVersion  = "2.29.23"
 
-    val azureDataLakeVersion              = "12.21.0"
-    val azureIdentityVersion              = "1.14.0"
+    val azureDataLakeVersion              = "12.22.0"
+    val azureIdentityVersion              = "1.14.2"
     val azureCoreVersion                  = "1.54.1"
-    val msal4jVersion                     = "1.17.2"
+    val msal4jVersion                     = "1.17.3"
     val msal4jPersistenceExtensionVersion = "1.3.0"
-    val gcpCloudVersion                   = "2.46.0"
+    val gcpCloudVersion                   = "2.48.0"
     val gcpCloudStorageVersion            = "2.44.0"
 
     val woodstoxVersion     = "7.1.0"
-    val jacksonVersion      = "2.18.0"
+    val jacksonVersion      = "2.18.2"
     val json4sVersion       = "4.0.7"
     val mockitoScalaVersion = "1.17.37"
     val mockitoJavaVersion  = "5.2.0"
@@ -100,8 +100,8 @@ object Dependencies {
     val xzVersion  = "1.10"
     val lz4Version = "1.8.0"
 
-    val bouncyCastleVersion = "1.78.1"
-    val nettyVersion        = "4.1.114.Final"
+    val bouncyCastleVersion = "1.79"
+    val nettyVersion        = "4.1.115.Final"
 
     val cassandraDriverVersion = "3.11.5"
     val jsonPathVersion        = "2.9.0"
@@ -113,7 +113,7 @@ object Dependencies {
     val influxVersion = "7.2.0"
 
     val jmsApiVersion         = "3.1.0"
-    val activeMqVersion       = "6.1.3"
+    val activeMqVersion       = "6.1.4"
     val protocVersion         = "3.11.4"
     val googleProtobufVersion = "3.25.5"
 
@@ -123,7 +123,7 @@ object Dependencies {
     val commonsCodecVersion    = "1.17.1"
     val commonsCompressVersion = "1.27.1"
     val commonsConfigVersion   = "2.11.0"
-    val commonsIOVersion       = "2.17.0"
+    val commonsIOVersion       = "2.18.0"
     val commonsHttpVersion     = "4.5.14"
     val commonsLang3Version    = "3.17.0"
     val jschVersion            = "0.2.20"
@@ -138,13 +138,13 @@ object Dependencies {
     val jedisVersion = "5.1.5"
     val gsonVersion  = "2.11.0"
 
-    val classGraphVersion           = "4.8.177"
-    val nimbusJoseJwtVersion        = "9.41.2"
+    val classGraphVersion           = "4.8.179"
+    val nimbusJoseJwtVersion        = "9.47"
     val hadoopVersion               = "3.4.0"
     val hadoopShadedProtobufVersion = "1.2.0"
 
     val airCompressorVersion = "2.0.2"
-    val zstdVersion          = "1.5.6-6"
+    val zstdVersion          = "1.5.6-8"
 
     trait ElasticVersions {
       val elastic4sVersion, elasticSearchVersion, jnaVersion: String
@@ -421,8 +421,8 @@ trait Dependencies {
   import Versions._
 
   val loggingDeps: Seq[ModuleID] = Seq(
-    "org.apache.logging.log4j" % "log4j-api"      % "2.24.1",
-    "org.apache.logging.log4j" % "log4j-to-slf4j" % "2.24.1",
+    "org.apache.logging.log4j" % "log4j-api"      % "2.24.2",
+    "org.apache.logging.log4j" % "log4j-to-slf4j" % "2.24.2",
     log4jToSlf4j,
     jclToSlf4j,
     logback,

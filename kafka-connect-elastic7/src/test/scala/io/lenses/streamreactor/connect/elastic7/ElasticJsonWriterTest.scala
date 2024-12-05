@@ -86,7 +86,8 @@ class ElasticJsonWriterTest extends TestBase with MockitoSugar {
 
     val sourceTopic = "SOURCE"
     val targetShard = "SHARD"
-    val kcql        = Kcql.parse(s"INSERT INTO $targetShard SELECT * FROM $sourceTopic ")
+    val kcql =
+      Kcql.parse(s"INSERT INTO $targetShard SELECT * FROM $sourceTopic PROPERTIES('behavior.on.null.values'='IGNORE')")
 
     val recordKey = "KEY"
     val tombstoneValue: Null = null
@@ -161,7 +162,7 @@ class ElasticJsonWriterTest extends TestBase with MockitoSugar {
     val exception = intercept[Exception](target.write(Vector(sinkRecord)))
 
     exception shouldBe a[IllegalStateException]
-    exception.getMessage should be(s"$sourceTopic KCQL mapping is configured to fail on null value, yet it occurred.")
+    exception.getMessage should be(s"$sourceTopic KCQL mapping is configured to fail on tombstone records.")
 
   }
 

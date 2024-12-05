@@ -107,6 +107,6 @@ trait CommonConfigDef extends CompressionCodecConfigKeys with AuthModeSettingsCo
       )
 
     withAuthModeSettings(cD)
-    new KcqlSettings(javaConnectorPrefix).withSettings(config)
+    new KcqlSettings(javaConnectorPrefix).withSettings(cD)
   }
 }
