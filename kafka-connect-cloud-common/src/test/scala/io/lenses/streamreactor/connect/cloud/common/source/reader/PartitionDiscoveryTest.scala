@@ -18,13 +18,16 @@ package io.lenses.streamreactor.connect.cloud.common.source.reader
 import cats.effect.IO
 import cats.effect.kernel.Ref
 import cats.effect.unsafe.implicits.global
+import cats.implicits.catsSyntaxOptionId
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
 import io.lenses.streamreactor.connect.cloud.common.source.config.PartitionSearcherOptions
 import io.lenses.streamreactor.connect.cloud.common.source.config.PartitionSearcherOptions.ExcludeIndexes
+import io.lenses.streamreactor.connect.cloud.common.source.config.PostProcessAction
 import io.lenses.streamreactor.connect.cloud.common.source.distribution.PartitionSearcherResponse
 import io.lenses.streamreactor.connect.cloud.common.source.files.SourceFileQueue
+import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
 import io.lenses.streamreactor.connect.cloud.common.utils.SampleData
 import org.mockito.MockitoSugar
 import org.scalatest.flatspec.AnyFlatSpecLike
@@ -35,6 +38,9 @@ import scala.concurrent.duration.DurationInt
 class PartitionDiscoveryTest extends AnyFlatSpecLike with Matchers with MockitoSugar {
   private implicit val cloudLocationValidator: CloudLocationValidator = SampleData.cloudLocationValidator
   private val connectorTaskId:                 ConnectorTaskId        = ConnectorTaskId("sinkName", 1, 1)
+  private val root:                            CloudLocation          = CloudLocation("myBucket", "myPrefix".some)
+  private val storageInterface:                StorageInterface[_]    = mock[StorageInterface[_]]
+  private val noPostProcessAction = Option.empty[PostProcessAction]
   "PartitionDiscovery" should "handle failure on PartitionSearcher and resume" in {
     val fileQueueProcessor: SourceFileQueue = mock[SourceFileQueue]
     val limit   = 10
@@ -77,12 +83,18 @@ class PartitionDiscoveryTest extends AnyFlatSpecLike with Matchers with MockitoS
         options,
         searcherMock.find,
         (_, _) =>
-          IO(new ReaderManager(limit,
-                               fileQueueProcessor,
-                               _ => Left(new RuntimeException()),
-                               connectorTaskId,
-                               readerRef,
-          )),
+          IO(
+            new ReaderManager(root,
+                              root,
+                              limit,
+                              fileQueueProcessor,
+                              _ => Left(new RuntimeException()),
+                              connectorTaskId,
+                              readerRef,
+                              storageInterface,
+                              noPostProcessAction,
+            ),
+          ),
         state,
         cancelledRef,
       ).start

@@ -20,6 +20,7 @@ import cats.implicits.none
 import com.azure.storage.file.datalake.DataLakeFileClient
 import com.azure.storage.file.datalake.DataLakeFileSystemClient
 import com.azure.storage.file.datalake.DataLakeServiceClient
+import com.azure.storage.file.datalake.models.DataLakeStorageException
 import com.azure.storage.file.datalake.models.ListPathsOptions
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.model.UploadableFile
@@ -29,6 +30,7 @@ import io.lenses.streamreactor.connect.cloud.common.storage.FileCreateError
 import io.lenses.streamreactor.connect.cloud.common.storage.FileDeleteError
 import io.lenses.streamreactor.connect.cloud.common.storage.FileListError
 import io.lenses.streamreactor.connect.cloud.common.storage.FileLoadError
+import io.lenses.streamreactor.connect.cloud.common.storage.FileMoveError
 import io.lenses.streamreactor.connect.cloud.common.storage.ListOfKeysResponse
 import io.lenses.streamreactor.connect.cloud.common.storage.NonExistingFileError
 import io.lenses.streamreactor.connect.cloud.common.storage.UploadFailedError
@@ -434,6 +436,57 @@ class DatalakeStorageInterfaceTest
     val result = storageInterface.deleteFiles(bucket, files)
 
     result.left.value should be(a[FileDeleteError])
+  }
+
+  "mvFile" should "move a file from one bucket to another successfully" in {
+    val oldBucket = "oldBucket"
+    val oldPath   = "oldPath"
+    val newBucket = "newBucket"
+    val newPath   = "newPath"
+
+    val fileClient = mock[DataLakeFileClient]
+    when(client.getFileSystemClient(oldBucket).getFileClient(oldPath)).thenReturn(fileClient)
+    when(fileClient.rename(newBucket, newPath)).thenReturn(fileClient)
+
+    val result = storageInterface.mvFile(oldBucket, oldPath, newBucket, newPath)
+
+    result should be(Right(()))
+    verify(fileClient).rename(newBucket, newPath)
+  }
+
+  "mvFile" should "return a FileMoveError if rename fails" in {
+    val oldBucket = "oldBucket"
+    val oldPath   = "oldPath"
+    val newBucket = "newBucket"
+    val newPath   = "newPath"
+
+    val fileClient = mock[DataLakeFileClient]
+    when(client.getFileSystemClient(oldBucket).getFileClient(oldPath)).thenReturn(fileClient)
+    when(fileClient.rename(newBucket, newPath)).thenThrow(new DataLakeStorageException("Rename failed", null, null))
+
+    val result = storageInterface.mvFile(oldBucket, oldPath, newBucket, newPath)
+
+    result.isLeft should be(true)
+    result.left.value should be(a[FileMoveError])
+    verify(fileClient).rename(newBucket, newPath)
+  }
+
+  "mvFile" should "return a FileMoveError if the old file does not exist" in {
+    val oldBucket = "oldBucket"
+    val oldPath   = "nonExistingPath"
+    val newBucket = "newBucket"
+    val newPath   = "newPath"
+
+    when(client.getFileSystemClient(oldBucket).getFileClient(oldPath)).thenThrow(new DataLakeStorageException(
+      "File not found",
+      null,
+      null,
+    ))
+
+    val result = storageInterface.mvFile(oldBucket, oldPath, newBucket, newPath)
+
+    result.isLeft should be(true)
+    result.left.value should be(a[FileMoveError])
   }
 
 }

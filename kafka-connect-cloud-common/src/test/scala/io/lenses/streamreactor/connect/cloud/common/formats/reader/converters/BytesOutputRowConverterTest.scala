@@ -44,18 +44,18 @@ class BytesOutputRowConverterTest extends AnyFunSuite with Matchers {
       1,
       location,
       lastModified,
-    ).convert(
-      BytesOutputRow(
-        valueBytes,
-      ),
-      2,
+    ).convert(BytesOutputRow(
+                valueBytes,
+              ),
+              2,
+              lastLine = true,
     )
     actual.key() shouldBe null
     actual.value() shouldBe "value".getBytes
     actual.topic() shouldBe "topic1"
     actual.kafkaPartition() shouldBe 1
     actual.sourcePartition() shouldBe Map("a" -> "1").asJava
-    actual.sourceOffset() shouldBe Map("line" -> "2", "path" -> "a/b/c.txt", "ts" -> "10001").asJava
+    actual.sourceOffset() shouldBe Map("line" -> "2", "path" -> "a/b/c.txt", "ts" -> "10001", "last" -> "t").asJava
     actual.keySchema().`type`() shouldBe Schema.BYTES_SCHEMA.`type`()
     actual.valueSchema().`type`() shouldBe Schema.BYTES_SCHEMA.`type`()
   }

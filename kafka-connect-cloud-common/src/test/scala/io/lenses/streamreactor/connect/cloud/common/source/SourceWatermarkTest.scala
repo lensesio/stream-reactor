@@ -48,10 +48,12 @@ class SourceWatermarkTest extends AnyFlatSpec with Matchers {
       CloudLocation("test-bucket", "test-prefix".some).withPath("test-path"),
       100L,
       nowInst,
+      lastLine = true,
     ).asScala.toMap shouldBe Map(
       "path" -> "test-path",
       "line" -> "100",
       "ts"   -> nowInst.toEpochMilli.toString,
+      "last" -> "t",
     )
   }
 

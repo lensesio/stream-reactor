@@ -28,7 +28,7 @@ trait CloudStreamReader extends AutoCloseable with Iterator[SourceRecord] {
 trait CloudDataIterator[T] extends Iterator[T] with AutoCloseable
 
 trait Converter[T] {
-  def convert(t: T, index: Long): SourceRecord
+  def convert(t: T, index: Long, lastLine: Boolean): SourceRecord
 }
 
 class DelegateIteratorCloudStreamReader[T](
@@ -52,7 +52,7 @@ class DelegateIteratorCloudStreamReader[T](
   override def next(): SourceRecord = {
     val data = iterator.next()
     recordIndex = recordIndex + 1
-    converter.convert(data, recordIndex)
+    converter.convert(data, recordIndex, !hasNext)
   }
 
   override def close(): Unit = iterator.close()

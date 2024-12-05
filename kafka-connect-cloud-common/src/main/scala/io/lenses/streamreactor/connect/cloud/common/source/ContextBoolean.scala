@@ -15,17 +15,19 @@
  */
 package io.lenses.streamreactor.connect.cloud.common.source
 
-object ContextConstants {
+import cats.implicits.catsSyntaxEitherId
 
-  val ContainerKey = "container"
+object ContextBoolean {
 
-  val PrefixKey = "prefix"
+  private val trueString  = "t"
+  private val falseString = "f"
 
-  val PathKey = "path"
+  def stringToBoolean(original: String): Either[Throwable, Boolean] =
+    original match {
+      case `trueString`  => true.asRight
+      case `falseString` => false.asRight
+      case _             => new IllegalStateException(s"Invalid Boolean value: $original").asLeft
+    }
 
-  val LineKey = "line"
-
-  val TimeStampKey = "ts"
-
-  val LastLine = "last"
+  def booleanToString(original: Boolean): String = if (original) trueString else falseString
 }

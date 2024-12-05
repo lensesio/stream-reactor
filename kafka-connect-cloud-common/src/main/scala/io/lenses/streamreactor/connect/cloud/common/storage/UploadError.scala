@@ -37,6 +37,10 @@ case class EmptyContentsStringError(data: String) extends UploadError {
   override def message() = s"attempt to upload empty string (${data})"
 }
 
+case class FileMoveError(exception: Throwable, oldName: String, newName: String) extends UploadError {
+  override def message() = s"error moving file from ($oldName) to ($newName) ${exception.getMessage}"
+}
+
 case class FileCreateError(exception: Throwable, data: String) extends UploadError {
   override def message() = s"error writing file (${data}) ${exception.getMessage}"
 }
