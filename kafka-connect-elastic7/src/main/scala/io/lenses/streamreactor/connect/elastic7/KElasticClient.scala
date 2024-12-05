@@ -39,7 +39,7 @@ import scala.concurrent.Future
 trait KElasticClient extends AutoCloseable {
   def index(kcql: Kcql): Unit
 
-  def execute(definition: BulkRequest): Future[Any]
+  def execute(definition: BulkRequest): Future[Response[BulkResponse]]
 }
 
 object KElasticClient extends StrictLogging {

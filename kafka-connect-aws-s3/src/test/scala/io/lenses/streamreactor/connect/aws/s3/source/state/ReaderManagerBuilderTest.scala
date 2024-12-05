@@ -55,10 +55,12 @@ class ReaderManagerBuilderTest extends AsyncFlatSpec with AsyncIOSpec with Match
                                                        None,
                                                        OrderingType.LastModified,
                                                        false,
+                                                       Option.empty,
     )
-    val taskId = ConnectorTaskId("test", 3, 1)
-    ReaderManagerBuilder(root, path, si, taskId, contextF, _ => Some(sbo))
-      .asserting(_ => rootValue shouldBe Some(root.copy(prefix = Some(path))))
+    val taskId       = ConnectorTaskId("test", 3, 1)
+    val pathLocation = root.withPath(path)
+    ReaderManagerBuilder(root, pathLocation, si, taskId, contextF, _ => Some(sbo))
+      .asserting(_ => rootValue shouldBe Some(pathLocation))
   }
 
 }

@@ -45,7 +45,7 @@ class DelegateIteratorCloudStreamReaderTest extends AnyFunSuite with Matchers {
       override def close(): Unit = {}
     }
     val converter = new Converter[Int] {
-      override def convert(t: Int, index: Long): SourceRecord =
+      override def convert(t: Int, index: Long, lastLine: Boolean): SourceRecord =
         new SourceRecord(
           Map("a" -> "1").asJava,
           Map("line" -> index.toString, "path" -> "a/b/c.txt", "ts" -> "1000").asJava,
@@ -73,7 +73,7 @@ class DelegateIteratorCloudStreamReaderTest extends AnyFunSuite with Matchers {
       override def close(): Unit = {}
     }
     val converter = new Converter[Int] {
-      override def convert(t: Int, index: Long): SourceRecord =
+      override def convert(t: Int, index: Long, lastLine: Boolean): SourceRecord =
         new SourceRecord(
           Map("a" -> "1").asJava,
           Map("line" -> index.toString, "path" -> "a/b/c.txt", "ts" -> "1000").asJava,
