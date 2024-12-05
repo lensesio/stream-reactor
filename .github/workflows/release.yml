@@ -98,7 +98,8 @@ jobs:
           clamscan --recursive --alert-broken --alert-encrypted \
             --alert-encrypted-archive --alert-exceeds-max \
             --include-pua=Unix --include-pua=Java \
-            --max-scansize=1000m --max-filesize=500m --max-files=100000 \
+            --max-scansize=1000m --max-scantime=1200000 \
+            --max-filesize=500m --max-files=100000 \
             kafka-connect-${{ matrix.module }}
 
   create-release:
