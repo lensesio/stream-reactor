@@ -47,7 +47,10 @@ import io.lenses.streamreactor.connect.gcp.storage.storage.GCPStorageFileMetadat
 import io.lenses.streamreactor.connect.gcp.storage.storage.GCPStorageStorageInterface
 import SamplePages.emptyPage
 import SamplePages.pages
+import com.google.cloud.storage.CopyWriter
+import com.google.cloud.storage.Storage.CopyRequest
 import org.mockito.Answers
+import org.mockito.ArgumentCaptor
 import org.mockito.ArgumentMatchersSugar
 import org.mockito.MockitoSugar
 import org.scalatest.BeforeAndAfter
@@ -488,6 +491,224 @@ class GCPStorageStorageInterfaceTest
     storageInterface.close()
 
     verify(client).close()
+  }
+
+  "mvFile" should "move a file from one bucket to another successfully" in {
+    val oldBucket = "oldBucket"
+    val oldPath   = "oldPath"
+    val newBucket = "newBucket"
+    val newPath   = "newPath"
+
+    val sourceBlobId      = BlobId.of(oldBucket, oldPath)
+    val destinationBlobId = BlobInfo.newBuilder(BlobId.of(newBucket, newPath)).build()
+
+    mockBlobExistence(sourceBlobId)
+
+    when(client.copy(any[Storage.CopyRequest])).thenReturn(mock[CopyWriter])
+    when(client.delete(sourceBlobId)).thenReturn(true)
+    val result: Either[FileMoveError, Unit] = storageInterface.mvFile(oldBucket, oldPath, newBucket, newPath)
+    result.value should be(())
+
+    val copyRequestCaptor: ArgumentCaptor[Storage.CopyRequest] = ArgumentCaptor.forClass(classOf[Storage.CopyRequest])
+    verify(client).copy(copyRequestCaptor.capture())
+    val capturedCopyRequest = copyRequestCaptor.getValue
+    capturedCopyRequest.getSource should be(sourceBlobId)
+    capturedCopyRequest.getTarget should be(destinationBlobId)
+
+    verify(client).delete(sourceBlobId)
+  }
+
+  private def mockBlobExistence(sourceBlobId: BlobId) = {
+    val blob = mock[Blob]
+    when(blob.exists()).thenReturn(true)
+    when(client.get(sourceBlobId)).thenReturn(blob)
+    ()
+  }
+  private def mockBlobNonExistence1(sourceBlobId: BlobId) = {
+    val blob = mock[Blob]
+    when(blob.exists()).thenReturn(false)
+    when(client.get(sourceBlobId)).thenReturn(blob)
+    ()
+  }
+  private def mockBlobNonExistence2(sourceBlobId: BlobId) = {
+    val blob = null
+    when(client.get(sourceBlobId)).thenReturn(blob)
+    ()
+  }
+
+  "mvFile" should "return a FileMoveError if copy fails" in {
+    val oldBucket = "oldBucket"
+    val oldPath   = "oldPath"
+    val newBucket = "newBucket"
+    val newPath   = "newPath"
+
+    val sourceBlobId      = BlobId.of(oldBucket, oldPath)
+    val destinationBlobId = BlobInfo.newBuilder(BlobId.of(newBucket, newPath)).build()
+
+    mockBlobExistence(sourceBlobId)
+
+    when(client.copy(any[Storage.CopyRequest])).thenThrow(new RuntimeException("Copy failed"))
+
+    val result = storageInterface.mvFile(oldBucket, oldPath, newBucket, newPath)
+
+    result.isLeft should be(true)
+    result.left.value should be(a[FileMoveError])
+
+    val copyRequestCaptor: ArgumentCaptor[Storage.CopyRequest] = ArgumentCaptor.forClass(classOf[Storage.CopyRequest])
+    verify(client).copy(copyRequestCaptor.capture())
+    val capturedCopyRequest = copyRequestCaptor.getValue
+    capturedCopyRequest.getSource should be(sourceBlobId)
+    capturedCopyRequest.getTarget should be(destinationBlobId)
+
+    verify(client, never).delete(sourceBlobId)
+  }
+  "mvFile" should "return a FileMoveError if delete fails" in {
+    val oldBucket = "oldBucket"
+    val oldPath   = "oldPath"
+    val newBucket = "newBucket"
+    val newPath   = "newPath"
+
+    val sourceBlobId      = BlobId.of(oldBucket, oldPath)
+    val destinationBlobId = BlobInfo.newBuilder(BlobId.of(newBucket, newPath)).build()
+
+    mockBlobExistence(sourceBlobId)
+
+    when(client.copy(any[Storage.CopyRequest])).thenReturn(mock[CopyWriter])
+    when(client.delete(sourceBlobId)).thenThrow(new RuntimeException("Delete failed"))
+
+    val result = storageInterface.mvFile(oldBucket, oldPath, newBucket, newPath)
+
+    result.isLeft should be(true)
+    result.left.value should be(a[FileMoveError])
+
+    val copyRequestCaptor: ArgumentCaptor[Storage.CopyRequest] = ArgumentCaptor.forClass(classOf[Storage.CopyRequest])
+    verify(client).copy(copyRequestCaptor.capture())
+    val capturedCopyRequest = copyRequestCaptor.getValue
+    capturedCopyRequest.getSource should be(sourceBlobId)
+    capturedCopyRequest.getTarget should be(destinationBlobId)
+
+    verify(client).delete(sourceBlobId)
+  }
+
+  "mvFile" should "use doesNotExist precondition if the target file does not exist" in {
+    val oldBucket = "oldBucket"
+    val oldPath   = "oldPath"
+    val newBucket = "newBucket"
+    val newPath   = "newPath"
+
+    val sourceBlobId = BlobId.of(oldBucket, oldPath)
+
+    mockBlobExistence(sourceBlobId)
+
+    when(client.get(newBucket, newPath)).thenReturn(null) // Target does not exist
+    when(client.copy(any[Storage.CopyRequest])).thenReturn(mock[CopyWriter])
+    when(client.delete(sourceBlobId)).thenReturn(true)
+
+    val result = storageInterface.mvFile(oldBucket, oldPath, newBucket, newPath)
+    result.value should be(())
+
+    val copyRequestCaptor: ArgumentCaptor[Storage.CopyRequest] = ArgumentCaptor.forClass(classOf[Storage.CopyRequest])
+    verify(client).copy(copyRequestCaptor.capture())
+    val capturedCopyRequest = copyRequestCaptor.getValue
+    capturedCopyRequest.getTargetOptions should contain(Storage.BlobTargetOption.doesNotExist())
+
+    verify(client).delete(sourceBlobId)
+  }
+
+  "mvFile" should "use generationMatch precondition if the target file exists" in {
+    val oldBucket = "oldBucket"
+    val oldPath   = "oldPath"
+    val newBucket = "newBucket"
+    val newPath   = "newPath"
+
+    val sourceBlobId = BlobId.of(oldBucket, oldPath)
+
+    mockBlobExistence(sourceBlobId)
+
+    val destinationBlob = mock[Blob]
+    when(destinationBlob.getGeneration).thenReturn(123L)
+
+    when(client.get(newBucket, newPath)).thenReturn(destinationBlob) // Target exists
+    when(client.copy(any[Storage.CopyRequest])).thenReturn(mock[CopyWriter])
+    when(client.delete(sourceBlobId)).thenReturn(true)
+
+    val result = storageInterface.mvFile(oldBucket, oldPath, newBucket, newPath)
+    result.value should be(())
+
+    val copyRequestCaptor: ArgumentCaptor[Storage.CopyRequest] = ArgumentCaptor.forClass(classOf[Storage.CopyRequest])
+    verify(client).copy(copyRequestCaptor.capture())
+    val capturedCopyRequest = copyRequestCaptor.getValue
+    capturedCopyRequest.getTargetOptions should contain(Storage.BlobTargetOption.generationMatch(123L))
+
+    verify(client).delete(sourceBlobId)
+  }
+  "mvFile" should "return FileMoveError if the source file does not exist after check" in {
+    val oldBucket = "oldBucket"
+    val oldPath   = "oldPath"
+    val newBucket = "newBucket"
+    val newPath   = "newPath"
+
+    val sourceBlobId      = BlobId.of(oldBucket, oldPath)
+    val destinationBlobId = BlobInfo.newBuilder(BlobId.of(newBucket, newPath)).build()
+
+    mockBlobExistence(sourceBlobId)
+
+    // Simulate a failure during the copy operation (e.g., source file does not exist)
+    when(client.copy(any[Storage.CopyRequest])).thenThrow(new RuntimeException("Source file does not exist"))
+
+    val result = storageInterface.mvFile(oldBucket, oldPath, newBucket, newPath)
+
+    // Verify that the result is a FileMoveError
+    result.left.value should be(a[FileMoveError])
+    result.left.value.message() should include("Source file does not exist")
+
+    // Verify that the copy was attempted
+    val copyRequestCaptor: ArgumentCaptor[Storage.CopyRequest] = ArgumentCaptor.forClass(classOf[Storage.CopyRequest])
+    verify(client).copy(copyRequestCaptor.capture())
+    val capturedCopyRequest = copyRequestCaptor.getValue
+    capturedCopyRequest.getSource should be(sourceBlobId)
+    capturedCopyRequest.getTarget should be(destinationBlobId)
+
+    // Verify that delete was not called, as the copy failed
+    verify(client, never).delete(sourceBlobId)
+  }
+  "mvFile" should "return no error if the source file does not exist initially (1)" in {
+    val oldBucket = "oldBucket"
+    val oldPath   = "oldPath"
+    val newBucket = "newBucket"
+    val newPath   = "newPath"
+
+    val sourceBlobId = BlobId.of(oldBucket, oldPath)
+
+    mockBlobNonExistence1(sourceBlobId)
+
+    val result = storageInterface.mvFile(oldBucket, oldPath, newBucket, newPath)
+
+    result.value should be(())
+
+    verify(client, never).copy(any[CopyRequest])
+    verify(client, never).delete(sourceBlobId)
+  }
+
+  "mvFile" should "return no error if the source file does not exist initially (2)" in {
+    val oldBucket = "oldBucket"
+    val oldPath   = "oldPath"
+    val newBucket = "newBucket"
+    val newPath   = "newPath"
+
+    val sourceBlobId = BlobId.of(oldBucket, oldPath)
+
+    mockBlobNonExistence2(sourceBlobId)
+
+    // Simulate a failure during the copy operation (e.g., source file does not exist)
+    when(client.copy(any[Storage.CopyRequest])).thenThrow(new RuntimeException("Source file does not exist"))
+
+    val result = storageInterface.mvFile(oldBucket, oldPath, newBucket, newPath)
+
+    result.value should be(())
+
+    verify(client, never).copy(any[CopyRequest])
+    verify(client, never).delete(sourceBlobId)
   }
 
   private def createTestFile = {

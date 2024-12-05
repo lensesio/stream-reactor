@@ -15,15 +15,10 @@
  */
 package io.lenses.streamreactor.connect.cloud.common.source
 
-import cats.implicits.catsSyntaxOptionId
-import ContextConstants.LineKey
-import ContextConstants.PathKey
-import ContextConstants.TimeStampKey
-import SourceWatermark.partition
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
+import io.lenses.streamreactor.connect.cloud.common.source.SourceWatermark.partition
 import org.apache.kafka.connect.source.SourceTaskContext
 
-import java.time.Instant
 import scala.jdk.CollectionConverters.MapHasAsScala
 import scala.util.Try
 
@@ -35,19 +30,10 @@ object SourceContextReader {
   ): Option[CloudLocation] = {
     val key = partition(sourceRoot)
     for {
-      offsetMap <- Try(context().offsetStorageReader.offset(key).asScala).toOption.filterNot(_ == null)
-      path      <- offsetMap.get(PathKey).collect { case value: String => value }
-      line      <- offsetMap.get(LineKey).collect { case value: String if value forall Character.isDigit => value.toInt }
-      ts = offsetMap.get(TimeStampKey).collect {
-        case value: String if value forall Character.isDigit => Instant.ofEpochMilli(value.toLong)
-      }
-    } yield {
-      sourceRoot.copy(
-        path      = path.some,
-        line      = line.some,
-        timestamp = ts,
-      )(sourceRoot.cloudLocationValidator)
-    }
+      offsetMap          <- Try(context().offsetStorageReader.offset(key).asScala).toOption.filterNot(_ == null)
+      locationWithOffset <- SourceWatermark.mapToOffset(sourceRoot, offsetMap.toMap)
+    } yield locationWithOffset
+
   }
 
 }
