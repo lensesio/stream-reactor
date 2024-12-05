@@ -28,6 +28,7 @@ import lombok.Getter;
 public enum ServiceBusKcqlProperties {
 
   SERVICE_BUS_TYPE(PropertiesConstants.SERVICE_BUS_TYPE_PROP, PropertiesConstants.SERVICE_BUS_TYPE_DESC, false),
+  BATCH_ENABLED(PropertiesConstants.BATCH_ENABLED_TYPE_PROP, PropertiesConstants.BATCH_ENABLED_TYPE_DESC, true),
   SUBSCRIPTION_NAME(PropertiesConstants.SUBSCRIPTION_NAME_PROP, PropertiesConstants.SUBSCRIPTION_NAME_DESC, true);
 
   private final String propertyName;
@@ -54,5 +55,7 @@ public enum ServiceBusKcqlProperties {
     private static final String SERVICE_BUS_TYPE_DESC = "ServiceBus Type: QUEUE/TOPIC";
     private static final String SUBSCRIPTION_NAME_PROP = "subscription.name";
     private static final String SUBSCRIPTION_NAME_DESC = "ServiceBus subscription name";
+    private static final String BATCH_ENABLED_TYPE_PROP = "batch.enabled";
+    private static final String BATCH_ENABLED_TYPE_DESC = "Batching messages disabled";
   }
 }

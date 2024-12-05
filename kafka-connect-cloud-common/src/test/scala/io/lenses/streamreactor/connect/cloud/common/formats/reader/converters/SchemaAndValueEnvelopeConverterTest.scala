@@ -88,7 +88,7 @@ class SchemaAndValueEnvelopeConverterTest extends AnyFunSuite with Matchers {
 
     val schemaAndValueEnveloper = new SchemaAndValue(allEnvelopeFieldsSchema, envelope)
 
-    val sourceRecord = createConverter().convert(schemaAndValueEnveloper, 0L)
+    val sourceRecord = createConverter().convert(schemaAndValueEnveloper, 0L, lastLine = true)
     assertOffsets(sourceRecord)
     sourceRecord.topic() shouldBe TargetTopic
     sourceRecord.kafkaPartition() shouldBe Partition
@@ -122,7 +122,7 @@ class SchemaAndValueEnvelopeConverterTest extends AnyFunSuite with Matchers {
 
     val schemaAndValueEnveloper = new SchemaAndValue(envelopeSchema, envelope)
 
-    val sourceRecord = createConverter().convert(schemaAndValueEnveloper, 0L)
+    val sourceRecord = createConverter().convert(schemaAndValueEnveloper, 0L, lastLine = true)
     assertOffsets(sourceRecord)
     sourceRecord.topic() shouldBe TargetTopic
     sourceRecord.kafkaPartition() shouldBe Partition
@@ -151,7 +151,7 @@ class SchemaAndValueEnvelopeConverterTest extends AnyFunSuite with Matchers {
     envelope.put("metadata", createMetadata())
     val schemaAndValueEnveloper = new SchemaAndValue(envelopeSchema, envelope)
 
-    val sourceRecord = createConverter().convert(schemaAndValueEnveloper, 0L)
+    val sourceRecord = createConverter().convert(schemaAndValueEnveloper, 0L, lastLine = true)
     assertOffsets(sourceRecord)
     sourceRecord.topic() shouldBe TargetTopic
     sourceRecord.kafkaPartition() shouldBe Partition
@@ -182,7 +182,8 @@ class SchemaAndValueEnvelopeConverterTest extends AnyFunSuite with Matchers {
 
     val schemaAndValueEnveloper = new SchemaAndValue(envelopeSchema, envelope)
 
-    val sourceRecord = createConverter(() => LastModifiedTimestamp).convert(schemaAndValueEnveloper, 0L)
+    val sourceRecord =
+      createConverter(() => LastModifiedTimestamp).convert(schemaAndValueEnveloper, 0L, lastLine = true)
     assertOffsets(sourceRecord)
     sourceRecord.topic() shouldBe TargetTopic
     sourceRecord.kafkaPartition() shouldBe TargetPartition
@@ -210,7 +211,7 @@ class SchemaAndValueEnvelopeConverterTest extends AnyFunSuite with Matchers {
 
     val schemaAndValueEnveloper = new SchemaAndValue(envelopeSchema, envelope)
 
-    val sourceRecord = createConverter().convert(schemaAndValueEnveloper, 0L)
+    val sourceRecord = createConverter().convert(schemaAndValueEnveloper, 0L, lastLine = true)
     assertOffsets(sourceRecord)
     sourceRecord.topic() shouldBe TargetTopic
     sourceRecord.kafkaPartition() shouldBe Partition
@@ -224,7 +225,7 @@ class SchemaAndValueEnvelopeConverterTest extends AnyFunSuite with Matchers {
   test("non-Struct input returns an exception") {
     val schemaAndValueEnveloper = new SchemaAndValue(Schema.STRING_SCHEMA, "lorem ipsum")
     assertThrows[RuntimeException] {
-      createConverter().convert(schemaAndValueEnveloper, 0L)
+      createConverter().convert(schemaAndValueEnveloper, 0L, lastLine = true)
     }
   }
   private def createConverter(instantF: () => Instant = () => Instant.now()): SchemaAndValueEnvelopeConverter =
@@ -240,6 +241,7 @@ class SchemaAndValueEnvelopeConverterTest extends AnyFunSuite with Matchers {
     sourceRecord.sourceOffset().asScala shouldBe Map("path" -> "/a/b/c.avro",
                                                      "line" -> "0",
                                                      "ts"   -> LastModifiedTimestamp.toEpochMilli.toString,
+                                                     "last" -> "t",
     )
   }
   private def assertHeaders(record: SourceRecord): Assertion =

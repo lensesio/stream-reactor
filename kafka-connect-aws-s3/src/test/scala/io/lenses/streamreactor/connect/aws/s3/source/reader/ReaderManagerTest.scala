@@ -25,9 +25,11 @@ import io.lenses.streamreactor.connect.aws.s3.model.location.S3LocationValidator
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
+import io.lenses.streamreactor.connect.cloud.common.source.config.PostProcessAction
 import io.lenses.streamreactor.connect.cloud.common.source.files.SourceFileQueue
 import io.lenses.streamreactor.connect.cloud.common.source.reader.ReaderManager
 import io.lenses.streamreactor.connect.cloud.common.source.reader.ResultReader
+import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.source.SourceRecord
 import org.mockito.MockitoSugar
@@ -46,12 +48,16 @@ class ReaderManagerTest extends AnyFlatSpec with MockitoSugar with Matchers with
   private val bucketAndPrefix               = CloudLocation("test", "ing".some)
   private val firstFileBucketAndPath        = bucketAndPrefix.withPath("test:ing/topic/9/0.json")
   private val firstFileBucketAndPathAndLine = firstFileBucketAndPath.atLine(0).withTimestamp(Instant.now)
+  private val noPostProcessAction           = Option.empty[PostProcessAction]
+  private val storageInterface              = mock[StorageInterface[_]]
 
   "poll" should "be empty when no results found" in {
     val fileQueueProcessor: SourceFileQueue = mock[SourceFileQueue]
 
     var locationFnCalls = 0
     val target = new ReaderManager(
+      bucketAndPrefix,
+      bucketAndPrefix,
       recordsLimit,
       fileQueueProcessor,
       _ =>
@@ -61,6 +67,8 @@ class ReaderManagerTest extends AnyFlatSpec with MockitoSugar with Matchers with
         },
       connectorTaskId,
       Ref[IO].of(Option.empty[ResultReader]).unsafeRunSync(),
+      storageInterface,
+      noPostProcessAction,
     )
 
     when(fileQueueProcessor.next()).thenReturn(None.asRight)
@@ -100,6 +108,8 @@ class ReaderManagerTest extends AnyFlatSpec with MockitoSugar with Matchers with
     ).thenReturn(firstFileBucketAndPath)
 
     val target = new ReaderManager(
+      bucketAndPrefix,
+      bucketAndPrefix,
       recordsLimit,
       fileQueueProcessor,
       location => {
@@ -108,6 +118,8 @@ class ReaderManagerTest extends AnyFlatSpec with MockitoSugar with Matchers with
       },
       connectorTaskId,
       Ref[IO].of(Option.empty[ResultReader]).unsafeRunSync(),
+      storageInterface,
+      noPostProcessAction,
     )
 
     target.poll().unsafeRunSync() should be(pollResults)

@@ -158,6 +158,20 @@ object HttpSinkConfigDef {
        |Literal to output in templates in place of a null payload.  Values are `error` (raises an error), `empty` (empty string, eg ""), `null` (the literal 'null') or `custom` (a string of your choice, as defined by `$CustomNullPayloadHandler`). `Defaults to `error`.
        |""".stripMargin
 
+  val MaxQueueSizeProp: String = "connect.http.max.queue.size"
+  val MaxQueueSizeDoc: String =
+    """
+      |The maximum number of records to queue per topic before blocking. If the queue limit is reached the connector will throw RetriableException and the connector settings to handle retries will be used.
+      |""".stripMargin
+  val MaxQueueSizeDefault = 1000000
+
+  val MaxQueueOfferTimeoutProp: String = "connect.http.max.queue.offer.timeout.ms"
+  val MaxQueueOfferTimeoutDoc: String =
+    """
+      |The maximum time in milliseconds to wait for the queue to accept a record. If the queue does not accept the record within this time, the connector will throw RetriableException and the connector settings to handle retries will be used.
+      |""".stripMargin
+  val MaxQueueOfferTimeoutDefault = 120000
+
   val config: ConfigDef = {
     val configDef = new ConfigDef()
       .withClientSslSupport()
@@ -291,6 +305,20 @@ object HttpSinkConfigDef {
         "",
         Importance.HIGH,
         CustomNullPayloadHandlerDoc,
+      )
+      .define(
+        MaxQueueSizeProp,
+        Type.INT,
+        MaxQueueSizeDefault,
+        Importance.HIGH,
+        MaxQueueSizeDoc,
+      )
+      .define(
+        MaxQueueOfferTimeoutProp,
+        Type.LONG,
+        MaxQueueOfferTimeoutDefault,
+        Importance.HIGH,
+        MaxQueueOfferTimeoutDoc,
       )
     ReporterConfig.withErrorRecordReportingSupport(configDef)
     ReporterConfig.withSuccessRecordReportingSupport(configDef)

@@ -20,6 +20,7 @@ import cats.data.Validated
 import cats.implicits.catsSyntaxEitherId
 import cats.implicits.catsSyntaxOptionId
 import cats.implicits.none
+import io.lenses.streamreactor.connect.cloud.common.source.state.CloudLocationKey
 
 import java.time.Instant
 
@@ -33,6 +34,8 @@ case class CloudLocation(
   implicit
   val cloudLocationValidator: CloudLocationValidator,
 ) {
+
+  def toKey = CloudLocationKey(bucket, prefix)
 
   def fromRoot(root: String): CloudLocation =
     copy(prefix = root.some)
@@ -48,6 +51,9 @@ case class CloudLocation(
 
   def withPath(path: String): CloudLocation =
     copy(path = path.some)
+
+  def withPrefix(prefix: String): CloudLocation =
+    copy(prefix = prefix.some)
 
   def pathOrUnknown: String = path.getOrElse("(Unavailable)")
 

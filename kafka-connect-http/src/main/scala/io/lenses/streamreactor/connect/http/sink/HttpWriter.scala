@@ -56,7 +56,7 @@ class HttpWriter(
 
   def process(): IO[Unit] = {
     for {
-      batchInfo <- recordsQueue.takeBatch()
+      batchInfo <- recordsQueue.popBatch()
       _ <- batchInfo match {
         case EmptyBatchInfo(totalQueueSize) =>
           IO(logger.debug(s"[$sinkName] No batch yet, queue size: $totalQueueSize"))
@@ -80,19 +80,21 @@ class HttpWriter(
     nonEmptyBatchInfo: NonEmptyBatchInfo,
     batch:             NonEmptySeq[RenderedRecord],
     totalQueueSize:    Int,
-  ) =
+  ): IO[Unit] =
     for {
       _ <- IO(
         logger.debug(s"[$sinkName] HttpWriter.process, batch of ${batch.length}, queue size: $totalQueueSize"),
       )
+      // remove the batch from the queue before any of the operation
+      _                   <- recordsQueue.dequeue(batch)
       _                   <- IO.delay(logger.trace(s"[$sinkName] modifyCommitContext for batch of ${nonEmptyBatchInfo.batch.length}"))
       _                   <- flush(nonEmptyBatchInfo.batch)
       updatedCommitContext = updateCommitContextPostCommit(nonEmptyBatchInfo.updatedCommitContext)
       _                   <- IO.delay(logger.trace(s"[$sinkName] Updating sink context to: $updatedCommitContext"))
       _                   <- commitContextRef.set(updatedCommitContext)
-      removedElements     <- recordsQueue.dequeue(batch)
-      _                   <- resetErrorsInCommitContext()
-    } yield removedElements
+
+      _ <- resetErrorsInCommitContext()
+    } yield ()
 
   def preCommit(
     initialOffsetAndMetaMap: Map[TopicPartition, OffsetAndMetadata],

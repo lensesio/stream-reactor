@@ -26,12 +26,13 @@ import com.typesafe.scalalogging.LazyLogging
 import com.typesafe.scalalogging.StrictLogging
 import io.lenses.streamreactor.common.util.EitherUtils.unpackOrThrow
 import io.lenses.streamreactor.common.utils.CyclopsToScalaOption.convertToScalaOption
+import io.lenses.streamreactor.connect.cloud.common.model.Offset
 import io.lenses.streamreactor.connect.cloud.common.model.Topic
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
-import io.lenses.streamreactor.connect.cloud.common.sink.commit.CommitPolicy
 import io.lenses.streamreactor.connect.http.sink.client.HttpRequestSender
+import io.lenses.streamreactor.connect.http.sink.commit.BatchPolicy
+import io.lenses.streamreactor.connect.http.sink.commit.HttpBatchPolicy
 import io.lenses.streamreactor.connect.http.sink.commit.HttpCommitContext
-import io.lenses.streamreactor.connect.http.sink.commit.HttpCommitPolicy
 import io.lenses.streamreactor.connect.http.sink.config.HttpSinkConfig
 import io.lenses.streamreactor.connect.http.sink.reporter.model.HttpFailureConnectorSpecificRecordData
 import io.lenses.streamreactor.connect.http.sink.reporter.model.HttpSuccessConnectorSpecificRecordData
@@ -50,6 +51,7 @@ import java.net.http.HttpClient
 import java.time.Duration
 import scala.collection.immutable.Queue
 import scala.concurrent.duration.DurationInt
+import scala.concurrent.duration.FiniteDuration
 
 /**
   * The `HttpWriterManager` object provides a factory method to create an instance of `HttpWriterManager`.
@@ -108,13 +110,13 @@ object HttpWriterManager extends StrictLogging {
         retriableClient,
         config.authentication,
       )
-      commitPolicy = config.batch.toCommitPolicy
+      batchPolicy = config.batch.toBatchPolicy
 
     } yield new HttpWriterManager(
       sinkName,
       template,
       sender,
-      if (commitPolicy.conditions.nonEmpty) commitPolicy else HttpCommitPolicy.Default,
+      if (batchPolicy.conditions.nonEmpty) batchPolicy else HttpBatchPolicy.Default,
       cResRel,
       writersRef,
       terminate,
@@ -123,6 +125,8 @@ object HttpWriterManager extends StrictLogging {
       config.tidyJson,
       config.errorReportingController,
       config.successReportingController,
+      config.maxQueueSize,
+      config.maxQueueOfferTimeout,
     )
   }
 
@@ -163,7 +167,7 @@ class HttpWriterManager(
   sinkName:                   String,
   template:                   TemplateType,
   httpRequestSender:          HttpRequestSender,
-  commitPolicy:               CommitPolicy,
+  batchPolicy:                BatchPolicy,
   val close:                  IO[Unit],
   writersRef:                 Ref[IO, Map[Topic, HttpWriter]],
   deferred:                   Deferred[IO, Either[Throwable, Unit]],
@@ -172,6 +176,8 @@ class HttpWriterManager(
   tidyJson:                   Boolean,
   errorReportingController:   ReportingController[HttpFailureConnectorSpecificRecordData],
   successReportingController: ReportingController[HttpSuccessConnectorSpecificRecordData],
+  maxQueueSize:               Int,
+  maxQueueOfferTimeout:       FiniteDuration,
 )(
   implicit
   t: Temporal[IO],
@@ -184,15 +190,21 @@ class HttpWriterManager(
     */
   private def createNewHttpWriter(): IO[HttpWriter] =
     for {
-      commitPolicy     <- IO.pure(commitPolicy)
       recordsQueueRef  <- Ref.of[IO, Queue[RenderedRecord]](Queue.empty)
       commitContextRef <- Ref.of[IO, HttpCommitContext](HttpCommitContext.default(sinkName))
+      offsetsRef       <- Ref.of[IO, Map[TopicPartition, Offset]](Map.empty)
     } yield new HttpWriter(
       sinkName = sinkName,
       sender   = httpRequestSender,
       template = template,
       recordsQueue =
-        new RecordsQueue(recordsQueueRef, commitContextRef, commitPolicy),
+        new RecordsQueue(recordsQueueRef,
+                         commitContextRef,
+                         batchPolicy,
+                         maxQueueSize,
+                         maxQueueOfferTimeout,
+                         offsetsRef,
+        ),
       errorThreshold   = errorThreshold,
       tidyJson         = tidyJson,
       errorReporter    = errorReportingController,

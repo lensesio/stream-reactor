@@ -18,6 +18,7 @@ package io.lenses.streamreactor.connect.azure.servicebus.sink;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -37,6 +38,7 @@ import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 class ServiceBusSenderFacadeTest {
 
@@ -48,7 +50,7 @@ class ServiceBusSenderFacadeTest {
   @BeforeEach
   void setUp() {
     consumerFunction = mock(Consumer.class);
-    testObj = new ServiceBusSenderFacade(consumerFunction, ORIGINAL_TOPIC_NAME, SERVICE_BUS_SENDER_CLIENT);
+    testObj = new ServiceBusSenderFacade(consumerFunction, ORIGINAL_TOPIC_NAME, SERVICE_BUS_SENDER_CLIENT, true);
   }
 
   @Test
@@ -67,7 +69,7 @@ class ServiceBusSenderFacadeTest {
 
   @Test
   void closeShouldCloseSender() {
-    //when
+    //when`
     testObj.close();
 
     //then
@@ -98,6 +100,32 @@ class ServiceBusSenderFacadeTest {
     assertTrue(serviceBusException.isEmpty());
     verify(senderMessageBatch).tryAddMessage(busMessage);
     verify(SERVICE_BUS_SENDER_CLIENT).sendMessages(senderMessageBatch);
+    verify(consumerFunction).accept(argThat(offsetMap -> offsetMap.get(topicPartition).offset() == offset));
+  }
+
+  @Test
+  void sendMessagesShouldSendSeparatelyAndUpdateOffsetsIfBatchingDisabled() {
+    //given
+    Mockito.reset(SERVICE_BUS_SENDER_CLIENT);
+    testObj = new ServiceBusSenderFacade(consumerFunction, ORIGINAL_TOPIC_NAME, SERVICE_BUS_SENDER_CLIENT, false);
+
+    final long offset = 101L;
+    final int partition = 5;
+    final TopicPartition topicPartition = new TopicPartition(ORIGINAL_TOPIC_NAME, partition);
+    final ServiceBusMessage busMessage = mock(ServiceBusMessage.class);
+
+    ServiceBusMessageWrapper composite = mock(ServiceBusMessageWrapper.class);
+    when(composite.getOriginalKafkaOffset()).thenReturn(offset);
+    when(composite.getOriginalKafkaPartition()).thenReturn(partition);
+    when(composite.getServiceBusMessage()).thenReturn(Optional.of(busMessage));
+
+    //when
+    Optional<ServiceBusException> serviceBusException = testObj.sendMessages(List.of(composite));
+
+    //then
+    assertTrue(serviceBusException.isEmpty());
+    verify(SERVICE_BUS_SENDER_CLIENT, never()).createMessageBatch();
+    verify(SERVICE_BUS_SENDER_CLIENT).sendMessages(anyList());
     verify(consumerFunction).accept(argThat(offsetMap -> offsetMap.get(topicPartition).offset() == offset));
   }
 
