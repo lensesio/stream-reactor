@@ -63,17 +63,19 @@ object S3SinkConfig extends PropsToConfigConverter[S3SinkConfig] {
       errorPolicy          = s3ConfigDefBuilder.getErrorPolicyOrDefault,
       connectorRetryConfig = s3ConfigDefBuilder.getRetryConfig,
       logMetrics           = logMetrics,
+      s3ConfigDefBuilder.shouldRollOverOnSchemaChange(),
     )
 
 }
 
 case class S3SinkConfig(
-  connectionConfig:     S3ConnectionConfig,
-  bucketOptions:        Seq[CloudSinkBucketOptions] = Seq.empty,
-  indexOptions:         Option[IndexOptions],
-  compressionCodec:     CompressionCodec,
-  batchDelete:          Boolean,
-  errorPolicy:          ErrorPolicy,
-  connectorRetryConfig: RetryConfig,
-  logMetrics:           Boolean,
+  connectionConfig:              S3ConnectionConfig,
+  bucketOptions:                 Seq[CloudSinkBucketOptions] = Seq.empty,
+  indexOptions:                  Option[IndexOptions],
+  compressionCodec:              CompressionCodec,
+  batchDelete:                   Boolean,
+  errorPolicy:                   ErrorPolicy,
+  connectorRetryConfig:          RetryConfig,
+  logMetrics:                    Boolean,
+  rolloverOnSchemaChangeEnabled: Boolean,
 ) extends CloudSinkConfig[S3ConnectionConfig]

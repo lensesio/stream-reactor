@@ -58,16 +58,18 @@ object DatalakeSinkConfig extends PropsToConfigConverter[DatalakeSinkConfig] {
       s3ConfigDefBuilder.getErrorPolicyOrDefault,
       s3ConfigDefBuilder.getRetryConfig,
       logMetrics,
+      s3ConfigDefBuilder.shouldRollOverOnSchemaChange(),
     )
 
 }
 
 case class DatalakeSinkConfig(
-  connectionConfig:     AzureConnectionConfig,
-  bucketOptions:        Seq[CloudSinkBucketOptions] = Seq.empty,
-  indexOptions:         Option[IndexOptions],
-  compressionCodec:     CompressionCodec,
-  errorPolicy:          ErrorPolicy,
-  connectorRetryConfig: RetryConfig,
-  logMetrics:           Boolean,
+  connectionConfig:              AzureConnectionConfig,
+  bucketOptions:                 Seq[CloudSinkBucketOptions] = Seq.empty,
+  indexOptions:                  Option[IndexOptions],
+  compressionCodec:              CompressionCodec,
+  errorPolicy:                   ErrorPolicy,
+  connectorRetryConfig:          RetryConfig,
+  logMetrics:                    Boolean,
+  rolloverOnSchemaChangeEnabled: Boolean,
 ) extends CloudSinkConfig[AzureConnectionConfig]

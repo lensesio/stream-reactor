@@ -70,6 +70,13 @@ trait CloudSinkConfig[CC] extends CloudConfig {
   def errorPolicy: ErrorPolicy
 
   def logMetrics: Boolean
+
+  /**
+    * Indicates whether rollover on schema change is enabled.
+    *
+    * @return `true` if rollover on schema change is enabled, `false` otherwise.
+    */
+  def rolloverOnSchemaChangeEnabled: Boolean
 }
 
 /**

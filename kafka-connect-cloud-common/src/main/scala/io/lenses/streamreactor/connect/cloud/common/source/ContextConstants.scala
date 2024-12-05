@@ -26,4 +26,6 @@ object ContextConstants {
   val LineKey = "line"
 
   val TimeStampKey = "ts"
+
+  val LastLine = "last"
 }

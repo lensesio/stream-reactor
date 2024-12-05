@@ -26,4 +26,5 @@ trait CloudSinkConfigDefBuilder
     with LocalStagingAreaSettings
     with PaddingStrategySettings
     with CompressionCodecSettings
-    with IndexSettings {}
+    with IndexSettings
+    with SchemaChangeSettings {}

@@ -35,4 +35,5 @@ public class ServiceBusConnectionDetails {
   private final ServiceBusType serviceBusType;
   private final Consumer<Map<TopicPartition, OffsetAndMetadata>> updateOffsetFunction;
   private final String originalKafkaTopicName;
+  private final boolean batchEnabled;
 }

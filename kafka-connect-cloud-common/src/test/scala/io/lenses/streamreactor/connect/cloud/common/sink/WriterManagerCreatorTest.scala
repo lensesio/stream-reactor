@@ -40,13 +40,14 @@ class WriterManagerCreatorTest extends AnyFunSuite with Matchers with MockitoSug
 
   case class FakeConnectionConfig() extends ConnectionConfig
   case class FakeCloudSinkConfig(
-    connectionConfig:     FakeConnectionConfig,
-    bucketOptions:        Seq[CloudSinkBucketOptions],
-    indexOptions:         Option[IndexOptions],
-    compressionCodec:     CompressionCodec,
-    connectorRetryConfig: RetryConfig,
-    errorPolicy:          NoopErrorPolicy,
-    logMetrics:           Boolean = false,
+    connectionConfig:              FakeConnectionConfig,
+    bucketOptions:                 Seq[CloudSinkBucketOptions],
+    indexOptions:                  Option[IndexOptions],
+    compressionCodec:              CompressionCodec,
+    connectorRetryConfig:          RetryConfig,
+    errorPolicy:                   NoopErrorPolicy,
+    logMetrics:                    Boolean = false,
+    rolloverOnSchemaChangeEnabled: Boolean = true,
   ) extends CloudSinkConfig[FakeConnectionConfig]
 
   case class FakeFileMetadata(file: String, lastModified: Instant) extends FileMetadata

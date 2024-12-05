@@ -85,8 +85,9 @@ class HttpSinkTask extends SinkTask with LazyLogging with JarManifestProvided {
 
     logger.debug(s"[$sinkName] put call with ${records.size()} records")
 
-    val storedErrors    = errorRef.get.unsafeRunSync()
-    val nonEmptyRecords = NonEmptySeq.fromSeq(records.asScala.toSeq)
+    val storedErrors = errorRef.get.unsafeRunSync()
+    //Filter out null records since there are users who are sending null records
+    val nonEmptyRecords = NonEmptySeq.fromSeq(records.asScala.toSeq.filter(_ != null))
     (storedErrors, nonEmptyRecords) match {
       case (errors, _) if errors.nonEmpty =>
         handleStoredErrors(errors)

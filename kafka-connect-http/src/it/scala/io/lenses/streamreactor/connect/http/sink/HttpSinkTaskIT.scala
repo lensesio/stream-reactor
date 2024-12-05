@@ -64,6 +64,7 @@ class HttpSinkTaskIT extends AsyncFunSuite with AsyncIOSpec with Eventually {
         HttpSinkConfigDef.HttpRequestContentProp -> "test {{value.name}}",
         HttpSinkConfigDef.AuthenticationTypeProp -> noAuthentication,
         HttpSinkConfigDef.BatchCountProp         -> "1",
+        HttpSinkConfigDef.TimeIntervalProp       -> "1",
         ERROR_REPORTING_ENABLED_PROP             -> "false",
         SUCCESS_REPORTING_ENABLED_PROP           -> "false",
       )

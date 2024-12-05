@@ -52,14 +52,15 @@ case class MapKey(topicPartition: TopicPartition, partitionValues: immutable.Map
   * sinks, since file handles cannot be safely shared without considerable overhead.
   */
 class WriterManager[SM <: FileMetadata](
-  commitPolicyFn:    TopicPartition => Either[SinkError, CommitPolicy],
-  bucketAndPrefixFn: TopicPartition => Either[SinkError, CloudLocation],
-  keyNamerFn:        TopicPartition => Either[SinkError, KeyNamer],
-  stagingFilenameFn: (TopicPartition, Map[PartitionField, String]) => Either[SinkError, File],
-  objKeyBuilderFn:   (TopicPartition, Map[PartitionField, String]) => ObjectKeyBuilder,
-  formatWriterFn:    (TopicPartition, File) => Either[SinkError, FormatWriter],
-  writerIndexer:     WriterIndexer[SM],
-  transformerF:      MessageDetail => Either[RuntimeException, MessageDetail],
+  commitPolicyFn:                TopicPartition => Either[SinkError, CommitPolicy],
+  bucketAndPrefixFn:             TopicPartition => Either[SinkError, CloudLocation],
+  keyNamerFn:                    TopicPartition => Either[SinkError, KeyNamer],
+  stagingFilenameFn:             (TopicPartition, Map[PartitionField, String]) => Either[SinkError, File],
+  objKeyBuilderFn:               (TopicPartition, Map[PartitionField, String]) => ObjectKeyBuilder,
+  formatWriterFn:                (TopicPartition, File) => Either[SinkError, FormatWriter],
+  writerIndexer:                 WriterIndexer[SM],
+  transformerF:                  MessageDetail => Either[RuntimeException, MessageDetail],
+  rolloverOnSchemaChangeEnabled: Boolean,
 )(
   implicit
   connectorTaskId:  ConnectorTaskId,
@@ -177,6 +178,7 @@ class WriterManager[SM <: FileMetadata](
         () => stagingFilenameFn(topicPartition, partitionValues),
         objKeyBuilderFn(topicPartition, partitionValues),
         formatWriterFn.curried(topicPartition),
+        rolloverOnSchemaChangeEnabled,
       )
     }
   }

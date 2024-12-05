@@ -68,4 +68,6 @@ trait StorageInterface[SM <: FileMetadata] extends ResultProcessors {
   def writeStringToFile(bucket: String, path: String, data: UploadableString): Either[UploadError, Unit]
 
   def deleteFiles(bucket: String, files: Seq[String]): Either[FileDeleteError, Unit]
+
+  def mvFile(oldBucket: String, oldPath: String, newBucket: String, newPath: String): Either[FileMoveError, Unit]
 }

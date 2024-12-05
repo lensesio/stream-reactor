@@ -37,12 +37,13 @@ import scala.math.Ordered.orderingToOrdered
 import scala.util.Try
 
 class Writer[SM <: FileMetadata](
-  topicPartition:    TopicPartition,
-  commitPolicy:      CommitPolicy,
-  writerIndexer:     WriterIndexer[SM],
-  stagingFilenameFn: () => Either[SinkError, File],
-  objectKeyBuilder:  ObjectKeyBuilder,
-  formatWriterFn:    File => Either[SinkError, FormatWriter],
+  topicPartition:                TopicPartition,
+  commitPolicy:                  CommitPolicy,
+  writerIndexer:                 WriterIndexer[SM],
+  stagingFilenameFn:             () => Either[SinkError, File],
+  objectKeyBuilder:              ObjectKeyBuilder,
+  formatWriterFn:                File => Either[SinkError, FormatWriter],
+  rolloverOnSchemaChangeEnabled: Boolean,
 )(
   implicit
   connectorTaskId:  ConnectorTaskId,
@@ -58,7 +59,15 @@ class Writer[SM <: FileMetadata](
     def innerMessageWrite(writingState: Writing): Either[NonFatalCloudSinkError, Unit] =
       writingState.formatWriter.write(messageDetail) match {
         case Left(err: Throwable) =>
-          logger.error(err.getMessage)
+          logger.error(
+            s"An error occurred while writing using ${writingState.formatWriter.getClass.getSimpleName}. " +
+              s"Details: Topic-Partition: ${messageDetail.topic.value}-${messageDetail.partition}, " +
+              s"Offset: ${messageDetail.offset.value}, " +
+              s"Key: ${messageDetail.key}, " +
+              s"Value: ${messageDetail.value}, " +
+              s"Headers: ${messageDetail.headers}.",
+            err,
+          )
           NonFatalCloudSinkError(err.getMessage, err.some).asLeft
         case Right(_) =>
           writeState =
@@ -230,13 +239,14 @@ class Writer[SM <: FileMetadata](
     }
 
   def shouldRollover(schema: Schema): Boolean =
-    rolloverOnSchemaChange &&
+    rolloverOnSchemaChangeEnabled &&
+      rolloverOnSchemaChange &&
       schemaHasChanged(schema)
 
-  private def schemaHasChanged(schema: Schema): Boolean =
+  protected[writer] def schemaHasChanged(schema: Schema): Boolean =
     writeState.getCommitState.lastKnownSchema.exists(_ != schema)
 
-  private def rolloverOnSchemaChange: Boolean =
+  protected[writer] def rolloverOnSchemaChange: Boolean =
     writeState match {
       case w: Writing => w.formatWriter.rolloverFileOnSchemaChange()
       case _ => false

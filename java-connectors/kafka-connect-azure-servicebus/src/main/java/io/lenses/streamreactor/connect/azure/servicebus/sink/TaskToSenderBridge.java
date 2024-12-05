@@ -106,10 +106,15 @@ public class TaskToSenderBridge {
 
           initializeSender(new ServiceBusConnectionDetails(connectionString, mappingForTopic.getOutputServiceBusName(),
               ServiceBusType.fromString(mappingForTopic.getProperties()
-                  .get(ServiceBusKcqlProperties.SERVICE_BUS_TYPE.getPropertyName())), updateOffsetFunction, tp
-                      .topic()));
+                  .get(ServiceBusKcqlProperties.SERVICE_BUS_TYPE.getPropertyName())), updateOffsetFunction,
+              tp.topic(), getBatchEnabled(mappingForTopic)));
           serviceBusSendersStore.get(mappingForTopic.getInputKafkaTopic()).initializePartition(tp);
         });
+  }
+
+  private static boolean getBatchEnabled(ServiceBusSinkMapping mappingForTopic) {
+    return Boolean.FALSE.toString().equalsIgnoreCase(mappingForTopic.getProperties()
+        .get(ServiceBusKcqlProperties.BATCH_ENABLED.getPropertyName()));
   }
 
   private Set<String> findMissingMappings(Collection<TopicPartition> partitions) {

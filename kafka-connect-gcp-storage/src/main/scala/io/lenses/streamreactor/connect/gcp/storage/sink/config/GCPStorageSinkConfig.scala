@@ -57,22 +57,24 @@ object GCPStorageSinkConfig extends PropsToConfigConverter[GCPStorageSinkConfig]
       sinkBucketOptions,
       indexOptions,
       gcpConfigDefBuilder.getCompressionCodec(),
-      avoidResumableUpload = gcpConfigDefBuilder.isAvoidResumableUpload,
-      errorPolicy          = gcpConfigDefBuilder.getErrorPolicyOrDefault,
-      connectorRetryConfig = gcpConfigDefBuilder.getRetryConfig,
-      logMetrics           = logMetrics,
+      avoidResumableUpload          = gcpConfigDefBuilder.isAvoidResumableUpload,
+      errorPolicy                   = gcpConfigDefBuilder.getErrorPolicyOrDefault,
+      connectorRetryConfig          = gcpConfigDefBuilder.getRetryConfig,
+      logMetrics                    = logMetrics,
+      rolloverOnSchemaChangeEnabled = gcpConfigDefBuilder.shouldRollOverOnSchemaChange(),
     )
   }
 
 }
 
 case class GCPStorageSinkConfig(
-  connectionConfig:     GCPConnectionConfig,
-  bucketOptions:        Seq[CloudSinkBucketOptions] = Seq.empty,
-  indexOptions:         Option[IndexOptions],
-  compressionCodec:     CompressionCodec,
-  avoidResumableUpload: Boolean,
-  connectorRetryConfig: RetryConfig,
-  errorPolicy:          ErrorPolicy,
-  logMetrics:           Boolean,
+  connectionConfig:              GCPConnectionConfig,
+  bucketOptions:                 Seq[CloudSinkBucketOptions] = Seq.empty,
+  indexOptions:                  Option[IndexOptions],
+  compressionCodec:              CompressionCodec,
+  avoidResumableUpload:          Boolean,
+  connectorRetryConfig:          RetryConfig,
+  errorPolicy:                   ErrorPolicy,
+  logMetrics:                    Boolean,
+  rolloverOnSchemaChangeEnabled: Boolean,
 ) extends CloudSinkConfig[GCPConnectionConfig]
