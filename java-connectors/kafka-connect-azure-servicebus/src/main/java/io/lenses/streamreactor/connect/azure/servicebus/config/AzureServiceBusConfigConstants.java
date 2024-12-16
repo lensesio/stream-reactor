@@ -66,7 +66,7 @@ public class AzureServiceBusConfigConstants {
       "The duration in milliseconds to sleep when no records are returned from the poll. This avoids a tight loop in Connect.";
   public static final String SOURCE_SLEEP_ON_EMPTY_POLL_MS =
       SOURCE_CONNECTOR_PREFIX + DOT + "sleep.on.empty.poll.ms";
-  public static final int SOURCE_SLEEP_ON_EMPTY_POLL_MS_DEFAULT = 100;
+  public static final int SOURCE_SLEEP_ON_EMPTY_POLL_MS_DEFAULT = 250;
 
   public static final String MAX_NUMBER_OF_RETRIES = SINK_CONNECTOR_PREFIX + DOT + "retries.max";
   public static final String MAX_NUMBER_OF_RETRIES_DOC = "Maximum number of retries if message sending fails.";
