@@ -60,7 +60,7 @@ public class ServiceBusValueSchemaField {
   static final Field GET_TO =
       new Field(SchemaFieldConstants.GET_TO, 16, Schema.OPTIONAL_STRING_SCHEMA);
 
-  private static final List<Field> ALL_FIELDS =
+  public static final List<Field> ALL_FIELDS =
       List.of(
           DELIVERY_COUNT,
           ENQUEUED_TIME_UTC,
@@ -80,31 +80,31 @@ public class ServiceBusValueSchemaField {
           MESSAGE_BODY,
           GET_TO);
 
-  private ServiceBusValueSchemaField() {
+  public ServiceBusValueSchemaField() {
   }
 
   public static List<Field> getAllFields() {
     return ALL_FIELDS;
   }
 
-  private static class SchemaFieldConstants {
+  public static class SchemaFieldConstants {
 
-    private static final String DELIVERY_COUNT = "deliveryCount";
-    private static final String ENQUEUED_TIME_UTC = "enqueuedTimeUtc";
-    private static final String CONTENT_TYPE = "contentType";
-    private static final String LABEL = "label";
-    private static final String CORRELATION_ID = "correlationId";
-    private static final String MESSAGE_PROPERTIES = "messageProperties";
-    private static final String PARTITION_KEY = "partitionKey";
-    private static final String REPLY_TO = "replyTo";
-    private static final String REPLY_TO_SESSION_ID = "replyToSessionId";
-    private static final String DEAD_LETTER_SOURCE = "deadLetterSource";
-    private static final String TIME_TO_LIVE = "timeToLive";
-    private static final String LOCKED_UNTIL_UTC = "lockedUntilUtc";
-    private static final String SEQUENCE_NUMBER = "sequenceNumber";
-    private static final String SESSION_ID = "sessionId";
-    private static final String LOCK_TOKEN = "lockToken";
-    private static final String MESSAGE_BODY = "messageBody";
-    private static final String GET_TO = "getTo";
+    public static final String DELIVERY_COUNT = "deliveryCount";
+    public static final String ENQUEUED_TIME_UTC = "enqueuedTimeUtc";
+    public static final String CONTENT_TYPE = "contentType";
+    public static final String LABEL = "label";
+    public static final String CORRELATION_ID = "correlationId";
+    public static final String MESSAGE_PROPERTIES = "messageProperties";
+    public static final String PARTITION_KEY = "partitionKey";
+    public static final String REPLY_TO = "replyTo";
+    public static final String REPLY_TO_SESSION_ID = "replyToSessionId";
+    public static final String DEAD_LETTER_SOURCE = "deadLetterSource";
+    public static final String TIME_TO_LIVE = "timeToLive";
+    public static final String LOCKED_UNTIL_UTC = "lockedUntilUtc";
+    public static final String SEQUENCE_NUMBER = "sequenceNumber";
+    public static final String SESSION_ID = "sessionId";
+    public static final String LOCK_TOKEN = "lockToken";
+    public static final String MESSAGE_BODY = "messageBody";
+    public static final String GET_TO = "getTo";
   }
 }

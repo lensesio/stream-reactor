@@ -24,12 +24,13 @@ import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 
+import com.azure.core.amqp.models.AmqpAnnotatedMessage;
+import com.azure.core.amqp.models.AmqpMessageBody;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.source.SourceRecord;
 import org.junit.jupiter.api.Test;
 
-import com.azure.core.util.BinaryData;
 import com.azure.messaging.servicebus.ServiceBusReceivedMessage;
 
 import io.lenses.streamreactor.connect.azure.servicebus.source.AzureServiceBusSourceConnector;
@@ -148,9 +149,6 @@ class ServiceBusToSourceRecordMapperTest {
   private ServiceBusReceivedMessage prepareMessageBusWithAllConsumedFields() {
     ServiceBusReceivedMessage busReceivedMessage = mock(ServiceBusReceivedMessage.class);
 
-    BinaryData bodyBinary = mock(BinaryData.class);
-    when(bodyBinary.toBytes()).thenReturn(MESSAGE_BODY);
-
     when(busReceivedMessage.getMessageId()).thenReturn(MESSAGE_ID);
     when(busReceivedMessage.getDeliveryCount()).thenReturn(DELIVERY_COUNT);
     when(busReceivedMessage.getEnqueuedTime()).thenReturn(TIME_NOW);
@@ -165,7 +163,11 @@ class ServiceBusToSourceRecordMapperTest {
     when(busReceivedMessage.getSequenceNumber()).thenReturn(SEQUENCE_NUMBER);
     when(busReceivedMessage.getSessionId()).thenReturn(SESSION_ID);
     when(busReceivedMessage.getLockToken()).thenReturn(LOCK_TOKEN);
-    when(busReceivedMessage.getBody()).thenReturn(bodyBinary);
+    final AmqpAnnotatedMessage raw = mock(AmqpAnnotatedMessage.class);
+    when(busReceivedMessage.getRawAmqpMessage()).thenReturn(raw);
+    final AmqpMessageBody body = AmqpMessageBody.fromData(MESSAGE_BODY);
+    when(raw.getBody()).thenReturn(body);
+
     when(busReceivedMessage.getTo()).thenReturn(GET_TO);
 
     return busReceivedMessage;
@@ -173,9 +175,6 @@ class ServiceBusToSourceRecordMapperTest {
 
   private ServiceBusReceivedMessage prepareMessageBusWithOnlyRequiredFields() {
     ServiceBusReceivedMessage busReceivedMessage = mock(ServiceBusReceivedMessage.class);
-
-    BinaryData bodyBinary = mock(BinaryData.class);
-    when(bodyBinary.toBytes()).thenReturn(MESSAGE_BODY);
 
     when(busReceivedMessage.getMessageId()).thenReturn(MESSAGE_ID);
     when(busReceivedMessage.getDeliveryCount()).thenReturn(DELIVERY_COUNT);
@@ -191,7 +190,10 @@ class ServiceBusToSourceRecordMapperTest {
     when(busReceivedMessage.getSequenceNumber()).thenReturn(SEQUENCE_NUMBER);
     when(busReceivedMessage.getSessionId()).thenReturn(null);
     when(busReceivedMessage.getLockToken()).thenReturn(null);
-    when(busReceivedMessage.getBody()).thenReturn(bodyBinary);
+    final AmqpAnnotatedMessage raw = mock(AmqpAnnotatedMessage.class);
+    when(busReceivedMessage.getRawAmqpMessage()).thenReturn(raw);
+    final AmqpMessageBody body = AmqpMessageBody.fromData(MESSAGE_BODY);
+    when(raw.getBody()).thenReturn(body);
     when(busReceivedMessage.getTo()).thenReturn(null);
 
     return busReceivedMessage;

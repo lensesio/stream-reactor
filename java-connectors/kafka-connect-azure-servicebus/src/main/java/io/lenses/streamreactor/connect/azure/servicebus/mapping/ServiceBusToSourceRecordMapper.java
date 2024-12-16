@@ -37,6 +37,8 @@ import io.lenses.streamreactor.connect.azure.servicebus.source.AzureServiceBusSo
 import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
+
+import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -46,6 +48,7 @@ import org.apache.kafka.connect.source.SourceRecord;
 /**
  * Class that maps {@link ServiceBusReceivedMessage} to Kafka Connect {@link SourceRecord}.
  */
+@Slf4j
 public class ServiceBusToSourceRecordMapper {
 
   public static final Schema VALUE_SCHEMA;
@@ -69,23 +72,28 @@ public class ServiceBusToSourceRecordMapper {
    * @param offsetMap         AzureOffsetMarker to indicate offset
    * @return mapped SourceRecord
    */
-  public static SourceRecord mapSingleServiceBusMessage(ServiceBusReceivedMessage serviceBusMessage, String outputTopic,
-      Map<String, String> partitionKey, Map<String, Object> offsetMap) {
+  public static SourceRecord mapSingleServiceBusMessage(ServiceBusReceivedMessage serviceBusMessage,
+      String outputTopic,
+      Map<String, String> partitionKey,
+      Map<String, Object> offsetMap) {
+    long before = System.currentTimeMillis();
     String key = serviceBusMessage.getMessageId();
 
     Struct valueObject = createStructFromServiceBusMessage(serviceBusMessage);
+    long after = System.currentTimeMillis();
+    log.debug("Mapping of message with id {} took {} ms", key, after - before);
     return new AzureServiceBusSourceRecord(partitionKey, offsetMap, outputTopic, key,
         VALUE_SCHEMA, valueObject, Instant.now().toEpochMilli());
   }
 
-  private static Struct createStructFromServiceBusMessage(final ServiceBusReceivedMessage serviceBusMessage) {
+  public static Struct createStructFromServiceBusMessage(final ServiceBusReceivedMessage serviceBusMessage) {
     Struct struct =
         new Struct(VALUE_SCHEMA)
             .put(DELIVERY_COUNT, serviceBusMessage.getDeliveryCount())
             .put(ENQUEUED_TIME_UTC, serviceBusMessage.getEnqueuedTime().toInstant().toEpochMilli())
             .put(LABEL, AzureServiceBusSourceConnector.class.getSimpleName())
             .put(TIME_TO_LIVE, serviceBusMessage.getTimeToLive().toMillis())
-            .put(MESSAGE_BODY, serviceBusMessage.getBody().toBytes())
+            .put(MESSAGE_BODY, serviceBusMessage.getRawAmqpMessage().getBody().getFirstData())
             .put(GET_TO, serviceBusMessage.getTo());
 
     addOptionalSchemaValues(struct, serviceBusMessage);

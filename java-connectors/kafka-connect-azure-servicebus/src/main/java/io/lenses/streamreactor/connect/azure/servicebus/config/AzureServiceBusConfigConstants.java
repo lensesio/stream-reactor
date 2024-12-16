@@ -42,8 +42,31 @@ public class AzureServiceBusConfigConstants {
       "KCQL expression describing field selection and data routing to the target.";
 
   public static final String TASK_RECORDS_QUEUE_SIZE = SOURCE_CONNECTOR_PREFIX + DOT + "task.records.queue.size";
-  public static final String TASK_RECORDS_QUEUE_SIZE_DOC = "Task's records queue size.";
-  public static final int TASK_RECORDS_QUEUE_SIZE_DEFAULT = 20;
+  public static final String TASK_RECORDS_QUEUE_SIZE_DOC =
+      "An internal buffer that accumulates records arriving asynchronously from ServiceBus.";
+
+  public static final int TASK_RECORDS_QUEUE_SIZE_DEFAULT = 5000;
+
+  public static final String SOURCE_PREFETCH_COUNT_DOC =
+      "The number of messages to prefetch from the Azure Service Bus.";
+  public static final String SOURCE_PREFETCH_COUNT = SOURCE_CONNECTOR_PREFIX + DOT + "prefetch.count";
+  public static final int SOURCE_PREFETCH_COUNT_DEFAULT = 1000;
+
+  public static final String SOURCE_MAX_COMPLETE_RETRIES_DOC = "The maximum number of retries to complete a message.";
+  public static final String SOURCE_MAX_COMPLETE_RETRIES = SOURCE_CONNECTOR_PREFIX + DOT + "complete.retries.max";
+  public static final int SOURCE_MAX_COMPLETE_RETRIES_DEFAULT = 3;
+
+  public static final String SOURCE_MIN_BACKOFF_COMPLETE_RETRIES_MS_DOC =
+      "The minimum duration in milliseconds for the first backoff";
+  public static final String SOURCE_MIN_BACKOFF_COMPLETE_RETRIES_MS =
+      SOURCE_CONNECTOR_PREFIX + DOT + "complete.retries.min.backoff.ms";
+  public static final int SOURCE_MIN_BACKOFF_COMPLETE_RETRIES_MS_DEFAULT = 1000;
+
+  public static final String SOURCE_SLEEP_ON_EMPTY_POLL_MS_DOC =
+      "The duration in milliseconds to sleep when no records are returned from the poll. This avoids a tight loop in Connect.";
+  public static final String SOURCE_SLEEP_ON_EMPTY_POLL_MS =
+      SOURCE_CONNECTOR_PREFIX + DOT + "sleep.on.empty.poll.ms";
+  public static final int SOURCE_SLEEP_ON_EMPTY_POLL_MS_DEFAULT = 100;
 
   public static final String MAX_NUMBER_OF_RETRIES = SINK_CONNECTOR_PREFIX + DOT + "retries.max";
   public static final String MAX_NUMBER_OF_RETRIES_DOC = "Maximum number of retries if message sending fails.";
