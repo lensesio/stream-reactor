@@ -21,6 +21,7 @@ import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.config.FormatSelection
 import io.lenses.streamreactor.connect.cloud.common.config.ReaderBuilderContext
+import io.lenses.streamreactor.connect.cloud.common.config.traits.CloudSourceConfig
 import io.lenses.streamreactor.connect.cloud.common.formats.reader.CloudStreamReader
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.source.SourceWatermark
@@ -69,6 +70,7 @@ object ResultReader extends LazyLogging {
 
   def create[SM <: FileMetadata](
     format:           FormatSelection,
+    config:           CloudSourceConfig[SM],
     targetTopic:      String,
     partitionFn:      String => Option[Int],
     connectorTaskId:  ConnectorTaskId,
@@ -93,6 +95,7 @@ object ResultReader extends LazyLogging {
           inputStream,
           pathWithLine,
           metadata,
+          config,
           hasEnvelope,
           () => storageInterface.getBlob(pathWithLine.bucket, path).leftMap(_.toException),
           partition,
