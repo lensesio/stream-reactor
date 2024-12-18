@@ -20,6 +20,7 @@ import cats.effect.Ref
 import cats.implicits.toShow
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
+import io.lenses.streamreactor.connect.cloud.common.config.traits.CloudSourceConfig
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
 import io.lenses.streamreactor.connect.cloud.common.source.config.CloudSourceBucketOptions
@@ -43,6 +44,7 @@ object ReaderManagerBuilder extends LazyLogging {
   def apply[M <: FileMetadata](
     root:                       CloudLocation,
     path:                       CloudLocation,
+    config:                     CloudSourceConfig[M],
     storageInterface:           StorageInterface[M],
     connectorTaskId:            ConnectorTaskId,
     contextOffsetFn:            CloudLocation => Option[CloudLocation],
@@ -89,6 +91,7 @@ object ReaderManagerBuilder extends LazyLogging {
       ResultReader.create(
         writeWatermarkToHeaders,
         sbo.format,
+        config,
         sbo.targetTopic,
         sbo.getPartitionExtractorFn,
         connectorTaskId,
