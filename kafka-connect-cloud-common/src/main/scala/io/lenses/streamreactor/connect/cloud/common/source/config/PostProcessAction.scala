@@ -19,6 +19,7 @@ import cats.implicits.catsSyntaxEitherId
 import cats.implicits.toBifunctorOps
 import cats.implicits.toTraverseOps
 import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.StrictLogging
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEntry
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.PostProcessActionBucket
@@ -53,11 +54,15 @@ object PostProcessAction {
             for {
               destBucket <- kcqlProperties.getString(PostProcessActionBucket)
               destPrefix <- kcqlProperties.getString(PostProcessActionPrefix)
-            } yield MovePostProcessAction(prefix, destBucket, destPrefix)
+            } yield MovePostProcessAction(prefix, dropEndSlash(destBucket), dropEndSlash(destPrefix))
           }
             .toRight(new IllegalArgumentException("A bucket and a path must be specified for moving files to."))
       }
       .sequence
+
+  def dropEndSlash(s: String): String = dropLastCharacterIfPresent(dropLastCharacterIfPresent(s, '/'), '\\')
+
+  def dropLastCharacterIfPresent(s: String, char: Char): String = if (s.lastOption.contains(char)) s.dropRight(1) else s
 }
 
 class DeletePostProcessAction extends PostProcessAction with LazyLogging {
@@ -75,7 +80,8 @@ class DeletePostProcessAction extends PostProcessAction with LazyLogging {
 }
 
 case class MovePostProcessAction(originalPrefix: Option[String], newBucket: String, newPrefix: String)
-    extends PostProcessAction {
+    extends PostProcessAction
+    with StrictLogging {
   override def run(
     cloudLocation:    CloudLocation,
     storageInterface: StorageInterface[_],
@@ -85,6 +91,7 @@ case class MovePostProcessAction(originalPrefix: Option[String], newBucket: Stri
         new IllegalArgumentException("Cannot move without a path, this is probably a logic error"),
       )
       newPath = originalPrefix.map(o => path.replace(o, newPrefix)).getOrElse(path)
+      _       = logger.info(s"Moving file from ${cloudLocation.bucket}/$path to $newBucket/$newPath newPrefix: $newPrefix")
       mov <- IO.fromEither(
         storageInterface.mvFile(cloudLocation.bucket, path, newBucket, newPath).leftMap(_.exception),
       )

@@ -17,6 +17,8 @@ package io.lenses.streamreactor.connect.cloud.common.source.state
 
 import cats.effect.IO
 import cats.effect.Ref
+import cats.implicits.toShow
+import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
@@ -31,7 +33,7 @@ import org.apache.kafka.connect.errors.ConnectException
 /**
   * Responsible for creating an instance of {{{ReaderManager}}} for a given path.
   */
-object ReaderManagerBuilder {
+object ReaderManagerBuilder extends LazyLogging {
   def apply[M <: FileMetadata](
     root:             CloudLocation,
     path:             CloudLocation,
@@ -53,8 +55,10 @@ object ReaderManagerBuilder {
       adaptedSbo = sbo.copy[M](sourceBucketAndPrefix = path)
       listingFn  = adaptedSbo.createBatchListerFn(storageInterface)
       source = contextOffsetFn(path).fold {
+        logger.info(s"[${connectorTaskId.show}] No previous state for path ${path.show}")
         new CloudSourceFileQueue[M](connectorTaskId, listingFn)
-      } { location =>
+      } { location: CloudLocation =>
+        logger.info(s"[${connectorTaskId.show}] Resuming from ${location.toString} for path ${path.show}")
         CloudSourceFileQueue.from[M](
           listingFn,
           storageInterface,

@@ -25,6 +25,18 @@ trait CloudStreamReader extends AutoCloseable with Iterator[SourceRecord] {
   def currentRecordIndex: Long
 }
 
+class EmptyCloudStreamReader(location: CloudLocation) extends CloudStreamReader {
+  override def getBucketAndPath: CloudLocation = location
+
+  override def currentRecordIndex: Long = -1L
+
+  override def hasNext: Boolean = false
+
+  override def next(): SourceRecord = throw new UnsupportedOperationException("EmptyCloudStreamReader")
+
+  override def close(): Unit = ()
+}
+
 trait CloudDataIterator[T] extends Iterator[T] with AutoCloseable
 
 trait Converter[T] {

@@ -16,6 +16,7 @@
 package io.lenses.streamreactor.connect.aws.s3.source.state
 
 import cats.effect.testing.scalatest.AsyncIOSpec
+import cats.implicits.catsSyntaxEitherId
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3LocationValidator
 import io.lenses.streamreactor.connect.aws.s3.storage.S3FileMetadata
 import io.lenses.streamreactor.connect.cloud.common.config.AvroFormatSelection
@@ -25,7 +26,10 @@ import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.source.config.CloudSourceBucketOptions
 import io.lenses.streamreactor.connect.cloud.common.source.config.OrderingType
 import io.lenses.streamreactor.connect.cloud.common.source.state.ReaderManagerBuilder
+import io.lenses.streamreactor.connect.cloud.common.storage.FileListError
+import io.lenses.streamreactor.connect.cloud.common.storage.FileLoadError
 import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
+import org.mockito.Mockito.when
 import org.mockito.MockitoSugar.mock
 import org.scalatest.flatspec.AsyncFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -33,15 +37,17 @@ import org.scalatest.matchers.should.Matchers
 class ReaderManagerBuilderTest extends AsyncFlatSpec with AsyncIOSpec with Matchers {
   implicit val cloudLocationValidator: CloudLocationValidator = S3LocationValidator
   "ReaderManagerBuilder" should "create a reader manager" in {
-    val si = mock[StorageInterface[S3FileMetadata]]
+    val si   = mock[StorageInterface[S3FileMetadata]]
+    val path = "prefix1/subprefixA/subprefixB/"
     val root = CloudLocation(
       "bucket",
-      Some("prefix1"),
       None,
+      Some(path),
       None,
       None,
     )
-    val path = "prefix1/subprefixA/subprefixB/"
+    when(si.pathExists(root.bucket, root.path.get)).thenReturn(true.asRight[FileLoadError])
+
     var rootValue: Option[CloudLocation] = None
     val contextF: CloudLocation => Option[CloudLocation] = { in =>
       rootValue = Some(in)
@@ -63,4 +69,42 @@ class ReaderManagerBuilderTest extends AsyncFlatSpec with AsyncIOSpec with Match
       .asserting(_ => rootValue shouldBe Some(pathLocation))
   }
 
+  //handle the case where the location does not exist
+  it should "not fail if the location does not exist" in {
+    val si = mock[StorageInterface[S3FileMetadata]]
+
+    val path = "prefix1/subprefixA/subprefixB/"
+    val root = CloudLocation(
+      "bucket",
+      None,
+      Some(path),
+      None,
+      None,
+    )
+    when(si.listFileMetaRecursive(root.bucket, root.prefix)).thenReturn(None.asRight[FileListError])
+    when(si.pathExists(root.bucket, root.path.get)).thenReturn(false.asRight[FileLoadError])
+
+    var rootValue: Option[CloudLocation] = None
+    val contextF: CloudLocation => Option[CloudLocation] = { in =>
+      rootValue = Some(in)
+      rootValue
+    }
+    val sbo = CloudSourceBucketOptions[S3FileMetadata](root,
+                                                       "topic",
+                                                       AvroFormatSelection,
+                                                       100,
+                                                       100,
+                                                       None,
+                                                       OrderingType.LastModified,
+                                                       false,
+                                                       Option.empty,
+    )
+    val taskId       = ConnectorTaskId("test", 3, 1)
+    val pathLocation = root.withPath(path)
+    ReaderManagerBuilder.apply(root, pathLocation, si, taskId, contextF, _ => Some(sbo))
+      .flatMap(_.poll())
+      .asserting { result =>
+        result shouldBe empty
+      }
+  }
 }

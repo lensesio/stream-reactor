@@ -15,6 +15,7 @@
  */
 package io.lenses.streamreactor.connect.cloud.common.source.reader
 
+import cats.implicits.catsSyntaxEitherId
 import cats.implicits.toBifunctorOps
 import cats.implicits.toShow
 import com.typesafe.scalalogging.LazyLogging
@@ -22,6 +23,7 @@ import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.config.FormatSelection
 import io.lenses.streamreactor.connect.cloud.common.config.ReaderBuilderContext
 import io.lenses.streamreactor.connect.cloud.common.formats.reader.CloudStreamReader
+import io.lenses.streamreactor.connect.cloud.common.formats.reader.EmptyCloudStreamReader
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.source.SourceWatermark
 import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
@@ -76,43 +78,51 @@ object ResultReader extends LazyLogging {
     hasEnvelope:      Boolean,
   ): CloudLocation => Either[Throwable, ResultReader] = { pathWithLine =>
     for {
-      path        <- pathWithLine.path.toRight(new IllegalStateException("No path found"))
-      inputStream <- storageInterface.getBlob(pathWithLine.bucket, path).leftMap(_.toException)
-      metadata    <- storageInterface.getMetadata(pathWithLine.bucket, path).leftMap(_.toException)
-      _ <- Try(logger.info(
-        s"[${connectorTaskId.show}] Reading next file: ${pathWithLine.show} from line ${pathWithLine.line}",
-      )).toEither
+      path   <- pathWithLine.path.toRight(new IllegalStateException("No path found"))
+      exists <- storageInterface.pathExists(pathWithLine.bucket, path).leftMap(_.toException)
+      result <- if (!exists) {
+        logger.warn(s"[${connectorTaskId.show}] Path ${pathWithLine.show} does not exist. It will skip the object.")
+        new ResultReader(new EmptyCloudStreamReader(pathWithLine)).asRight[Throwable]
+      } else {
+        for {
+          inputStream <- storageInterface.getBlob(pathWithLine.bucket, path).leftMap(_.toException)
+          metadata    <- storageInterface.getMetadata(pathWithLine.bucket, path).leftMap(_.toException)
+          _ <- Try(logger.info(
+            s"[${connectorTaskId.show}] Reading next file: ${pathWithLine.show} from line ${pathWithLine.line}",
+          )).toEither
 
-      path <- pathWithLine.path.toRight(
-        new IllegalStateException(s"Invalid state reached. Missing path for cloud location:${pathWithLine.show}}"),
-      )
+          path <- pathWithLine.path.toRight(
+            new IllegalStateException(s"Invalid state reached. Missing path for cloud location:${pathWithLine.show}}"),
+          )
 
-      partition = partitionFn(path).map(Int.box).orNull
-      reader <- format.toStreamReader(
-        ReaderBuilderContext(
-          inputStream,
-          pathWithLine,
-          metadata,
-          hasEnvelope,
-          () => storageInterface.getBlob(pathWithLine.bucket, path).leftMap(_.toException),
-          partition,
-          Topic(targetTopic),
-          SourceWatermark.partition(pathWithLine),
-        ),
-      )
-      _ <- pathWithLine.line match {
-        case Some(value) if value >= 0 =>
-          // value + 1 is a fix for a bug introduced by the way the source watermark is calculated.
-          // The readers keep track of the current record index, which is used to calculate the watermark.
-          // But the index starts at -1. So the first record is at index 0. This means until this fix the last record
-          // is processed twice in case of a restart.
-          // DelegateIteratorCloudStreamReader has been introduced with this change here, but it had to be compatible with the previous state.
-          // The alternative would have been to add another flag in the offset watermark and to know it was the new version or not.
-          // However this introduces more complexity.
+          partition = partitionFn(path).map(Int.box).orNull
+          reader <- format.toStreamReader(
+            ReaderBuilderContext(
+              inputStream,
+              pathWithLine,
+              metadata,
+              hasEnvelope,
+              () => storageInterface.getBlob(pathWithLine.bucket, path).leftMap(_.toException),
+              partition,
+              Topic(targetTopic),
+              SourceWatermark.partition(pathWithLine),
+            ),
+          )
+          _ <- pathWithLine.line match {
+            case Some(value) if value >= 0 =>
+              // value + 1 is a fix for a bug introduced by the way the source watermark is calculated.
+              // The readers keep track of the current record index, which is used to calculate the watermark.
+              // But the index starts at -1. So the first record is at index 0. This means until this fix the last record
+              // is processed twice in case of a restart.
+              // DelegateIteratorCloudStreamReader has been introduced with this change here, but it had to be compatible with the previous state.
+              // The alternative would have been to add another flag in the offset watermark and to know it was the new version or not.
+              // However, this introduces more complexity.
 
-          IteratorOps.skip(reader, value + 1)
-        case _ => Right(())
+              IteratorOps.skip(reader, value + 1)
+            case _ => Right(())
+          }
+        } yield (new ResultReader(reader))
       }
-    } yield new ResultReader(reader)
+    } yield result
   }
 }
