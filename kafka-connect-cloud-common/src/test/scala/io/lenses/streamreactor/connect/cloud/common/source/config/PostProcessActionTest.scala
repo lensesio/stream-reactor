@@ -109,4 +109,25 @@ class PostProcessActionTest extends AnyFlatSpec with Matchers with EitherValues 
 
     result.value shouldBe None
   }
+
+  it should "drop the last character if it is a slash" in {
+    PostProcessAction.dropEndSlash("some/prefix/") shouldBe "some/prefix"
+
+    val kcqlProperties = mock[KcqlProperties[PropsKeyEntry, PropsKeyEnum.type]]
+    when(
+      kcqlProperties.getEnumValue[PostProcessActionEntry, PostProcessActionEnum.type](PostProcessActionEnum,
+                                                                                      PropsKeyEnum.PostProcessAction,
+      ),
+    )
+      .thenReturn(Some(Move))
+    when(kcqlProperties.getString(PostProcessActionPrefix)).thenReturn(Some("some/prefix/"))
+    when(kcqlProperties.getString(PostProcessActionBucket)).thenReturn(Some("myNewBucket/"))
+
+    val result = PostProcessAction(Option.empty, kcqlProperties)
+
+    result.value.value shouldBe a[MovePostProcessAction]
+    result.value.value.asInstanceOf[MovePostProcessAction].newPrefix shouldBe "some/prefix"
+    result.value.value.asInstanceOf[MovePostProcessAction].newBucket shouldBe "myNewBucket"
+  }
+
 }
