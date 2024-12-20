@@ -35,11 +35,9 @@ class EmptyCloudStreamReaderTest extends AnyFunSuiteLike with Matchers {
     }
   }
 
-  test("EmptyCloudStreamReader should throw UnsupportedOperationException for currentRecordIndex") {
+  test("EmptyCloudStreamReader should return -1 for currentRecordIndex") {
     val emptyCloudStreamReader = new EmptyCloudStreamReader(null)
-    assertThrows[UnsupportedOperationException] {
-      emptyCloudStreamReader.currentRecordIndex
-    }
+    emptyCloudStreamReader.currentRecordIndex shouldBe -1
   }
 
   test("EmptyCloudStreamReader should return the location provided in the constructor") {
