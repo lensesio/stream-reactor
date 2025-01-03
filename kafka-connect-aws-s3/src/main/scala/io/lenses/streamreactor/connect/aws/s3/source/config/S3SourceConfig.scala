@@ -24,6 +24,7 @@ import io.lenses.streamreactor.connect.cloud.common.config.traits.PropsToConfigC
 import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodec
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
 import io.lenses.streamreactor.connect.cloud.common.source.config.CloudSourceBucketOptions
+import io.lenses.streamreactor.connect.cloud.common.source.config.EmptySourceBackoffSettings
 import io.lenses.streamreactor.connect.cloud.common.source.config.PartitionSearcherOptions
 import io.lenses.streamreactor.connect.cloud.common.storage.ExtensionFilter
 
@@ -47,6 +48,7 @@ object S3SourceConfig extends PropsToConfigConverter[S3SourceConfig] {
         s3ConfigDefBuilder,
         s3ConfigDefBuilder.getPartitionExtractor(parsedValues),
       )
+      backoff = s3ConfigDefBuilder.getEmptySourceBackoffSettings(parsedValues)
     } yield S3SourceConfig(
       S3ConnectionConfig(parsedValues),
       sbo,
@@ -54,6 +56,7 @@ object S3SourceConfig extends PropsToConfigConverter[S3SourceConfig] {
       s3ConfigDefBuilder.getPartitionSearcherOptions(parsedValues),
       s3ConfigDefBuilder.batchDelete(),
       s3ConfigDefBuilder.getSourceExtensionFilter,
+      backoff,
     )
 
   }
@@ -61,10 +64,11 @@ object S3SourceConfig extends PropsToConfigConverter[S3SourceConfig] {
 }
 
 case class S3SourceConfig(
-  connectionConfig:  S3ConnectionConfig,
-  bucketOptions:     Seq[CloudSourceBucketOptions[S3FileMetadata]] = Seq.empty,
-  compressionCodec:  CompressionCodec,
-  partitionSearcher: PartitionSearcherOptions,
-  batchDelete:       Boolean,
-  extensionFilter:   Option[ExtensionFilter],
+  connectionConfig:           S3ConnectionConfig,
+  bucketOptions:              Seq[CloudSourceBucketOptions[S3FileMetadata]] = Seq.empty,
+  compressionCodec:           CompressionCodec,
+  partitionSearcher:          PartitionSearcherOptions,
+  batchDelete:                Boolean,
+  extensionFilter:            Option[ExtensionFilter],
+  emptySourceBackoffSettings: EmptySourceBackoffSettings,
 ) extends CloudSourceConfig[S3FileMetadata]

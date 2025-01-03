@@ -24,6 +24,7 @@ import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
 import io.lenses.streamreactor.connect.cloud.common.source.config.CloudSourceBucketOptions
+import io.lenses.streamreactor.connect.cloud.common.source.config.EmptySourceBackoffSettings
 import io.lenses.streamreactor.connect.cloud.common.source.config.OrderingType
 import io.lenses.streamreactor.connect.cloud.common.source.state.ReaderManagerBuilder
 import io.lenses.streamreactor.connect.cloud.common.storage.FileListError
@@ -65,7 +66,14 @@ class ReaderManagerBuilderTest extends AsyncFlatSpec with AsyncIOSpec with Match
     )
     val taskId       = ConnectorTaskId("test", 3, 1)
     val pathLocation = root.withPath(path)
-    ReaderManagerBuilder(root, pathLocation, si, taskId, contextF, _ => Some(sbo))
+    ReaderManagerBuilder(root,
+                         pathLocation,
+                         si,
+                         taskId,
+                         contextF,
+                         _ => Some(sbo),
+                         EmptySourceBackoffSettings(1, 1, 2.0),
+    )
       .asserting(_ => rootValue shouldBe Some(pathLocation))
   }
 
@@ -101,7 +109,7 @@ class ReaderManagerBuilderTest extends AsyncFlatSpec with AsyncIOSpec with Match
     )
     val taskId       = ConnectorTaskId("test", 3, 1)
     val pathLocation = root.withPath(path)
-    ReaderManagerBuilder.apply(root, pathLocation, si, taskId, contextF, _ => Some(sbo))
+    ReaderManagerBuilder.apply(root, pathLocation, si, taskId, contextF, _ => Some(sbo), EmptySourceBackoffSettings(1, 1, 2.0))
       .flatMap(_.poll())
       .asserting { result =>
         result shouldBe empty

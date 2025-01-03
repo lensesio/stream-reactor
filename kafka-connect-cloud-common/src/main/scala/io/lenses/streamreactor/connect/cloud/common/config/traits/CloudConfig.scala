@@ -21,6 +21,7 @@ import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodec
 import io.lenses.streamreactor.connect.cloud.common.sink.config.CloudSinkBucketOptions
 import io.lenses.streamreactor.connect.cloud.common.sink.config.IndexOptions
 import io.lenses.streamreactor.connect.cloud.common.source.config.CloudSourceBucketOptions
+import io.lenses.streamreactor.connect.cloud.common.source.config.EmptySourceBackoffSettings
 import io.lenses.streamreactor.connect.cloud.common.source.config.PartitionSearcherOptions
 import io.lenses.streamreactor.connect.cloud.common.storage.ExtensionFilter
 import io.lenses.streamreactor.connect.cloud.common.storage.FileMetadata
@@ -118,4 +119,10 @@ trait CloudSourceConfig[MD <: FileMetadata] extends CloudConfig {
     */
   def extensionFilter: Option[ExtensionFilter]
 
+  /**
+    * Retrieves the empty source backoff settings for the cloud source.
+    *
+    * @return The empty source backoff settings for the cloud source.
+    */
+  def emptySourceBackoffSettings: EmptySourceBackoffSettings
 }

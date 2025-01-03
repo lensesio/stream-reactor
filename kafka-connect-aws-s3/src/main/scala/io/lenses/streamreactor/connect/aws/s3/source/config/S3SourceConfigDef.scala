@@ -31,5 +31,6 @@ object S3SourceConfigDef extends S3CommonConfigDef with CloudSourceSettingsKeys 
     addSourcePartitionSearcherSettings(settings)
     addSourcePartitionExtractorSettings(settings)
     addSourceFilteringSettings(settings)
+    addSourceEmptyResultsBackoffSettings(settings)
   }
 }

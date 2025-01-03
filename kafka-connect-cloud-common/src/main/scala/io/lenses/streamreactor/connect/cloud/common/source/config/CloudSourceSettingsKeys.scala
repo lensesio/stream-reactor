@@ -153,6 +153,56 @@ trait CloudSourceSettingsKeys extends WithConnectorPrefix {
   private val SOURCE_ORDERING_TYPE_DOC:     String = "AlphaNumeric (the default)"
   private val SOURCE_ORDERING_TYPE_DEFAULT: String = "AlphaNumeric"
 
+  val SOURCE_EMPTY_RESULTS_BACKOFF_INITIAL_DELAY: String =
+    s"$connectorPrefix.source.empty.results.backoff.initial.delay"
+  private val SOURCE_EMPTY_RESULTS_BACKOFF_INITIAL_DELAY_DOC: String =
+    "Initial delay in milliseconds before retrying when no results are found."
+  val SOURCE_EMPTY_RESULTS_BACKOFF_INITIAL_DELAY_DEFAULT: Long = 1000
+
+  val SOURCE_EMPTY_RESULTS_BACKOFF_MAX_DELAY: String = s"$connectorPrefix.source.empty.results.backoff.max.delay"
+  private val SOURCE_EMPTY_RESULTS_BACKOFF_MAX_DELAY_DOC: String =
+    "Maximum delay in milliseconds before retrying when no results are found."
+  val SOURCE_EMPTY_RESULTS_BACKOFF_MAX_DELAY_DEFAULT: Long = 10000
+
+  val SOURCE_EMPTY_RESULTS_BACKOFF_MULTIPLIER: String = s"$connectorPrefix.source.empty.results.backoff.multiplier"
+  private val SOURCE_EMPTY_RESULTS_BACKOFF_MULTIPLIER_DOC: String =
+    "Multiplier to apply to the delay when retrying when no results are found."
+  val SOURCE_EMPTY_RESULTS_BACKOFF_MULTIPLIER_DEFAULT = 2.0
+
+  def addSourceEmptyResultsBackoffSettings(configDef: ConfigDef): ConfigDef = configDef.define(
+    SOURCE_EMPTY_RESULTS_BACKOFF_INITIAL_DELAY,
+    Type.LONG,
+    SOURCE_EMPTY_RESULTS_BACKOFF_INITIAL_DELAY_DEFAULT,
+    Importance.LOW,
+    SOURCE_EMPTY_RESULTS_BACKOFF_INITIAL_DELAY_DOC,
+    "Source",
+    7,
+    ConfigDef.Width.MEDIUM,
+    SOURCE_EMPTY_RESULTS_BACKOFF_INITIAL_DELAY,
+  )
+    .define(
+      SOURCE_EMPTY_RESULTS_BACKOFF_MAX_DELAY,
+      Type.LONG,
+      SOURCE_EMPTY_RESULTS_BACKOFF_MAX_DELAY_DEFAULT.toLong,
+      Importance.LOW,
+      SOURCE_EMPTY_RESULTS_BACKOFF_MAX_DELAY_DOC,
+      "Source",
+      8,
+      ConfigDef.Width.MEDIUM,
+      SOURCE_EMPTY_RESULTS_BACKOFF_MAX_DELAY,
+    )
+    .define(
+      SOURCE_EMPTY_RESULTS_BACKOFF_MULTIPLIER,
+      Type.DOUBLE,
+      SOURCE_EMPTY_RESULTS_BACKOFF_MULTIPLIER_DEFAULT,
+      Importance.LOW,
+      SOURCE_EMPTY_RESULTS_BACKOFF_MULTIPLIER_DOC,
+      "Source",
+      9,
+      ConfigDef.Width.MEDIUM,
+      SOURCE_EMPTY_RESULTS_BACKOFF_MULTIPLIER,
+    )
+
   def addSourcePartitionExtractorSettings(configDef: ConfigDef): ConfigDef = configDef.define(
     SOURCE_PARTITION_EXTRACTOR_TYPE,
     Type.STRING,

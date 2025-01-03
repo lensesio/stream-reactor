@@ -22,6 +22,7 @@ import io.lenses.streamreactor.connect.cloud.common.config.traits.PropsToConfigC
 import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodec
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
 import io.lenses.streamreactor.connect.cloud.common.source.config.CloudSourceBucketOptions
+import io.lenses.streamreactor.connect.cloud.common.source.config.EmptySourceBackoffSettings
 import io.lenses.streamreactor.connect.cloud.common.source.config.PartitionSearcherOptions
 import io.lenses.streamreactor.connect.cloud.common.storage.ExtensionFilter
 import io.lenses.streamreactor.connect.gcp.common.auth.GCPConnectionConfig
@@ -52,12 +53,14 @@ object GCPStorageSourceConfig extends PropsToConfigConverter[GCPStorageSourceCon
         gcpConfigDefBuilder,
         gcpConfigDefBuilder.getPartitionExtractor(parsedValues),
       )
+      backoff = gcpConfigDefBuilder.getEmptySourceBackoffSettings(parsedValues)
     } yield GCPStorageSourceConfig(
       gcpConnectionSettings,
       sbo,
       gcpConfigDefBuilder.getCompressionCodec(),
       gcpConfigDefBuilder.getPartitionSearcherOptions(parsedValues),
       gcpConfigDefBuilder.getSourceExtensionFilter,
+      backoff,
     )
 
   }
@@ -65,9 +68,10 @@ object GCPStorageSourceConfig extends PropsToConfigConverter[GCPStorageSourceCon
 }
 
 case class GCPStorageSourceConfig(
-  connectionConfig:  GCPConnectionConfig,
-  bucketOptions:     Seq[CloudSourceBucketOptions[GCPStorageFileMetadata]] = Seq.empty,
-  compressionCodec:  CompressionCodec,
-  partitionSearcher: PartitionSearcherOptions,
-  extensionFilter:   Option[ExtensionFilter],
+  connectionConfig:           GCPConnectionConfig,
+  bucketOptions:              Seq[CloudSourceBucketOptions[GCPStorageFileMetadata]] = Seq.empty,
+  compressionCodec:           CompressionCodec,
+  partitionSearcher:          PartitionSearcherOptions,
+  extensionFilter:            Option[ExtensionFilter],
+  emptySourceBackoffSettings: EmptySourceBackoffSettings,
 ) extends CloudSourceConfig[GCPStorageFileMetadata]

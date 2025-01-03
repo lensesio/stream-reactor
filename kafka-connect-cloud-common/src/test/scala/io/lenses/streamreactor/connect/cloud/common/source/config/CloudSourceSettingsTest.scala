@@ -23,7 +23,7 @@ import org.scalatest.matchers.should.Matchers
 import java.lang
 import java.util
 
-class CloudSourceSettingsTest extends AnyFlatSpec with Matchers with OptionValues {
+class CloudSourceSettingsTest extends AnyFlatSpec with Matchers with OptionValues with CloudSourceSettingsKeys {
 
   "getSourceExtensionFilter" should "return an ExtensionFilter with correct includes and excludes" in {
     val settings: CloudSourceSettings = mockSettingsObject(
@@ -46,6 +46,65 @@ class CloudSourceSettingsTest extends AnyFlatSpec with Matchers with OptionValue
     filter.allowedExtensions should be(Set(".txt"))
     filter.excludedExtensions should be(Set(".log", ".csv"))
   }
+
+  "getEmptySourceBackoffSettings" should "return the default settings" in {
+    val settings: CloudSourceSettings = mockSettingsObject(
+      includes = ".txt,.csv",
+      excludes = ".log",
+    )
+
+    val backoffSettings = settings.getEmptySourceBackoffSettings(Map.empty)
+    backoffSettings.initialDelay should be(SOURCE_EMPTY_RESULTS_BACKOFF_INITIAL_DELAY_DEFAULT)
+    backoffSettings.maxBackoff should be(SOURCE_EMPTY_RESULTS_BACKOFF_MAX_DELAY_DEFAULT)
+    backoffSettings.backoffMultiplier should be(SOURCE_EMPTY_RESULTS_BACKOFF_MULTIPLIER_DEFAULT)
+  }
+
+  "getEmptySourceBackoffSettings" should "return the correct settings" in {
+    val settings: CloudSourceSettings = mockSettingsObject(
+      includes = ".txt,.csv",
+      excludes = ".log",
+    )
+
+    val backoffSettings = settings.getEmptySourceBackoffSettings(
+      Map(
+        SOURCE_EMPTY_RESULTS_BACKOFF_INITIAL_DELAY -> "1000",
+        SOURCE_EMPTY_RESULTS_BACKOFF_MAX_DELAY     -> "10000",
+        SOURCE_EMPTY_RESULTS_BACKOFF_MULTIPLIER    -> "2.0",
+      ),
+    )
+    backoffSettings.initialDelay should be(1000)
+    backoffSettings.maxBackoff should be(10000)
+    backoffSettings.backoffMultiplier should be(2.0)
+  }
+
+  "getEmptySourceBackoffSettings" should "return the correct settings when some are missing" in {
+    val settings: CloudSourceSettings = mockSettingsObject(
+      includes = ".txt,.csv",
+      excludes = ".log",
+    )
+
+    val backoffSettings = settings.getEmptySourceBackoffSettings(Map(
+      SOURCE_EMPTY_RESULTS_BACKOFF_INITIAL_DELAY -> "1000",
+    ))
+    backoffSettings.initialDelay should be(1000)
+    backoffSettings.maxBackoff should be(SOURCE_EMPTY_RESULTS_BACKOFF_MAX_DELAY_DEFAULT)
+    backoffSettings.backoffMultiplier should be(SOURCE_EMPTY_RESULTS_BACKOFF_MULTIPLIER_DEFAULT)
+  }
+
+  "getEmptySourceBackoffSettings" should "fail when the initial delay is not a long" in {
+    val settings: CloudSourceSettings = mockSettingsObject(
+      includes = ".txt,.csv",
+      excludes = ".log",
+    )
+
+    assertThrows[NumberFormatException] {
+      settings.getEmptySourceBackoffSettings(Map(
+        SOURCE_EMPTY_RESULTS_BACKOFF_INITIAL_DELAY -> "not a long",
+      ))
+    }
+  }
+
+  override def connectorPrefix: String = "my.connector"
 
   private def mockSettingsObject(includes: String, excludes: String) = new CloudSourceSettings {
     override def getString(key: String): String = key match {

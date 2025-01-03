@@ -146,6 +146,7 @@ abstract class CloudSourceTask[MD <: FileMetadata, C <: CloudSourceConfig[MD], C
           connectorTaskId,
           contextOffsetFn,
           location => config.bucketOptions.find(sb => sb.sourceBucketAndPrefix == location),
+          config.emptySourceBackoffSettings,
         )(validator)
       }
       val partitionDiscoveryLoop = PartitionDiscovery.run(connectorTaskId,
