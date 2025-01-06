@@ -1,16 +1,19 @@
 plugins {
+    id 'com.gradleup.shadow' version '8.3.5'
     id 'com.diffplug.spotless' version "6.25.0"
     id 'java'
     id 'java-library'
 }
 
 allprojects {
+
     group = "io.lenses.streamreactor"
     version = "8.2.0-SNAPSHOT"
     description = "stream-reactor"
 
     apply plugin: 'java'
     apply plugin: 'java-library'
+    apply plugin: 'com.gradleup.shadow'
     apply plugin: 'com.diffplug.spotless'
 
     java {
@@ -39,8 +42,7 @@ allprojects {
         //for jar building
         rootRelease = "${project.rootDir}/release/"
         versionDir = "${rootRelease}/${project.description}-${project.version}"
-        confDir = "${versionDir}/conf"
-        libsDir = "${rootRelease}"
+        libsDir = "${rootRelease}/libs"
     }
 
     repositories {
@@ -90,6 +92,91 @@ allprojects {
         }
     }
 
+    shadowJar {
+        def artifactVersion = gitTag?.trim() ? gitTag : project.version
+
+        manifest {
+            attributes("StreamReactor-Version": artifactVersion,
+                    "Kafka-Version": kafkaVersion,
+                    "Created-By": "Lenses",
+                    "Created-At": new Date().format("YYYYMMDDHHmm"),
+                    "Git-Repo": gitRepo,
+                    "Git-Commit-Hash": gitCommitHash,
+                    "Git-Tag": gitTag,
+                    "StreamReactor-Docs": "https://docs.lenses.io/connectors/"
+            )
+        }
+        configurations = [
+                project.configurations.compileClasspath
+        ]
+        archiveFileName = "${project.name}-${artifactVersion}-all.jar"
+        zip64 true
+
+        mergeServiceFiles {
+            exclude "META-INF/*.SF"
+            exclude "META-INF/*.DSA"
+            exclude "META-INF/*.RSA"
+        }
+
+        //shadowing antlr packages in order to avoid conflict when using kafka connect
+        relocate('org.antlr', 'lshaded.antlr')
+
+        dependencies {
+            //            // UNCOMMENT BELOW IF NEED CLEAN JAR
+            //            exclude(dependency {
+            //                it.moduleGroup != 'io.lenses.streamreactor'
+            //            })
+            //        exclude(dependency('org.apache.logging.log4j:log4j-core:2.11.1'))
+            //        exclude(dependency("org.apache.avro:.*"))
+            //        exclude(dependency("org.apache.kafka:.*"))
+            //        exclude(dependency("io.confluent:.*"))
+            //        exclude(dependency("org.apache.kafka:.*"))
+            //        exclude(dependency("org.apache.zookeeper:.*"))
+            //        exclude(dependency("com.google.guava:guava:28.1-android"))
+        }
+
+        spotless {
+            format 'misc', {
+                target '.gitattributes', '.gitignore'
+                trimTrailingWhitespace()
+                indentWithSpaces()
+                endWithNewline()
+            }
+            groovyGradle {
+                target '**/*.gradle'
+                importOrder()
+                trimTrailingWhitespace()
+                removeSemicolons()
+                greclipse()
+                indentWithSpaces(4)
+            }
+            java {
+                targetExclude '**/io/lenses/kcql/antlr4/**/*.java'
+                toggleOffOn()
+                // optional: you can specify a specific version and/or config file
+                eclipse('4.30').configFile("${rootDir}/config/Lenses_eclipse.xml")
+                licenseHeaderFile(rootProject.file("HEADER.txt"))
+
+                // courtesy of diffplug/spotless#240
+                // https://github.com/diffplug/spotless/issues/240#issuecomment-385206606
+                custom 'noWildcardImports', {
+                    if (it.contains('.*;\n')) {
+                        throw new Error('No wildcard imports allowed')
+                    }
+                }
+                bumpThisNumberIfACustomStepChanges(1)
+            }
+        }
+    }
+    //compileJava.dependsOn("checkLicenses")
+
+    task fatJar(dependsOn: [test, jar, shadowJar])
+
+    task collectFatJar(type: Copy, dependsOn: [fatJar]) {
+        from("${buildDir}/libs").include("kafka-connect-*-all.jar")
+                .exclude("*-common-*").into(libsDir)
+    }
+
     task collectDependencies(type: Copy) {
         from configurations.runtimeClasspath
         into "${libsDir}/${project.name}"
@@ -110,38 +197,14 @@ allprojects {
     }
 
     task collectArtifacts(dependsOn: [test, collectDependencies, copyModuleJar])
-
-    spotless {
-        format 'misc', {
-            target '.gitattributes', '.gitignore'
-            trimTrailingWhitespace()
-            indentWithSpaces()
-            endWithNewline()
-        }
-        groovyGradle {
-            target '**/*.gradle'
-            importOrder()
-            trimTrailingWhitespace()
-            removeSemicolons()
-            greclipse()
-            indentWithSpaces(4)
-        }
-        java {
-            targetExclude '**/io/lenses/kcql/antlr4/**/*.java'
-            toggleOffOn()
-            eclipse('4.30').configFile("${rootDir}/config/Lenses_eclipse.xml")
-            licenseHeaderFile(rootProject.file("HEADER.txt"))
-            custom 'noWildcardImports', {
-                if (it.contains('.*;\n')) {
-                    throw new Error('No wildcard imports allowed')
-                }
-            }
-            bumpThisNumberIfACustomStepChanges(1)
-        }
-    }
 }
 
-task prepareRelease(dependsOn: subprojects.collectArtifacts)
+
+task prepareReleaseRaw(dependsOn: subprojects.collectArtifacts)
+
+task prepareRelease(dependsOn: [collectFatJar]) {
+    dependsOn subprojects.collectFatJar
+}
 
 task testModuleList() {
     def nonTestModules = ["java-reactor"]

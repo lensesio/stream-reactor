@@ -89,14 +89,31 @@ jobs:
         with:
           gradle-version: 8.6
 
+      - name: Execute Gradle build fat jar
+        run: cd 'java-connectors' && ./gradlew ${{ matrix.module }}:shadowJar --scan --no-scan-upload
+
       - name: Execute Gradle build
         run: cd 'java-connectors' && ./gradlew ${{ matrix.module }}:collectArtifacts --scan --no-scan-upload
+
+      - name: Move to release folder
+        shell: bash
+        run: |
+          JAVA_RELEASE_FOLDER=java-connectors/release
+          JAVA_BUILD_FOLDER=java-connectors/${{ matrix.module }}/build/libs
+          mkdir -p $JAVA_RELEASE_FOLDER
+          cp $JAVA_BUILD_FOLDER/${{ matrix.module }}*.jar LICENSE $JAVA_RELEASE_FOLDER/
+
+      - name: Cache fat Jar assembly
+        uses: actions/cache/save@v4
+        with:
+          path: ./java-connectors/release/${{ matrix.module }}*.jar
+          key: assembly-java-${{ github.run_id }}
 
       - name: Cache assembly
         uses: actions/cache/save@v4
         with:
-          path: ./java-connectors/release/${{ matrix.module }}/*.jar
-          key: assembly-java-${{ github.run_id }}
+          path: ./java-connectors/release/libs/${{ matrix.module }}/*.jar
+          key: assembly-java-all-${{ github.run_id }}
 
   jar-dependency-check:
     if: false  # This ensures dependency-check is always skipped
@@ -113,7 +130,7 @@ jobs:
       - name: Restore assembly
         uses: actions/cache/restore@v4
         with:
-          path: ./java-connectors/release/${{ matrix.module }}/*.jar
+          path: ./java-connectors/release/${{ matrix.module }}*.jar
           key: assembly-java-${{ github.run_id }}
           fail-on-cache-miss: true
 
@@ -125,7 +142,7 @@ jobs:
         uses: dependency-check/Dependency-Check_Action@main
         with:
           project: kafka-connect-${{matrix.module}}-deps
-          path: ./java-connectors/release/${{ matrix.module }}/${{ matrix.module }}*.jar
+          path: ./java-connectors/release/${{ matrix.module }}*.jar
           format: 'HTML'
           args: >-
             --failOnCVSS 5
