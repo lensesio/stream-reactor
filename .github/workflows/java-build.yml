@@ -90,7 +90,7 @@ jobs:
           gradle-version: 8.6
 
       - name: Execute Gradle build
-        run: cd 'java-connectors' && ./gradlew ${{ matrix.module }}:collectArtifacts --scan
+        run: cd 'java-connectors' && ./gradlew ${{ matrix.module }}:collectArtifacts --scan --no-scan-upload
 
       - name: Cache assembly
         uses: actions/cache/save@v4
