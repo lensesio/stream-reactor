@@ -79,7 +79,7 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: |
-            ./java-connectors/release/${{ matrix.module }}*.jar
+            ./java-connectors/release/${{ matrix.module }}/*.jar
           key: assembly-java-${{ github.run_id }}
           fail-on-cache-miss: true
       - name: Install Antivirus Software
@@ -139,7 +139,7 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: |
-            ./java-connectors/release/${{ matrix.module }}*.jar
+            ./java-connectors/release/${{ matrix.module }}/*.jar
           key: assembly-java-${{ github.run_id }}
           fail-on-cache-miss: true
 
@@ -158,7 +158,7 @@ jobs:
           JAVA_RELEASE_FOLDER=java-connectors/release
           FOLDER=${{ matrix.module }}-${{ env.TAG }}
           mkdir -p $FOLDER
-          cp $JAVA_RELEASE_FOLDER/${{ matrix.module }}*.jar LICENSE ${{ matrix.module }}-${{ env.TAG }}.sbom.spdx.json $FOLDER/
+          cp $JAVA_RELEASE_FOLDER/${{ matrix.module }}/*.jar LICENSE ${{ matrix.module }}-${{ env.TAG }}.sbom.spdx.json $FOLDER/
           zip -r "$FOLDER.zip" $FOLDER/
 
       - name: Upload binaries to release
