@@ -90,10 +90,10 @@ jobs:
           gradle-version: 8.6
 
       - name: Execute Gradle build fat jar
-        run: cd 'java-connectors' && ./gradlew ${{ matrix.module }}:shadowJar --scan --no-scan-upload
+        run: cd 'java-connectors' && ./gradlew ${{ matrix.module }}:shadowJar
 
       - name: Execute Gradle build
-        run: cd 'java-connectors' && ./gradlew ${{ matrix.module }}:collectArtifacts --scan --no-scan-upload
+        run: cd 'java-connectors' && ./gradlew ${{ matrix.module }}:collectArtifacts
 
       - name: Move to release folder
         shell: bash
