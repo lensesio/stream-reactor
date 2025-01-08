@@ -39,6 +39,7 @@ class BytesOutputRowConverterTest extends AnyFunSuite with Matchers {
     val valueBytes = "value".getBytes
 
     val actual = new BytesOutputRowConverter(
+      true,
       Map("a" -> "1").asJava,
       Topic("topic1"),
       1,

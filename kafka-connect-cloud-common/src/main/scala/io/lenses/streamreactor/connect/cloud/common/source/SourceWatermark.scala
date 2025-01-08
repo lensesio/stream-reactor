@@ -24,9 +24,12 @@ import io.lenses.streamreactor.connect.cloud.common.source.ContextConstants.Line
 import io.lenses.streamreactor.connect.cloud.common.source.ContextConstants.PathKey
 import io.lenses.streamreactor.connect.cloud.common.source.ContextConstants.PrefixKey
 import io.lenses.streamreactor.connect.cloud.common.source.ContextConstants.TimeStampKey
+import org.apache.kafka.connect.header.ConnectHeaders
 
 import java.time.Instant
+import java.util
 import scala.jdk.CollectionConverters.MapHasAsJava
+import scala.jdk.CollectionConverters.MapHasAsScala
 
 object SourceWatermark {
 
@@ -129,5 +132,18 @@ object SourceWatermark {
         line      = line.some,
         timestamp = ts,
       )(sourceRoot.cloudLocationValidator)
+    }
+
+  def convertWatermarkToHeaders(
+    writeWatermarkToHeaders: Boolean,
+    partition:               util.Map[String, String],
+    offset:                  util.Map[String, String],
+  ) =
+    Option.when(writeWatermarkToHeaders) {
+      val newHeaders = new ConnectHeaders()
+      (offset.asScala ++ partition.asScala).foreach {
+        case (k, v) => newHeaders.addString(k, v)
+      }
+      newHeaders
     }
 }

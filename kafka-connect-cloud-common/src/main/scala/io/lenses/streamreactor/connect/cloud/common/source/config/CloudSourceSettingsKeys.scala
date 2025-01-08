@@ -49,6 +49,25 @@ trait CloudSourceSettingsKeys extends WithConnectorPrefix {
     "Comma-separated list of file extensions to include in the source file search. If not configured, all files are considered. When used in conjunction with 'source.extension.excludes', files must match the includes list and not match the excludes list to be considered."
   private val SOURCE_EXTENSION_INCLUDES_DEFAULT: String = null
 
+  protected val WRITE_WATERMARK_TO_HEADERS: String = s"$connectorPrefix.source.write.watermark.headers"
+  private val WRITE_WATERMARK_TO_HEADERS_DOC: String =
+    "When outputting source records, include the watermark in the headers of the source record"
+  private val WRITE_WATERMARK_TO_HEADERS_DEFAULT: Boolean = false
+
+  def addSourceWatermarkSettings(configDef: ConfigDef): ConfigDef =
+    configDef
+      .define(
+        WRITE_WATERMARK_TO_HEADERS,
+        Type.BOOLEAN,
+        WRITE_WATERMARK_TO_HEADERS_DEFAULT,
+        Importance.LOW,
+        WRITE_WATERMARK_TO_HEADERS_DOC,
+        "Source Headers",
+        1,
+        ConfigDef.Width.SHORT,
+        WRITE_WATERMARK_TO_HEADERS,
+      )
+
   /**
     * Adds source filtering settings to the provided ConfigDef.
     *

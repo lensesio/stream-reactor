@@ -83,6 +83,8 @@ trait CloudSourceSettings extends BaseSettings with CloudSourceSettingsKeys {
     ))
   }
 
+  def getWriteWatermarkToHeaders: Boolean = getBoolean(WRITE_WATERMARK_TO_HEADERS)
+
   /**
     * Extracts the property value from the configuration and transforms it into a set of strings.
     *

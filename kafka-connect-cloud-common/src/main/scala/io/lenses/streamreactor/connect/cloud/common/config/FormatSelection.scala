@@ -48,14 +48,15 @@ import scala.jdk.CollectionConverters.MapHasAsScala
 case class ObjectMetadata(size: Long, lastModified: Instant)
 
 case class ReaderBuilderContext(
-  stream:               InputStream,
-  bucketAndPath:        CloudLocation,
-  metadata:             ObjectMetadata,
-  hasEnvelope:          Boolean,
-  recreateInputStreamF: () => Either[Throwable, InputStream],
-  targetPartition:      Integer,
-  targetTopic:          Topic,
-  watermarkPartition:   java.util.Map[String, String],
+  writeWatermarkToHeaders: Boolean,
+  stream:                  InputStream,
+  bucketAndPath:           CloudLocation,
+  metadata:                ObjectMetadata,
+  hasEnvelope:             Boolean,
+  recreateInputStreamF:    () => Either[Throwable, InputStream],
+  targetPartition:         Integer,
+  targetTopic:             Topic,
+  watermarkPartition:      java.util.Map[String, String],
 )
 
 sealed trait FormatSelection {
@@ -163,11 +164,13 @@ case object AvroFormatSelection extends FormatSelection {
                                           input.metadata.lastModified,
       )
     } else {
-      new SchemaAndValueConverter(input.watermarkPartition,
-                                  input.targetTopic,
-                                  input.targetPartition,
-                                  input.bucketAndPath,
-                                  input.metadata.lastModified,
+      new SchemaAndValueConverter(
+        input.writeWatermarkToHeaders,
+        input.watermarkPartition,
+        input.targetTopic,
+        input.targetPartition,
+        input.bucketAndPath,
+        input.metadata.lastModified,
       )
     }
     new DelegateIteratorCloudStreamReader(inner, converter, input.bucketAndPath).asRight
@@ -202,11 +205,13 @@ case object ParquetFormatSelection extends FormatSelection {
                                           input.metadata.lastModified,
       )
     } else {
-      new SchemaAndValueConverter(input.watermarkPartition,
-                                  input.targetTopic,
-                                  input.targetPartition,
-                                  input.bucketAndPath,
-                                  input.metadata.lastModified,
+      new SchemaAndValueConverter(
+        input.writeWatermarkToHeaders,
+        input.watermarkPartition,
+        input.targetTopic,
+        input.targetPartition,
+        input.bucketAndPath,
+        input.metadata.lastModified,
       )
     }
     inner.map {
@@ -261,7 +266,8 @@ object BytesFormatSelection extends FormatSelection {
   ): Either[Throwable, CloudStreamReader] = {
 
     val inner = new BytesStreamFileReader(input.stream, input.metadata.size)
-    val converter = new BytesOutputRowConverter(input.watermarkPartition,
+    val converter = new BytesOutputRowConverter(input.writeWatermarkToHeaders,
+                                                input.watermarkPartition,
                                                 input.targetTopic,
                                                 input.targetPartition,
                                                 input.bucketAndPath,

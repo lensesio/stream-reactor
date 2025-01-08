@@ -25,21 +25,26 @@ import org.apache.kafka.connect.source.SourceRecord
 import java.time.Instant
 
 class SchemaAndValueConverter(
-  watermarkPartition: java.util.Map[String, String],
-  topic:              Topic,
-  partition:          Integer,
-  location:           CloudLocation,
-  lastModified:       Instant,
+  writeWatermarkToHeaders: Boolean,
+  watermarkPartition:      java.util.Map[String, String],
+  topic:                   Topic,
+  partition:               Integer,
+  location:                CloudLocation,
+  lastModified:            Instant,
 ) extends Converter[SchemaAndValue] {
-  override def convert(schemaAndValue: SchemaAndValue, index: Long, lastLine: Boolean): SourceRecord =
+  override def convert(schemaAndValue: SchemaAndValue, index: Long, lastLine: Boolean): SourceRecord = {
+    val offset = SourceWatermark.offset(location, index, lastModified, lastLine)
     new SourceRecord(
       watermarkPartition,
-      SourceWatermark.offset(location, index, lastModified, lastLine),
+      offset,
       topic.value,
       partition,
       null,
       null,
       schemaAndValue.schema(),
       schemaAndValue.value(),
+      null,
+      SourceWatermark.convertWatermarkToHeaders(writeWatermarkToHeaders, watermarkPartition, offset).orNull,
     )
+  }
 }

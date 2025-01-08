@@ -61,6 +61,7 @@ object GCPStorageSourceConfig extends PropsToConfigConverter[GCPStorageSourceCon
       gcpConfigDefBuilder.getPartitionSearcherOptions(parsedValues),
       gcpConfigDefBuilder.getSourceExtensionFilter,
       backoff,
+      gcpConfigDefBuilder.getWriteWatermarkToHeaders,
     )
 
   }
@@ -74,4 +75,5 @@ case class GCPStorageSourceConfig(
   partitionSearcher:          PartitionSearcherOptions,
   extensionFilter:            Option[ExtensionFilter],
   emptySourceBackoffSettings: EmptySourceBackoffSettings,
+  writeWatermarkToHeaders:    Boolean,
 ) extends CloudSourceConfig[GCPStorageFileMetadata]

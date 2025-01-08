@@ -26,22 +26,27 @@ import org.apache.kafka.connect.source.SourceRecord
 import java.time.Instant
 
 class BytesOutputRowConverter(
-  watermarkPartition: java.util.Map[String, String],
-  topic:              Topic,
-  partition:          Integer,
-  location:           CloudLocation,
-  lastModified:       Instant,
+  writeWatermarkToHeaders: Boolean,
+  watermarkPartition:      java.util.Map[String, String],
+  topic:                   Topic,
+  partition:               Integer,
+  location:                CloudLocation,
+  lastModified:            Instant,
 ) extends Converter[BytesOutputRow] {
-  override def convert(row: BytesOutputRow, index: Long, lastLine: Boolean): SourceRecord =
+  override def convert(row: BytesOutputRow, index: Long, lastLine: Boolean): SourceRecord = {
+    val offset = SourceWatermark.offset(location, index, lastModified, lastLine)
     new SourceRecord(
       watermarkPartition,
-      SourceWatermark.offset(location, index, lastModified, lastLine),
+      offset,
       topic.value,
       partition,
       Schema.BYTES_SCHEMA,
       null,
       Schema.BYTES_SCHEMA,
       row.value,
+      null,
+      SourceWatermark.convertWatermarkToHeaders(writeWatermarkToHeaders, watermarkPartition, offset).orNull,
     )
+  }
 
 }

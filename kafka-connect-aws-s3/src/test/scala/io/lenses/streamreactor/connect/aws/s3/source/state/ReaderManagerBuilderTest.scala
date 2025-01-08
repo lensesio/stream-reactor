@@ -73,6 +73,7 @@ class ReaderManagerBuilderTest extends AsyncFlatSpec with AsyncIOSpec with Match
                          contextF,
                          _ => Some(sbo),
                          EmptySourceBackoffSettings(1, 1, 2.0),
+                         true,
     )
       .asserting(_ => rootValue shouldBe Some(pathLocation))
   }
@@ -109,7 +110,15 @@ class ReaderManagerBuilderTest extends AsyncFlatSpec with AsyncIOSpec with Match
     )
     val taskId       = ConnectorTaskId("test", 3, 1)
     val pathLocation = root.withPath(path)
-    ReaderManagerBuilder.apply(root, pathLocation, si, taskId, contextF, _ => Some(sbo), EmptySourceBackoffSettings(1, 1, 2.0))
+    ReaderManagerBuilder.apply(root,
+                               pathLocation,
+                               si,
+                               taskId,
+                               contextF,
+                               _ => Some(sbo),
+                               EmptySourceBackoffSettings(1, 1, 2.0),
+                               true,
+    )
       .flatMap(_.poll())
       .asserting { result =>
         result shouldBe empty

@@ -57,6 +57,7 @@ object S3SourceConfig extends PropsToConfigConverter[S3SourceConfig] {
       s3ConfigDefBuilder.batchDelete(),
       s3ConfigDefBuilder.getSourceExtensionFilter,
       backoff,
+      s3ConfigDefBuilder.getWriteWatermarkToHeaders,
     )
 
   }
@@ -71,4 +72,5 @@ case class S3SourceConfig(
   batchDelete:                Boolean,
   extensionFilter:            Option[ExtensionFilter],
   emptySourceBackoffSettings: EmptySourceBackoffSettings,
+  writeWatermarkToHeaders:    Boolean,
 ) extends CloudSourceConfig[S3FileMetadata]

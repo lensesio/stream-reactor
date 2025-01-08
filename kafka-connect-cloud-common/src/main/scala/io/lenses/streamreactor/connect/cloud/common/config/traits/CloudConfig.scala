@@ -125,4 +125,6 @@ trait CloudSourceConfig[MD <: FileMetadata] extends CloudConfig {
     * @return The empty source backoff settings for the cloud source.
     */
   def emptySourceBackoffSettings: EmptySourceBackoffSettings
+
+  def writeWatermarkToHeaders: Boolean
 }

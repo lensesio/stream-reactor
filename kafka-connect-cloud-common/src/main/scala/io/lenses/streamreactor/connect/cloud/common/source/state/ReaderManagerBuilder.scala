@@ -48,6 +48,7 @@ object ReaderManagerBuilder extends LazyLogging {
     contextOffsetFn:            CloudLocation => Option[CloudLocation],
     findSboF:                   CloudLocation => Option[CloudSourceBucketOptions[M]],
     emptySourceBackoffSettings: EmptySourceBackoffSettings,
+    writeWatermarkToHeaders:    Boolean,
   )(
     implicit
     cloudLocationValidator: CloudLocationValidator,
@@ -85,12 +86,14 @@ object ReaderManagerBuilder extends LazyLogging {
       path,
       sbo.recordsLimit,
       sourceFileQueue,
-      ResultReader.create(sbo.format,
-                          sbo.targetTopic,
-                          sbo.getPartitionExtractorFn,
-                          connectorTaskId,
-                          storageInterface,
-                          sbo.hasEnvelope,
+      ResultReader.create(
+        writeWatermarkToHeaders,
+        sbo.format,
+        sbo.targetTopic,
+        sbo.getPartitionExtractorFn,
+        connectorTaskId,
+        storageInterface,
+        sbo.hasEnvelope,
       ),
       connectorTaskId,
       ref,

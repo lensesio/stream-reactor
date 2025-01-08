@@ -70,12 +70,13 @@ class ResultReader(
 object ResultReader extends LazyLogging {
 
   def create[SM <: FileMetadata](
-    format:           FormatSelection,
-    targetTopic:      String,
-    partitionFn:      String => Option[Int],
-    connectorTaskId:  ConnectorTaskId,
-    storageInterface: StorageInterface[SM],
-    hasEnvelope:      Boolean,
+    writeWatermarkToHeaders: Boolean,
+    format:                  FormatSelection,
+    targetTopic:             String,
+    partitionFn:             String => Option[Int],
+    connectorTaskId:         ConnectorTaskId,
+    storageInterface:        StorageInterface[SM],
+    hasEnvelope:             Boolean,
   ): CloudLocation => Either[Throwable, ResultReader] = { pathWithLine =>
     for {
       path   <- pathWithLine.path.toRight(new IllegalStateException("No path found"))
@@ -98,6 +99,7 @@ object ResultReader extends LazyLogging {
           partition = partitionFn(path).map(Int.box).orNull
           reader <- format.toStreamReader(
             ReaderBuilderContext(
+              writeWatermarkToHeaders,
               inputStream,
               pathWithLine,
               metadata,
