@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 package io.lenses.streamreactor.connect.cloud.common.source.files
-
 import cats.implicits.catsSyntaxEitherId
 import cats.implicits.catsSyntaxOptionId
 import cats.implicits.toShow
@@ -22,6 +21,7 @@ import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
+import io.lenses.streamreactor.connect.cloud.common.source.config.PostProcessAction
 import io.lenses.streamreactor.connect.cloud.common.storage.FileListError
 import io.lenses.streamreactor.connect.cloud.common.storage.FileMetadata
 import io.lenses.streamreactor.connect.cloud.common.storage.ListOfKeysResponse
@@ -32,15 +32,17 @@ trait SourceFileQueue {
   def next(): Either[FileListError, Option[CloudLocation]]
 }
 
+case class LastSeenFileTracker[SM <: FileMetadata](var lastSeenFile: Option[SM])
+
 /**
   * Blocking processor for queues of operations.  Used to ensure consistency.
   * Will block any further writes by the current file until the remote has caught up.
   */
 class CloudSourceFileQueue[SM <: FileMetadata] private (
-  private val taskId:        ConnectorTaskId,
-  private val batchListerFn: Option[SM] => Either[FileListError, Option[ListResponse[String, SM]]],
-  private var files:         Seq[CloudLocation],
-  private var lastSeenFile:  Option[SM],
+  private val taskId:              ConnectorTaskId,
+  private val batchListerFn:       Option[SM] => Either[FileListError, Option[ListResponse[String, SM]]],
+  private var files:               Seq[CloudLocation],
+  private var lastSeenFileTracker: Option[LastSeenFileTracker[SM]],
 )(
   implicit
   cloudLocationValidator: CloudLocationValidator,
@@ -53,7 +55,7 @@ class CloudSourceFileQueue[SM <: FileMetadata] private (
   )(
     implicit
     cloudLocationValidator: CloudLocationValidator,
-  ) = this(taskId, batchListerFn, Seq.empty, None)
+  ) = this(taskId, batchListerFn, Seq.empty, Some(LastSeenFileTracker[SM](None)))
 
   override def next(): Either[FileListError, Option[CloudLocation]] =
     files match {
@@ -73,10 +75,11 @@ class CloudSourceFileQueue[SM <: FileMetadata] private (
 
   private def retrieveNextFile(
   ): Either[FileListError, Option[CloudLocation]] = {
-    val nextBatch: Either[FileListError, Option[ListResponse[String, SM]]] = batchListerFn(lastSeenFile)
+    val nextBatch: Either[FileListError, Option[ListResponse[String, SM]]] =
+      batchListerFn(lastSeenFileTracker.flatMap(_.lastSeenFile))
     nextBatch.flatMap {
       case Some(ListOfKeysResponse(bucket, prefix, value, meta)) =>
-        lastSeenFile = meta.some
+        lastSeenFileTracker = lastSeenFileTracker.map(_.copy(lastSeenFile = meta.some))
         files = value.map(path =>
           CloudLocation(
             bucket,
@@ -98,10 +101,11 @@ class CloudSourceFileQueue[SM <: FileMetadata] private (
 
 object CloudSourceFileQueue {
   def from[SM <: FileMetadata](
-    batchListerFn:    Option[SM] => Either[FileListError, Option[ListOfKeysResponse[SM]]],
-    storageInterface: StorageInterface[SM],
-    startingFile:     CloudLocation,
-    taskId:           ConnectorTaskId,
+    batchListerFn:          Option[SM] => Either[FileListError, Option[ListOfKeysResponse[SM]]],
+    storageInterface:       StorageInterface[SM],
+    startingFile:           CloudLocation,
+    taskId:                 ConnectorTaskId,
+    maybePostProcessAction: Option[PostProcessAction],
   )(
     implicit
     cloudLocationValidator: CloudLocationValidator,
@@ -114,7 +118,12 @@ object CloudSourceFileQueue {
       case _ =>
         Option.empty[SM]
     }
-    new CloudSourceFileQueue(taskId, batchListerFn, Seq(startingFile), lastSeen)
+    new CloudSourceFileQueue[SM](
+      taskId,
+      batchListerFn,
+      Seq(startingFile),
+      Option.when(maybePostProcessAction.isEmpty)(LastSeenFileTracker[SM](lastSeen)),
+    )
   }
 
 }
