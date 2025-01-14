@@ -88,7 +88,7 @@ allprojects {
                     "Git-Commit-Hash": gitCommitHash,
                     "Git-Tag": gitTag,
                     "StreamReactor-Docs": "https://docs.lenses.io/connectors/"
-            )
+                    )
         }
     }
 
@@ -97,17 +97,17 @@ allprojects {
 
         manifest {
             attributes("StreamReactor-Version": artifactVersion,
-                    "Kafka-Version": kafkaVersion,
-                    "Created-By": "Lenses",
-                    "Created-At": new Date().format("YYYYMMDDHHmm"),
-                    "Git-Repo": gitRepo,
-                    "Git-Commit-Hash": gitCommitHash,
-                    "Git-Tag": gitTag,
-                    "StreamReactor-Docs": "https://docs.lenses.io/connectors/"
+            "Kafka-Version": kafkaVersion,
+            "Created-By": "Lenses",
+            "Created-At": new Date().format("YYYYMMDDHHmm"),
+            "Git-Repo": gitRepo,
+            "Git-Commit-Hash": gitCommitHash,
+            "Git-Tag": gitTag,
+            "StreamReactor-Docs": "https://docs.lenses.io/connectors/"
             )
         }
         configurations = [
-                project.configurations.compileClasspath
+            project.configurations.compileClasspath
         ]
         archiveFileName = "${project.name}-${artifactVersion}-all.jar"
         zip64 true
@@ -196,7 +196,11 @@ allprojects {
         }
     }
 
-    task collectArtifacts(dependsOn: [test, collectDependencies, copyModuleJar])
+    task collectArtifacts(dependsOn: [
+        test,
+        collectDependencies,
+        copyModuleJar
+    ])
 }
 
 
@@ -221,13 +225,13 @@ task testModuleList() {
 
 task releaseModuleList() {
     def nonReleaseModules = [
-            "java-reactor",
-            "test-utils",
-            "kafka-connect-cloud-common",
-            "kafka-connect-common",
-            "kafka-connect-gcp-common",
-            "kafka-connect-query-language",
-            "kafka-connect-sink-reporting"
+        "java-reactor",
+        "test-utils",
+        "kafka-connect-cloud-common",
+        "kafka-connect-common",
+        "kafka-connect-gcp-common",
+        "kafka-connect-query-language",
+        "kafka-connect-sink-reporting"
     ]
     def modulesFile = new File("gradle-modules.txt")
     modulesFile.delete()

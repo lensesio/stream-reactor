@@ -34,6 +34,7 @@ import io.lenses.streamreactor.connect.http.sink.commit.BatchPolicy
 import io.lenses.streamreactor.connect.http.sink.commit.HttpBatchPolicy
 import io.lenses.streamreactor.connect.http.sink.commit.HttpCommitContext
 import io.lenses.streamreactor.connect.http.sink.config.HttpSinkConfig
+import io.lenses.streamreactor.connect.http.sink.metrics.HttpSinkMetrics
 import io.lenses.streamreactor.connect.http.sink.reporter.model.HttpFailureConnectorSpecificRecordData
 import io.lenses.streamreactor.connect.http.sink.reporter.model.HttpSuccessConnectorSpecificRecordData
 import io.lenses.streamreactor.connect.http.sink.tpl.RenderedRecord
@@ -109,6 +110,7 @@ object HttpWriterManager extends StrictLogging {
         config.method.toHttp4sMethod,
         retriableClient,
         config.authentication,
+        new HttpSinkMetrics,
       )
       batchPolicy = config.batch.toBatchPolicy
 
