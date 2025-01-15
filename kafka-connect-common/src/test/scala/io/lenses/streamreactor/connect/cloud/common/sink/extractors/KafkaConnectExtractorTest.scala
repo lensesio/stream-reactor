@@ -18,14 +18,16 @@ package io.lenses.streamreactor.connect.cloud.common.sink.extractors
 import cats.implicits.catsSyntaxOptionId
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaBuilder
-import org.scalatest.flatspec.AnyFlatSpec
-import org.scalatest.matchers.should.Matchers
 import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.sink.SinkRecord
 import org.mockito.MockitoSugar
 import org.scalatest.EitherValues
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
+import java.util
 import scala.jdk.CollectionConverters.MapHasAsJava
+import scala.jdk.CollectionConverters.MapHasAsScala
 import scala.jdk.CollectionConverters.SeqHasAsJava
 
 class KafkaConnectExtractorTest extends AnyFlatSpec with Matchers with MockitoSugar with EitherValues {
@@ -46,6 +48,31 @@ class KafkaConnectExtractorTest extends AnyFlatSpec with Matchers with MockitoSu
 
     val result = KafkaConnectExtractor.extractFromValue(sinkRecord, None)
     result shouldBe Right("testValue")
+  }
+
+  "extract" should "handle a java.util.HashMap" in {
+    val dataMap: Map[String, Any] = Map(
+      "gender"   -> "male",
+      "tenantId" -> "tenantid",
+      "age"      -> "25",
+    )
+
+    val map: Map[String, Any] = Map(
+      "data"        -> dataMap,
+      "specversion" -> "1.0",
+      "source"      -> "da915f_87b9_414a_9f70_5f794a1310de",
+      "id"          -> "4d8f4a0f-cba5-45e4-9f9d-8168bfda77",
+      "time"        -> "2024-11-14T06:58:47.472733Z",
+      "type"        -> "event.type.v1",
+      "publishtime" -> "2024-11-14T06:58:48.235556Z",
+    )
+
+    val sinkRecord = mock[SinkRecord]
+    when(sinkRecord.value()).thenReturn(map.asJava)
+    when(sinkRecord.valueSchema()).thenReturn(null)
+
+    val result = KafkaConnectExtractor.extractFromValue(sinkRecord, None)
+    result.map(_.asInstanceOf[util.Map[_, _]].asScala.toMap) shouldBe Right(map)
   }
 
   "extract" should "handle different types correctly" in {
@@ -90,7 +117,7 @@ class KafkaConnectExtractorTest extends AnyFlatSpec with Matchers with MockitoSu
 
   it should "return an error for unknown types" in {
     val unknownType = new Object()
-    val result      = KafkaConnectExtractor.extract(unknownType, None, None)
+    val result      = KafkaConnectExtractor.extract(unknownType, None, Some("Empty"))
     val message     = result.left.value.getMessage
     message should startWith("Unknown value type: `java.lang.Object`")
     message should endWith("path: `Empty`")
