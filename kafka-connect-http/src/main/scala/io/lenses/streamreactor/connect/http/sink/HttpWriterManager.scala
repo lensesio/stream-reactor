@@ -34,7 +34,8 @@ import io.lenses.streamreactor.connect.http.sink.commit.BatchPolicy
 import io.lenses.streamreactor.connect.http.sink.commit.HttpBatchPolicy
 import io.lenses.streamreactor.connect.http.sink.commit.HttpCommitContext
 import io.lenses.streamreactor.connect.http.sink.config.HttpSinkConfig
-import io.lenses.streamreactor.connect.http.sink.metrics.HttpSinkMetrics
+import io.lenses.streamreactor.connect.http.sink.metrics.HttpSinkMetricsMBean
+import io.lenses.streamreactor.connect.http.sink.metrics.MetricsResetter
 import io.lenses.streamreactor.connect.http.sink.reporter.model.HttpFailureConnectorSpecificRecordData
 import io.lenses.streamreactor.connect.http.sink.reporter.model.HttpSuccessConnectorSpecificRecordData
 import io.lenses.streamreactor.connect.http.sink.tpl.RenderedRecord
@@ -74,6 +75,7 @@ object HttpWriterManager extends StrictLogging {
     config:    HttpSinkConfig,
     template:  TemplateType,
     terminate: Deferred[IO, Either[Throwable, Unit]],
+    metrics:   HttpSinkMetricsMBean,
   )(
     implicit
     t: Temporal[IO],
@@ -101,16 +103,19 @@ object HttpWriterManager extends StrictLogging {
 
     val clientResource: Resource[IO, Client[IO]] = JdkHttpClient[IO](httpClient)
 
+    val metricsResetter = new MetricsResetter(metrics, 5.minutes, 30.seconds)
     for {
-      (client, cResRel) <- clientResource.allocated
-      retriableClient    = Retry(retriablePolicy)(client)
-      writersRef        <- Ref.of[IO, Map[Topic, HttpWriter]](Map.empty)
+
+      (client, cResRel)    <- clientResource.allocated
+      (_, resetterRelease) <- metricsResetter.scheduleResetAndUpdate.allocated
+      retriableClient       = Retry(retriablePolicy)(client)
+      writersRef           <- Ref.of[IO, Map[Topic, HttpWriter]](Map.empty)
       sender <- HttpRequestSender(
         sinkName,
         config.method.toHttp4sMethod,
         retriableClient,
         config.authentication,
-        new HttpSinkMetrics,
+        metrics,
       )
       batchPolicy = config.batch.toBatchPolicy
 
@@ -119,7 +124,8 @@ object HttpWriterManager extends StrictLogging {
       template,
       sender,
       if (batchPolicy.conditions.nonEmpty) batchPolicy else HttpBatchPolicy.Default,
-      cResRel,
+      //close the resetter first
+      resetterRelease.guarantee(cResRel),
       writersRef,
       terminate,
       config.errorThreshold,

@@ -36,6 +36,8 @@ import org.apache.kafka.connect.sink.SinkRecord
 import org.apache.kafka.connect.sink.SinkTask
 import cats.syntax.all._
 import io.lenses.streamreactor.common.utils.JarManifestProvided
+import io.lenses.streamreactor.connect.http.sink.metrics.HttpSinkMetrics
+import io.lenses.streamreactor.connect.http.sink.metrics.MetricsRegistrar
 
 import java.util
 import scala.jdk.CollectionConverters.IterableHasAsScala
@@ -68,8 +70,10 @@ class HttpSinkTask extends SinkTask with LazyLogging with JarManifestProvided {
 
     (for {
       config        <- IO.fromEither(HttpSinkConfig.from(propsAsScala))
+      metrics       <- IO(new HttpSinkMetrics())
+      _             <- IO(MetricsRegistrar.registerMetricsMBean(metrics, sinkName))
       template       = RawTemplate(config.endpoint, config.content, config.headers, config.nullPayloadHandler)
-      writerManager <- HttpWriterManager.apply(sinkName, config, template, deferred)
+      writerManager <- HttpWriterManager.apply(sinkName, config, template, deferred, metrics)
       _             <- writerManager.start(refUpdateCallback)
     } yield {
       this.maybeTemplate      = Some(template)

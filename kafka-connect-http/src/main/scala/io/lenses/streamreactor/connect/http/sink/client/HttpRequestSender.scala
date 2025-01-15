@@ -25,7 +25,6 @@ import io.lenses.streamreactor.connect.http.sink.client.oauth2.AccessTokenProvid
 import io.lenses.streamreactor.connect.http.sink.client.oauth2.OAuth2AccessTokenProvider
 import io.lenses.streamreactor.connect.http.sink.client.oauth2.cache.CachedAccessTokenProvider
 import io.lenses.streamreactor.connect.http.sink.metrics.HttpSinkMetricsMBean
-import io.lenses.streamreactor.connect.http.sink.metrics.MetricsRegistrar
 import io.lenses.streamreactor.connect.http.sink.tpl.ProcessedTemplate
 import org.http4s.EntityDecoder
 import org.http4s._
@@ -79,9 +78,8 @@ object HttpRequestSender {
     client:         Client[IO],
     authentication: Authentication,
     metrics:        HttpSinkMetricsMBean,
-  ): IO[HttpRequestSender] = {
-
-    val senderIo = authentication match {
+  ): IO[HttpRequestSender] =
+    authentication match {
       case NoAuthentication => IO(new NoAuthenticationHttpRequestSender(sinkName, method, client, metrics))
       case BasicAuthentication(username, password) =>
         IO(new BasicAuthenticationHttpRequestSender(sinkName, method, client, username, password, metrics))
@@ -94,11 +92,6 @@ object HttpRequestSender {
           cachedTokenProvider = new CachedAccessTokenProvider(tokenProvider, ref)
         } yield new OAuth2AuthenticationHttpRequestSender(sinkName, method, client, cachedTokenProvider, metrics)
     }
-    for {
-      _      <- IO(MetricsRegistrar.registerMetricsMBean(metrics, sinkName))
-      sender <- senderIo
-    } yield sender
-  }
 }
 
 abstract class HttpRequestSender(

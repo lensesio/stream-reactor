@@ -539,7 +539,7 @@ trait Dependencies {
 
   val kafkaConnectHttpDeps: Seq[ModuleID] = Seq(http4sJdkClient, http4sCirce, histogram)
 
-  val kafkaConnectHttpTestDeps: Seq[ModuleID] = baseTestDeps
+  val kafkaConnectHttpTestDeps: Seq[ModuleID] = baseTestDeps ++ Seq(catsEffectScalatest)
 
   val kafkaConnectCassandraDeps: Seq[ModuleID] = Seq(
     cassandraDriver,

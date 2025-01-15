@@ -29,6 +29,7 @@ class HttpSinkMetricsTest extends AnyFunSuite with Matchers {
     metrics.recordRequestTime(400)
     metrics.recordRequestTime(500)
 
+    metrics.updatePercentiles()
     // Check percentiles
     metrics.getP50RequestTimeMs should be(300L +- 10L) // median should be around 300
     metrics.getP95RequestTimeMs should be(500L +- 10L) // 95th percentile should be around 500
@@ -43,23 +44,17 @@ class HttpSinkMetricsTest extends AnyFunSuite with Matchers {
     metrics.recordRequestTime(200)
     metrics.recordRequestTime(200)
 
+    metrics.updatePercentiles()
     // All percentiles should be exactly 200 since all values are the same
     metrics.getP50RequestTimeMs shouldBe 200L
     metrics.getP95RequestTimeMs shouldBe 200L
     metrics.getP99RequestTimeMs shouldBe 200L
   }
 
-  test("HttpSinkMetrics should calculate average request time correctly") {
-    val metrics = new HttpSinkMetrics()
-
-    metrics.recordRequestTime(100)
-    metrics.recordRequestTime(200)
-    metrics.recordRequestTime(300)
-
-  }
-
   test("HttpSinkMetrics should handle zero requests") {
     val metrics = new HttpSinkMetrics()
+
+    metrics.updatePercentiles()
 
     metrics.getP50RequestTimeMs shouldBe 0L
     metrics.getP95RequestTimeMs shouldBe 0L
@@ -92,6 +87,7 @@ class HttpSinkMetricsTest extends AnyFunSuite with Matchers {
     metrics.recordRequestTime(7200000L) // 2 hours
     metrics.recordRequestTime(1800000L) // 30 minutes
 
+    metrics.updatePercentiles()
     // Values should be recorded accurately even for large numbers
     metrics.getP50RequestTimeMs should be(3600000L +- 36000L) // 1% tolerance for large numbers
     metrics.getP95RequestTimeMs should be(7200000L +- 72000L)
@@ -108,6 +104,7 @@ class HttpSinkMetricsTest extends AnyFunSuite with Matchers {
     metrics.recordRequestTime(60000)   // 1m
     metrics.recordRequestTime(3600000) // 1h
 
+    metrics.updatePercentiles()
     // Check if percentiles handle mixed scales correctly
     metrics.getP50RequestTimeMs should be(1000L +- 100L)
     metrics.getP95RequestTimeMs should be(3600000L +- 36000L)
@@ -122,6 +119,7 @@ class HttpSinkMetricsTest extends AnyFunSuite with Matchers {
     metrics.recordRequestTime(2) // 2ms
     metrics.recordRequestTime(5) // 5ms
 
+    metrics.updatePercentiles()
     // Check precision for small values
     metrics.getP50RequestTimeMs shouldBe 2L
     metrics.getP95RequestTimeMs shouldBe 5L
@@ -138,6 +136,7 @@ class HttpSinkMetricsTest extends AnyFunSuite with Matchers {
     metrics.recordRequestTime(fourHoursInMillis) // 4 hours (exceeds max)
     metrics.recordRequestTime(60000)             // 1 minute
 
+    metrics.updatePercentiles()
     // Verify the percentile values are capped at 3 hours
     metrics.getP50RequestTimeMs should be(60000L +- 100L)
     metrics.getP95RequestTimeMs shouldBe threeHoursInMillis +- 10000
@@ -153,6 +152,7 @@ class HttpSinkMetricsTest extends AnyFunSuite with Matchers {
     metrics.recordRequestTime(threeHoursInMillis)        // At max
     metrics.recordRequestTime(threeHoursInMillis + 1000) // Just over max
 
+    metrics.updatePercentiles()
     // All percentiles should be at or very close to 3 hours
     metrics.getP50RequestTimeMs shouldBe threeHoursInMillis +- 10000
     metrics.getP95RequestTimeMs shouldBe threeHoursInMillis +- 10000

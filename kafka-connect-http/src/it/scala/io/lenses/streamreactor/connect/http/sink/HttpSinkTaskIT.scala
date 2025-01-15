@@ -39,12 +39,6 @@ class HttpSinkTaskIT extends AsyncFunSuite with AsyncIOSpec with Eventually {
       _ <- Resource.make(IO.delay(server.start()))(_ => IO.delay(server.stop()))
     } yield server
 
-  def sinkTask(config: String): Resource[IO, HttpSinkTask] =
-    for {
-      task <- Resource.eval(IO.delay(new HttpSinkTask()))
-      _    <- Resource.make(IO.delay(task.start(Map("connect.http.config" -> config).asJava)))(_ => IO.delay(task.stop()))
-    } yield task
-
   def sinkTaskUsingProps(config: Map[String, String]): Resource[IO, HttpSinkTask] = {
     val configWithUniqueName: Map[String, String] = config + ("name" -> ("mySinkName" + UUID.randomUUID().toString))
     for {
