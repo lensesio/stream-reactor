@@ -43,7 +43,7 @@ object Dependencies {
 
     val mockitoJunitJupiterVersion = "5.17.0"
     val junitJupiterVersion        = "5.11.3"
-    val assertjCoreVersion         = "3.26.3"
+    val assertjCoreVersion         = "3.27.3"
 
     val cyclopsVersion = "10.4.1"
 
