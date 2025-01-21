@@ -20,11 +20,13 @@ import io.lenses.kcql.Kcql
 import io.lenses.streamreactor.connect.cloud.common.config.FormatOptions.WithHeaders
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEntry
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum
+import io.lenses.streamreactor.connect.cloud.common.config.traits.CloudSourceConfig
 import io.lenses.streamreactor.connect.cloud.common.formats.reader.converters.BytesOutputRowConverter
 import io.lenses.streamreactor.connect.cloud.common.formats.reader.converters.SchemaAndValueConverter
 import io.lenses.streamreactor.connect.cloud.common.formats.reader.converters.SchemaAndValueEnvelopeConverter
 import io.lenses.streamreactor.connect.cloud.common.formats.reader.converters.SchemalessEnvelopeConverter
 import io.lenses.streamreactor.connect.cloud.common.formats.reader._
+import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodec
 import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodecName
 import io.lenses.streamreactor.connect.cloud.common.model.Topic
 import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodecName.BROTLI
@@ -52,6 +54,7 @@ case class ReaderBuilderContext(
   stream:                  InputStream,
   bucketAndPath:           CloudLocation,
   metadata:                ObjectMetadata,
+  config:                  CloudSourceConfig[_],
   hasEnvelope:             Boolean,
   recreateInputStreamF:    () => Either[Throwable, InputStream],
   targetPartition:         Integer,
@@ -114,13 +117,14 @@ case object FormatSelection {
 case object JsonFormatSelection extends FormatSelection {
   override def availableCompressionCodecs: Map[CompressionCodecName, Boolean] = Map(
     UNCOMPRESSED -> true,
-    GZIP         -> true, // Only applies to sink currently.
+    GZIP         -> true,
   )
 
   override def toStreamReader(
     input: ReaderBuilderContext,
   ): Either[Throwable, CloudStreamReader] = {
-    val inner = new TextStreamReader(input.stream)
+    implicit val compressionCodec: CompressionCodec = input.config.compressionCodec
+    val inner = new JsonStreamReader(input.stream)
     val converter = if (input.hasEnvelope) {
       new SchemalessEnvelopeConverter(input.watermarkPartition,
                                       input.targetTopic,
