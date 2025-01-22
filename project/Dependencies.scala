@@ -528,6 +528,7 @@ trait Dependencies {
   val kafkaConnectGcpStorageDeps: Seq[ModuleID] = Seq(
     cyclops,
     gcpStorageSdk,
+    googleProtobufJava,
   )
 
   val kafkaConnectGcpStorageTestDeps: Seq[ModuleID] =
