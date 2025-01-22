@@ -30,6 +30,7 @@ import io.lenses.streamreactor.connect.cloud.common.config.AvroFormatSelection
 import io.lenses.streamreactor.connect.cloud.common.config.DataStorageSettings
 import io.lenses.streamreactor.connect.cloud.common.formats.AvroFormatReader
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.MessageDetail
+import io.lenses.streamreactor.connect.cloud.common.formats.writer.schema.DefaultSchemaChangeDetector
 import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodecName.UNCOMPRESSED
 import io.lenses.streamreactor.connect.cloud.common.model.Offset
 import io.lenses.streamreactor.connect.cloud.common.model.Topic
@@ -72,9 +73,10 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
 
   private val compressionCodec = UNCOMPRESSED.toCodec()
 
-  private val TopicName        = "myTopic"
-  private val PathPrefix       = "streamReactorBackups"
-  private val avroFormatReader = new AvroFormatReader
+  private val TopicName            = "myTopic"
+  private val PathPrefix           = "streamReactorBackups"
+  private val schemaChangeDetector = DefaultSchemaChangeDetector
+  private val avroFormatReader     = new AvroFormatReader
 
   private implicit val cloudLocationValidator: CloudLocationValidator = S3LocationValidator
   private val bucketAndPrefix = CloudLocation(BucketName, PathPrefix.some)
@@ -104,13 +106,13 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
         dataStorage      = DataStorageSettings.disabled,
       ),
     ),
-    indexOptions                  = IndexOptions(5, ".indexes").some,
-    compressionCodec              = compressionCodec,
-    batchDelete                   = true,
-    errorPolicy                   = ErrorPolicy(ErrorPolicyEnum.THROW),
-    connectorRetryConfig          = new RetryConfig(1, 1L, 1.0),
-    logMetrics                    = false,
-    rolloverOnSchemaChangeEnabled = true,
+    indexOptions         = IndexOptions(5, ".indexes").some,
+    compressionCodec     = compressionCodec,
+    batchDelete          = true,
+    errorPolicy          = ErrorPolicy(ErrorPolicyEnum.THROW),
+    connectorRetryConfig = new RetryConfig(1, 1L, 1.0),
+    logMetrics           = false,
+    schemaChangeDetector = schemaChangeDetector,
   )
 
   "avro sink" should "write 2 records to avro format in s3" in {

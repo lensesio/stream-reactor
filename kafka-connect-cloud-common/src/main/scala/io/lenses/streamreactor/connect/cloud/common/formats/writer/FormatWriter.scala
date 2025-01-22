@@ -25,48 +25,47 @@ import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
 import io.lenses.streamreactor.connect.cloud.common.sink.NonFatalCloudSinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
 import io.lenses.streamreactor.connect.cloud.common.stream.BuildLocalOutputStream
-import io.lenses.streamreactor.connect.cloud.common.stream.CloudOutputStream
 
-import java.io.File
+import java.nio.file.Path
 import scala.util.Try
 
 object FormatWriter {
 
   def apply(
     formatSelection: FormatSelection,
-    path:            File,
+    path:            Path,
     topicPartition:  TopicPartition,
   )(
     implicit
     compressionCodec: CompressionCodec,
   ): Either[SinkError, FormatWriter] = {
     for {
-      outputStream <- Try(new BuildLocalOutputStream(toBufferedOutputStream(path), topicPartition))
-      writer       <- Try(FormatWriter(formatSelection, outputStream))
+      outputStream <- Try(new BuildLocalOutputStream(toBufferedOutputStream(path.toFile), topicPartition))
+      writer <- Try {
+        formatSelection match {
+          case ParquetFormatSelection =>
+            new ParquetFormatWriter(outputStream)
+          case JsonFormatSelection    => new JsonFormatWriter(outputStream)
+          case AvroFormatSelection    => new AvroFormatWriter(outputStream)
+          case TextFormatSelection(_) => new TextFormatWriter(outputStream)
+          case CsvFormatSelection(formatOptions) =>
+            new CsvFormatWriter(outputStream, formatOptions.contains(WithHeaders))
+          case BytesFormatSelection => new BytesFormatWriter(outputStream)
+          case _                    => throw FormatWriterException(s"Unsupported cloud format $formatSelection.format")
+        }
+      }
     } yield writer
   }.toEither.leftMap(ex => new NonFatalCloudSinkError(ex.getMessage, ex.some))
-
-  def apply(
-    formatInfo:   FormatSelection,
-    outputStream: CloudOutputStream,
-  )(
-    implicit
-    compressionCodec: CompressionCodec,
-  ): FormatWriter =
-    formatInfo match {
-      case ParquetFormatSelection            => new ParquetFormatWriter(outputStream)
-      case JsonFormatSelection               => new JsonFormatWriter(outputStream)
-      case AvroFormatSelection               => new AvroFormatWriter(outputStream)
-      case TextFormatSelection(_)            => new TextFormatWriter(outputStream)
-      case CsvFormatSelection(formatOptions) => new CsvFormatWriter(outputStream, formatOptions.contains(WithHeaders))
-      case BytesFormatSelection              => new BytesFormatWriter(outputStream)
-      case _                                 => throw FormatWriterException(s"Unsupported cloud format $formatInfo.format")
-    }
 
 }
 
 trait FormatWriter extends AutoCloseable {
 
+  /**
+    * Determines if the file should be rolled over when a schema change is detected.
+    *
+    * @return True if the file should be rolled over on schema change, false otherwise.
+    */
   def rolloverFileOnSchemaChange(): Boolean
 
   def write(message: MessageDetail): Either[Throwable, Unit]
@@ -76,4 +75,5 @@ trait FormatWriter extends AutoCloseable {
   def complete(): Either[SinkError, Unit]
 
   def close(): Unit = { val _ = complete() }
+
 }

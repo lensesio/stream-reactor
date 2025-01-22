@@ -29,6 +29,7 @@ import io.lenses.streamreactor.connect.cloud.common.config.AvroFormatSelection
 import io.lenses.streamreactor.connect.cloud.common.config.DataStorageSettings
 import io.lenses.streamreactor.connect.cloud.common.config.JsonFormatSelection
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.MessageDetail
+import io.lenses.streamreactor.connect.cloud.common.formats.writer.schema.DefaultSchemaChangeDetector
 import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodecName.UNCOMPRESSED
 import io.lenses.streamreactor.connect.cloud.common.model.Offset
 import io.lenses.streamreactor.connect.cloud.common.model.Topic
@@ -60,7 +61,6 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 import java.time.Instant
-
 import scala.jdk.CollectionConverters._
 
 class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest {
@@ -72,7 +72,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
   private val TopicName  = "myTopic"
   private val PathPrefix = "streamReactorBackups"
   private implicit val cloudLocationValidator: S3LocationValidator.type = S3LocationValidator
-
+  private val schemaChangeDetector = DefaultSchemaChangeDetector
   "json sink" should "write single json record using offset key naming" in {
 
     val bucketAndPrefix = CloudLocation(BucketName, PathPrefix.some)
@@ -107,11 +107,11 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
       ),
       indexOptions = IndexOptions(5, ".indexes").some,
       compressionCodec,
-      batchDelete                   = true,
-      errorPolicy                   = ErrorPolicy(ErrorPolicyEnum.THROW),
-      connectorRetryConfig          = new RetryConfig(1, 1L, 1.0),
-      logMetrics                    = false,
-      rolloverOnSchemaChangeEnabled = true,
+      batchDelete          = true,
+      errorPolicy          = ErrorPolicy(ErrorPolicyEnum.THROW),
+      connectorRetryConfig = new RetryConfig(1, 1L, 1.0),
+      logMetrics           = false,
+      schemaChangeDetector = schemaChangeDetector,
     )
 
     val sink   = writerManagerCreator.from(config)._2
@@ -172,11 +172,11 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
       ),
       indexOptions = IndexOptions(5, ".indexes").some,
       compressionCodec,
-      batchDelete                   = true,
-      errorPolicy                   = ErrorPolicy(ErrorPolicyEnum.THROW),
-      connectorRetryConfig          = new RetryConfig(1, 1L, 1.0),
-      logMetrics                    = false,
-      rolloverOnSchemaChangeEnabled = true,
+      batchDelete          = true,
+      errorPolicy          = ErrorPolicy(ErrorPolicyEnum.THROW),
+      connectorRetryConfig = new RetryConfig(1, 1L, 1.0),
+      logMetrics           = false,
+      schemaChangeDetector = schemaChangeDetector,
     )
 
     val sink = writerManagerCreator.from(config)._2
@@ -241,11 +241,11 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
       ),
       indexOptions = IndexOptions(5, ".indexes").some,
       compressionCodec,
-      batchDelete                   = true,
-      errorPolicy                   = ErrorPolicy(ErrorPolicyEnum.THROW),
-      connectorRetryConfig          = new RetryConfig(1, 1L, 1.0),
-      logMetrics                    = false,
-      rolloverOnSchemaChangeEnabled = true,
+      batchDelete          = true,
+      errorPolicy          = ErrorPolicy(ErrorPolicyEnum.THROW),
+      connectorRetryConfig = new RetryConfig(1, 1L, 1.0),
+      logMetrics           = false,
+      schemaChangeDetector = schemaChangeDetector,
     )
 
     val sink = writerManagerCreator.from(config)._2
@@ -316,11 +316,11 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
       ),
       indexOptions = IndexOptions(5, ".indexes").some,
       compressionCodec,
-      batchDelete                   = true,
-      errorPolicy                   = ErrorPolicy(ErrorPolicyEnum.THROW),
-      connectorRetryConfig          = new RetryConfig(1, 1L, 1.0),
-      logMetrics                    = false,
-      rolloverOnSchemaChangeEnabled = true,
+      batchDelete          = true,
+      errorPolicy          = ErrorPolicy(ErrorPolicyEnum.THROW),
+      connectorRetryConfig = new RetryConfig(1, 1L, 1.0),
+      logMetrics           = false,
+      schemaChangeDetector = schemaChangeDetector,
     )
 
     val sink   = writerManagerCreator.from(config)._2

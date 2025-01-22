@@ -53,7 +53,7 @@ class ToAvroDataConverterTest extends AnyFunSuiteLike with Matchers {
     val avroData      = new AvroData(100)
     val connectSchema = avroData.toConnectSchema(avroSchema)
 
-    val avroSchemaBack = ToAvroDataConverter.convertSchema(Some(connectSchema))
+    val avroSchemaBack = ToAvroDataConverter.convertSchema(connectSchema)
     avroSchemaBack.getField("tenant_cd").schema().getTypes.get(1).getEnumSymbols.asScala.toSet shouldBe Set("one",
                                                                                                             "two",
                                                                                                             "three",

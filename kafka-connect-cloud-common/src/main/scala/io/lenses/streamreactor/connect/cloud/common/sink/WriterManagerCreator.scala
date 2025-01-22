@@ -114,7 +114,7 @@ class WriterManagerCreator[MD <: FileMetadata, SC <: CloudSinkConfig[_]] extends
             for {
               formatWriter <- formats.writer.FormatWriter(
                 bucketOptions.formatSelection,
-                stagingFilename,
+                stagingFilename.toPath,
                 topicPartition,
               )(config.compressionCodec)
             } yield formatWriter
@@ -140,7 +140,7 @@ class WriterManagerCreator[MD <: FileMetadata, SC <: CloudSinkConfig[_]] extends
       formatWriterFn,
       writerIndexer,
       transformers.transform,
-      config.rolloverOnSchemaChangeEnabled,
+      config.schemaChangeDetector,
     )
     (indexManager, writerManager)
   }

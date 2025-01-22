@@ -5,6 +5,7 @@ import io.lenses.streamreactor.connect.aws.s3.model.location.S3LocationValidator
 import io.lenses.streamreactor.connect.aws.s3.storage.S3FileMetadata
 import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.FormatWriter
+import io.lenses.streamreactor.connect.cloud.common.formats.writer.schema.SchemaChangeDetector
 import io.lenses.streamreactor.connect.cloud.common.model.Topic
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
@@ -28,6 +29,7 @@ class WriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyContainerT
   private implicit val cloudLocationValidator: CloudLocationValidator = S3LocationValidator
 
   private val topicPartition = Topic("topic").withPartition(10)
+  private val schemaChangeDetector: SchemaChangeDetector = mock[SchemaChangeDetector]
 
   private val s3KeyNamer = mock[CloudKeyNamer]
   "S3WriterManager" should "return empty map when no offset or metadata writers can be found" in {
@@ -41,7 +43,7 @@ class WriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyContainerT
       formatWriterFn    = (_, _) => mock[FormatWriter].asRight,
       writerIndexer     = mock[WriterIndexer[S3FileMetadata]],
       _.asRight,
-      rolloverOnSchemaChangeEnabled = true,
+      schemaChangeDetector = schemaChangeDetector,
     )
 
     val result = wm.preCommit(Map(topicPartition -> new OffsetAndMetadata(999)))

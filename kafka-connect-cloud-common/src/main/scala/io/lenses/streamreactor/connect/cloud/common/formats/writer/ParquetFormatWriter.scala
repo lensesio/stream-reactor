@@ -38,8 +38,12 @@ import org.apache.parquet.hadoop.metadata.{ CompressionCodecName => ParquetCompr
 
 import scala.util.Try
 
-class ParquetFormatWriter(outputStream: CloudOutputStream)(implicit compressionCodec: CompressionCodec)
-    extends FormatWriter
+class ParquetFormatWriter(
+  outputStream: CloudOutputStream,
+)(
+  implicit
+  compressionCodec: CompressionCodec,
+) extends FormatWriter
     with LazyLogging {
 
   private val parquetCompressionCodec: ParquetCompressionCodecName = {
@@ -63,15 +67,22 @@ class ParquetFormatWriter(outputStream: CloudOutputStream)(implicit compressionC
       logger.debug("ParquetFormatWriter - write")
 
       val genericRecord = ToAvroDataConverter.convertToGenericRecord(messageDetail.value)
-      if (writer == null) {
-        writer = init(messageDetail.value.schema())
-      }
+      createWriterIfNoWriter(
+        messageDetail.value.schema().getOrElse(
+          throw new IllegalArgumentException("Schema-less data is not supported for Avro/Parquet"),
+        ),
+      )
 
       writer.write(genericRecord)
       outputStream.flush()
     }.toEither
 
-  private def init(connectSchema: Option[ConnectSchema]): ParquetWriter[Any] = {
+  private def createWriterIfNoWriter(connectSchema: ConnectSchema): Unit =
+    if (writer == null) {
+      writer = init(connectSchema)
+    }
+
+  private def init(connectSchema: ConnectSchema): ParquetWriter[Any] = {
     val schema: Schema = ToAvroDataConverter.convertSchema(connectSchema)
 
     val outputFile = new ParquetOutputFile(outputStream)

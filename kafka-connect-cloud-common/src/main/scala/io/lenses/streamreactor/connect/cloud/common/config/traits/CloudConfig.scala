@@ -17,6 +17,7 @@ package io.lenses.streamreactor.connect.cloud.common.config.traits
 
 import io.lenses.streamreactor.common.config.base.RetryConfig
 import io.lenses.streamreactor.common.errors.ErrorPolicy
+import io.lenses.streamreactor.connect.cloud.common.formats.writer.schema.SchemaChangeDetector
 import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodec
 import io.lenses.streamreactor.connect.cloud.common.sink.config.CloudSinkBucketOptions
 import io.lenses.streamreactor.connect.cloud.common.sink.config.IndexOptions
@@ -72,12 +73,8 @@ trait CloudSinkConfig[CC] extends CloudConfig {
 
   def logMetrics: Boolean
 
-  /**
-    * Indicates whether rollover on schema change is enabled.
-    *
-    * @return `true` if rollover on schema change is enabled, `false` otherwise.
-    */
-  def rolloverOnSchemaChangeEnabled: Boolean
+  def schemaChangeDetector: SchemaChangeDetector
+
 }
 
 /**

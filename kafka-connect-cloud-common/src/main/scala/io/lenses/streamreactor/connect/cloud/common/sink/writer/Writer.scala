@@ -20,6 +20,7 @@ import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.FormatWriter
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.MessageDetail
+import io.lenses.streamreactor.connect.cloud.common.formats.writer.schema.SchemaChangeDetector
 import io.lenses.streamreactor.connect.cloud.common.model.Offset
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
 import io.lenses.streamreactor.connect.cloud.common.model.UploadableFile
@@ -37,13 +38,13 @@ import scala.math.Ordered.orderingToOrdered
 import scala.util.Try
 
 class Writer[SM <: FileMetadata](
-  topicPartition:                TopicPartition,
-  commitPolicy:                  CommitPolicy,
-  writerIndexer:                 WriterIndexer[SM],
-  stagingFilenameFn:             () => Either[SinkError, File],
-  objectKeyBuilder:              ObjectKeyBuilder,
-  formatWriterFn:                File => Either[SinkError, FormatWriter],
-  rolloverOnSchemaChangeEnabled: Boolean,
+  topicPartition:       TopicPartition,
+  commitPolicy:         CommitPolicy,
+  writerIndexer:        WriterIndexer[SM],
+  stagingFilenameFn:    () => Either[SinkError, File],
+  objectKeyBuilder:     ObjectKeyBuilder,
+  formatWriterFn:       File => Either[SinkError, FormatWriter],
+  schemaChangeDetector: SchemaChangeDetector,
 )(
   implicit
   connectorTaskId:  ConnectorTaskId,
@@ -239,12 +240,17 @@ class Writer[SM <: FileMetadata](
     }
 
   def shouldRollover(schema: Schema): Boolean =
-    rolloverOnSchemaChangeEnabled &&
-      rolloverOnSchemaChange &&
+    rolloverOnSchemaChange &&
       schemaHasChanged(schema)
 
   protected[writer] def schemaHasChanged(schema: Schema): Boolean =
-    writeState.getCommitState.lastKnownSchema.exists(_ != schema)
+    writeState match {
+      case w: Writing =>
+        w.getCommitState.lastKnownSchema.exists { lastSchema =>
+          lastSchema != schema && schemaChangeDetector.detectSchemaChange(lastSchema, schema)
+        }
+      case _ => false
+    }
 
   protected[writer] def rolloverOnSchemaChange: Boolean =
     writeState match {
