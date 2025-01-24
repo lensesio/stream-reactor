@@ -365,4 +365,6 @@ class GCPStorageStorageInterface(
       case Some(blob) =>
         Storage.BlobTargetOption.generationMatch(blob.getGeneration)
     }
+
+  override def createDirectoryIfNotExists(bucket: String, path: String): Either[FileCreateError, Unit] = ().asRight
 }

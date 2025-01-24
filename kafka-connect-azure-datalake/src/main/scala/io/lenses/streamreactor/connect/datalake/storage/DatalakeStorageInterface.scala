@@ -237,4 +237,6 @@ class DatalakeStorageInterface(connectorTaskId: ConnectorTaskId, client: DataLak
     Try(client.getFileSystemClient(oldBucket).getFileClient(oldPath).rename(newBucket, newPath)).toEither.leftMap(
       FileMoveError(_, oldPath, newPath),
     ).void
+
+  override def createDirectoryIfNotExists(bucket: String, path: String): Either[FileCreateError, Unit] = ().asRight
 }

@@ -76,6 +76,7 @@ class AwsS3StorageInterface(
         .contents()
         .asScala
         .filterNot(AwsS3StorageFilter.filterOut)
+        .filter(_.size() > 0)
         .map(o => S3FileMetadata(o.key(), o.lastModified()))
         .filter(md => extensionFilter.forall(_.filter(md)))
 
@@ -123,9 +124,11 @@ class AwsS3StorageInterface(
         bucket,
         prefix,
         pagReq.iterator().asScala.flatMap(
-          _.contents().asScala.filterNot(AwsS3StorageFilter.filterOut).toSeq.map(o =>
-            S3FileMetadata(o.key(), o.lastModified()),
-          ).filter(md => extensionFilter.forall(_.filter(md))),
+          _.contents().asScala.filterNot(AwsS3StorageFilter.filterOut)
+            .filter(_.size() > 0)
+            .toSeq.map(o => S3FileMetadata(o.key(), o.lastModified())).filter(md =>
+              extensionFilter.forall(_.filter(md)),
+            ),
         ).toSeq,
       )
     }.toEither.leftMap {
@@ -324,5 +327,36 @@ class AwsS3StorageInterface(
         }.toEither.leftMap(FileMoveError(_, oldPath, newPath)).void
     }
   }
+
+  /**
+    * Creates a directory in the specified S3 bucket if it does not already exist.
+    *
+    * @param bucket The name of the S3 bucket.
+    * @param path The path of the directory to create.
+    * @return Either a FileCreateError if the directory could not be created,
+    *         or Unit if the directory was created successfully or already exists.
+    */
+  override def createDirectoryIfNotExists(bucket: String, path: String): Either[FileCreateError, Unit] = Try {
+    def ensureEndsWithSlash(input: String): String =
+      if (input.endsWith("/")) input else input + "/"
+
+    val putObjectRequest = PutObjectRequest
+      .builder()
+      .ifNoneMatch("*")
+      .bucket(bucket)
+      .key(ensureEndsWithSlash(path))
+      .contentLength(0)
+      .build()
+
+    s3Client.putObject(putObjectRequest, RequestBody.empty())
+  }
+    .toEither
+    .void
+    // If the object already exists, the "ifNoneMatch" condition will fail, triggering this recovery clause
+    .recover {
+      case ex: S3Exception if "PreconditionFailed".equals(ex.awsErrorDetails().errorCode()) =>
+        ()
+    }
+    .leftMap(ex => FileCreateError(ex, "empty object file"))
 
 }

@@ -15,7 +15,6 @@
  */
 package io.lenses.streamreactor.connect.cloud.common.source.config
 import cats.effect.IO
-import cats.implicits.catsSyntaxEitherId
 import cats.implicits.toBifunctorOps
 import cats.implicits.toTraverseOps
 import com.typesafe.scalalogging.LazyLogging
@@ -24,6 +23,7 @@ import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnt
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.PostProcessActionBucket
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.PostProcessActionPrefix
+import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.PostProcessActionRetain
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.source.config.kcqlprops.PostProcessActionEntry
 import io.lenses.streamreactor.connect.cloud.common.source.config.kcqlprops.PostProcessActionEnum
@@ -32,11 +32,50 @@ import io.lenses.streamreactor.connect.cloud.common.source.config.kcqlprops.Post
 import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
 import io.lenses.streamreactor.connect.config.kcqlprops.KcqlProperties
 
+/**
+  * Trait representing a post-process action to be performed on cloud storage.
+  */
 trait PostProcessAction {
+
+  /**
+    * Runs the post-process action.
+    *
+    * @param storageInterface The storage interface used to interact with the cloud storage.
+    * @param directoryCache The cache used to track created directories.
+    * @param cloudLocation The location in the cloud storage where the action should be performed.
+    * @return An IO effect representing the completion of the action.
+    */
   def run(
-    cloudLocation:    CloudLocation,
     storageInterface: StorageInterface[_],
+    directoryCache:   DirectoryCache,
+    cloudLocation:    CloudLocation,
   ): IO[Unit]
+
+  /**
+    * Prepares the paths needed for the post-process action.
+    *
+    * @param cloudLocation The location in the cloud storage.
+    * @param directoryCache The cache used to track created directories.
+    * @return An IO effect containing a tuple with the path and the directory path.
+    */
+  protected def preparePaths(
+    retainDirs:     Boolean,
+    cloudLocation:  CloudLocation,
+    directoryCache: DirectoryCache,
+  ): IO[(String, String)] =
+    for {
+      path <- IO.fromOption(cloudLocation.path)(
+        new IllegalArgumentException("Cannot proceed without a path, this is probably a logic error"),
+      )
+      dirPath <- IO.fromOption(cloudLocation.pathToLowestDirectory())(
+        new IllegalArgumentException("Cannot proceed without a path, this is probably a logic error"),
+      )
+      _ <- if (retainDirs) {
+        IO.fromEither(directoryCache.ensureDirectoryExists(cloudLocation.bucket, dirPath).leftMap(_.exception))
+      } else {
+        IO.unit
+      }
+    } yield (path, dirPath)
 }
 
 object PostProcessAction {
@@ -49,12 +88,16 @@ object PostProcessAction {
     )
       .map {
         case Delete =>
-          new DeletePostProcessAction().asRight
+          for {
+            retainDirs: Boolean <- kcqlProperties.getBooleanOrDefault(PostProcessActionRetain, default = false)
+          } yield new DeletePostProcessAction(retainDirs)
+
         case Move => {
             for {
               destBucket <- kcqlProperties.getString(PostProcessActionBucket)
               destPrefix <- kcqlProperties.getString(PostProcessActionPrefix)
-            } yield MovePostProcessAction(prefix, dropEndSlash(destBucket), dropEndSlash(destPrefix))
+              retainDirs <- kcqlProperties.getBooleanOrDefault(PostProcessActionRetain, default = false).toOption
+            } yield MovePostProcessAction(retainDirs, prefix, dropEndSlash(destBucket), dropEndSlash(destPrefix))
           }
             .toRight(new IllegalArgumentException("A bucket and a path must be specified for moving files to."))
       }
@@ -65,31 +108,37 @@ object PostProcessAction {
   def dropLastCharacterIfPresent(s: String, char: Char): String = if (s.lastOption.contains(char)) s.dropRight(1) else s
 }
 
-class DeletePostProcessAction extends PostProcessAction with LazyLogging {
+class DeletePostProcessAction(retainDirs: Boolean) extends PostProcessAction with LazyLogging {
+
   def run(
-    cloudLocation:    CloudLocation,
     storageInterface: StorageInterface[_],
+    directoryCache:   DirectoryCache,
+    cloudLocation:    CloudLocation,
   ): IO[Unit] =
     for {
-      _ <- IO.delay(logger.debug("Running delete for {}", cloudLocation))
-      path <- IO.fromOption(cloudLocation.path)(
-        new IllegalArgumentException("Cannot delete without a path, this is probably a logic error"),
-      )
+      _         <- IO.delay(logger.debug("Running delete for {}", cloudLocation))
+      (path, _) <- preparePaths(retainDirs, cloudLocation, directoryCache)
+
       del <- IO.fromEither(storageInterface.deleteFiles(cloudLocation.bucket, Seq(path)).leftMap(_.exception))
     } yield del
 }
 
-case class MovePostProcessAction(originalPrefix: Option[String], newBucket: String, newPrefix: String)
-    extends PostProcessAction
+case class MovePostProcessAction(
+  retainDirs:     Boolean,
+  originalPrefix: Option[String],
+  newBucket:      String,
+  newPrefix:      String,
+) extends PostProcessAction
     with StrictLogging {
+
   override def run(
-    cloudLocation:    CloudLocation,
     storageInterface: StorageInterface[_],
+    directoryCache:   DirectoryCache,
+    cloudLocation:    CloudLocation,
   ): IO[Unit] =
     for {
-      path <- IO.fromOption(cloudLocation.path)(
-        new IllegalArgumentException("Cannot move without a path, this is probably a logic error"),
-      )
+      (path, _) <- preparePaths(retainDirs, cloudLocation, directoryCache)
+
       newPath = originalPrefix.map(o => path.replace(o, newPrefix)).getOrElse(path)
       _       = logger.info(s"Moving file from ${cloudLocation.bucket}/$path to $newBucket/$newPath newPrefix: $newPrefix")
       mov <- IO.fromEither(

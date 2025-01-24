@@ -68,4 +68,6 @@ object PropsKeyEnum extends Enum[PropsKeyEntry] {
 
   case object PostProcessActionPrefix extends PropsKeyEntry("post.process.action.prefix")
 
+  case object PostProcessActionRetain extends PropsKeyEntry("post.process.action.retain.dirs")
+
 }

@@ -70,4 +70,13 @@ trait StorageInterface[SM <: FileMetadata] extends ResultProcessors {
   def deleteFiles(bucket: String, files: Seq[String]): Either[FileDeleteError, Unit]
 
   def mvFile(oldBucket: String, oldPath: String, newBucket: String, newPath: String): Either[FileMoveError, Unit]
+
+  /**
+    * Creates a directory if it does not already exist.
+    *
+    * @param bucket The name of the bucket where the directory should be created.
+    * @param path The path of the directory to create.
+    * @return Either a FileCreateError if the directory creation failed, or Unit if the directory was created successfully or already exists.
+    */
+  def createDirectoryIfNotExists(bucket: String, path: String): Either[FileCreateError, Unit]
 }

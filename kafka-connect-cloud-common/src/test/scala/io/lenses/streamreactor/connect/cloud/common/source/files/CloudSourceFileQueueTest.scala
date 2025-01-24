@@ -193,7 +193,7 @@ class CloudSourceFileQueueTest extends AnyFlatSpec with Matchers with MockitoSug
         mockStorageIface,
         fileLocs(1).atLine(1000).withTimestamp(lastModified),
         taskId,
-        Some(new DeletePostProcessAction()),
+        Some(new DeletePostProcessAction(true)),
       )
 
     doAnswer(x => listBatch(x)).when(batchListerFn)(
