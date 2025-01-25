@@ -36,8 +36,12 @@ import org.apache.kafka.connect.data.{ Schema => ConnectSchema }
 
 import scala.util.Try
 
-class AvroFormatWriter(outputStream: CloudOutputStream)(implicit compressionCodec: CompressionCodec)
-    extends FormatWriter
+class AvroFormatWriter(
+  outputStream: CloudOutputStream,
+)(
+  implicit
+  compressionCodec: CompressionCodec,
+) extends FormatWriter
     with LazyLogging {
 
   private val avroCompressionCodec: CodecFactory = {
@@ -78,7 +82,9 @@ class AvroFormatWriter(outputStream: CloudOutputStream)(implicit compressionCode
   override def getPointer: Long = avroWriterState.fold(0L)(_.pointer)
 
   private class AvroWriterState(outputStream: CloudOutputStream, connectSchema: Option[ConnectSchema]) {
-    private val schema: Schema                  = ToAvroDataConverter.convertSchema(connectSchema)
+    private val schema: Schema = connectSchema.map(ToAvroDataConverter.convertSchema).getOrElse(
+      throw new IllegalArgumentException("Schema-less data is not supported for Avro/Parquet"),
+    )
     private val writer: GenericDatumWriter[Any] = new GenericDatumWriter[Any](schema)
     private val fileWriter: DataFileWriter[Any] =
       new DataFileWriter[Any](writer).setCodec(avroCompressionCodec).create(schema, outputStream)

@@ -59,6 +59,8 @@ case class CloudLocation(
 
   def prefixOrDefault(): String = prefix.getOrElse("")
 
+  def pathToLowestDirectory(): Option[String] = path.map(p => p.substring(0, p.lastIndexOf("/")))
+
   private def validate(): Validated[Throwable, CloudLocation] =
     cloudLocationValidator.validate(this)
 

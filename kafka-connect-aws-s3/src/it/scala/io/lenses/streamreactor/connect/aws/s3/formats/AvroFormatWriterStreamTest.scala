@@ -24,6 +24,7 @@ import io.lenses.streamreactor.connect.cloud.common.config.AvroFormatSelection
 import io.lenses.streamreactor.connect.cloud.common.formats.AvroFormatReader
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.AvroFormatWriter
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.MessageDetail
+import io.lenses.streamreactor.connect.cloud.common.formats.writer.schema.DefaultSchemaChangeDetector
 import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodec
 import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodecName.UNCOMPRESSED
 import io.lenses.streamreactor.connect.cloud.common.model.Offset
@@ -39,8 +40,8 @@ import org.scalatest.matchers.should.Matchers
 
 class AvroFormatWriterStreamTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest with LazyLogging {
 
-  val avroFormatReader = new AvroFormatReader()
-
+  val avroFormatReader     = new AvroFormatReader()
+  val schemaChangeDetector = DefaultSchemaChangeDetector
   "convert" should "write byte output stream with json for a single record" in {
 
     implicit val compressionCodec = UNCOMPRESSED.toCodec()

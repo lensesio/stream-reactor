@@ -46,8 +46,8 @@ object Dependencies {
 
     val cyclopsVersion = "10.4.1"
 
-    val kafkaVersion:     String = "3.8.0"
-    val confluentVersion: String = "7.7.2"
+    val kafkaVersion:     String = "3.8.1"
+    val confluentVersion: String = "7.8.0"
 
     val enumeratumVersion = "1.7.5"
 
@@ -138,10 +138,10 @@ object Dependencies {
     val jedisVersion = "5.1.5"
     val gsonVersion  = "2.11.0"
 
-    val classGraphVersion           = "4.8.179"
-    val nimbusJoseJwtVersion        = "9.47"
-    val hadoopVersion               = "3.4.0"
-    val hadoopShadedProtobufVersion = "1.2.0"
+    val classGraphVersion    = "4.8.179"
+    val nimbusJoseJwtVersion = "9.47"
+    val hadoopVersion        = "3.4.0"
+    //val hadoopShadedProtobufVersion = "1.2.0"
 
     val airCompressorVersion = "2.0.2"
     val zstdVersion          = "1.5.6-8"
@@ -276,9 +276,9 @@ object Dependencies {
     hiveExcludes("org.apache.hadoop" % "hadoop-mapreduce-client" % hadoopVersion)
   lazy val hadoopMapReduceClientCore: ModuleID =
     hiveExcludes("org.apache.hadoop" % "hadoop-mapreduce-client-core" % hadoopVersion)
-  lazy val hadoopShadedProtobuf: ModuleID =
+  /* lazy val hadoopShadedProtobuf: ModuleID =
     hiveExcludes("org.apache.hadoop.thirdparty" % "hadoop-shaded-protobuf_3_21" % hadoopShadedProtobufVersion)
-
+   */
   lazy val calciteCore = hiveExcludes("org.apache.calcite" % "calcite-core" % calciteVersion)
     .excludeAll(ExclusionRule(organization = "io.swagger"))
     .excludeAll(ExclusionRule(organization = "io.netty"))
@@ -493,7 +493,7 @@ trait Dependencies {
     hadoopMapReduce,
     hadoopMapReduceClient,
     hadoopMapReduceClientCore,
-    hadoopShadedProtobuf,
+    //hadoopShadedProtobuf,
     commonsConfig,
     openCsv,
     jacksonCore,
@@ -528,6 +528,7 @@ trait Dependencies {
   val kafkaConnectGcpStorageDeps: Seq[ModuleID] = Seq(
     cyclops,
     gcpStorageSdk,
+    googleProtobufJava,
   )
 
   val kafkaConnectGcpStorageTestDeps: Seq[ModuleID] =

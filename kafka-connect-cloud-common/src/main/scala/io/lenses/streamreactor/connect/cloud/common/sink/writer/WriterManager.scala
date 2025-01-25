@@ -20,6 +20,7 @@ import com.typesafe.scalalogging.StrictLogging
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.FormatWriter
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.MessageDetail
+import io.lenses.streamreactor.connect.cloud.common.formats.writer.schema.SchemaChangeDetector
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartitionOffset
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
@@ -52,15 +53,15 @@ case class MapKey(topicPartition: TopicPartition, partitionValues: immutable.Map
   * sinks, since file handles cannot be safely shared without considerable overhead.
   */
 class WriterManager[SM <: FileMetadata](
-  commitPolicyFn:                TopicPartition => Either[SinkError, CommitPolicy],
-  bucketAndPrefixFn:             TopicPartition => Either[SinkError, CloudLocation],
-  keyNamerFn:                    TopicPartition => Either[SinkError, KeyNamer],
-  stagingFilenameFn:             (TopicPartition, Map[PartitionField, String]) => Either[SinkError, File],
-  objKeyBuilderFn:               (TopicPartition, Map[PartitionField, String]) => ObjectKeyBuilder,
-  formatWriterFn:                (TopicPartition, File) => Either[SinkError, FormatWriter],
-  writerIndexer:                 WriterIndexer[SM],
-  transformerF:                  MessageDetail => Either[RuntimeException, MessageDetail],
-  rolloverOnSchemaChangeEnabled: Boolean,
+  commitPolicyFn:       TopicPartition => Either[SinkError, CommitPolicy],
+  bucketAndPrefixFn:    TopicPartition => Either[SinkError, CloudLocation],
+  keyNamerFn:           TopicPartition => Either[SinkError, KeyNamer],
+  stagingFilenameFn:    (TopicPartition, Map[PartitionField, String]) => Either[SinkError, File],
+  objKeyBuilderFn:      (TopicPartition, Map[PartitionField, String]) => ObjectKeyBuilder,
+  formatWriterFn:       (TopicPartition, File) => Either[SinkError, FormatWriter],
+  writerIndexer:        WriterIndexer[SM],
+  transformerF:         MessageDetail => Either[RuntimeException, MessageDetail],
+  schemaChangeDetector: SchemaChangeDetector,
 )(
   implicit
   connectorTaskId:  ConnectorTaskId,
@@ -178,7 +179,7 @@ class WriterManager[SM <: FileMetadata](
         () => stagingFilenameFn(topicPartition, partitionValues),
         objKeyBuilderFn(topicPartition, partitionValues),
         formatWriterFn.curried(topicPartition),
-        rolloverOnSchemaChangeEnabled,
+        schemaChangeDetector,
       )
     }
   }

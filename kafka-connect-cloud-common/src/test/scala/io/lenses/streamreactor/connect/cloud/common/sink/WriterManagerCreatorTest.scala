@@ -21,6 +21,8 @@ import io.lenses.streamreactor.common.config.base.intf.ConnectionConfig
 import io.lenses.streamreactor.common.errors.NoopErrorPolicy
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.config.traits.CloudSinkConfig
+import io.lenses.streamreactor.connect.cloud.common.formats.writer.schema.DefaultSchemaChangeDetector
+import io.lenses.streamreactor.connect.cloud.common.formats.writer.schema.SchemaChangeDetector
 import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodec
 import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodecName
 import io.lenses.streamreactor.connect.cloud.common.sink.config.CloudSinkBucketOptions
@@ -40,14 +42,14 @@ class WriterManagerCreatorTest extends AnyFunSuite with Matchers with MockitoSug
 
   case class FakeConnectionConfig() extends ConnectionConfig
   case class FakeCloudSinkConfig(
-    connectionConfig:              FakeConnectionConfig,
-    bucketOptions:                 Seq[CloudSinkBucketOptions],
-    indexOptions:                  Option[IndexOptions],
-    compressionCodec:              CompressionCodec,
-    connectorRetryConfig:          RetryConfig,
-    errorPolicy:                   NoopErrorPolicy,
-    logMetrics:                    Boolean = false,
-    rolloverOnSchemaChangeEnabled: Boolean = true,
+    connectionConfig:     FakeConnectionConfig,
+    bucketOptions:        Seq[CloudSinkBucketOptions],
+    indexOptions:         Option[IndexOptions],
+    compressionCodec:     CompressionCodec,
+    connectorRetryConfig: RetryConfig,
+    errorPolicy:          NoopErrorPolicy,
+    logMetrics:           Boolean              = false,
+    schemaChangeDetector: SchemaChangeDetector = DefaultSchemaChangeDetector,
   ) extends CloudSinkConfig[FakeConnectionConfig]
 
   case class FakeFileMetadata(file: String, lastModified: Instant) extends FileMetadata

@@ -17,34 +17,35 @@ package io.lenses.streamreactor.connect.cloud.common.sink.config
 
 import io.lenses.streamreactor.common.config.base.traits.BaseSettings
 import io.lenses.streamreactor.common.config.base.traits.WithConnectorPrefix
+import io.lenses.streamreactor.connect.cloud.common.formats.writer.schema.SchemaChangeDetector
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.Importance
 import org.apache.kafka.common.config.ConfigDef.Type
 
 trait SchemaChangeConfigKeys extends WithConnectorPrefix {
 
-  protected def SCHEMA_CHANGE_ROLLOVER = s"$connectorPrefix.schema.change.rollover"
+  protected def SCHEMA_CHANGE_DETECTOR = s"$connectorPrefix.schema.change.detector"
 
-  private val SCHEMA_CHANGE_ROLLOVER_DOC = "Roll over on schema change."
-  private val SCHEMA_CHANGE_ROLLOVER_DEFAULT: Boolean = true
+  private val SCHEMA_CHANGE_DETECTOR_DOC = "Schema change detector."
+  private val SCHEMA_CHANGE_DETECTOR_DEFAULT: String = "default"
 
   def withSchemaChangeConfig(configDef: ConfigDef): ConfigDef =
     configDef.define(
-      SCHEMA_CHANGE_ROLLOVER,
-      Type.BOOLEAN,
-      SCHEMA_CHANGE_ROLLOVER_DEFAULT,
+      SCHEMA_CHANGE_DETECTOR,
+      Type.STRING,
+      SCHEMA_CHANGE_DETECTOR_DEFAULT,
       Importance.LOW,
-      SCHEMA_CHANGE_ROLLOVER_DOC,
+      SCHEMA_CHANGE_DETECTOR_DOC,
       "Schema Change",
       1,
-      ConfigDef.Width.SHORT,
-      SCHEMA_CHANGE_ROLLOVER,
+      ConfigDef.Width.MEDIUM,
+      SCHEMA_CHANGE_DETECTOR,
     )
 }
 
 trait SchemaChangeSettings extends BaseSettings with SchemaChangeConfigKeys {
 
-  def shouldRollOverOnSchemaChange(): Boolean =
-    getBoolean(SCHEMA_CHANGE_ROLLOVER)
+  def schemaChangeDetector(): SchemaChangeDetector =
+    SchemaChangeDetector(getString(SCHEMA_CHANGE_DETECTOR))
 
 }

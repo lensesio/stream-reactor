@@ -30,6 +30,7 @@ import io.lenses.streamreactor.connect.cloud.common.config.DataStorageSettings
 import io.lenses.streamreactor.connect.cloud.common.config.ParquetFormatSelection
 import io.lenses.streamreactor.connect.cloud.common.formats.reader.ParquetFormatReader
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.MessageDetail
+import io.lenses.streamreactor.connect.cloud.common.formats.writer.schema.DefaultSchemaChangeDetector
 import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodecName.UNCOMPRESSED
 import io.lenses.streamreactor.connect.cloud.common.model.Offset
 import io.lenses.streamreactor.connect.cloud.common.model.Topic
@@ -67,10 +68,10 @@ class S3ParquetWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyC
 
   private val compressionCodec = UNCOMPRESSED.toCodec()
   private implicit val cloudLocationValidator: S3LocationValidator.type = S3LocationValidator
-
-  private val TopicName           = "myTopic"
-  private val PathPrefix          = "streamReactorBackups"
-  private val parquetFormatReader = new ParquetFormatReader
+  private val schemaChangeDetector = DefaultSchemaChangeDetector
+  private val TopicName            = "myTopic"
+  private val PathPrefix           = "streamReactorBackups"
+  private val parquetFormatReader  = new ParquetFormatReader
 
   private val bucketAndPrefix = CloudLocation(BucketName, PathPrefix.some)
   private def parquetConfig = S3SinkConfig(
@@ -104,11 +105,11 @@ class S3ParquetWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyC
     ),
     indexOptions = IndexOptions(5, ".indexes").some,
     compressionCodec,
-    batchDelete                   = true,
-    errorPolicy                   = ErrorPolicy(ErrorPolicyEnum.THROW),
-    connectorRetryConfig          = new RetryConfig(1, 1L, 1.0),
-    logMetrics                    = false,
-    rolloverOnSchemaChangeEnabled = true,
+    batchDelete          = true,
+    errorPolicy          = ErrorPolicy(ErrorPolicyEnum.THROW),
+    connectorRetryConfig = new RetryConfig(1, 1L, 1.0),
+    logMetrics           = false,
+    schemaChangeDetector = schemaChangeDetector,
   )
 
   "parquet sink" should "write 2 records to parquet format in s3" in {
@@ -151,6 +152,7 @@ class S3ParquetWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyC
       .field("name", SchemaBuilder.string().required().build())
       .field("designation", SchemaBuilder.string().optional().build())
       .field("salary", SchemaBuilder.float64().optional().build())
+      .version(2)
       .build()
 
     val usersWithNewSchema = List(
