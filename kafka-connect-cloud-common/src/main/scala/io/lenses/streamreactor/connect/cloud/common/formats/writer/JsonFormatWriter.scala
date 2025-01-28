@@ -38,7 +38,7 @@ class JsonFormatWriter(outputStream: CloudOutputStream)(implicit compressionCode
     extends FormatWriter {
   private var compressedOutputStream: OutputStream = _
 
-  private val jsonCompressionCodec = getIfSupported(compressionCodec)
+  private val jsonCompressionCodec = getCompressionCodecIfSupported(compressionCodec)
 
   override def write(messageDetail: MessageDetail): Either[Throwable, Unit] =
     Try {
@@ -96,7 +96,7 @@ object JsonFormatWriter {
     false,
   )
 
-  def getIfSupported: CompressionCodec => CompressionCodec = {
+  def getCompressionCodecIfSupported: CompressionCodec => CompressionCodec = {
     case compressionCodec @ CompressionCodec(UNCOMPRESSED, _, _) => compressionCodec
     case compressionCodec @ CompressionCodec(GZIP, _, _)         => compressionCodec
     case _                                                       => throw new IllegalArgumentException("Invalid or missing `compressionCodec` specified.")
