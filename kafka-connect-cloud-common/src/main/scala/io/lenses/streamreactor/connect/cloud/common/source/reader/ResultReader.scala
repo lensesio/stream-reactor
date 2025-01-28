@@ -22,7 +22,6 @@ import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.config.FormatSelection
 import io.lenses.streamreactor.connect.cloud.common.config.ReaderBuilderContext
-import io.lenses.streamreactor.connect.cloud.common.config.traits.CloudSourceConfig
 import io.lenses.streamreactor.connect.cloud.common.formats.reader.CloudStreamReader
 import io.lenses.streamreactor.connect.cloud.common.formats.reader.EmptyCloudStreamReader
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
@@ -30,6 +29,7 @@ import io.lenses.streamreactor.connect.cloud.common.source.SourceWatermark
 import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
 import io.lenses.streamreactor.connect.cloud.common.utils.IteratorOps
 import org.apache.kafka.connect.source.SourceRecord
+import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodec
 import io.lenses.streamreactor.connect.cloud.common.model.Topic
 import io.lenses.streamreactor.connect.cloud.common.storage.FileMetadata
 
@@ -73,7 +73,7 @@ object ResultReader extends LazyLogging {
   def create[SM <: FileMetadata](
     writeWatermarkToHeaders: Boolean,
     format:                  FormatSelection,
-    config:                  CloudSourceConfig[SM],
+    compressionCodec:        CompressionCodec,
     targetTopic:             String,
     partitionFn:             String => Option[Int],
     connectorTaskId:         ConnectorTaskId,
@@ -105,7 +105,7 @@ object ResultReader extends LazyLogging {
               inputStream,
               pathWithLine,
               metadata,
-              config,
+              compressionCodec,
               hasEnvelope,
               () => storageInterface.getBlob(pathWithLine.bucket, path).leftMap(_.toException),
               partition,

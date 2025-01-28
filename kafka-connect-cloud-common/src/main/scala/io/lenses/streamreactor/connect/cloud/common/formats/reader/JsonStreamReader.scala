@@ -15,7 +15,7 @@
  */
 package io.lenses.streamreactor.connect.cloud.common.formats.reader
 
-import io.lenses.streamreactor.connect.cloud.common.formats.writer.JsonFormatWriter.getIfSupported
+import io.lenses.streamreactor.connect.cloud.common.formats.writer.JsonFormatWriter.getCompressionCodecIfSupported
 import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodec
 import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodecName.GZIP
 import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream
@@ -25,7 +25,7 @@ import java.io.InputStream
 class JsonStreamReader(input: InputStream)(implicit compressionCodec: CompressionCodec)
     extends CloudDataIterator[String] {
 
-  private val jsonCompressionCodec = getIfSupported(compressionCodec)
+  private val jsonCompressionCodec = getCompressionCodecIfSupported(compressionCodec)
   private val textStreamReader = new TextStreamReader(
     jsonCompressionCodec.compressionCodec match {
       case GZIP => new GzipCompressorInputStream(input)
