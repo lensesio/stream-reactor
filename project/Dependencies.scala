@@ -107,7 +107,8 @@ object Dependencies {
     val cassandraDriverVersion = "3.11.5"
     val jsonPathVersion        = "2.9.0"
 
-    val azureDocumentDbVersion     = "2.6.5"
+    val azureSdkVersion            = "1.2.31"
+    val azureCosmosDbVersion       = "4.66.0"
     val testcontainersScalaVersion = "0.41.4"
     val testcontainersVersion      = "1.20.1"
 
@@ -343,7 +344,8 @@ object Dependencies {
   lazy val nettyResolver     = "io.netty" % "netty-resolver"               % nettyVersion
   lazy val nettyTransport    = "io.netty" % "netty-transport-native-epoll" % nettyVersion classifier "linux-x86_64"
 
-  lazy val azureDocumentDb = "com.microsoft.azure" % "azure-documentdb" % azureDocumentDbVersion
+  lazy val azureBom      = "com.azure" % "azure-sdk-bom" % azureSdkVersion pomOnly ()
+  lazy val azureCosmosDb = "com.azure" % "azure-cosmos"  % azureCosmosDbVersion
 
   // testcontainers
   lazy val testContainersScala = "com.dimafeng" %% "testcontainers-scala-scalatest" % testcontainersScalaVersion
@@ -561,7 +563,7 @@ trait Dependencies {
   val kafkaConnectCassandraTestDeps: Seq[ModuleID] =
     baseTestDeps ++ Seq(testContainersScala, testContainersScalaCassandra)
 
-  val kafkaConnectAzureDocumentDbDeps: Seq[ModuleID] = Seq(azureDocumentDb)
+  val kafkaConnectAzureCosmosDbDeps: Seq[ModuleID] = Seq(azureBom, azureCosmosDb)
 
   val kafkaConnectInfluxDbDeps: Seq[ModuleID] = Seq(influx, avro4s, avro4sJson)
 

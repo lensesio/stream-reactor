@@ -21,7 +21,7 @@ import io.lenses.streamreactor.common.utils.CyclopsToScalaEither
 import io.lenses.streamreactor.connect.http.sink.client.Authentication
 import io.lenses.streamreactor.connect.http.sink.client.AuthenticationKeys
 import io.lenses.streamreactor.connect.http.sink.client.HttpMethod
-import io.lenses.streamreactor.connect.http.sink.commit._
+import io.lenses.streamreactor.common.batch._
 import io.lenses.streamreactor.connect.http.sink.config.HttpSinkConfigDef.AuthenticationTypeProp
 import io.lenses.streamreactor.connect.http.sink.config.HttpSinkConfigDef.BasicAuthenticationPasswordProp
 import io.lenses.streamreactor.connect.http.sink.config.HttpSinkConfigDef.BasicAuthenticationUsernameProp

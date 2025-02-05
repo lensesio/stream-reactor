@@ -27,7 +27,11 @@ import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
 import io.lenses.streamreactor.connect.http.sink.client.HttpRequestSender
 import io.lenses.streamreactor.connect.http.sink.client.HttpResponseFailure
 import io.lenses.streamreactor.connect.http.sink.client.HttpResponseSuccess
-import io.lenses.streamreactor.connect.http.sink.commit.HttpCommitContext
+import io.lenses.streamreactor.common.batch.HttpCommitContext
+import io.lenses.streamreactor.common.batch.BatchInfo
+import io.lenses.streamreactor.common.batch.RecordsQueue
+import io.lenses.streamreactor.common.batch.EmptyBatchInfo
+import io.lenses.streamreactor.common.batch.NonEmptyBatchInfo
 import io.lenses.streamreactor.connect.http.sink.reporter.model.HttpFailureConnectorSpecificRecordData
 import io.lenses.streamreactor.connect.http.sink.reporter.model.HttpSuccessConnectorSpecificRecordData
 import io.lenses.streamreactor.connect.http.sink.tpl.ProcessedTemplate
@@ -132,7 +136,7 @@ class HttpWriterTest extends AsyncIOSpec with AsyncFunSuiteLike with Matchers wi
                                                                                                none,
     ).asLeft))
 
-    val recordsQueue: RecordsQueue = mockRecordQueue(EmptyBatchInfo(0))
+    val recordsQueue: RecordsQueue[RenderedRecord] = mockRecordQueue(EmptyBatchInfo(0))
 
     val templateMock = mock[TemplateType]
 
@@ -162,7 +166,7 @@ class HttpWriterTest extends AsyncIOSpec with AsyncFunSuiteLike with Matchers wi
   }
 
   private def mockRecordQueue(batchInfo: BatchInfo) = {
-    val recordsQueue = mock[RecordsQueue]
+    val recordsQueue = mock[RecordsQueue[RenderedRecord]]
     when(recordsQueue.popBatch()).thenReturn(IO(batchInfo))
     when(recordsQueue.enqueueAll(recordsToAdd)).thenReturn(IO.unit)
     recordsQueue

@@ -5,13 +5,16 @@ import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.cloud.common.model.Topic
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.CommitPolicy
-import io.lenses.streamreactor.connect.http.sink.RecordsQueueBatcher.takeBatch
-import io.lenses.streamreactor.connect.http.sink.commit.BatchPolicy
-import io.lenses.streamreactor.connect.http.sink.commit.BatchResult
-import io.lenses.streamreactor.connect.http.sink.commit.Count
-import io.lenses.streamreactor.connect.http.sink.commit.FileSize
-import io.lenses.streamreactor.connect.http.sink.commit.HttpCommitContext
-import io.lenses.streamreactor.connect.http.sink.commit.Interval
+import io.lenses.streamreactor.common.batch.RecordsQueueBatcher.takeBatch
+import io.lenses.streamreactor.common.batch.BatchPolicy
+import io.lenses.streamreactor.common.batch.NonEmptyBatchInfo
+import io.lenses.streamreactor.common.batch.EmptyBatchInfo
+
+import io.lenses.streamreactor.common.batch.BatchResult
+import io.lenses.streamreactor.common.batch.Count
+import io.lenses.streamreactor.common.batch.FileSize
+import io.lenses.streamreactor.common.batch.HttpCommitContext
+import io.lenses.streamreactor.common.batch.Interval
 import io.lenses.streamreactor.connect.http.sink.tpl.RenderedRecord
 import org.mockito.ArgumentMatchers.any
 import org.mockito.MockitoSugar

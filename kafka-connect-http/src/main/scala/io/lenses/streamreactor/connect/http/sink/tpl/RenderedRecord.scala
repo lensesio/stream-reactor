@@ -15,6 +15,7 @@
  */
 package io.lenses.streamreactor.connect.http.sink.tpl
 
+import io.lenses.streamreactor.common.batch.BatchRecord
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartitionOffset
 
 case class RenderedRecord(
@@ -23,4 +24,6 @@ case class RenderedRecord(
   recordRendered:       String,
   headersRendered:      Seq[(String, String)],
   endpointRendered:     String,
-)
+) extends BatchRecord {
+  override def length: Int = recordRendered.length
+}

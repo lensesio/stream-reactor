@@ -25,7 +25,7 @@ lazy val subProjects: Seq[Project] = Seq(
   `sql-common`,
   `cloud-common`,
   `aws-s3`,
-  `azure-documentdb`,
+  `azure-cosmosdb`,
   `azure-datalake`,
   cassandra,
   elastic6,
@@ -250,15 +250,15 @@ lazy val `gcp-storage` = (project in file("kafka-connect-gcp-storage"))
   //.configureFunctionalTests(kafkaConnectAzureDatalakeFuncTestDeps)
   .enablePlugins(PackPlugin)
 
-lazy val `azure-documentdb` = (project in file("kafka-connect-azure-documentdb"))
+lazy val `azure-cosmosdb` = (project in file("kafka-connect-azure-cosmosdb"))
   .dependsOn(common)
   .dependsOn(`sql-common`)
   .settings(
     settings ++
       Seq(
-        name := "kafka-connect-azure-documentdb",
+        name := "kafka-connect-azure-cosmosdb",
         description := "Kafka Connect compatible connectors to move data between Kafka and popular data stores",
-        libraryDependencies ++= baseDeps ++ kafkaConnectAzureDocumentDbDeps,
+        libraryDependencies ++= baseDeps ++ kafkaConnectAzureCosmosDbDeps,
         publish / skip := true,
         packExcludeJars := Seq(
           "scala-.*\\.jar",

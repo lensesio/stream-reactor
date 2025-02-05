@@ -134,6 +134,10 @@ object Settings extends Dependencies {
     headerEmptyLine := false,
     isSnapshot := artifactVersion.contains("SNAPSHOT"),
     javacOptions ++= Seq("--release", "11"),
+    Compile / compile / javacOptions ++= Seq(
+      "-processor",
+      "lombok.launch.AnnotationProcessorHider$AnnotationProcessor",
+    ),
     packageOptions := Seq(
       ManifestAttributes(
         ("Git-Commit-Hash", "git rev-parse HEAD".!!.trim),

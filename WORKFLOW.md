@@ -23,7 +23,7 @@ target/scala-2.13/resource_managed/main/depcheck-modules.txt
 
 This is the current contents of modules.txt:
 ```json
-["query-language","common","sql-common","cloud-common","aws-s3","azure-documentdb","azure-datalake","cassandra","elastic6","elastic7","ftp","gcp-storage","http","influxdb","jms","mongodb","mqtt","redis"]
+["query-language","common","sql-common","cloud-common","aws-s3","azure-cosmosdb","azure-datalake","cassandra","elastic6","elastic7","ftp","gcp-storage","http","influxdb","jms","mongodb","mqtt","redis"]
 ```
 
 The aim of these files is to instruct the workflow of what the modules are.  If you wish to look at how these are built then look at the bottom of `build.sbt`.
