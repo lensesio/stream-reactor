@@ -141,6 +141,7 @@ class WriterManagerCreator[MD <: FileMetadata, SC <: CloudSinkConfig[_]] extends
       writerIndexer,
       transformers.transform,
       config.schemaChangeDetector,
+      config.skipNullValues,
     )
     (indexManager, writerManager)
   }

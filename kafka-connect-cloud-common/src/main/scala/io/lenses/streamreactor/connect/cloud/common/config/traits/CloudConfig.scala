@@ -75,6 +75,8 @@ trait CloudSinkConfig[CC] extends CloudConfig {
 
   def schemaChangeDetector: SchemaChangeDetector
 
+  def skipNullValues: Boolean
+
 }
 
 /**

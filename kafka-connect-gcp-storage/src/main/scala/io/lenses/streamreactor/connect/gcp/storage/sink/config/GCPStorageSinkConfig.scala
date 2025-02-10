@@ -64,6 +64,7 @@ object GCPStorageSinkConfig extends PropsToConfigConverter[GCPStorageSinkConfig]
       connectorRetryConfig = gcpConfigDefBuilder.getRetryConfig,
       logMetrics           = logMetrics,
       schemaChangeDetector = schemaChangeDetector,
+      skipNullValues       = gcpConfigDefBuilder.skipNullValues(),
     )
   }
 
@@ -79,4 +80,5 @@ case class GCPStorageSinkConfig(
   errorPolicy:          ErrorPolicy,
   logMetrics:           Boolean,
   schemaChangeDetector: SchemaChangeDetector,
+  skipNullValues:       Boolean,
 ) extends CloudSinkConfig[GCPConnectionConfig]
