@@ -44,6 +44,7 @@ class WriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyContainerT
       writerIndexer     = mock[WriterIndexer[S3FileMetadata]],
       _.asRight,
       schemaChangeDetector = schemaChangeDetector,
+      skipNullValues       = false,
     )
 
     val result = wm.preCommit(Map(topicPartition -> new OffsetAndMetadata(999)))

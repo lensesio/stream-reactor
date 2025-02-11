@@ -66,6 +66,7 @@ object S3SinkConfig extends PropsToConfigConverter[S3SinkConfig] {
       connectorRetryConfig = s3ConfigDefBuilder.getRetryConfig,
       logMetrics           = logMetrics,
       schemaChangeDetector = schemaChangeDetector,
+      skipNullValues       = s3ConfigDefBuilder.skipNullValues(),
     )
 
 }
@@ -80,4 +81,5 @@ case class S3SinkConfig(
   connectorRetryConfig: RetryConfig,
   logMetrics:           Boolean,
   schemaChangeDetector: SchemaChangeDetector,
+  skipNullValues:       Boolean,
 ) extends CloudSinkConfig[S3ConnectionConfig]

@@ -22,9 +22,9 @@ import io.lenses.streamreactor.common.errors.ErrorHandler
 import io.lenses.streamreactor.common.errors.RetryErrorPolicy
 import io.lenses.streamreactor.common.util.AsciiArtPrinter.printAsciiHeader
 import io.lenses.streamreactor.common.util.JarManifest
-import io.lenses.streamreactor.connect.cloud.common.config.traits.CloudSinkConfig
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskIdCreator
+import io.lenses.streamreactor.connect.cloud.common.config.traits.CloudSinkConfig
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.MessageDetail
 import io.lenses.streamreactor.connect.cloud.common.model.Offset
 import io.lenses.streamreactor.connect.cloud.common.model.Topic
@@ -161,22 +161,35 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
                 case Some(k) => ValueToSinkDataConverter(k, Option(record.keySchema()))
                 case None    => NullSinkData(Option(record.keySchema()))
               }
-              val msgDetails = MessageDetail(
-                key     = key,
-                value   = ValueToSinkDataConverter(record.value(), Option(record.valueSchema())),
-                headers = HeaderToSinkDataConverter(record),
-                TimestampUtils.parseTime(Option(record.timestamp()).map(_.toLong))(_ =>
+              val messageValue = ValueToSinkDataConverter(record.value(), Option(record.valueSchema()))
+              messageValue match {
+                case NullSinkData(_) if writerManager.shouldSkipNullValues() =>
                   logger.debug(
-                    s"Record timestamp is invalid ${record.timestamp()}",
-                  ),
-                ),
-                Topic(record.topic()),
-                record.kafkaPartition(),
-                Offset(record.kafkaOffset()),
-              )
-              handleErrors {
-                writerManager.write(topicPartitionOffset, msgDetails)
+                    "[{}] Skipping null value for tpo {}/{}/{}",
+                    connectorTaskId.show,
+                    topicPartitionOffset.topic,
+                    topicPartitionOffset.partition,
+                    topicPartitionOffset.offset,
+                  )
+                case _ => // all other sink data
+                  val msgDetails = MessageDetail(
+                    key     = key,
+                    value   = messageValue,
+                    headers = HeaderToSinkDataConverter(record),
+                    TimestampUtils.parseTime(Option(record.timestamp()).map(_.toLong))(_ =>
+                      logger.debug(
+                        s"Record timestamp is invalid ${record.timestamp()}",
+                      ),
+                    ),
+                    Topic(record.topic()),
+                    record.kafkaPartition(),
+                    Offset(record.kafkaOffset()),
+                  )
+                  handleErrors {
+                    writerManager.write(topicPartitionOffset, msgDetails)
+                  }
               }
+
           }
 
           if (records.isEmpty) {

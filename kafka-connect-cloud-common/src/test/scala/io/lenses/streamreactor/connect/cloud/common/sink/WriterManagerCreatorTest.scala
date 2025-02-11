@@ -50,6 +50,7 @@ class WriterManagerCreatorTest extends AnyFunSuite with Matchers with MockitoSug
     errorPolicy:          NoopErrorPolicy,
     logMetrics:           Boolean              = false,
     schemaChangeDetector: SchemaChangeDetector = DefaultSchemaChangeDetector,
+    skipNullValues:       Boolean,
   ) extends CloudSinkConfig[FakeConnectionConfig]
 
   case class FakeFileMetadata(file: String, lastModified: Instant) extends FileMetadata
@@ -67,6 +68,7 @@ class WriterManagerCreatorTest extends AnyFunSuite with Matchers with MockitoSug
       compressionCodec     = CompressionCodecName.ZSTD.toCodec(),
       errorPolicy          = NoopErrorPolicy(),
       connectorRetryConfig = new RetryConfig(1, 1L, 1.0),
+      skipNullValues       = true,
     )
 
     val writerManagerCreator          = new WriterManagerCreator[FakeFileMetadata, FakeCloudSinkConfig]()

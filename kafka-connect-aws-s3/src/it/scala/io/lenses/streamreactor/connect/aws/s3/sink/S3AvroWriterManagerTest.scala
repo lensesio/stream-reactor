@@ -113,6 +113,7 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
     connectorRetryConfig = new RetryConfig(1, 1L, 1.0),
     logMetrics           = false,
     schemaChangeDetector = schemaChangeDetector,
+    skipNullValues       = false,
   )
 
   "avro sink" should "write 2 records to avro format in s3" in {

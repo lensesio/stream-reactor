@@ -23,6 +23,7 @@ import static org.mockito.Mockito.when;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.Collections;
 
 import com.azure.core.amqp.models.AmqpAnnotatedMessage;
 import com.azure.core.amqp.models.AmqpMessageBody;
@@ -34,8 +35,6 @@ import org.junit.jupiter.api.Test;
 import com.azure.messaging.servicebus.ServiceBusReceivedMessage;
 
 import io.lenses.streamreactor.connect.azure.servicebus.source.AzureServiceBusSourceConnector;
-import io.lenses.streamreactor.connect.azure.servicebus.source.ServiceBusPartitionOffsetProvider.AzureServiceBusOffsetMarker;
-import io.lenses.streamreactor.connect.azure.servicebus.source.ServiceBusPartitionOffsetProvider.AzureServiceBusPartitionKey;
 
 class ServiceBusToSourceRecordMapperTest {
 
@@ -61,19 +60,16 @@ class ServiceBusToSourceRecordMapperTest {
   void mapSingleSourceRecordWitAllParameters() {
     //given
     ServiceBusReceivedMessage busMessage = prepareMessageBusWithAllConsumedFields();
-    AzureServiceBusPartitionKey partitionKey = new AzureServiceBusPartitionKey(OUTPUT_TOPIC, PARTITION_KEY);
-    AzureServiceBusOffsetMarker busOffsetMarker = new AzureServiceBusOffsetMarker(SEQUENCE_NUMBER);
 
     //when
     SourceRecord sourceRecord =
-        ServiceBusToSourceRecordMapper.mapSingleServiceBusMessage(busMessage, OUTPUT_TOPIC, partitionKey,
-            busOffsetMarker);
+        ServiceBusToSourceRecordMapper.mapSingleServiceBusMessage(busMessage, OUTPUT_TOPIC);
 
     //then
     assertThat(sourceRecord)
-        .returns(partitionKey, from(SourceRecord::sourcePartition))
+        .returns(Collections.emptyMap(), from(SourceRecord::sourcePartition))
         .returns(null, from(SourceRecord::kafkaPartition))
-        .returns(busOffsetMarker, from(SourceRecord::sourceOffset))
+        .returns(Collections.emptyMap(), from(SourceRecord::sourceOffset))
         .returns(OUTPUT_TOPIC, from(SourceRecord::topic))
         .returns(Schema.STRING_SCHEMA, from(SourceRecord::keySchema))
         .returns(ServiceBusToSourceRecordMapper.VALUE_SCHEMA, from(SourceRecord::valueSchema));
@@ -87,19 +83,16 @@ class ServiceBusToSourceRecordMapperTest {
   void mapSingleSourceRecordAllowsForOptionalSchemaFieldsToBeNull() {
     //given
     ServiceBusReceivedMessage busMessage = prepareMessageBusWithOnlyRequiredFields();
-    AzureServiceBusPartitionKey partitionKey = new AzureServiceBusPartitionKey(OUTPUT_TOPIC, PARTITION_KEY);
-    AzureServiceBusOffsetMarker busOffsetMarker = new AzureServiceBusOffsetMarker(SEQUENCE_NUMBER);
 
     //when
     SourceRecord sourceRecord =
-        ServiceBusToSourceRecordMapper.mapSingleServiceBusMessage(busMessage, OUTPUT_TOPIC, partitionKey,
-            busOffsetMarker);
+        ServiceBusToSourceRecordMapper.mapSingleServiceBusMessage(busMessage, OUTPUT_TOPIC);
 
     //then
     assertThat(sourceRecord)
-        .returns(partitionKey, from(SourceRecord::sourcePartition))
+        .returns(Collections.emptyMap(), from(SourceRecord::sourcePartition))
         .returns(null, from(SourceRecord::kafkaPartition))
-        .returns(busOffsetMarker, from(SourceRecord::sourceOffset))
+        .returns(Collections.emptyMap(), from(SourceRecord::sourceOffset))
         .returns(OUTPUT_TOPIC, from(SourceRecord::topic))
         .returns(Schema.STRING_SCHEMA, from(SourceRecord::keySchema))
         .returns(ServiceBusToSourceRecordMapper.VALUE_SCHEMA, from(SourceRecord::valueSchema));

@@ -51,8 +51,10 @@ class HttpSinkConnector extends SinkConnector with LazyLogging with JarManifestP
 
   override def taskConfigs(maxTasks: Int): util.List[util.Map[String, String]] = {
     logger.info(s"[$sinkName] Creating $maxTasks tasks config")
-    List.fill(maxTasks) {
-      props.map(_.asJava).getOrElse(Map.empty[String, String].asJava)
-    }.asJava
+    val taskConfigs = (0 until maxTasks).map { taskNumber =>
+      val taskProps = props.getOrElse(Map.empty).updated(HttpSinkConfigDef.TaskNumberProp, taskNumber.toString)
+      taskProps.asJava
+    }
+    taskConfigs.asJava
   }
 }

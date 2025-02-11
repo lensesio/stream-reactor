@@ -31,8 +31,9 @@ import scala.jdk.CollectionConverters._
 
 object HttpSinkConfigDef {
 
-  val ConnectorPrefix: String = "connect.http"
-  val HttpMethodProp:  String = "connect.http.method"
+  val TaskNumberProp: String = "connect.http.task.number"
+
+  val HttpMethodProp: String = "connect.http.method"
   val HttpMethodDoc: String =
     """
       |The HTTP method to use.
