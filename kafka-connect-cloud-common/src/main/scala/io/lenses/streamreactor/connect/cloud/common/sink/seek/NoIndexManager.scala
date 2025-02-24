@@ -15,13 +15,12 @@
  */
 package io.lenses.streamreactor.connect.cloud.common.sink.seek
 
+import cats.implicits.catsSyntaxEitherId
 import io.lenses.streamreactor.connect.cloud.common.model.Offset
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
 import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
 
-trait IndexManager {
-
-  def indexingEnabled: Boolean
+class NoIndexManager extends IndexManager {
 
   /**
     * Opens a topic/partition for writing
@@ -30,23 +29,17 @@ trait IndexManager {
     * @param topicPartition
     * @return
     */
-  def open(
-    topicPartitions: Set[TopicPartition],
-  ): Either[
-    SinkError,
-    Map[TopicPartition, Option[Offset]],
-  ]
+  override def open(topicPartitions: Set[TopicPartition]): Either[SinkError, Map[TopicPartition, Option[Offset]]] =
+    topicPartitions.map(tp => tp -> Option.empty[Offset]).toMap.asRight
 
-  def update(
+  override def update(
     topicPartition:  TopicPartition,
     committedOffset: Option[Offset],
     pendingState:    Option[PendingState],
-  ): Either[
-    SinkError,
-    Option[Offset],
-  ]
+  ): Either[SinkError, Option[Offset]] =
+    Option.empty.asRight
 
-  def getSeekedOffsetForTopicPartition(
-    topicPartition: TopicPartition,
-  ): Option[Offset]
+  override def getSeekedOffsetForTopicPartition(topicPartition: TopicPartition): Option[Offset] = Option.empty
+
+  override def indexingEnabled: Boolean = false
 }

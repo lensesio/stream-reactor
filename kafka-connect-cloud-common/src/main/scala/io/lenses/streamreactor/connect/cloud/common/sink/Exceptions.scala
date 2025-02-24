@@ -45,7 +45,8 @@ case object FatalCloudSinkError {
 }
 
 // Can be retried
-case class NonFatalCloudSinkError(message: String, exception: Option[Throwable]) extends SinkError {
+case class NonFatalCloudSinkError(message: String, exception: Option[Throwable], cancelPending: Boolean = false)
+    extends SinkError {
 
   override def rollBack(): Boolean = false
 

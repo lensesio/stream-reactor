@@ -17,16 +17,21 @@ package io.lenses.streamreactor.connect.datalake.storage
 
 import cats.implicits._
 import com.azure.core.http.rest.PagedIterable
+import com.azure.storage.common.ParallelTransferOptions
 import com.azure.storage.file.datalake.DataLakeFileClient
 import com.azure.storage.file.datalake.DataLakeServiceClient
+import com.azure.storage.file.datalake.models.DataLakeRequestConditions
 import com.azure.storage.file.datalake.models.DataLakeStorageException
 import com.azure.storage.file.datalake.models.ListPathsOptions
 import com.azure.storage.file.datalake.models.PathItem
 import com.typesafe.scalalogging.LazyLogging
+import io.circe.Encoder
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.config.ObjectMetadata
 import io.lenses.streamreactor.connect.cloud.common.model.UploadableFile
 import io.lenses.streamreactor.connect.cloud.common.model.UploadableString
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.ObjectProtection
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.ObjectWithETag
 import io.lenses.streamreactor.connect.cloud.common.storage._
 import io.lenses.streamreactor.connect.datalake.storage.adaptors.DatalakeContinuingPageIterableAdaptor
 import io.lenses.streamreactor.connect.datalake.storage.adaptors.DatalakePageIterableAdaptor
@@ -103,6 +108,7 @@ class DatalakeStorageInterface(connectorTaskId: ConnectorTaskId, client: DataLak
     }.leftMap(FileLoadError(
       _,
       path,
+      isFileNotFound = false,
     ))
 
   override def listFileMetaRecursive(
@@ -147,7 +153,12 @@ class DatalakeStorageInterface(connectorTaskId: ConnectorTaskId, client: DataLak
           client.getFileSystemClient(bucket).getFileClient(path).read(baos)
           new String(baos.toByteArray)
       }
-    }.toEither.leftMap(t => FileLoadError(t, path))
+    }.toEither.leftMap {
+      case ex: DataLakeStorageException if ex.getStatusCode == 404 =>
+        FileLoadError(ex, path, isFileNotFound = true)
+      case ex =>
+        FileLoadError(ex, path, isFileNotFound = false)
+    }
 
   override def getMetadata(bucket: String, path: String): Either[FileLoadError, ObjectMetadata] =
     throw new NotImplementedError("Required for source")
@@ -155,19 +166,28 @@ class DatalakeStorageInterface(connectorTaskId: ConnectorTaskId, client: DataLak
   private def createFile(bucket: String, path: String): DataLakeFileClient =
     client.getFileSystemClient(bucket).createFile(path, true)
 
-  override def uploadFile(source: UploadableFile, bucket: String, path: String): Either[UploadError, Unit] = {
+  override def uploadFile(source: UploadableFile, bucket: String, path: String): Either[UploadError, String] = {
     logger.debug(s"[{}] Uploading file from local {} to Data Lake {}:{}", connectorTaskId.show, source, bucket, path)
     for {
       file <- source.validate.toEither
-      _ <- Try {
+      eTag <- Try {
         val createFileClient: DataLakeFileClient = createFile(bucket, path)
-        createFileClient.uploadFromFile(file.getPath, true)
+        val response = createFileClient.uploadFromFileWithResponse(
+          file.getPath,
+          new ParallelTransferOptions(),
+          null,                            // PathHttpHeaders
+          null,                            // Metadata
+          new DataLakeRequestConditions(), // RequestConditions to avoid overwriting
+          null,                            // Timeout
+          null,                            // Context
+        )
         logger.debug(s"[{}] Completed upload from local {} to Data Lake {}:{}",
                      connectorTaskId.show,
                      source,
                      bucket,
                      path,
         )
+        response.getValue.getETag
       }
         .toEither.leftMap { ex =>
           logger.error(s"[{}] Failed upload from local {} to Data Lake {}:{}",
@@ -179,11 +199,16 @@ class DatalakeStorageInterface(connectorTaskId: ConnectorTaskId, client: DataLak
           )
           UploadFailedError(ex, file)
         }
-    } yield ()
+    } yield eTag
 
   }
 
-  override def writeStringToFile(bucket: String, path: String, data: UploadableString): Either[UploadError, Unit] = {
+  override def writeStringToFile(
+    bucket: String,
+    path:   String,
+    data:   UploadableString,
+    eTag:   Option[String],
+  ): Either[UploadError, Unit] = {
     logger.debug(
       s"[${connectorTaskId.show}] Uploading file from data string ({${data.data}}) to datalake $bucket:$path",
     )
@@ -233,10 +258,24 @@ class DatalakeStorageInterface(connectorTaskId: ConnectorTaskId, client: DataLak
     oldPath:   String,
     newBucket: String,
     newPath:   String,
+    maybeEtag: Option[String],
   ): Either[FileMoveError, Unit] =
     Try(client.getFileSystemClient(oldBucket).getFileClient(oldPath).rename(newBucket, newPath)).toEither.leftMap(
       FileMoveError(_, oldPath, newPath),
     ).void
 
   override def createDirectoryIfNotExists(bucket: String, path: String): Either[FileCreateError, Unit] = ().asRight
+
+  override def getBlobAsStringAndEtag(bucket: String, path: String): Either[FileLoadError, (String, String)] = ???
+
+  override def deleteFile(bucket: String, file: String, eTag: String): Either[FileDeleteError, Unit] = ???
+
+  override def writeBlobToFile[O](
+    bucket:           String,
+    path:             String,
+    objectProtection: ObjectProtection[O],
+  )(
+    implicit
+    encoder: Encoder[O],
+  ): Either[UploadError, ObjectWithETag[O]] = ???
 }

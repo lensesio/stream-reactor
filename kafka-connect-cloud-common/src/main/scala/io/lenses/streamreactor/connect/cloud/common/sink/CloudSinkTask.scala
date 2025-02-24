@@ -71,8 +71,8 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
   private val writerManagerCreator = new WriterManagerCreator[MD, C]()
 
   private var logMetrics = false
-  private var writerManager:     WriterManager[MD]        = _
-  private var maybeIndexManager: Option[IndexManager[MD]] = _
+  private var writerManager: WriterManager[MD] = _
+  private var indexManager:  IndexManager      = _
   private var config:            C                        = _
   private val attachLatestSchemaOptimizer = new AttachLatestSchemaOptimizer()
   implicit var connectorTaskId: ConnectorTaskId = _
@@ -95,9 +95,9 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
     val errOrWriterMan = createWriterMan(props)
 
     errOrWriterMan.leftMap(throw _).foreach {
-      case (mim, wm, c) =>
-        maybeIndexManager = mim
-        writerManager     = wm
+      case (im, wm, c) =>
+        indexManager  = im
+        writerManager = wm
         config            = c
     }
   }
@@ -247,30 +247,28 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
     actualOffsets
   }
 
-  override def open(partitions: util.Collection[KafkaTopicPartition]): Unit =
-    maybeIndexManager.foreach {
-      indexManager =>
-        val partitionsDebug = partitions.asScala.map(tp => s"${tp.topic()}-${tp.partition()}").mkString(",")
-        logger.debug(s"[{}] Open partitions", connectorTaskId.show, partitionsDebug: Any)
+  override def open(partitions: util.Collection[KafkaTopicPartition]): Unit = {
+    val partitionsDebug = partitions.asScala.map(tp => s"${tp.topic()}-${tp.partition()}").mkString(",")
+    logger.debug(s"[{}] Open partitions", connectorTaskId.show, partitionsDebug: Any)
 
-        val topicPartitions = partitions.asScala
-          .map(tp => TopicPartition(Topic(tp.topic), tp.partition))
-          .toSet
+    val topicPartitions = partitions.asScala
+      .map(tp => TopicPartition(Topic(tp.topic), tp.partition))
+      .toSet
 
-        handleErrors(
-          for {
-            tpoMap <- indexManager.open(topicPartitions)
-          } yield {
-            tpoMap.foreach {
-              case (topicPartition, offset) =>
-                logger.debug(
-                  s"[${connectorTaskId.show}] Seeking to ${topicPartition.topic.value}-${topicPartition.partition}:${offset.value}",
-                )
-                context.offset(topicPartition.toKafka, offset.value)
-            }
-          },
-        )
-    }
+    handleErrors(
+      for {
+        tpoMap <- indexManager.open(topicPartitions)
+      } yield {
+        tpoMap.foreach {
+          case (topicPartition, offset) =>
+            logger.debug(
+              s"[${connectorTaskId.show}] Seeking to ${topicPartition.topic.value}-${topicPartition.partition}:${offset.map(_.value)}",
+            )
+            offset.foreach(o => context.offset(topicPartition.toKafka, o.value))
+        }
+      },
+    )
+  }
 
   /**
     * Whenever close is called, the topics and partitions assigned to this task
@@ -302,19 +300,19 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
 
   private def createWriterMan(
     props: Map[String, String],
-  ): Either[Throwable, (Option[IndexManager[MD]], WriterManager[MD], C)] =
+  ): Either[Throwable, (IndexManager, WriterManager[MD], C)] =
     for {
       config          <- convertPropsToConfig(connectorTaskId, props)
       s3Client        <- createClient(config.connectionConfig)
       storageInterface = createStorageInterface(connectorTaskId, config, s3Client)
       _               <- setRetryInterval(config)
-      (maybeIndexManager, writerManager) <- Try(
+      (indexManager, writerManager) <- Try(
         writerManagerCreator.from(config)(connectorTaskId, storageInterface),
       ).toEither
       _ <- initializeFromConfig(config)
     } yield {
       logMetrics = config.logMetrics
-      (maybeIndexManager, writerManager, config)
+      (indexManager, writerManager, config)
     }
 
   private def initializeFromConfig(config: C): Either[Throwable, Unit] =

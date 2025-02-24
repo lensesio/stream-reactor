@@ -1,0 +1,44 @@
+---
+title: Exactly Once (Connector)
+config:
+---
+sequenceDiagram
+participant kafka_connect as Kafka Connect
+participant task_01 as Task <br> (uuid1)
+participant tmp_file_local as Local File <br> (uuid1)
+participant s3 as S3
+participant lock_file_task_01_s3 as Lock File <br> (uuid1,topic, partition, etag_0)
+participant tmp_file_s3 as Temporary S3 File <br> (uuid1, etag_1)
+participant stored_file as Topic File <br> (topic, partition, offset)
+kafka_connect ->> task_01: start
+activate task_01
+%% what happens here ? how to we get the offset to seek ? 
+task_01 ->> kafka_connect: seek to offset
+task_01 ->> s3: create lock file <br> (uuid1, topic, partition)
+s3 ->> lock_file_task_01_s3: create
+lock_file_task_01_s3 -->> s3: ok
+activate lock_file_task_01_s3
+s3 -->> task_01: ok (uuid1,topic,partition, etag_0)
+activate tmp_file_local
+loop until condition reached
+kafka_connect ->> task_01: push records
+task_01 ->> tmp_file_local: write records
+end
+task_01 ->> s3: upload local file <br> (uuid1)
+s3 ->> tmp_file_s3: write
+activate tmp_file_s3
+tmp_file_s3 -->> s3: ok
+s3 -->> task_01: ok (uuid1,etag_1)
+task_01 ->> tmp_file_local: delete
+deactivate tmp_file_local
+task_01 ->> s3: copy (uuid1,etag_1)) TO (topic,partition,offset)
+s3 ->> stored_file: create & write
+activate stored_file
+s3 -->> task_01: ok file(topic, partition, offset)
+task_01 ->> s3: delete file(uuid,topic, p1, etag_1)
+s3 ->> tmp_file_s3: delete
+deactivate tmp_file_s3
+s3 -->> task_01: ok
+deactivate stored_file
+deactivate lock_file_task_01_s3
+deactivate task_01
