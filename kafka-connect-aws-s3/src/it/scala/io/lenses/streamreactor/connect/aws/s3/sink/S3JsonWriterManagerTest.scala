@@ -95,6 +95,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
             new OffsetFileNamer(
               identity[String],
               JsonFormatSelection.extension,
+              None,
             ),
             new PaddingService(Map[String, PaddingStrategy](
               "partition" -> NoOpPaddingStrategy,
@@ -161,6 +162,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
             new OffsetFileNamer(
               identity[String],
               JsonFormatSelection.extension,
+              None,
             ),
             new PaddingService(Map[String, PaddingStrategy](
               "partition" -> NoOpPaddingStrategy,
@@ -231,6 +233,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
             new OffsetFileNamer(
               identity[String],
               JsonFormatSelection.extension,
+              None,
             ),
             new PaddingService(Map[String, PaddingStrategy](
               "partition" -> NoOpPaddingStrategy,
@@ -307,6 +310,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
             new OffsetFileNamer(
               identity[String],
               JsonFormatSelection.extension,
+              None,
             ),
             new PaddingService(Map[String, PaddingStrategy](
               "partition" -> NoOpPaddingStrategy,

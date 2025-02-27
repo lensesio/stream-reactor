@@ -92,6 +92,7 @@ class S3ParquetWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyC
           new OffsetFileNamer(
             identity[String],
             ParquetFormatSelection.extension,
+            None,
           ),
           new PaddingService(Map[String, PaddingStrategy](
             "partition" -> NoOpPaddingStrategy,
