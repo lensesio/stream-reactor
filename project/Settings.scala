@@ -18,11 +18,11 @@ import com.simplytyped.Antlr4Plugin.autoImport.Antlr4
 import com.simplytyped.Antlr4Plugin.autoImport.antlr4PackageName
 import com.simplytyped.Antlr4Plugin.autoImport.antlr4Version
 import de.heikoseeberger.sbtheader.HeaderPlugin.autoImport.*
-import sbt.Keys.*
-import sbt.Package.ManifestAttributes
+import sbt.*
 import sbt.Compile
 import sbt.Def
-import sbt.*
+import sbt.Keys.*
+import sbt.Package.ManifestAttributes
 import sbt.internal.util.ManagedLogger
 import sbtassembly.Assembly.JarEntry
 import sbtassembly.AssemblyKeys.*
@@ -31,13 +31,11 @@ import sbtassembly.MergeStrategy
 import sbtassembly.PathList
 
 import java.io.File
-import java.io.File
-import java.io.File
 import java.io.IOException
-import java.net.HttpURLConnection
 import java.net.HttpURLConnection
 import java.net.MalformedURLException
 import java.net.URL
+import java.net.URLConnection
 import java.nio.file.Files
 import java.nio.file.Paths
 import java.time.Year
@@ -314,26 +312,24 @@ object Settings extends Dependencies {
 
       try {
         val url        = new URL(pomUrl)
-        val connection = url.openConnection().asInstanceOf[HttpURLConnection]
-        connection.setRequestMethod("GET")
-
-        if (connection.getResponseCode == HttpURLConnection.HTTP_OK && connection.getContentType == "text/xml") {
-          val inputStream = connection.getInputStream
-          try {
-            val pomContent = new String(inputStream.readAllBytes())
-            IO.write(pomFile, pomContent)
-            log.info(s"Successfully retrieved and saved POM from $pomUrl to $pomFile")
-            Some(pomFile)
-
-          } finally {
-            inputStream.close()
-          }
-        } else {
-          log.error(
-            s"Failed to retrieve POM from $pomUrl. HTTP Status: ${connection.getResponseCode}, Content Type: ${connection.getContentType}",
-          )
-          Option.empty
+        val connection = url.openConnection()
+        connection match {
+          case httpConnection: HttpURLConnection =>
+            httpConnection.setRequestMethod("GET")
+            if (
+              httpConnection.getResponseCode == HttpURLConnection.HTTP_OK && connection.getContentType == "text/xml"
+            ) {
+              readInputStreamToPom(log, pomUrl, pomFile, connection)
+            } else {
+              log.error(
+                s"Failed to retrieve POM from $pomUrl. HTTP Status: ${httpConnection.getResponseCode}, Content Type: ${connection.getContentType}",
+              )
+              Option.empty
+            }
+          case connection: URLConnection =>
+            readInputStreamToPom(log, pomUrl, pomFile, connection)
         }
+
       } catch {
         case e: MalformedURLException =>
           log.error(s"Invalid URL: $pomUrl")
@@ -343,6 +339,19 @@ object Settings extends Dependencies {
           Option.empty
       }
 
+    }
+
+    private def readInputStreamToPom(log: ManagedLogger, pomUrl: String, pomFile: File, connection: URLConnection) = {
+      val inputStream = connection.getInputStream
+      try {
+        val pomContent = new String(inputStream.readAllBytes())
+        IO.write(pomFile, pomContent)
+        log.info(s"Successfully retrieved and saved POM from $pomUrl to $pomFile")
+        Some(pomFile)
+
+      } finally {
+        inputStream.close()
+      }
     }
 
     private def createPomPropertiesIfChanged(
