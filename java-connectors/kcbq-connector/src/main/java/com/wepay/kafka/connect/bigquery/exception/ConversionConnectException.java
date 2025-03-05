@@ -26,6 +26,7 @@ import org.apache.kafka.connect.errors.ConnectException;
  * records.
  */
 public class ConversionConnectException extends ConnectException {
+
   public ConversionConnectException(String msg) {
     super(msg);
   }

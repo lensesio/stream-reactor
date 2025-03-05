@@ -30,25 +30,35 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public class FieldNameSanitizerTest {
+
   private Map<String, Object> testMap;
 
   @Before
   public void setUp() {
-    testMap = new HashMap<String, Object>() {{
-      put("A.1", new HashMap<String, Object>() {{
-        put("_B1", 1);
-        put("B.2", "hello.B-2");
-      }});
-      put("A-2", new HashMap<String, Object>() {{
-        put("=/B.3", "hello B3");
-        put("B./4", "hello B4");
-        put("2A/", "hello B5");
-        put("3A/", "hello B6");
-      }});
-      put("Foo", "Simple Value");
-      put("Foo_1", "Simple Value 1");
-      put("Foo-2", "Simple Value 2");
-    }};
+    testMap = new HashMap<String, Object>() {
+
+      {
+        put("A.1", new HashMap<String, Object>() {
+
+          {
+            put("_B1", 1);
+            put("B.2", "hello.B-2");
+          }
+        });
+        put("A-2", new HashMap<String, Object>() {
+
+          {
+            put("=/B.3", "hello B3");
+            put("B./4", "hello B4");
+            put("2A/", "hello B5");
+            put("3A/", "hello B6");
+          }
+        });
+        put("Foo", "Simple Value");
+        put("Foo_1", "Simple Value 1");
+        put("Foo-2", "Simple Value 2");
+      }
+    };
   }
 
   @Test

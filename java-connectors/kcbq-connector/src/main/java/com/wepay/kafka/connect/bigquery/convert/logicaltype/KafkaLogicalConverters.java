@@ -45,13 +45,14 @@ public class KafkaLogicalConverters {
    * Class for converting Kafka date logical types to Bigquery dates.
    */
   public static class DateConverter extends LogicalTypeConverter {
+
     /**
      * Create a new DateConverter.
      */
     public DateConverter() {
       super(Date.LOGICAL_NAME,
-            Schema.Type.INT32,
-            LegacySQLTypeName.DATE);
+          Schema.Type.INT32,
+          LegacySQLTypeName.DATE);
     }
 
     @Override
@@ -64,13 +65,14 @@ public class KafkaLogicalConverters {
    * Class for converting Kafka decimal logical types to Bigquery floating points.
    */
   public static class DecimalConverter extends LogicalTypeConverter {
+
     /**
      * Create a new DecimalConverter.
      */
     public DecimalConverter() {
       super(Decimal.LOGICAL_NAME,
-            Schema.Type.BYTES,
-            LegacySQLTypeName.FLOAT);
+          Schema.Type.BYTES,
+          LegacySQLTypeName.FLOAT);
     }
 
     @Override
@@ -84,12 +86,13 @@ public class KafkaLogicalConverters {
    * Class for converting Kafka timestamp logical types to BigQuery timestamps.
    */
   public static class TimestampConverter extends LogicalTypeConverter {
+
     /**
      * Create a new TimestampConverter.
      */
     public TimestampConverter() {
       super(Timestamp.LOGICAL_NAME,
-        Schema.Type.INT64,
+          Schema.Type.INT64,
           LegacySQLTypeName.TIMESTAMP);
     }
 
@@ -99,11 +102,11 @@ public class KafkaLogicalConverters {
     }
   }
 
-
   /**
    * Class for converting Kafka time logical types to BigQuery time types.
    */
   public static class TimeConverter extends LogicalTypeConverter {
+
     /**
      * Create a new TimestampConverter.
      */

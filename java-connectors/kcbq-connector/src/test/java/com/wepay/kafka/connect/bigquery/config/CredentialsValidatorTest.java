@@ -53,8 +53,7 @@ public class CredentialsValidatorTest {
     BigQuerySinkConfig config = mock(BigQuerySinkConfig.class);
     when(config.getKey()).thenReturn("key");
 
-    @SuppressWarnings("unchecked")
-    GcpClientBuilder<Object> mockClientBuilder = mock(GcpClientBuilder.class);
+    @SuppressWarnings("unchecked") GcpClientBuilder<Object> mockClientBuilder = mock(GcpClientBuilder.class);
     when(mockClientBuilder.withConfig(eq(config))).thenReturn(mockClientBuilder);
     when(mockClientBuilder.build()).thenThrow(new RuntimeException("Provided credentials are invalid"));
 
@@ -75,8 +74,8 @@ public class CredentialsValidatorTest {
     when(config.getKeySource()).thenReturn(GcpClientBuilder.KeySource.APPLICATION_DEFAULT);
 
     assertTrue(
-            new CredentialsValidator.BigQueryCredentialsValidator().doValidate(config)
-                    .get().contains("should not be provided")
+        new CredentialsValidator.BigQueryCredentialsValidator().doValidate(config)
+            .get().contains("should not be provided")
     );
   }
 }

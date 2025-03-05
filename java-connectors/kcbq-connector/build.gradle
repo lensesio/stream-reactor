@@ -71,5 +71,4 @@ project(":kcbq-connector") {
         implementation group: 'io.confluent', name: 'kafka-avro-serializer', version: confluentVersion
         implementation group: 'com.google.re2j', name: 're2j', version: re2jVersion
     }
-
 }

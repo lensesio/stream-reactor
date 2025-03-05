@@ -48,11 +48,12 @@ import java.util.stream.Collectors;
  */
 public class BigQueryRecordConverter implements RecordConverter<Map<String, Object>> {
 
-  private static final Set<Class<?>> BASIC_TYPES = new HashSet<>(
+  private static final Set<Class<?>> BASIC_TYPES =
+      new HashSet<>(
           Arrays.asList(
-            Boolean.class, Character.class, Byte.class, Short.class,
-                  Integer.class, Long.class, Float.class, Double.class, String.class)
-          );
+              Boolean.class, Character.class, Byte.class, Short.class,
+              Integer.class, Long.class, Float.class, Double.class, String.class)
+      );
   private final boolean shouldConvertSpecialDouble;
   private boolean shouldConvertDebeziumTimestampToInteger;
 
@@ -69,9 +70,10 @@ public class BigQueryRecordConverter implements RecordConverter<Map<String, Obje
 
   /**
    * Convert a {@link SinkRecord} into the contents of a BigQuery {@link RowToInsert}.
-   * @param record The Kafka Connect record to convert. Must be of type {@link Struct},
-   *               in order to translate into a row format that requires each field to
-   *               consist of both a name and a value.
+   * 
+   * @param record     The Kafka Connect record to convert. Must be of type {@link Struct},
+   *                   in order to translate into a row format that requires each field to
+   *                   consist of both a name and a value.
    * @param recordType The type of the record to convert, either value or key.
    * @return The result BigQuery row content.
    */
@@ -84,11 +86,10 @@ public class BigQueryRecordConverter implements RecordConverter<Map<String, Obje
         return (Map<String, Object>) convertSchemalessRecord(kafkaConnectStruct);
       }
       throw new ConversionConnectException("Only Map objects supported in absence of schema for " +
-              "record conversion to BigQuery format.");
+          "record conversion to BigQuery format.");
     }
     if (kafkaConnectSchema.type() != Schema.Type.STRUCT) {
-      throw new
-          ConversionConnectException("Top-level Kafka Connect schema must be of type 'struct'");
+      throw new ConversionConnectException("Top-level Kafka Connect schema must be of type 'struct'");
     }
     return convertStruct(kafkaConnectStruct, kafkaConnectSchema);
   }
@@ -113,20 +114,19 @@ public class BigQueryRecordConverter implements RecordConverter<Map<String, Obje
           .collect(Collectors.toList());
     }
     if (value instanceof Map) {
-      return
-          ((Map<Object, Object>) value)
-              .entrySet()
-              .stream()
-              .collect(HashMap::new,
-                  (m, e) -> {
-                    if (!(e.getKey() instanceof String)) {
-                      throw new ConversionConnectException(
-                          "Failed to convert record to bigQuery format: " +
-                              "Map objects in absence of schema needs to have string value keys. ");
-                    }
-                    m.put(e.getKey(), convertSchemalessRecord(e.getValue()));
-                  },
-                  HashMap::putAll);
+      return ((Map<Object, Object>) value)
+          .entrySet()
+          .stream()
+          .collect(HashMap::new,
+              (m, e) -> {
+                if (!(e.getKey() instanceof String)) {
+                  throw new ConversionConnectException(
+                      "Failed to convert record to bigQuery format: " +
+                          "Map objects in absence of schema needs to have string value keys. ");
+                }
+                m.put(e.getKey(), convertSchemalessRecord(e.getValue()));
+              },
+              HashMap::putAll);
     }
     throw new ConversionConnectException("Unsupported class " + value.getClass() +
         " found in schemaless record data. Can't convert record to bigQuery format");
@@ -156,7 +156,7 @@ public class BigQueryRecordConverter implements RecordConverter<Map<String, Obje
       case BYTES:
         return convertBytes(kafkaConnectObject);
       case FLOAT64:
-        return convertDouble((Double)kafkaConnectObject);
+        return convertDouble((Double) kafkaConnectObject);
       case BOOLEAN:
       case FLOAT32:
       case INT8:
@@ -176,13 +176,15 @@ public class BigQueryRecordConverter implements RecordConverter<Map<String, Obje
     Struct kafkaConnectStruct = (Struct) kafkaConnectObject;
     for (Field kafkaConnectField : kafkaConnectSchemaFields) {
       // ignore empty structures
-      boolean isEmptyStruct = kafkaConnectField.schema().type() == Schema.Type.STRUCT &&
-          kafkaConnectField.schema().fields().isEmpty();
+      boolean isEmptyStruct =
+          kafkaConnectField.schema().type() == Schema.Type.STRUCT &&
+              kafkaConnectField.schema().fields().isEmpty();
       if (!isEmptyStruct) {
-        Object bigQueryObject = convertObject(
-            kafkaConnectStruct.get(kafkaConnectField.name()),
-            kafkaConnectField.schema()
-        );
+        Object bigQueryObject =
+            convertObject(
+                kafkaConnectStruct.get(kafkaConnectField.name()),
+                kafkaConnectField.schema()
+            );
         if (bigQueryObject != null) {
           bigQueryRecord.put(kafkaConnectField.name(), bigQueryObject);
         }
@@ -193,7 +195,7 @@ public class BigQueryRecordConverter implements RecordConverter<Map<String, Obje
 
   @SuppressWarnings("unchecked")
   private List<Object> convertArray(Object kafkaConnectObject,
-                                    Schema kafkaConnectSchema) {
+      Schema kafkaConnectSchema) {
     Schema kafkaConnectValueSchema = kafkaConnectSchema.valueSchema();
     List<Object> bigQueryList = new ArrayList<>();
     List<Object> kafkaConnectList = (List<Object>) kafkaConnectObject;
@@ -206,21 +208,23 @@ public class BigQueryRecordConverter implements RecordConverter<Map<String, Obje
 
   @SuppressWarnings("unchecked")
   private List<Map<String, Object>> convertMap(Object kafkaConnectObject,
-                                               Schema kafkaConnectSchema) {
+      Schema kafkaConnectSchema) {
     Schema kafkaConnectKeySchema = kafkaConnectSchema.keySchema();
     Schema kafkaConnectValueSchema = kafkaConnectSchema.valueSchema();
     List<Map<String, Object>> bigQueryEntryList = new ArrayList<>();
     Map<Object, Object> kafkaConnectMap = (Map<Object, Object>) kafkaConnectObject;
     for (Map.Entry<Object, Object> kafkaConnectMapEntry : kafkaConnectMap.entrySet()) {
       Map<String, Object> bigQueryEntry = new HashMap<>();
-      Object bigQueryKey = convertObject(
-          kafkaConnectMapEntry.getKey(),
-          kafkaConnectKeySchema
-      );
-      Object bigQueryValue = convertObject(
-          kafkaConnectMapEntry.getValue(),
-          kafkaConnectValueSchema
-      );
+      Object bigQueryKey =
+          convertObject(
+              kafkaConnectMapEntry.getKey(),
+              kafkaConnectKeySchema
+          );
+      Object bigQueryValue =
+          convertObject(
+              kafkaConnectMapEntry.getValue(),
+              kafkaConnectValueSchema
+          );
       bigQueryEntry.put(BigQuerySchemaConverter.MAP_KEY_FIELD_NAME, bigQueryKey);
       bigQueryEntry.put(BigQuerySchemaConverter.MAP_VALUE_FIELD_NAME, bigQueryValue);
       bigQueryEntryList.add(bigQueryEntry);
@@ -229,11 +233,11 @@ public class BigQueryRecordConverter implements RecordConverter<Map<String, Obje
   }
 
   private Object convertLogical(Object kafkaConnectObject,
-                                Schema kafkaConnectSchema) {
+      Schema kafkaConnectSchema) {
     LogicalTypeConverter converter =
         LogicalConverterRegistry.getConverter(kafkaConnectSchema.name());
 
-    if(shouldConvertDebeziumTimestampToInteger && converter instanceof DebeziumLogicalConverters.TimestampConverter) {
+    if (shouldConvertDebeziumTimestampToInteger && converter instanceof DebeziumLogicalConverters.TimestampConverter) {
       return (Long) kafkaConnectObject;
     }
     return converter.convert(kafkaConnectObject);
@@ -244,7 +248,7 @@ public class BigQueryRecordConverter implements RecordConverter<Map<String, Obje
    * If this.shouldDonvertSpecialDouble is true, special values are converted as follows:
    * Double.POSITIVE_INFINITY -> Double.MAX_VALUE
    * Doulbe.NEGATIVE_INFINITY -> Double.MIN_VALUE
-   * Double.NaN               -> Double.MIN_VALUE
+   * Double.NaN -> Double.MIN_VALUE
    *
    * @param kafkaConnectDouble The Kafka Connect value to convert.
    *
@@ -255,7 +259,7 @@ public class BigQueryRecordConverter implements RecordConverter<Map<String, Obje
       if (kafkaConnectDouble.equals(Double.POSITIVE_INFINITY)) {
         return Double.MAX_VALUE;
       } else if (kafkaConnectDouble.equals(Double.NEGATIVE_INFINITY)
-              || Double.isNaN(kafkaConnectDouble)) {
+          || Double.isNaN(kafkaConnectDouble)) {
         return Double.MIN_VALUE;
       }
     }

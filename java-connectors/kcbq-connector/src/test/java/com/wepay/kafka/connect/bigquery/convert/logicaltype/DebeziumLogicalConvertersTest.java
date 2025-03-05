@@ -55,7 +55,7 @@ public class DebeziumLogicalConvertersTest {
     } catch (Exception ex) {
       fail("Expected encoding type check to succeed.");
     }
-    
+
     String formattedDate = converter.convert(DAYS_TIMESTAMP);
     assertEquals("2017-03-01", formattedDate);
   }
@@ -82,7 +82,6 @@ public class DebeziumLogicalConvertersTest {
     String formattedMicroTime = converter.convert(microTimestamp);
     assertEquals(s, formattedMicroTime);
   }
-
 
   @Test
   public void testMicroTimestampConversion() {

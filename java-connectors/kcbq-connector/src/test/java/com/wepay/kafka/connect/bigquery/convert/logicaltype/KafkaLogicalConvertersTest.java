@@ -103,7 +103,6 @@ public class KafkaLogicalConvertersTest {
     assertEquals("2017-03-01 22:20:38.808", formattedTimestamp);
   }
 
-
   @Test
   public void testTimeConversion() {
     TimeConverter converter = new KafkaLogicalConverters.TimeConverter();

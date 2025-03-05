@@ -19,7 +19,6 @@
 
 package com.wepay.kafka.connect.bigquery;
 
-
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.Clustering;
@@ -80,24 +79,24 @@ public class SchemaManager {
   private final ConcurrentMap<TableId, com.google.cloud.bigquery.Schema> schemaCache;
 
   /**
-   * @param schemaRetriever Used to determine the Kafka Connect Schema that should be used for a
-   *                        given table.
-   * @param schemaConverter Used to convert Kafka Connect Schemas into BigQuery format.
-   * @param bigQuery Used to communicate create/update requests to BigQuery.
-   * @param allowNewBQFields If set to true, allows new fields to be added to BigQuery Schema.
+   * @param schemaRetriever                Used to determine the Kafka Connect Schema that should be used for a
+   *                                       given table.
+   * @param schemaConverter                Used to convert Kafka Connect Schemas into BigQuery format.
+   * @param bigQuery                       Used to communicate create/update requests to BigQuery.
+   * @param allowNewBQFields               If set to true, allows new fields to be added to BigQuery Schema.
    * @param allowBQRequiredFieldRelaxation If set to true, allows changing field mode from REQUIRED to NULLABLE
-   * @param allowSchemaUnionization If set to true, allows existing and new schemas to be unionized
-   * @param sanitizeFieldNames If true, sanitizes field names to adhere to BigQuery column name restrictions
-   * @param kafkaKeyFieldName The name of kafka key field to be used in BigQuery.
-   *                          If set to null, Kafka Key Field will not be included in BigQuery.
-   * @param kafkaDataFieldName The name of kafka data field to be used in BigQuery.
-   *                           If set to null, Kafka Data Field will not be included in BigQuery.
-   * @param timestampPartitionFieldName The name of the field to use for column-based time
-   *                                    partitioning in BigQuery.
-   *                                    If set to null, ingestion time-based partitioning will be
-   *                                    used instead.
+   * @param allowSchemaUnionization        If set to true, allows existing and new schemas to be unionized
+   * @param sanitizeFieldNames             If true, sanitizes field names to adhere to BigQuery column name restrictions
+   * @param kafkaKeyFieldName              The name of kafka key field to be used in BigQuery.
+   *                                       If set to null, Kafka Key Field will not be included in BigQuery.
+   * @param kafkaDataFieldName             The name of kafka data field to be used in BigQuery.
+   *                                       If set to null, Kafka Data Field will not be included in BigQuery.
+   * @param timestampPartitionFieldName    The name of the field to use for column-based time
+   *                                       partitioning in BigQuery.
+   *                                       If set to null, ingestion time-based partitioning will be
+   *                                       used instead.
    * @param clusteringFieldName
-   * @param timePartitioningType The time partitioning type (HOUR, DAY, etc.) to use for created tables.
+   * @param timePartitioningType           The time partitioning type (HOUR, DAY, etc.) to use for created tables.
    */
   public SchemaManager(
       SchemaRetriever schemaRetriever,
@@ -195,9 +194,10 @@ public class SchemaManager {
   /**
    * Fetch the most recent schema for the given table, assuming it has been created and/or updated
    * over the lifetime of this schema manager.
+   * 
    * @param table the table to fetch the schema for; may be null
    * @return the latest schema for that table; may be null if the table does not exist or has not
-   * been created or updated by this schema manager
+   *         been created or updated by this schema manager
    */
   public com.google.cloud.bigquery.Schema cachedSchema(TableId table) {
     return schemaCache.get(table);
@@ -206,7 +206,8 @@ public class SchemaManager {
   /**
    * Create a new table in BigQuery, if it doesn't already exist. Otherwise, update the existing
    * table to use the most-current schema.
-   * @param table The BigQuery table to create,
+   * 
+   * @param table   The BigQuery table to create,
    * @param records The sink records used to determine the schema.
    */
   public void createOrUpdateTable(TableId table, List<SinkRecord> records) {
@@ -226,7 +227,8 @@ public class SchemaManager {
 
   /**
    * Create a new table in BigQuery.
-   * @param table The BigQuery table to create.
+   * 
+   * @param table   The BigQuery table to create.
    * @param records The sink records used to determine the schema.
    * @return whether the table had to be created; if the table already existed, will return false
    */
@@ -258,7 +260,8 @@ public class SchemaManager {
 
   /**
    * Update an existing table in BigQuery.
-   * @param table The BigQuery table to update.
+   * 
+   * @param table   The BigQuery table to update.
    * @param records The sink records used to update the schema.
    */
   public void updateSchema(TableId table, List<SinkRecord> records) {
@@ -282,8 +285,9 @@ public class SchemaManager {
 
   /**
    * Returns the {@link TableInfo} instance of a bigQuery Table
-   * @param table The BigQuery table to return the table info
-   * @param records The sink records used to determine the schema for constructing the table info
+   * 
+   * @param table        The BigQuery table to return the table info
+   * @param records      The sink records used to determine the schema for constructing the table info
    * @param createSchema Flag to determine if we are creating a new table schema or updating an existing table schema
    * @return The resulting BigQuery table information
    */
@@ -330,7 +334,8 @@ public class SchemaManager {
 
   /**
    * Returns a list of BigQuery schemas of the specified table and the sink records
-   * @param table The BigQuery table's schema to add to the list of schemas
+   * 
+   * @param table   The BigQuery table's schema to add to the list of schemas
    * @param records The sink records' schemas to add to the list of schemas
    * @return List of BigQuery schemas
    */
@@ -351,6 +356,7 @@ public class SchemaManager {
    * Gets a regular record from the given batch of SinkRecord for schema conversion. This is needed
    * when delete is enabled, because a tombstone record has null value, thus null value schema.
    * Converting null value schema to BigQuery schema is not possible.
+   * 
    * @param records List of SinkRecord to look for.
    * @return a regular record or null if the whole batch are all tombstone records.
    */
@@ -373,6 +379,7 @@ public class SchemaManager {
 
   /**
    * Returns a unionized schema from a list of BigQuery schemas
+   * 
    * @param schemas The list of BigQuery schemas to unionize
    * @return The resulting unionized BigQuery schema
    */
@@ -397,8 +404,8 @@ public class SchemaManager {
     }
 
     checkState(firstField.getName().equalsIgnoreCase(secondField.getName()),
-            String.format("Cannot perform union operation on two fields having different names. " +
-                    "Field names are '%s' and '%s'.", firstField.getName(), secondField.getName()));
+        String.format("Cannot perform union operation on two fields having different names. " +
+            "Field names are '%s' and '%s'.", firstField.getName(), secondField.getName()));
     Field.Builder retBuilder = firstField.toBuilder();
     if (isFieldRelaxation(firstField, secondField)) {
       retBuilder.setMode(secondField.getMode());
@@ -421,7 +428,8 @@ public class SchemaManager {
 
   /**
    * Returns a single unionized BigQuery schema from two BigQuery schemas.
-   * @param firstSchema The first BigQuery schema to unionize
+   * 
+   * @param firstSchema  The first BigQuery schema to unionize
    * @param secondSchema The second BigQuery schema to unionize
    * @return The resulting unionized BigQuery schema
    */
@@ -455,7 +463,7 @@ public class SchemaManager {
     secondSchemaFields.forEach((name, secondField) -> {
       if (!unionizedFields.containsKey(name)) {
         if (Mode.REPEATED.equals(secondField.getMode())) {
-        // Repeated fields are implicitly nullable; no need to set a new mode for them
+          // Repeated fields are implicitly nullable; no need to set a new mode for them
           unionizedFields.put(name, secondField);
         } else {
           unionizedFields.put(name, secondField.toBuilder().setMode(Mode.NULLABLE).build());
@@ -481,7 +489,7 @@ public class SchemaManager {
         }
       } else if (isFieldRelaxation(earliestSchemaFields.get(entry.getKey()), entry.getValue())) {
         if (!allowBQRequiredFieldRelaxation) {
-          throw new BigQueryConnectException( entry.getKey() + " has mode REQUIRED. Set "
+          throw new BigQueryConnectException(entry.getKey() + " has mode REQUIRED. Set "
               + BigQuerySinkConfig.ALLOW_BIGQUERY_REQUIRED_FIELD_RELAXATION_CONFIG
               + " to true, to change the mode to NULLABLE");
         }
@@ -495,8 +503,7 @@ public class SchemaManager {
   }
 
   private boolean isValidFieldAddition(Field newField) {
-    return allowNewBQFields && (
-        newField.getMode().equals(Field.Mode.NULLABLE) ||
+    return allowNewBQFields && (newField.getMode().equals(Field.Mode.NULLABLE) ||
         newField.getMode().equals(Field.Mode.REPEATED) ||
         (newField.getMode().equals(Field.Mode.REQUIRED) && allowBQRequiredFieldRelaxation));
   }
@@ -508,7 +515,8 @@ public class SchemaManager {
     Map<String, Field> proposedSchemaFields = schemaFields(proposedSchema);
     List<Field> newSchemaFields = new ArrayList<>();
     for (Map.Entry<String, Field> entry : proposedSchemaFields.entrySet()) {
-      if (!existingSchemaFields.containsKey(entry.getKey()) && !Field.Mode.REPEATED.equals(entry.getValue().getMode())) {
+      if (!existingSchemaFields.containsKey(entry.getKey()) && !Field.Mode.REPEATED.equals(entry.getValue()
+          .getMode())) {
         newSchemaFields.add(entry.getValue().toBuilder().setMode(Field.Mode.NULLABLE).build());
       } else {
         newSchemaFields.add(entry.getValue());
@@ -519,6 +527,7 @@ public class SchemaManager {
 
   /**
    * Returns a unionized table description from a set of sink records going to the same BigQuery table.
+   * 
    * @param records The records used to get the unionized table description
    * @return The resulting table description
    */
@@ -552,6 +561,7 @@ public class SchemaManager {
   /**
    * Returns a dictionary providing lookup of each field in the schema by name. The ordering of the
    * fields in the schema is preserved in the returned map.
+   * 
    * @param schema The BigQuery schema
    * @return A map allowing lookup of schema fields by name
    */
@@ -568,9 +578,10 @@ public class SchemaManager {
 
   // package private for testing.
   TableInfo constructTableInfo(TableId table, com.google.cloud.bigquery.Schema bigQuerySchema, String tableDescription,
-                               Boolean createSchema) {
-    StandardTableDefinition.Builder builder = StandardTableDefinition.newBuilder()
-        .setSchema(bigQuerySchema);
+      Boolean createSchema) {
+    StandardTableDefinition.Builder builder =
+        StandardTableDefinition.newBuilder()
+            .setSchema(bigQuerySchema);
 
     if (intermediateTables) {
       // Shameful hack: make the table ingestion time-partitioned here so that the _PARTITIONTIME
@@ -581,13 +592,14 @@ public class SchemaManager {
         TimePartitioning.Builder timePartitioningBuilder = TimePartitioning.of(partitioningType).toBuilder();
         timestampPartitionFieldName.ifPresent(timePartitioningBuilder::setField);
         partitionExpiration.ifPresent(timePartitioningBuilder::setExpirationMs);
-  
+
         builder.setTimePartitioning(timePartitioningBuilder.build());
-  
+
         if (timestampPartitionFieldName.isPresent() && clusteringFieldName.isPresent()) {
-          Clustering clustering = Clustering.newBuilder()
-              .setFields(clusteringFieldName.get())
-              .build();
+          Clustering clustering =
+              Clustering.newBuilder()
+                  .setFields(clusteringFieldName.get())
+                  .build();
           builder.setClustering(clustering);
         }
       });
@@ -601,16 +613,17 @@ public class SchemaManager {
     } else if (tableDescription != null) {
       tableInfoBuilder.setDescription(tableDescription);
     }
-    
+
     return tableInfoBuilder.build();
   }
 
   private com.google.cloud.bigquery.Schema getBigQuerySchema(Schema kafkaKeySchema, Schema kafkaValueSchema) {
     com.google.cloud.bigquery.Schema valueSchema = schemaConverter.convertSchema(kafkaValueSchema);
 
-    List<Field> schemaFields = intermediateTables
-        ? getIntermediateSchemaFields(valueSchema, kafkaKeySchema)
-        : getRegularSchemaFields(valueSchema, kafkaKeySchema);
+    List<Field> schemaFields =
+        intermediateTables
+            ? getIntermediateSchemaFields(valueSchema, kafkaKeySchema)
+            : getRegularSchemaFields(valueSchema, kafkaKeySchema);
 
     return com.google.cloud.bigquery.Schema.of(schemaFields);
   }
@@ -627,41 +640,48 @@ public class SchemaManager {
 
     List<Field> valueFields = new ArrayList<>(valueSchema.getFields());
     if (kafkaDataFieldName.isPresent()) {
-      String dataFieldName = sanitizeFieldNames ?
-          FieldNameSanitizer.sanitizeName(kafkaDataFieldName.get()) : kafkaDataFieldName.get();
+      String dataFieldName =
+          sanitizeFieldNames ? FieldNameSanitizer.sanitizeName(kafkaDataFieldName.get()) : kafkaDataFieldName.get();
       Field kafkaDataField = KafkaDataBuilder.buildKafkaDataField(dataFieldName);
       valueFields.add(kafkaDataField);
     }
 
     // Wrap the sink record value (and possibly also its Kafka data) in a struct in order to support deletes
-    Field wrappedValueField = Field
-        .newBuilder(MergeQueries.INTERMEDIATE_TABLE_VALUE_FIELD_NAME, LegacySQLTypeName.RECORD, valueFields.toArray(new Field[0]))
-        .setMode(Field.Mode.NULLABLE)
-        .build();
+    Field wrappedValueField =
+        Field
+            .newBuilder(MergeQueries.INTERMEDIATE_TABLE_VALUE_FIELD_NAME, LegacySQLTypeName.RECORD, valueFields.toArray(
+                new Field[0]))
+            .setMode(Field.Mode.NULLABLE)
+            .build();
     result.add(wrappedValueField);
 
     com.google.cloud.bigquery.Schema keySchema = schemaConverter.convertSchema(kafkaKeySchema);
-    Field kafkaKeyField = Field.newBuilder(MergeQueries.INTERMEDIATE_TABLE_KEY_FIELD_NAME, LegacySQLTypeName.RECORD, keySchema.getFields())
-        .setMode(Field.Mode.REQUIRED)
-        .build();
+    Field kafkaKeyField =
+        Field.newBuilder(MergeQueries.INTERMEDIATE_TABLE_KEY_FIELD_NAME, LegacySQLTypeName.RECORD, keySchema
+            .getFields())
+            .setMode(Field.Mode.REQUIRED)
+            .build();
     result.add(kafkaKeyField);
 
-    Field iterationField = Field
-        .newBuilder(MergeQueries.INTERMEDIATE_TABLE_ITERATION_FIELD_NAME, LegacySQLTypeName.INTEGER)
-        .setMode(Field.Mode.REQUIRED)
-        .build();
+    Field iterationField =
+        Field
+            .newBuilder(MergeQueries.INTERMEDIATE_TABLE_ITERATION_FIELD_NAME, LegacySQLTypeName.INTEGER)
+            .setMode(Field.Mode.REQUIRED)
+            .build();
     result.add(iterationField);
 
-    Field partitionTimeField = Field
-        .newBuilder(MergeQueries.INTERMEDIATE_TABLE_PARTITION_TIME_FIELD_NAME, LegacySQLTypeName.TIMESTAMP)
-        .setMode(Field.Mode.NULLABLE)
-        .build();
+    Field partitionTimeField =
+        Field
+            .newBuilder(MergeQueries.INTERMEDIATE_TABLE_PARTITION_TIME_FIELD_NAME, LegacySQLTypeName.TIMESTAMP)
+            .setMode(Field.Mode.NULLABLE)
+            .build();
     result.add(partitionTimeField);
 
-    Field batchNumberField = Field
-        .newBuilder(MergeQueries.INTERMEDIATE_TABLE_BATCH_NUMBER_FIELD, LegacySQLTypeName.INTEGER)
-        .setMode(Field.Mode.REQUIRED)
-        .build();
+    Field batchNumberField =
+        Field
+            .newBuilder(MergeQueries.INTERMEDIATE_TABLE_BATCH_NUMBER_FIELD, LegacySQLTypeName.INTEGER)
+            .setMode(Field.Mode.REQUIRED)
+            .build();
     result.add(batchNumberField);
 
     return result;
@@ -671,20 +691,21 @@ public class SchemaManager {
     List<Field> result = new ArrayList<>(valueSchema.getFields());
 
     if (kafkaDataFieldName.isPresent()) {
-      String dataFieldName = sanitizeFieldNames ?
-          FieldNameSanitizer.sanitizeName(kafkaDataFieldName.get()) : kafkaDataFieldName.get();
+      String dataFieldName =
+          sanitizeFieldNames ? FieldNameSanitizer.sanitizeName(kafkaDataFieldName.get()) : kafkaDataFieldName.get();
       Field kafkaDataField = KafkaDataBuilder.buildKafkaDataField(dataFieldName);
       result.add(kafkaDataField);
     }
 
     if (kafkaKeyFieldName.isPresent()) {
       com.google.cloud.bigquery.Schema keySchema = schemaConverter.convertSchema(kafkaKeySchema);
-      String keyFieldName = sanitizeFieldNames ?
-          FieldNameSanitizer.sanitizeName(kafkaKeyFieldName.get()) : kafkaKeyFieldName.get();
-      Field kafkaKeyField = Field.newBuilder(
-          keyFieldName,
-          LegacySQLTypeName.RECORD,
-          keySchema.getFields()).setMode(Field.Mode.NULLABLE).build();
+      String keyFieldName =
+          sanitizeFieldNames ? FieldNameSanitizer.sanitizeName(kafkaKeyFieldName.get()) : kafkaKeyFieldName.get();
+      Field kafkaKeyField =
+          Field.newBuilder(
+              keyFieldName,
+              LegacySQLTypeName.RECORD,
+              keySchema.getFields()).setMode(Field.Mode.NULLABLE).build();
       result.add(kafkaKeyField);
     }
 

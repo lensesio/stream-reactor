@@ -53,6 +53,7 @@ import java.util.SortedMap;
  * A class for batch writing list of rows to BigQuery through GCS.
  */
 public class GCSToBQWriter {
+
   private static final Logger logger = LoggerFactory.getLogger(GCSToBQWriter.class);
 
   private static Gson gson = new Gson();
@@ -71,22 +72,22 @@ public class GCSToBQWriter {
   private long retryWaitMs;
   private boolean autoCreateTables;
 
-
   public static final String GCS_METADATA_TABLE_KEY = "sinkTable";
 
   /**
    * Initializes a batch GCS writer with a full list of rows to write.
-   * @param storage GCS Storage
-   * @param bigQuery {@link BigQuery} Object used to perform upload
-   * @param retries Maximum number of retries
+   * 
+   * @param storage     GCS Storage
+   * @param bigQuery    {@link BigQuery} Object used to perform upload
+   * @param retries     Maximum number of retries
    * @param retryWaitMs Minimum number of milliseconds to wait before retrying
    */
   public GCSToBQWriter(Storage storage,
-                       BigQuery bigQuery,
-                       SchemaManager schemaManager,
-                       int retries,
-                       long retryWaitMs,
-                       boolean autoCreateTables) {
+      BigQuery bigQuery,
+      SchemaManager schemaManager,
+      int retries,
+      long retryWaitMs,
+      boolean autoCreateTables) {
     this.storage = storage;
     this.bigQuery = bigQuery;
     this.schemaManager = schemaManager;
@@ -99,23 +100,23 @@ public class GCSToBQWriter {
   /**
    * Write rows to BQ through GCS.
    *
-   * @param rows the rows to write.
-   * @param tableId the BQ table to write to.
+   * @param rows       the rows to write.
+   * @param tableId    the BQ table to write to.
    * @param bucketName the GCS bucket to write to.
-   * @param blobName the name of the GCS blob to write.
+   * @param blobName   the name of the GCS blob to write.
    * @throws InterruptedException if interrupted.
    */
   public void writeRows(SortedMap<SinkRecord, RowToInsert> rows,
-                        TableId tableId,
-                        String bucketName,
-                        String blobName) throws InterruptedException {
+      TableId tableId,
+      String bucketName,
+      String blobName) throws InterruptedException {
 
     // Get Source URI
     BlobId blobId = BlobId.of(bucketName, blobName);
 
     Map<String, String> metadata = getMetadata(tableId);
     BlobInfo blobInfo =
-         BlobInfo.newBuilder(blobId).setContentType("text/json").setMetadata(metadata).build();
+        BlobInfo.newBuilder(blobId).setContentType("text/json").setMetadata(metadata).build();
 
     // Check if the table specified exists
     // This error shouldn't be thrown. All tables should be created by the connector at startup
@@ -142,7 +143,8 @@ public class GCSToBQWriter {
     if (success) {
       logger.info("Batch loaded {} rows", rows.size());
     } else {
-      throw new ConnectException(String.format("Failed to load %d rows into GCS within %d re-attempts.", rows.size(), retries));
+      throw new ConnectException(String.format("Failed to load %d rows into GCS within %d re-attempts.", rows.size(),
+          retries));
     }
 
   }
@@ -161,6 +163,7 @@ public class GCSToBQWriter {
 
   /**
    * Creates a JSON string containing all records and uploads it as a blob to GCS.
+   * 
    * @return The blob uploaded to GCS
    */
   private Blob uploadRowsToGcs(SortedMap<SinkRecord, RowToInsert> rows, BlobInfo blobInfo) {
@@ -178,6 +181,7 @@ public class GCSToBQWriter {
 
   /**
    * Converts a list of rows to a serialized JSON string of records.
+   * 
    * @param rows rows to be serialized
    * @return The resulting newline delimited JSON string containing all records in the original
    *         list
@@ -194,6 +198,7 @@ public class GCSToBQWriter {
 
   /**
    * Wait at least {@link #retryWaitMs}, with up to an additional 1 second of random jitter.
+   * 
    * @throws InterruptedException if interrupted.
    */
   private void waitRandomTime() throws InterruptedException {
@@ -206,7 +211,7 @@ public class GCSToBQWriter {
       schemaManager.createTable(tableId, records);
     } catch (BigQueryException exception) {
       throw new BigQueryConnectException(
-              "Failed to create table " + tableId, exception);
+          "Failed to create table " + tableId, exception);
     }
   }
 }

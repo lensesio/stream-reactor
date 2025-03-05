@@ -57,13 +57,14 @@ public class DebeziumLogicalConverters {
    * Class for converting Debezium date logical types to BigQuery dates.
    */
   public static class DateConverter extends LogicalTypeConverter {
+
     /**
      * Create a new DateConverter.
      */
     public DateConverter() {
       super(Date.SCHEMA_NAME,
-            Schema.Type.INT32,
-            LegacySQLTypeName.DATE);
+          Schema.Type.INT32,
+          LegacySQLTypeName.DATE);
     }
 
     @Override
@@ -79,13 +80,14 @@ public class DebeziumLogicalConverters {
    * Class for converting Debezium micro time logical types to BigQuery times.
    */
   public static class MicroTimeConverter extends LogicalTypeConverter {
+
     /**
      * Create a new MicroTimeConverter.
      */
     public MicroTimeConverter() {
       super(MicroTime.SCHEMA_NAME,
-            Schema.Type.INT64,
-            LegacySQLTypeName.TIME);
+          Schema.Type.INT64,
+          LegacySQLTypeName.TIME);
     }
 
     @Override
@@ -110,13 +112,14 @@ public class DebeziumLogicalConverters {
    * Class for converting Debezium micro timestamp logical types to BigQuery datetimes.
    */
   public static class MicroTimestampConverter extends LogicalTypeConverter {
+
     /**
      * Create a new MicroTimestampConverter.
      */
     public MicroTimestampConverter() {
       super(MicroTimestamp.SCHEMA_NAME,
-            Schema.Type.INT64,
-            LegacySQLTypeName.TIMESTAMP);
+          Schema.Type.INT64,
+          LegacySQLTypeName.TIMESTAMP);
     }
 
     @Override
@@ -141,13 +144,14 @@ public class DebeziumLogicalConverters {
    * Class for converting Debezium time logical types to BigQuery times.
    */
   public static class TimeConverter extends LogicalTypeConverter {
+
     /**
      * Create a new TimeConverter.
      */
     public TimeConverter() {
       super(Time.SCHEMA_NAME,
-            Schema.Type.INT32,
-            LegacySQLTypeName.TIME);
+          Schema.Type.INT32,
+          LegacySQLTypeName.TIME);
     }
 
     @Override
@@ -161,13 +165,14 @@ public class DebeziumLogicalConverters {
    * Class for converting Debezium timestamp logical types to BigQuery timestamps.
    */
   public static class TimestampConverter extends LogicalTypeConverter {
+
     /**
      * Create a new TimestampConverter.
      */
     public TimestampConverter() {
       super(Timestamp.SCHEMA_NAME,
-            Schema.Type.INT64,
-            LegacySQLTypeName.TIMESTAMP);
+          Schema.Type.INT64,
+          LegacySQLTypeName.TIMESTAMP);
     }
 
     @Override
@@ -181,13 +186,14 @@ public class DebeziumLogicalConverters {
    * Class for converting Debezium zoned timestamp logical types to BigQuery timestamps.
    */
   public static class ZonedTimestampConverter extends LogicalTypeConverter {
+
     /**
      * Create a new ZoneTimestampConverter.
      */
     public ZonedTimestampConverter() {
       super(ZonedTimestamp.SCHEMA_NAME,
-            Schema.Type.STRING,
-            LegacySQLTypeName.TIMESTAMP);
+          Schema.Type.STRING,
+          LegacySQLTypeName.TIMESTAMP);
     }
 
     @Override

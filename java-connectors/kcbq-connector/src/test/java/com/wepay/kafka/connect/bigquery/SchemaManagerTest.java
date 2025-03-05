@@ -85,23 +85,26 @@ public class SchemaManagerTest {
         (SchemaConverter<com.google.cloud.bigquery.Schema>) mock(SchemaConverter.class);
     mockBigQuery = mock(BigQuery.class);
     mockKafkaSchema = mock(Schema.class);
-    fakeBigQuerySchema = com.google.cloud.bigquery.Schema.of(
-        Field.of("mock field", LegacySQLTypeName.STRING));
+    fakeBigQuerySchema =
+        com.google.cloud.bigquery.Schema.of(
+            Field.of("mock field", LegacySQLTypeName.STRING));
   }
 
   @Test
   public void testBQTableDescription() {
     Optional<String> kafkaKeyFieldName = Optional.of("kafkaKey");
     Optional<String> kafkaDataFieldName = Optional.of("kafkaData");
-    SchemaManager schemaManager = new SchemaManager(mockSchemaRetriever, mockSchemaConverter,
-        mockBigQuery, false, false, false, false, kafkaKeyFieldName, kafkaDataFieldName,
-        Optional.empty(), Optional.empty(), Optional.empty(), Optional.of(TimePartitioning.Type.DAY));
+    SchemaManager schemaManager =
+        new SchemaManager(mockSchemaRetriever, mockSchemaConverter,
+            mockBigQuery, false, false, false, false, kafkaKeyFieldName, kafkaDataFieldName,
+            Optional.empty(), Optional.empty(), Optional.empty(), Optional.of(TimePartitioning.Type.DAY));
 
     when(mockSchemaConverter.convertSchema(mockKafkaSchema)).thenReturn(fakeBigQuerySchema);
     when(mockKafkaSchema.doc()).thenReturn(testDoc);
 
-    TableInfo tableInfo = schemaManager
-        .constructTableInfo(tableId, fakeBigQuerySchema, testDoc, true);
+    TableInfo tableInfo =
+        schemaManager
+            .constructTableInfo(tableId, fakeBigQuerySchema, testDoc, true);
 
     assertEquals("Kafka doc does not match BigQuery table description",
         testDoc, tableInfo.getDescription());
@@ -114,15 +117,17 @@ public class SchemaManagerTest {
   @Test
   public void testTimestampPartitionSet() {
     Optional<String> testField = Optional.of("testField");
-    SchemaManager schemaManager = new SchemaManager(mockSchemaRetriever, mockSchemaConverter,
-        mockBigQuery, false, false, false, false, Optional.empty(), Optional.empty(), testField,
-        Optional.empty(), Optional.empty(), Optional.of(TimePartitioning.Type.DAY));
+    SchemaManager schemaManager =
+        new SchemaManager(mockSchemaRetriever, mockSchemaConverter,
+            mockBigQuery, false, false, false, false, Optional.empty(), Optional.empty(), testField,
+            Optional.empty(), Optional.empty(), Optional.of(TimePartitioning.Type.DAY));
 
     when(mockSchemaConverter.convertSchema(mockKafkaSchema)).thenReturn(fakeBigQuerySchema);
     when(mockKafkaSchema.doc()).thenReturn(testDoc);
 
-    TableInfo tableInfo = schemaManager
-        .constructTableInfo(tableId, fakeBigQuerySchema, testDoc, true);
+    TableInfo tableInfo =
+        schemaManager
+            .constructTableInfo(tableId, fakeBigQuerySchema, testDoc, true);
 
     assertEquals("Kafka doc does not match BigQuery table description",
         testDoc, tableInfo.getDescription());
@@ -133,20 +138,22 @@ public class SchemaManagerTest {
         testField.get(),
         definition.getTimePartitioning().getField());
     Assert.assertNull("Partition expiration is not null",
-            ((StandardTableDefinition) tableInfo.getDefinition()).getTimePartitioning().getExpirationMs());
+        ((StandardTableDefinition) tableInfo.getDefinition()).getTimePartitioning().getExpirationMs());
   }
 
   @Test
   public void testAlternativeTimestampPartitionType() {
-    SchemaManager schemaManager = new SchemaManager(mockSchemaRetriever, mockSchemaConverter,
-        mockBigQuery, false, false, false, false, Optional.empty(), Optional.empty(), Optional.empty(),
-        Optional.empty(), Optional.empty(), Optional.of(TimePartitioning.Type.HOUR));
+    SchemaManager schemaManager =
+        new SchemaManager(mockSchemaRetriever, mockSchemaConverter,
+            mockBigQuery, false, false, false, false, Optional.empty(), Optional.empty(), Optional.empty(),
+            Optional.empty(), Optional.empty(), Optional.of(TimePartitioning.Type.HOUR));
 
     when(mockSchemaConverter.convertSchema(mockKafkaSchema)).thenReturn(fakeBigQuerySchema);
     when(mockKafkaSchema.doc()).thenReturn(testDoc);
 
-    TableInfo tableInfo = schemaManager
-        .constructTableInfo(tableId, fakeBigQuerySchema, testDoc, true);
+    TableInfo tableInfo =
+        schemaManager
+            .constructTableInfo(tableId, fakeBigQuerySchema, testDoc, true);
 
     Assert.assertEquals("Kafka doc does not match BigQuery table description",
         testDoc, tableInfo.getDescription());
@@ -157,15 +164,17 @@ public class SchemaManagerTest {
 
   @Test
   public void testNoTimestampPartitionType() {
-    SchemaManager schemaManager = new SchemaManager(mockSchemaRetriever, mockSchemaConverter,
-        mockBigQuery, false, false, false, false, Optional.empty(), Optional.empty(), Optional.empty(),
-        Optional.empty(), Optional.empty(), Optional.empty());
+    SchemaManager schemaManager =
+        new SchemaManager(mockSchemaRetriever, mockSchemaConverter,
+            mockBigQuery, false, false, false, false, Optional.empty(), Optional.empty(), Optional.empty(),
+            Optional.empty(), Optional.empty(), Optional.empty());
 
     when(mockSchemaConverter.convertSchema(mockKafkaSchema)).thenReturn(fakeBigQuerySchema);
     when(mockKafkaSchema.doc()).thenReturn(testDoc);
 
-    TableInfo tableInfo = schemaManager
-        .constructTableInfo(tableId, fakeBigQuerySchema, testDoc, true);
+    TableInfo tableInfo =
+        schemaManager
+            .constructTableInfo(tableId, fakeBigQuerySchema, testDoc, true);
 
     Assert.assertEquals("Kafka doc does not match BigQuery table description",
         testDoc, tableInfo.getDescription());
@@ -176,15 +185,17 @@ public class SchemaManagerTest {
   @Test
   public void testUpdateTimestampPartitionNull() {
     Optional<String> testField = Optional.of("testField");
-    SchemaManager schemaManager = new SchemaManager(mockSchemaRetriever, mockSchemaConverter,
-        mockBigQuery, false, false, false, false, Optional.empty(), Optional.empty(), testField,
-        Optional.empty(), Optional.empty(), Optional.of(TimePartitioning.Type.DAY));
+    SchemaManager schemaManager =
+        new SchemaManager(mockSchemaRetriever, mockSchemaConverter,
+            mockBigQuery, false, false, false, false, Optional.empty(), Optional.empty(), testField,
+            Optional.empty(), Optional.empty(), Optional.of(TimePartitioning.Type.DAY));
 
     when(mockSchemaConverter.convertSchema(mockKafkaSchema)).thenReturn(fakeBigQuerySchema);
     when(mockKafkaSchema.doc()).thenReturn(testDoc);
 
-    TableInfo tableInfo = schemaManager
-        .constructTableInfo(tableId, fakeBigQuerySchema, testDoc, false);
+    TableInfo tableInfo =
+        schemaManager
+            .constructTableInfo(tableId, fakeBigQuerySchema, testDoc, false);
 
     Assert.assertEquals("Kafka doc does not match BigQuery table description",
         testDoc, tableInfo.getDescription());
@@ -195,15 +206,17 @@ public class SchemaManagerTest {
   @Test
   public void testUpdateTimestampPartitionNotSet() {
     Optional<String> testField = Optional.of("testField");
-    SchemaManager schemaManager = new SchemaManager(mockSchemaRetriever, mockSchemaConverter,
-        mockBigQuery, false, false, false, false, Optional.empty(), Optional.empty(), testField,
-        Optional.empty(), Optional.empty(), Optional.of(TimePartitioning.Type.DAY));
+    SchemaManager schemaManager =
+        new SchemaManager(mockSchemaRetriever, mockSchemaConverter,
+            mockBigQuery, false, false, false, false, Optional.empty(), Optional.empty(), testField,
+            Optional.empty(), Optional.empty(), Optional.of(TimePartitioning.Type.DAY));
 
     when(mockSchemaConverter.convertSchema(mockKafkaSchema)).thenReturn(fakeBigQuerySchema);
     when(mockKafkaSchema.doc()).thenReturn(testDoc);
 
-    TableInfo tableInfo = schemaManager
-        .constructTableInfo(tableId, fakeBigQuerySchema, testDoc, true);
+    TableInfo tableInfo =
+        schemaManager
+            .constructTableInfo(tableId, fakeBigQuerySchema, testDoc, true);
 
     Assert.assertEquals("Kafka doc does not match BigQuery table description",
         testDoc, tableInfo.getDescription());
@@ -214,12 +227,15 @@ public class SchemaManagerTest {
         definition.getTimePartitioning().getField());
 
     Optional<String> updateField = Optional.of("testUpdateField");
-    schemaManager = new SchemaManager(mockSchemaRetriever, mockSchemaConverter,
-        mockBigQuery, false, false, false, false, Optional.empty(), Optional.empty(), updateField, Optional.empty(), Optional.empty(),
-        Optional.of(TimePartitioning.Type.DAY));
+    schemaManager =
+        new SchemaManager(mockSchemaRetriever, mockSchemaConverter,
+            mockBigQuery, false, false, false, false, Optional.empty(), Optional.empty(), updateField, Optional.empty(),
+            Optional.empty(),
+            Optional.of(TimePartitioning.Type.DAY));
 
-    tableInfo = schemaManager
-        .constructTableInfo(tableId, fakeBigQuerySchema, testDoc, false);
+    tableInfo =
+        schemaManager
+            .constructTableInfo(tableId, fakeBigQuerySchema, testDoc, false);
     definition = tableInfo.getDefinition();
     Assert.assertNull("The time partitioning object should be null",
         ((StandardTableDefinition) tableInfo.getDefinition()).getTimePartitioning());
@@ -228,15 +244,17 @@ public class SchemaManagerTest {
   @Test
   public void testPartitionExpirationSetWithoutFieldName() {
     Optional<Long> testExpirationMs = Optional.of(86400000L);
-    SchemaManager schemaManager = new SchemaManager(mockSchemaRetriever, mockSchemaConverter,
-        mockBigQuery, false, false, false, false, Optional.empty(), Optional.empty(), Optional.empty(),
-        testExpirationMs, Optional.empty(), Optional.of(TimePartitioning.Type.DAY));
+    SchemaManager schemaManager =
+        new SchemaManager(mockSchemaRetriever, mockSchemaConverter,
+            mockBigQuery, false, false, false, false, Optional.empty(), Optional.empty(), Optional.empty(),
+            testExpirationMs, Optional.empty(), Optional.of(TimePartitioning.Type.DAY));
 
     when(mockSchemaConverter.convertSchema(mockKafkaSchema)).thenReturn(fakeBigQuerySchema);
     when(mockKafkaSchema.doc()).thenReturn(testDoc);
 
-    TableInfo tableInfo = schemaManager
-        .constructTableInfo(tableId, fakeBigQuerySchema, testDoc, true);
+    TableInfo tableInfo =
+        schemaManager
+            .constructTableInfo(tableId, fakeBigQuerySchema, testDoc, true);
 
     Assert.assertEquals("Kafka doc does not match BigQuery table description",
         testDoc, tableInfo.getDescription());
@@ -252,15 +270,17 @@ public class SchemaManagerTest {
   public void testPartitionExpirationSetWithFieldName() {
     Optional<Long> testExpirationMs = Optional.of(86400000L);
     Optional<String> testField = Optional.of("testField");
-    SchemaManager schemaManager = new SchemaManager(mockSchemaRetriever, mockSchemaConverter,
-        mockBigQuery, false, false, false, false, Optional.empty(), Optional.empty(), testField,
-        testExpirationMs, Optional.empty(), Optional.of(TimePartitioning.Type.DAY));
+    SchemaManager schemaManager =
+        new SchemaManager(mockSchemaRetriever, mockSchemaConverter,
+            mockBigQuery, false, false, false, false, Optional.empty(), Optional.empty(), testField,
+            testExpirationMs, Optional.empty(), Optional.of(TimePartitioning.Type.DAY));
 
     when(mockSchemaConverter.convertSchema(mockKafkaSchema)).thenReturn(fakeBigQuerySchema);
     when(mockKafkaSchema.doc()).thenReturn(testDoc);
 
-    TableInfo tableInfo = schemaManager
-        .constructTableInfo(tableId, fakeBigQuerySchema, testDoc, true);
+    TableInfo tableInfo =
+        schemaManager
+            .constructTableInfo(tableId, fakeBigQuerySchema, testDoc, true);
 
     Assert.assertEquals("Kafka doc does not match BigQuery table description",
         testDoc, tableInfo.getDescription());
@@ -277,15 +297,17 @@ public class SchemaManagerTest {
   public void testClusteringPartitionSet() {
     Optional<String> timestampPartitionFieldName = Optional.of("testField");
     Optional<List<String>> testField = Optional.of(Arrays.asList("column1", "column2"));
-    SchemaManager schemaManager = new SchemaManager(mockSchemaRetriever, mockSchemaConverter,
-        mockBigQuery, false, false, false, false, Optional.empty(), Optional.empty(), timestampPartitionFieldName,
-        Optional.empty(), testField, Optional.of(TimePartitioning.Type.DAY));
+    SchemaManager schemaManager =
+        new SchemaManager(mockSchemaRetriever, mockSchemaConverter,
+            mockBigQuery, false, false, false, false, Optional.empty(), Optional.empty(), timestampPartitionFieldName,
+            Optional.empty(), testField, Optional.of(TimePartitioning.Type.DAY));
 
     when(mockSchemaConverter.convertSchema(mockKafkaSchema)).thenReturn(fakeBigQuerySchema);
     when(mockKafkaSchema.doc()).thenReturn(testDoc);
 
-    TableInfo tableInfo = schemaManager
-        .constructTableInfo(tableId, fakeBigQuerySchema, testDoc, true);
+    TableInfo tableInfo =
+        schemaManager
+            .constructTableInfo(tableId, fakeBigQuerySchema, testDoc, true);
 
     assertEquals("Kafka doc does not match BigQuery table description",
         testDoc, tableInfo.getDescription());
@@ -300,15 +322,17 @@ public class SchemaManagerTest {
   public void testUpdateClusteringPartitionNull() {
     Optional<String> timestampPartitionFieldName = Optional.of("testField");
     Optional<List<String>> testField = Optional.of(Arrays.asList("column1", "column2"));
-    SchemaManager schemaManager = new SchemaManager(mockSchemaRetriever, mockSchemaConverter,
-        mockBigQuery, false, false, false, false, Optional.empty(), Optional.empty(), timestampPartitionFieldName,
-        Optional.empty(), testField, Optional.of(TimePartitioning.Type.DAY));
+    SchemaManager schemaManager =
+        new SchemaManager(mockSchemaRetriever, mockSchemaConverter,
+            mockBigQuery, false, false, false, false, Optional.empty(), Optional.empty(), timestampPartitionFieldName,
+            Optional.empty(), testField, Optional.of(TimePartitioning.Type.DAY));
 
     when(mockSchemaConverter.convertSchema(mockKafkaSchema)).thenReturn(fakeBigQuerySchema);
     when(mockKafkaSchema.doc()).thenReturn(testDoc);
 
-    TableInfo tableInfo = schemaManager
-        .constructTableInfo(tableId, fakeBigQuerySchema, testDoc, false);
+    TableInfo tableInfo =
+        schemaManager
+            .constructTableInfo(tableId, fakeBigQuerySchema, testDoc, false);
 
     Assert.assertEquals("Kafka doc does not match BigQuery table description",
         testDoc, tableInfo.getDescription());
@@ -320,15 +344,17 @@ public class SchemaManagerTest {
   public void testUpdateClusteringPartitionNotSet() {
     Optional<String> timestampPartitionFieldName = Optional.of("testField");
     Optional<List<String>> testField = Optional.of(Arrays.asList("column1", "column2"));
-    SchemaManager schemaManager = new SchemaManager(mockSchemaRetriever, mockSchemaConverter,
-        mockBigQuery, false, false, false, false, Optional.empty(), Optional.empty(), timestampPartitionFieldName,
-        Optional.empty(), testField, Optional.of(TimePartitioning.Type.DAY));
+    SchemaManager schemaManager =
+        new SchemaManager(mockSchemaRetriever, mockSchemaConverter,
+            mockBigQuery, false, false, false, false, Optional.empty(), Optional.empty(), timestampPartitionFieldName,
+            Optional.empty(), testField, Optional.of(TimePartitioning.Type.DAY));
 
     when(mockSchemaConverter.convertSchema(mockKafkaSchema)).thenReturn(fakeBigQuerySchema);
     when(mockKafkaSchema.doc()).thenReturn(testDoc);
 
-    TableInfo tableInfo = schemaManager
-        .constructTableInfo(tableId, fakeBigQuerySchema, testDoc, true);
+    TableInfo tableInfo =
+        schemaManager
+            .constructTableInfo(tableId, fakeBigQuerySchema, testDoc, true);
 
     Assert.assertEquals("Kafka doc does not match BigQuery table description",
         testDoc, tableInfo.getDescription());
@@ -339,25 +365,29 @@ public class SchemaManagerTest {
         definition.getClustering().getFields());
 
     Optional<List<String>> updateTestField = Optional.of(Arrays.asList("column3", "column4"));
-    schemaManager = new SchemaManager(mockSchemaRetriever, mockSchemaConverter,
-        mockBigQuery, false, false, false, false, Optional.empty(), Optional.empty(), timestampPartitionFieldName,
-        Optional.empty(), updateTestField, Optional.of(TimePartitioning.Type.DAY));
+    schemaManager =
+        new SchemaManager(mockSchemaRetriever, mockSchemaConverter,
+            mockBigQuery, false, false, false, false, Optional.empty(), Optional.empty(), timestampPartitionFieldName,
+            Optional.empty(), updateTestField, Optional.of(TimePartitioning.Type.DAY));
 
-    tableInfo = schemaManager
-        .constructTableInfo(tableId, fakeBigQuerySchema, testDoc, false);
+    tableInfo =
+        schemaManager
+            .constructTableInfo(tableId, fakeBigQuerySchema, testDoc, false);
     definition = tableInfo.getDefinition();
     Assert.assertNull("The clustering object should be null", definition.getClustering());
   }
 
   @Test
   public void testSuccessfulUpdateWithOnlyRelaxedFields() {
-    com.google.cloud.bigquery.Schema existingSchema = com.google.cloud.bigquery.Schema.of(
-        Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Field.Mode.REQUIRED).build()
-    );
+    com.google.cloud.bigquery.Schema existingSchema =
+        com.google.cloud.bigquery.Schema.of(
+            Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Field.Mode.REQUIRED).build()
+        );
 
-    com.google.cloud.bigquery.Schema relaxedSchema = com.google.cloud.bigquery.Schema.of(
-        Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Field.Mode.NULLABLE).build()
-    );
+    com.google.cloud.bigquery.Schema relaxedSchema =
+        com.google.cloud.bigquery.Schema.of(
+            Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Field.Mode.NULLABLE).build()
+        );
 
     SchemaManager schemaManager = createSchemaManager(false, true, false);
 
@@ -366,13 +396,15 @@ public class SchemaManagerTest {
 
   @Test(expected = BigQueryConnectException.class)
   public void testDisallowedUpdateWithOnlyRelaxedFields() {
-    com.google.cloud.bigquery.Schema existingSchema = com.google.cloud.bigquery.Schema.of(
-        Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Field.Mode.REQUIRED).build()
-    );
+    com.google.cloud.bigquery.Schema existingSchema =
+        com.google.cloud.bigquery.Schema.of(
+            Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Field.Mode.REQUIRED).build()
+        );
 
-    com.google.cloud.bigquery.Schema relaxedSchema = com.google.cloud.bigquery.Schema.of(
-        Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Field.Mode.NULLABLE).build()
-    );
+    com.google.cloud.bigquery.Schema relaxedSchema =
+        com.google.cloud.bigquery.Schema.of(
+            Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Field.Mode.NULLABLE).build()
+        );
 
     SchemaManager schemaManager = createSchemaManager(true, false, false);
 
@@ -381,14 +413,16 @@ public class SchemaManagerTest {
 
   @Test
   public void testSuccessfulUpdateWithOnlyNewFields() {
-    com.google.cloud.bigquery.Schema existingSchema = com.google.cloud.bigquery.Schema.of(
-        Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Field.Mode.REQUIRED).build()
-    );
+    com.google.cloud.bigquery.Schema existingSchema =
+        com.google.cloud.bigquery.Schema.of(
+            Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Field.Mode.REQUIRED).build()
+        );
 
-    com.google.cloud.bigquery.Schema expandedSchema = com.google.cloud.bigquery.Schema.of(
-        Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Field.Mode.REQUIRED).build(),
-        Field.newBuilder("f2", LegacySQLTypeName.INTEGER).setMode(Field.Mode.NULLABLE).build()
-    );
+    com.google.cloud.bigquery.Schema expandedSchema =
+        com.google.cloud.bigquery.Schema.of(
+            Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Field.Mode.REQUIRED).build(),
+            Field.newBuilder("f2", LegacySQLTypeName.INTEGER).setMode(Field.Mode.NULLABLE).build()
+        );
 
     SchemaManager schemaManager = createSchemaManager(true, false, false);
 
@@ -397,14 +431,16 @@ public class SchemaManagerTest {
 
   @Test(expected = BigQueryConnectException.class)
   public void testDisallowedUpdateWithOnlyNewFields() {
-    com.google.cloud.bigquery.Schema existingSchema = com.google.cloud.bigquery.Schema.of(
-        Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Field.Mode.REQUIRED).build()
-    );
+    com.google.cloud.bigquery.Schema existingSchema =
+        com.google.cloud.bigquery.Schema.of(
+            Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Field.Mode.REQUIRED).build()
+        );
 
-    com.google.cloud.bigquery.Schema expandedSchema = com.google.cloud.bigquery.Schema.of(
-        Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Field.Mode.REQUIRED).build(),
-        Field.newBuilder("f2", LegacySQLTypeName.INTEGER).setMode(Field.Mode.NULLABLE).build()
-    );
+    com.google.cloud.bigquery.Schema expandedSchema =
+        com.google.cloud.bigquery.Schema.of(
+            Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Field.Mode.REQUIRED).build(),
+            Field.newBuilder("f2", LegacySQLTypeName.INTEGER).setMode(Field.Mode.NULLABLE).build()
+        );
 
     SchemaManager schemaManager = createSchemaManager(false, true, false);
 
@@ -413,14 +449,16 @@ public class SchemaManagerTest {
 
   @Test(expected = BigQueryConnectException.class)
   public void testDisallowedUpdateWithOnlyNewRequiredFields() {
-    com.google.cloud.bigquery.Schema existingSchema = com.google.cloud.bigquery.Schema.of(
-        Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Field.Mode.REQUIRED).build()
-    );
+    com.google.cloud.bigquery.Schema existingSchema =
+        com.google.cloud.bigquery.Schema.of(
+            Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Field.Mode.REQUIRED).build()
+        );
 
-    com.google.cloud.bigquery.Schema expandedSchema = com.google.cloud.bigquery.Schema.of(
-        Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Field.Mode.REQUIRED).build(),
-        Field.newBuilder("f2", LegacySQLTypeName.INTEGER).setMode(Field.Mode.REQUIRED).build()
-    );
+    com.google.cloud.bigquery.Schema expandedSchema =
+        com.google.cloud.bigquery.Schema.of(
+            Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Field.Mode.REQUIRED).build(),
+            Field.newBuilder("f2", LegacySQLTypeName.INTEGER).setMode(Field.Mode.REQUIRED).build()
+        );
 
     SchemaManager schemaManager = createSchemaManager(true, false, false);
 
@@ -429,45 +467,50 @@ public class SchemaManagerTest {
 
   @Test
   public void testSuccessfulUpdateWithNewAndRelaxedFields() {
-    com.google.cloud.bigquery.Schema existingSchema = com.google.cloud.bigquery.Schema.of(
-        Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Field.Mode.REQUIRED).build()
-    );
+    com.google.cloud.bigquery.Schema existingSchema =
+        com.google.cloud.bigquery.Schema.of(
+            Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Field.Mode.REQUIRED).build()
+        );
 
-    com.google.cloud.bigquery.Schema expandedAndRelaxedSchema = com.google.cloud.bigquery.Schema.of(
-        // Relax an existing field from required to nullable
-        Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Field.Mode.NULLABLE).build(),
-        // Add a new nullable field
-        Field.newBuilder("f2", LegacySQLTypeName.INTEGER).setMode(Field.Mode.NULLABLE).build(),
-        // Add a new required field (that should be relaxed to nullable automatically)
-        Field.newBuilder("f3", LegacySQLTypeName.NUMERIC).setMode(Field.Mode.REQUIRED).build()
-    );
+    com.google.cloud.bigquery.Schema expandedAndRelaxedSchema =
+        com.google.cloud.bigquery.Schema.of(
+            // Relax an existing field from required to nullable
+            Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Field.Mode.NULLABLE).build(),
+            // Add a new nullable field
+            Field.newBuilder("f2", LegacySQLTypeName.INTEGER).setMode(Field.Mode.NULLABLE).build(),
+            // Add a new required field (that should be relaxed to nullable automatically)
+            Field.newBuilder("f3", LegacySQLTypeName.NUMERIC).setMode(Field.Mode.REQUIRED).build()
+        );
 
-    com.google.cloud.bigquery.Schema expectedSchema = com.google.cloud.bigquery.Schema.of(
-        Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Field.Mode.NULLABLE).build(),
-        Field.newBuilder("f2", LegacySQLTypeName.INTEGER).setMode(Field.Mode.NULLABLE).build(),
-        Field.newBuilder("f3", LegacySQLTypeName.NUMERIC).setMode(Field.Mode.NULLABLE).build()
-    );
+    com.google.cloud.bigquery.Schema expectedSchema =
+        com.google.cloud.bigquery.Schema.of(
+            Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Field.Mode.NULLABLE).build(),
+            Field.newBuilder("f2", LegacySQLTypeName.INTEGER).setMode(Field.Mode.NULLABLE).build(),
+            Field.newBuilder("f3", LegacySQLTypeName.NUMERIC).setMode(Field.Mode.NULLABLE).build()
+        );
 
     SchemaManager schemaManager = createSchemaManager(true, true, false);
 
-    testGetAndValidateProposedSchema
-        (schemaManager, existingSchema, expandedAndRelaxedSchema, expectedSchema);
+    testGetAndValidateProposedSchema(schemaManager, existingSchema, expandedAndRelaxedSchema, expectedSchema);
   }
 
   @Test
   public void testSuccessfulUnionizedUpdateWithNewAndRelaxedFields() {
-    com.google.cloud.bigquery.Schema existingSchema = com.google.cloud.bigquery.Schema.of(
-        Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Field.Mode.REQUIRED).build()
-    );
+    com.google.cloud.bigquery.Schema existingSchema =
+        com.google.cloud.bigquery.Schema.of(
+            Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Field.Mode.REQUIRED).build()
+        );
 
-    com.google.cloud.bigquery.Schema disjointSchema = com.google.cloud.bigquery.Schema.of(
-        Field.newBuilder("f2", LegacySQLTypeName.INTEGER).setMode(Field.Mode.REQUIRED).build()
-    );
+    com.google.cloud.bigquery.Schema disjointSchema =
+        com.google.cloud.bigquery.Schema.of(
+            Field.newBuilder("f2", LegacySQLTypeName.INTEGER).setMode(Field.Mode.REQUIRED).build()
+        );
 
-    com.google.cloud.bigquery.Schema expectedSchema = com.google.cloud.bigquery.Schema.of(
-        Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Field.Mode.NULLABLE).build(),
-        Field.newBuilder("f2", LegacySQLTypeName.INTEGER).setMode(Field.Mode.NULLABLE).build()
-    );
+    com.google.cloud.bigquery.Schema expectedSchema =
+        com.google.cloud.bigquery.Schema.of(
+            Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Field.Mode.NULLABLE).build(),
+            Field.newBuilder("f2", LegacySQLTypeName.INTEGER).setMode(Field.Mode.NULLABLE).build()
+        );
 
     SchemaManager schemaManager = createSchemaManager(true, true, true);
 
@@ -476,19 +519,22 @@ public class SchemaManagerTest {
 
   @Test
   public void testSuccessfulUnionizedUpdateWithNewRepeatedField() {
-    com.google.cloud.bigquery.Schema reducedSchema = com.google.cloud.bigquery.Schema.of(
-        Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Field.Mode.REQUIRED).build()
-    );
+    com.google.cloud.bigquery.Schema reducedSchema =
+        com.google.cloud.bigquery.Schema.of(
+            Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Field.Mode.REQUIRED).build()
+        );
 
-    com.google.cloud.bigquery.Schema expandedSchema = com.google.cloud.bigquery.Schema.of(
-        Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Field.Mode.REQUIRED).build(),
-        Field.newBuilder("f2", LegacySQLTypeName.INTEGER).setMode(Field.Mode.REPEATED).build()
-    );
+    com.google.cloud.bigquery.Schema expandedSchema =
+        com.google.cloud.bigquery.Schema.of(
+            Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Field.Mode.REQUIRED).build(),
+            Field.newBuilder("f2", LegacySQLTypeName.INTEGER).setMode(Field.Mode.REPEATED).build()
+        );
 
-    com.google.cloud.bigquery.Schema expectedSchema = com.google.cloud.bigquery.Schema.of(
-        Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Field.Mode.REQUIRED).build(),
-        Field.newBuilder("f2", LegacySQLTypeName.INTEGER).setMode(Field.Mode.REPEATED).build()
-    );
+    com.google.cloud.bigquery.Schema expectedSchema =
+        com.google.cloud.bigquery.Schema.of(
+            Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Field.Mode.REQUIRED).build(),
+            Field.newBuilder("f2", LegacySQLTypeName.INTEGER).setMode(Field.Mode.REPEATED).build()
+        );
 
     SchemaManager schemaManager = createSchemaManager(true, true, true);
 
@@ -499,19 +545,22 @@ public class SchemaManagerTest {
 
   @Test
   public void testSuccessfulUpdateWithNewRepeatedField() {
-    com.google.cloud.bigquery.Schema existingSchema = com.google.cloud.bigquery.Schema.of(
-        Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Field.Mode.REQUIRED).build()
-    );
+    com.google.cloud.bigquery.Schema existingSchema =
+        com.google.cloud.bigquery.Schema.of(
+            Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Field.Mode.REQUIRED).build()
+        );
 
-    com.google.cloud.bigquery.Schema expandedSchema = com.google.cloud.bigquery.Schema.of(
-        Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Field.Mode.REQUIRED).build(),
-        Field.newBuilder("f2", LegacySQLTypeName.INTEGER).setMode(Field.Mode.REPEATED).build()
-    );
+    com.google.cloud.bigquery.Schema expandedSchema =
+        com.google.cloud.bigquery.Schema.of(
+            Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Field.Mode.REQUIRED).build(),
+            Field.newBuilder("f2", LegacySQLTypeName.INTEGER).setMode(Field.Mode.REPEATED).build()
+        );
 
-    com.google.cloud.bigquery.Schema expectedSchema = com.google.cloud.bigquery.Schema.of(
-        Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Field.Mode.REQUIRED).build(),
-        Field.newBuilder("f2", LegacySQLTypeName.INTEGER).setMode(Field.Mode.REPEATED).build()
-    );
+    com.google.cloud.bigquery.Schema expectedSchema =
+        com.google.cloud.bigquery.Schema.of(
+            Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Field.Mode.REQUIRED).build(),
+            Field.newBuilder("f2", LegacySQLTypeName.INTEGER).setMode(Field.Mode.REPEATED).build()
+        );
 
     SchemaManager schemaManager = createSchemaManager(true, true, false);
 
@@ -520,14 +569,16 @@ public class SchemaManagerTest {
 
   @Test(expected = BigQueryConnectException.class)
   public void testDisallowedUnionizedUpdateWithNewField() {
-    com.google.cloud.bigquery.Schema existingSchema = com.google.cloud.bigquery.Schema.of(
-        Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Field.Mode.REQUIRED).build()
-    );
+    com.google.cloud.bigquery.Schema existingSchema =
+        com.google.cloud.bigquery.Schema.of(
+            Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Field.Mode.REQUIRED).build()
+        );
 
-    com.google.cloud.bigquery.Schema expandedSchema = com.google.cloud.bigquery.Schema.of(
-        Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Field.Mode.REQUIRED).build(),
-        Field.newBuilder("f2", LegacySQLTypeName.INTEGER).setMode(Field.Mode.NULLABLE).build()
-    );
+    com.google.cloud.bigquery.Schema expandedSchema =
+        com.google.cloud.bigquery.Schema.of(
+            Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Field.Mode.REQUIRED).build(),
+            Field.newBuilder("f2", LegacySQLTypeName.INTEGER).setMode(Field.Mode.NULLABLE).build()
+        );
 
     SchemaManager schemaManager = createSchemaManager(false, true, true);
 
@@ -536,13 +587,15 @@ public class SchemaManagerTest {
 
   @Test(expected = BigQueryConnectException.class)
   public void testDisallowedUnionizedUpdateWithRelaxedField() {
-    com.google.cloud.bigquery.Schema existingSchema = com.google.cloud.bigquery.Schema.of(
-        Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Field.Mode.REQUIRED).build()
-    );
+    com.google.cloud.bigquery.Schema existingSchema =
+        com.google.cloud.bigquery.Schema.of(
+            Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Field.Mode.REQUIRED).build()
+        );
 
-    com.google.cloud.bigquery.Schema expandedSchema = com.google.cloud.bigquery.Schema.of(
-        Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Field.Mode.NULLABLE).build()
-    );
+    com.google.cloud.bigquery.Schema expandedSchema =
+        com.google.cloud.bigquery.Schema.of(
+            Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Field.Mode.NULLABLE).build()
+        );
 
     SchemaManager schemaManager = createSchemaManager(true, false, true);
 
@@ -551,27 +604,32 @@ public class SchemaManagerTest {
 
   @Test
   public void testUnionizedUpdateWithMultipleSchemas() {
-    com.google.cloud.bigquery.Schema existingSchema = com.google.cloud.bigquery.Schema.of(
-        Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Field.Mode.REQUIRED).build()
-    );
+    com.google.cloud.bigquery.Schema existingSchema =
+        com.google.cloud.bigquery.Schema.of(
+            Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Field.Mode.REQUIRED).build()
+        );
 
-    com.google.cloud.bigquery.Schema firstNewSchema = com.google.cloud.bigquery.Schema.of(
-        Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Field.Mode.NULLABLE).build()
-    );
-    com.google.cloud.bigquery.Schema secondNewSchema = com.google.cloud.bigquery.Schema.of(
-        Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Field.Mode.REQUIRED).build(),
-        Field.newBuilder("f2", LegacySQLTypeName.INTEGER).setMode(Field.Mode.REQUIRED).build()
-    );
-    com.google.cloud.bigquery.Schema thirdNewSchema = com.google.cloud.bigquery.Schema.of(
-        Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Field.Mode.REQUIRED).build()
-    );
+    com.google.cloud.bigquery.Schema firstNewSchema =
+        com.google.cloud.bigquery.Schema.of(
+            Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Field.Mode.NULLABLE).build()
+        );
+    com.google.cloud.bigquery.Schema secondNewSchema =
+        com.google.cloud.bigquery.Schema.of(
+            Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Field.Mode.REQUIRED).build(),
+            Field.newBuilder("f2", LegacySQLTypeName.INTEGER).setMode(Field.Mode.REQUIRED).build()
+        );
+    com.google.cloud.bigquery.Schema thirdNewSchema =
+        com.google.cloud.bigquery.Schema.of(
+            Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Field.Mode.REQUIRED).build()
+        );
     List<com.google.cloud.bigquery.Schema> newSchemas =
         Arrays.asList(firstNewSchema, secondNewSchema, thirdNewSchema);
 
-    com.google.cloud.bigquery.Schema expectedSchema = com.google.cloud.bigquery.Schema.of(
-        Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Field.Mode.NULLABLE).build(),
-        Field.newBuilder("f2", LegacySQLTypeName.INTEGER).setMode(Field.Mode.NULLABLE).build()
-    );
+    com.google.cloud.bigquery.Schema expectedSchema =
+        com.google.cloud.bigquery.Schema.of(
+            Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Field.Mode.NULLABLE).build(),
+            Field.newBuilder("f2", LegacySQLTypeName.INTEGER).setMode(Field.Mode.NULLABLE).build()
+        );
 
     SchemaManager schemaManager = createSchemaManager(true, true, true);
 
@@ -580,19 +638,22 @@ public class SchemaManagerTest {
 
   @Test
   public void FieldsWithUnspecifiedModeShouldNotCauseNpe() {
-    com.google.cloud.bigquery.Schema existingSchema = com.google.cloud.bigquery.Schema.of(
-        Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).build()
-    );
+    com.google.cloud.bigquery.Schema existingSchema =
+        com.google.cloud.bigquery.Schema.of(
+            Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).build()
+        );
 
-    com.google.cloud.bigquery.Schema expandedSchema = com.google.cloud.bigquery.Schema.of(
-        Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).build(),
-        Field.newBuilder("f2", LegacySQLTypeName.INTEGER).build()
-    );
+    com.google.cloud.bigquery.Schema expandedSchema =
+        com.google.cloud.bigquery.Schema.of(
+            Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).build(),
+            Field.newBuilder("f2", LegacySQLTypeName.INTEGER).build()
+        );
 
-    com.google.cloud.bigquery.Schema expectedSchema = com.google.cloud.bigquery.Schema.of(
-        Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Mode.NULLABLE).build(),
-        Field.newBuilder("f2", LegacySQLTypeName.INTEGER).setMode(Mode.NULLABLE).build()
-    );
+    com.google.cloud.bigquery.Schema expectedSchema =
+        com.google.cloud.bigquery.Schema.of(
+            Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Mode.NULLABLE).build(),
+            Field.newBuilder("f2", LegacySQLTypeName.INTEGER).setMode(Mode.NULLABLE).build()
+        );
 
     SchemaManager schemaManager = createSchemaManager(true, true, true);
 
@@ -603,14 +664,16 @@ public class SchemaManagerTest {
   public void testFieldNamesSanitizedNoExistingSchema() {
     BigQuerySchemaConverter converter = new BigQuerySchemaConverter(false, true);
 
-    Schema kafkaSchema = SchemaBuilder.struct()
-        .field("f 1", Schema.BOOLEAN_SCHEMA)
-        .field("f 2", Schema.INT32_SCHEMA)
-        .build();
-    com.google.cloud.bigquery.Schema expectedSchema = com.google.cloud.bigquery.Schema.of(
-        Field.newBuilder("f_1", LegacySQLTypeName.BOOLEAN).setMode(Mode.REQUIRED).build(),
-        Field.newBuilder("f_2", LegacySQLTypeName.INTEGER).setMode(Mode.REQUIRED).build()
-    );
+    Schema kafkaSchema =
+        SchemaBuilder.struct()
+            .field("f 1", Schema.BOOLEAN_SCHEMA)
+            .field("f 2", Schema.INT32_SCHEMA)
+            .build();
+    com.google.cloud.bigquery.Schema expectedSchema =
+        com.google.cloud.bigquery.Schema.of(
+            Field.newBuilder("f_1", LegacySQLTypeName.BOOLEAN).setMode(Mode.REQUIRED).build(),
+            Field.newBuilder("f_2", LegacySQLTypeName.INTEGER).setMode(Mode.REQUIRED).build()
+        );
 
     SchemaManager schemaManager = createSchemaManager(false, false, false, true, converter);
     testGetAndValidateProposedSchema(schemaManager, null,
@@ -621,19 +684,22 @@ public class SchemaManagerTest {
   @Test
   public void testFieldNameSanitizedNewFields() {
     BigQuerySchemaConverter converter = new BigQuerySchemaConverter(false, true);
-    com.google.cloud.bigquery.Schema existingSchema = com.google.cloud.bigquery.Schema.of(
-        Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Mode.REQUIRED).build()
-    );
-    Schema kafkaSchema = SchemaBuilder.struct()
-        .field("f1", Schema.BOOLEAN_SCHEMA)
-        .field("f 1", Schema.BOOLEAN_SCHEMA)
-        .field("f 2", Schema.INT32_SCHEMA)
-        .build();
-    com.google.cloud.bigquery.Schema expectedSchema = com.google.cloud.bigquery.Schema.of(
-        Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Mode.REQUIRED).build(),
-        Field.newBuilder("f_1", LegacySQLTypeName.BOOLEAN).setMode(Mode.NULLABLE).build(),
-        Field.newBuilder("f_2", LegacySQLTypeName.INTEGER).setMode(Mode.NULLABLE).build()
-    );
+    com.google.cloud.bigquery.Schema existingSchema =
+        com.google.cloud.bigquery.Schema.of(
+            Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Mode.REQUIRED).build()
+        );
+    Schema kafkaSchema =
+        SchemaBuilder.struct()
+            .field("f1", Schema.BOOLEAN_SCHEMA)
+            .field("f 1", Schema.BOOLEAN_SCHEMA)
+            .field("f 2", Schema.INT32_SCHEMA)
+            .build();
+    com.google.cloud.bigquery.Schema expectedSchema =
+        com.google.cloud.bigquery.Schema.of(
+            Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Mode.REQUIRED).build(),
+            Field.newBuilder("f_1", LegacySQLTypeName.BOOLEAN).setMode(Mode.NULLABLE).build(),
+            Field.newBuilder("f_2", LegacySQLTypeName.INTEGER).setMode(Mode.NULLABLE).build()
+        );
 
     SchemaManager schemaManager = createSchemaManager(true, true, false, true, converter);
     testGetAndValidateProposedSchema(schemaManager, existingSchema,
@@ -644,18 +710,21 @@ public class SchemaManagerTest {
   @Test
   public void testFieldNamesSanitizedUnionizedFields() {
     BigQuerySchemaConverter converter = new BigQuerySchemaConverter(false, true);
-    com.google.cloud.bigquery.Schema existingSchema = com.google.cloud.bigquery.Schema.of(
-        Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Mode.REQUIRED).build()
-    );
-    Schema kafkaSchema = SchemaBuilder.struct()
-        .field("f 1", Schema.BOOLEAN_SCHEMA)
-        .field("f 2", Schema.INT32_SCHEMA)
-        .build();
-    com.google.cloud.bigquery.Schema expectedSchema = com.google.cloud.bigquery.Schema.of(
-        Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Mode.NULLABLE).build(),
-        Field.newBuilder("f_1", LegacySQLTypeName.BOOLEAN).setMode(Mode.NULLABLE).build(),
-        Field.newBuilder("f_2", LegacySQLTypeName.INTEGER).setMode(Mode.NULLABLE).build()
-    );
+    com.google.cloud.bigquery.Schema existingSchema =
+        com.google.cloud.bigquery.Schema.of(
+            Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Mode.REQUIRED).build()
+        );
+    Schema kafkaSchema =
+        SchemaBuilder.struct()
+            .field("f 1", Schema.BOOLEAN_SCHEMA)
+            .field("f 2", Schema.INT32_SCHEMA)
+            .build();
+    com.google.cloud.bigquery.Schema expectedSchema =
+        com.google.cloud.bigquery.Schema.of(
+            Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Mode.NULLABLE).build(),
+            Field.newBuilder("f_1", LegacySQLTypeName.BOOLEAN).setMode(Mode.NULLABLE).build(),
+            Field.newBuilder("f_2", LegacySQLTypeName.INTEGER).setMode(Mode.NULLABLE).build()
+        );
 
     SchemaManager schemaManager = createSchemaManager(true, true, true, true, converter);
     testGetAndValidateProposedSchema(schemaManager, existingSchema,
@@ -666,15 +735,18 @@ public class SchemaManagerTest {
   @Test
   public void testFieldNamesSanitizedFieldRelaxation() {
     BigQuerySchemaConverter converter = new BigQuerySchemaConverter(false, true);
-    com.google.cloud.bigquery.Schema existingSchema = com.google.cloud.bigquery.Schema.of(
-        Field.newBuilder("f_1", LegacySQLTypeName.BOOLEAN).setMode(Mode.REQUIRED).build()
-    );
-    Schema kafkaSchema = SchemaBuilder.struct()
-        .field("f 1", Schema.OPTIONAL_BOOLEAN_SCHEMA)
-        .build();
-    com.google.cloud.bigquery.Schema expectedSchema = com.google.cloud.bigquery.Schema.of(
-        Field.newBuilder("f_1", LegacySQLTypeName.BOOLEAN).setMode(Mode.NULLABLE).build()
-    );
+    com.google.cloud.bigquery.Schema existingSchema =
+        com.google.cloud.bigquery.Schema.of(
+            Field.newBuilder("f_1", LegacySQLTypeName.BOOLEAN).setMode(Mode.REQUIRED).build()
+        );
+    Schema kafkaSchema =
+        SchemaBuilder.struct()
+            .field("f 1", Schema.OPTIONAL_BOOLEAN_SCHEMA)
+            .build();
+    com.google.cloud.bigquery.Schema expectedSchema =
+        com.google.cloud.bigquery.Schema.of(
+            Field.newBuilder("f_1", LegacySQLTypeName.BOOLEAN).setMode(Mode.NULLABLE).build()
+        );
 
     SchemaManager schemaManager = createSchemaManager(true, true, false, true, converter);
     testGetAndValidateProposedSchema(schemaManager, existingSchema,
@@ -684,9 +756,10 @@ public class SchemaManagerTest {
 
   @Test
   public void testUpdateWithOnlyTombstoneRecordsAndExistingSchema() {
-    com.google.cloud.bigquery.Schema existingSchema = com.google.cloud.bigquery.Schema.of(
-        Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Field.Mode.REQUIRED).build()
-    );
+    com.google.cloud.bigquery.Schema existingSchema =
+        com.google.cloud.bigquery.Schema.of(
+            Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Field.Mode.REQUIRED).build()
+        );
 
     SchemaManager schemaManager = createSchemaManager(true, false, false);
     List<SinkRecord> incomingSinkRecords = Collections.nCopies(2, recordWithValueSchema(null));
@@ -705,19 +778,22 @@ public class SchemaManagerTest {
 
   @Test
   public void testUpdateWithRegularAndTombstoneRecords() {
-    com.google.cloud.bigquery.Schema existingSchema = com.google.cloud.bigquery.Schema.of(
-        Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Field.Mode.REQUIRED).build()
-    );
+    com.google.cloud.bigquery.Schema existingSchema =
+        com.google.cloud.bigquery.Schema.of(
+            Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Field.Mode.REQUIRED).build()
+        );
 
-    com.google.cloud.bigquery.Schema expandedSchema = com.google.cloud.bigquery.Schema.of(
-        Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Field.Mode.REQUIRED).build(),
-        Field.newBuilder("f2", LegacySQLTypeName.INTEGER).setMode(Field.Mode.NULLABLE).build()
-    );
+    com.google.cloud.bigquery.Schema expandedSchema =
+        com.google.cloud.bigquery.Schema.of(
+            Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Field.Mode.REQUIRED).build(),
+            Field.newBuilder("f2", LegacySQLTypeName.INTEGER).setMode(Field.Mode.NULLABLE).build()
+        );
 
     SchemaManager schemaManager = createSchemaManager(true, false, false);
     // Put tombstone at the end of the batch.
-    List<SinkRecord> incomingSinkRecords = ImmutableList.of(
-        recordWithValueSchema(mockKafkaSchema), recordWithValueSchema(null));
+    List<SinkRecord> incomingSinkRecords =
+        ImmutableList.of(
+            recordWithValueSchema(mockKafkaSchema), recordWithValueSchema(null));
     // Tombstone record is skipped when converting schema.
     testGetAndValidateProposedSchema(schemaManager, existingSchema,
         Collections.singletonList(expandedSchema), expandedSchema, incomingSinkRecords);
@@ -734,14 +810,16 @@ public class SchemaManagerTest {
   @Test
   public void testGetUnionizedTableDescriptionFromRegularAndNullRecords() {
     SchemaManager schemaManager = createSchemaManager(false, true, true).forIntermediateTables();
-    List<SinkRecord> incomingSinkRecords = ImmutableList.of(
-        recordWithValueSchema(mockKafkaSchema), recordWithValueSchema(null));
+    List<SinkRecord> incomingSinkRecords =
+        ImmutableList.of(
+            recordWithValueSchema(mockKafkaSchema), recordWithValueSchema(null));
     when(mockKafkaSchema.doc()).thenReturn(testDoc);
     Assert.assertNotNull(schemaManager.getUnionizedTableDescription(incomingSinkRecords));
   }
 
   private SchemaManager createSchemaManager(
-      boolean allowNewFields, boolean allowFieldRelaxation, boolean allowUnionization, boolean sanitizeFieldNames, SchemaConverter<com.google.cloud.bigquery.Schema> converter) {
+      boolean allowNewFields, boolean allowFieldRelaxation, boolean allowUnionization, boolean sanitizeFieldNames,
+      SchemaConverter<com.google.cloud.bigquery.Schema> converter) {
     return new SchemaManager(new IdentitySchemaRetriever(), converter, mockBigQuery,
         allowNewFields, allowFieldRelaxation, allowUnionization, sanitizeFieldNames,
         Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(),
@@ -819,15 +897,17 @@ public class SchemaManagerTest {
 
   @Test
   public void testUnionizeSchemaNoNestedOrRepeatedRecords() {
-    com.google.cloud.bigquery.Schema s1 = com.google.cloud.bigquery.Schema.of(
-        Field.of(LegacySQLTypeName.BYTES.name(), LegacySQLTypeName.BYTES),
-        Field.of(LegacySQLTypeName.STRING.name(), LegacySQLTypeName.STRING),
-        Field.of(LegacySQLTypeName.DATE.name(), LegacySQLTypeName.DATE)
-    );
-    com.google.cloud.bigquery.Schema s2 = com.google.cloud.bigquery.Schema.of(
-        Field.of(LegacySQLTypeName.TIMESTAMP.name(), LegacySQLTypeName.TIMESTAMP),
-        Field.of(LegacySQLTypeName.FLOAT.name(), LegacySQLTypeName.FLOAT)
-    );
+    com.google.cloud.bigquery.Schema s1 =
+        com.google.cloud.bigquery.Schema.of(
+            Field.of(LegacySQLTypeName.BYTES.name(), LegacySQLTypeName.BYTES),
+            Field.of(LegacySQLTypeName.STRING.name(), LegacySQLTypeName.STRING),
+            Field.of(LegacySQLTypeName.DATE.name(), LegacySQLTypeName.DATE)
+        );
+    com.google.cloud.bigquery.Schema s2 =
+        com.google.cloud.bigquery.Schema.of(
+            Field.of(LegacySQLTypeName.TIMESTAMP.name(), LegacySQLTypeName.TIMESTAMP),
+            Field.of(LegacySQLTypeName.FLOAT.name(), LegacySQLTypeName.FLOAT)
+        );
 
     List<Field> expectedFields = new ArrayList<>();
     expectedFields.addAll(s1.getFields());
@@ -838,97 +918,115 @@ public class SchemaManagerTest {
 
   @Test
   public void testUnionizeSchemaWithNestedRecords() {
-    com.google.cloud.bigquery.Schema s1 = com.google.cloud.bigquery.Schema.of(
-        Field.of(LegacySQLTypeName.RECORD.name(), LegacySQLTypeName.RECORD,
-            Field.of(LegacySQLTypeName.STRING.name(), LegacySQLTypeName.STRING),
-            Field.of(LegacySQLTypeName.DATE.name(), LegacySQLTypeName.DATE)
-    ));
-    com.google.cloud.bigquery.Schema s2 = com.google.cloud.bigquery.Schema.of(
-        Field.of(LegacySQLTypeName.RECORD.name(), LegacySQLTypeName.RECORD,
-            Field.of(LegacySQLTypeName.TIMESTAMP.name(), LegacySQLTypeName.TIMESTAMP)
-        ));
-    com.google.cloud.bigquery.Schema expected = com.google.cloud.bigquery.Schema.of(
-        Field.of(LegacySQLTypeName.RECORD.name(), LegacySQLTypeName.RECORD,
-            Field.of(LegacySQLTypeName.STRING.name(), LegacySQLTypeName.STRING),
-            Field.of(LegacySQLTypeName.DATE.name(), LegacySQLTypeName.DATE),
-            Field.of(LegacySQLTypeName.TIMESTAMP.name(), LegacySQLTypeName.TIMESTAMP)
+    com.google.cloud.bigquery.Schema s1 =
+        com.google.cloud.bigquery.Schema.of(
+            Field.of(LegacySQLTypeName.RECORD.name(), LegacySQLTypeName.RECORD,
+                Field.of(LegacySQLTypeName.STRING.name(), LegacySQLTypeName.STRING),
+                Field.of(LegacySQLTypeName.DATE.name(), LegacySQLTypeName.DATE)
+            ));
+    com.google.cloud.bigquery.Schema s2 =
+        com.google.cloud.bigquery.Schema.of(
+            Field.of(LegacySQLTypeName.RECORD.name(), LegacySQLTypeName.RECORD,
+                Field.of(LegacySQLTypeName.TIMESTAMP.name(), LegacySQLTypeName.TIMESTAMP)
+            ));
+    com.google.cloud.bigquery.Schema expected =
+        com.google.cloud.bigquery.Schema.of(
+            Field.of(LegacySQLTypeName.RECORD.name(), LegacySQLTypeName.RECORD,
+                Field.of(LegacySQLTypeName.STRING.name(), LegacySQLTypeName.STRING),
+                Field.of(LegacySQLTypeName.DATE.name(), LegacySQLTypeName.DATE),
+                Field.of(LegacySQLTypeName.TIMESTAMP.name(), LegacySQLTypeName.TIMESTAMP)
             )
-    );
+        );
     assertUnion(makeNullable(expected), s1, s2);
   }
 
   @Test
   public void testUnionizeSchemaWithNestedAndRepeatedFields() {
-    com.google.cloud.bigquery.Schema s1 = com.google.cloud.bigquery.Schema.of(
-        Field.of(LegacySQLTypeName.RECORD.name(), LegacySQLTypeName.RECORD,
-            Field.newBuilder(LegacySQLTypeName.STRING.name(), LegacySQLTypeName.STRING).setMode(Mode.REPEATED).build(),
+    com.google.cloud.bigquery.Schema s1 =
+        com.google.cloud.bigquery.Schema.of(
             Field.of(LegacySQLTypeName.RECORD.name(), LegacySQLTypeName.RECORD,
-                Field.of(LegacySQLTypeName.BYTES.name(), LegacySQLTypeName.BYTES)
+                Field.newBuilder(LegacySQLTypeName.STRING.name(), LegacySQLTypeName.STRING).setMode(Mode.REPEATED)
+                    .build(),
+                Field.of(LegacySQLTypeName.RECORD.name(), LegacySQLTypeName.RECORD,
+                    Field.of(LegacySQLTypeName.BYTES.name(), LegacySQLTypeName.BYTES)
+                )
             )
-        )
-    );
-    com.google.cloud.bigquery.Schema s2 = com.google.cloud.bigquery.Schema.of(
-        Field.of(LegacySQLTypeName.RECORD.name(), LegacySQLTypeName.RECORD,
-            Field.newBuilder(LegacySQLTypeName.DATE.name(), LegacySQLTypeName.DATE).setMode(Mode.REPEATED).build(),
+        );
+    com.google.cloud.bigquery.Schema s2 =
+        com.google.cloud.bigquery.Schema.of(
             Field.of(LegacySQLTypeName.RECORD.name(), LegacySQLTypeName.RECORD,
-                Field.of(LegacySQLTypeName.FLOAT.name(), LegacySQLTypeName.FLOAT)
+                Field.newBuilder(LegacySQLTypeName.DATE.name(), LegacySQLTypeName.DATE).setMode(Mode.REPEATED).build(),
+                Field.of(LegacySQLTypeName.RECORD.name(), LegacySQLTypeName.RECORD,
+                    Field.of(LegacySQLTypeName.FLOAT.name(), LegacySQLTypeName.FLOAT)
+                )
             )
-        )
-    );
+        );
 
-    com.google.cloud.bigquery.Schema expected = com.google.cloud.bigquery.Schema.of(
-        Field.of(LegacySQLTypeName.RECORD.name(), LegacySQLTypeName.RECORD,
-            Field.newBuilder(LegacySQLTypeName.STRING.name(), LegacySQLTypeName.STRING).setMode(Mode.REPEATED).build(),
+    com.google.cloud.bigquery.Schema expected =
+        com.google.cloud.bigquery.Schema.of(
             Field.of(LegacySQLTypeName.RECORD.name(), LegacySQLTypeName.RECORD,
-                Field.of(LegacySQLTypeName.BYTES.name(), LegacySQLTypeName.BYTES),
-                Field.of(LegacySQLTypeName.FLOAT.name(), LegacySQLTypeName.FLOAT)
-            ),
-            Field.newBuilder(LegacySQLTypeName.DATE.name(), LegacySQLTypeName.DATE).setMode(Mode.REPEATED).build()
-        )
-    );
+                Field.newBuilder(LegacySQLTypeName.STRING.name(), LegacySQLTypeName.STRING).setMode(Mode.REPEATED)
+                    .build(),
+                Field.of(LegacySQLTypeName.RECORD.name(), LegacySQLTypeName.RECORD,
+                    Field.of(LegacySQLTypeName.BYTES.name(), LegacySQLTypeName.BYTES),
+                    Field.of(LegacySQLTypeName.FLOAT.name(), LegacySQLTypeName.FLOAT)
+                ),
+                Field.newBuilder(LegacySQLTypeName.DATE.name(), LegacySQLTypeName.DATE).setMode(Mode.REPEATED).build()
+            )
+        );
     assertUnion(makeNullable(expected), s1, s2);
   }
 
   @Test
   public void testUnionizeSchemaNestedRelax() {
-    com.google.cloud.bigquery.Schema s1 = com.google.cloud.bigquery.Schema.of(
-        Field.of(LegacySQLTypeName.RECORD.name(), LegacySQLTypeName.RECORD,
-            Field.newBuilder(LegacySQLTypeName.STRING.name(), LegacySQLTypeName.STRING).setMode(Mode.REQUIRED).build()
-        )
-    );
-    com.google.cloud.bigquery.Schema s2 = com.google.cloud.bigquery.Schema.of(
-        Field.of(LegacySQLTypeName.RECORD.name(), LegacySQLTypeName.RECORD,
-            Field.newBuilder(LegacySQLTypeName.STRING.name(), LegacySQLTypeName.STRING).setMode(Mode.NULLABLE).build()
-        )
-    );
+    com.google.cloud.bigquery.Schema s1 =
+        com.google.cloud.bigquery.Schema.of(
+            Field.of(LegacySQLTypeName.RECORD.name(), LegacySQLTypeName.RECORD,
+                Field.newBuilder(LegacySQLTypeName.STRING.name(), LegacySQLTypeName.STRING).setMode(Mode.REQUIRED)
+                    .build()
+            )
+        );
+    com.google.cloud.bigquery.Schema s2 =
+        com.google.cloud.bigquery.Schema.of(
+            Field.of(LegacySQLTypeName.RECORD.name(), LegacySQLTypeName.RECORD,
+                Field.newBuilder(LegacySQLTypeName.STRING.name(), LegacySQLTypeName.STRING).setMode(Mode.NULLABLE)
+                    .build()
+            )
+        );
     assertUnion(makeNullable(s2), s1, s2);
   }
 
   @Test
   public void testUnionizeSchemaCaseInsensitive() {
-    com.google.cloud.bigquery.Schema s1 = com.google.cloud.bigquery.Schema.of(
+    com.google.cloud.bigquery.Schema s1 =
+        com.google.cloud.bigquery.Schema.of(
             Field.of("CAPS", LegacySQLTypeName.RECORD,
-                    Field.newBuilder(LegacySQLTypeName.STRING.name(), LegacySQLTypeName.STRING).setMode(Mode.REQUIRED).build()
+                Field.newBuilder(LegacySQLTypeName.STRING.name(), LegacySQLTypeName.STRING).setMode(Mode.REQUIRED)
+                    .build()
             )
-    );
-    com.google.cloud.bigquery.Schema s2 = com.google.cloud.bigquery.Schema.of(
+        );
+    com.google.cloud.bigquery.Schema s2 =
+        com.google.cloud.bigquery.Schema.of(
             Field.of("caps", LegacySQLTypeName.RECORD,
-                    Field.newBuilder(LegacySQLTypeName.STRING.name(), LegacySQLTypeName.STRING).setMode(Mode.NULLABLE).build()
+                Field.newBuilder(LegacySQLTypeName.STRING.name(), LegacySQLTypeName.STRING).setMode(Mode.NULLABLE)
+                    .build()
             )
-    );
+        );
     assertUnion(makeNullable(s1), s1, s2);
   }
 
   @Test
   public void testFieldNameSanitizedOnCreateTable() {
-    Schema embeddedStructWithInvalidFieldName = SchemaBuilder.struct()
-        .field("embedded-invalid", Schema.INT32_SCHEMA)
-        .build();
-    Schema schemaWithInvalidFieldNames = SchemaBuilder.struct()
-        .field("1st field", Schema.BOOLEAN_SCHEMA)
-        .field("second-field", Schema.STRING_SCHEMA)
-        .field("embedded", embeddedStructWithInvalidFieldName)
-        .build();
+    Schema embeddedStructWithInvalidFieldName =
+        SchemaBuilder.struct()
+            .field("embedded-invalid", Schema.INT32_SCHEMA)
+            .build();
+    Schema schemaWithInvalidFieldNames =
+        SchemaBuilder.struct()
+            .field("1st field", Schema.BOOLEAN_SCHEMA)
+            .field("second-field", Schema.STRING_SCHEMA)
+            .field("embedded", embeddedStructWithInvalidFieldName)
+            .build();
 
     List<SinkRecord> incomingSinkRecords = Collections.nCopies(2, recordWithValueSchema(schemaWithInvalidFieldNames));
     BigQuerySchemaConverter converter = new BigQuerySchemaConverter(true, true);
@@ -959,9 +1057,10 @@ public class SchemaManagerTest {
   private Field makeNullable(Field f) {
     Field.Builder builder = f.toBuilder();
     if (f.getSubFields() != null) {
-      List<Field> subFields = f.getSubFields().stream()
-          .map(this::makeNullable)
-          .collect(Collectors.toList());
+      List<Field> subFields =
+          f.getSubFields().stream()
+              .map(this::makeNullable)
+              .collect(Collectors.toList());
       builder.setType(LegacySQLTypeName.RECORD, subFields.toArray(new Field[]{})).build();
     }
     return builder

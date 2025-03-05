@@ -31,14 +31,16 @@ import java.util.Collection;
 import static com.wepay.kafka.connect.bigquery.utils.TableNameUtils.table;
 
 public class TableClearer {
+
   private static final Logger logger = LoggerFactory.getLogger(TableClearer.class);
 
   /**
    * Clear out one or more BigQuery tables. Useful in integration testing to provide a clean slate
    * before creating a connector and writing to those tables.
+   * 
    * @param bigQuery The BigQuery client to use when sending table deletion requests.
-   * @param dataset The dataset that the to-be-cleared tables belong to.
-   * @param tables The tables to clear.
+   * @param dataset  The dataset that the to-be-cleared tables belong to.
+   * @param tables   The tables to clear.
    */
   public static void clearTables(BigQuery bigQuery, String dataset, Collection<String> tables) {
     for (String tableName : tables) {
@@ -54,9 +56,10 @@ public class TableClearer {
   /**
    * Clear out one or more BigQuery tables. Useful in integration testing to provide a clean slate
    * before creating a connector and writing to those tables.
+   * 
    * @param bigQuery The BigQuery client to use when sending table deletion requests.
-   * @param dataset The dataset that the to-be-cleared tables belong to.
-   * @param tables The tables to clear.
+   * @param dataset  The dataset that the to-be-cleared tables belong to.
+   * @param tables   The tables to clear.
    */
   public static void clearTables(BigQuery bigQuery, String dataset, String... tables) {
     clearTables(bigQuery, dataset, Arrays.asList(tables));

@@ -50,7 +50,6 @@ public class BigQueryErrorResponses {
   private static final String RATE_LIMIT_EXCEEDED_REASON = "rateLimitExceeded";
   private static final String STOPPED_REASON = "stopped";
 
-
   public static boolean isNonExistentTableError(BigQueryException exception) {
     String message = message(exception.getError());
     // If a table does not exist, it will raise a BigQueryException that the input is notFound
@@ -75,8 +74,8 @@ public class BigQueryErrorResponses {
     //       suggest it's an internal backend error and we should retry, so lets take that at face
     //       value
     return INTERNAL_SERVICE_ERROR_CODE == exception.getCode()
-        || BAD_GATEWAY_CODE  == exception.getCode()
-        || SERVICE_UNAVAILABLE_CODE  == exception.getCode();
+        || BAD_GATEWAY_CODE == exception.getCode()
+        || SERVICE_UNAVAILABLE_CODE == exception.getCode();
   }
 
   public static boolean isUnspecifiedBadRequestError(BigQueryException exception) {
@@ -87,7 +86,7 @@ public class BigQueryErrorResponses {
 
   public static boolean isJobInternalError(BigQueryException exception) {
     return BAD_REQUEST_CODE == exception.getCode()
-            && JOB_INTERNAL_ERROR.equals(exception.getReason());
+        && JOB_INTERNAL_ERROR.equals(exception.getReason());
   }
 
   public static boolean isQuotaExceededError(BigQueryException exception) {
@@ -123,8 +122,8 @@ public class BigQueryErrorResponses {
 
   public static boolean isCouldNotSerializeAccessError(BigQueryException exception) {
     return BAD_REQUEST_CODE == exception.getCode()
-            && INVALID_QUERY_REASON.equals(exception.getReason())
-            && message(exception.getError()).startsWith("Could not serialize access to");
+        && INVALID_QUERY_REASON.equals(exception.getReason())
+        && message(exception.getError()).startsWith("Could not serialize access to");
   }
 
   /**
@@ -134,10 +133,10 @@ public class BigQueryErrorResponses {
   public static boolean isAuthenticationError(BigQueryException error) {
     String err = error.toString();
     return ((err.contains(String.valueOf(BAD_REQUEST_CODE))) &&
-            (err.contains("invalid_request") || err.contains("invalid_client") || err.contains("invalid_grant") ||
-             err.contains("unauthorized_client") || err.contains("unsupported_grant_type")))
-            ||
-            err.contains(String.valueOf(AUTHENTICATION_ERROR_CODE));
+        (err.contains("invalid_request") || err.contains("invalid_client") || err.contains("invalid_grant") ||
+            err.contains("unauthorized_client") || err.contains("unsupported_grant_type")))
+        ||
+        err.contains(String.valueOf(AUTHENTICATION_ERROR_CODE));
   }
 
   public static boolean isUnrecognizedFieldError(BigQueryError error) {

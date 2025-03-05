@@ -24,6 +24,7 @@ package com.wepay.kafka.connect.bigquery.utils;
  * should come from here.
  */
 public class Version {
+
   private static String version = "unknown";
 
   static {

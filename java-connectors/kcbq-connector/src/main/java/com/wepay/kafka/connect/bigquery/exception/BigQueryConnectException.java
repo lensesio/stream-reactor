@@ -31,6 +31,7 @@ import java.util.Map;
  * update failures, and table insertion failures.
  */
 public class BigQueryConnectException extends ConnectException {
+
   public BigQueryConnectException(String msg) {
     super(msg);
   }
@@ -66,7 +67,7 @@ public class BigQueryConnectException extends ConnectException {
 
   @Override
   public String toString() {
-    return getCause() != null ?
-        super.toString() + "\nCaused by: " + getCause().getLocalizedMessage() : super.toString();
+    return getCause() != null ? super.toString() + "\nCaused by: " + getCause().getLocalizedMessage()
+        : super.toString();
   }
 }

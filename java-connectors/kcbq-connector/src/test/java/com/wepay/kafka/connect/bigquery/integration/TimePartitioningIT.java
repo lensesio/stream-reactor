@@ -108,18 +108,19 @@ public class TimePartitioningIT {
   public static Iterable<Object[]> data() {
     int testCase = 0;
     return Arrays.asList(
-      new Object[] {TimePartitioning.Type.HOUR, false, false, testCase++ },
-      new Object[] {TimePartitioning.Type.DAY, true, true, testCase++ },
-      new Object[] {TimePartitioning.Type.DAY, true, false, testCase++ },
-      new Object[] {TimePartitioning.Type.DAY, false, false, testCase++ },
-      new Object[] {TimePartitioning.Type.MONTH, false, false, testCase++ },
-      new Object[] {TimePartitioning.Type.YEAR, false, false, testCase }
+        new Object[]{TimePartitioning.Type.HOUR, false, false, testCase++},
+        new Object[]{TimePartitioning.Type.DAY, true, true, testCase++},
+        new Object[]{TimePartitioning.Type.DAY, true, false, testCase++},
+        new Object[]{TimePartitioning.Type.DAY, false, false, testCase++},
+        new Object[]{TimePartitioning.Type.MONTH, false, false, testCase++},
+        new Object[]{TimePartitioning.Type.YEAR, false, false, testCase}
     );
   }
 
   @BeforeClass
   public static void globalSetup() {
-    testBase = new BaseConnectorIT() {};
+    testBase = new BaseConnectorIT() {
+    };
     BigQuery bigQuery = testBase.newBigQuery();
     data().forEach(args -> {
       int testCase = (int) args[3];
@@ -190,15 +191,17 @@ public class TimePartitioningIT {
     // Instantiate the producer we'll use to write records to Kafka
     Map<String, Object> producerProps = new HashMap<>();
     producerProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, testBase.connect.kafka().bootstrapServers());
-    Producer<Void, String> valueProducer = new KafkaProducer<>(
-        producerProps, Serdes.Void().serializer(), Serdes.String().serializer()
-    );
+    Producer<Void, String> valueProducer =
+        new KafkaProducer<>(
+            producerProps, Serdes.Void().serializer(), Serdes.String().serializer()
+        );
 
     // Send records to Kafka
     for (int i = 0; i < NUM_RECORDS_PRODUCED; i++) {
       String kafkaValue = value(valueConverter, topic, i);
       logger.debug("Sending message with value '{}' to topic '{}'", kafkaValue, topic);
-      ProducerRecord<Void, String> kafkaRecord = new ProducerRecord<>(topic, null, timestamp((i % 3) - 1), null, kafkaValue);
+      ProducerRecord<Void, String> kafkaRecord =
+          new ProducerRecord<>(topic, null, timestamp((i % 3) - 1), null, kafkaValue);
       try {
         valueProducer.send(kafkaRecord).get(30, TimeUnit.SECONDS);
       } catch (Exception e) {
@@ -237,21 +240,23 @@ public class TimePartitioningIT {
 
     // Ensure that the table was created with the expected time partitioning type
     StandardTableDefinition tableDefinition = bigQuery.getTable(TableId.of(testBase.dataset(), table)).getDefinition();
-    Optional<TimePartitioning.Type> actualPartitioningType = Optional.ofNullable((tableDefinition).getTimePartitioning())
-        .map(TimePartitioning::getType);
+    Optional<TimePartitioning.Type> actualPartitioningType =
+        Optional.ofNullable((tableDefinition).getTimePartitioning())
+            .map(TimePartitioning::getType);
     assertEquals(Optional.of(partitioningType), actualPartitioningType);
 
     // Verify that at least one record landed in each of the targeted partitions
     if (usePartitionDecorator && messageTimePartitioning) {
       for (int i = -1; i < 2; i++) {
         long partitionTime = timestamp(i);
-        TableResult tableResult = bigQuery.query(QueryJobConfiguration.of(String.format(
-            "SELECT * FROM `%s`.`%s` WHERE _PARTITIONTIME = TIMESTAMP_TRUNC(TIMESTAMP_MILLIS(%d), %s)",
-            testBase.dataset(),
-            table,
-            partitionTime,
-            partitioningType.toString()
-        )));
+        TableResult tableResult =
+            bigQuery.query(QueryJobConfiguration.of(String.format(
+                "SELECT * FROM `%s`.`%s` WHERE _PARTITIONTIME = TIMESTAMP_TRUNC(TIMESTAMP_MILLIS(%d), %s)",
+                testBase.dataset(),
+                table,
+                partitionTime,
+                partitioningType.toString()
+            )));
         assertTrue(
             "Should have seen at least one row in partition corresponding to timestamp " + partitionTime,
             tableResult.getValues().iterator().hasNext()
@@ -269,19 +274,21 @@ public class TimePartitioningIT {
   }
 
   private String value(Converter converter, String topic, long iteration) {
-    final Schema schema = SchemaBuilder.struct()
-        .optional()
-        .field("i", Schema.INT64_SCHEMA)
-        .field("f1", Schema.STRING_SCHEMA)
-        .field("f2", Schema.BOOLEAN_SCHEMA)
-        .field("f3", Schema.FLOAT64_SCHEMA)
-        .build();
+    final Schema schema =
+        SchemaBuilder.struct()
+            .optional()
+            .field("i", Schema.INT64_SCHEMA)
+            .field("f1", Schema.STRING_SCHEMA)
+            .field("f2", Schema.BOOLEAN_SCHEMA)
+            .field("f3", Schema.FLOAT64_SCHEMA)
+            .build();
 
-    final Struct struct = new Struct(schema)
-        .put("i", iteration)
-        .put("f1", iteration % 2 == 0 ? "a string" : "another string")
-        .put("f2", iteration % 3 == 0)
-        .put("f3", iteration / 39.80);
+    final Struct struct =
+        new Struct(schema)
+            .put("i", iteration)
+            .put("f1", iteration % 2 == 0 ? "a string" : "another string")
+            .put("f2", iteration % 3 == 0)
+            .put("f3", iteration / 39.80);
 
     return new String(converter.fromConnectData(topic, schema, struct));
   }

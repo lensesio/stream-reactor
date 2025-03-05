@@ -53,9 +53,9 @@ public class PartitionedTableId {
   /**
    * Create a new {@link PartitionedTableId}
    *
-   * @param project The project name, if specified.
-   * @param dataset The dataset name.
-   * @param table The table name.
+   * @param project   The project name, if specified.
+   * @param dataset   The dataset name.
+   * @param table     The table name.
    * @param partition The partition of the table, if any.
    */
   private PartitionedTableId(String project, String dataset, String table, String partition) {
@@ -72,7 +72,8 @@ public class PartitionedTableId {
 
   /**
    * Create and return a full table name from a base table name and a partition.
-   * @param table the base table name.
+   * 
+   * @param table     the base table name.
    * @param partition the partition, if any.
    * @return full table name, including partition; Just the given table if no partition.
    */
@@ -92,7 +93,7 @@ public class PartitionedTableId {
    *
    * @param project the project name, or null
    * @param dataset the dataset name
-   * @param table the table name
+   * @param table   the table name
    * @return a new TableId with the given project, dataset, and table.
    */
   private static TableId createTableId(String project, String dataset, String table) {
@@ -173,7 +174,7 @@ public class PartitionedTableId {
     /**
      * Initialize a new {@link PartitionedTableId} Builder with a dataset and base table name.
      *
-     * @param dataset the dataset name of the eventual PartitionedTableId.
+     * @param dataset   the dataset name of the eventual PartitionedTableId.
      * @param baseTable the base table name of the eventual PartitionedTableId.
      */
     public Builder(String dataset, String baseTable) {

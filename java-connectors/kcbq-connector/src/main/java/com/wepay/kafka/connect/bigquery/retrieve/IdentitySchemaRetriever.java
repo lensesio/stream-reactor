@@ -30,17 +30,17 @@ import java.util.Map;
  */
 public class IdentitySchemaRetriever implements SchemaRetriever {
 
-    @Override
-    public void configure(Map<String, String> properties) {
-    }
+  @Override
+  public void configure(Map<String, String> properties) {
+  }
 
-    @Override
-    public Schema retrieveKeySchema(SinkRecord record) {
-        return record.keySchema();
-    }
+  @Override
+  public Schema retrieveKeySchema(SinkRecord record) {
+    return record.keySchema();
+  }
 
-    @Override
-    public Schema retrieveValueSchema(SinkRecord record) {
-        return record.valueSchema();
-    }
+  @Override
+  public Schema retrieveValueSchema(SinkRecord record) {
+    return record.valueSchema();
+  }
 }

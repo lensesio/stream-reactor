@@ -94,5 +94,4 @@ public class GCSToBQLoadRunnableTest {
     return mockBlob;
   }
 
-
 }

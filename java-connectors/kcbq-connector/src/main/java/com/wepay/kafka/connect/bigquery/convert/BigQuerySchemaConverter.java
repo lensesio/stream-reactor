@@ -64,23 +64,23 @@ public class BigQuerySchemaConverter implements SchemaConverter<com.google.cloud
 
     PRIMITIVE_TYPE_MAP = new HashMap<>();
     PRIMITIVE_TYPE_MAP.put(Schema.Type.BOOLEAN,
-                           LegacySQLTypeName.BOOLEAN);
+        LegacySQLTypeName.BOOLEAN);
     PRIMITIVE_TYPE_MAP.put(Schema.Type.FLOAT32,
-                           LegacySQLTypeName.FLOAT);
+        LegacySQLTypeName.FLOAT);
     PRIMITIVE_TYPE_MAP.put(Schema.Type.FLOAT64,
-                           LegacySQLTypeName.FLOAT);
+        LegacySQLTypeName.FLOAT);
     PRIMITIVE_TYPE_MAP.put(Schema.Type.INT8,
-                           LegacySQLTypeName.INTEGER);
+        LegacySQLTypeName.INTEGER);
     PRIMITIVE_TYPE_MAP.put(Schema.Type.INT16,
-                           LegacySQLTypeName.INTEGER);
+        LegacySQLTypeName.INTEGER);
     PRIMITIVE_TYPE_MAP.put(Schema.Type.INT32,
-                           LegacySQLTypeName.INTEGER);
+        LegacySQLTypeName.INTEGER);
     PRIMITIVE_TYPE_MAP.put(Schema.Type.INT64,
-                           LegacySQLTypeName.INTEGER);
+        LegacySQLTypeName.INTEGER);
     PRIMITIVE_TYPE_MAP.put(Schema.Type.STRING,
-                           LegacySQLTypeName.STRING);
+        LegacySQLTypeName.STRING);
     PRIMITIVE_TYPE_MAP.put(Schema.Type.BYTES,
-                           LegacySQLTypeName.BYTES);
+        LegacySQLTypeName.BYTES);
   }
 
   private final boolean allFieldsNullable;
@@ -109,20 +109,19 @@ public class BigQuerySchemaConverter implements SchemaConverter<com.google.cloud
   public com.google.cloud.bigquery.Schema convertSchema(Schema kafkaConnectSchema) {
     // TODO: Permit non-struct keys
     if (kafkaConnectSchema.type() != Schema.Type.STRUCT) {
-      throw new
-          ConversionConnectException("Top-level Kafka Connect schema must be of type 'struct'");
+      throw new ConversionConnectException("Top-level Kafka Connect schema must be of type 'struct'");
     }
 
     throwOnCycle(kafkaConnectSchema, new ArrayList<>());
 
-    List<com.google.cloud.bigquery.Field> fields = kafkaConnectSchema.fields().stream()
-        .flatMap(kafkaConnectField ->
-          convertField(kafkaConnectField.schema(), kafkaConnectField.name())
-          .map(Stream::of)
-          .orElse(Stream.empty())
-        )
-        .map(com.google.cloud.bigquery.Field.Builder::build)
-        .collect(Collectors.toList());
+    List<com.google.cloud.bigquery.Field> fields =
+        kafkaConnectSchema.fields().stream()
+            .flatMap(kafkaConnectField -> convertField(kafkaConnectField.schema(), kafkaConnectField.name())
+                .map(Stream::of)
+                .orElse(Stream.empty())
+            )
+            .map(com.google.cloud.bigquery.Field.Builder::build)
+            .collect(Collectors.toList());
 
     return com.google.cloud.bigquery.Schema.of(fields);
   }
@@ -137,7 +136,7 @@ public class BigQuerySchemaConverter implements SchemaConverter<com.google.cloud
     }
 
     seenSoFar.add(kafkaConnectSchema);
-    switch(kafkaConnectSchema.type()) {
+    switch (kafkaConnectSchema.type()) {
       case ARRAY:
         throwOnCycle(kafkaConnectSchema.valueSchema(), seenSoFar);
         break;
@@ -157,7 +156,7 @@ public class BigQuerySchemaConverter implements SchemaConverter<com.google.cloud
   }
 
   private Optional<com.google.cloud.bigquery.Field.Builder> convertField(Schema kafkaConnectSchema,
-                                                                         String fieldName) {
+      String fieldName) {
     Optional<com.google.cloud.bigquery.Field.Builder> result;
     Schema.Type kafkaConnectSchemaType = kafkaConnectSchema.type();
     if (sanitizeFieldNames) {
@@ -195,7 +194,7 @@ public class BigQuerySchemaConverter implements SchemaConverter<com.google.cloud
   }
 
   private void setNullability(Schema kafkaConnectSchema,
-                              com.google.cloud.bigquery.Field.Builder fieldBuilder) {
+      com.google.cloud.bigquery.Field.Builder fieldBuilder) {
     switch (kafkaConnectSchema.type()) {
       case ARRAY:
       case MAP:
@@ -210,16 +209,16 @@ public class BigQuerySchemaConverter implements SchemaConverter<com.google.cloud
   }
 
   private Optional<com.google.cloud.bigquery.Field.Builder> convertStruct(Schema kafkaConnectSchema,
-                                                                          String fieldName) {
-    List<com.google.cloud.bigquery.Field> bigQueryRecordFields = kafkaConnectSchema.fields()
-        .stream()
-        .flatMap(kafkaConnectField ->
-            convertField(kafkaConnectField.schema(), kafkaConnectField.name())
-            .map(Stream::of)
-            .orElse(Stream.empty())
-        )
-        .map(com.google.cloud.bigquery.Field.Builder::build)
-        .collect(Collectors.toList());
+      String fieldName) {
+    List<com.google.cloud.bigquery.Field> bigQueryRecordFields =
+        kafkaConnectSchema.fields()
+            .stream()
+            .flatMap(kafkaConnectField -> convertField(kafkaConnectField.schema(), kafkaConnectField.name())
+                .map(Stream::of)
+                .orElse(Stream.empty())
+            )
+            .map(com.google.cloud.bigquery.Field.Builder::build)
+            .collect(Collectors.toList());
     if (bigQueryRecordFields.isEmpty()) {
       return Optional.empty();
     }
@@ -227,47 +226,48 @@ public class BigQuerySchemaConverter implements SchemaConverter<com.google.cloud
     FieldList fieldList = FieldList.of(bigQueryRecordFields);
 
     return Optional.of(com.google.cloud.bigquery.Field.newBuilder(fieldName,
-                                                                  LegacySQLTypeName.RECORD,
-                                                                  fieldList));
+        LegacySQLTypeName.RECORD,
+        fieldList));
   }
 
   private Optional<com.google.cloud.bigquery.Field.Builder> convertArray(Schema kafkaConnectSchema,
-                                                                         String fieldName) {
+      String fieldName) {
     Schema elementSchema = kafkaConnectSchema.valueSchema();
     return convertField(elementSchema, fieldName)
         .map(builder -> builder.setMode(com.google.cloud.bigquery.Field.Mode.REPEATED));
   }
 
   private Optional<com.google.cloud.bigquery.Field.Builder> convertMap(Schema kafkaConnectSchema,
-                                                                       String fieldName) {
+      String fieldName) {
     Schema keySchema = kafkaConnectSchema.keySchema();
     Schema valueSchema = kafkaConnectSchema.valueSchema();
 
-    Optional<com.google.cloud.bigquery.Field> maybeKeyField = convertField(keySchema, MAP_KEY_FIELD_NAME)
-        .map(com.google.cloud.bigquery.Field.Builder::build);
-    Optional<com.google.cloud.bigquery.Field> maybeValueField = convertField(valueSchema, MAP_VALUE_FIELD_NAME)
-        .map(com.google.cloud.bigquery.Field.Builder::build);
+    Optional<com.google.cloud.bigquery.Field> maybeKeyField =
+        convertField(keySchema, MAP_KEY_FIELD_NAME)
+            .map(com.google.cloud.bigquery.Field.Builder::build);
+    Optional<com.google.cloud.bigquery.Field> maybeValueField =
+        convertField(valueSchema, MAP_VALUE_FIELD_NAME)
+            .map(com.google.cloud.bigquery.Field.Builder::build);
 
-    return maybeKeyField.flatMap(keyField ->
-        maybeValueField.map(valueField ->
-            com.google.cloud.bigquery.Field.newBuilder(fieldName,
-                                                       LegacySQLTypeName.RECORD,
-                                                       keyField,
-                                                       valueField)
-                .setMode(com.google.cloud.bigquery.Field.Mode.REPEATED)
-        )
+    return maybeKeyField.flatMap(keyField -> maybeValueField.map(valueField -> com.google.cloud.bigquery.Field
+        .newBuilder(fieldName,
+            LegacySQLTypeName.RECORD,
+            keyField,
+            valueField)
+        .setMode(com.google.cloud.bigquery.Field.Mode.REPEATED)
+    )
     );
   }
 
   private com.google.cloud.bigquery.Field.Builder convertPrimitive(Schema kafkaConnectSchema,
-                                                                   String fieldName) {
+      String fieldName) {
     LegacySQLTypeName bigQueryType =
         PRIMITIVE_TYPE_MAP.get(kafkaConnectSchema.type());
     return com.google.cloud.bigquery.Field.newBuilder(fieldName, bigQueryType);
   }
 
   private com.google.cloud.bigquery.Field.Builder convertLogical(Schema kafkaConnectSchema,
-                                                                 String fieldName) {
+      String fieldName) {
     LogicalTypeConverter converter =
         LogicalConverterRegistry.getConverter(kafkaConnectSchema.name());
     converter.checkEncodingType(kafkaConnectSchema.type());

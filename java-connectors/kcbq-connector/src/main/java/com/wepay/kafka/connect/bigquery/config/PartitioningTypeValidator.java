@@ -31,13 +31,15 @@ import static com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig.TABLE_C
 import static com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig.TIME_PARTITIONING_TYPE_CONFIG;
 
 public class PartitioningTypeValidator extends MultiPropertyValidator<BigQuerySinkConfig> {
+
   public PartitioningTypeValidator() {
     super(TIME_PARTITIONING_TYPE_CONFIG);
   }
 
-  private static final Collection<String> DEPENDENTS = Collections.unmodifiableCollection(Arrays.asList(
-      BIGQUERY_PARTITION_DECORATOR_CONFIG, TABLE_CREATE_CONFIG
-  ));
+  private static final Collection<String> DEPENDENTS =
+      Collections.unmodifiableCollection(Arrays.asList(
+          BIGQUERY_PARTITION_DECORATOR_CONFIG, TABLE_CREATE_CONFIG
+      ));
 
   @Override
   protected Collection<String> dependents() {

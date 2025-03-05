@@ -27,14 +27,14 @@ import java.util.Map;
  * Class for task-specific configuration properties.
  */
 public class BigQuerySinkTaskConfig extends BigQuerySinkConfig {
-  
+
   public static final String GCS_BQ_TASK_CONFIG = "GCSBQTask";
   private static final ConfigDef.Type GCS_BQ_TASK_TYPE = ConfigDef.Type.BOOLEAN;
   private static final boolean GCS_BQ_TASK_DEFAULT = false;
   private static final ConfigDef.Importance GCS_BQ_TASK_IMPORTANCE = ConfigDef.Importance.LOW;
 
-  public static final String TASK_ID_CONFIG =                   "taskId";
-  private static final ConfigDef.Type TASK_ID_TYPE =            ConfigDef.Type.INT;
+  public static final String TASK_ID_CONFIG = "taskId";
+  private static final ConfigDef.Type TASK_ID_TYPE = ConfigDef.Type.INT;
   public static final ConfigDef.Importance TASK_ID_IMPORTANCE = ConfigDef.Importance.LOW;
 
   /**

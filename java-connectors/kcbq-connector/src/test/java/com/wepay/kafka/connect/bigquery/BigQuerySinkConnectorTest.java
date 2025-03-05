@@ -35,22 +35,24 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
 
 public class BigQuerySinkConnectorTest {
+
   private static SinkPropertiesFactory propertiesFactory;
 
   // Would just use Mockito, but can't provide the name of an anonymous class to the config file
   public static class MockSchemaRetriever implements SchemaRetriever {
+
     @Override
     public void configure(Map<String, String> properties) {
       // Shouldn't be called
     }
 
     @Override
-    public Schema retrieveKeySchema(SinkRecord record){
+    public Schema retrieveKeySchema(SinkRecord record) {
       return null;
     }
 
     @Override
-    public Schema retrieveValueSchema(SinkRecord record){
+    public Schema retrieveValueSchema(SinkRecord record) {
       return null;
     }
   }
@@ -73,7 +75,7 @@ public class BigQuerySinkConnectorTest {
 
     testConnector.start(properties);
 
-    for (int i : new int[] { 1, 2, 10, 100 }) {
+    for (int i : new int[]{1, 2, 10, 100}) {
       Map<String, String> expectedProperties = new HashMap<>(properties);
       List<Map<String, String>> taskConfigs = testConnector.taskConfigs(i);
       assertEquals(i, taskConfigs.size());

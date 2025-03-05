@@ -61,7 +61,7 @@ public class GCSToBQWriterTest {
   }
 
   @Test
-  public void testGCSNoFailure(){
+  public void testGCSNoFailure() {
     // test succeeding on first attempt
     final String topic = "test_topic";
     final String dataset = "scratch";
@@ -83,11 +83,11 @@ public class GCSToBQWriterTest {
         Collections.singletonList(spoofSinkRecord(topic, 0, 0, "some_field", "some_value")));
     testTask.flush(Collections.emptyMap());
 
-    verify(storage, times(1)).create(any(), (byte[])any());
+    verify(storage, times(1)).create(any(), (byte[]) any());
   }
 
   @Test
-  public void testGCSSomeFailures(){
+  public void testGCSSomeFailures() {
     // test failure through all configured retry attempts.
     final String topic = "test_topic";
     final String dataset = "scratch";
@@ -102,7 +102,7 @@ public class GCSToBQWriterTest {
     SchemaManager schemaManager = mock(SchemaManager.class);
     Map<TableId, Table> cache = new HashMap<>();
 
-    when(storage.create((BlobInfo)any(), (byte[])any()))
+    when(storage.create((BlobInfo) any(), (byte[]) any()))
         .thenThrow(new StorageException(500, "internal server error")) // throw first time
         .thenReturn(null); // return second time. (we don't care about the result.)
 
@@ -113,11 +113,11 @@ public class GCSToBQWriterTest {
         Collections.singletonList(spoofSinkRecord(topic, 0, 0, "some_field", "some_value")));
     testTask.flush(Collections.emptyMap());
 
-    verify(storage, times(2)).create((BlobInfo)any(), (byte[])any());
+    verify(storage, times(2)).create((BlobInfo) any(), (byte[]) any());
   }
 
   @Test
-  public void testGCSAllFailures(){
+  public void testGCSAllFailures() {
     // test failure through all configured retry attempts.
     final String topic = "test_topic";
     final String dataset = "scratch";
@@ -132,7 +132,7 @@ public class GCSToBQWriterTest {
     SchemaManager schemaManager = mock(SchemaManager.class);
     Map<TableId, Table> cache = new HashMap<>();
 
-    when(storage.create((BlobInfo)any(), (byte[])any()))
+    when(storage.create((BlobInfo) any(), (byte[]) any()))
         .thenThrow(new StorageException(500, "internal server error"));
 
     BigQuerySinkTask testTask = new BigQuerySinkTask(bigQuery, schemaRetriever, storage, schemaManager, cache);
@@ -143,8 +143,8 @@ public class GCSToBQWriterTest {
     try {
       testTask.flush(Collections.emptyMap());
       Assert.fail("expected testTask.flush to fail.");
-    } catch (ConnectException ex){
-      verify(storage, times(4)).create((BlobInfo)any(), (byte[])any());
+    } catch (ConnectException ex) {
+      verify(storage, times(4)).create((BlobInfo) any(), (byte[]) any());
     }
   }
 
@@ -155,16 +155,17 @@ public class GCSToBQWriterTest {
 
   /**
    * Utility method for making and retrieving properties based on provided parameters.
-   * @param bigqueryRetry The number of retries.
+   * 
+   * @param bigqueryRetry     The number of retries.
    * @param bigqueryRetryWait The wait time for each retry.
-   * @param topic The topic of the record.
-   * @param dataset The dataset of the record.
+   * @param topic             The topic of the record.
+   * @param dataset           The dataset of the record.
    * @return The map of bigquery sink configurations.
    */
-  private Map<String,String> makeProperties(String bigqueryRetry,
-                                            String bigqueryRetryWait,
-                                            String topic,
-                                            String dataset) {
+  private Map<String, String> makeProperties(String bigqueryRetry,
+      String bigqueryRetryWait,
+      String topic,
+      String dataset) {
     Map<String, String> properties = propertiesFactory.getProperties();
     properties.put(BigQuerySinkConfig.BIGQUERY_RETRY_CONFIG, bigqueryRetry);
     properties.put(BigQuerySinkConfig.BIGQUERY_RETRY_WAIT_CONFIG, bigqueryRetryWait);
@@ -179,21 +180,23 @@ public class GCSToBQWriterTest {
 
   /**
    * Utility method for spoofing SinkRecords that should be passed to SinkTask.put()
-   * @param topic The topic of the record.
+   * 
+   * @param topic     The topic of the record.
    * @param partition The partition of the record.
-   * @param field The name of the field in the record's struct.
-   * @param value The content of the field.
+   * @param field     The name of the field in the record's struct.
+   * @param value     The content of the field.
    * @return The spoofed SinkRecord.
    */
   private SinkRecord spoofSinkRecord(String topic,
-                                     int partition,
-                                     long kafkaOffset,
-                                     String field,
-                                     String value) {
-    Schema basicRowSchema = SchemaBuilder
-        .struct()
-        .field(field, Schema.STRING_SCHEMA)
-        .build();
+      int partition,
+      long kafkaOffset,
+      String field,
+      String value) {
+    Schema basicRowSchema =
+        SchemaBuilder
+            .struct()
+            .field(field, Schema.STRING_SCHEMA)
+            .build();
     Struct basicRowValue = new Struct(basicRowSchema);
     basicRowValue.put(field, value);
     return new SinkRecord(topic,

@@ -41,6 +41,7 @@ import java.util.TreeMap;
  * and then triggers a load job from that GCS file to BigQuery.
  */
 public class GCSBatchTableWriter implements Runnable {
+
   private static final Logger logger = LoggerFactory.getLogger(GCSBatchTableWriter.class);
 
   private final TableId tableId;
@@ -52,18 +53,18 @@ public class GCSBatchTableWriter implements Runnable {
   private final GCSToBQWriter writer;
 
   /**
-   * @param rows The list of rows that should be written through GCS
-   * @param writer {@link GCSToBQWriter} to use
-   * @param tableId the BigQuery table id of the table to write to
-   * @param bucketName the name of the GCS bucket where the blob should be uploaded
+   * @param rows         The list of rows that should be written through GCS
+   * @param writer       {@link GCSToBQWriter} to use
+   * @param tableId      the BigQuery table id of the table to write to
+   * @param bucketName   the name of the GCS bucket where the blob should be uploaded
    * @param baseBlobName the base name of the blob in which the serialized rows should be uploaded.
    *                     The full name is [baseBlobName]_[writerId]_
    */
   private GCSBatchTableWriter(SortedMap<SinkRecord, RowToInsert> rows,
-                              GCSToBQWriter writer,
-                              TableId tableId,
-                              String bucketName,
-                              String baseBlobName) {
+      GCSToBQWriter writer,
+      TableId tableId,
+      String bucketName,
+      String baseBlobName) {
     this.tableId = tableId;
     this.bucketName = bucketName;
     this.blobName = baseBlobName;
@@ -87,6 +88,7 @@ public class GCSBatchTableWriter implements Runnable {
    * A Builder for constructing GCSBatchTableWriters.
    */
   public static class Builder implements TableWriterBuilder {
+
     private final String bucketName;
     private String blobName;
     private final TableId tableId;
@@ -98,23 +100,24 @@ public class GCSBatchTableWriter implements Runnable {
     /**
      * Create a {@link GCSBatchTableWriter.Builder}.
      *
-     * @param writer the {@link GCSToBQWriter} to use.
-     * @param tableId The bigquery table to be written to.
-     * @param gcsBucketName The GCS bucket to write to.
-     * @param gcsBlobName The name of the GCS blob to write.
+     * @param writer          the {@link GCSToBQWriter} to use.
+     * @param tableId         The bigquery table to be written to.
+     * @param gcsBucketName   The GCS bucket to write to.
+     * @param gcsBlobName     The name of the GCS blob to write.
      * @param recordConverter the {@link RecordConverter} to use.
      */
     public Builder(GCSToBQWriter writer,
-                   TableId tableId,
-                   String gcsBucketName,
-                   String gcsBlobName,
-                   SinkRecordConverter recordConverter) {
+        TableId tableId,
+        String gcsBucketName,
+        String gcsBlobName,
+        SinkRecordConverter recordConverter) {
 
       this.bucketName = gcsBucketName;
       this.blobName = gcsBlobName;
       this.tableId = tableId;
 
-      this.rows = new TreeMap<>(Comparator.comparing(SinkRecord::kafkaPartition)
+      this.rows =
+          new TreeMap<>(Comparator.comparing(SinkRecord::kafkaPartition)
               .thenComparing(SinkRecord::kafkaOffset));
       this.recordConverter = recordConverter;
       this.writer = writer;

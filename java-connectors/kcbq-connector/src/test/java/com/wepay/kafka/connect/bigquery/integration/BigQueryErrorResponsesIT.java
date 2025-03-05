@@ -82,7 +82,7 @@ public class BigQueryErrorResponsesIT extends BaseConnectorIT {
 
   @Test
   public void testWriteToRecreatedTable() throws Exception {
-    TableId  table = TableId.of(dataset(), suffixedAndSanitizedTable("recreated table"));
+    TableId table = TableId.of(dataset(), suffixedAndSanitizedTable("recreated table"));
     TableClearer.clearTables(bigQuery, dataset(), table.getTable());
 
     Schema schema = Schema.of(Field.of("f1", LegacySQLTypeName.STRING));
@@ -160,14 +160,16 @@ public class BigQueryErrorResponsesIT extends BaseConnectorIT {
   @Test
   public void testWriteWithMissingRequiredFields() {
     TableId table = TableId.of(dataset(), suffixedAndSanitizedTable("too many fields"));
-    Schema schema = Schema.of(
-        Field.newBuilder("f1", StandardSQLTypeName.STRING).setMode(Field.Mode.REQUIRED).build(),
-        Field.newBuilder("f2", StandardSQLTypeName.INT64).setMode(Field.Mode.REQUIRED).build(),
-        Field.newBuilder("f3", StandardSQLTypeName.BOOL).setMode(Field.Mode.NULLABLE).build()
-    );
+    Schema schema =
+        Schema.of(
+            Field.newBuilder("f1", StandardSQLTypeName.STRING).setMode(Field.Mode.REQUIRED).build(),
+            Field.newBuilder("f2", StandardSQLTypeName.INT64).setMode(Field.Mode.REQUIRED).build(),
+            Field.newBuilder("f3", StandardSQLTypeName.BOOL).setMode(Field.Mode.NULLABLE).build()
+        );
     createOrAssertSchemaMatches(table, schema);
 
-    InsertAllResponse response = bigQuery.insertAll(InsertAllRequest.of(table, RowToInsert.of(Collections.singletonMap("f2", 12L))));
+    InsertAllResponse response =
+        bigQuery.insertAll(InsertAllRequest.of(table, RowToInsert.of(Collections.singletonMap("f2", 12L))));
     logger.debug("Write response errors for missing required field: {}", response.getInsertErrors());
     BigQueryError error = assertResponseHasSingleError(response);
     assertTrue(BigQueryErrorResponses.isMissingRequiredFieldError(error));
@@ -176,9 +178,10 @@ public class BigQueryErrorResponsesIT extends BaseConnectorIT {
   @Test
   public void testWriteWithUnrecognizedFields() {
     TableId table = TableId.of(dataset(), suffixedAndSanitizedTable("not enough fields"));
-    Schema schema = Schema.of(
-        Field.newBuilder("f1", StandardSQLTypeName.STRING).setMode(Field.Mode.REQUIRED).build()
-    );
+    Schema schema =
+        Schema.of(
+            Field.newBuilder("f1", StandardSQLTypeName.STRING).setMode(Field.Mode.REQUIRED).build()
+        );
     createOrAssertSchemaMatches(table, schema);
 
     Map<String, Object> row = new HashMap<>();
@@ -193,16 +196,18 @@ public class BigQueryErrorResponsesIT extends BaseConnectorIT {
   @Test
   public void testStoppedRowsDuringInvalidWrite() {
     TableId table = TableId.of(dataset(), suffixedAndSanitizedTable("not enough fields"));
-    Schema schema = Schema.of(
-        Field.newBuilder("f1", StandardSQLTypeName.STRING).setMode(Field.Mode.REQUIRED).build()
-    );
+    Schema schema =
+        Schema.of(
+            Field.newBuilder("f1", StandardSQLTypeName.STRING).setMode(Field.Mode.REQUIRED).build()
+        );
     createOrAssertSchemaMatches(table, schema);
 
     Map<String, Object> row1 = new HashMap<>();
     row1.put("f1", "v1");
     row1.put("f2", 12L);
     Map<String, Object> row2 = Collections.singletonMap("f1", "v2");
-    InsertAllResponse response = bigQuery.insertAll(InsertAllRequest.of(table, RowToInsert.of(row1), RowToInsert.of(row2)));
+    InsertAllResponse response =
+        bigQuery.insertAll(InsertAllRequest.of(table, RowToInsert.of(row1), RowToInsert.of(row2)));
     logger.debug("Write response errors for unrecognized field and stopped row: {}", response.getInsertErrors());
     assertEquals(2, response.getInsertErrors().size());
     // As long as we have some kind of error on the first row it's fine; we want to be more precise in our assertions about the second row
@@ -214,9 +219,10 @@ public class BigQueryErrorResponsesIT extends BaseConnectorIT {
   @Test
   public void testRequestPayloadTooLarge() {
     TableId table = TableId.of(dataset(), suffixedAndSanitizedTable("request payload too large"));
-    Schema schema = Schema.of(
-        Field.newBuilder("f1", StandardSQLTypeName.STRING).setMode(Field.Mode.REQUIRED).build()
-    );
+    Schema schema =
+        Schema.of(
+            Field.newBuilder("f1", StandardSQLTypeName.STRING).setMode(Field.Mode.REQUIRED).build()
+        );
     createOrAssertSchemaMatches(table, schema);
 
     char[] chars = new char[10 * 1024 * 1024];
@@ -234,15 +240,17 @@ public class BigQueryErrorResponsesIT extends BaseConnectorIT {
   @Test
   public void testTooManyRows() {
     TableId table = TableId.of(dataset(), suffixedAndSanitizedTable("too many rows"));
-    Schema schema = Schema.of(
-        Field.newBuilder("f1", StandardSQLTypeName.INT64).setMode(Field.Mode.REQUIRED).build()
-    );
+    Schema schema =
+        Schema.of(
+            Field.newBuilder("f1", StandardSQLTypeName.INT64).setMode(Field.Mode.REQUIRED).build()
+        );
     createOrAssertSchemaMatches(table, schema);
 
-    Iterable<RowToInsert> rows = LongStream.range(0, 100_000)
-        .mapToObj(i -> Collections.singletonMap("f1", i))
-        .map(RowToInsert::of)
-        .collect(Collectors.toList());
+    Iterable<RowToInsert> rows =
+        LongStream.range(0, 100_000)
+            .mapToObj(i -> Collections.singletonMap("f1", i))
+            .map(RowToInsert::of)
+            .collect(Collectors.toList());
     try {
       bigQuery.insertAll(InsertAllRequest.of(table, rows));
       fail("Should have failed to write to table with 100,000 rows");
@@ -262,7 +270,9 @@ public class BigQueryErrorResponsesIT extends BaseConnectorIT {
       bigQuery.create(TableInfo.newBuilder(tableId, StandardTableDefinition.of(schema)).build());
     } else {
       assertEquals(
-          String.format("Testing %s should be created automatically by tests; please delete the table and re-run this test", table(tableId)),
+          String.format(
+              "Testing %s should be created automatically by tests; please delete the table and re-run this test",
+              table(tableId)),
           schema,
           table.getDefinition().getSchema()
       );

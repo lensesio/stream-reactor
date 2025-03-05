@@ -75,6 +75,7 @@ import static org.junit.Assert.assertTrue;
 
 @Category(IntegrationTest.class)
 public abstract class BaseConnectorIT {
+
   private static final Logger logger = LoggerFactory.getLogger(BaseConnectorIT.class);
 
   private static final String KEYFILE_ENV_VAR = "KCBQ_TEST_KEYFILE";
@@ -100,10 +101,11 @@ public abstract class BaseConnectorIT {
     workerProps.put(
         WorkerConfig.CONNECTOR_CLIENT_POLICY_CLASS_CONFIG, "All");
 
-    connect = new EmbeddedConnectCluster.Builder()
-        .name("kcbq-connect-cluster")
-        .workerProps(workerProps)
-        .build();
+    connect =
+        new EmbeddedConnectCluster.Builder()
+            .name("kcbq-connect-cluster")
+            .workerProps(workerProps)
+            .build();
 
     // start the clusters
     connect.start();
@@ -111,11 +113,12 @@ public abstract class BaseConnectorIT {
     kafkaAdminClient = connect.kafka().createAdminClient();
 
     // the exception handler installed by the embedded zookeeper instance is noisy and unnecessary
-    Thread.setDefaultUncaughtExceptionHandler((t, e) -> { });
+    Thread.setDefaultUncaughtExceptionHandler((t, e) -> {
+    });
   }
 
   protected void stopConnect() {
-    if (kafkaAdminClient !=  null) {
+    if (kafkaAdminClient != null) {
       Utils.closeQuietly(kafkaAdminClient, "admin client for embedded Kafka cluster");
       kafkaAdminClient = null;
     }
@@ -186,13 +189,15 @@ public abstract class BaseConnectorIT {
         "Either the connector failed, or the message commit duration expired without all expected messages committed");
   }
 
-  protected synchronized long totalCommittedRecords(String connector, Collection<String> topics) throws TimeoutException, ExecutionException, InterruptedException {
+  protected synchronized long totalCommittedRecords(String connector, Collection<String> topics)
+      throws TimeoutException, ExecutionException, InterruptedException {
     // See https://github.com/apache/kafka/blob/f7c38d83c727310f4b0678886ba410ae2fae9379/connect/runtime/src/main/java/org/apache/kafka/connect/util/SinkUtils.java
     // for how the consumer group ID is constructed for sink connectors
-    Map<TopicPartition, OffsetAndMetadata> offsets = kafkaAdminClient
-        .listConsumerGroupOffsets("connect-" + connector)
-        .partitionsToOffsetAndMetadata()
-        .get(OFFSETS_READ_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+    Map<TopicPartition, OffsetAndMetadata> offsets =
+        kafkaAdminClient
+            .listConsumerGroupOffsets("connect-" + connector)
+            .partitionsToOffsetAndMetadata()
+            .get(OFFSETS_READ_TIMEOUT_MS, TimeUnit.MILLISECONDS);
 
     logger.trace("Connector {} has so far committed offsets {}", connector, offsets);
 
@@ -204,8 +209,9 @@ public abstract class BaseConnectorIT {
 
   /**
    * Read all rows from the given table.
-   * @param bigQuery used to connect to BigQuery
-   * @param tableName the table to read
+   * 
+   * @param bigQuery   used to connect to BigQuery
+   * @param tableName  the table to read
    * @param sortColumn a column to sort rows by (can use dot notation to refer to nested fields)
    * @return a list of all rows from the table, in random order.
    */
@@ -213,16 +219,18 @@ public abstract class BaseConnectorIT {
       BigQuery bigQuery, String tableName, String sortColumn) throws InterruptedException {
 
     Table table = bigQuery.getTable(dataset(), tableName);
-    Schema schema = table
-        .getDefinition()
-        .getSchema();
+    Schema schema =
+        table
+            .getDefinition()
+            .getSchema();
 
-    TableResult tableResult = bigQuery.query(QueryJobConfiguration.of(String.format(
-        "SELECT * FROM `%s`.`%s` ORDER BY %s ASC",
-        dataset(),
-        tableName,
-        sortColumn
-    )));
+    TableResult tableResult =
+        bigQuery.query(QueryJobConfiguration.of(String.format(
+            "SELECT * FROM `%s`.`%s` ORDER BY %s ASC",
+            dataset(),
+            tableName,
+            sortColumn
+        )));
 
     return StreamSupport.stream(tableResult.iterateAll().spliterator(), false)
         .map(fieldValues -> convertRow(schema.getFields(), fieldValues))
@@ -297,7 +305,7 @@ public abstract class BaseConnectorIT {
    * Wait up to {@link #CONNECTOR_STARTUP_DURATION_MS maximum time limit} for the connector with the given
    * name to start the specified number of tasks.
    *
-   * @param name the name of the connector
+   * @param name     the name of the connector
    * @param numTasks the minimum number of tasks that are expected
    * @return the time this method discovered the connector has started, in milliseconds past epoch
    * @throws InterruptedException if this was interrupted
@@ -314,16 +322,17 @@ public abstract class BaseConnectorIT {
    * Confirm that a connector with an exact number of tasks is running.
    *
    * @param connectorName the connector
-   * @param numTasks the minimum number of tasks
+   * @param numTasks      the minimum number of tasks
    * @return true if the connector and tasks are in RUNNING state; false otherwise
    */
   protected Optional<Boolean> assertConnectorAndTasksRunning(String connectorName, int numTasks) {
     try {
       ConnectorStateInfo info = connect.connectorStatus(connectorName);
-      boolean result = info != null
-                       && info.tasks().size() >= numTasks
-                       && info.connector().state().equals(AbstractStatus.State.RUNNING.toString())
-                       && info.tasks().stream().allMatch(s -> s.state().equals(AbstractStatus.State.RUNNING.toString()));
+      boolean result =
+          info != null
+              && info.tasks().size() >= numTasks
+              && info.connector().state().equals(AbstractStatus.State.RUNNING.toString())
+              && info.tasks().stream().allMatch(s -> s.state().equals(AbstractStatus.State.RUNNING.toString()));
       return Optional.of(result);
     } catch (Exception e) {
       logger.debug("Could not check connector state info.", e);

@@ -29,13 +29,15 @@ public interface TableWriterBuilder {
 
   /**
    * Add a record to the builder.
+   * 
    * @param sinkRecord the row to add.
-   * @param table the table the row will be written to.
+   * @param table      the table the row will be written to.
    */
   void addRow(SinkRecord sinkRecord, TableId table);
 
   /**
    * Create a {@link TableWriter} from this builder.
+   * 
    * @return a TableWriter containing the given writer, table, topic, and all added rows.
    */
   Runnable build();

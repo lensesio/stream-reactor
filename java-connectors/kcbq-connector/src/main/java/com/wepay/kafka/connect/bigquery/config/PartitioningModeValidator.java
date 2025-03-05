@@ -28,13 +28,15 @@ import static com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig.BIGQUER
 import static com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig.BIGQUERY_TIMESTAMP_PARTITION_FIELD_NAME_CONFIG;
 
 public class PartitioningModeValidator extends MultiPropertyValidator<BigQuerySinkConfig> {
+
   public PartitioningModeValidator() {
     super(BIGQUERY_PARTITION_DECORATOR_CONFIG);
   }
 
-  private static final Collection<String> DEPENDENTS = Collections.unmodifiableCollection(Arrays.asList(
-      BIGQUERY_TIMESTAMP_PARTITION_FIELD_NAME_CONFIG
-  ));
+  private static final Collection<String> DEPENDENTS =
+      Collections.unmodifiableCollection(Arrays.asList(
+          BIGQUERY_TIMESTAMP_PARTITION_FIELD_NAME_CONFIG
+      ));
 
   @Override
   protected Collection<String> dependents() {
@@ -49,7 +51,7 @@ public class PartitioningModeValidator extends MultiPropertyValidator<BigQuerySi
 
     if (config.getTimestampPartitionFieldName().isPresent()) {
       return Optional.of(String.format("Only one partitioning mode may be specified for the connector. "
-              + "Use either %s OR %s.",
+          + "Use either %s OR %s.",
           BIGQUERY_PARTITION_DECORATOR_CONFIG,
           BIGQUERY_TIMESTAMP_PARTITION_FIELD_NAME_CONFIG
       ));

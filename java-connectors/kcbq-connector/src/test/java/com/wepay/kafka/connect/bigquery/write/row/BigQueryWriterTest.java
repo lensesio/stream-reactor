@@ -22,7 +22,7 @@ package com.wepay.kafka.connect.bigquery.write.row;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.any; 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -66,6 +66,7 @@ import java.util.Set;
 
 @SuppressWarnings("unchecked")
 public class BigQueryWriterTest {
+
   private static SinkPropertiesFactory propertiesFactory;
 
   @BeforeClass
@@ -89,7 +90,7 @@ public class BigQueryWriterTest {
 
     //first attempt (success)
     when(bigQuery.insertAll(any()))
-            .thenReturn(insertAllResponse);
+        .thenReturn(insertAllResponse);
 
     SinkTaskContext sinkTaskContext = mock(SinkTaskContext.class);
 
@@ -124,7 +125,7 @@ public class BigQueryWriterTest {
 
     String errorMessage = "Not found: Table project.scratch.test_topic";
     BigQueryError error = new BigQueryError("notFound", "global", errorMessage);
-    BigQueryException nonExistentTableException = new BigQueryException(404, errorMessage, error); 
+    BigQueryException nonExistentTableException = new BigQueryException(404, errorMessage, error);
 
     when(bigQuery.insertAll(any())).thenThrow(nonExistentTableException).thenReturn(insertAllResponse);
 
@@ -139,7 +140,7 @@ public class BigQueryWriterTest {
     testTask.initialize(sinkTaskContext);
     testTask.start(properties);
     testTask.put(
-            Collections.singletonList(spoofSinkRecord(topic, 0, 0, "some_field", "some_value")));
+        Collections.singletonList(spoofSinkRecord(topic, 0, 0, "some_field", "some_value")));
     testTask.flush(Collections.emptyMap());
 
     verify(schemaManager, times(1)).createTable(any(), any());
@@ -175,7 +176,7 @@ public class BigQueryWriterTest {
     testTask.initialize(sinkTaskContext);
     testTask.start(properties);
     testTask.put(
-            Collections.singletonList(spoofSinkRecord(topic, 0, 0, "some_field", "some_value")));
+        Collections.singletonList(spoofSinkRecord(topic, 0, 0, "some_field", "some_value")));
     testTask.flush(Collections.emptyMap());
   }
 
@@ -185,7 +186,8 @@ public class BigQueryWriterTest {
     final String dataset = "scratch";
     final Map<String, String> properties = makeProperties("3", "2000", topic, dataset);
     BigQueryError insertError = new BigQueryError("reason", "location", "message");
-    Map<Long, List<BigQueryError>> insertErrorMap = Collections.singletonMap(1L, Collections.singletonList(insertError));
+    Map<Long, List<BigQueryError>> insertErrorMap =
+        Collections.singletonMap(1L, Collections.singletonList(insertError));
 
     InsertAllResponse insertAllResponseWithError = mock(InsertAllResponse.class);
     when(insertAllResponseWithError.hasErrors()).thenReturn(true);
@@ -272,22 +274,25 @@ public class BigQueryWriterTest {
     testTask.initialize(sinkTaskContext);
     testTask.start(properties);
     testTask.put(sinkRecordList);
-    Exception expectedEx =  assertThrows(BigQueryConnectException.class, 
-                                        () -> testTask.flush(Collections.emptyMap())); 
+    Exception expectedEx =
+        assertThrows(BigQueryConnectException.class,
+            () -> testTask.flush(Collections.emptyMap()));
     assertTrue(expectedEx.getCause().getMessage().contains("test_topic"));
   }
+
   /**
    * Utility method for making and retrieving properties based on provided parameters.
-   * @param bigqueryRetry The number of retries.
+   * 
+   * @param bigqueryRetry     The number of retries.
    * @param bigqueryRetryWait The wait time for each retry.
-   * @param topic The topic of the record.
-   * @param dataset The dataset of the record.
+   * @param topic             The topic of the record.
+   * @param dataset           The dataset of the record.
    * @return The map of bigquery sink configurations.
    */
-  private Map<String,String> makeProperties(String bigqueryRetry,
-                                            String bigqueryRetryWait,
-                                            String topic,
-                                            String dataset) {
+  private Map<String, String> makeProperties(String bigqueryRetry,
+      String bigqueryRetryWait,
+      String topic,
+      String dataset) {
     Map<String, String> properties = propertiesFactory.getProperties();
     properties.put(BigQuerySinkConfig.BIGQUERY_RETRY_CONFIG, bigqueryRetry);
     properties.put(BigQuerySinkConfig.BIGQUERY_RETRY_WAIT_CONFIG, bigqueryRetryWait);
@@ -299,31 +304,33 @@ public class BigQueryWriterTest {
 
   /**
    * Utility method for spoofing SinkRecords that should be passed to SinkTask.put()
-   * @param topic The topic of the record.
+   * 
+   * @param topic     The topic of the record.
    * @param partition The partition of the record.
-   * @param field The name of the field in the record's struct.
-   * @param value The content of the field.
+   * @param field     The name of the field in the record's struct.
+   * @param value     The content of the field.
    * @return The spoofed SinkRecord.
    */
   private SinkRecord spoofSinkRecord(String topic,
-                                     int partition,
-                                     long kafkaOffset,
-                                     String field,
-                                     String value) {
-    Schema basicRowSchema = SchemaBuilder
+      int partition,
+      long kafkaOffset,
+      String field,
+      String value) {
+    Schema basicRowSchema =
+        SchemaBuilder
             .struct()
             .field(field, Schema.STRING_SCHEMA)
             .build();
     Struct basicRowValue = new Struct(basicRowSchema);
     basicRowValue.put(field, value);
     return new SinkRecord(topic,
-                          partition,
-                          null,
-                          null,
-                          basicRowSchema,
-                          basicRowValue,
-                          kafkaOffset,
-                          null,
-                          null);
+        partition,
+        null,
+        null,
+        basicRowSchema,
+        basicRowValue,
+        kafkaOffset,
+        null,
+        null);
   }
 }

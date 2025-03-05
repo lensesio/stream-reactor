@@ -26,6 +26,7 @@ import org.apache.kafka.connect.errors.ConnectException;
  * failures.
  */
 public class GCSConnectException extends ConnectException {
+
   public GCSConnectException(String msg) {
     super(msg);
   }

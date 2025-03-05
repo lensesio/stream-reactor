@@ -81,7 +81,7 @@ public class BigQuerySinkConnectorIT {
         42.42,
         42424242.42424242,
         "forty-two",
-        boxByteArray(new byte[] { 0x0, 0xf, 0x1E, 0x2D, 0x3C, 0x4B, 0x5A, 0x69, 0x78 })
+        boxByteArray(new byte[]{0x0, 0xf, 0x1E, 0x2D, 0x3C, 0x4B, 0x5A, 0x69, 0x78})
     ));
     expectedGcsLoadRows.add(Arrays.asList(
         2L,
@@ -92,7 +92,7 @@ public class BigQuerySinkConnectorIT {
         43.54,
         435443.544354,
         "forty-three",
-        boxByteArray(new byte[] { 0x0, 0xf, 0x1E, 0x2D, 0x3C, 0x4B, 0x5A, 0x69, 0x78 })
+        boxByteArray(new byte[]{0x0, 0xf, 0x1E, 0x2D, 0x3C, 0x4B, 0x5A, 0x69, 0x78})
     ));
     expectedGcsLoadRows.add(Arrays.asList(
         3L,
@@ -103,16 +103,16 @@ public class BigQuerySinkConnectorIT {
         19.93,
         199319.931993,
         "nineteen",
-        boxByteArray(new byte[] { 0x0, 0xf, 0x1E, 0x2D, 0x3C, 0x4B, 0x5A, 0x69, 0x78 })
+        boxByteArray(new byte[]{0x0, 0xf, 0x1E, 0x2D, 0x3C, 0x4B, 0x5A, 0x69, 0x78})
     ));
-    result.add(new Object[] {"gcs-load", expectedGcsLoadRows});
+    result.add(new Object[]{"gcs-load", expectedGcsLoadRows});
 
     List<List<Object>> expectedNullsRows = new ArrayList<>();
     expectedNullsRows.add(Arrays.asList(1L, "Required string", null, 42L, false));
     expectedNullsRows.add(Arrays.asList(2L, "Required string", "Optional string", 89L, null));
     expectedNullsRows.add(Arrays.asList(3L, "Required string", null, null, true));
     expectedNullsRows.add(Arrays.asList(4L, "Required string", "Optional string", null, null));
-    result.add(new Object[] {"nulls", expectedNullsRows});
+    result.add(new Object[]{"nulls", expectedNullsRows});
 
     List<List<Object>> expectedMatryoshkaRows = new ArrayList<>();
     expectedMatryoshkaRows.add(Arrays.asList(
@@ -129,7 +129,7 @@ public class BigQuerySinkConnectorIT {
             "-42"
         )
     ));
-    result.add(new Object[] {"matryoshka-dolls", expectedMatryoshkaRows});
+    result.add(new Object[]{"matryoshka-dolls", expectedMatryoshkaRows});
 
     List<List<Object>> expectedPrimitivesRows = new ArrayList<>();
     expectedPrimitivesRows.add(Arrays.asList(
@@ -141,15 +141,15 @@ public class BigQuerySinkConnectorIT {
         42.42,
         42424242.42424242,
         "forty-two",
-        boxByteArray(new byte[] { 0x0, 0xf, 0x1E, 0x2D, 0x3C, 0x4B, 0x5A, 0x69, 0x78 })
+        boxByteArray(new byte[]{0x0, 0xf, 0x1E, 0x2D, 0x3C, 0x4B, 0x5A, 0x69, 0x78})
     ));
-    result.add(new Object[] {"primitives", expectedPrimitivesRows});
+    result.add(new Object[]{"primitives", expectedPrimitivesRows});
 
     List<List<Object>> expectedLogicalTypesRows = new ArrayList<>();
     expectedLogicalTypesRows.add(Arrays.asList(1L, 0L, 0L));
     expectedLogicalTypesRows.add(Arrays.asList(2L, 42000000000L, 362880000000L));
     expectedLogicalTypesRows.add(Arrays.asList(3L, 1468275102000000L, 1468195200000L));
-    result.add(new Object[] {"logical-types", expectedLogicalTypesRows});
+    result.add(new Object[]{"logical-types", expectedLogicalTypesRows});
 
     return result;
   }
@@ -181,7 +181,8 @@ public class BigQuerySinkConnectorIT {
 
   @BeforeClass
   public static void globalSetup() throws Exception {
-    testBase = new BaseConnectorIT() {};
+    testBase = new BaseConnectorIT() {
+    };
     testBase.startConnect();
 
     schemaRegistry = new SchemaRegistryTestUtils(testBase.connect.kafka().bootstrapServers());
@@ -191,11 +192,11 @@ public class BigQuerySinkConnectorIT {
     schemaRegistryUrl = schemaRegistry.schemaRegistryUrl();
 
     BucketClearer.clearBucket(
-      testBase.keyFile(),
-      testBase.project(),
-      testBase.gcsBucket(),
-      testBase.gcsFolder(),
-      testBase.keySource()
+        testBase.keyFile(),
+        testBase.project(),
+        testBase.gcsBucket(),
+        testBase.gcsFolder(),
+        testBase.keySource()
     );
   }
 
@@ -205,8 +206,9 @@ public class BigQuerySinkConnectorIT {
 
     Map<String, Object> producerProps = new HashMap<>();
     producerProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, testBase.connect.kafka().bootstrapServers());
-    valueProducer = new KafkaProducer<>(
-        producerProps, Serdes.ByteArray().serializer(), Serdes.ByteArray().serializer());
+    valueProducer =
+        new KafkaProducer<>(
+            producerProps, Serdes.ByteArray().serializer(), Serdes.ByteArray().serializer());
 
     numRecordsProduced = 0;
   }
@@ -219,7 +221,7 @@ public class BigQuerySinkConnectorIT {
   @AfterClass
   public static void globalCleanup() throws Exception {
     if (schemaRegistry != null) {
-     schemaRegistry.stop();
+      schemaRegistry.stop();
     }
     testBase.stopConnect();
   }
@@ -245,8 +247,9 @@ public class BigQuerySinkConnectorIT {
 
     String testCaseDir = "integration_test_cases/" + testCase + "/";
 
-    InputStream schemaStream = BigQuerySinkConnectorIT.class.getClassLoader()
-        .getResourceAsStream(testCaseDir + "schema.json");
+    InputStream schemaStream =
+        BigQuerySinkConnectorIT.class.getClassLoader()
+            .getResourceAsStream(testCaseDir + "schema.json");
     Scanner schemaScanner = new Scanner(schemaStream).useDelimiter("\\A");
     String schemaString = schemaScanner.next();
 
@@ -254,8 +257,9 @@ public class BigQuerySinkConnectorIT {
     messageReaderProps.put(SCHEMA_REGISTRY_URL_CONFIG, schemaRegistryUrl);
     messageReaderProps.put("value.schema", schemaString);
     messageReaderProps.put("topic", topic);
-    InputStream dataStream = BigQuerySinkConnectorIT.class.getClassLoader()
-        .getResourceAsStream(testCaseDir + "data.json");
+    InputStream dataStream =
+        BigQuerySinkConnectorIT.class.getClassLoader()
+            .getResourceAsStream(testCaseDir + "data.json");
     MessageReader messageReader = new AvroMessageReader();
     messageReader.init(dataStream, messageReaderProps);
 
@@ -268,7 +272,7 @@ public class BigQuerySinkConnectorIT {
         throw new RuntimeException(e);
       }
       message = messageReader.readMessage();
-    } 
+    }
   }
 
   private Map<String, String> connectorProps(int tasksMax) {
@@ -288,7 +292,7 @@ public class BigQuerySinkConnectorIT {
         schemaRegistryUrl);
 
     result.put(SinkConnectorConfig.TOPICS_CONFIG, topic);
-    
+
     result.put(BigQuerySinkConfig.ALLOW_NEW_BIGQUERY_FIELDS_CONFIG, "true");
     result.put(BigQuerySinkConfig.ALLOW_BIGQUERY_REQUIRED_FIELD_RELAXATION_CONFIG, "true");
     result.put(BigQuerySinkConfig.ENABLE_BATCH_CONFIG, testBase.suffixedAndSanitizedTable("kcbq_test_gcs-load"));

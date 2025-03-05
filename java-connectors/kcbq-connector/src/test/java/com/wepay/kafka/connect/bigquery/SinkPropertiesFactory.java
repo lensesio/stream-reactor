@@ -28,6 +28,7 @@ import java.util.Map;
  * Factory for generating default configuration maps, useful for testing.
  */
 public class SinkPropertiesFactory {
+
   /**
    * A default configuration map for the tested class.
    */

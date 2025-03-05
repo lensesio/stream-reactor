@@ -45,16 +45,16 @@ public class KCBQThreadPoolExecutor extends ThreadPoolExecutor {
   private final AtomicReference<Throwable> encounteredError = new AtomicReference<>();
 
   /**
-   * @param config the {@link BigQuerySinkTaskConfig}
+   * @param config    the {@link BigQuerySinkTaskConfig}
    * @param workQueue the queue for storing tasks.
    */
   public KCBQThreadPoolExecutor(BigQuerySinkTaskConfig config,
-                                BlockingQueue<Runnable> workQueue) {
+      BlockingQueue<Runnable> workQueue) {
     super(config.getInt(BigQuerySinkTaskConfig.THREAD_POOL_SIZE_CONFIG),
-          config.getInt(BigQuerySinkTaskConfig.THREAD_POOL_SIZE_CONFIG),
-          // the following line is irrelevant because the core and max thread counts are the same.
-          1, TimeUnit.SECONDS,
-          workQueue);
+        config.getInt(BigQuerySinkTaskConfig.THREAD_POOL_SIZE_CONFIG),
+        // the following line is irrelevant because the core and max thread counts are the same.
+        1, TimeUnit.SECONDS,
+        workQueue);
   }
 
   @Override
@@ -73,7 +73,7 @@ public class KCBQThreadPoolExecutor extends ThreadPoolExecutor {
    * Wait for all the currently queued tasks to complete, and then return.
    *
    * @throws BigQueryConnectException if any of the tasks failed.
-   * @throws InterruptedException if interrupted while waiting.
+   * @throws InterruptedException     if interrupted while waiting.
    */
   public void awaitCurrentTasks() throws InterruptedException, BigQueryConnectException {
     /*

@@ -38,24 +38,24 @@ public class UpsertDeleteBigQueryWriter extends AdaptiveBigQueryWriter {
   private final Map<TableId, TableId> intermediateToDestinationTables;
 
   /**
-   * @param bigQuery Used to send write requests to BigQuery.
-   * @param schemaManager Used to update BigQuery tables.
-   * @param retry How many retries to make in the event of a 500/503 error.
-   * @param retryWait How long to wait in between retries.
-   * @param autoCreateTables Whether destination tables should be automatically created
+   * @param bigQuery                        Used to send write requests to BigQuery.
+   * @param schemaManager                   Used to update BigQuery tables.
+   * @param retry                           How many retries to make in the event of a 500/503 error.
+   * @param retryWait                       How long to wait in between retries.
+   * @param autoCreateTables                Whether destination tables should be automatically created
    * @param intermediateToDestinationTables A mapping used to determine the destination table for
    *                                        given intermediate tables; used for create/update
    *                                        operations in order to propagate them to the destination
    *                                        table
-   * @param errantRecordHandler Used to handle errant records
+   * @param errantRecordHandler             Used to handle errant records
    */
   public UpsertDeleteBigQueryWriter(BigQuery bigQuery,
-                                    SchemaManager schemaManager,
-                                    int retry,
-                                    long retryWait,
-                                    boolean autoCreateTables,
-                                    Map<TableId, TableId> intermediateToDestinationTables,
-                                    ErrantRecordHandler errantRecordHandler) {
+      SchemaManager schemaManager,
+      int retry,
+      long retryWait,
+      boolean autoCreateTables,
+      Map<TableId, TableId> intermediateToDestinationTables,
+      ErrantRecordHandler errantRecordHandler) {
     // Hardcode autoCreateTables to true in the superclass so that intermediate tables will be
     // automatically created
     // The super class will handle all of the logic for writing to, creating, and updating

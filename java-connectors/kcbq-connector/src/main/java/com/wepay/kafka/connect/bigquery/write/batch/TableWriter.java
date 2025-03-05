@@ -57,16 +57,16 @@ public class TableWriter implements Runnable {
   private final Consumer<Collection<RowToInsert>> onFinish;
 
   /**
-   * @param writer the {@link BigQueryWriter} to use.
-   * @param table the BigQuery table to write to.
-   * @param rows the rows to write.
+   * @param writer   the {@link BigQueryWriter} to use.
+   * @param table    the BigQuery table to write to.
+   * @param rows     the rows to write.
    * @param onFinish a callback to invoke after all rows have been written successfully, which is
    *                 called with all the rows written by the writer
    */
   public TableWriter(BigQueryWriter writer,
-                     PartitionedTableId table,
-                     SortedMap<SinkRecord, RowToInsert> rows,
-                     Consumer<Collection<RowToInsert>> onFinish) {
+      PartitionedTableId table,
+      SortedMap<SinkRecord, RowToInsert> rows,
+      Consumer<Collection<RowToInsert>> onFinish) {
     this.writer = writer;
     this.table = table;
     this.rows = rows;
@@ -84,10 +84,10 @@ public class TableWriter implements Runnable {
     try {
       while (currentIndex < rows.size()) {
         List<Map.Entry<SinkRecord, RowToInsert>> currentBatchList =
-                rowsList.subList(currentIndex, Math.min(currentIndex + currentBatchSize, rows.size()));
+            rowsList.subList(currentIndex, Math.min(currentIndex + currentBatchSize, rows.size()));
         try {
           SortedMap<SinkRecord, RowToInsert> currentBatch = new TreeMap<>(rows.comparator());
-          for (Map.Entry<SinkRecord, RowToInsert> record: currentBatchList) {
+          for (Map.Entry<SinkRecord, RowToInsert> record : currentBatchList) {
             currentBatch.put(record.getKey(), record.getValue());
           }
           writer.writeRows(table, currentBatch);
@@ -166,8 +166,8 @@ public class TableWriter implements Runnable {
         || BigQueryErrorResponses.isTooManyRowsError(exception);
   }
 
-
   public static class Builder implements TableWriterBuilder {
+
     private final BigQueryWriter writer;
     private final PartitionedTableId table;
 
@@ -176,15 +176,16 @@ public class TableWriter implements Runnable {
     private Consumer<Collection<RowToInsert>> onFinish;
 
     /**
-     * @param writer the BigQueryWriter to use
-     * @param table the BigQuery table to write to.
+     * @param writer          the BigQueryWriter to use
+     * @param table           the BigQuery table to write to.
      * @param recordConverter the record converter used to convert records to rows
      */
     public Builder(BigQueryWriter writer, PartitionedTableId table, SinkRecordConverter recordConverter) {
       this.writer = writer;
       this.table = table;
 
-      this.rows = new TreeMap<>(Comparator.comparing(SinkRecord::kafkaPartition)
+      this.rows =
+          new TreeMap<>(Comparator.comparing(SinkRecord::kafkaPartition)
               .thenComparing(SinkRecord::kafkaOffset));
       this.recordConverter = recordConverter;
 
@@ -199,6 +200,7 @@ public class TableWriter implements Runnable {
     /**
      * Specify a callback to be invoked after all rows have been written. The callback will be
      * invoked with the full list of rows written by this table writer.
+     * 
      * @param onFinish the callback to invoke; may not be null
      * @throws IllegalStateException if invoked more than once on a single builder instance
      */
@@ -211,7 +213,8 @@ public class TableWriter implements Runnable {
 
     @Override
     public TableWriter build() {
-      return new TableWriter(writer, table, rows, onFinish != null ? onFinish : n -> { });
+      return new TableWriter(writer, table, rows, onFinish != null ? onFinish : n -> {
+      });
     }
   }
 }

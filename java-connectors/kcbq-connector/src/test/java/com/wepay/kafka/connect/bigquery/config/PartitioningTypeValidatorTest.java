@@ -64,12 +64,12 @@ public class PartitioningTypeValidatorTest {
       if (TimePartitioning.Type.DAY.equals(timePartitioningType)) {
         continue;
       }
-      
+
       BigQuerySinkConfig config = mock(BigQuerySinkConfig.class);
       when(config.getBoolean(BIGQUERY_PARTITION_DECORATOR_CONFIG)).thenReturn(true);
       when(config.getBoolean(TABLE_CREATE_CONFIG)).thenReturn(true);
       when(config.getTimePartitioningType()).thenReturn(Optional.of(timePartitioningType));
-  
+
       assertNotEquals(
           Optional.empty(),
           new PartitioningTypeValidator().doValidate(config)

@@ -44,13 +44,13 @@ public abstract class LogicalTypeConverter {
   /**
    * Create a new LogicalConverter.
    *
-   * @param logicalName The name of the logical type.
+   * @param logicalName  The name of the logical type.
    * @param encodingType The encoding type of the logical type.
    * @param bqSchemaType The corresponding BigQuery Schema type of the logical type.
    */
   public LogicalTypeConverter(String logicalName,
-                              Schema.Type encodingType,
-                              LegacySQLTypeName bqSchemaType) {
+      Schema.Type encodingType,
+      LegacySQLTypeName bqSchemaType) {
     this.logicalName = logicalName;
     this.encodingType = encodingType;
     this.bqSchemaType = bqSchemaType;
@@ -64,8 +64,8 @@ public abstract class LogicalTypeConverter {
   public void checkEncodingType(Schema.Type encodingType) throws ConversionConnectException {
     if (encodingType != this.encodingType) {
       throw new ConversionConnectException(
-        "Logical Type " + logicalName + " must be encoded as " + this.encodingType + "; "
-          + "instead, found " + encodingType
+          "Logical Type " + logicalName + " must be encoded as " + this.encodingType + "; "
+              + "instead, found " + encodingType
       );
     }
   }

@@ -27,7 +27,12 @@ import org.apache.kafka.common.config.ConfigException;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 import static com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig.CONNECTOR_RUNTIME_PROVIDER_CONFIG;
 import static com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig.CONNECTOR_RUNTIME_PROVIDER_DEFAULT;
@@ -36,6 +41,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class BigQuerySinkConfigTest {
+
   private SinkPropertiesFactory propertiesFactory;
 
   @Before
@@ -123,7 +129,7 @@ public class BigQuerySinkConfigTest {
   /**
    * Test if the field names are more than four fields errors correctly.
    */
-  @Test (expected = ConfigException.class)
+  @Test(expected = ConfigException.class)
   public void testClusteringPartitionFieldNamesWithMoreThanFourFieldsError() {
     Map<String, String> configProperties = propertiesFactory.getProperties();
     configProperties.put(BigQuerySinkConfig.BIGQUERY_PARTITION_DECORATOR_CONFIG, "true");
@@ -147,9 +153,10 @@ public class BigQuerySinkConfigTest {
         "column1,column2"
     );
 
-    ArrayList<String> expectedClusteringPartitionFieldName = new ArrayList<>(
-        Arrays.asList("column1", "column2")
-    );
+    ArrayList<String> expectedClusteringPartitionFieldName =
+        new ArrayList<>(
+            Arrays.asList("column1", "column2")
+        );
 
     BigQuerySinkConfig testConfig = new BigQuerySinkConfig(configProperties);
     Optional<List<String>> testClusteringPartitionFieldName = testConfig.getClusteringPartitionFieldNames();
@@ -182,7 +189,7 @@ public class BigQuerySinkConfigTest {
   /**
    * Test the partition expiration being non-positive errors correctly.
    */
-  @Test (expected = ConfigException.class)
+  @Test(expected = ConfigException.class)
   public void testMinimumPartitionExpirationMs() {
     Map<String, String> configProperties = propertiesFactory.getProperties();
     configProperties.put(BigQuerySinkConfig.BIGQUERY_PARTITION_EXPIRATION_CONFIG, "0");
@@ -195,13 +202,16 @@ public class BigQuerySinkConfigTest {
 
     for (TimePartitioning.Type type : TimePartitioning.Type.values()) {
       configProperties.put(BigQuerySinkConfig.TIME_PARTITIONING_TYPE_CONFIG, type.name());
-      Optional<TimePartitioning.Type> timePartitioningType = new BigQuerySinkConfig(configProperties).getTimePartitioningType();
+      Optional<TimePartitioning.Type> timePartitioningType =
+          new BigQuerySinkConfig(configProperties).getTimePartitioningType();
       assertTrue(timePartitioningType.isPresent());
       assertEquals(type, timePartitioningType.get());
     }
 
-    configProperties.put(BigQuerySinkConfig.TIME_PARTITIONING_TYPE_CONFIG, BigQuerySinkConfig.TIME_PARTITIONING_TYPE_NONE);
-    Optional<TimePartitioning.Type> timePartitioningType = new BigQuerySinkConfig(configProperties).getTimePartitioningType();
+    configProperties.put(BigQuerySinkConfig.TIME_PARTITIONING_TYPE_CONFIG,
+        BigQuerySinkConfig.TIME_PARTITIONING_TYPE_NONE);
+    Optional<TimePartitioning.Type> timePartitioningType =
+        new BigQuerySinkConfig(configProperties).getTimePartitioningType();
     assertEquals(Optional.empty(), timePartitioningType);
   }
 
@@ -229,14 +239,14 @@ public class BigQuerySinkConfigTest {
     assertEquals(testKafkaProvider, config.getString(CONNECTOR_RUNTIME_PROVIDER_CONFIG));
   }
 
-  @Test (expected = ConfigException.class)
+  @Test(expected = ConfigException.class)
   public void testTopic2TableInvalidFormat() {
     Map<String, String> configProperties = propertiesFactory.getProperties();
     configProperties.put(BigQuerySinkConfig.TOPIC2TABLE_MAP_CONFIG, "topic:");
     new BigQuerySinkConfig(configProperties);
   }
 
-  @Test (expected = ConfigException.class)
+  @Test(expected = ConfigException.class)
   public void testTopic2TableDuplicateTopic() {
     Map<String, String> configProperties = propertiesFactory.getProperties();
     configProperties.put(BigQuerySinkConfig.TOPIC2TABLE_MAP_CONFIG, "topic:table, topic:table2");
@@ -250,7 +260,7 @@ public class BigQuerySinkConfigTest {
     new BigQuerySinkConfig(configProperties);
   }
 
-  @Test (expected = ConfigException.class)
+  @Test(expected = ConfigException.class)
   public void testTopic2TableSemicolonOnly() {
     Map<String, String> configProperties = propertiesFactory.getProperties();
     configProperties.put(BigQuerySinkConfig.TOPIC2TABLE_MAP_CONFIG, ":");
@@ -289,8 +299,8 @@ public class BigQuerySinkConfigTest {
     Map<String, String> badConfigProperties = propertiesFactory.getProperties();
 
     badConfigProperties.put(
-            BigQuerySinkConfig.MAX_RETRIES_CONFIG,
-            "-1"
+        BigQuerySinkConfig.MAX_RETRIES_CONFIG,
+        "-1"
     );
 
     new BigQuerySinkConfig(badConfigProperties);

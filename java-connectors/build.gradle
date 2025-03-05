@@ -160,6 +160,12 @@ allprojects {
                 eclipse('4.30').configFile("${rootDir}/config/Lenses_eclipse.xml")
                 licenseHeaderFile(rootProject.file("HEADER.txt"))
 
+                filter { file ->
+                    // Return false for files with Confluent copyright, so they're skipped
+                    !file.text.contains('Copyright 2020 Confluent, Inc.')
+                }
+
+
                 // courtesy of diffplug/spotless#240
                 // https://github.com/diffplug/spotless/issues/240#issuecomment-385206606
                 custom 'noWildcardImports', {

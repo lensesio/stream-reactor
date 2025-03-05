@@ -40,9 +40,10 @@ public class GcsBucketValidator extends MultiPropertyValidator<BigQuerySinkConfi
     super(GCS_BUCKET_NAME_CONFIG);
   }
 
-  private static final Collection<String> DEPENDENTS = Collections.unmodifiableCollection(Arrays.asList(
-      ENABLE_BATCH_CONFIG, AUTO_CREATE_BUCKET_CONFIG
-  ));
+  private static final Collection<String> DEPENDENTS =
+      Collections.unmodifiableCollection(Arrays.asList(
+          ENABLE_BATCH_CONFIG, AUTO_CREATE_BUCKET_CONFIG
+      ));
 
   @Override
   protected Collection<String> dependents() {
@@ -53,9 +54,10 @@ public class GcsBucketValidator extends MultiPropertyValidator<BigQuerySinkConfi
   protected Optional<String> doValidate(BigQuerySinkConfig config) {
     Storage gcs;
     try {
-      gcs  = new GcpClientBuilder.GcsBuilder()
-          .withConfig(config)
-          .build();
+      gcs =
+          new GcpClientBuilder.GcsBuilder()
+              .withConfig(config)
+              .build();
     } catch (RuntimeException e) {
       return Optional.of(String.format(
           "Failed to construct GCS client%s",
@@ -68,7 +70,7 @@ public class GcsBucketValidator extends MultiPropertyValidator<BigQuerySinkConfi
   @VisibleForTesting
   Optional<String> doValidate(Storage gcs, BigQuerySinkConfig config) {
     List<String> batchLoadedTopics = config.getList(ENABLE_BATCH_CONFIG);
-    if (batchLoadedTopics ==  null || batchLoadedTopics.isEmpty()) {
+    if (batchLoadedTopics == null || batchLoadedTopics.isEmpty()) {
       // Batch loading is disabled; no need to validate the GCS bucket
       return Optional.empty();
     }

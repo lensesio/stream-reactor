@@ -56,6 +56,7 @@ import java.util.stream.Collectors;
  * those load jobs. Blobs are deleted (only) once a load job involving that blob succeeds.
  */
 public class GCSToBQLoadRunnable implements Runnable {
+
   private static final Logger logger = LoggerFactory.getLogger(GCSToBQLoadRunnable.class);
 
   private final BigQuery bigQuery;
@@ -74,12 +75,13 @@ public class GCSToBQLoadRunnable implements Runnable {
 
   private static String SOURCE_URI_FORMAT = "gs://%s/%s";
   public static final Pattern METADATA_TABLE_PATTERN =
-          Pattern.compile("((?P<project>[^:]+):)?(?P<dataset>[^.]+)\\.(?P<table>.+)");
+      Pattern.compile("((?P<project>[^:]+):)?(?P<dataset>[^.]+)\\.(?P<table>.+)");
 
   /**
    * Create a {@link GCSToBQLoadRunnable} with the given bigquery, bucket, and ms wait interval.
+   * 
    * @param bigQuery the {@link BigQuery} instance.
-   * @param bucket the the GCS bucket to read from.
+   * @param bucket   the the GCS bucket to read from.
    */
   public GCSToBQLoadRunnable(BigQuery bigQuery, Bucket bucket) {
     this.bigQuery = bigQuery;
@@ -96,6 +98,7 @@ public class GCSToBQLoadRunnable implements Runnable {
    * <p>Each blob list will not exceed the {@link #FILE_LOAD_LIMIT} in number of blobs or
    * {@link #MAX_LOAD_SIZE_B} in total byte size. Blobs that are already claimed by an in-progress
    * load job will also not be included.
+   * 
    * @return map from {@link TableId}s to {@link Blob}s.
    */
   private Map<TableId, List<Blob>> getBlobsUpToLimit() {
@@ -109,7 +112,7 @@ public class GCSToBQLoadRunnable implements Runnable {
     for (Blob blob : list.iterateAll()) {
       BlobId blobId = blob.getBlobId();
       TableId table = getTableFromBlob(blob);
-      logger.debug("Checking blob bucket={}, name={}, table={} ", blob.getBucket(), blob.getName(), table );
+      logger.debug("Checking blob bucket={}, name={}, table={} ", blob.getBucket(), blob.getName(), table);
 
       if (table == null || claimedBlobIds.contains(blobId) || deletableBlobIds.contains(blobId)) {
         // don't do anything if:
@@ -140,6 +143,7 @@ public class GCSToBQLoadRunnable implements Runnable {
 
   /**
    * Given a blob, return the {@link TableId} this blob should be inserted into.
+   * 
    * @param blob the blob
    * @return the TableId this data should be loaded into, or null if we could not tell what
    *         table it should be loaded into.
@@ -175,6 +179,7 @@ public class GCSToBQLoadRunnable implements Runnable {
   /**
    * Trigger a BigQuery load job for each table in the input containing all the blobs associated
    * with that table.
+   * 
    * @param tablesToBlobs a map of {@link TableId} to the list of {@link Blob}s to be loaded into
    *                      that table.
    * @return a map from Jobs to the list of blobs being loaded in that job.
@@ -188,11 +193,12 @@ public class GCSToBQLoadRunnable implements Runnable {
   }
 
   private Job triggerBigQueryLoadJob(TableId table, List<Blob> blobs) {
-    List<String> uris = blobs.stream()
-                             .map(b -> String.format(SOURCE_URI_FORMAT,
-                                                     bucket.getName(),
-                                                     b.getName()))
-                             .collect(Collectors.toList());
+    List<String> uris =
+        blobs.stream()
+            .map(b -> String.format(SOURCE_URI_FORMAT,
+                bucket.getName(),
+                b.getName()))
+            .collect(Collectors.toList());
     // create job load configuration
     LoadJobConfiguration loadJobConfiguration =
         LoadJobConfiguration.newBuilder(table, uris)
@@ -255,7 +261,7 @@ public class GCSToBQLoadRunnable implements Runnable {
         failureCount++;
       } finally {
         logger.info("GCS To BQ job tally: {} successful jobs, {} failed jobs.",
-                    successCount, failureCount);
+            successCount, failureCount);
       }
     }
   }
@@ -299,8 +305,8 @@ public class GCSToBQLoadRunnable implements Runnable {
       deletableBlobIds.removeAll(blobIdsToDelete);
 
       logger.info("Successfully deleted {} blobs; failed to delete {} blobs",
-                  successfulDeletes,
-                  failedDeletes);
+          successfulDeletes,
+          failedDeletes);
     } catch (StorageException ex) {
       logger.warn("Storage exception while attempting to delete blobs", ex);
     }

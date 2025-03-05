@@ -94,7 +94,7 @@ public class PartitionedTableIdTest {
     final long utcTime = 1509007584334L;
 
     final PartitionedTableId partitionedTableId =
-            new PartitionedTableId.Builder(dataset, table).setDayPartition(utcTime).build();
+        new PartitionedTableId.Builder(dataset, table).setDayPartition(utcTime).build();
 
     final String expectedPartition = "20171026";
 

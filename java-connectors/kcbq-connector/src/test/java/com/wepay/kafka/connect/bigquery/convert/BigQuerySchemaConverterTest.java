@@ -59,10 +59,11 @@ public class BigQuerySchemaConverterTest {
             ).build()
         );
 
-    Schema kafkaConnectTestSchema = SchemaBuilder
-        .struct()
-        .field(fieldName, Schema.BOOLEAN_SCHEMA)
-        .build();
+    Schema kafkaConnectTestSchema =
+        SchemaBuilder
+            .struct()
+            .field(fieldName, Schema.BOOLEAN_SCHEMA)
+            .build();
 
     com.google.cloud.bigquery.Schema bigQueryTestSchema =
         new BigQuerySchemaConverter(false).convertSchema(kafkaConnectTestSchema);
@@ -83,38 +84,39 @@ public class BigQuerySchemaConverterTest {
             ).build()
         );
 
-    Schema kafkaConnectTestSchema = SchemaBuilder
-        .struct()
-        .field(fieldName, Schema.INT8_SCHEMA)
-        .build();
+    Schema kafkaConnectTestSchema =
+        SchemaBuilder
+            .struct()
+            .field(fieldName, Schema.INT8_SCHEMA)
+            .build();
 
     com.google.cloud.bigquery.Schema bigQueryTestSchema =
         new BigQuerySchemaConverter(false).convertSchema(kafkaConnectTestSchema);
     assertEquals(bigQueryExpectedSchema, bigQueryTestSchema);
 
-
-    kafkaConnectTestSchema = SchemaBuilder
-        .struct()
-        .field(fieldName, Schema.INT16_SCHEMA)
-        .build();
-
-    bigQueryTestSchema = new BigQuerySchemaConverter(false).convertSchema(kafkaConnectTestSchema);
-    assertEquals(bigQueryExpectedSchema, bigQueryTestSchema);
-
-
-    kafkaConnectTestSchema = SchemaBuilder
-        .struct()
-        .field(fieldName, Schema.INT32_SCHEMA)
-        .build();
+    kafkaConnectTestSchema =
+        SchemaBuilder
+            .struct()
+            .field(fieldName, Schema.INT16_SCHEMA)
+            .build();
 
     bigQueryTestSchema = new BigQuerySchemaConverter(false).convertSchema(kafkaConnectTestSchema);
     assertEquals(bigQueryExpectedSchema, bigQueryTestSchema);
 
+    kafkaConnectTestSchema =
+        SchemaBuilder
+            .struct()
+            .field(fieldName, Schema.INT32_SCHEMA)
+            .build();
 
-    kafkaConnectTestSchema = SchemaBuilder
-        .struct()
-        .field(fieldName, Schema.INT64_SCHEMA)
-        .build();
+    bigQueryTestSchema = new BigQuerySchemaConverter(false).convertSchema(kafkaConnectTestSchema);
+    assertEquals(bigQueryExpectedSchema, bigQueryTestSchema);
+
+    kafkaConnectTestSchema =
+        SchemaBuilder
+            .struct()
+            .field(fieldName, Schema.INT64_SCHEMA)
+            .build();
 
     bigQueryTestSchema = new BigQuerySchemaConverter(false).convertSchema(kafkaConnectTestSchema);
     assertEquals(bigQueryExpectedSchema, bigQueryTestSchema);
@@ -134,18 +136,20 @@ public class BigQuerySchemaConverterTest {
             ).build()
         );
 
-    Schema kafkaConnectTestSchema = SchemaBuilder
-        .struct()
-        .field(fieldName, Schema.FLOAT32_SCHEMA)
-        .build();
+    Schema kafkaConnectTestSchema =
+        SchemaBuilder
+            .struct()
+            .field(fieldName, Schema.FLOAT32_SCHEMA)
+            .build();
     com.google.cloud.bigquery.Schema bigQueryTestSchema =
         new BigQuerySchemaConverter(false).convertSchema(kafkaConnectTestSchema);
     assertEquals(bigQueryExpectedSchema, bigQueryTestSchema);
 
-    kafkaConnectTestSchema = SchemaBuilder
-        .struct()
-        .field(fieldName, Schema.FLOAT64_SCHEMA)
-        .build();
+    kafkaConnectTestSchema =
+        SchemaBuilder
+            .struct()
+            .field(fieldName, Schema.FLOAT64_SCHEMA)
+            .build();
 
     bigQueryTestSchema =
         new BigQuerySchemaConverter(false).convertSchema(kafkaConnectTestSchema);
@@ -166,10 +170,11 @@ public class BigQuerySchemaConverterTest {
             ).build()
         );
 
-    Schema kafkaConnectTestSchema = SchemaBuilder
-        .struct()
-        .field(fieldName, Schema.STRING_SCHEMA)
-        .build();
+    Schema kafkaConnectTestSchema =
+        SchemaBuilder
+            .struct()
+            .field(fieldName, Schema.STRING_SCHEMA)
+            .build();
 
     com.google.cloud.bigquery.Schema bigQueryTestSchema =
         new BigQuerySchemaConverter(false).convertSchema(kafkaConnectTestSchema);
@@ -205,11 +210,12 @@ public class BigQuerySchemaConverterTest {
             com.google.cloud.bigquery.Field.Mode.REQUIRED
         ).build();
 
-    Schema kafkaConnectInnerSchema = SchemaBuilder
-        .struct()
-        .field(innerFieldStringName, Schema.STRING_SCHEMA)
-        .field(innerFieldIntegerName, Schema.INT32_SCHEMA)
-        .build();
+    Schema kafkaConnectInnerSchema =
+        SchemaBuilder
+            .struct()
+            .field(innerFieldStringName, Schema.STRING_SCHEMA)
+            .field(innerFieldIntegerName, Schema.INT32_SCHEMA)
+            .build();
 
     com.google.cloud.bigquery.Schema bigQueryExpectedInnerSchema =
         com.google.cloud.bigquery.Schema.of(bigQueryInnerRecord);
@@ -235,11 +241,12 @@ public class BigQuerySchemaConverterTest {
             com.google.cloud.bigquery.Field.Mode.REQUIRED
         ).build();
 
-    Schema kafkaConnectMiddleSchema = SchemaBuilder
-        .struct()
-        .field(innerFieldStructName, kafkaConnectInnerSchema)
-        .field(middleFieldArrayName, SchemaBuilder.array(Schema.FLOAT32_SCHEMA).build())
-        .build();
+    Schema kafkaConnectMiddleSchema =
+        SchemaBuilder
+            .struct()
+            .field(innerFieldStructName, kafkaConnectInnerSchema)
+            .field(middleFieldArrayName, SchemaBuilder.array(Schema.FLOAT32_SCHEMA).build())
+            .build();
 
     com.google.cloud.bigquery.Schema bigQueryExpectedMiddleSchema =
         com.google.cloud.bigquery.Schema.of(bigQueryMiddleRecord);
@@ -262,11 +269,12 @@ public class BigQuerySchemaConverterTest {
             com.google.cloud.bigquery.Field.Mode.REQUIRED
         ).build();
 
-    Schema kafkaConnectOuterSchema = SchemaBuilder
-        .struct()
-        .field(innerFieldStructName, kafkaConnectInnerSchema)
-        .field(middleFieldStructName, kafkaConnectMiddleSchema)
-        .build();
+    Schema kafkaConnectOuterSchema =
+        SchemaBuilder
+            .struct()
+            .field(innerFieldStructName, kafkaConnectInnerSchema)
+            .field(middleFieldStructName, kafkaConnectMiddleSchema)
+            .build();
 
     com.google.cloud.bigquery.Schema bigQueryExpectedOuterSchema =
         com.google.cloud.bigquery.Schema.of(bigQueryOuterRecord);
@@ -297,16 +305,18 @@ public class BigQuerySchemaConverterTest {
     final String innerFieldStructName = "InnerStruct";
     final String innerFieldStringName = "InnerString";
 
-    Schema kafkaConnectInnerSchema = SchemaBuilder
-        .struct()
-        .build();
+    Schema kafkaConnectInnerSchema =
+        SchemaBuilder
+            .struct()
+            .build();
 
-    com.google.cloud.bigquery.Field bigQueryInnerString = com.google.cloud.bigquery.Field.newBuilder(
-        innerFieldStringName,
-        LegacySQLTypeName.STRING
-    ).setMode(
-        com.google.cloud.bigquery.Field.Mode.REQUIRED
-    ).build();
+    com.google.cloud.bigquery.Field bigQueryInnerString =
+        com.google.cloud.bigquery.Field.newBuilder(
+            innerFieldStringName,
+            LegacySQLTypeName.STRING
+        ).setMode(
+            com.google.cloud.bigquery.Field.Mode.REQUIRED
+        ).build();
 
     com.google.cloud.bigquery.Field bigQueryOuterRecord =
         com.google.cloud.bigquery.Field.newBuilder(
@@ -317,11 +327,12 @@ public class BigQuerySchemaConverterTest {
             com.google.cloud.bigquery.Field.Mode.REQUIRED
         ).build();
 
-    Schema kafkaConnectOuterSchema = SchemaBuilder
-        .struct()
-        .field(innerFieldStructName, kafkaConnectInnerSchema)
-        .field(innerFieldStringName, Schema.STRING_SCHEMA)
-        .build();
+    Schema kafkaConnectOuterSchema =
+        SchemaBuilder
+            .struct()
+            .field(innerFieldStructName, kafkaConnectInnerSchema)
+            .field(innerFieldStringName, Schema.STRING_SCHEMA)
+            .build();
 
     com.google.cloud.bigquery.Schema bigQueryExpectedOuterSchema =
         com.google.cloud.bigquery.Schema.of(bigQueryOuterRecord);
@@ -343,12 +354,12 @@ public class BigQuerySchemaConverterTest {
 
     Field floatField =
         Field.newBuilder(keyName, LegacySQLTypeName.FLOAT)
-             .setMode(Field.Mode.REQUIRED)
-             .build();
+            .setMode(Field.Mode.REQUIRED)
+            .build();
     Field stringField =
         Field.newBuilder(valueName, LegacySQLTypeName.STRING)
-             .setMode(Field.Mode.REQUIRED)
-             .build();
+            .setMode(Field.Mode.REQUIRED)
+            .build();
 
     com.google.cloud.bigquery.Schema bigQueryExpectedSchema =
         com.google.cloud.bigquery.Schema.of(
@@ -362,14 +373,15 @@ public class BigQuerySchemaConverterTest {
             ).build()
         );
 
-
-    Schema kafkaConnectMapSchema = SchemaBuilder
-        .map(Schema.FLOAT32_SCHEMA, Schema.STRING_SCHEMA)
-        .build();
-    Schema kafkaConnectTestSchema = SchemaBuilder
-        .struct()
-        .field(fieldName, kafkaConnectMapSchema)
-        .build();
+    Schema kafkaConnectMapSchema =
+        SchemaBuilder
+            .map(Schema.FLOAT32_SCHEMA, Schema.STRING_SCHEMA)
+            .build();
+    Schema kafkaConnectTestSchema =
+        SchemaBuilder
+            .struct()
+            .field(fieldName, kafkaConnectMapSchema)
+            .build();
 
     com.google.cloud.bigquery.Schema bigQueryTestSchema =
         new BigQuerySchemaConverter(false).convertSchema(kafkaConnectTestSchema);
@@ -389,10 +401,11 @@ public class BigQuerySchemaConverterTest {
         );
 
     Schema kafkaConnectArraySchema = SchemaBuilder.array(Schema.INT32_SCHEMA).build();
-    Schema kafkaConnectTestSchema = SchemaBuilder
-        .struct()
-        .field(fieldName, kafkaConnectArraySchema)
-        .build();
+    Schema kafkaConnectTestSchema =
+        SchemaBuilder
+            .struct()
+            .field(fieldName, kafkaConnectArraySchema)
+            .build();
 
     com.google.cloud.bigquery.Schema bigQueryTestSchema =
         new BigQuerySchemaConverter(false).convertSchema(kafkaConnectTestSchema);
@@ -412,10 +425,11 @@ public class BigQuerySchemaConverterTest {
         );
 
     Schema kafkaConnectArraySchema = SchemaBuilder.array(Schema.STRING_SCHEMA).build();
-    Schema kafkaConnectTestSchema = SchemaBuilder
-        .struct()
-        .field(fieldName, kafkaConnectArraySchema)
-        .build();
+    Schema kafkaConnectTestSchema =
+        SchemaBuilder
+            .struct()
+            .field(fieldName, kafkaConnectArraySchema)
+            .build();
 
     com.google.cloud.bigquery.Schema bigQueryTestSchema =
         new BigQuerySchemaConverter(false).convertSchema(kafkaConnectTestSchema);
@@ -434,10 +448,11 @@ public class BigQuerySchemaConverterTest {
         );
 
     Schema kafkaConnectArraySchema = SchemaBuilder.array(Schema.STRING_SCHEMA).build();
-    Schema kafkaConnectTestSchema = SchemaBuilder
-        .struct()
-        .field(fieldName, kafkaConnectArraySchema)
-        .build();
+    Schema kafkaConnectTestSchema =
+        SchemaBuilder
+            .struct()
+            .field(fieldName, kafkaConnectArraySchema)
+            .build();
 
     com.google.cloud.bigquery.Schema bigQueryTestSchema =
         new BigQuerySchemaConverter(false, true).convertSchema(kafkaConnectTestSchema);
@@ -458,10 +473,11 @@ public class BigQuerySchemaConverterTest {
             ).build()
         );
 
-    Schema kafkaConnectTestSchema = SchemaBuilder
-        .struct()
-        .field(fieldName, Schema.BYTES_SCHEMA)
-        .build();
+    Schema kafkaConnectTestSchema =
+        SchemaBuilder
+            .struct()
+            .field(fieldName, Schema.BYTES_SCHEMA)
+            .build();
 
     com.google.cloud.bigquery.Schema bigQueryTestSchema =
         new BigQuerySchemaConverter(false).convertSchema(kafkaConnectTestSchema);
@@ -482,10 +498,11 @@ public class BigQuerySchemaConverterTest {
             ).build()
         );
 
-    Schema kafkaConnectTestSchema = SchemaBuilder
-        .struct()
-        .field(fieldName, Timestamp.SCHEMA)
-        .build();
+    Schema kafkaConnectTestSchema =
+        SchemaBuilder
+            .struct()
+            .field(fieldName, Timestamp.SCHEMA)
+            .build();
 
     com.google.cloud.bigquery.Schema bigQueryTestSchema =
         new BigQuerySchemaConverter(false).convertSchema(kafkaConnectTestSchema);
@@ -496,10 +513,11 @@ public class BigQuerySchemaConverterTest {
   public void testBadTimestamp() {
     final String fieldName = "Timestamp";
 
-    Schema kafkaConnectTestSchema = SchemaBuilder
-        .struct()
-        .field(fieldName, SchemaBuilder.bool().name(Timestamp.LOGICAL_NAME))
-        .build();
+    Schema kafkaConnectTestSchema =
+        SchemaBuilder
+            .struct()
+            .field(fieldName, SchemaBuilder.bool().name(Timestamp.LOGICAL_NAME))
+            .build();
 
     new BigQuerySchemaConverter(false).convertSchema(kafkaConnectTestSchema);
   }
@@ -518,10 +536,11 @@ public class BigQuerySchemaConverterTest {
             ).build()
         );
 
-    Schema kafkaConnectTestSchema = SchemaBuilder
-        .struct()
-        .field(fieldName, Date.SCHEMA)
-        .build();
+    Schema kafkaConnectTestSchema =
+        SchemaBuilder
+            .struct()
+            .field(fieldName, Date.SCHEMA)
+            .build();
 
     com.google.cloud.bigquery.Schema bigQueryTestSchema =
         new BigQuerySchemaConverter(false).convertSchema(kafkaConnectTestSchema);
@@ -532,10 +551,11 @@ public class BigQuerySchemaConverterTest {
   public void testBadDate() {
     final String fieldName = "Date";
 
-    Schema kafkaConnectTestSchema = SchemaBuilder
-        .struct()
-        .field(fieldName, SchemaBuilder.int64().name(Date.LOGICAL_NAME))
-        .build();
+    Schema kafkaConnectTestSchema =
+        SchemaBuilder
+            .struct()
+            .field(fieldName, SchemaBuilder.int64().name(Date.LOGICAL_NAME))
+            .build();
 
     new BigQuerySchemaConverter(false).convertSchema(kafkaConnectTestSchema);
   }
@@ -554,10 +574,11 @@ public class BigQuerySchemaConverterTest {
             ).build()
         );
 
-    Schema kafkaConnectTestSchema = SchemaBuilder
-        .struct()
-        .field(fieldName, Decimal.schema(0))
-        .build();
+    Schema kafkaConnectTestSchema =
+        SchemaBuilder
+            .struct()
+            .field(fieldName, Decimal.schema(0))
+            .build();
 
     com.google.cloud.bigquery.Schema bigQueryTestSchema =
         new BigQuerySchemaConverter(false).convertSchema(kafkaConnectTestSchema);
@@ -568,10 +589,11 @@ public class BigQuerySchemaConverterTest {
   public void testBadDecimal() {
     final String fieldName = "Decimal";
 
-    Schema kafkaConnectTestSchema = SchemaBuilder
-        .struct()
-        .field(fieldName, SchemaBuilder.bool().name(Decimal.LOGICAL_NAME))
-        .build();
+    Schema kafkaConnectTestSchema =
+        SchemaBuilder
+            .struct()
+            .field(fieldName, SchemaBuilder.bool().name(Decimal.LOGICAL_NAME))
+            .build();
 
     new BigQuerySchemaConverter(false).convertSchema(kafkaConnectTestSchema);
   }
@@ -597,11 +619,12 @@ public class BigQuerySchemaConverterTest {
             ).build()
         );
 
-    Schema kafkaConnectTestSchema = SchemaBuilder
-        .struct()
-        .field(nullableFieldName, SchemaBuilder.int32().optional().build())
-        .field(requiredFieldName, SchemaBuilder.int32().required().build())
-        .build();
+    Schema kafkaConnectTestSchema =
+        SchemaBuilder
+            .struct()
+            .field(nullableFieldName, SchemaBuilder.int32().optional().build())
+            .field(requiredFieldName, SchemaBuilder.int32().required().build())
+            .build();
 
     com.google.cloud.bigquery.Schema bigQueryTestSchema =
         new BigQuerySchemaConverter(false).convertSchema(kafkaConnectTestSchema);
@@ -616,7 +639,7 @@ public class BigQuerySchemaConverterTest {
     com.google.cloud.bigquery.Schema bigQueryExpectedSchema =
         com.google.cloud.bigquery.Schema.of(
             com.google.cloud.bigquery.Field.newBuilder(fieldName,
-                                                       LegacySQLTypeName.STRING)
+                LegacySQLTypeName.STRING)
                 .setMode(com.google.cloud.bigquery.Field.Mode.REQUIRED)
                 .setDescription(fieldDoc)
                 .build()
@@ -624,8 +647,8 @@ public class BigQuerySchemaConverterTest {
 
     Schema kafkaConnectTestSchema =
         SchemaBuilder.struct()
-                     .field(fieldName, SchemaBuilder.string().doc(fieldDoc).build())
-                     .build();
+            .field(fieldName, SchemaBuilder.string().doc(fieldDoc).build())
+            .build();
 
     com.google.cloud.bigquery.Schema bigQueryTestSchema =
         new BigQuerySchemaConverter(false).convertSchema(kafkaConnectTestSchema);
@@ -646,10 +669,11 @@ public class BigQuerySchemaConverterTest {
             ).build()
         );
 
-    Schema kafkaConnectTestSchema = SchemaBuilder
-        .struct()
-        .field(fieldName, SchemaBuilder.string().required().build())
-        .build();
+    Schema kafkaConnectTestSchema =
+        SchemaBuilder
+            .struct()
+            .field(fieldName, SchemaBuilder.string().required().build())
+            .build();
 
     com.google.cloud.bigquery.Schema bigQueryTestSchema =
         new BigQuerySchemaConverter(true).convertSchema(kafkaConnectTestSchema);
@@ -661,18 +685,20 @@ public class BigQuerySchemaConverterTest {
     final String fieldName = "RecursiveField";
 
     // Construct Avro schema with recursion since we cannot directly construct Connect schema with cycle
-    org.apache.avro.Schema recursiveAvroSchema = org.apache.avro.SchemaBuilder
-        .record("RecursiveItem")
-        .namespace("com.example")
-        .fields()
-        .name(fieldName)
-        .type().unionOf().nullType().and().type("RecursiveItem").endUnion()
-        .nullDefault()
-        .endRecord();
+    org.apache.avro.Schema recursiveAvroSchema =
+        org.apache.avro.SchemaBuilder
+            .record("RecursiveItem")
+            .namespace("com.example")
+            .fields()
+            .name(fieldName)
+            .type().unionOf().nullType().and().type("RecursiveItem").endUnion()
+            .nullDefault()
+            .endRecord();
 
     Schema connectSchema = new AvroData(100).toConnectSchema(recursiveAvroSchema);
-    ConversionConnectException e = assertThrows(ConversionConnectException.class, () ->
-        new BigQuerySchemaConverter(true).convertSchema(connectSchema));
+    ConversionConnectException e =
+        assertThrows(ConversionConnectException.class, () -> new BigQuerySchemaConverter(true).convertSchema(
+            connectSchema));
     assertEquals("Kafka Connect schema contains cycle", e.getMessage());
   }
 
@@ -681,19 +707,21 @@ public class BigQuerySchemaConverterTest {
     final String fieldName = "RecursiveField";
 
     // Construct Avro schema with recursion since we cannot directly construct Connect schema with cycle
-    org.apache.avro.Schema recursiveAvroSchema = org.apache.avro.SchemaBuilder
-        .record("RecursiveItem")
-        .namespace("com.example")
-        .fields()
-        .name(fieldName)
-        .type()
+    org.apache.avro.Schema recursiveAvroSchema =
+        org.apache.avro.SchemaBuilder
+            .record("RecursiveItem")
+            .namespace("com.example")
+            .fields()
+            .name(fieldName)
+            .type()
             .array().items()
-                .map().values().type("RecursiveItem").noDefault()
-        .endRecord();
+            .map().values().type("RecursiveItem").noDefault()
+            .endRecord();
 
     Schema connectSchema = new AvroData(100).toConnectSchema(recursiveAvroSchema);
-    ConversionConnectException e = assertThrows(ConversionConnectException.class, () ->
-        new BigQuerySchemaConverter(true).convertSchema(connectSchema));
+    ConversionConnectException e =
+        assertThrows(ConversionConnectException.class, () -> new BigQuerySchemaConverter(true).convertSchema(
+            connectSchema));
     assertEquals("Kafka Connect schema contains cycle", e.getMessage());
   }
 }

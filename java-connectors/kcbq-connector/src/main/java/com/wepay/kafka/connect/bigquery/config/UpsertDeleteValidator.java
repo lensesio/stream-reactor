@@ -34,13 +34,15 @@ import static com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig.MERGE_R
 import static com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig.UPSERT_ENABLED_CONFIG;
 
 public abstract class UpsertDeleteValidator extends MultiPropertyValidator<BigQuerySinkConfig> {
+
   private UpsertDeleteValidator(String propertyName) {
     super(propertyName);
   }
 
-  private static final Collection<String> DEPENDENTS = Collections.unmodifiableCollection(Arrays.asList(
-      MERGE_INTERVAL_MS_CONFIG, MERGE_RECORDS_THRESHOLD_CONFIG, KAFKA_KEY_FIELD_NAME_CONFIG
-  ));
+  private static final Collection<String> DEPENDENTS =
+      Collections.unmodifiableCollection(Arrays.asList(
+          MERGE_INTERVAL_MS_CONFIG, MERGE_RECORDS_THRESHOLD_CONFIG, KAFKA_KEY_FIELD_NAME_CONFIG
+      ));
 
   private static final Logger logger = LoggerFactory.getLogger(UpsertDeleteValidator.class);
 
@@ -68,9 +70,9 @@ public abstract class UpsertDeleteValidator extends MultiPropertyValidator<BigQu
 
     if (mergeInterval != -1 && mergeInterval < 10_000L) {
       logger.warn(String.format(
-              "%s should not be set to less than 10 seconds. A validation would be introduced in a future release to " +
-                      "this effect.",
-              MERGE_INTERVAL_MS_CONFIG
+          "%s should not be set to less than 10 seconds. A validation would be introduced in a future release to " +
+              "this effect.",
+          MERGE_INTERVAL_MS_CONFIG
       ));
     }
 
@@ -92,6 +94,7 @@ public abstract class UpsertDeleteValidator extends MultiPropertyValidator<BigQu
   protected abstract boolean modeEnabled(BigQuerySinkConfig config);
 
   public static class UpsertValidator extends UpsertDeleteValidator {
+
     public UpsertValidator() {
       super(UPSERT_ENABLED_CONFIG);
     }
@@ -103,6 +106,7 @@ public abstract class UpsertDeleteValidator extends MultiPropertyValidator<BigQu
   }
 
   public static class DeleteValidator extends UpsertDeleteValidator {
+
     public DeleteValidator() {
       super(DELETE_ENABLED_CONFIG);
     }

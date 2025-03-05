@@ -87,10 +87,11 @@ public abstract class GcpClientBuilder<Client> {
   public GcpClientBuilder<Client> withUserAgent(String userAgent) {
     if (!CONNECTOR_RUNTIME_PROVIDER_TYPES.contains(userAgent)) {
       logger.warn(String.format("Invalid Kafka runtime provider value received. Provider : %s. Defaulting to %s",
-              userAgent, CONNECTOR_RUNTIME_PROVIDER_DEFAULT));
+          userAgent, CONNECTOR_RUNTIME_PROVIDER_DEFAULT));
       userAgent = CONNECTOR_RUNTIME_PROVIDER_DEFAULT;
     }
-    this.headerProvider = FixedHeaderProvider.create(USER_AGENT_HEADER_KEY,
+    this.headerProvider =
+        FixedHeaderProvider.create(USER_AGENT_HEADER_KEY,
             String.format(USER_AGENT_HEADER_FORMAT, userAgent, Version.version()));
     return this;
   }
@@ -140,11 +141,13 @@ public abstract class GcpClientBuilder<Client> {
   protected abstract Client doBuild(String project, GoogleCredentials credentials, HeaderProvider userAgent);
 
   public static class BigQueryBuilder extends GcpClientBuilder<BigQuery> {
+
     @Override
     protected BigQuery doBuild(String project, GoogleCredentials credentials, HeaderProvider headerProvider) {
-      BigQueryOptions.Builder builder = BigQueryOptions.newBuilder()
-          .setProjectId(project)
-          .setHeaderProvider(headerProvider);
+      BigQueryOptions.Builder builder =
+          BigQueryOptions.newBuilder()
+              .setProjectId(project)
+              .setHeaderProvider(headerProvider);
 
       if (credentials != null) {
         builder.setCredentials(credentials);
@@ -157,11 +160,13 @@ public abstract class GcpClientBuilder<Client> {
   }
 
   public static class GcsBuilder extends GcpClientBuilder<Storage> {
+
     @Override
     protected Storage doBuild(String project, GoogleCredentials credentials, HeaderProvider headerProvider) {
-      StorageOptions.Builder builder = StorageOptions.newBuilder()
-          .setProjectId(project)
-          .setHeaderProvider(headerProvider);
+      StorageOptions.Builder builder =
+          StorageOptions.newBuilder()
+              .setProjectId(project)
+              .setHeaderProvider(headerProvider);
 
       if (credentials != null) {
         builder.setCredentials(credentials);

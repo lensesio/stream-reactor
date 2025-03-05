@@ -47,6 +47,7 @@ import java.util.SortedMap;
  * A {@link BigQueryWriter} capable of updating BigQuery table schemas and creating non-existed tables automatically.
  */
 public class AdaptiveBigQueryWriter extends BigQueryWriter {
+
   private static final Logger logger = LoggerFactory.getLogger(AdaptiveBigQueryWriter.class);
 
   // The maximum number of retries we will attempt to write rows after creating a table or updating a BQ table schema.
@@ -59,19 +60,19 @@ public class AdaptiveBigQueryWriter extends BigQueryWriter {
   private final boolean autoCreateTables;
 
   /**
-   * @param bigQuery Used to send write requests to BigQuery.
-   * @param schemaManager Used to update BigQuery tables.
-   * @param retry How many retries to make in the event of a 500/503 error.
-   * @param retryWait How long to wait in between retries.
-   * @param autoCreateTables Whether tables should be automatically created
+   * @param bigQuery            Used to send write requests to BigQuery.
+   * @param schemaManager       Used to update BigQuery tables.
+   * @param retry               How many retries to make in the event of a 500/503 error.
+   * @param retryWait           How long to wait in between retries.
+   * @param autoCreateTables    Whether tables should be automatically created
    * @param errantRecordHandler Used to handle errant records
    */
   public AdaptiveBigQueryWriter(BigQuery bigQuery,
-                                SchemaManager schemaManager,
-                                int retry,
-                                long retryWait,
-                                boolean autoCreateTables,
-                                ErrantRecordHandler errantRecordHandler) {
+      SchemaManager schemaManager,
+      int retry,
+      long retryWait,
+      boolean autoCreateTables,
+      ErrantRecordHandler errantRecordHandler) {
     super(retry, retryWait, errantRecordHandler);
     this.bigQuery = bigQuery;
     this.schemaManager = schemaManager;
@@ -82,12 +83,13 @@ public class AdaptiveBigQueryWriter extends BigQueryWriter {
    * Sends the request to BigQuery, then checks the response to see if any errors have occurred. If
    * any have, and all errors can be blamed upon invalid columns in the rows sent, attempts to
    * update the schema of the table in BigQuery and then performs the same write request.
+   * 
    * @see BigQueryWriter#performWriteRequest(PartitionedTableId, SortedMap)
    */
   @Override
   public Map<Long, List<BigQueryError>> performWriteRequest(
-          PartitionedTableId tableId,
-          SortedMap<SinkRecord, InsertAllRequest.RowToInsert> rows) {
+      PartitionedTableId tableId,
+      SortedMap<SinkRecord, InsertAllRequest.RowToInsert> rows) {
     InsertAllResponse writeResponse = null;
     InsertAllRequest request = null;
 
@@ -96,7 +98,7 @@ public class AdaptiveBigQueryWriter extends BigQueryWriter {
       writeResponse = bigQuery.insertAll(request);
       // Should only perform one schema update attempt.
       if (writeResponse.hasErrors()
-              && onlyContainsInvalidSchemaErrors(writeResponse.getInsertErrors())) {
+          && onlyContainsInvalidSchemaErrors(writeResponse.getInsertErrors())) {
         attemptSchemaUpdate(tableId, new ArrayList<>(rows.keySet()));
       }
     } catch (BigQueryException exception) {
@@ -164,7 +166,7 @@ public class AdaptiveBigQueryWriter extends BigQueryWriter {
       schemaManager.createTable(tableId, records);
     } catch (BigQueryException exception) {
       throw new BigQueryConnectException(
-              "Failed to create table " + tableId, exception);
+          "Failed to create table " + tableId, exception);
     }
   }
 
@@ -182,7 +184,8 @@ public class AdaptiveBigQueryWriter extends BigQueryWriter {
     boolean invalidSchemaError = false;
     for (List<BigQueryError> errorList : errors.values()) {
       for (BigQueryError error : errorList) {
-        if (BigQueryErrorResponses.isMissingRequiredFieldError(error) || BigQueryErrorResponses.isUnrecognizedFieldError(error)) {
+        if (BigQueryErrorResponses.isMissingRequiredFieldError(error) || BigQueryErrorResponses
+            .isUnrecognizedFieldError(error)) {
           invalidSchemaError = true;
         } else if (!BigQueryErrorResponses.isStoppedError(error)) {
           /* if some rows are in the old schema format, and others aren't, the old schema

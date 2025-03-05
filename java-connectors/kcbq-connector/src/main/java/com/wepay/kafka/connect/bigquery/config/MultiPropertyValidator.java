@@ -45,11 +45,12 @@ public abstract class MultiPropertyValidator<Config> {
       return Optional.empty();
     }
 
-    boolean dependentsAreValid = dependents().stream()
-        .map(valuesByName::get)
-        .filter(Objects::nonNull)
-        .map(ConfigValue::errorMessages)
-        .allMatch(List::isEmpty);
+    boolean dependentsAreValid =
+        dependents().stream()
+            .map(valuesByName::get)
+            .filter(Objects::nonNull)
+            .map(ConfigValue::errorMessages)
+            .allMatch(List::isEmpty);
     // Also ensure that all of the other properties that the validation for this one depends on don't already have errors
     if (!dependentsAreValid) {
       return Optional.empty();
@@ -66,5 +67,6 @@ public abstract class MultiPropertyValidator<Config> {
   }
 
   protected abstract Collection<String> dependents();
+
   protected abstract Optional<String> doValidate(Config config);
 }

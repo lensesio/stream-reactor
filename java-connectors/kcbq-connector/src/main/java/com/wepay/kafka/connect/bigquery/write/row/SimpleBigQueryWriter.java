@@ -42,36 +42,39 @@ import java.util.SortedMap;
  * any errors occur as a result.
  */
 public class SimpleBigQueryWriter extends BigQueryWriter {
+
   private static final Logger logger = LoggerFactory.getLogger(SimpleBigQueryWriter.class);
 
   private final BigQuery bigQuery;
 
   /**
-   * @param bigQuery The object used to send write requests to BigQuery.
-   * @param retry How many retries to make in the event of a 500/503 error.
-   * @param retryWait How long to wait in between retries.
+   * @param bigQuery            The object used to send write requests to BigQuery.
+   * @param retry               How many retries to make in the event of a 500/503 error.
+   * @param retryWait           How long to wait in between retries.
    * @param errantRecordHandler Used to handle errant records
    */
   public SimpleBigQueryWriter(BigQuery bigQuery, int retry, long retryWait, ErrantRecordHandler errantRecordHandler) {
-    super(retry, retryWait,errantRecordHandler);
+    super(retry, retryWait, errantRecordHandler);
     this.bigQuery = bigQuery;
   }
 
   /**
    * Sends the request to BigQuery, and return a map of insertErrors in case of partial failure.
    * Throws an exception if any other errors occur as a result of doing so.
+   * 
    * @see BigQueryWriter#performWriteRequest(PartitionedTableId, SortedMap)
    */
   @Override
   public Map<Long, List<BigQueryError>> performWriteRequest(PartitionedTableId tableId,
-                                                            SortedMap<SinkRecord, InsertAllRequest.RowToInsert> rows) {
+      SortedMap<SinkRecord, InsertAllRequest.RowToInsert> rows) {
     InsertAllRequest request = createInsertAllRequest(tableId, rows.values());
     InsertAllResponse writeResponse = bigQuery.insertAll(request);
     if (writeResponse.hasErrors()) {
       logger.warn(
           "You may want to enable schema updates by specifying "
-          + "{}=true or {}=true in the properties file",
-          BigQuerySinkConfig.ALLOW_NEW_BIGQUERY_FIELDS_CONFIG, BigQuerySinkConfig.ALLOW_BIGQUERY_REQUIRED_FIELD_RELAXATION_CONFIG
+              + "{}=true or {}=true in the properties file",
+          BigQuerySinkConfig.ALLOW_NEW_BIGQUERY_FIELDS_CONFIG,
+          BigQuerySinkConfig.ALLOW_BIGQUERY_REQUIRED_FIELD_RELAXATION_CONFIG
       );
       return writeResponse.getInsertErrors();
     } else {
