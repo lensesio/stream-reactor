@@ -1,0 +1,76 @@
+project(":kcbq-connector") {
+
+    group = 'com.wepay.kcbq'
+    archivesBaseName = 'kcbq-connector'
+
+    ext{
+        guavaVersion = '32.0.1-jre'
+        re2jVersion = '1.7'
+        confluentVersion = '6.0.10'
+        debeziumVersion = '0.6.2'
+        googleAuthVersion = '0.21.1'
+        googleCloudVersion = '2.10.9'
+        googleCloudStorageVersion = '1.113.4'
+        googleProtobufVersion = '3.25.5'
+        jacksonVersion = '2.16.2'
+        kafkaVersion = '2.6.3'
+        kafkaScalaVersion = '2.12'
+        slf4jVersion = '1.7.26'
+        caffeineVersion = '2.8.6'
+        junitVersion = '4.13'
+        mockitoVersion = '3.2.4'
+    }
+    test {
+        maxParallelForks = 1
+    }
+    dependencies {
+        //apache kafka
+        api group: 'org.apache.kafka', name: 'connect-api', version: kafkaVersion
+        api group: 'org.apache.kafka', name: 'kafka-clients', version: kafkaVersion
+
+        api group: 'org.apache.kafka', name: 'connect-api', version: kafkaVersion
+        api group: 'org.apache.kafka', name: 'kafka-clients', version: kafkaVersion
+
+        implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: jacksonVersion
+        implementation group: 'com.google.cloud', name: 'google-cloud-bigquery', version: googleCloudVersion
+        implementation group: 'com.google.cloud', name: 'google-cloud-storage', version: googleCloudStorageVersion
+        implementation group: 'com.google.auth', name: 'google-auth-library-oauth2-http', version: googleAuthVersion
+        implementation group: 'org.slf4j', name: 'slf4j-api', version: slf4jVersion
+        implementation group: 'io.debezium', name: 'debezium-core', version: debeziumVersion
+
+        implementation project(':kcbq-api')
+
+        testImplementation group: 'junit', name: 'junit', version: junitVersion
+        testImplementation group: 'org.mockito', name: 'mockito-core', version: mockitoVersion
+        testImplementation group: 'org.slf4j', name: 'slf4j-log4j12', version: slf4jVersion
+
+        implementation(group: 'org.apache.kafka', name: "kafka_${kafkaScalaVersion}", version: kafkaVersion) {
+            exclude group: 'org.apache.zookeeper', module: 'zookeeper'
+        }
+
+        testImplementation(group: 'org.apache.kafka', name: "kafka_${kafkaScalaVersion}", version: kafkaVersion, classifier: 'test') {
+            transitive = false
+        }
+
+        testImplementation(group: 'org.apache.kafka', name: 'kafka-clients', version: kafkaVersion, classifier: 'test') {
+            transitive = false
+        }
+
+        implementation group: 'org.apache.kafka', name: 'connect-runtime', version: kafkaVersion
+
+        testImplementation(group: 'org.apache.kafka', name: 'connect-runtime', version: kafkaVersion, classifier: 'test') {
+            transitive = false
+        }
+
+        implementation(group: 'io.confluent', name: 'kafka-schema-registry', version: confluentVersion) {
+            exclude group: 'org.apache.zookeeper', module: 'zookeeper'
+        }
+
+        testImplementation group: 'io.confluent', name: 'kafka-schema-registry', version: confluentVersion, classifier: 'tests'
+
+        implementation group: 'io.confluent', name: 'kafka-connect-avro-converter', version: confluentVersion
+        implementation group: 'io.confluent', name: 'kafka-avro-serializer', version: confluentVersion
+        implementation group: 'com.google.re2j', name: 're2j', version: re2jVersion
+    }
+
+}

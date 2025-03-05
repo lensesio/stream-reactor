@@ -6,4 +6,6 @@ include 'kafka-connect-common',
         'kafka-connect-gcp-pubsub',
         'kafka-connect-query-language',
         'kafka-connect-sink-reporting',
-        'test-utils'
+        'test-utils',
+        'kcbq-api',
+        'kcbq-connector'
