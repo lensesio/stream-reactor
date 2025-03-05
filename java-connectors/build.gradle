@@ -1,6 +1,6 @@
 plugins {
     id 'com.gradleup.shadow' version '8.3.5'
-    id 'com.diffplug.spotless' version "6.25.0"
+    id 'com.diffplug.spotless' version "7.0.2"
     id 'java'
     id 'java-library'
 }
@@ -154,18 +154,12 @@ allprojects {
                 indentWithSpaces(4)
             }
             java {
-                targetExclude '**/io/lenses/kcql/antlr4/**/*.java', '**/com/wepay/connect/**/*.java', '**/quickstart/**/*.properties'
+                targetExclude '**/io/lenses/kcql/antlr4/**/*.java'
                 toggleOffOn()
                 // optional: you can specify a specific version and/or config file
                 eclipse('4.30').configFile("${rootDir}/config/Lenses_eclipse.xml")
+
                 licenseHeaderFile(rootProject.file("HEADER.txt"))
-
-                filter { file ->
-                    // Return false for files with Confluent copyright, so they're skipped
-                    !file.text.contains('Copyright 2020 Confluent, Inc.')
-                }
-
-
                 // courtesy of diffplug/spotless#240
                 // https://github.com/diffplug/spotless/issues/240#issuecomment-385206606
                 custom 'noWildcardImports', {

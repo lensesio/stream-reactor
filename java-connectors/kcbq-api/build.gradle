@@ -13,5 +13,4 @@ project(":kcbq-api") {
         api group: 'org.apache.kafka', name: 'connect-api', version: kafkaVersion
         api group: 'org.apache.kafka', name: 'kafka-clients', version: kafkaVersion
     }
-
 }
