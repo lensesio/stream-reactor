@@ -45,8 +45,7 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
 import static org.junit.Assert.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyObject;
+import static org.mockito.ArgumentMatchers.any; 
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
@@ -357,7 +356,7 @@ public class MergeQueriesTest {
 
     TableResult tableResultReponse = mock(TableResult.class);
     BigQueryError jobInternalError = new BigQueryError("jobInternalError", null, "The job encountered an internal error during execution and was unable to complete successfully.");
-    when(bigQuery.query(anyObject()))
+    when(bigQuery.query(any()))
             .thenThrow(new BigQueryException(400, "mock job internal error", jobInternalError))
             .thenReturn(tableResultReponse);
     when(mergeBatches.destinationTableFor(INTERMEDIATE_TABLE)).thenReturn(DESTINATION_TABLE);
@@ -377,7 +376,7 @@ public class MergeQueriesTest {
 
     // Assert
     latch.await();
-    verify(bigQuery, times(3)).query(anyObject());
+    verify(bigQuery, times(3)).query(any());
   }
 
   @Test
@@ -388,7 +387,7 @@ public class MergeQueriesTest {
 
     TableResult tableResultReponse = mock(TableResult.class);
     BigQueryError jobInternalError = new BigQueryError("invalidQuery", null, "Could not serialize access to table my_table due to concurrent update");
-    when(bigQuery.query(anyObject()))
+    when(bigQuery.query(any()))
             .thenThrow(new BigQueryException(400, "mock invalid query", jobInternalError))
             .thenReturn(tableResultReponse);
     when(mergeBatches.destinationTableFor(INTERMEDIATE_TABLE)).thenReturn(DESTINATION_TABLE);
@@ -408,7 +407,7 @@ public class MergeQueriesTest {
 
     // Assert
     latch.await();
-    verify(bigQuery, times(3)).query(anyObject());
+    verify(bigQuery, times(3)).query(any());
   }
 
 
@@ -418,7 +417,7 @@ public class MergeQueriesTest {
     mergeBatches.addToBatch(TEST_SINK_RECORD, INTERMEDIATE_TABLE, new HashMap<>());
 
     BigQueryError jobInternalError = new BigQueryError("invalidQuery", null, "Could not serialize access to table my_table due to concurrent update");
-    when(bigQuery.query(anyObject()))
+    when(bigQuery.query(any()))
       .thenThrow(new BigQueryException(400, "mock invalid query", jobInternalError));
     when(mergeBatches.destinationTableFor(INTERMEDIATE_TABLE)).thenReturn(DESTINATION_TABLE);
     when(mergeBatches.incrementBatch(INTERMEDIATE_TABLE)).thenReturn(0);

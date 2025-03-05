@@ -41,7 +41,6 @@ project(":kcbq-connector") {
         implementation project(':kcbq-api')
 
         testImplementation group: 'junit', name: 'junit', version: junitVersion
-        testImplementation group: 'org.mockito', name: 'mockito-core', version: mockitoVersion
         testImplementation group: 'org.slf4j', name: 'slf4j-log4j12', version: slf4jVersion
 
         implementation(group: 'org.apache.kafka', name: "kafka_${kafkaScalaVersion}", version: kafkaVersion) {

@@ -45,7 +45,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.mockito.Matchers.anyObject;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -83,7 +83,7 @@ public class GCSToBQWriterTest {
         Collections.singletonList(spoofSinkRecord(topic, 0, 0, "some_field", "some_value")));
     testTask.flush(Collections.emptyMap());
 
-    verify(storage, times(1)).create((BlobInfo)anyObject(), (byte[])anyObject());
+    verify(storage, times(1)).create(any(), (byte[])any());
   }
 
   @Test
@@ -102,7 +102,7 @@ public class GCSToBQWriterTest {
     SchemaManager schemaManager = mock(SchemaManager.class);
     Map<TableId, Table> cache = new HashMap<>();
 
-    when(storage.create((BlobInfo)anyObject(), (byte[])anyObject()))
+    when(storage.create((BlobInfo)any(), (byte[])any()))
         .thenThrow(new StorageException(500, "internal server error")) // throw first time
         .thenReturn(null); // return second time. (we don't care about the result.)
 
@@ -113,7 +113,7 @@ public class GCSToBQWriterTest {
         Collections.singletonList(spoofSinkRecord(topic, 0, 0, "some_field", "some_value")));
     testTask.flush(Collections.emptyMap());
 
-    verify(storage, times(2)).create((BlobInfo)anyObject(), (byte[])anyObject());
+    verify(storage, times(2)).create((BlobInfo)any(), (byte[])any());
   }
 
   @Test
@@ -132,7 +132,7 @@ public class GCSToBQWriterTest {
     SchemaManager schemaManager = mock(SchemaManager.class);
     Map<TableId, Table> cache = new HashMap<>();
 
-    when(storage.create((BlobInfo)anyObject(), (byte[])anyObject()))
+    when(storage.create((BlobInfo)any(), (byte[])any()))
         .thenThrow(new StorageException(500, "internal server error"));
 
     BigQuerySinkTask testTask = new BigQuerySinkTask(bigQuery, schemaRetriever, storage, schemaManager, cache);
@@ -144,13 +144,13 @@ public class GCSToBQWriterTest {
       testTask.flush(Collections.emptyMap());
       Assert.fail("expected testTask.flush to fail.");
     } catch (ConnectException ex){
-      verify(storage, times(4)).create((BlobInfo)anyObject(), (byte[])anyObject());
+      verify(storage, times(4)).create((BlobInfo)any(), (byte[])any());
     }
   }
 
   private void expectTable(BigQuery mockBigQuery) {
     Table mockTable = mock(Table.class);
-    when(mockBigQuery.getTable(anyObject())).thenReturn(mockTable);
+    when(mockBigQuery.getTable(any())).thenReturn(mockTable);
   }
 
   /**

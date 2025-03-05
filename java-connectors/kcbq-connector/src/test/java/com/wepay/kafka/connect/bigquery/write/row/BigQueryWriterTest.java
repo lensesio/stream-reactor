@@ -22,8 +22,7 @@ package com.wepay.kafka.connect.bigquery.write.row;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Matchers.anyObject;
+import static org.mockito.ArgumentMatchers.any; 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -89,7 +88,7 @@ public class BigQueryWriterTest {
     when(insertAllResponse.getInsertErrors()).thenReturn(Collections.emptyMap());
 
     //first attempt (success)
-    when(bigQuery.insertAll(anyObject()))
+    when(bigQuery.insertAll(any()))
             .thenReturn(insertAllResponse);
 
     SinkTaskContext sinkTaskContext = mock(SinkTaskContext.class);
@@ -107,7 +106,7 @@ public class BigQueryWriterTest {
         Collections.singletonList(spoofSinkRecord(topic, 0, 0, "some_field", "some_value")));
     testTask.flush(Collections.emptyMap());
 
-    verify(bigQuery, times(1)).insertAll(anyObject());
+    verify(bigQuery, times(1)).insertAll(any());
   }
 
   @Test
@@ -127,7 +126,7 @@ public class BigQueryWriterTest {
     BigQueryError error = new BigQueryError("notFound", "global", errorMessage);
     BigQueryException nonExistentTableException = new BigQueryException(404, errorMessage, error); 
 
-    when(bigQuery.insertAll(anyObject())).thenThrow(nonExistentTableException).thenReturn(insertAllResponse);
+    when(bigQuery.insertAll(any())).thenThrow(nonExistentTableException).thenReturn(insertAllResponse);
 
     SinkTaskContext sinkTaskContext = mock(SinkTaskContext.class);
 
@@ -143,8 +142,8 @@ public class BigQueryWriterTest {
             Collections.singletonList(spoofSinkRecord(topic, 0, 0, "some_field", "some_value")));
     testTask.flush(Collections.emptyMap());
 
-    verify(schemaManager, times(1)).createTable(anyObject(), anyObject());
-    verify(bigQuery, times(2)).insertAll(anyObject());
+    verify(schemaManager, times(1)).createTable(any(), any());
+    verify(bigQuery, times(2)).insertAll(any());
   }
 
   @Test(expected = BigQueryConnectException.class)
@@ -163,7 +162,7 @@ public class BigQueryWriterTest {
 
     BigQueryException missTableException = new BigQueryException(404, "Table is missing");
 
-    when(bigQuery.insertAll(anyObject())).thenThrow(missTableException).thenReturn(insertAllResponse);
+    when(bigQuery.insertAll(any())).thenThrow(missTableException).thenReturn(insertAllResponse);
 
     SinkTaskContext sinkTaskContext = mock(SinkTaskContext.class);
 
@@ -201,7 +200,7 @@ public class BigQueryWriterTest {
     when(bigQuery.getTable(any())).thenReturn(mockTable);
 
     //first attempt (partial failure); second attempt (success)
-    when(bigQuery.insertAll(anyObject()))
+    when(bigQuery.insertAll(any()))
         .thenReturn(insertAllResponseWithError)
         .thenReturn(insertAllResponseNoError);
 
@@ -255,7 +254,7 @@ public class BigQueryWriterTest {
     when(bigQuery.getTable(any())).thenReturn(mockTable);
 
     //first attempt (complete failure); second attempt (not expected)
-    when(bigQuery.insertAll(anyObject()))
+    when(bigQuery.insertAll(any()))
         .thenReturn(insertAllResponseWithError);
 
     List<SinkRecord> sinkRecordList = new ArrayList<>();
