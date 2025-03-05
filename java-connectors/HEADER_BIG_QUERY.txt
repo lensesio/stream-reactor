@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2020 Lenses.io Ltd
+ * Copyright 2017-$YEAR Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,27 +32,3 @@
   * specific language governing permissions and limitations
   * under the License.
   */
-package com.wepay.kafka.connect.bigquery.convert.logicaltype;
-
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-
-/**
- * Registry for finding and accessing {@link LogicalTypeConverter}s.
- */
-public class LogicalConverterRegistry {
-
-  private static Map<String, LogicalTypeConverter> converterMap = new ConcurrentHashMap<>();
-
-  public static void register(String logicalTypeName, LogicalTypeConverter converter) {
-    converterMap.put(logicalTypeName, converter);
-  }
-
-  public static LogicalTypeConverter getConverter(String logicalTypeName) {
-    return converterMap.get(logicalTypeName);
-  }
-
-  public static boolean isRegisteredLogicalType(String typeName) {
-    return typeName != null && converterMap.containsKey(typeName);
-  }
-}
