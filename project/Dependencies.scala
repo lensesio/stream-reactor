@@ -114,7 +114,7 @@ object Dependencies {
     val influxVersion = "7.2.0"
 
     val jmsApiVersion         = "3.1.0"
-    val activeMqVersion       = "6.1.4"
+    val activeMqVersion       = "6.1.6"
     val protocVersion         = "3.11.4"
     val googleProtobufVersion = "3.25.7"
 
