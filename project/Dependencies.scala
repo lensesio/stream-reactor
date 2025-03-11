@@ -130,7 +130,7 @@ object Dependencies {
 
     val minaVersion           = "2.2.3"
     val betterFilesVersion    = "3.9.2"
-    val ftpServerVersion      = "1.2.0"
+    val ftpServerVersion      = "1.2.1"
     val fakeSftpServerVersion = "2.0.0"
 
     val mongoDbVersion = "3.12.14"
