@@ -40,7 +40,7 @@ trait StorageInterface[SM <: FileMetadata] extends ResultProcessors {
 
   def close(): Unit
 
-  def pathExists(bucket: String, path: String): Either[FileLoadError, Boolean]
+  def pathExists(bucket: String, path: String): Either[PathError, Boolean]
 
   def list(
     bucket:     String,
@@ -78,7 +78,7 @@ trait StorageInterface[SM <: FileMetadata] extends ResultProcessors {
   ): Either[FileLoadError, ObjectWithETag[O]] =
     for {
       (s, eTag) <- getBlobAsStringAndEtag(bucket, path)
-      decoded   <- decode[O](s).leftMap(e => FileLoadError(e, path, isFileNotFound = false))
+      decoded   <- decode[O](s).leftMap(e => GeneralFileLoadError(e, path))
     } yield {
       ObjectWithETag[O](decoded, eTag)
     }
@@ -96,12 +96,7 @@ trait StorageInterface[SM <: FileMetadata] extends ResultProcessors {
 
   def getMetadata(bucket: String, path: String): Either[FileLoadError, ObjectMetadata]
 
-  def writeStringToFile(
-    bucket: String,
-    path:   String,
-    data:   UploadableString,
-    eTag:   Option[String] = None,
-  ): Either[UploadError, Unit]
+  def writeStringToFile(bucket: String, path: String, data: UploadableString): Either[UploadError, Unit]
 
   def deleteFiles(bucket: String, files: Seq[String]): Either[FileDeleteError, Unit]
 

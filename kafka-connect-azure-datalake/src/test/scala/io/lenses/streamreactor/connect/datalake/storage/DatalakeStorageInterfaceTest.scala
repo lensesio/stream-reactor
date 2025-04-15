@@ -33,10 +33,11 @@ import io.lenses.streamreactor.connect.cloud.common.storage.EmptyContentsStringE
 import io.lenses.streamreactor.connect.cloud.common.storage.FileCreateError
 import io.lenses.streamreactor.connect.cloud.common.storage.FileDeleteError
 import io.lenses.streamreactor.connect.cloud.common.storage.FileListError
-import io.lenses.streamreactor.connect.cloud.common.storage.FileLoadError
+import io.lenses.streamreactor.connect.cloud.common.storage.GeneralFileLoadError
 import io.lenses.streamreactor.connect.cloud.common.storage.FileMoveError
 import io.lenses.streamreactor.connect.cloud.common.storage.ListOfKeysResponse
 import io.lenses.streamreactor.connect.cloud.common.storage.NonExistingFileError
+import io.lenses.streamreactor.connect.cloud.common.storage.PathError
 import io.lenses.streamreactor.connect.cloud.common.storage.UploadFailedError
 import io.lenses.streamreactor.connect.cloud.common.storage.ZeroByteFileError
 import io.lenses.streamreactor.connect.datalake.storage.SamplePages.emptyPagedIterable
@@ -305,7 +306,7 @@ class DatalakeStorageInterfaceTest
     result should be(Right(false))
   }
 
-  "pathExists" should "return a Left(FileLoadError) if there is an exception" in {
+  "pathExists" should "return a Left(PathError) if there is an exception" in {
     val bucket = "test-bucket"
     val path   = "test-path"
 
@@ -316,7 +317,7 @@ class DatalakeStorageInterfaceTest
     val result = storageInterface.pathExists(bucket, path)
 
     result.isLeft should be(true)
-    result.left.getOrElse(throw new AssertionError("Expected Left")) should be(a[FileLoadError])
+    result.left.getOrElse(throw new AssertionError("Expected Left")) should be(a[PathError])
   }
 
   private def createTestFile = {
@@ -388,7 +389,7 @@ class DatalakeStorageInterfaceTest
     )
     val result = storageInterface.getBlobAsString(bucket, path)
 
-    result.left.value should be(a[FileLoadError])
+    result.left.value should be(a[GeneralFileLoadError])
   }
 
   "writeStringToFile" should "upload the data string to the specified path when successful" in {
@@ -486,13 +487,14 @@ class DatalakeStorageInterfaceTest
     val newPath   = "newPath"
 
     val fileClient = mock[DataLakeFileClient]
+    val response   = mock[Response[DataLakeFileClient]]
     when(client.getFileSystemClient(oldBucket).getFileClient(oldPath)).thenReturn(fileClient)
-    when(fileClient.rename(newBucket, newPath)).thenReturn(fileClient)
+    when(fileClient.renameWithResponse(eqTo(newBucket), eqTo(newPath), any, any, any, any)).thenReturn(response)
 
     val result = storageInterface.mvFile(oldBucket, oldPath, newBucket, newPath, none)
 
     result should be(Right(()))
-    verify(fileClient).rename(newBucket, newPath)
+    verify(fileClient).renameWithResponse(eqTo(newBucket), eqTo(newPath), any, any, any, any)
   }
 
   "mvFile" should "return a FileMoveError if rename fails" in {
@@ -503,13 +505,15 @@ class DatalakeStorageInterfaceTest
 
     val fileClient = mock[DataLakeFileClient]
     when(client.getFileSystemClient(oldBucket).getFileClient(oldPath)).thenReturn(fileClient)
-    when(fileClient.rename(newBucket, newPath)).thenThrow(new DataLakeStorageException("Rename failed", null, null))
+    when(fileClient.renameWithResponse(eqTo(newBucket), eqTo(newPath), any, any, any, any)).thenThrow(
+      new DataLakeStorageException("Rename failed", null, null),
+    )
 
     val result = storageInterface.mvFile(oldBucket, oldPath, newBucket, newPath, none)
 
     result.isLeft should be(true)
     result.left.value should be(a[FileMoveError])
-    verify(fileClient).rename(newBucket, newPath)
+    verify(fileClient).renameWithResponse(eqTo(newBucket), eqTo(newPath), any, any, any, any)
   }
 
   "mvFile" should "return a FileMoveError if the old file does not exist" in {

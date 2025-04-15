@@ -31,10 +31,13 @@ import io.lenses.streamreactor.connect.cloud.common.storage.FileCreateError
 import io.lenses.streamreactor.connect.cloud.common.storage.FileDeleteError
 import io.lenses.streamreactor.connect.cloud.common.storage.FileListError
 import io.lenses.streamreactor.connect.cloud.common.storage.FileLoadError
+import io.lenses.streamreactor.connect.cloud.common.storage.GeneralFileLoadError
 import io.lenses.streamreactor.connect.cloud.common.storage.FileMoveError
+import io.lenses.streamreactor.connect.cloud.common.storage.FileNotFoundError
 import io.lenses.streamreactor.connect.cloud.common.storage.ListOfKeysResponse
 import io.lenses.streamreactor.connect.cloud.common.storage.ListOfMetadataResponse
 import io.lenses.streamreactor.connect.cloud.common.storage.ListResponse
+import io.lenses.streamreactor.connect.cloud.common.storage.PathError
 import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
 import io.lenses.streamreactor.connect.cloud.common.storage.UploadError
 import io.lenses.streamreactor.connect.cloud.common.storage.UploadFailedError
@@ -165,7 +168,7 @@ class AwsS3StorageInterface(
     } yield eTag
   }
 
-  override def pathExists(bucket: String, path: String): Either[FileLoadError, Boolean] = {
+  override def pathExists(bucket: String, path: String): Either[PathError, Boolean] = {
 
     logger.debug(s"[{}] Path exists? {}:{}", connectorTaskId.show, bucket, path)
 
@@ -175,7 +178,7 @@ class AwsS3StorageInterface(
       ).keyCount().toInt,
     ).toEither match {
       case Left(_: NoSuchKeyException) => false.asRight
-      case Left(other) => FileLoadError(other, path, isFileNotFound = false).asLeft
+      case Left(other) => PathError(other, path).asLeft
       case Right(keyCount: Int) => (keyCount > 0).asRight
     }
   }
@@ -195,17 +198,17 @@ class AwsS3StorageInterface(
   override def getBlob(bucket: String, path: String): Either[FileLoadError, InputStream] =
     Try(getBlobInner(bucket, path)).toEither.leftMap {
       case noSuchKey: NoSuchKeyException =>
-        FileLoadError(noSuchKey, path, isFileNotFound = true)
+        FileNotFoundError(noSuchKey, path)
       case other =>
-        FileLoadError(other, path, isFileNotFound = false)
+        GeneralFileLoadError(other, path)
     }
 
-  def getBlobAndEtag(bucket: String, path: String): Either[FileLoadError, (InputStream, String)] =
+  private def getBlobAndEtag(bucket: String, path: String): Either[FileLoadError, (InputStream, String)] =
     Try(getBlobInner(bucket, path)).toEither.leftMap {
       case noSuchKey: NoSuchKeyException =>
-        FileLoadError(noSuchKey, path, isFileNotFound = true)
+        FileNotFoundError(noSuchKey, path)
       case other =>
-        FileLoadError(other, path, isFileNotFound = false)
+        GeneralFileLoadError(other, path)
     }.map(is => (is, is.response().eTag()))
 
   override def getMetadata(bucket: String, path: String): Either[FileLoadError, ObjectMetadata] =
@@ -221,9 +224,9 @@ class AwsS3StorageInterface(
       ObjectMetadata(response.contentLength(), response.lastModified())
     }.toEither.leftMap {
       case noSuchKey: NoSuchKeyException =>
-        FileLoadError(noSuchKey, path, isFileNotFound = true)
+        FileNotFoundError(noSuchKey, path)
       case other =>
-        FileLoadError(other, path, isFileNotFound = false)
+        GeneralFileLoadError(other, path)
     }
 
   override def close(): Unit = s3Client.close()
@@ -294,9 +297,9 @@ class AwsS3StorageInterface(
         IOUtils.toString(blob, Charset.forName("UTF-8")),
       ).toEither.leftMap {
         case noSuchKey: NoSuchKeyException =>
-          FileLoadError(noSuchKey, path, isFileNotFound = true)
+          FileNotFoundError(noSuchKey, path)
         case other =>
-          FileLoadError(other, path, isFileNotFound = false)
+          GeneralFileLoadError(other, path)
       }
     }
 
@@ -307,18 +310,13 @@ class AwsS3StorageInterface(
           (IOUtils.toString(blob, Charset.forName("UTF-8")), eTag),
         ).toEither.leftMap {
           case noSuchKey: NoSuchKeyException =>
-            FileLoadError(noSuchKey, path, isFileNotFound = true)
+            FileNotFoundError(noSuchKey, path)
           case other =>
-            FileLoadError(other, path, isFileNotFound = false)
+            GeneralFileLoadError(other, path)
         }
     }
 
-  override def writeStringToFile(
-    bucket: String,
-    path:   String,
-    data:   UploadableString,
-    eTag:   Option[String],
-  ): Either[UploadError, Unit] = {
+  override def writeStringToFile(bucket: String, path: String, data: UploadableString): Either[UploadError, Unit] = {
 
     logger.debug(s"[{}] Uploading file from string ({}) to s3 {}:{}", connectorTaskId.show, data.data, bucket, path)
 

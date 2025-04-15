@@ -179,7 +179,7 @@ class GCPStorageStorageInterfaceTest
 
     val result = storageInterface.pathExists(bucket, path)
 
-    result.left.value should be(a[FileLoadError])
+    result.left.value should be(a[PathError])
   }
 
   "getBlob" should "return the blob content as a stream when successful" in {
@@ -241,7 +241,7 @@ class GCPStorageStorageInterfaceTest
 
     val result = storageInterface.getBlobAsString(bucket, path)
 
-    result.left.value should be(a[FileLoadError])
+    result.left.value should be(a[GeneralFileLoadError])
   }
 
   "writeStringToFile" should "upload the data string to the specified path when successful" in {
@@ -377,7 +377,7 @@ class GCPStorageStorageInterfaceTest
     mockGetBlobInvocation(mockBlob)
 
     val result = storageInterface.getMetadata(bucket, path)
-    result.left.value should be(a[FileLoadError])
+    result.left.value should be(a[GeneralFileLoadError])
   }
 
   "listFileMetaRecursive" should "return a list of metadata when successful" in {

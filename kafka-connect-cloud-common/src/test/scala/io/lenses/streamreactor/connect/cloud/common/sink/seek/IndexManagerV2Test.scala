@@ -28,7 +28,7 @@ import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
 import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.deprecated.IndexManagerV1
-import io.lenses.streamreactor.connect.cloud.common.storage.FileLoadError
+import io.lenses.streamreactor.connect.cloud.common.storage.FileNotFoundError
 import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
 import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers.anyString
@@ -107,7 +107,7 @@ class IndexManagerV2Test
     when(oldIndexManager.seekOffsetsForTopicPartition(topicPartition)).thenReturn(Option.empty.asRight)
     when(bucketAndPrefixFn(topicPartition)).thenReturn(Right(bucketAndPrefix))
     when(storageInterface.getBlobAsObject[IndexFile](anyString(), anyString())(ArgumentMatchers.eq(indexFileDecoder)))
-      .thenReturn(Left(FileLoadError(new Exception("Not found"), path, isFileNotFound = true)))
+      .thenReturn(Left(FileNotFoundError(new Exception("Not found"), path)))
     when(
       storageInterface.writeBlobToFile[IndexFile](anyString(), anyString(), any[ObjectWithETag[IndexFile]])(
         ArgumentMatchers.eq(indexFileEncoder),

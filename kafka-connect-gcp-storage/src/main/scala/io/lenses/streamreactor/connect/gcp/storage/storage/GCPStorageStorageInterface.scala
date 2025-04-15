@@ -42,9 +42,12 @@ import io.lenses.streamreactor.connect.cloud.common.storage.FileCreateError
 import io.lenses.streamreactor.connect.cloud.common.storage.FileDeleteError
 import io.lenses.streamreactor.connect.cloud.common.storage.FileListError
 import io.lenses.streamreactor.connect.cloud.common.storage.FileLoadError
+import io.lenses.streamreactor.connect.cloud.common.storage.GeneralFileLoadError
 import io.lenses.streamreactor.connect.cloud.common.storage.FileMoveError
+import io.lenses.streamreactor.connect.cloud.common.storage.FileNotFoundError
 import io.lenses.streamreactor.connect.cloud.common.storage.ListOfKeysResponse
 import io.lenses.streamreactor.connect.cloud.common.storage.ListOfMetadataResponse
+import io.lenses.streamreactor.connect.cloud.common.storage.PathError
 import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
 import io.lenses.streamreactor.connect.cloud.common.storage.UploadError
 import io.lenses.streamreactor.connect.cloud.common.storage.UploadFailedError
@@ -77,11 +80,6 @@ class GCPStorageStorageInterface(
           storage.create(blobInfo, Files.readAllBytes(file.toPath))
         } else {
           storage.createFrom(blobInfo, file.toPath)
-          //Using(new FileInputStream(file)){
-          //  is =>  {
-          //    storage.createFrom(blobInfo, is)
-          //  }
-          //}(_.close())
         }
         logger.debug(s"[{}] Completed upload from local {} to Storage {}:{}",
                      connectorTaskId.show,
@@ -113,16 +111,16 @@ class GCPStorageStorageInterface(
       f(optiBlob)
     }.toEither.leftMap {
       case se: StorageException if se.getCode == 404 =>
-        FileLoadError(se, path, isFileNotFound = true)
+        FileNotFoundError(se, path)
       case other =>
-        FileLoadError(other, path, isFileNotFound = false)
+        GeneralFileLoadError(other, path)
     }
 
-  override def pathExists(bucket: String, path: String): Either[FileLoadError, Boolean] =
+  override def pathExists(bucket: String, path: String): Either[PathError, Boolean] =
     usingBlob[Boolean](bucket, path) {
       maybeBlob =>
         maybeBlob.nonEmpty && maybeBlob.exists(blob => blob.exists())
-    }
+    }.leftMap(fileLoadError => PathError(fileLoadError.exception, fileLoadError.fileName))
 
   override def getBlob(bucket: String, path: String): Either[FileLoadError, InputStream] =
     usingBlob[InputStream](bucket, path) {
@@ -149,12 +147,7 @@ class GCPStorageStorageInterface(
         throw new IllegalStateException("No/null blob found (file doesn't exist?)")
     }
 
-  override def writeStringToFile(
-    bucket:    String,
-    path:      String,
-    data:      UploadableString,
-    maybeEtag: Option[String],
-  ): Either[UploadError, Unit] = {
+  override def writeStringToFile(bucket: String, path: String, data: UploadableString): Either[UploadError, Unit] = {
     logger.debug(s"[{}] Uploading file from data string ({}) to Storage {}:{}",
                  connectorTaskId.show,
                  data,
@@ -166,13 +159,7 @@ class GCPStorageStorageInterface(
       _ <- Try {
         val blobId = BlobId.of(bucket, path)
         val blobInfo: BlobInfo = BlobInfo.newBuilder(blobId).build()
-        maybeEtag match {
-          case Some(eTag) =>
-            storage.create(blobInfo, content.getBytes, BlobTargetOption.generationMatch(eTag.toLong))
-
-          case None =>
-            storage.create(blobInfo, content.getBytes)
-        }
+        storage.create(blobInfo, content.getBytes)
         logger.debug(s"[{}] Completed upload from data string ({}) to Storage {}:{}",
                      connectorTaskId.show,
                      data,

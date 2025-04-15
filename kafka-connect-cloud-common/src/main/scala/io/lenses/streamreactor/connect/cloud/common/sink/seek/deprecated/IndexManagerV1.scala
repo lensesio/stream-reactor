@@ -27,6 +27,21 @@ import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexManagerErrors
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexManagerErrors.fileDeleteError
 import io.lenses.streamreactor.connect.cloud.common.storage._
 
+/**
+  * A class that implements the first version of the `IndexManager` for managing offsets
+  * in a cloud storage-backed Kafka Connect SinkTask. This implementation provides methods
+  * to seek offsets, clean up invalid indexes, and handle errors during these operations.
+  *
+  * This is provided to ensure that the sink can access previously stored versions of the
+  * indexing files.  This enables upgrading old versions of the indexing mechanism to the
+  * current version.  This functionality will be removed in the future.
+  *
+  * @param indexFilenames    An instance of `IndexFilenames` used to generate and parse index file names.
+  * @param bucketAndPrefixFn A function that maps a `TopicPartition` to an `Either` containing
+  *                          a `SinkError` or a `CloudLocation`.
+  * @param connectorTaskId   An implicit `ConnectorTaskId` representing the task's unique identifier.
+  * @param storageInterface  An implicit `StorageInterface` for interacting with cloud storage.
+  */
 class IndexManagerV1(
   indexFilenames:    IndexFilenames,
   bucketAndPrefixFn: TopicPartition => Either[SinkError, CloudLocation],
@@ -72,6 +87,14 @@ class IndexManagerV1(
     } yield offset
   }
 
+  /**
+    * Cleans up invalid index files and determines the most recent valid offset for a `TopicPartition`.
+    *
+    * @param topicPartition The `TopicPartition` being processed.
+    * @param bucket         The bucket containing the index files.
+    * @param indexes        A sequence of index file names to process.
+    * @return Either a `NonFatalCloudSinkError` on failure or an `Option[TopicPartitionOffset]` containing the valid offset.
+    */
   private def seekAndClean(
     topicPartition: TopicPartition,
     bucket:         String,
@@ -88,9 +111,15 @@ class IndexManagerV1(
     }
   }.leftMap(e => handleSeekAndCleanErrors(e))
 
+  /**
+    * Handles errors that occur during the seek and clean process.
+    *
+    * @param uploadError The `UploadError` encountered during the operation.
+    * @return A `NonFatalCloudSinkError` representing the error.
+    */
   def handleSeekAndCleanErrors(uploadError: UploadError): NonFatalCloudSinkError =
     uploadError match {
-      case err: FileLoadError =>
+      case err: GeneralFileLoadError =>
         val logLine = s"File load error while seeking: ${err.message()}"
         logger.error(s"[{}] {}", connectorTaskId.show, logLine, err.exception)
         NonFatalCloudSinkError(corruptStorageState(storageInterface.system()))
@@ -114,12 +143,12 @@ class IndexManagerV1(
   def scanIndexes(
     bucket:     String,
     indexFiles: Seq[String],
-  ): Either[FileLoadError, Option[String]] =
+  ): Either[UploadError, Option[String]] =
     indexFiles
       .foldRight(
-        Option.empty[String].asRight[FileLoadError],
+        Option.empty[String].asRight[UploadError],
       ) {
-        (idxFileName: String, result: Either[FileLoadError, Option[String]]) =>
+        (idxFileName: String, result: Either[UploadError, Option[String]]) =>
           result match {
             case Right(None) =>
               for {

@@ -62,11 +62,24 @@ case class FileDeleteError(exception: Throwable, fileName: String) extends Uploa
   override def toExceptionOption: Option[Throwable] = exception.some
 }
 
-case class FileLoadError(exception: Throwable, fileName: String, isFileNotFound: Boolean) extends UploadError {
-  override def message() = s"error loading file ($fileName) ${exception.getMessage}"
+case class PathError(exception: Throwable, pathName: String) extends UploadError {
+  override def message() = s"error loading file ($pathName) ${exception.getMessage}"
   def toException        = new RuntimeException(message(), exception)
   override def toExceptionOption: Option[Throwable] = exception.some
 }
+
+trait FileLoadError extends UploadError {
+  override def message() = s"error loading file ($fileName) ${exception.getMessage}"
+
+  val fileName:  String
+  val exception: Throwable
+  override def toExceptionOption: Option[Throwable] = exception.some
+  def toException = new RuntimeException(message(), exception)
+
+}
+
+case class GeneralFileLoadError(exception: Throwable, fileName: String) extends FileLoadError
+case class FileNotFoundError(exception: Throwable, fileName: String) extends FileLoadError
 
 case class FileNameParseError(exception: Throwable, fileName: String) extends UploadError {
   override def message() = s"error parsing file name ($fileName) ${exception.getMessage}"

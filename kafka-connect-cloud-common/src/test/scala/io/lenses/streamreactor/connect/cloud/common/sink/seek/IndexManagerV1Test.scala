@@ -99,7 +99,7 @@ class IndexManagerV1Test extends AnyFlatSpec with MockitoSugar with EitherValues
   }
 
   "scanIndexes" should "pass through failure from storageInterface" in {
-    val err = FileLoadError(new IllegalArgumentException(), "myfilename", false)
+    val err = GeneralFileLoadError(new IllegalArgumentException(), "myfilename")
     when(storageInterface.getBlobAsString(any[String], any[String])).thenReturn(err.asLeft)
 
     val existingIndexes = Seq(
@@ -117,7 +117,7 @@ class IndexManagerV1Test extends AnyFlatSpec with MockitoSugar with EitherValues
   }
 
   "handleSeekAndCleanErrors" should "handle FileLoadError correctly" in {
-    val fileLoadError = FileLoadError(new FileNotFoundException("what"), "noFile.txt", false)
+    val fileLoadError = GeneralFileLoadError(new FileNotFoundException("what"), "noFile.txt")
     val result        = indexManager.handleSeekAndCleanErrors(fileLoadError)
     result shouldBe a[NonFatalCloudSinkError]
     result.message should include("The TestaCloud storage state is corrupted.")
