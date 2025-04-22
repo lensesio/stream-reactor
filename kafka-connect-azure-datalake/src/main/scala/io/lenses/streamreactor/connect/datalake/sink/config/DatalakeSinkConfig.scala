@@ -61,6 +61,7 @@ object DatalakeSinkConfig extends PropsToConfigConverter[DatalakeSinkConfig] {
       s3ConfigDefBuilder.getRetryConfig,
       logMetrics,
       schemaChangeDetector,
+      skipNullValues = s3ConfigDefBuilder.skipNullValues(),
     )
 
 }
@@ -74,4 +75,5 @@ case class DatalakeSinkConfig(
   connectorRetryConfig: RetryConfig,
   logMetrics:           Boolean,
   schemaChangeDetector: SchemaChangeDetector,
+  skipNullValues:       Boolean,
 ) extends CloudSinkConfig[AzureConnectionConfig]

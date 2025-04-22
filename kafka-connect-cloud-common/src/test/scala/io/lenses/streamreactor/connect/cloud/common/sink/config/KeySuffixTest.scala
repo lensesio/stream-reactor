@@ -13,25 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.lenses.streamreactor.connect.gcp.storage.config
+package io.lenses.streamreactor.connect.cloud.common.sink.config
 
-import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.gcp.storage.sink.config.GCPStorageSinkConfigDef
+import io.lenses.streamreactor.connect.cloud.common.sink.config.kcqlprops.SinkPropsSchema
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-import scala.jdk.CollectionConverters.CollectionHasAsScala
+class KeySuffixTest extends AnyFlatSpec with Matchers {
 
-class GCPConfigSettingsTest extends AnyFlatSpec with Matchers with LazyLogging {
-
-  "GCPConfigSettings" should "ensure all sink keys are lower case" in {
-
-    val configKeys =
-      GCPStorageSinkConfigDef.config.configKeys().keySet().asScala
-
-    configKeys.size shouldBe 26
-    configKeys.foreach {
-      k => k.toLowerCase should be(k)
-    }
+  "KeySuffix" should "return None if the KCQL properties does not contain key.prefix" in {
+    KeySuffix.from(Map.empty, SinkPropsSchema.schema) should be(None)
   }
+
+  "KeySuffix" should "return the key.prefix value from the KCQL properties" in {
+    KeySuffix.from(Map("key.suffix" -> "suffix"), SinkPropsSchema.schema) should be(Some("suffix"))
+  }
+
 }

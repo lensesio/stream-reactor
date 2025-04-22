@@ -95,6 +95,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
             new OffsetFileNamer(
               identity[String],
               JsonFormatSelection.extension,
+              None,
             ),
             new PaddingService(Map[String, PaddingStrategy](
               "partition" -> NoOpPaddingStrategy,
@@ -112,6 +113,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
       connectorRetryConfig = new RetryConfig(1, 1L, 1.0),
       logMetrics           = false,
       schemaChangeDetector = schemaChangeDetector,
+      skipNullValues       = true,
     )
 
     val sink   = writerManagerCreator.from(config)._2
@@ -160,6 +162,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
             new OffsetFileNamer(
               identity[String],
               JsonFormatSelection.extension,
+              None,
             ),
             new PaddingService(Map[String, PaddingStrategy](
               "partition" -> NoOpPaddingStrategy,
@@ -177,6 +180,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
       connectorRetryConfig = new RetryConfig(1, 1L, 1.0),
       logMetrics           = false,
       schemaChangeDetector = schemaChangeDetector,
+      skipNullValues       = false,
     )
 
     val sink = writerManagerCreator.from(config)._2
@@ -229,6 +233,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
             new OffsetFileNamer(
               identity[String],
               JsonFormatSelection.extension,
+              None,
             ),
             new PaddingService(Map[String, PaddingStrategy](
               "partition" -> NoOpPaddingStrategy,
@@ -246,6 +251,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
       connectorRetryConfig = new RetryConfig(1, 1L, 1.0),
       logMetrics           = false,
       schemaChangeDetector = schemaChangeDetector,
+      skipNullValues       = true,
     )
 
     val sink = writerManagerCreator.from(config)._2
@@ -304,6 +310,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
             new OffsetFileNamer(
               identity[String],
               JsonFormatSelection.extension,
+              None,
             ),
             new PaddingService(Map[String, PaddingStrategy](
               "partition" -> NoOpPaddingStrategy,
@@ -321,6 +328,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
       connectorRetryConfig = new RetryConfig(1, 1L, 1.0),
       logMetrics           = false,
       schemaChangeDetector = schemaChangeDetector,
+      skipNullValues       = true,
     )
 
     val sink   = writerManagerCreator.from(config)._2

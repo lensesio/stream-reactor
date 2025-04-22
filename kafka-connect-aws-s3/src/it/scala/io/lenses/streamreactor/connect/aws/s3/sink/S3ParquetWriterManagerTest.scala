@@ -92,6 +92,7 @@ class S3ParquetWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyC
           new OffsetFileNamer(
             identity[String],
             ParquetFormatSelection.extension,
+            None,
           ),
           new PaddingService(Map[String, PaddingStrategy](
             "partition" -> NoOpPaddingStrategy,
@@ -110,6 +111,7 @@ class S3ParquetWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyC
     connectorRetryConfig = new RetryConfig(1, 1L, 1.0),
     logMetrics           = false,
     schemaChangeDetector = schemaChangeDetector,
+    skipNullValues       = true,
   )
 
   "parquet sink" should "write 2 records to parquet format in s3" in {

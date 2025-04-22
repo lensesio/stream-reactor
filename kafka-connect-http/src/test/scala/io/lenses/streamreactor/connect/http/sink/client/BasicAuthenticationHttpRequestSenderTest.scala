@@ -46,7 +46,7 @@ class BasicAuthenticationHttpRequestSenderTest extends AnyFunSuiteLike with Matc
     val userName = "user"
     val password = "password"
     val metrics  = new HttpSinkMetrics
-    MetricsRegistrar.registerMetricsMBean(metrics, sinkName)
+    MetricsRegistrar.registerMetricsMBean(metrics, sinkName, 1)
     val sender = new BasicAuthenticationHttpRequestSender(sinkName, method, client, userName, password, metrics)
     val template = ProcessedTemplate(
       "http://localhost:8080",
@@ -73,7 +73,7 @@ class BasicAuthenticationHttpRequestSenderTest extends AnyFunSuiteLike with Matc
     metrics.get5xxCount shouldBe 0
 
     val mbs        = ManagementFactory.getPlatformMBeanServer
-    val objectName = new ObjectName(MetricsRegistrar.NameTemplate.format(sinkName))
+    val objectName = new ObjectName(MetricsRegistrar.NameTemplate.format(sinkName, 1))
     val mbean      = mbs.getMBeanInfo(objectName)
     mbean.getAttributes.map(_.getName) should contain allElementsOf List("4xxCount",
                                                                          "5xxCount",
@@ -102,7 +102,7 @@ class BasicAuthenticationHttpRequestSenderTest extends AnyFunSuiteLike with Matc
     val userName = "user"
     val password = "password"
     val metrics  = new HttpSinkMetrics
-    MetricsRegistrar.registerMetricsMBean(metrics, sinkName)
+    MetricsRegistrar.registerMetricsMBean(metrics, sinkName, 1)
     val sender = new BasicAuthenticationHttpRequestSender(sinkName, method, client, userName, password, metrics)
     val template = ProcessedTemplate(
       "http://localhost:8080",
@@ -129,7 +129,7 @@ class BasicAuthenticationHttpRequestSenderTest extends AnyFunSuiteLike with Matc
     metrics.get5xxCount shouldBe 1
 
     val mbs        = ManagementFactory.getPlatformMBeanServer
-    val objectName = new ObjectName(MetricsRegistrar.NameTemplate.format(sinkName))
+    val objectName = new ObjectName(MetricsRegistrar.NameTemplate.format(sinkName, 1))
     val mbean      = mbs.getMBeanInfo(objectName)
     mbean.getAttributes.map(_.getName) should contain allElementsOf List("4xxCount",
                                                                          "5xxCount",
@@ -159,7 +159,7 @@ class BasicAuthenticationHttpRequestSenderTest extends AnyFunSuiteLike with Matc
     val userName = "user"
     val password = "password"
     val metrics  = new HttpSinkMetrics
-    MetricsRegistrar.registerMetricsMBean(metrics, sinkName)
+    MetricsRegistrar.registerMetricsMBean(metrics, sinkName, 1)
     val sender = new BasicAuthenticationHttpRequestSender(sinkName, method, client, userName, password, metrics)
     val template = ProcessedTemplate(
       "http://localhost:8080",
@@ -186,7 +186,7 @@ class BasicAuthenticationHttpRequestSenderTest extends AnyFunSuiteLike with Matc
     metrics.get5xxCount shouldBe 0
 
     val mbs        = ManagementFactory.getPlatformMBeanServer
-    val objectName = new ObjectName(MetricsRegistrar.NameTemplate.format(sinkName))
+    val objectName = new ObjectName(MetricsRegistrar.NameTemplate.format(sinkName, 1))
     val mbean      = mbs.getMBeanInfo(objectName)
     mbean.getAttributes.map(_.getName) should contain allElementsOf List("4xxCount",
                                                                          "5xxCount",

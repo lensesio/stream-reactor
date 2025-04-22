@@ -169,9 +169,12 @@ abstract class HttpRequestSender(
       _                    <- IO.delay(logger.debug(s"[$sinkName] Auth: $authenticatedRequest"))
       startTime            <- IO(System.nanoTime())
       response             <- executeRequestAndHandleErrors(authenticatedRequest)
-      durationMillis       <- IO((System.nanoTime() - startTime) / 1000000)
-      _                    <- IO(metrics.recordRequestTime(durationMillis))
-      _                    <- IO.delay(logger.trace(s"[$sinkName] Response: $response"))
+      //only record the request time if the request was successful
+      _ <- response.fold(
+        _ => IO.unit,
+        _ => IO(metrics.recordRequestTime((System.nanoTime() - startTime) / 1000000)),
+      )
+      _ <- IO.delay(logger.trace(s"[$sinkName] Response: $response"))
     } yield response
 
   implicit val optionStringDecoder: EntityDecoder[IO, Option[String]] =

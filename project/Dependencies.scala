@@ -231,6 +231,12 @@ object Dependencies {
   val confluentProtobufConverter: ModuleID =
     confluentExcludes("io.confluent" % "kafka-connect-protobuf-converter" % confluentVersion)
 
+  val confluentClientEncryption =
+    confluentExcludes("io.confluent" % "kafka-schema-registry-client-encryption" % confluentVersion)
+
+  val confluentSchemaRules =
+    confluentExcludes("io.confluent" % "kafka-schema-rules" % confluentVersion)
+
   val http4sDsl       = "org.http4s" %% "http4s-dsl"             % http4sVersion
   val http4sJdkClient = "org.http4s" %% "http4s-jdk-http-client" % http4sJdkVersion
   val http4sCirce     = "org.http4s" %% "http4s-circe"           % http4sVersion
@@ -477,6 +483,8 @@ trait Dependencies {
     confluentAvroConverter,
     confluentAvroData,
     confluentJsonSchemaSerializer,
+    confluentClientEncryption,
+    confluentSchemaRules,
   ) ++ enumeratum ++ circe
 
   val javaCommonDeps: Seq[ModuleID] = Seq(lombok, kafkaConnectJson, kafkaClients, cyclops, `cyclopsPure`)

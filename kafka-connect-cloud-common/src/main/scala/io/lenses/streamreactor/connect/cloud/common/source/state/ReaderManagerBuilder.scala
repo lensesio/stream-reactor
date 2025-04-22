@@ -74,7 +74,6 @@ object ReaderManagerBuilder extends LazyLogging {
           storageInterface,
           location,
           connectorTaskId,
-          adaptedSbo.postProcessAction,
         )
       }
       sourceFileQueue <- IO.fromEither(

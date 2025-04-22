@@ -62,6 +62,7 @@ class WriterManager[SM <: FileMetadata](
   writerIndexer:        WriterIndexer[SM],
   transformerF:         MessageDetail => Either[RuntimeException, MessageDetail],
   schemaChangeDetector: SchemaChangeDetector,
+  skipNullValues:       Boolean,
 )(
   implicit
   connectorTaskId:  ConnectorTaskId,
@@ -223,5 +224,7 @@ class WriterManager[SM <: FileMetadata](
       )
       .keys
       .foreach(writers.remove)
+
+  def shouldSkipNullValues() = skipNullValues
 
 }
