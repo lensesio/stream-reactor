@@ -39,6 +39,7 @@ object Dependencies {
     val scalatestVersion               = "3.2.19"
     val scalatestPlusScalaCheckVersion = "3.1.0.0-RC2"
     val scalaCheckVersion              = "1.18.1"
+    val javaFakerVersion               = "1.0.2"
 
     val mockitoJunitJupiterVersion = "5.14.2"
     val junitJupiterVersion        = "5.11.3"
@@ -189,10 +190,11 @@ object Dependencies {
   val scalatest = "org.scalatest" %% "scalatest" % scalatestVersion
   val scalatestPlusScalaCheck =
     "org.scalatestplus" %% "scalatestplus-scalacheck" % scalatestPlusScalaCheckVersion
-  val scalaCheck            = "org.scalacheck" %% "scalacheck"            % scalaCheckVersion
-  val `mockitoScala`        = "org.mockito"    %% "mockito-scala"         % mockitoScalaVersion
-  val `mockitoJava`         = "org.mockito"     % "mockito-inline"        % mockitoJavaVersion
-  val `mockitoJunitJupiter` = "org.mockito"     % "mockito-junit-jupiter" % mockitoJunitJupiterVersion
+  val scalaCheck            = "org.scalacheck"      %% "scalacheck"            % scalaCheckVersion
+  val `mockitoScala`        = "org.mockito"         %% "mockito-scala"         % mockitoScalaVersion
+  val `mockitoJava`         = "org.mockito"          % "mockito-inline"        % mockitoJavaVersion
+  val `mockitoJunitJupiter` = "org.mockito"          % "mockito-junit-jupiter" % mockitoJunitJupiterVersion
+  val `javaFaker`           = "com.github.javafaker" % "javafaker"             % javaFakerVersion exclude ("org.yaml", "snakeyaml")
 
   val `junitJupiter`       = "org.junit.jupiter" % "junit-jupiter-api"    % junitJupiterVersion
   val `junitJupiterParams` = "org.junit.jupiter" % "junit-jupiter-params" % junitJupiterVersion
@@ -542,7 +544,7 @@ trait Dependencies {
   val kafkaConnectGcpStorageTestDeps: Seq[ModuleID] =
     baseTestDeps ++ kafkaConnectGcpStorageDeps ++ compressionCodecDeps :+ testcontainersCore
 
-  val kafkaConnectS3TestDeps: Seq[ModuleID] = baseTestDeps ++ compressionCodecDeps :+ testcontainersCore
+  val kafkaConnectS3TestDeps: Seq[ModuleID] = baseTestDeps ++ compressionCodecDeps :+ testcontainersCore :+ `javaFaker`
 
   val kafkaConnectS3FuncTestDeps: Seq[ModuleID] = baseTestDeps ++ compressionCodecDeps :+ s3Sdk
 

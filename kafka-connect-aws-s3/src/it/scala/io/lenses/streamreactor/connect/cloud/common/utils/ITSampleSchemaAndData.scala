@@ -1,5 +1,6 @@
 package io.lenses.streamreactor.connect.cloud.common.utils
 
+import com.github.javafaker.Faker
 import io.lenses.streamreactor.connect.cloud.common.model.Topic
 import org.apache.avro.generic.GenericData
 import org.apache.avro.generic.GenericRecord
@@ -11,6 +12,8 @@ import org.scalatest.Assertion
 import org.scalatest.matchers.should.Matchers
 
 object ITSampleSchemaAndData extends Matchers {
+
+  private val faker = new Faker
 
   // TODO: Reuse these throughout all tests!
   val schema: Schema = SchemaBuilder.struct()
@@ -31,6 +34,12 @@ object ITSampleSchemaAndData extends Matchers {
     new Struct(schema).put("name", "wilson").put("title", "dog").put("salary", 395.44),
     new Struct(schema).put("name", "milson").put("title", "dog").put("salary", 395.44),
   )
+
+  def randomUser() =
+    new Struct(schema).put("name", faker.name().fullName()).put("title", faker.name().title()).put(
+      "salary",
+      faker.random().nextDouble(),
+    )
 
   val firstUsers: List[Struct] = users.slice(0, 3)
 
