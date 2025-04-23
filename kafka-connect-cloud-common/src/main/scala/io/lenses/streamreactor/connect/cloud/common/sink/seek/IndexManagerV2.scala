@@ -115,7 +115,7 @@ class IndexManagerV2(
       open: ObjectWithETag[IndexFile] <- tryOpen(bucketAndPrefix.bucket, path) match {
 
         case Left(FileNotFoundError(_, _)) =>
-          createNewIndexFile(topicPartition, path, bucketAndPrefix)
+          createNewIndexFileNoOverwrite(topicPartition, path, bucketAndPrefix)
 
         case Left(fileLoadError: FileLoadError) =>
           new FatalCloudSinkError(fileLoadError.message(), fileLoadError.toExceptionOption, topicPartition).asLeft[
@@ -166,14 +166,14 @@ class IndexManagerV2(
   }
 
   /**
-    * Creates a new index file for a topic partition.
+    * Creates a new index file for a topic partition based on a previous format index file, or an empty offset if none currently exists.  Will not overwrite an existing index file.
     *
     * @param topicPartition  The `TopicPartition` for which the index file is created.
     * @param path            The path to the index file.
     * @param bucketAndPrefix The cloud location for the index file.
     * @return An `Either` containing a `SinkError` on failure or the created `ObjectWithETag[IndexFile]` on success.
     */
-  private def createNewIndexFile(
+  private def createNewIndexFileNoOverwrite(
     topicPartition:  TopicPartition,
     path:            String,
     bucketAndPrefix: CloudLocation,

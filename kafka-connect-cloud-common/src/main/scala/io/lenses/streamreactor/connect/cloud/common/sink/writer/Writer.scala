@@ -42,6 +42,7 @@ import io.lenses.streamreactor.connect.cloud.common.storage._
 import org.apache.kafka.connect.data.Schema
 
 import java.io.File
+import java.util.UUID
 import scala.math.Ordered.orderingToOrdered
 import scala.util.Try
 
@@ -140,7 +141,10 @@ class Writer[SM <: FileMetadata](
         for {
           key         <- objectKeyBuilder.build(uncommittedOffset, earliestRecordTimestamp, latestRecordTimestamp)
           path        <- key.path.toRight(NonFatalCloudSinkError("No path exists within cloud location"))
-          tempFileName = path.prependedAll(s".temp-upload/${topicPartition.topic}/${topicPartition.partition}")
+          tempFileUuid = UUID.randomUUID().toString
+          tempFileName = path.prependedAll(
+            s".temp-upload/${topicPartition.topic}/${topicPartition.partition}/$tempFileUuid",
+          )
           pendingOperations = NonEmptyList.of[FileOperation](
             UploadOperation(key.bucket, file, tempFileName),
             CopyOperation(key.bucket, tempFileName, path, "placeholder"),
