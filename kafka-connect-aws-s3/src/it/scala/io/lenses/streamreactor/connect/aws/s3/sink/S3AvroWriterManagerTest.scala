@@ -106,14 +106,15 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
         dataStorage      = DataStorageSettings.disabled,
       ),
     ),
-    indexOptions         = IndexOptions(5, ".indexes").some,
-    compressionCodec     = compressionCodec,
-    batchDelete          = true,
-    errorPolicy          = ErrorPolicy(ErrorPolicyEnum.THROW),
-    connectorRetryConfig = new RetryConfig(1, 1L, 1.0),
-    logMetrics           = false,
-    schemaChangeDetector = schemaChangeDetector,
-    skipNullValues       = false,
+    indexOptions                = IndexOptions(5, ".indexes").some,
+    compressionCodec            = compressionCodec,
+    batchDelete                 = true,
+    errorPolicy                 = ErrorPolicy(ErrorPolicyEnum.THROW),
+    connectorRetryConfig        = new RetryConfig(1, 1L, 1.0),
+    logMetrics                  = false,
+    schemaChangeDetector        = schemaChangeDetector,
+    skipNullValues              = false,
+    latestSchemaForWriteEnabled = false,
   )
 
   "avro sink" should "write 2 records to avro format in s3" in {
