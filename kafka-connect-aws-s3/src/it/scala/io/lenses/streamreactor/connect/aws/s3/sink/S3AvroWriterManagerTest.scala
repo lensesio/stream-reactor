@@ -105,7 +105,7 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
         dataStorage      = DataStorageSettings.disabled,
       ),
     ),
-    indexOptions         = Option.empty,
+    indexOptions                = Option.empty,
     compressionCodec            = compressionCodec,
     batchDelete                 = true,
     errorPolicy                 = ErrorPolicy(ErrorPolicyEnum.THROW),

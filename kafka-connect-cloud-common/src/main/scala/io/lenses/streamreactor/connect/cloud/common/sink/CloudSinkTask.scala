@@ -73,7 +73,7 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
   private var logMetrics = false
   private var writerManager: WriterManager[MD] = _
   private var indexManager:  IndexManager      = _
-  private var config:            C                        = _
+  private var config:        C                 = _
   private val attachLatestSchemaOptimizer = new AttachLatestSchemaOptimizer()
   implicit var connectorTaskId: ConnectorTaskId = _
 
@@ -98,7 +98,7 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
       case (im, wm, c) =>
         indexManager  = im
         writerManager = wm
-        config            = c
+        config        = c
     }
   }
 
