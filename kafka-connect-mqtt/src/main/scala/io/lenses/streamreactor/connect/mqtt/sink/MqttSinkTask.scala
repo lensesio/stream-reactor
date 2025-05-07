@@ -15,7 +15,7 @@
  */
 package io.lenses.streamreactor.connect.mqtt.sink
 
-import io.lenses.streamreactor.common.converters.sink.Converter
+import com.typesafe.scalalogging.StrictLogging
 import io.lenses.streamreactor.common.errors.RetryErrorPolicy
 import io.lenses.streamreactor.common.util.AsciiArtPrinter.printAsciiHeader
 import io.lenses.streamreactor.common.utils.JarManifestProvided
@@ -23,19 +23,14 @@ import io.lenses.streamreactor.common.utils.ProgressCounter
 import io.lenses.streamreactor.connect.mqtt.config.MqttConfigConstants
 import io.lenses.streamreactor.connect.mqtt.config.MqttSinkConfig
 import io.lenses.streamreactor.connect.mqtt.config.MqttSinkSettings
-import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
-import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.connect.sink.SinkRecord
 import org.apache.kafka.connect.sink.SinkTask
 
 import java.util
 import scala.jdk.CollectionConverters.IterableHasAsScala
 import scala.jdk.CollectionConverters.MapHasAsScala
-import scala.util.Failure
-import scala.util.Success
-import scala.util.Try
 
 /**
   * Created by andrew@datamountaineer.com on 27/08/2017.
@@ -62,33 +57,18 @@ class MqttSinkTask extends SinkTask with StrictLogging with JarManifestProvided 
       case _                  =>
     }
 
-    val convertersMap = settings.sinksToConverters.map {
-      case (topic, clazz) =>
-        logger.info(s"Creating converter instance for $clazz and topic $topic")
-
-        if (clazz == null) {
-          topic -> null
-        } else {
-          val converter = Try(Class.forName(clazz).getDeclaredConstructor().newInstance()) match {
-            case Success(value) => value.asInstanceOf[Converter]
-            case Failure(_) =>
-              throw new ConfigException(
-                s"Invalid ${MqttConfigConstants.KCQL_CONFIG} is invalid. $clazz should have an empty ctor!",
-              )
-          }
-          converter.initialize(conf.asScala.toMap)
-          topic -> converter
-        }
-
-    }
-
-    writer = Some(MqttWriter(settings, convertersMap))
+    writer = Some(MqttWriter(settings))
   }
 
   override def put(records: util.Collection[SinkRecord]): Unit = {
     require(writer.nonEmpty, "Writer is not set!")
     val recs = records.asScala
-    writer.foreach(w => w.write(recs.toSet))
+    writer.foreach { w =>
+      w.write(recs) match {
+        case Left(error)  => throw error
+        case Right(value) => // success case, no action needed
+      }
+    }
 
     if (enableProgress) {
       progressCounter.update(recs.toVector)
