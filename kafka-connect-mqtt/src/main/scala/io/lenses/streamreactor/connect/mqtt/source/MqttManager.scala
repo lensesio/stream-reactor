@@ -101,7 +101,7 @@ class MqttManager(
       )
 
     val kafkaTopic = kcql.getTarget match {
-      case "$"   => topic.replaceFirst("/", "").replaceAll("/+", "_").replaceAll("/", "_")
+      case "$"   => topic.replaceFirst("^/", "").replaceAll("/+", "_").replaceAll("/", "_")
       case other => other
     }
 
