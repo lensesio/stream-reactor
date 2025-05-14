@@ -32,6 +32,7 @@ import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
 import io.lenses.streamreactor.connect.cloud.common.sink.conversion.HeaderToSinkDataConverter
 import io.lenses.streamreactor.connect.cloud.common.sink.conversion.NullSinkData
 import io.lenses.streamreactor.connect.cloud.common.sink.conversion.ValueToSinkDataConverter
+import io.lenses.streamreactor.connect.cloud.common.sink.optimization.AttachLatestSchemaOptimizer
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexManager
 import io.lenses.streamreactor.connect.cloud.common.sink.writer.WriterManager
 import io.lenses.streamreactor.connect.cloud.common.storage.FileMetadata
@@ -72,7 +73,8 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
   private var logMetrics = false
   private var writerManager:     WriterManager[MD]        = _
   private var maybeIndexManager: Option[IndexManager[MD]] = _
-
+  private var config:            C                        = _
+  private val attachLatestSchemaOptimizer = new AttachLatestSchemaOptimizer()
   implicit var connectorTaskId: ConnectorTaskId = _
 
   override def version(): String = manifest.getVersion()
@@ -93,9 +95,10 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
     val errOrWriterMan = createWriterMan(props)
 
     errOrWriterMan.leftMap(throw _).foreach {
-      case (mim, wm) =>
+      case (mim, wm, c) =>
         maybeIndexManager = mim
         writerManager     = wm
+        config            = c
     }
   }
 
@@ -152,7 +155,14 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
           // a failure in recommitPending will prevent the processing of further records
           handleErrors(writerManager.recommitPending())
 
-          records.asScala.foreach {
+          //check if the optimizer on schema is enabled
+          val updatedRecords: Iterable[SinkRecord] = if (config.latestSchemaForWriteEnabled) {
+            attachLatestSchemaOptimizer.update(records.asScala.toList)
+          } else {
+            records.asScala
+          }
+
+          updatedRecords.foreach {
             record =>
               val topicPartitionOffset =
                 Topic(record.topic).withPartition(record.kafkaPartition.intValue).withOffset(Offset(record.kafkaOffset))
@@ -292,7 +302,7 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
 
   private def createWriterMan(
     props: Map[String, String],
-  ): Either[Throwable, (Option[IndexManager[MD]], WriterManager[MD])] =
+  ): Either[Throwable, (Option[IndexManager[MD]], WriterManager[MD], C)] =
     for {
       config          <- convertPropsToConfig(connectorTaskId, props)
       s3Client        <- createClient(config.connectionConfig)
@@ -304,7 +314,7 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
       _ <- initializeFromConfig(config)
     } yield {
       logMetrics = config.logMetrics
-      (maybeIndexManager, writerManager)
+      (maybeIndexManager, writerManager, config)
     }
 
   private def initializeFromConfig(config: C): Either[Throwable, Unit] =

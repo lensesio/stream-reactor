@@ -351,7 +351,7 @@ class HttpWriterManager(
       // Log if there are no writers
       _ <- IO.whenA(writers.isEmpty) {
         IO.delay(
-          logger.info(
+          logger.trace(
             s"[$sinkName] HttpWriterManager has no writers. " +
               "Perhaps no records have been put to the sink yet.",
           ),
