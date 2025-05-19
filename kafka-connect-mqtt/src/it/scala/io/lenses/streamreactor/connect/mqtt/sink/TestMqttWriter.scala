@@ -16,14 +16,21 @@
 
 package io.lenses.streamreactor.connect.mqtt.sink
 
-import com.dimafeng.testcontainers.{ForEachTestContainer, GenericContainer}
+import com.dimafeng.testcontainers.ForEachTestContainer
+import com.dimafeng.testcontainers.GenericContainer
 import com.typesafe.scalalogging.StrictLogging
-import io.lenses.streamreactor.connect.mqtt.config.{MqttConfigConstants, MqttSinkConfig, MqttSinkSettings}
-import org.apache.avro.generic.{GenericData, GenericDatumWriter, GenericRecord}
+import io.lenses.streamreactor.connect.mqtt.config.MqttConfigConstants
+import io.lenses.streamreactor.connect.mqtt.config.MqttSinkConfig
+import io.lenses.streamreactor.connect.mqtt.config.MqttSinkSettings
+import org.apache.avro.generic.GenericData
+import org.apache.avro.generic.GenericDatumWriter
+import org.apache.avro.generic.GenericRecord
 import org.apache.avro.io.EncoderFactory
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.record.TimestampType
-import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
+import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.data.SchemaBuilder
+import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.sink.SinkRecord
 import org.eclipse.paho.client.mqttv3._
 import org.eclipse.paho.client.mqttv3.persist.MqttDefaultFilePersistence
