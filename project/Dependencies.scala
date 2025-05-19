@@ -74,7 +74,7 @@ object Dependencies {
 
     val dnsJavaVersion  = "3.6.2"
     val wiremockVersion = "3.10.0"
-    val parquetVersion  = "1.14.4"
+    val parquetVersion  = "1.15.2"
 
     val jerseyCommonVersion = "3.1.9"
 
@@ -101,7 +101,7 @@ object Dependencies {
     val lz4Version = "1.8.0"
 
     val bouncyCastleVersion = "1.79"
-    val nettyVersion        = "4.1.115.Final"
+    val nettyVersion        = "4.1.121.Final"
 
     val cassandraDriverVersion = "3.11.5"
     val jsonPathVersion        = "2.9.0"
