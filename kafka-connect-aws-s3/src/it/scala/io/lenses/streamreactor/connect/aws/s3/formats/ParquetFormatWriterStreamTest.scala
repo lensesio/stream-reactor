@@ -25,9 +25,11 @@ import io.lenses.streamreactor.connect.cloud.common.utils.SampleData.topic
 import io.lenses.streamreactor.connect.cloud.common.config.ParquetFormatSelection
 import io.lenses.streamreactor.connect.cloud.common.formats.reader.ParquetFormatReader
 import io.lenses.streamreactor.connect.cloud.common.formats.writer._
+import io.lenses.streamreactor.connect.cloud.common.formats.writer.schema.DefaultSchemaChangeDetector
 import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodec
 import io.lenses.streamreactor.connect.cloud.common.model.Offset
 import io.lenses.streamreactor.connect.cloud.common.model.Topic
+import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
 import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodecName.BROTLI
 import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodecName.LZ4
 import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodecName.LZO
@@ -37,7 +39,9 @@ import io.lenses.streamreactor.connect.cloud.common.sink.conversion.ArraySinkDat
 import io.lenses.streamreactor.connect.cloud.common.sink.conversion.MapSinkData
 import io.lenses.streamreactor.connect.cloud.common.sink.conversion.NullSinkData
 import io.lenses.streamreactor.connect.cloud.common.sink.conversion.StructSinkData
+import io.lenses.streamreactor.connect.cloud.common.sink.conversion.ToAvroDataConverter
 import io.lenses.streamreactor.connect.cloud.common.stream.BuildLocalOutputStream
+import org.apache.avro
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaBuilder
 import org.scalatest.EitherValues
@@ -56,14 +60,17 @@ class ParquetFormatWriterStreamTest
 
   implicit val compressionCodec: CompressionCodec = UNCOMPRESSED.toCodec()
 
+  val schemaChangeDetector: DefaultSchemaChangeDetector.type = DefaultSchemaChangeDetector
   val parquetFormatReader = new ParquetFormatReader()
+  val avroSchema:     avro.Schema    = ToAvroDataConverter.convertSchema(users.head.schema())
+  val topicPartition: TopicPartition = Topic("testTopic").withPartition(1)
 
   "convert" should "write byte output stream with json for a single record" in {
 
     implicit val compressionCodec: CompressionCodec = UNCOMPRESSED.toCodec()
-
-    val blobStream          = new BuildLocalOutputStream(toBufferedOutputStream(localFile), Topic("testTopic").withPartition(1))
-    val parquetFormatWriter = new ParquetFormatWriter(blobStream)
+    val blobStream = new BuildLocalOutputStream(toBufferedOutputStream(localFile), topicPartition)
+    val parquetFormatWriter =
+      new ParquetFormatWriter(blobStream)(compressionCodec)
     parquetFormatWriter.write(MessageDetail(NullSinkData(None),
                                             StructSinkData(users.head),
                                             Map.empty,
@@ -112,8 +119,9 @@ class ParquetFormatWriterStreamTest
 
   "convert" should "throw an error when writing array without schema" in {
 
-    val blobStream          = new BuildLocalOutputStream(toBufferedOutputStream(localFile), Topic("testTopic").withPartition(1))
-    val parquetFormatWriter = new ParquetFormatWriter(blobStream)
+    val blobStream = new BuildLocalOutputStream(toBufferedOutputStream(localFile), topicPartition)
+    val parquetFormatWriter =
+      new ParquetFormatWriter(blobStream)(compressionCodec)
     parquetFormatWriter.write(
       MessageDetail(
         NullSinkData(None),
@@ -137,8 +145,9 @@ class ParquetFormatWriterStreamTest
 
     val mapSchema = SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.INT32_SCHEMA)
 
-    val blobStream          = new BuildLocalOutputStream(toBufferedOutputStream(localFile), Topic("testTopic").withPartition(1))
-    val parquetFormatWriter = new ParquetFormatWriter(blobStream)
+    val blobStream          = new BuildLocalOutputStream(toBufferedOutputStream(localFile), topicPartition)
+    val parquetFormatWriter = new ParquetFormatWriter(blobStream)(compressionCodec)
+
     parquetFormatWriter.write(
       MessageDetail(
         NullSinkData(None),
@@ -189,9 +198,10 @@ class ParquetFormatWriterStreamTest
   }
 
   private def writeToParquetFile(implicit compressionCodec: CompressionCodec) = {
-    val blobStream = new BuildLocalOutputStream(toBufferedOutputStream(localFile), Topic("testTopic").withPartition(1))
+    val blobStream = new BuildLocalOutputStream(toBufferedOutputStream(localFile), topicPartition)
 
-    val parquetFormatWriter = new ParquetFormatWriter(blobStream)
+    val parquetFormatWriter =
+      new ParquetFormatWriter(blobStream)(compressionCodec)
     firstUsers.foreach(u =>
       parquetFormatWriter.write(MessageDetail(NullSinkData(None),
                                               StructSinkData(u),

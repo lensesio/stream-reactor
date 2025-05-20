@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2024 Lenses.io Ltd
+ * Copyright 2017-2025 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,10 +15,12 @@
  */
 package io.lenses.streamreactor.connect.cloud.common.source.config
 
+import cats.implicits.catsSyntaxEitherId
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEntry
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.PostProcessActionBucket
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.PostProcessActionPrefix
+import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.PostProcessActionRetain
 import io.lenses.streamreactor.connect.cloud.common.source.config.kcqlprops.PostProcessActionEntry
 import io.lenses.streamreactor.connect.cloud.common.source.config.kcqlprops.PostProcessActionEnum
 import io.lenses.streamreactor.connect.cloud.common.source.config.kcqlprops.PostProcessActionEnum.Delete
@@ -40,6 +42,7 @@ class PostProcessActionTest extends AnyFlatSpec with Matchers with EitherValues 
       ),
     )
       .thenReturn(Some(Delete))
+    when(kcqlProperties.getBooleanOrDefault(PostProcessActionRetain, default = false)).thenReturn(true.asRight)
 
     val result = PostProcessAction(Option.empty, kcqlProperties)
 
@@ -54,6 +57,7 @@ class PostProcessActionTest extends AnyFlatSpec with Matchers with EitherValues 
       ),
     )
       .thenReturn(Some(Move))
+    when(kcqlProperties.getBooleanOrDefault(PostProcessActionRetain, default = false)).thenReturn(true.asRight)
     when(kcqlProperties.getString(PostProcessActionPrefix)).thenReturn(Some("some/prefix"))
     when(kcqlProperties.getString(PostProcessActionBucket)).thenReturn(Some("myNewBucket"))
 
@@ -109,4 +113,26 @@ class PostProcessActionTest extends AnyFlatSpec with Matchers with EitherValues 
 
     result.value shouldBe None
   }
+
+  it should "drop the last character if it is a slash" in {
+    PostProcessAction.dropEndSlash("some/prefix/") shouldBe "some/prefix"
+
+    val kcqlProperties = mock[KcqlProperties[PropsKeyEntry, PropsKeyEnum.type]]
+    when(
+      kcqlProperties.getEnumValue[PostProcessActionEntry, PostProcessActionEnum.type](PostProcessActionEnum,
+                                                                                      PropsKeyEnum.PostProcessAction,
+      ),
+    )
+      .thenReturn(Some(Move))
+    when(kcqlProperties.getBooleanOrDefault(PostProcessActionRetain, default = false)).thenReturn(true.asRight)
+    when(kcqlProperties.getString(PostProcessActionPrefix)).thenReturn(Some("some/prefix/"))
+    when(kcqlProperties.getString(PostProcessActionBucket)).thenReturn(Some("myNewBucket/"))
+
+    val result = PostProcessAction(Option.empty, kcqlProperties)
+
+    result.value.value shouldBe a[MovePostProcessAction]
+    result.value.value.asInstanceOf[MovePostProcessAction].newPrefix shouldBe "some/prefix"
+    result.value.value.asInstanceOf[MovePostProcessAction].newBucket shouldBe "myNewBucket"
+  }
+
 }

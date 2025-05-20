@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2024 Lenses.io Ltd
+ * Copyright 2017-2025 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -39,6 +39,7 @@ object SinkPropsSchema {
     FlushCount            -> LongPropsSchema,
     FlushSize             -> LongPropsSchema,
     FlushInterval         -> IntPropsSchema,
+    KeySuffix             -> StringPropsSchema,
   )
 
   val schema: KcqlPropsSchema[PropsKeyEntry, PropsKeyEnum.type] =

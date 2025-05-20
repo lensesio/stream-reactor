@@ -1,0 +1,55 @@
+@startuml
+title Locking and Offset Management Process (with progressive pendingOperation updates)
+
+actor "Kafka Connect Task" as Task
+participant "S3/GCP Storage" as Storage
+participant "Lock File (lockfile_topic_partition.json)" as LockFile
+
+== Step 0: Initialization ==
+Task -> Task : Create unique task UUID for topic/partition combination
+Task -> LockFile : Check if lockfile_topic_partition.json exists
+
+alt Lockfile does not exist
+    Task -> LockFile : Create new lockfile_topic_partition.json
+    Task -> Task : Proceed with processing from committedOffset = 0
+else Lockfile exists
+    Task -> Task : Load existing lockfile JSON
+    Task -> Task : Extract committedOffset and pendingOperations
+
+    alt pendingOperations exist
+        loop For each operation in pendingOperations
+            Task -> Task : Process operation (upload, copy, delete)
+            Task -> LockFile : Remove completed operation from pendingOperations
+        end
+    else No pending operations
+        Task -> Task : Seek to committedOffset, continue processing
+    end
+end
+
+== Step 2: Process and Write Records ==
+Task -> Task : Write records to local file
+Task -> Task : Finished writing local_file_uuid[100,5000]
+
+== Step 3: Upload File to S3 ==
+Task -> Storage : Upload local_file_uuid[100,5000] to S3
+Task -> LockFile : Add "upload" to pendingOperations in lockfile
+
+== Step 4: Validate Offset Consistency ==
+Task -> LockFile : Read current lockfile_topic_partition.json
+Task -> Task : Ensure committedOffset (100) matches start offset of uploaded file (100)
+
+alt Offset matches
+    == Step 5: Finalize Uploaded File ==
+    Task -> LockFile : Add "copy" and "delete" to pendingOperations
+    Task -> Storage : Copy local_file_uuid[100,5000]_on_s3 to topic_partition_5000
+    Task -> LockFile : Remove "copy" from pendingOperations
+    Task -> Storage : Delete local_file_uuid[100,5000]_on_s3
+    Task -> LockFile : Remove "delete" from pendingOperations
+    Task -> LockFile : Update committedOffset = 5000
+    Task -> LockFile : Set pendingState = null
+    Task -> Task : Continue processing
+else Offset mismatch
+    Task -> Task : Abort update, discard local file
+end
+
+@enduml

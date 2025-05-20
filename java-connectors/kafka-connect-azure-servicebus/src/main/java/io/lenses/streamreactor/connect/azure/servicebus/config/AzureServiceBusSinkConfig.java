@@ -48,7 +48,7 @@ public class AzureServiceBusSinkConfig extends BaseConfig implements ConnectorPr
                 Width.LONG,
                 AzureServiceBusConfigConstants.CONNECTOR_NAME
             ).define(AzureServiceBusConfigConstants.CONNECTION_STRING,
-                Type.STRING,
+                Type.PASSWORD,
                 Importance.HIGH,
                 AzureServiceBusConfigConstants.CONNECTION_STRING_DOC,
                 CONNECTION_GROUP,

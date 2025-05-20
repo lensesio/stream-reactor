@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2024 Lenses.io Ltd
+ * Copyright 2017-2025 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -44,8 +44,16 @@ case object FatalCloudSinkError {
 
 }
 
-// Can be retried
-case class NonFatalCloudSinkError(message: String, exception: Option[Throwable]) extends SinkError {
+/**
+  * Represents a non-fatal error that occurred in the cloud sink.
+  * Non-fatal errors can be retried and do not require a rollback.
+  *
+  * @param message       A descriptive message about the error.
+  * @param exception     An optional exception associated with the error.
+  * @param cancelPending A flag indicating whether pending operations should be canceled. Defaults to `false`.  An example of a scenario where you would want to cancel pending operations is if a local file is not found and dependant operations can not be executed.  In this case, the offsets will be rolled back to the last committed and the connector will continue from there.
+  */
+case class NonFatalCloudSinkError(message: String, exception: Option[Throwable], cancelPending: Boolean = false)
+    extends SinkError {
 
   override def rollBack(): Boolean = false
 

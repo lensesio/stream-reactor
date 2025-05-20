@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2024 Lenses.io Ltd
+ * Copyright 2017-2025 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -48,6 +48,25 @@ trait CloudSourceSettingsKeys extends WithConnectorPrefix {
   private val SOURCE_EXTENSION_INCLUDES_DOC: String =
     "Comma-separated list of file extensions to include in the source file search. If not configured, all files are considered. When used in conjunction with 'source.extension.excludes', files must match the includes list and not match the excludes list to be considered."
   private val SOURCE_EXTENSION_INCLUDES_DEFAULT: String = null
+
+  protected val WRITE_WATERMARK_TO_HEADERS: String = s"$connectorPrefix.source.write.watermark.headers"
+  private val WRITE_WATERMARK_TO_HEADERS_DOC: String =
+    "When outputting source records, include the watermark in the headers of the source record"
+  private val WRITE_WATERMARK_TO_HEADERS_DEFAULT: Boolean = false
+
+  def addSourceWatermarkSettings(configDef: ConfigDef): ConfigDef =
+    configDef
+      .define(
+        WRITE_WATERMARK_TO_HEADERS,
+        Type.BOOLEAN,
+        WRITE_WATERMARK_TO_HEADERS_DEFAULT,
+        Importance.LOW,
+        WRITE_WATERMARK_TO_HEADERS_DOC,
+        "Source Headers",
+        1,
+        ConfigDef.Width.SHORT,
+        WRITE_WATERMARK_TO_HEADERS,
+      )
 
   /**
     * Adds source filtering settings to the provided ConfigDef.
@@ -152,6 +171,56 @@ trait CloudSourceSettingsKeys extends WithConnectorPrefix {
   val SOURCE_ORDERING_TYPE:                 String = s"$connectorPrefix.ordering.type"
   private val SOURCE_ORDERING_TYPE_DOC:     String = "AlphaNumeric (the default)"
   private val SOURCE_ORDERING_TYPE_DEFAULT: String = "AlphaNumeric"
+
+  val SOURCE_EMPTY_RESULTS_BACKOFF_INITIAL_DELAY: String =
+    s"$connectorPrefix.source.empty.results.backoff.initial.delay"
+  private val SOURCE_EMPTY_RESULTS_BACKOFF_INITIAL_DELAY_DOC: String =
+    "Initial delay in milliseconds before retrying when no results are found."
+  val SOURCE_EMPTY_RESULTS_BACKOFF_INITIAL_DELAY_DEFAULT: Long = 1000
+
+  val SOURCE_EMPTY_RESULTS_BACKOFF_MAX_DELAY: String = s"$connectorPrefix.source.empty.results.backoff.max.delay"
+  private val SOURCE_EMPTY_RESULTS_BACKOFF_MAX_DELAY_DOC: String =
+    "Maximum delay in milliseconds before retrying when no results are found."
+  val SOURCE_EMPTY_RESULTS_BACKOFF_MAX_DELAY_DEFAULT: Long = 10000
+
+  val SOURCE_EMPTY_RESULTS_BACKOFF_MULTIPLIER: String = s"$connectorPrefix.source.empty.results.backoff.multiplier"
+  private val SOURCE_EMPTY_RESULTS_BACKOFF_MULTIPLIER_DOC: String =
+    "Multiplier to apply to the delay when retrying when no results are found."
+  val SOURCE_EMPTY_RESULTS_BACKOFF_MULTIPLIER_DEFAULT = 2.0
+
+  def addSourceEmptyResultsBackoffSettings(configDef: ConfigDef): ConfigDef = configDef.define(
+    SOURCE_EMPTY_RESULTS_BACKOFF_INITIAL_DELAY,
+    Type.LONG,
+    SOURCE_EMPTY_RESULTS_BACKOFF_INITIAL_DELAY_DEFAULT,
+    Importance.LOW,
+    SOURCE_EMPTY_RESULTS_BACKOFF_INITIAL_DELAY_DOC,
+    "Source",
+    7,
+    ConfigDef.Width.MEDIUM,
+    SOURCE_EMPTY_RESULTS_BACKOFF_INITIAL_DELAY,
+  )
+    .define(
+      SOURCE_EMPTY_RESULTS_BACKOFF_MAX_DELAY,
+      Type.LONG,
+      SOURCE_EMPTY_RESULTS_BACKOFF_MAX_DELAY_DEFAULT.toLong,
+      Importance.LOW,
+      SOURCE_EMPTY_RESULTS_BACKOFF_MAX_DELAY_DOC,
+      "Source",
+      8,
+      ConfigDef.Width.MEDIUM,
+      SOURCE_EMPTY_RESULTS_BACKOFF_MAX_DELAY,
+    )
+    .define(
+      SOURCE_EMPTY_RESULTS_BACKOFF_MULTIPLIER,
+      Type.DOUBLE,
+      SOURCE_EMPTY_RESULTS_BACKOFF_MULTIPLIER_DEFAULT,
+      Importance.LOW,
+      SOURCE_EMPTY_RESULTS_BACKOFF_MULTIPLIER_DOC,
+      "Source",
+      9,
+      ConfigDef.Width.MEDIUM,
+      SOURCE_EMPTY_RESULTS_BACKOFF_MULTIPLIER,
+    )
 
   def addSourcePartitionExtractorSettings(configDef: ConfigDef): ConfigDef = configDef.define(
     SOURCE_PARTITION_EXTRACTOR_TYPE,

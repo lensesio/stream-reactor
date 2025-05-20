@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2024 Lenses.io Ltd
+ * Copyright 2017-2025 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -100,10 +100,7 @@ class MqttManager(
         ),
       )
 
-    val kafkaTopic = kcql.getTarget match {
-      case "$"   => topic.replaceFirst("/", "").replaceAll("/+", "_").replaceAll("/", "_")
-      case other => other
-    }
+    val kafkaTopic = MqttManager.replaceSlashes(kcql, topic)
 
     val converter = convertersMap.getOrElse(
       wildcard,
@@ -172,4 +169,12 @@ class MqttManager(
       logger.warn(s"Resubscribed to topic $topic with QoS $qos")
     else logger.info(s"Subscribed to topic $topic with QoS $qos")
   }
+}
+
+object MqttManager {
+  def replaceSlashes(kcql: Kcql, topic: String): String =
+    kcql.getTarget match {
+      case "$"   => topic.replaceFirst("^/", "").replaceAll("/+", "_").replaceAll("/", "_")
+      case other => other
+    }
 }

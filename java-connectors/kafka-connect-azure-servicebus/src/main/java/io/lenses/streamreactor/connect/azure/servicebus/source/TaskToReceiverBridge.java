@@ -23,6 +23,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.stream.Collectors;
 
+import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.connect.source.SourceRecord;
 
 import lombok.AllArgsConstructor;
@@ -34,24 +35,23 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class TaskToReceiverBridge {
 
-  private static final int INITIAL_RECORDS_TO_COMMIT_SIZE = 500;
+  private static final int INITIAL_RECORDS_TO_COMMIT_SIZE = 1000;
+  private final int recordsQueueSize;
   private final BlockingQueue<ServiceBusMessageHolder> recordsQueue;
-  private final ExecutorService sentMessagesExecutors;
   private final Map<String, ServiceBusReceiverFacade> receivers;
   private final Map<String, ServiceBusMessageHolder> recordsToCommitMap;
 
   /**
    * Creates Bridge between Receivers and Connector's Task for Azure Service Bus.
    *
-   * @param recordsQueue          records queue used to store received messages.
-   * @param receivers             map of {@link ServiceBusReceiverFacade} receivers.
-   * @param sentMessagesExecutors {@link ExecutorService} that handles sent messages.
+   * @param recordsQueue records queue used to store received messages.
+   * @param receivers    map of {@link ServiceBusReceiverFacade} receivers.
+   * 
    */
   TaskToReceiverBridge(BlockingQueue<ServiceBusMessageHolder> recordsQueue,
-      Map<String, ServiceBusReceiverFacade> receivers,
-      ExecutorService sentMessagesExecutors) {
+      Map<String, ServiceBusReceiverFacade> receivers) {
+    this.recordsQueueSize = recordsQueue.size();
     this.recordsQueue = recordsQueue;
-    this.sentMessagesExecutors = sentMessagesExecutors;
     this.receivers = receivers;
     recordsToCommitMap = new ConcurrentHashMap<>(INITIAL_RECORDS_TO_COMMIT_SIZE);
   }
@@ -69,8 +69,7 @@ public class TaskToReceiverBridge {
    * @return List of {@link SourceRecord} or empty list if no new messages received.
    */
   public List<SourceRecord> poll() {
-    List<ServiceBusMessageHolder> recordsFromQueue = new ArrayList<>(recordsQueue.size());
-
+    List<ServiceBusMessageHolder> recordsFromQueue = new ArrayList<>(recordsQueueSize);
     recordsQueue.drainTo(recordsFromQueue);
 
     return recordsFromQueue.stream()
@@ -80,20 +79,15 @@ public class TaskToReceiverBridge {
         }).collect(Collectors.toList());
   }
 
-  void commitRecordInServiceBus(SourceRecord sourceRecord) {
-    String messageId = (String) sourceRecord.key();
-    sentMessagesExecutors.submit(new SentMessagesHandler(recordsToCommitMap.get(messageId)));
+  void commitRecordInServiceBus(SourceRecord sourceRecord, RecordMetadata metadata) {
+    final String messageId = (String) sourceRecord.key();
+    final ServiceBusMessageHolder holder = recordsToCommitMap.get(messageId);
+    final ServiceBusReceiverFacade facade = receivers.get(holder.getReceiverId());
+
+    log.trace("Acknowledging record topic {} partition {} offset {} messageId {}", sourceRecord.topic(), metadata
+        .partition(),
+        metadata.offset(), holder.getOriginalRecord().getMessageId());
+    facade.complete(holder.getOriginalRecord());
     recordsToCommitMap.remove(messageId);
-  }
-
-  @AllArgsConstructor
-  private class SentMessagesHandler implements Runnable {
-
-    private final ServiceBusMessageHolder sentMessage;
-
-    @Override
-    public void run() {
-      receivers.get(sentMessage.getReceiverId()).complete(sentMessage.getOriginalRecord());
-    }
   }
 }

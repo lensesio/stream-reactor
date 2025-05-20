@@ -59,7 +59,7 @@ public class AzureServiceBusSourceConfig extends BaseConfig implements Connector
                 Width.SHORT,
                 AzureServiceBusConfigConstants.TASK_RECORDS_QUEUE_SIZE
             ).define(AzureServiceBusConfigConstants.CONNECTION_STRING,
-                Type.STRING,
+                Type.PASSWORD,
                 Importance.HIGH,
                 AzureServiceBusConfigConstants.CONNECTION_STRING_DOC,
                 CONNECTION_GROUP,
@@ -74,6 +74,46 @@ public class AzureServiceBusSourceConfig extends BaseConfig implements Connector
                 1,
                 ConfigDef.Width.LONG,
                 AzureServiceBusConfigConstants.KCQL_CONFIG
+            )
+            .define(AzureServiceBusConfigConstants.SOURCE_PREFETCH_COUNT,
+                Type.INT,
+                AzureServiceBusConfigConstants.SOURCE_PREFETCH_COUNT_DEFAULT,
+                Importance.MEDIUM,
+                AzureServiceBusConfigConstants.SOURCE_PREFETCH_COUNT_DOC,
+                BASE_GROUP,
+                2,
+                Width.SHORT,
+                AzureServiceBusConfigConstants.SOURCE_PREFETCH_COUNT
+            )
+            .define(AzureServiceBusConfigConstants.SOURCE_MAX_COMPLETE_RETRIES,
+                Type.INT,
+                AzureServiceBusConfigConstants.SOURCE_MAX_COMPLETE_RETRIES_DEFAULT,
+                Importance.MEDIUM,
+                AzureServiceBusConfigConstants.SOURCE_MAX_COMPLETE_RETRIES_DOC,
+                BASE_GROUP,
+                3,
+                Width.SHORT,
+                AzureServiceBusConfigConstants.SOURCE_MAX_COMPLETE_RETRIES
+            )
+            .define(AzureServiceBusConfigConstants.SOURCE_MIN_BACKOFF_COMPLETE_RETRIES_MS,
+                Type.INT,
+                AzureServiceBusConfigConstants.SOURCE_MIN_BACKOFF_COMPLETE_RETRIES_MS_DEFAULT,
+                Importance.MEDIUM,
+                AzureServiceBusConfigConstants.SOURCE_MIN_BACKOFF_COMPLETE_RETRIES_MS_DOC,
+                BASE_GROUP,
+                4,
+                Width.SHORT,
+                AzureServiceBusConfigConstants.SOURCE_MIN_BACKOFF_COMPLETE_RETRIES_MS
+            )
+            .define(AzureServiceBusConfigConstants.SOURCE_SLEEP_ON_EMPTY_POLL_MS,
+                Type.LONG,
+                AzureServiceBusConfigConstants.SOURCE_SLEEP_ON_EMPTY_POLL_MS_DEFAULT,
+                Importance.MEDIUM,
+                AzureServiceBusConfigConstants.SOURCE_SLEEP_ON_EMPTY_POLL_MS_DOC,
+                BASE_GROUP,
+                5,
+                Width.SHORT,
+                AzureServiceBusConfigConstants.SOURCE_SLEEP_ON_EMPTY_POLL_MS
             );
   }
 
