@@ -48,7 +48,7 @@ import scala.util.Using
   * Created by andrew@datamountaineer.com on 27/08/2017.
   * stream-reactor
   */
-class TestMqttWriter extends AnyWordSpec with MqttCallback with ForEachTestContainer with Matchers with StrictLogging {
+class MqttWriterIT extends AnyWordSpec with MqttCallback with ForEachTestContainer with Matchers with StrictLogging {
 
   private val mqttPort = 1883
 

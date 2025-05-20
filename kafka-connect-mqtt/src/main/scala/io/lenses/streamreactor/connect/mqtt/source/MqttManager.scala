@@ -172,9 +172,9 @@ class MqttManager(
 }
 
 object MqttManager {
-    def replaceSlashes(kcql: Kcql, topic: String): String =
-      kcql.getTarget match {
-        case "$"   => topic.replaceFirst("^/", "").replaceAll("/+", "_").replaceAll("/", "_")
-        case other => other
-      }
+  def replaceSlashes(kcql: Kcql, topic: String): String =
+    kcql.getTarget match {
+      case "$"   => topic.replaceFirst("^/", "").replaceAll("/+", "_").replaceAll("/", "_")
+      case other => other
+    }
 }
