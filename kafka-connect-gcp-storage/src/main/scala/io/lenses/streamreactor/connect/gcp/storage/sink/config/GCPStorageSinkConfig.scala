@@ -49,34 +49,39 @@ object GCPStorageSinkConfig extends PropsToConfigConverter[GCPStorageSinkConfig]
   ): Either[Throwable, GCPStorageSinkConfig] = {
     val configSource = new ConfigWrapperSource(gcpConfigDefBuilder)
     for {
-      gcpConnectionSettings <- gcpConfigDefBuilder.getGcpConnectionSettings(configSource)
-      sinkBucketOptions     <- CloudSinkBucketOptions(connectorTaskId, gcpConfigDefBuilder)
-      indexOptions           = gcpConfigDefBuilder.getIndexSettings
-      logMetrics             = gcpConfigDefBuilder.getBoolean(LOG_METRICS_CONFIG)
-      schemaChangeDetector   = gcpConfigDefBuilder.schemaChangeDetector(),
+      gcpConnectionSettings  <- gcpConfigDefBuilder.getGcpConnectionSettings(configSource)
+      sinkBucketOptions      <- CloudSinkBucketOptions(connectorTaskId, gcpConfigDefBuilder)
+      indexOptions            = gcpConfigDefBuilder.getIndexSettings
+      logMetrics              = gcpConfigDefBuilder.getBoolean(LOG_METRICS_CONFIG)
+      schemaChangeDetector    = gcpConfigDefBuilder.schemaChangeDetector()
+      useLatestSchemaForWrite = gcpConfigDefBuilder.getEnableLatestSchemaOptimization()
     } yield GCPStorageSinkConfig(
       gcpConnectionSettings,
       sinkBucketOptions,
       indexOptions,
       gcpConfigDefBuilder.getCompressionCodec(),
-      avoidResumableUpload = gcpConfigDefBuilder.isAvoidResumableUpload,
-      errorPolicy          = gcpConfigDefBuilder.getErrorPolicyOrDefault,
-      connectorRetryConfig = gcpConfigDefBuilder.getRetryConfig,
-      logMetrics           = logMetrics,
-      schemaChangeDetector = schemaChangeDetector,
+      avoidResumableUpload        = gcpConfigDefBuilder.isAvoidResumableUpload,
+      errorPolicy                 = gcpConfigDefBuilder.getErrorPolicyOrDefault,
+      connectorRetryConfig        = gcpConfigDefBuilder.getRetryConfig,
+      logMetrics                  = logMetrics,
+      schemaChangeDetector        = schemaChangeDetector,
+      skipNullValues              = gcpConfigDefBuilder.skipNullValues(),
+      latestSchemaForWriteEnabled = useLatestSchemaForWrite,
     )
   }
 
 }
 
 case class GCPStorageSinkConfig(
-  connectionConfig:     GCPConnectionConfig,
-  bucketOptions:        Seq[CloudSinkBucketOptions] = Seq.empty,
-  indexOptions:         Option[IndexOptions],
-  compressionCodec:     CompressionCodec,
-  avoidResumableUpload: Boolean,
-  connectorRetryConfig: RetryConfig,
-  errorPolicy:          ErrorPolicy,
-  logMetrics:           Boolean,
-  schemaChangeDetector: SchemaChangeDetector,
+  connectionConfig:            GCPConnectionConfig,
+  bucketOptions:               Seq[CloudSinkBucketOptions] = Seq.empty,
+  indexOptions:                Option[IndexOptions],
+  compressionCodec:            CompressionCodec,
+  avoidResumableUpload:        Boolean,
+  connectorRetryConfig:        RetryConfig,
+  errorPolicy:                 ErrorPolicy,
+  logMetrics:                  Boolean,
+  schemaChangeDetector:        SchemaChangeDetector,
+  skipNullValues:              Boolean,
+  latestSchemaForWriteEnabled: Boolean,
 ) extends CloudSinkConfig[GCPConnectionConfig]
