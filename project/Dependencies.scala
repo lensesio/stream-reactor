@@ -40,14 +40,14 @@ object Dependencies {
     val scalatestPlusScalaCheckVersion = "3.1.0.0-RC2"
     val scalaCheckVersion              = "1.18.1"
 
-    val mockitoJunitJupiterVersion = "5.14.2"
+    val mockitoJunitJupiterVersion = "5.17.0"
     val junitJupiterVersion        = "5.11.3"
     val assertjCoreVersion         = "3.26.3"
 
     val cyclopsVersion = "10.4.1"
 
-    val kafkaVersion:     String = "3.8.1"
-    val confluentVersion: String = "7.8.0"
+    val kafkaVersion:     String = "3.9.1"
+    val confluentVersion: String = "7.9.1"
 
     val enumeratumVersion = "1.7.5"
 
@@ -56,7 +56,7 @@ object Dependencies {
     val avroVersion      = "1.12.0"
     val avro4sVersion    = "4.1.2"
 
-    val catsEffectVersion     = "3.5.7"
+    val catsEffectVersion     = "3.6.1"
     val `cats-effect-testing` = "1.5.0"
 
     val antlr4Version: String = "4.13.2"
@@ -67,14 +67,14 @@ object Dependencies {
     // build plugins version
     val betterMonadicForVersion = "0.3.1"
 
-    val lombokVersion = "1.18.36"
+    val lombokVersion = "1.18.38"
 
-    val logbackVersion      = "1.5.11"
+    val logbackVersion      = "1.5.18"
     val scalaLoggingVersion = "3.9.5"
 
     val dnsJavaVersion  = "3.6.2"
     val wiremockVersion = "3.10.0"
-    val parquetVersion  = "1.14.4"
+    val parquetVersion  = "1.15.2"
 
     val jerseyCommonVersion = "3.1.9"
 
@@ -82,26 +82,26 @@ object Dependencies {
     val awsSdkVersion  = "2.29.23"
 
     val azureDataLakeVersion              = "12.22.0"
-    val azureIdentityVersion              = "1.14.2"
+    val azureIdentityVersion              = "1.16.1"
     val azureCoreVersion                  = "1.54.1"
     val msal4jVersion                     = "1.17.3"
     val msal4jPersistenceExtensionVersion = "1.3.0"
-    val gcpCloudVersion                   = "2.48.0"
+    val gcpCloudVersion                   = "2.56.0"
     val gcpCloudStorageVersion            = "2.44.0"
 
     val woodstoxVersion     = "7.1.0"
-    val jacksonVersion      = "2.18.2"
+    val jacksonVersion      = "2.18.4"
     val json4sVersion       = "4.0.7"
     val mockitoScalaVersion = "1.17.37"
     val mockitoJavaVersion  = "5.2.0"
-    val openCsvVersion      = "5.9"
+    val openCsvVersion      = "5.11"
     val jsonSmartVersion    = "2.5.1"
 
     val xzVersion  = "1.10"
     val lz4Version = "1.8.0"
 
     val bouncyCastleVersion = "1.79"
-    val nettyVersion        = "4.1.115.Final"
+    val nettyVersion        = "4.1.121.Final"
 
     val cassandraDriverVersion = "3.11.5"
     val jsonPathVersion        = "2.9.0"
@@ -123,10 +123,10 @@ object Dependencies {
     val commonsCodecVersion    = "1.17.1"
     val commonsCompressVersion = "1.27.1"
     val commonsConfigVersion   = "2.12.0"
-    val commonsIOVersion       = "2.18.0"
+    val commonsIOVersion       = "2.19.0"
     val commonsHttpVersion     = "4.5.14"
     val commonsLang3Version    = "3.17.0"
-    val jschVersion            = "0.2.20"
+    val jschVersion            = "0.2.26"
 
     val minaVersion           = "2.2.3"
     val betterFilesVersion    = "3.9.2"
