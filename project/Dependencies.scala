@@ -58,7 +58,7 @@ object Dependencies {
     val avro4sVersion    = "4.1.2"
 
     val catsEffectVersion     = "3.6.1"
-    val `cats-effect-testing` = "1.5.0"
+    val `cats-effect-testing` = "1.6.0"
 
     val antlr4Version: String = "4.13.2"
 
