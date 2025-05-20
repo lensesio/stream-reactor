@@ -75,7 +75,12 @@ class GCPStorageStorageInterface(
           //  }
           //}(_.close())
         }
-        logger.info(s"[{}] Completed upload from local {} to Storage {}:{}", connectorTaskId.show, source, bucket, path)
+        logger.debug(s"[{}] Completed upload from local {} to Storage {}:{}",
+                     connectorTaskId.show,
+                     source,
+                     bucket,
+                     path,
+        )
       }.toEither.leftMap { ex: Throwable =>
         logger.error(s"[{}] Failed upload from local {} to Storage {}:{}. Reason:{}",
                      connectorTaskId.show,
