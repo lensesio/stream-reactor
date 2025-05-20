@@ -54,7 +54,7 @@ class S3SourceTaskXmlReaderWithGlacierStorageTest
         storageInterface.uploadFile(UploadableFile(file), BucketName, "streamReactorBackups" + f)
       }.leftMap(e => new RuntimeException(e.message()))
     } yield res
-    result should be(Right(Vector((), ())))
+    result.value.foreach(_ should not be empty)
     ().asRight
   }
 

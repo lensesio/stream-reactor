@@ -21,7 +21,7 @@ object Dependencies {
 
   // scala versions
   val scalaOrganization = "org.scala-lang"
-  val scalaVersion      = "2.13.15"
+  val scalaVersion      = "2.13.16"
   val supportedScalaVersions: Seq[String] = List(Dependencies.scalaVersion)
 
   val commonResolvers: Seq[MavenRepository] = Resolver.sonatypeOssRepos("public") ++
@@ -39,15 +39,16 @@ object Dependencies {
     val scalatestVersion               = "3.2.19"
     val scalatestPlusScalaCheckVersion = "3.1.0.0-RC2"
     val scalaCheckVersion              = "1.18.1"
+    val javaFakerVersion               = "1.0.2"
 
-    val mockitoJunitJupiterVersion = "5.14.2"
-    val junitJupiterVersion        = "5.11.3"
-    val assertjCoreVersion         = "3.26.3"
+    val mockitoJunitJupiterVersion = "5.17.0"
+    val junitJupiterVersion        = "5.11.4"
+    val assertjCoreVersion         = "3.27.3"
 
     val cyclopsVersion = "10.4.1"
 
-    val kafkaVersion:     String = "3.8.0"
-    val confluentVersion: String = "7.7.2"
+    val kafkaVersion:     String = "3.9.1"
+    val confluentVersion: String = "7.9.1"
 
     val enumeratumVersion = "1.7.5"
 
@@ -56,7 +57,7 @@ object Dependencies {
     val avroVersion      = "1.12.0"
     val avro4sVersion    = "4.1.2"
 
-    val catsEffectVersion     = "3.5.7"
+    val catsEffectVersion     = "3.6.1"
     val `cats-effect-testing` = "1.5.0"
 
     val antlr4Version: String = "4.13.2"
@@ -67,41 +68,41 @@ object Dependencies {
     // build plugins version
     val betterMonadicForVersion = "0.3.1"
 
-    val lombokVersion = "1.18.36"
+    val lombokVersion = "1.18.38"
 
-    val logbackVersion      = "1.5.11"
+    val logbackVersion      = "1.5.18"
     val scalaLoggingVersion = "3.9.5"
 
-    val dnsJavaVersion  = "3.6.2"
-    val wiremockVersion = "3.10.0"
-    val parquetVersion  = "1.14.4"
+    val dnsJavaVersion  = "3.6.3"
+    val wiremockVersion = "3.13.0"
+    val parquetVersion  = "1.15.2"
 
-    val jerseyCommonVersion = "3.1.9"
+    val jerseyCommonVersion = "3.1.10"
 
     val calciteVersion = "1.34.0"
-    val awsSdkVersion  = "2.29.23"
+    val awsSdkVersion  = "2.29.52"
 
-    val azureDataLakeVersion              = "12.22.0"
-    val azureIdentityVersion              = "1.14.2"
-    val azureCoreVersion                  = "1.54.1"
-    val msal4jVersion                     = "1.17.3"
+    val azureDataLakeVersion              = "12.22.1"
+    val azureIdentityVersion              = "1.16.1"
+    val azureCoreVersion                  = "1.55.3"
+    val msal4jVersion                     = "1.20.1"
     val msal4jPersistenceExtensionVersion = "1.3.0"
-    val gcpCloudVersion                   = "2.48.0"
-    val gcpCloudStorageVersion            = "2.44.0"
+    val gcpCloudVersion                   = "2.56.0"
+    val gcpCloudStorageVersion            = "2.44.1"
 
     val woodstoxVersion     = "7.1.0"
-    val jacksonVersion      = "2.18.2"
+    val jacksonVersion      = "2.18.4"
     val json4sVersion       = "4.0.7"
     val mockitoScalaVersion = "1.17.37"
     val mockitoJavaVersion  = "5.2.0"
-    val openCsvVersion      = "5.9"
-    val jsonSmartVersion    = "2.5.1"
+    val openCsvVersion      = "5.11"
+    val jsonSmartVersion    = "2.5.2"
 
     val xzVersion  = "1.10"
     val lz4Version = "1.8.0"
 
-    val bouncyCastleVersion = "1.79"
-    val nettyVersion        = "4.1.115.Final"
+    val bouncyCastleVersion = "1.80"
+    val nettyVersion        = "4.1.121.Final"
 
     val cassandraDriverVersion = "3.11.5"
     val jsonPathVersion        = "2.9.0"
@@ -113,38 +114,38 @@ object Dependencies {
     val influxVersion = "7.2.0"
 
     val jmsApiVersion         = "3.1.0"
-    val activeMqVersion       = "6.1.4"
+    val activeMqVersion       = "6.1.6"
     val protocVersion         = "3.11.4"
-    val googleProtobufVersion = "3.25.5"
+    val googleProtobufVersion = "3.25.7"
 
     val mqttVersion = "1.2.5"
 
     val commonsNetVersion      = "3.11.1"
-    val commonsCodecVersion    = "1.17.1"
+    val commonsCodecVersion    = "1.17.2"
     val commonsCompressVersion = "1.27.1"
-    val commonsConfigVersion   = "2.11.0"
-    val commonsIOVersion       = "2.18.0"
+    val commonsConfigVersion   = "2.12.0"
+    val commonsIOVersion       = "2.19.0"
     val commonsHttpVersion     = "4.5.14"
     val commonsLang3Version    = "3.17.0"
-    val jschVersion            = "0.2.20"
+    val jschVersion            = "0.2.26"
 
-    val minaVersion           = "2.2.3"
+    val minaVersion           = "2.2.4"
     val betterFilesVersion    = "3.9.2"
-    val ftpServerVersion      = "1.2.0"
+    val ftpServerVersion      = "1.2.1"
     val fakeSftpServerVersion = "2.0.0"
 
     val mongoDbVersion = "3.12.14"
 
     val jedisVersion = "5.1.5"
-    val gsonVersion  = "2.11.0"
+    val gsonVersion  = "2.13.1"
 
-    val classGraphVersion           = "4.8.179"
-    val nimbusJoseJwtVersion        = "9.47"
-    val hadoopVersion               = "3.4.0"
-    val hadoopShadedProtobufVersion = "1.2.0"
+    val classGraphVersion    = "4.8.179"
+    val nimbusJoseJwtVersion = "9.48"
+    val hadoopVersion        = "3.4.0"
+    //val hadoopShadedProtobufVersion = "1.2.0"
 
     val airCompressorVersion = "2.0.2"
-    val zstdVersion          = "1.5.6-8"
+    val zstdVersion          = "1.5.6-10"
 
     trait ElasticVersions {
       val elastic4sVersion, elasticSearchVersion, jnaVersion: String
@@ -158,8 +159,8 @@ object Dependencies {
 
     object Elastic7Versions extends ElasticVersions {
       override val elastic4sVersion:     String = "7.17.4"
-      override val elasticSearchVersion: String = "7.17.25"
-      override val jnaVersion:           String = "5.15.0"
+      override val elasticSearchVersion: String = "7.17.28"
+      override val jnaVersion:           String = "5.17.0"
     }
 
   }
@@ -182,17 +183,18 @@ object Dependencies {
   val logback          = "ch.qos.logback"              % "logback-classic"  % logbackVersion
   lazy val logbackCore = "ch.qos.logback"              % "logback-core"     % logbackVersion
   val scalaLogging     = "com.typesafe.scala-logging" %% "scala-logging"    % scalaLoggingVersion
-  val log4jToSlf4j     = "org.slf4j"                   % "log4j-over-slf4j" % "2.0.16"
-  val jclToSlf4j       = "org.slf4j"                   % "jcl-over-slf4j"   % "2.0.16"
+  val log4jToSlf4j     = "org.slf4j"                   % "log4j-over-slf4j" % "2.0.17"
+  val jclToSlf4j       = "org.slf4j"                   % "jcl-over-slf4j"   % "2.0.17"
 
   // testing
   val scalatest = "org.scalatest" %% "scalatest" % scalatestVersion
   val scalatestPlusScalaCheck =
     "org.scalatestplus" %% "scalatestplus-scalacheck" % scalatestPlusScalaCheckVersion
-  val scalaCheck            = "org.scalacheck" %% "scalacheck"            % scalaCheckVersion
-  val `mockitoScala`        = "org.mockito"    %% "mockito-scala"         % mockitoScalaVersion
-  val `mockitoJava`         = "org.mockito"     % "mockito-inline"        % mockitoJavaVersion
-  val `mockitoJunitJupiter` = "org.mockito"     % "mockito-junit-jupiter" % mockitoJunitJupiterVersion
+  val scalaCheck            = "org.scalacheck"      %% "scalacheck"            % scalaCheckVersion
+  val `mockitoScala`        = "org.mockito"         %% "mockito-scala"         % mockitoScalaVersion
+  val `mockitoJava`         = "org.mockito"          % "mockito-inline"        % mockitoJavaVersion
+  val `mockitoJunitJupiter` = "org.mockito"          % "mockito-junit-jupiter" % mockitoJunitJupiterVersion
+  val `javaFaker`           = "com.github.javafaker" % "javafaker"             % javaFakerVersion exclude ("org.yaml", "snakeyaml")
 
   val `junitJupiter`       = "org.junit.jupiter" % "junit-jupiter-api"    % junitJupiterVersion
   val `junitJupiterParams` = "org.junit.jupiter" % "junit-jupiter-params" % junitJupiterVersion
@@ -230,6 +232,12 @@ object Dependencies {
 
   val confluentProtobufConverter: ModuleID =
     confluentExcludes("io.confluent" % "kafka-connect-protobuf-converter" % confluentVersion)
+
+  val confluentClientEncryption =
+    confluentExcludes("io.confluent" % "kafka-schema-registry-client-encryption" % confluentVersion)
+
+  val confluentSchemaRules =
+    confluentExcludes("io.confluent" % "kafka-schema-rules" % confluentVersion)
 
   val http4sDsl       = "org.http4s" %% "http4s-dsl"             % http4sVersion
   val http4sJdkClient = "org.http4s" %% "http4s-jdk-http-client" % http4sJdkVersion
@@ -276,9 +284,9 @@ object Dependencies {
     hiveExcludes("org.apache.hadoop" % "hadoop-mapreduce-client" % hadoopVersion)
   lazy val hadoopMapReduceClientCore: ModuleID =
     hiveExcludes("org.apache.hadoop" % "hadoop-mapreduce-client-core" % hadoopVersion)
-  lazy val hadoopShadedProtobuf: ModuleID =
+  /* lazy val hadoopShadedProtobuf: ModuleID =
     hiveExcludes("org.apache.hadoop.thirdparty" % "hadoop-shaded-protobuf_3_21" % hadoopShadedProtobufVersion)
-
+   */
   lazy val calciteCore = hiveExcludes("org.apache.calcite" % "calcite-core" % calciteVersion)
     .excludeAll(ExclusionRule(organization = "io.swagger"))
     .excludeAll(ExclusionRule(organization = "io.netty"))
@@ -423,8 +431,8 @@ trait Dependencies {
   import Versions._
 
   val loggingDeps: Seq[ModuleID] = Seq(
-    "org.apache.logging.log4j" % "log4j-api"      % "2.24.2",
-    "org.apache.logging.log4j" % "log4j-to-slf4j" % "2.24.2",
+    "org.apache.logging.log4j" % "log4j-api"      % "2.24.3",
+    "org.apache.logging.log4j" % "log4j-to-slf4j" % "2.24.3",
     log4jToSlf4j,
     jclToSlf4j,
     logback,
@@ -477,6 +485,8 @@ trait Dependencies {
     confluentAvroConverter,
     confluentAvroData,
     confluentJsonSchemaSerializer,
+    confluentClientEncryption,
+    confluentSchemaRules,
   ) ++ enumeratum ++ circe
 
   val javaCommonDeps: Seq[ModuleID] = Seq(lombok, kafkaConnectJson, kafkaClients, cyclops, `cyclopsPure`)
@@ -493,7 +503,7 @@ trait Dependencies {
     hadoopMapReduce,
     hadoopMapReduceClient,
     hadoopMapReduceClientCore,
-    hadoopShadedProtobuf,
+    //hadoopShadedProtobuf,
     commonsConfig,
     openCsv,
     jacksonCore,
@@ -528,12 +538,13 @@ trait Dependencies {
   val kafkaConnectGcpStorageDeps: Seq[ModuleID] = Seq(
     cyclops,
     gcpStorageSdk,
+    googleProtobufJava,
   )
 
   val kafkaConnectGcpStorageTestDeps: Seq[ModuleID] =
     baseTestDeps ++ kafkaConnectGcpStorageDeps ++ compressionCodecDeps :+ testcontainersCore
 
-  val kafkaConnectS3TestDeps: Seq[ModuleID] = baseTestDeps ++ compressionCodecDeps :+ testcontainersCore
+  val kafkaConnectS3TestDeps: Seq[ModuleID] = baseTestDeps ++ compressionCodecDeps :+ testcontainersCore :+ `javaFaker`
 
   val kafkaConnectS3FuncTestDeps: Seq[ModuleID] = baseTestDeps ++ compressionCodecDeps :+ s3Sdk
 

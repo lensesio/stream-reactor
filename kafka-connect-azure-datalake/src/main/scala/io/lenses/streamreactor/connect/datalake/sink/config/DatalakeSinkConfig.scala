@@ -20,6 +20,7 @@ import io.lenses.streamreactor.common.errors.ErrorPolicy
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.config.traits.CloudSinkConfig
 import io.lenses.streamreactor.connect.cloud.common.config.traits.PropsToConfigConverter
+import io.lenses.streamreactor.connect.cloud.common.formats.writer.schema.SchemaChangeDetector
 import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodec
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
 import io.lenses.streamreactor.connect.cloud.common.sink.config.CloudSinkBucketOptions
@@ -46,10 +47,12 @@ object DatalakeSinkConfig extends PropsToConfigConverter[DatalakeSinkConfig] {
     cloudLocationValidator: CloudLocationValidator,
   ): Either[Throwable, DatalakeSinkConfig] =
     for {
-      authMode          <- s3ConfigDefBuilder.getAuthMode
-      sinkBucketOptions <- CloudSinkBucketOptions(connectorTaskId, s3ConfigDefBuilder)
-      indexOptions       = s3ConfigDefBuilder.getIndexSettings
-      logMetrics         = s3ConfigDefBuilder.getBoolean(LOG_METRICS_CONFIG)
+      authMode               <- s3ConfigDefBuilder.getAuthMode
+      sinkBucketOptions      <- CloudSinkBucketOptions(connectorTaskId, s3ConfigDefBuilder)
+      indexOptions            = s3ConfigDefBuilder.getIndexSettings
+      logMetrics              = s3ConfigDefBuilder.getBoolean(LOG_METRICS_CONFIG)
+      schemaChangeDetector    = s3ConfigDefBuilder.schemaChangeDetector()
+      useLatestSchemaForWrite = s3ConfigDefBuilder.getEnableLatestSchemaOptimization()
     } yield DatalakeSinkConfig(
       AzureConnectionConfig(s3ConfigDefBuilder.getParsedValues, authMode),
       sinkBucketOptions,
@@ -58,18 +61,22 @@ object DatalakeSinkConfig extends PropsToConfigConverter[DatalakeSinkConfig] {
       s3ConfigDefBuilder.getErrorPolicyOrDefault,
       s3ConfigDefBuilder.getRetryConfig,
       logMetrics,
-      s3ConfigDefBuilder.shouldRollOverOnSchemaChange(),
+      schemaChangeDetector,
+      skipNullValues              = s3ConfigDefBuilder.skipNullValues(),
+      latestSchemaForWriteEnabled = useLatestSchemaForWrite,
     )
 
 }
 
 case class DatalakeSinkConfig(
-  connectionConfig:              AzureConnectionConfig,
-  bucketOptions:                 Seq[CloudSinkBucketOptions] = Seq.empty,
-  indexOptions:                  Option[IndexOptions],
-  compressionCodec:              CompressionCodec,
-  errorPolicy:                   ErrorPolicy,
-  connectorRetryConfig:          RetryConfig,
-  logMetrics:                    Boolean,
-  rolloverOnSchemaChangeEnabled: Boolean,
+  connectionConfig:            AzureConnectionConfig,
+  bucketOptions:               Seq[CloudSinkBucketOptions] = Seq.empty,
+  indexOptions:                Option[IndexOptions],
+  compressionCodec:            CompressionCodec,
+  errorPolicy:                 ErrorPolicy,
+  connectorRetryConfig:        RetryConfig,
+  logMetrics:                  Boolean,
+  schemaChangeDetector:        SchemaChangeDetector,
+  skipNullValues:              Boolean,
+  latestSchemaForWriteEnabled: Boolean                     = false,
 ) extends CloudSinkConfig[AzureConnectionConfig]

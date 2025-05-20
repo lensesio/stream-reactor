@@ -17,9 +17,11 @@ package io.lenses.streamreactor.connect.gcp.storage.sink.config
 
 import io.lenses.streamreactor.connect.cloud.common.config.CloudConfigDef
 import io.lenses.streamreactor.connect.cloud.common.config.IndexConfigKeys
+import io.lenses.streamreactor.connect.cloud.common.sink.config.EnableLatestSchemaOptimizationConfigKeys
 import io.lenses.streamreactor.connect.cloud.common.sink.config.FlushConfigKeys
 import io.lenses.streamreactor.connect.cloud.common.sink.config.LocalStagingAreaConfigKeys
 import io.lenses.streamreactor.connect.cloud.common.sink.config.SchemaChangeConfigKeys
+import io.lenses.streamreactor.connect.cloud.common.sink.config.SkipNullConfigKeys
 import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.PaddingStrategyConfigKeys
 import io.lenses.streamreactor.connect.gcp.storage.config.GCPConfigSettings.CONNECTOR_PREFIX
 import io.lenses.streamreactor.connect.gcp.storage.config.GCPConfigSettings.LOG_METRICS_CONFIG
@@ -35,7 +37,9 @@ object GCPStorageSinkConfigDef
     with PaddingStrategyConfigKeys
     with UploadConfigKeys
     with IndexConfigKeys
-    with SchemaChangeConfigKeys {
+    with SchemaChangeConfigKeys
+    with SkipNullConfigKeys
+    with EnableLatestSchemaOptimizationConfigKeys {
 
   override def connectorPrefix: String = CONNECTOR_PREFIX
 
@@ -60,6 +64,8 @@ object GCPStorageSinkConfigDef
     addUploadSettingsToConfigDef(configDef)
     addIndexSettingsToConfigDef(configDef)
     withSchemaChangeConfig(configDef)
+    withSkipNullConfig(configDef)
+    withEnableLatestSchemaOptimizationConfig(configDef)
   }
 
 }

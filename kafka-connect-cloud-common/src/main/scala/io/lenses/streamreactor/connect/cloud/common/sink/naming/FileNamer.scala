@@ -26,21 +26,31 @@ trait FileNamer {
   ): String
 }
 
+/**
+  * @param offsetPaddingStrategy
+  * @param extension
+  * @param suffix Allows to add a suffix to the "file" name. It covers the scenario where two connectors from two different clusters write to the same bucket when reading from the same topic.
+  */
 class OffsetFileNamer(
   offsetPaddingStrategy: PaddingStrategy,
   extension:             String,
+  suffix:                Option[String],
 ) extends FileNamer {
   def fileName(
     topicPartitionOffset:    TopicPartitionOffset,
     earliestRecordTimestamp: Long,
     latestRecordTimestamp:   Long,
   ): String =
-    s"${offsetPaddingStrategy.padString(topicPartitionOffset.offset.value.toString)}_${earliestRecordTimestamp}_$latestRecordTimestamp.$extension"
+    s"${offsetPaddingStrategy.padString(
+      topicPartitionOffset.offset.value.toString,
+    )}_${earliestRecordTimestamp}_$latestRecordTimestamp${suffix.getOrElse("")}.$extension"
 }
+
 class TopicPartitionOffsetFileNamer(
   partitionPaddingStrategy: PaddingStrategy,
   offsetPaddingStrategy:    PaddingStrategy,
   extension:                String,
+  suffix:                   Option[String],
 ) extends FileNamer {
   def fileName(
     topicPartitionOffset:    TopicPartitionOffset,
@@ -49,6 +59,6 @@ class TopicPartitionOffsetFileNamer(
   ): String =
     s"${topicPartitionOffset.topic.value}(${partitionPaddingStrategy.padString(
       topicPartitionOffset.partition.toString,
-    )}_${offsetPaddingStrategy.padString(topicPartitionOffset.offset.value.toString)}).$extension"
+    )}_${offsetPaddingStrategy.padString(topicPartitionOffset.offset.value.toString)})${suffix.getOrElse("")}.$extension"
 
 }

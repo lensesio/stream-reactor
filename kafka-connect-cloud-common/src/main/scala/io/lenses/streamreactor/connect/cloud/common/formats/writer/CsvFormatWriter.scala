@@ -28,7 +28,11 @@ import java.io.OutputStreamWriter
 import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.util.Try
 
-class CsvFormatWriter(outputStream: CloudOutputStream, writeHeaders: Boolean) extends FormatWriter with LazyLogging {
+class CsvFormatWriter(
+  outputStream: CloudOutputStream,
+  writeHeaders: Boolean,
+) extends FormatWriter
+    with LazyLogging {
 
   private val outputStreamWriter = new OutputStreamWriter(outputStream)
   private val csvWriter          = new CSVWriter(outputStreamWriter)

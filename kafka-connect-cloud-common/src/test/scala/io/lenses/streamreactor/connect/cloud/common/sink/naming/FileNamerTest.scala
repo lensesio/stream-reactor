@@ -27,19 +27,27 @@ class FileNamerTest extends AnyFunSuite with Matchers {
 
   test("OffsetFileNamer.fileName should generate the correct file name") {
 
-    val result = new OffsetFileNamer(paddingStrategy, extension).fileName(topicPartitionOffset, 1L, 9L)
-
-    result shouldEqual "00081_1_9.avro"
+    new OffsetFileNamer(paddingStrategy, extension, None).fileName(topicPartitionOffset,
+                                                                   1L,
+                                                                   9L,
+    ) shouldEqual "00081_1_9.avro"
+    new OffsetFileNamer(paddingStrategy, extension, Some("my-suffix")).fileName(topicPartitionOffset,
+                                                                                1L,
+                                                                                9L,
+    ) shouldEqual "00081_1_9my-suffix.avro"
   }
 
   test("TopicPartitionOffsetFileNamer.fileName should generate the correct file name") {
 
-    val result =
-      new TopicPartitionOffsetFileNamer(paddingStrategy, paddingStrategy, extension).fileName(topicPartitionOffset,
-                                                                                              0L,
-                                                                                              0L,
-      )
+    new TopicPartitionOffsetFileNamer(paddingStrategy, paddingStrategy, extension, None).fileName(topicPartitionOffset,
+                                                                                                  0L,
+                                                                                                  0L,
+    ) shouldEqual "topic(00009_00081).avro"
 
-    result shouldEqual "topic(00009_00081).avro"
+    new TopicPartitionOffsetFileNamer(paddingStrategy, paddingStrategy, extension, Some("mine")).fileName(
+      topicPartitionOffset,
+      0L,
+      0L,
+    ) shouldEqual "topic(00009_00081)mine.avro"
   }
 }

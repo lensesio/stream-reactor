@@ -35,7 +35,7 @@ import static io.lenses.streamreactor.connect.azure.servicebus.mapping.ServiceBu
 import com.azure.messaging.servicebus.ServiceBusReceivedMessage;
 import io.lenses.streamreactor.connect.azure.servicebus.source.AzureServiceBusSourceConnector;
 import java.time.Instant;
-import java.util.Map;
+import java.util.Collections;
 import java.util.Optional;
 
 import lombok.extern.slf4j.Slf4j;
@@ -68,21 +68,17 @@ public class ServiceBusToSourceRecordMapper {
    *
    * @param serviceBusMessage original Service Bus message
    * @param outputTopic       Output topic for record
-   * @param partitionKey      AzureTopicPartitionKey to indicate topic and partition
-   * @param offsetMap         AzureOffsetMarker to indicate offset
    * @return mapped SourceRecord
    */
   public static SourceRecord mapSingleServiceBusMessage(ServiceBusReceivedMessage serviceBusMessage,
-      String outputTopic,
-      Map<String, String> partitionKey,
-      Map<String, Object> offsetMap) {
+      String outputTopic) {
     long before = System.currentTimeMillis();
     String key = serviceBusMessage.getMessageId();
 
     Struct valueObject = createStructFromServiceBusMessage(serviceBusMessage);
     long after = System.currentTimeMillis();
     log.debug("Mapping of message with id {} took {} ms", key, after - before);
-    return new AzureServiceBusSourceRecord(partitionKey, offsetMap, outputTopic, key,
+    return new AzureServiceBusSourceRecord(Collections.emptyMap(), Collections.emptyMap(), outputTopic, key,
         VALUE_SCHEMA, valueObject, Instant.now().toEpochMilli());
   }
 

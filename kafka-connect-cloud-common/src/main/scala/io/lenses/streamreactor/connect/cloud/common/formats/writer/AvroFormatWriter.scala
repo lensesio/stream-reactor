@@ -18,16 +18,11 @@ package io.lenses.streamreactor.connect.cloud.common.formats.writer
 import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodec
-import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodecName.BZIP2
-import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodecName.DEFLATE
-import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodecName.SNAPPY
-import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodecName.UNCOMPRESSED
-import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodecName.XZ
-import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodecName.ZSTD
-import io.lenses.streamreactor.connect.cloud.common.sink.conversion.ToAvroDataConverter
-import io.lenses.streamreactor.connect.cloud.common.stream.CloudOutputStream
+import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodecName._
 import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.conversion.SinkData
+import io.lenses.streamreactor.connect.cloud.common.sink.conversion.ToAvroDataConverter
+import io.lenses.streamreactor.connect.cloud.common.stream.CloudOutputStream
 import org.apache.avro.Schema
 import org.apache.avro.file.CodecFactory
 import org.apache.avro.file.DataFileWriter
@@ -36,8 +31,12 @@ import org.apache.kafka.connect.data.{ Schema => ConnectSchema }
 
 import scala.util.Try
 
-class AvroFormatWriter(outputStream: CloudOutputStream)(implicit compressionCodec: CompressionCodec)
-    extends FormatWriter
+class AvroFormatWriter(
+  outputStream: CloudOutputStream,
+)(
+  implicit
+  compressionCodec: CompressionCodec,
+) extends FormatWriter
     with LazyLogging {
 
   private val avroCompressionCodec: CodecFactory = {
@@ -67,7 +66,23 @@ class AvroFormatWriter(outputStream: CloudOutputStream)(implicit compressionCode
           state
       }
       writerState.write(message.value)
-    }.toEither
+    }.toEither.leftMap { c =>
+      logger.error(
+        s"""Failed to write message to Avro format.
+            Message: ${message.value}
+            Avro File Schema:${this.avroWriterState.map(
+          _.schema.toString,
+        ).getOrElse("<N/A>")}
+            Message Avro Schema: ${message.value.schema().map(ToAvroDataConverter.convertSchema).getOrElse("<N/A>")}
+            State Connect Schema version: ${this.avroWriterState.flatMap(_.connectSchema).map(_.version()).getOrElse(
+          "<N/A>",
+        )}
+            Message Connect Schema version: ${message.value.schema().map(_.version()).getOrElse("<N/A>")}
+        """,
+        c,
+      )
+      c
+    }
 
   override def complete(): Either[SinkError, Unit] =
     avroWriterState.fold {
@@ -77,8 +92,10 @@ class AvroFormatWriter(outputStream: CloudOutputStream)(implicit compressionCode
 
   override def getPointer: Long = avroWriterState.fold(0L)(_.pointer)
 
-  private class AvroWriterState(outputStream: CloudOutputStream, connectSchema: Option[ConnectSchema]) {
-    private val schema: Schema                  = ToAvroDataConverter.convertSchema(connectSchema)
+  private class AvroWriterState(outputStream: CloudOutputStream, val connectSchema: Option[ConnectSchema]) {
+    val schema: Schema = connectSchema.map(ToAvroDataConverter.convertSchema).getOrElse(
+      throw new IllegalArgumentException("Schema-less data is not supported for Avro/Parquet"),
+    )
     private val writer: GenericDatumWriter[Any] = new GenericDatumWriter[Any](schema)
     private val fileWriter: DataFileWriter[Any] =
       new DataFileWriter[Any](writer).setCodec(avroCompressionCodec).create(schema, outputStream)

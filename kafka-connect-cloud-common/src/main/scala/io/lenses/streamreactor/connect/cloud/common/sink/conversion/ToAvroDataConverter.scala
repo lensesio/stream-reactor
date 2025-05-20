@@ -44,10 +44,7 @@ object ToAvroDataConverter {
   )
   private val avroDataConverter = new AvroData(avroDataConfig)
 
-  def convertSchema(connectSchema: Option[ConnectSchema]): Schema = connectSchema
-    .fold(throw new IllegalArgumentException("Schema-less data is not supported for Avro/Parquet"))(
-      avroDataConverter.fromConnectSchema,
-    )
+  def convertSchema(connectSchema: ConnectSchema): Schema = avroDataConverter.fromConnectSchema(connectSchema)
 
   def convertToGenericRecord[A <: Any](sinkData: SinkData): Any =
     sinkData match {
