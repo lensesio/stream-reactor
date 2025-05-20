@@ -29,6 +29,7 @@ import io.lenses.streamreactor.connect.cloud.common.formats.writer.schema.Defaul
 import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodec
 import io.lenses.streamreactor.connect.cloud.common.model.Offset
 import io.lenses.streamreactor.connect.cloud.common.model.Topic
+import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
 import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodecName.BROTLI
 import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodecName.LZ4
 import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodecName.LZO
@@ -40,6 +41,7 @@ import io.lenses.streamreactor.connect.cloud.common.sink.conversion.NullSinkData
 import io.lenses.streamreactor.connect.cloud.common.sink.conversion.StructSinkData
 import io.lenses.streamreactor.connect.cloud.common.sink.conversion.ToAvroDataConverter
 import io.lenses.streamreactor.connect.cloud.common.stream.BuildLocalOutputStream
+import org.apache.avro
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaBuilder
 import org.scalatest.EitherValues
@@ -58,10 +60,10 @@ class ParquetFormatWriterStreamTest
 
   implicit val compressionCodec: CompressionCodec = UNCOMPRESSED.toCodec()
 
-  val schemaChangeDetector = DefaultSchemaChangeDetector
-  val parquetFormatReader  = new ParquetFormatReader()
-  val avroSchema           = ToAvroDataConverter.convertSchema(users.head.schema())
-  val topicPartition       = Topic("testTopic").withPartition(1)
+  val schemaChangeDetector: DefaultSchemaChangeDetector.type = DefaultSchemaChangeDetector
+  val parquetFormatReader = new ParquetFormatReader()
+  val avroSchema:     avro.Schema    = ToAvroDataConverter.convertSchema(users.head.schema())
+  val topicPartition: TopicPartition = Topic("testTopic").withPartition(1)
 
   "convert" should "write byte output stream with json for a single record" in {
 
