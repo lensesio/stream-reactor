@@ -91,6 +91,14 @@ object HttpSinkConfigDef {
     ServiceUnavailable.code,
   )
 
+  val RetryModeProp: String = "connect.http.retry.mode"
+  val RetryModeDoc:  String = "The retry mode to use. Options are 'fixed' or 'exponential'."
+  val RetryModeDefault = "exponential"
+
+  val FixedRetryIntervalProp    = "connect.http.retry.fixed.interval.ms"
+  val FixedRetryIntervalDoc     = "The fixed interval in milliseconds to wait before retrying."
+  val FixedRetryIntervalDefault = 10000
+
   val ErrorThresholdProp: String = "connect.http.error.threshold"
   val ErrorThresholdDoc: String =
     """
@@ -238,11 +246,25 @@ object HttpSinkConfigDef {
         RetriesMaxRetriesDoc,
       )
       .define(
+        RetryModeProp,
+        Type.STRING,
+        RetryModeDefault,
+        Importance.HIGH,
+        RetryModeDoc,
+      )
+      .define(
         RetriesOnStatusCodesProp,
         Type.LIST,
         RetriesOnStatusCodesDefault.map(_.toString).asJava,
         Importance.HIGH,
         RetriesOnStatusCodesDoc,
+      )
+      .define(
+        FixedRetryIntervalProp,
+        Type.INT,
+        FixedRetryIntervalDefault,
+        Importance.HIGH,
+        FixedRetryIntervalDoc,
       )
       .define(
         BatchCountProp,

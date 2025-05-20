@@ -100,10 +100,7 @@ class MqttManager(
         ),
       )
 
-    val kafkaTopic = kcql.getTarget match {
-      case "$"   => topic.replaceFirst("/", "").replaceAll("/+", "_").replaceAll("/", "_")
-      case other => other
-    }
+    val kafkaTopic = MqttManager.replaceSlashes(kcql, topic)
 
     val converter = convertersMap.getOrElse(
       wildcard,
@@ -172,4 +169,12 @@ class MqttManager(
       logger.warn(s"Resubscribed to topic $topic with QoS $qos")
     else logger.info(s"Subscribed to topic $topic with QoS $qos")
   }
+}
+
+object MqttManager {
+  def replaceSlashes(kcql: Kcql, topic: String): String =
+    kcql.getTarget match {
+      case "$"   => topic.replaceFirst("^/", "").replaceAll("/+", "_").replaceAll("/", "_")
+      case other => other
+    }
 }
