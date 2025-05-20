@@ -108,12 +108,13 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
       ),
       indexOptions = IndexOptions(5, ".indexes").some,
       compressionCodec,
-      batchDelete          = true,
-      errorPolicy          = ErrorPolicy(ErrorPolicyEnum.THROW),
-      connectorRetryConfig = new RetryConfig(1, 1L, 1.0),
-      logMetrics           = false,
-      schemaChangeDetector = schemaChangeDetector,
-      skipNullValues       = true,
+      batchDelete                 = true,
+      errorPolicy                 = ErrorPolicy(ErrorPolicyEnum.THROW),
+      connectorRetryConfig        = new RetryConfig(1, 1L, 1.0),
+      logMetrics                  = false,
+      schemaChangeDetector        = schemaChangeDetector,
+      skipNullValues              = true,
+      latestSchemaForWriteEnabled = false,
     )
 
     val sink   = writerManagerCreator.from(config)._2
@@ -175,12 +176,13 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
       ),
       indexOptions = IndexOptions(5, ".indexes").some,
       compressionCodec,
-      batchDelete          = true,
-      errorPolicy          = ErrorPolicy(ErrorPolicyEnum.THROW),
-      connectorRetryConfig = new RetryConfig(1, 1L, 1.0),
-      logMetrics           = false,
-      schemaChangeDetector = schemaChangeDetector,
-      skipNullValues       = false,
+      batchDelete                 = true,
+      errorPolicy                 = ErrorPolicy(ErrorPolicyEnum.THROW),
+      connectorRetryConfig        = new RetryConfig(1, 1L, 1.0),
+      logMetrics                  = false,
+      schemaChangeDetector        = schemaChangeDetector,
+      skipNullValues              = false,
+      latestSchemaForWriteEnabled = false,
     )
 
     val sink = writerManagerCreator.from(config)._2
@@ -246,12 +248,13 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
       ),
       indexOptions = IndexOptions(5, ".indexes").some,
       compressionCodec,
-      batchDelete          = true,
-      errorPolicy          = ErrorPolicy(ErrorPolicyEnum.THROW),
-      connectorRetryConfig = new RetryConfig(1, 1L, 1.0),
-      logMetrics           = false,
-      schemaChangeDetector = schemaChangeDetector,
-      skipNullValues       = true,
+      batchDelete                 = true,
+      errorPolicy                 = ErrorPolicy(ErrorPolicyEnum.THROW),
+      connectorRetryConfig        = new RetryConfig(1, 1L, 1.0),
+      logMetrics                  = false,
+      schemaChangeDetector        = schemaChangeDetector,
+      skipNullValues              = true,
+      latestSchemaForWriteEnabled = false,
     )
 
     val sink = writerManagerCreator.from(config)._2
@@ -323,12 +326,13 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
       ),
       indexOptions = IndexOptions(5, ".indexes").some,
       compressionCodec,
-      batchDelete          = true,
-      errorPolicy          = ErrorPolicy(ErrorPolicyEnum.THROW),
-      connectorRetryConfig = new RetryConfig(1, 1L, 1.0),
-      logMetrics           = false,
-      schemaChangeDetector = schemaChangeDetector,
-      skipNullValues       = true,
+      batchDelete                 = true,
+      errorPolicy                 = ErrorPolicy(ErrorPolicyEnum.THROW),
+      connectorRetryConfig        = new RetryConfig(1, 1L, 1.0),
+      logMetrics                  = false,
+      schemaChangeDetector        = schemaChangeDetector,
+      skipNullValues              = true,
+      latestSchemaForWriteEnabled = false,
     )
 
     val sink   = writerManagerCreator.from(config)._2
