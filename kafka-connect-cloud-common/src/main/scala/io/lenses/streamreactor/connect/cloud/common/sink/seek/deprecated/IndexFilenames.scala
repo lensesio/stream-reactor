@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2024 Lenses.io Ltd
+ * Copyright 2017-2025 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.lenses.streamreactor.connect.cloud.common.sink.naming
+package io.lenses.streamreactor.connect.cloud.common.sink.seek.deprecated
 
 import cats.implicits.toTraverseOps
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
@@ -24,12 +24,6 @@ import io.lenses.streamreactor.connect.cloud.common.model.TopicPartitionOffset
 import scala.util.Try
 
 class IndexFilenames(directoryFileName: String) {
-
-  /**
-    * Generate the filename for the index file.
-    */
-  def indexFilename(topic: String, partition: Int, offset: Long)(implicit connectorTaskId: ConnectorTaskId): String =
-    f"${indexForTopicPartition(topic, partition)}$offset%020d"
 
   /**
     * Generate the directory of the index for a given topic and partition

@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2024 Lenses.io Ltd
+ * Copyright 2017-2025 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,7 +28,11 @@ import java.io.OutputStreamWriter
 import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.util.Try
 
-class CsvFormatWriter(outputStream: CloudOutputStream, writeHeaders: Boolean) extends FormatWriter with LazyLogging {
+class CsvFormatWriter(
+  outputStream: CloudOutputStream,
+  writeHeaders: Boolean,
+) extends FormatWriter
+    with LazyLogging {
 
   private val outputStreamWriter = new OutputStreamWriter(outputStream)
   private val csvWriter          = new CSVWriter(outputStreamWriter)

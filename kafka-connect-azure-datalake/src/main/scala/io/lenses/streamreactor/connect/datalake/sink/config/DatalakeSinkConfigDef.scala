@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2024 Lenses.io Ltd
+ * Copyright 2017-2025 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,9 +17,11 @@ package io.lenses.streamreactor.connect.datalake.sink.config
 
 import io.lenses.streamreactor.connect.cloud.common.config.CloudConfigDef
 import io.lenses.streamreactor.connect.cloud.common.config.IndexConfigKeys
+import io.lenses.streamreactor.connect.cloud.common.sink.config.EnableLatestSchemaOptimizationConfigKeys
 import io.lenses.streamreactor.connect.cloud.common.sink.config.FlushConfigKeys
 import io.lenses.streamreactor.connect.cloud.common.sink.config.LocalStagingAreaConfigKeys
 import io.lenses.streamreactor.connect.cloud.common.sink.config.SchemaChangeConfigKeys
+import io.lenses.streamreactor.connect.cloud.common.sink.config.SkipNullConfigKeys
 import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.PaddingStrategyConfigKeys
 import io.lenses.streamreactor.connect.datalake.config.AzureConfigSettings._
 import io.lenses.streamreactor.connect.datalake.config._
@@ -33,7 +35,9 @@ object DatalakeSinkConfigDef
     with LocalStagingAreaConfigKeys
     with PaddingStrategyConfigKeys
     with IndexConfigKeys
-    with SchemaChangeConfigKeys {
+    with SchemaChangeConfigKeys
+    with SkipNullConfigKeys
+    with EnableLatestSchemaOptimizationConfigKeys {
 
   override def connectorPrefix: String = CONNECTOR_PREFIX
 
@@ -61,6 +65,8 @@ object DatalakeSinkConfigDef
     addPaddingToConfigDef(configDef)
     addIndexSettingsToConfigDef(configDef)
     withSchemaChangeConfig(configDef)
+    withSkipNullConfig(configDef)
+    withEnableLatestSchemaOptimizationConfig(configDef)
   }
 
 }

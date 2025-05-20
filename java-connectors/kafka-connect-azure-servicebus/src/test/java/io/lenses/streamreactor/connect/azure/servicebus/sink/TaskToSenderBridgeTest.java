@@ -40,6 +40,7 @@ import java.util.function.Consumer;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.config.ConfigException;
+import org.apache.kafka.common.config.types.Password;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -74,7 +75,8 @@ class TaskToSenderBridgeTest {
 
     when(SINK_CONFIG.getInt(AzureServiceBusConfigConstants.MAX_NUMBER_OF_RETRIES)).thenReturn(MAX_RETRIES);
     when(SINK_CONFIG.getInt(AzureServiceBusConfigConstants.TIMEOUT_BETWEEN_RETRIES)).thenReturn(RETRY_TIMEOUT);
-    when(SINK_CONFIG.getString(AzureServiceBusConfigConstants.CONNECTION_STRING)).thenReturn(CONNECTION_STRING);
+    when(SINK_CONFIG.getPassword(AzureServiceBusConfigConstants.CONNECTION_STRING)).thenReturn(new Password(
+        CONNECTION_STRING));
 
     testObj =
         new TaskToSenderBridge(SINK_CONFIG, Map.of(KAFKA_TOPIC, senderFacade),

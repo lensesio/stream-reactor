@@ -50,6 +50,7 @@ trait HttpConfiguration extends LazyLogging {
         SUCCESS_REPORTING_ENABLED_PROP           -> ConfigValue("true"),
         SUCCESS_REPORTING_TOPIC_PROP             -> ConfigValue(successReportingTopic),
         SUCCESS_REPORTING_BOOTSTRAP_SERVERS_PROP -> ConfigValue(bootstrapServers),
+        HttpSinkConfigDef.RetriesMaxRetriesProp  -> ConfigValue(0),
       )
     debugLogConnectorConfig(configMap)
     ConnectorConfiguration(

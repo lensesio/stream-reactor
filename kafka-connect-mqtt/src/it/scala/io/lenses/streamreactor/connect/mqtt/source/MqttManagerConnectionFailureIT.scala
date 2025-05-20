@@ -19,7 +19,7 @@ import java.util
 import java.util.UUID
 import scala.annotation.nowarn
 
-class MqttManagerConnectionFailureTest extends AnyWordSpec with ForAllTestContainer with Matchers {
+class MqttManagerConnectionFailureIT extends AnyWordSpec with ForAllTestContainer with Matchers {
 
   val mqttPort = 1883
   val cNetwork = Network.newNetwork

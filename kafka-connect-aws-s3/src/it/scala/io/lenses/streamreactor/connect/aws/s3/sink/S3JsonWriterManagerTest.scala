@@ -17,6 +17,7 @@
 package io.lenses.streamreactor.connect.aws.s3.sink
 
 import cats.implicits.catsSyntaxOptionId
+import cats.implicits.none
 import io.lenses.streamreactor.common.config.base.RetryConfig
 import io.lenses.streamreactor.common.errors.ErrorPolicy
 import io.lenses.streamreactor.common.errors.ErrorPolicyEnum
@@ -29,6 +30,7 @@ import io.lenses.streamreactor.connect.cloud.common.config.AvroFormatSelection
 import io.lenses.streamreactor.connect.cloud.common.config.DataStorageSettings
 import io.lenses.streamreactor.connect.cloud.common.config.JsonFormatSelection
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.MessageDetail
+import io.lenses.streamreactor.connect.cloud.common.formats.writer.schema.DefaultSchemaChangeDetector
 import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodecName.UNCOMPRESSED
 import io.lenses.streamreactor.connect.cloud.common.model.Offset
 import io.lenses.streamreactor.connect.cloud.common.model.Topic
@@ -60,7 +62,6 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 import java.time.Instant
-
 import scala.jdk.CollectionConverters._
 
 class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest {
@@ -72,7 +73,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
   private val TopicName  = "myTopic"
   private val PathPrefix = "streamReactorBackups"
   private implicit val cloudLocationValidator: S3LocationValidator.type = S3LocationValidator
-
+  private val schemaChangeDetector = DefaultSchemaChangeDetector
   "json sink" should "write single json record using offset key naming" in {
 
     val bucketAndPrefix = CloudLocation(BucketName, PathPrefix.some)
@@ -95,6 +96,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
             new OffsetFileNamer(
               identity[String],
               JsonFormatSelection.extension,
+              None,
             ),
             new PaddingService(Map[String, PaddingStrategy](
               "partition" -> NoOpPaddingStrategy,
@@ -107,16 +109,20 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
       ),
       indexOptions = IndexOptions(5, ".indexes").some,
       compressionCodec,
-      batchDelete                   = true,
-      errorPolicy                   = ErrorPolicy(ErrorPolicyEnum.THROW),
-      connectorRetryConfig          = new RetryConfig(1, 1L, 1.0),
-      logMetrics                    = false,
-      rolloverOnSchemaChangeEnabled = true,
+      batchDelete                 = true,
+      errorPolicy                 = ErrorPolicy(ErrorPolicyEnum.THROW),
+      connectorRetryConfig        = new RetryConfig(1, 1L, 1.0),
+      logMetrics                  = false,
+      schemaChangeDetector        = schemaChangeDetector,
+      skipNullValues              = true,
+      latestSchemaForWriteEnabled = false,
     )
 
-    val sink   = writerManagerCreator.from(config)._2
-    val topic  = Topic(TopicName)
+    val (indexManager, sink) = writerManagerCreator.from(config)
+    val topic                = Topic(TopicName)
+    indexManager.open(Set(topic.withPartition(1)))
     val offset = Offset(1)
+
     sink.write(
       TopicPartitionOffset(topic, 1, offset),
       MessageDetail(
@@ -160,6 +166,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
             new OffsetFileNamer(
               identity[String],
               JsonFormatSelection.extension,
+              None,
             ),
             new PaddingService(Map[String, PaddingStrategy](
               "partition" -> NoOpPaddingStrategy,
@@ -170,13 +177,15 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
           dataStorage      = DataStorageSettings.disabled,
         ),
       ),
-      indexOptions = IndexOptions(5, ".indexes").some,
+      indexOptions = none,
       compressionCodec,
-      batchDelete                   = true,
-      errorPolicy                   = ErrorPolicy(ErrorPolicyEnum.THROW),
-      connectorRetryConfig          = new RetryConfig(1, 1L, 1.0),
-      logMetrics                    = false,
-      rolloverOnSchemaChangeEnabled = true,
+      batchDelete                 = true,
+      errorPolicy                 = ErrorPolicy(ErrorPolicyEnum.THROW),
+      connectorRetryConfig        = new RetryConfig(1, 1L, 1.0),
+      logMetrics                  = false,
+      schemaChangeDetector        = schemaChangeDetector,
+      skipNullValues              = false,
+      latestSchemaForWriteEnabled = false,
     )
 
     val sink = writerManagerCreator.from(config)._2
@@ -229,6 +238,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
             new OffsetFileNamer(
               identity[String],
               JsonFormatSelection.extension,
+              None,
             ),
             new PaddingService(Map[String, PaddingStrategy](
               "partition" -> NoOpPaddingStrategy,
@@ -241,16 +251,19 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
       ),
       indexOptions = IndexOptions(5, ".indexes").some,
       compressionCodec,
-      batchDelete                   = true,
-      errorPolicy                   = ErrorPolicy(ErrorPolicyEnum.THROW),
-      connectorRetryConfig          = new RetryConfig(1, 1L, 1.0),
-      logMetrics                    = false,
-      rolloverOnSchemaChangeEnabled = true,
+      batchDelete                 = true,
+      errorPolicy                 = ErrorPolicy(ErrorPolicyEnum.THROW),
+      connectorRetryConfig        = new RetryConfig(1, 1L, 1.0),
+      logMetrics                  = false,
+      schemaChangeDetector        = schemaChangeDetector,
+      skipNullValues              = true,
+      latestSchemaForWriteEnabled = false,
     )
 
-    val sink = writerManagerCreator.from(config)._2
+    val (indexManager, sink) = writerManagerCreator.from(config)
+    val topic                = Topic(TopicName)
+    indexManager.open(Set(topic.withPartition(1)))
 
-    val topic  = Topic(TopicName)
     val offset = Offset(1L)
     val usersWithDecimal =
       new Struct(UsersSchemaDecimal)
@@ -304,6 +317,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
             new OffsetFileNamer(
               identity[String],
               JsonFormatSelection.extension,
+              None,
             ),
             new PaddingService(Map[String, PaddingStrategy](
               "partition" -> NoOpPaddingStrategy,
@@ -316,15 +330,18 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
       ),
       indexOptions = IndexOptions(5, ".indexes").some,
       compressionCodec,
-      batchDelete                   = true,
-      errorPolicy                   = ErrorPolicy(ErrorPolicyEnum.THROW),
-      connectorRetryConfig          = new RetryConfig(1, 1L, 1.0),
-      logMetrics                    = false,
-      rolloverOnSchemaChangeEnabled = true,
+      batchDelete                 = true,
+      errorPolicy                 = ErrorPolicy(ErrorPolicyEnum.THROW),
+      connectorRetryConfig        = new RetryConfig(1, 1L, 1.0),
+      logMetrics                  = false,
+      schemaChangeDetector        = schemaChangeDetector,
+      skipNullValues              = true,
+      latestSchemaForWriteEnabled = false,
     )
 
-    val sink   = writerManagerCreator.from(config)._2
-    val topic  = Topic(TopicName)
+    val (indexManager, sink) = writerManagerCreator.from(config)
+    val topic                = Topic(TopicName)
+    indexManager.open(Set(topic.withPartition(1)))
     val offset = Offset(1)
     val listOfPojo: java.util.List[Pojo] = List(
       new Pojo("sam", "mr", 100.43),
