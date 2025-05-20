@@ -1,6 +1,6 @@
 plugins {
-    id 'com.gradleup.shadow' version '8.3.5'
-    id 'com.diffplug.spotless' version "6.25.0"
+    id 'com.gradleup.shadow' version '8.3.6'
+    id 'com.diffplug.spotless' version "7.0.3"
     id 'java'
     id 'java-library'
 }
@@ -66,7 +66,7 @@ allprojects {
         testImplementation group: 'org.mockito', name: 'mockito-core', version: mockitoJupiterVersion
         testImplementation group: 'org.mockito', name: 'mockito-junit-jupiter', version: mockitoJupiterVersion
         testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter', version: jUnitVersion
-        testImplementation group: 'org.assertj', name: 'assertj-core', version: '3.26.3'
+        testImplementation group: 'org.assertj', name: 'assertj-core', version: '3.27.3'
     }
 
     test {
