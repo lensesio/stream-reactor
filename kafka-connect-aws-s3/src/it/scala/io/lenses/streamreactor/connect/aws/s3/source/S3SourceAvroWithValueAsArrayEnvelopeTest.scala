@@ -1,6 +1,5 @@
 package io.lenses.streamreactor.connect.aws.s3.source
 
-import cats.implicits.toBifunctorOps
 import io.lenses.streamreactor.connect.aws.s3.storage.AwsS3StorageInterface
 import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
 import io.lenses.streamreactor.connect.cloud.common.model.UploadableFile
@@ -90,7 +89,6 @@ class S3SourceAvroWithValueAsArrayEnvelopeTest
       fileWriter.close()
 
       storageInterface.uploadFile(UploadableFile(file), BucketName, s"$MyPrefix/avro/0")
-        .leftMap(e => new UploadException(e))
     }
 
   }

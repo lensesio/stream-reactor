@@ -44,12 +44,7 @@ import java.util.UUID
 import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.jdk.CollectionConverters.MapHasAsJava
 
-class MqttSourceTaskTest
-    extends AnyWordSpec
-    with ForAllTestContainer
-    with Matchers
-    with MockitoSugar
-    with StrictLogging {
+class MqttSourceTaskIT extends AnyWordSpec with ForAllTestContainer with Matchers with MockitoSugar with StrictLogging {
 
   private val mqttPort = 1883
 

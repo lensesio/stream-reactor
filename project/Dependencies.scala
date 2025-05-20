@@ -39,15 +39,16 @@ object Dependencies {
     val scalatestVersion               = "3.2.19"
     val scalatestPlusScalaCheckVersion = "3.1.0.0-RC2"
     val scalaCheckVersion              = "1.18.1"
+    val javaFakerVersion               = "1.0.2"
 
-    val mockitoJunitJupiterVersion = "5.14.2"
+    val mockitoJunitJupiterVersion = "5.17.0"
     val junitJupiterVersion        = "5.11.3"
     val assertjCoreVersion         = "3.26.3"
 
     val cyclopsVersion = "10.4.1"
 
-    val kafkaVersion:     String = "3.8.0"
-    val confluentVersion: String = "7.7.2"
+    val kafkaVersion:     String = "3.9.1"
+    val confluentVersion: String = "7.9.1"
 
     val enumeratumVersion = "1.7.5"
 
@@ -56,7 +57,7 @@ object Dependencies {
     val avroVersion      = "1.12.0"
     val avro4sVersion    = "4.1.2"
 
-    val catsEffectVersion     = "3.5.7"
+    val catsEffectVersion     = "3.6.1"
     val `cats-effect-testing` = "1.5.0"
 
     val antlr4Version: String = "4.13.2"
@@ -67,14 +68,14 @@ object Dependencies {
     // build plugins version
     val betterMonadicForVersion = "0.3.1"
 
-    val lombokVersion = "1.18.36"
+    val lombokVersion = "1.18.38"
 
-    val logbackVersion      = "1.5.13"
+    val logbackVersion      = "1.5.18"
     val scalaLoggingVersion = "3.9.5"
 
     val dnsJavaVersion  = "3.6.2"
     val wiremockVersion = "3.10.0"
-    val parquetVersion  = "1.14.4"
+    val parquetVersion  = "1.15.2"
 
     val jerseyCommonVersion = "3.1.9"
 
@@ -82,26 +83,26 @@ object Dependencies {
     val awsSdkVersion  = "2.29.23"
 
     val azureDataLakeVersion              = "12.22.0"
-    val azureIdentityVersion              = "1.14.2"
+    val azureIdentityVersion              = "1.16.1"
     val azureCoreVersion                  = "1.54.1"
     val msal4jVersion                     = "1.17.3"
     val msal4jPersistenceExtensionVersion = "1.3.0"
-    val gcpCloudVersion                   = "2.48.0"
+    val gcpCloudVersion                   = "2.56.0"
     val gcpCloudStorageVersion            = "2.44.0"
 
     val woodstoxVersion     = "7.1.0"
-    val jacksonVersion      = "2.18.2"
+    val jacksonVersion      = "2.18.4"
     val json4sVersion       = "4.0.7"
     val mockitoScalaVersion = "1.17.37"
     val mockitoJavaVersion  = "5.2.0"
-    val openCsvVersion      = "5.9"
+    val openCsvVersion      = "5.11"
     val jsonSmartVersion    = "2.5.1"
 
     val xzVersion  = "1.10"
     val lz4Version = "1.8.0"
 
     val bouncyCastleVersion = "1.79"
-    val nettyVersion        = "4.1.115.Final"
+    val nettyVersion        = "4.1.121.Final"
 
     val cassandraDriverVersion = "3.11.5"
     val jsonPathVersion        = "2.9.0"
@@ -122,11 +123,11 @@ object Dependencies {
     val commonsNetVersion      = "3.11.1"
     val commonsCodecVersion    = "1.17.1"
     val commonsCompressVersion = "1.27.1"
-    val commonsConfigVersion   = "2.11.0"
-    val commonsIOVersion       = "2.18.0"
+    val commonsConfigVersion   = "2.12.0"
+    val commonsIOVersion       = "2.19.0"
     val commonsHttpVersion     = "4.5.14"
     val commonsLang3Version    = "3.17.0"
-    val jschVersion            = "0.2.20"
+    val jschVersion            = "0.2.26"
 
     val minaVersion           = "2.2.3"
     val betterFilesVersion    = "3.9.2"
@@ -138,10 +139,10 @@ object Dependencies {
     val jedisVersion = "5.1.5"
     val gsonVersion  = "2.11.0"
 
-    val classGraphVersion           = "4.8.179"
-    val nimbusJoseJwtVersion        = "9.47"
-    val hadoopVersion               = "3.4.0"
-    val hadoopShadedProtobufVersion = "1.2.0"
+    val classGraphVersion    = "4.8.179"
+    val nimbusJoseJwtVersion = "9.47"
+    val hadoopVersion        = "3.4.0"
+    //val hadoopShadedProtobufVersion = "1.2.0"
 
     val airCompressorVersion = "2.0.2"
     val zstdVersion          = "1.5.6-8"
@@ -189,10 +190,11 @@ object Dependencies {
   val scalatest = "org.scalatest" %% "scalatest" % scalatestVersion
   val scalatestPlusScalaCheck =
     "org.scalatestplus" %% "scalatestplus-scalacheck" % scalatestPlusScalaCheckVersion
-  val scalaCheck            = "org.scalacheck" %% "scalacheck"            % scalaCheckVersion
-  val `mockitoScala`        = "org.mockito"    %% "mockito-scala"         % mockitoScalaVersion
-  val `mockitoJava`         = "org.mockito"     % "mockito-inline"        % mockitoJavaVersion
-  val `mockitoJunitJupiter` = "org.mockito"     % "mockito-junit-jupiter" % mockitoJunitJupiterVersion
+  val scalaCheck            = "org.scalacheck"      %% "scalacheck"            % scalaCheckVersion
+  val `mockitoScala`        = "org.mockito"         %% "mockito-scala"         % mockitoScalaVersion
+  val `mockitoJava`         = "org.mockito"          % "mockito-inline"        % mockitoJavaVersion
+  val `mockitoJunitJupiter` = "org.mockito"          % "mockito-junit-jupiter" % mockitoJunitJupiterVersion
+  val `javaFaker`           = "com.github.javafaker" % "javafaker"             % javaFakerVersion exclude ("org.yaml", "snakeyaml")
 
   val `junitJupiter`       = "org.junit.jupiter" % "junit-jupiter-api"    % junitJupiterVersion
   val `junitJupiterParams` = "org.junit.jupiter" % "junit-jupiter-params" % junitJupiterVersion
@@ -231,9 +233,17 @@ object Dependencies {
   val confluentProtobufConverter: ModuleID =
     confluentExcludes("io.confluent" % "kafka-connect-protobuf-converter" % confluentVersion)
 
+  val confluentClientEncryption =
+    confluentExcludes("io.confluent" % "kafka-schema-registry-client-encryption" % confluentVersion)
+
+  val confluentSchemaRules =
+    confluentExcludes("io.confluent" % "kafka-schema-rules" % confluentVersion)
+
   val http4sDsl       = "org.http4s" %% "http4s-dsl"             % http4sVersion
   val http4sJdkClient = "org.http4s" %% "http4s-jdk-http-client" % http4sJdkVersion
   val http4sCirce     = "org.http4s" %% "http4s-circe"           % http4sVersion
+
+  val histogram = "org.hdrhistogram" % "HdrHistogram" % "2.2.2" // Or latest version
 
   val http4s: Seq[ModuleID] = Seq(http4sDsl, http4sJdkClient, http4sCirce)
 
@@ -274,9 +284,9 @@ object Dependencies {
     hiveExcludes("org.apache.hadoop" % "hadoop-mapreduce-client" % hadoopVersion)
   lazy val hadoopMapReduceClientCore: ModuleID =
     hiveExcludes("org.apache.hadoop" % "hadoop-mapreduce-client-core" % hadoopVersion)
-  lazy val hadoopShadedProtobuf: ModuleID =
+  /* lazy val hadoopShadedProtobuf: ModuleID =
     hiveExcludes("org.apache.hadoop.thirdparty" % "hadoop-shaded-protobuf_3_21" % hadoopShadedProtobufVersion)
-
+   */
   lazy val calciteCore = hiveExcludes("org.apache.calcite" % "calcite-core" % calciteVersion)
     .excludeAll(ExclusionRule(organization = "io.swagger"))
     .excludeAll(ExclusionRule(organization = "io.netty"))
@@ -475,6 +485,8 @@ trait Dependencies {
     confluentAvroConverter,
     confluentAvroData,
     confluentJsonSchemaSerializer,
+    confluentClientEncryption,
+    confluentSchemaRules,
   ) ++ enumeratum ++ circe
 
   val javaCommonDeps: Seq[ModuleID] = Seq(lombok, kafkaConnectJson, kafkaClients, cyclops, `cyclopsPure`)
@@ -491,7 +503,7 @@ trait Dependencies {
     hadoopMapReduce,
     hadoopMapReduceClient,
     hadoopMapReduceClientCore,
-    hadoopShadedProtobuf,
+    //hadoopShadedProtobuf,
     commonsConfig,
     openCsv,
     jacksonCore,
@@ -526,18 +538,19 @@ trait Dependencies {
   val kafkaConnectGcpStorageDeps: Seq[ModuleID] = Seq(
     cyclops,
     gcpStorageSdk,
+    googleProtobufJava,
   )
 
   val kafkaConnectGcpStorageTestDeps: Seq[ModuleID] =
     baseTestDeps ++ kafkaConnectGcpStorageDeps ++ compressionCodecDeps :+ testcontainersCore
 
-  val kafkaConnectS3TestDeps: Seq[ModuleID] = baseTestDeps ++ compressionCodecDeps :+ testcontainersCore
+  val kafkaConnectS3TestDeps: Seq[ModuleID] = baseTestDeps ++ compressionCodecDeps :+ testcontainersCore :+ `javaFaker`
 
   val kafkaConnectS3FuncTestDeps: Seq[ModuleID] = baseTestDeps ++ compressionCodecDeps :+ s3Sdk
 
-  val kafkaConnectHttpDeps: Seq[ModuleID] = Seq(http4sJdkClient, http4sCirce)
+  val kafkaConnectHttpDeps: Seq[ModuleID] = Seq(http4sJdkClient, http4sCirce, histogram)
 
-  val kafkaConnectHttpTestDeps: Seq[ModuleID] = baseTestDeps
+  val kafkaConnectHttpTestDeps: Seq[ModuleID] = baseTestDeps ++ Seq(catsEffectScalatest)
 
   val kafkaConnectCassandraDeps: Seq[ModuleID] = Seq(
     cassandraDriver,

@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2024 Lenses.io Ltd
+ * Copyright 2017-2025 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -47,6 +47,7 @@ import io.lenses.streamreactor.connect.gcp.storage.storage.GCPStorageFileMetadat
 import io.lenses.streamreactor.connect.gcp.storage.storage.GCPStorageStorageInterface
 import SamplePages.emptyPage
 import SamplePages.pages
+import cats.implicits.none
 import com.google.cloud.storage.CopyWriter
 import com.google.cloud.storage.Storage.CopyRequest
 import org.mockito.Answers
@@ -110,7 +111,7 @@ class GCPStorageStorageInterfaceTest
   }
 
   "uploadFile" should "return a Right(Unit) if the upload is successful" in {
-    storageInterface.uploadFile(UploadableFile(createTestFile), bucket, path) should be(Right(()))
+    storageInterface.uploadFile(UploadableFile(createTestFile), bucket, path).value should not be empty
 
     verify(client).createFrom(
       argMatching[BlobInfo] {
@@ -178,7 +179,7 @@ class GCPStorageStorageInterfaceTest
 
     val result = storageInterface.pathExists(bucket, path)
 
-    result.left.value should be(a[FileLoadError])
+    result.left.value should be(a[PathError])
   }
 
   "getBlob" should "return the blob content as a stream when successful" in {
@@ -240,7 +241,7 @@ class GCPStorageStorageInterfaceTest
 
     val result = storageInterface.getBlobAsString(bucket, path)
 
-    result.left.value should be(a[FileLoadError])
+    result.left.value should be(a[GeneralFileLoadError])
   }
 
   "writeStringToFile" should "upload the data string to the specified path when successful" in {
@@ -376,7 +377,7 @@ class GCPStorageStorageInterfaceTest
     mockGetBlobInvocation(mockBlob)
 
     val result = storageInterface.getMetadata(bucket, path)
-    result.left.value should be(a[FileLoadError])
+    result.left.value should be(a[GeneralFileLoadError])
   }
 
   "listFileMetaRecursive" should "return a list of metadata when successful" in {
@@ -506,7 +507,7 @@ class GCPStorageStorageInterfaceTest
 
     when(client.copy(any[Storage.CopyRequest])).thenReturn(mock[CopyWriter])
     when(client.delete(sourceBlobId)).thenReturn(true)
-    val result: Either[FileMoveError, Unit] = storageInterface.mvFile(oldBucket, oldPath, newBucket, newPath)
+    val result: Either[FileMoveError, Unit] = storageInterface.mvFile(oldBucket, oldPath, newBucket, newPath, none)
     result.value should be(())
 
     val copyRequestCaptor: ArgumentCaptor[Storage.CopyRequest] = ArgumentCaptor.forClass(classOf[Storage.CopyRequest])
@@ -549,7 +550,7 @@ class GCPStorageStorageInterfaceTest
 
     when(client.copy(any[Storage.CopyRequest])).thenThrow(new RuntimeException("Copy failed"))
 
-    val result = storageInterface.mvFile(oldBucket, oldPath, newBucket, newPath)
+    val result = storageInterface.mvFile(oldBucket, oldPath, newBucket, newPath, none)
 
     result.isLeft should be(true)
     result.left.value should be(a[FileMoveError])
@@ -576,7 +577,7 @@ class GCPStorageStorageInterfaceTest
     when(client.copy(any[Storage.CopyRequest])).thenReturn(mock[CopyWriter])
     when(client.delete(sourceBlobId)).thenThrow(new RuntimeException("Delete failed"))
 
-    val result = storageInterface.mvFile(oldBucket, oldPath, newBucket, newPath)
+    val result = storageInterface.mvFile(oldBucket, oldPath, newBucket, newPath, none)
 
     result.isLeft should be(true)
     result.left.value should be(a[FileMoveError])
@@ -604,7 +605,7 @@ class GCPStorageStorageInterfaceTest
     when(client.copy(any[Storage.CopyRequest])).thenReturn(mock[CopyWriter])
     when(client.delete(sourceBlobId)).thenReturn(true)
 
-    val result = storageInterface.mvFile(oldBucket, oldPath, newBucket, newPath)
+    val result = storageInterface.mvFile(oldBucket, oldPath, newBucket, newPath, none)
     result.value should be(())
 
     val copyRequestCaptor: ArgumentCaptor[Storage.CopyRequest] = ArgumentCaptor.forClass(classOf[Storage.CopyRequest])
@@ -632,7 +633,7 @@ class GCPStorageStorageInterfaceTest
     when(client.copy(any[Storage.CopyRequest])).thenReturn(mock[CopyWriter])
     when(client.delete(sourceBlobId)).thenReturn(true)
 
-    val result = storageInterface.mvFile(oldBucket, oldPath, newBucket, newPath)
+    val result = storageInterface.mvFile(oldBucket, oldPath, newBucket, newPath, none)
     result.value should be(())
 
     val copyRequestCaptor: ArgumentCaptor[Storage.CopyRequest] = ArgumentCaptor.forClass(classOf[Storage.CopyRequest])
@@ -656,7 +657,7 @@ class GCPStorageStorageInterfaceTest
     // Simulate a failure during the copy operation (e.g., source file does not exist)
     when(client.copy(any[Storage.CopyRequest])).thenThrow(new RuntimeException("Source file does not exist"))
 
-    val result = storageInterface.mvFile(oldBucket, oldPath, newBucket, newPath)
+    val result = storageInterface.mvFile(oldBucket, oldPath, newBucket, newPath, none)
 
     // Verify that the result is a FileMoveError
     result.left.value should be(a[FileMoveError])
@@ -682,7 +683,7 @@ class GCPStorageStorageInterfaceTest
 
     mockBlobNonExistence1(sourceBlobId)
 
-    val result = storageInterface.mvFile(oldBucket, oldPath, newBucket, newPath)
+    val result = storageInterface.mvFile(oldBucket, oldPath, newBucket, newPath, none)
 
     result.value should be(())
 
@@ -703,7 +704,7 @@ class GCPStorageStorageInterfaceTest
     // Simulate a failure during the copy operation (e.g., source file does not exist)
     when(client.copy(any[Storage.CopyRequest])).thenThrow(new RuntimeException("Source file does not exist"))
 
-    val result = storageInterface.mvFile(oldBucket, oldPath, newBucket, newPath)
+    val result = storageInterface.mvFile(oldBucket, oldPath, newBucket, newPath, none)
 
     result.value should be(())
 

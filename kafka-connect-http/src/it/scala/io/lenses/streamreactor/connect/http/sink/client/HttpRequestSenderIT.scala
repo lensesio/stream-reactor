@@ -20,6 +20,7 @@ import cats.effect.Resource
 import cats.effect.testing.scalatest.AsyncIOSpec
 import cats.implicits.catsSyntaxOptionId
 import cats.implicits.none
+import io.lenses.streamreactor.connect.http.sink.metrics.HttpSinkMetrics
 import org.mockito.ArgumentMatchers.any
 import org.scalatest.EitherValues
 //import cats.implicits.catsSyntaxOptionId
@@ -71,12 +72,14 @@ class HttpRequestSenderIT
       .willReturn(aResponse.withHeader("Content-Type", "text/plain")
         .withBody(HttpResponseBody)))
 
+    val metrics = new HttpSinkMetrics
     JdkHttpClient.simple[IO].use {
       client =>
         val requestSender = new NoAuthenticationHttpRequestSender(
           sinkName,
           Method.PUT,
           client,
+          metrics,
         )
         val processedTemplate = ProcessedTemplate(
           s"${wireMockServer.baseUrl()}$expectedUrl",
@@ -109,6 +112,7 @@ class HttpRequestSenderIT
           .withBody(HttpResponseBody)),
     )
 
+    val metrics = new HttpSinkMetrics
     JdkHttpClient.simple[IO].use {
       client =>
         val requestSender = new BasicAuthenticationHttpRequestSender(
@@ -117,6 +121,7 @@ class HttpRequestSenderIT
           client,
           "myUser",
           "myPassword",
+          metrics,
         )
         val processedTemplate = ProcessedTemplate(
           s"${wireMockServer.baseUrl()}$expectedUrl",
@@ -144,10 +149,12 @@ class HttpRequestSenderIT
       Resource.eval(IO.raiseError(expectedException)),
     )
 
+    val metrics = new HttpSinkMetrics
     val requestSender = new NoAuthenticationHttpRequestSender(
       sinkName,
       Method.PUT,
       mockClient,
+      metrics,
     )
     val processedTemplate = ProcessedTemplate(
       s"${wireMockServer.baseUrl()}$expectedUrl",

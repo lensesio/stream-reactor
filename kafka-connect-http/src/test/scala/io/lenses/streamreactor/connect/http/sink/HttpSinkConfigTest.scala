@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2024 Lenses.io Ltd
+ * Copyright 2017-2025 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -59,7 +59,7 @@ class HttpSinkConfigTest extends AnyFunSuiteLike with Matchers with EitherValues
     httpSinkConfig.errorThreshold should be(ErrorThresholdDefault)
     httpSinkConfig.uploadSyncPeriod should be(UploadSyncPeriodDefault)
     httpSinkConfig.retries should be(
-      RetriesConfig(
+      ExponentialRetryConfig(
         HttpSinkConfigDef.RetriesMaxRetriesDefault,
         HttpSinkConfigDef.RetriesMaxTimeoutMsDefault,
         HttpSinkConfigDef.RetriesOnStatusCodesDefault,
@@ -81,6 +81,61 @@ class HttpSinkConfigTest extends AnyFunSuiteLike with Matchers with EitherValues
     ).left.value.getMessage should include("Invalid HTTP method. Supported methods are: Put, Post, Patch")
   }
 
+  test("fails when retries is invalid") {
+    HttpSinkConfig.from(
+      Map(
+        HttpSinkConfigDef.HttpMethodProp           -> "put",
+        HttpSinkConfigDef.HttpEndpointProp         -> "http://myaddress.example.com",
+        HttpSinkConfigDef.HttpRequestContentProp   -> "<note>\n<to>Dave</to>\n<from>Jason</from>\n<body>Hooray for Kafka Connect!</body>\n</note>",
+        HttpSinkConfigDef.RetryModeProp            -> "invalid",
+        HttpSinkConfigDef.RetriesMaxRetriesProp    -> "10",
+        HttpSinkConfigDef.RetriesOnStatusCodesProp -> "500,502",
+        ERROR_REPORTING_ENABLED_PROP               -> "false",
+        SUCCESS_REPORTING_ENABLED_PROP             -> "false",
+      ),
+    ).left.value.getMessage should include("Invalid retry mode: invalid. Expected one of: Exponential, Fixed")
+  }
+  test("retries is set to fixed") {
+    val httpSinkConfig = HttpSinkConfig.from(
+      Map(
+        HttpSinkConfigDef.HttpMethodProp           -> "put",
+        HttpSinkConfigDef.HttpEndpointProp         -> "http://myaddress.example.com",
+        HttpSinkConfigDef.HttpRequestContentProp   -> "<note>\n<to>Dave</to>\n<from>Jason</from>\n<body>Hooray for Kafka Connect!</body>\n</note>",
+        HttpSinkConfigDef.RetryModeProp            -> "fixed",
+        HttpSinkConfigDef.RetriesMaxRetriesProp    -> "10",
+        HttpSinkConfigDef.FixedRetryIntervalProp   -> "111",
+        HttpSinkConfigDef.RetriesOnStatusCodesProp -> "500,502",
+        ERROR_REPORTING_ENABLED_PROP               -> "false",
+        SUCCESS_REPORTING_ENABLED_PROP             -> "false",
+        HttpSinkConfigDef.JsonTidyProp             -> "true",
+      ),
+    ).value
+
+    httpSinkConfig.method should be(Put)
+    httpSinkConfig.endpoint should be("http://myaddress.example.com")
+    httpSinkConfig.content should be(
+      "<note>\n<to>Dave</to>\n<from>Jason</from>\n<body>Hooray for Kafka Connect!</body>\n</note>",
+    )
+    httpSinkConfig.authentication should be(NoAuthentication)
+    httpSinkConfig.headers should be(List(
+      ("Content-Type", "application/json"),
+    ))
+    httpSinkConfig.ssl should be(new StoresInfo(cysome(DEFAULT_SSL_PROTOCOL_TLS), cynone(), cynone()))
+    httpSinkConfig.batch should be(BatchConfig(Some(1), None, None))
+    httpSinkConfig.errorThreshold should be(ErrorThresholdDefault)
+    httpSinkConfig.uploadSyncPeriod should be(UploadSyncPeriodDefault)
+    httpSinkConfig.retries should be(
+      FixedRetryConfig(
+        10,
+        111,
+        List(500, 502),
+      ),
+    )
+    httpSinkConfig.timeout should be(TimeoutConfig(HttpSinkConfigDef.ConnectionTimeoutMsDefault))
+    httpSinkConfig.tidyJson should be(true)
+    httpSinkConfig.errorReportingController == null shouldBe false
+    httpSinkConfig.successReportingController == null shouldBe false
+  }
   test("authentication set to Basic") {
     val httpSinkConfig = HttpSinkConfig.from(
       Map(
@@ -110,7 +165,7 @@ class HttpSinkConfigTest extends AnyFunSuiteLike with Matchers with EitherValues
     httpSinkConfig.errorThreshold should be(ErrorThresholdDefault)
     httpSinkConfig.uploadSyncPeriod should be(UploadSyncPeriodDefault)
     httpSinkConfig.retries should be(
-      RetriesConfig(
+      ExponentialRetryConfig(
         HttpSinkConfigDef.RetriesMaxRetriesDefault,
         HttpSinkConfigDef.RetriesMaxTimeoutMsDefault,
         HttpSinkConfigDef.RetriesOnStatusCodesDefault,

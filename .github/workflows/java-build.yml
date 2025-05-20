@@ -89,8 +89,11 @@ jobs:
         with:
           gradle-version: 8.6
 
+      - name: Execute Gradle build fat jar
+        run: cd 'java-connectors' && ./gradlew ${{ matrix.module }}:shadowJar
+
       - name: Execute Gradle build
-        run: cd 'java-connectors' && ./gradlew ${{ matrix.module }}:shadowJar --scan
+        run: cd 'java-connectors' && ./gradlew ${{ matrix.module }}:collectArtifacts
 
       - name: Move to release folder
         shell: bash
@@ -100,11 +103,17 @@ jobs:
           mkdir -p $JAVA_RELEASE_FOLDER
           cp $JAVA_BUILD_FOLDER/${{ matrix.module }}*.jar LICENSE $JAVA_RELEASE_FOLDER/
 
-      - name: Cache assembly
+      - name: Cache fat Jar assembly
         uses: actions/cache/save@v4
         with:
           path: ./java-connectors/release/${{ matrix.module }}*.jar
           key: assembly-java-${{ github.run_id }}
+
+      - name: Cache assembly
+        uses: actions/cache/save@v4
+        with:
+          path: ./java-connectors/release/libs/${{ matrix.module }}/*.jar
+          key: assembly-java-all-${{ github.run_id }}
 
   jar-dependency-check:
     if: false  # This ensures dependency-check is always skipped

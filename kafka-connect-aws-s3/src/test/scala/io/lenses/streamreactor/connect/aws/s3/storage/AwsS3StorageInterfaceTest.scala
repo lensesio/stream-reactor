@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2024 Lenses.io Ltd
+ * Copyright 2017-2025 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.storage
 
+import cats.implicits.none
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.storage.FileMoveError
 import org.mockito.ArgumentMatchersSugar
@@ -45,7 +46,7 @@ class AwsS3StorageInterfaceTest
     when(s3Client.copyObject(any[CopyObjectRequest])).thenAnswer(CopyObjectResponse.builder().build())
     when(s3Client.deleteObject(any[DeleteObjectRequest])).thenAnswer(DeleteObjectResponse.builder().build())
 
-    val result = storageInterface.mvFile("oldBucket", "oldPath", "newBucket", "newPath")
+    val result = storageInterface.mvFile("oldBucket", "oldPath", "newBucket", "newPath", none)
 
     result shouldBe Right(())
     verify(s3Client).copyObject(any[CopyObjectRequest])
@@ -58,7 +59,7 @@ class AwsS3StorageInterfaceTest
 
     when(s3Client.copyObject(any[CopyObjectRequest])).thenThrow(new RuntimeException("Copy failed"))
 
-    val result = storageInterface.mvFile("oldBucket", "oldPath", "newBucket", "newPath")
+    val result = storageInterface.mvFile("oldBucket", "oldPath", "newBucket", "newPath", none)
 
     result.isLeft shouldBe true
     result.left.value shouldBe a[FileMoveError]
@@ -74,7 +75,7 @@ class AwsS3StorageInterfaceTest
     when(s3Client.copyObject(any[CopyObjectRequest])).thenAnswer(CopyObjectResponse.builder().build())
     when(s3Client.deleteObject(any[DeleteObjectRequest])).thenThrow(new RuntimeException("Delete failed"))
 
-    val result = storageInterface.mvFile("oldBucket", "oldPath", "newBucket", "newPath")
+    val result = storageInterface.mvFile("oldBucket", "oldPath", "newBucket", "newPath", none)
 
     result.isLeft shouldBe true
     result.left.value shouldBe a[FileMoveError]
@@ -90,7 +91,7 @@ class AwsS3StorageInterfaceTest
     when(s3Client.copyObject(any[CopyObjectRequest])).thenAnswer(CopyObjectResponse.builder().build())
     when(s3Client.deleteObject(any[DeleteObjectRequest])).thenThrow(new RuntimeException("Delete failed"))
 
-    val result = storageInterface.mvFile("oldBucket", "oldPath", "newBucket", "newPath")
+    val result = storageInterface.mvFile("oldBucket", "oldPath", "newBucket", "newPath", none)
 
     result.isRight shouldBe true
     verify(s3Client).headObject(any[HeadObjectRequest])
