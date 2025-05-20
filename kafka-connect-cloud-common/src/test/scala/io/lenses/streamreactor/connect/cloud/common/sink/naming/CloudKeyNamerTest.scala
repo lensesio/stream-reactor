@@ -70,7 +70,7 @@ class CloudKeyNamerTest extends AnyFunSuite with Matchers with OptionValues with
       PartitionSelection(isCustom = false, List(HeaderPartitionField(PartitionNamePath("h"))), Values)
 
     val fileNamer: FileNamer =
-      new OffsetFileNamer(paddingStrategy, JsonFormatSelection.extension)
+      new OffsetFileNamer(paddingStrategy, JsonFormatSelection.extension, None)
 
     val keyNamer = CloudKeyNamer(formatSelection, partitionSelection, fileNamer, paddingService)
     val either: Either[SinkError, Map[PartitionField, String]] = keyNamer.processPartitionValues(
@@ -93,7 +93,7 @@ class CloudKeyNamerTest extends AnyFunSuite with Matchers with OptionValues with
     val stagingDirectory = Files.createTempDirectory("myTempDir").toFile
 
     val fileNamer: FileNamer =
-      new OffsetFileNamer(paddingStrategy, JsonFormatSelection.extension)
+      new OffsetFileNamer(paddingStrategy, JsonFormatSelection.extension, None)
     val s3KeyNamer = CloudKeyNamer(formatSelection, partitionSelection, fileNamer, paddingService)
 
     val result =
@@ -108,7 +108,7 @@ class CloudKeyNamerTest extends AnyFunSuite with Matchers with OptionValues with
   test("should generate the correct staging file path") {
     val stagingDirectory = Files.createTempDirectory("myTempDir").toFile
     val fileNamer: FileNamer =
-      new OffsetFileNamer(paddingStrategy, JsonFormatSelection.extension)
+      new OffsetFileNamer(paddingStrategy, JsonFormatSelection.extension, None)
     val s3KeyNamer = CloudKeyNamer(formatSelection, partitionSelection, fileNamer, paddingService)
 
     val result =
@@ -122,7 +122,7 @@ class CloudKeyNamerTest extends AnyFunSuite with Matchers with OptionValues with
 
   test("should write to the root of the bucket with no prefix") {
     val fileNamer: FileNamer =
-      new OffsetFileNamer(paddingStrategy, JsonFormatSelection.extension)
+      new OffsetFileNamer(paddingStrategy, JsonFormatSelection.extension, None)
     val s3KeyNamer = CloudKeyNamer(formatSelection, partitionSelection, fileNamer, paddingService)
 
     val result = s3KeyNamer.value(bucketNoPrefix, topicPartition, partitionValues, 0L, 10L)
@@ -132,7 +132,7 @@ class CloudKeyNamerTest extends AnyFunSuite with Matchers with OptionValues with
 
   test("should generate the correct final S3 location for v1 OffsetFileNamerV1 format") {
     val fileNamer: FileNamer =
-      new OffsetFileNamer(paddingStrategy, JsonFormatSelection.extension)
+      new OffsetFileNamer(paddingStrategy, JsonFormatSelection.extension, None)
     val s3KeyNamer = CloudKeyNamer(formatSelection, partitionSelection, fileNamer, paddingService)
 
     val result = s3KeyNamer.value(bucketAndPrefix, topicPartition, partitionValues, 101L, 9999L)
@@ -142,12 +142,23 @@ class CloudKeyNamerTest extends AnyFunSuite with Matchers with OptionValues with
 
   test("should generate the correct final S3 location for TopicPartitionOffsetFileNamer format") {
     val fileNamer: FileNamer =
-      new TopicPartitionOffsetFileNamer(paddingStrategy, paddingStrategy, JsonFormatSelection.extension)
+      new TopicPartitionOffsetFileNamer(paddingStrategy, paddingStrategy, JsonFormatSelection.extension, None)
     val s3KeyNamer = CloudKeyNamer(formatSelection, partitionSelection, fileNamer, paddingService)
 
     val result = s3KeyNamer.value(bucketAndPrefix, topicPartition, partitionValues, 101L, 1000L)
 
     result.value.path.value shouldEqual s"prefix/$TopicName/00$Partition/${topicPartition.topic.value}(009_0$Offset).json"
+  }
+
+  test("should generate the correct final S3 location for TopicPartitionOffsetFileNamer format including prefix") {
+    val prefix = "-my-suffix"
+    val fileNamer: FileNamer =
+      new TopicPartitionOffsetFileNamer(paddingStrategy, paddingStrategy, JsonFormatSelection.extension, Some(prefix))
+    val s3KeyNamer = CloudKeyNamer(formatSelection, partitionSelection, fileNamer, paddingService)
+
+    val result = s3KeyNamer.value(bucketAndPrefix, topicPartition, partitionValues, 101L, 1000L)
+
+    result.value.path.value shouldEqual s"prefix/$TopicName/00$Partition/${topicPartition.topic.value}(009_0$Offset)-my-suffix.json"
   }
 
 }

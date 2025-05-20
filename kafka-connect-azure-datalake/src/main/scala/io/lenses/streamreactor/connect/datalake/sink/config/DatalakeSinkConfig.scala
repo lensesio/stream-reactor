@@ -47,11 +47,12 @@ object DatalakeSinkConfig extends PropsToConfigConverter[DatalakeSinkConfig] {
     cloudLocationValidator: CloudLocationValidator,
   ): Either[Throwable, DatalakeSinkConfig] =
     for {
-      authMode            <- s3ConfigDefBuilder.getAuthMode
-      sinkBucketOptions   <- CloudSinkBucketOptions(connectorTaskId, s3ConfigDefBuilder)
-      indexOptions         = s3ConfigDefBuilder.getIndexSettings
-      logMetrics           = s3ConfigDefBuilder.getBoolean(LOG_METRICS_CONFIG)
-      schemaChangeDetector = s3ConfigDefBuilder.schemaChangeDetector()
+      authMode               <- s3ConfigDefBuilder.getAuthMode
+      sinkBucketOptions      <- CloudSinkBucketOptions(connectorTaskId, s3ConfigDefBuilder)
+      indexOptions            = s3ConfigDefBuilder.getIndexSettings
+      logMetrics              = s3ConfigDefBuilder.getBoolean(LOG_METRICS_CONFIG)
+      schemaChangeDetector    = s3ConfigDefBuilder.schemaChangeDetector()
+      useLatestSchemaForWrite = s3ConfigDefBuilder.getEnableLatestSchemaOptimization()
     } yield DatalakeSinkConfig(
       AzureConnectionConfig(s3ConfigDefBuilder.getParsedValues, authMode),
       sinkBucketOptions,
@@ -61,19 +62,21 @@ object DatalakeSinkConfig extends PropsToConfigConverter[DatalakeSinkConfig] {
       s3ConfigDefBuilder.getRetryConfig,
       logMetrics,
       schemaChangeDetector,
-      skipNullValues = s3ConfigDefBuilder.skipNullValues(),
+      skipNullValues              = s3ConfigDefBuilder.skipNullValues(),
+      latestSchemaForWriteEnabled = useLatestSchemaForWrite,
     )
 
 }
 
 case class DatalakeSinkConfig(
-  connectionConfig:     AzureConnectionConfig,
-  bucketOptions:        Seq[CloudSinkBucketOptions] = Seq.empty,
-  indexOptions:         Option[IndexOptions],
-  compressionCodec:     CompressionCodec,
-  errorPolicy:          ErrorPolicy,
-  connectorRetryConfig: RetryConfig,
-  logMetrics:           Boolean,
-  schemaChangeDetector: SchemaChangeDetector,
-  skipNullValues:       Boolean,
+  connectionConfig:            AzureConnectionConfig,
+  bucketOptions:               Seq[CloudSinkBucketOptions] = Seq.empty,
+  indexOptions:                Option[IndexOptions],
+  compressionCodec:            CompressionCodec,
+  errorPolicy:                 ErrorPolicy,
+  connectorRetryConfig:        RetryConfig,
+  logMetrics:                  Boolean,
+  schemaChangeDetector:        SchemaChangeDetector,
+  skipNullValues:              Boolean,
+  latestSchemaForWriteEnabled: Boolean                     = false,
 ) extends CloudSinkConfig[AzureConnectionConfig]
