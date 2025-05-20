@@ -176,12 +176,7 @@ object Settings extends Dependencies {
       excludeFilePatterns.exists(p.endsWith)
 
     val excludePatterns = Set(
-      "kafka-client",
-      "kafka-connect-json",
       "hadoop-yarn",
-      "org.apache.kafka",
-      "zookeeper",
-      "log4j",
       "junit",
     )
 
@@ -224,6 +219,9 @@ object Settings extends Dependencies {
             ShadeRule.rename("com.fasterxml.**" -> "lshaded.fasterxml.@1").inAll,
             ShadeRule.rename("org.apache.hadoop" -> "lshaded.apache.hadoop").inAll,
             ShadeRule.rename("org.antlr.**" -> "lshaded.antlr.@1").inAll,
+            ShadeRule.zap("org.apache.kafka.**").inAll,
+            ShadeRule.zap("org.apache.zookeeper.**").inAll,
+            ShadeRule.zap("org.apache.log4j.**").inAll,
           ),
           dependencyOverrides ++= Seq(
             googleProtobuf,
