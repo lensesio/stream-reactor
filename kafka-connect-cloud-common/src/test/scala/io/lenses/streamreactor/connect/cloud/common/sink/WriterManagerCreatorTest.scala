@@ -42,15 +42,16 @@ class WriterManagerCreatorTest extends AnyFunSuite with Matchers with MockitoSug
 
   case class FakeConnectionConfig() extends ConnectionConfig
   case class FakeCloudSinkConfig(
-    connectionConfig:     FakeConnectionConfig,
-    bucketOptions:        Seq[CloudSinkBucketOptions],
-    indexOptions:         Option[IndexOptions],
-    compressionCodec:     CompressionCodec,
-    connectorRetryConfig: RetryConfig,
-    errorPolicy:          NoopErrorPolicy,
-    logMetrics:           Boolean              = false,
-    schemaChangeDetector: SchemaChangeDetector = DefaultSchemaChangeDetector,
-    skipNullValues:       Boolean,
+    connectionConfig:            FakeConnectionConfig,
+    bucketOptions:               Seq[CloudSinkBucketOptions],
+    indexOptions:                Option[IndexOptions],
+    compressionCodec:            CompressionCodec,
+    connectorRetryConfig:        RetryConfig,
+    errorPolicy:                 NoopErrorPolicy,
+    logMetrics:                  Boolean              = false,
+    schemaChangeDetector:        SchemaChangeDetector = DefaultSchemaChangeDetector,
+    skipNullValues:              Boolean,
+    latestSchemaForWriteEnabled: Boolean,
   ) extends CloudSinkConfig[FakeConnectionConfig]
 
   case class FakeFileMetadata(file: String, lastModified: Instant) extends FileMetadata
@@ -62,13 +63,14 @@ class WriterManagerCreatorTest extends AnyFunSuite with Matchers with MockitoSug
   test("create WriterManager from GCPStorageSinkConfig") {
 
     val config = FakeCloudSinkConfig(
-      connectionConfig     = FakeConnectionConfig(),
-      bucketOptions        = Seq.empty,
-      indexOptions         = IndexOptions(maxIndexFiles = 10, ".indexes").some,
-      compressionCodec     = CompressionCodecName.ZSTD.toCodec(),
-      errorPolicy          = NoopErrorPolicy(),
-      connectorRetryConfig = new RetryConfig(1, 1L, 1.0),
-      skipNullValues       = true,
+      connectionConfig            = FakeConnectionConfig(),
+      bucketOptions               = Seq.empty,
+      indexOptions                = IndexOptions(maxIndexFiles = 10, ".indexes").some,
+      compressionCodec            = CompressionCodecName.ZSTD.toCodec(),
+      errorPolicy                 = NoopErrorPolicy(),
+      connectorRetryConfig        = new RetryConfig(1, 1L, 1.0),
+      skipNullValues              = true,
+      latestSchemaForWriteEnabled = false,
     )
 
     val writerManagerCreator          = new WriterManagerCreator[FakeFileMetadata, FakeCloudSinkConfig]()

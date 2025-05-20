@@ -16,19 +16,17 @@
 
 package io.lenses.streamreactor.connect.mqtt.sink
 
-import io.lenses.streamreactor.common.converters.sink.Converter
-import io.lenses.streamreactor.connect.mqtt.config.MqttConfigConstants
-import io.lenses.streamreactor.connect.mqtt.config.MqttSinkConfig
-import io.lenses.streamreactor.connect.mqtt.config.MqttSinkSettings
 import com.dimafeng.testcontainers.ForEachTestContainer
 import com.dimafeng.testcontainers.GenericContainer
 import com.typesafe.scalalogging.StrictLogging
+import io.lenses.streamreactor.connect.mqtt.config.MqttConfigConstants
+import io.lenses.streamreactor.connect.mqtt.config.MqttSinkConfig
+import io.lenses.streamreactor.connect.mqtt.config.MqttSinkSettings
 import org.apache.avro.generic.GenericData
 import org.apache.avro.generic.GenericDatumWriter
 import org.apache.avro.generic.GenericRecord
 import org.apache.avro.io.EncoderFactory
 import org.apache.kafka.common.TopicPartition
-import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.common.record.TimestampType
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaBuilder
@@ -41,13 +39,9 @@ import org.scalatest.wordspec.AnyWordSpec
 
 import java.io.ByteArrayOutputStream
 import java.nio.ByteBuffer
-import java.nio.file.Paths
 import java.util.UUID
 import scala.collection.mutable
 import scala.io.Source
-import scala.util.Failure
-import scala.util.Success
-import scala.util.Try
 import scala.util.Using
 
 /**
@@ -208,25 +202,7 @@ class TestMqttWriter extends AnyWordSpec with MqttCallback with ForEachTestConta
     val config   = MqttSinkConfig(props)
     val settings = MqttSinkSettings(config)
 
-    val convertersMap = settings.sinksToConverters.map {
-      case (topic, clazz) =>
-        logger.info(s"Creating converter instance for $clazz and $topic")
-        if (clazz == null) {
-          topic -> null
-        } else {
-          val converter = Try(Class.forName(clazz).getDeclaredConstructor().newInstance()) match {
-            case Success(value: Converter) => value
-            case _ =>
-              throw new ConfigException(
-                s"Invalid ${MqttConfigConstants.KCQL_CONFIG} is invalid. $clazz should have an empty ctor!",
-              )
-          }
-          converter.initialize(props)
-          topic -> converter
-        }
-    }
-
-    val writer  = MqttWriter(settings, convertersMap)
+    val writer  = MqttWriter(settings)
     val records = getTestRecords
 
     withSubscribedMqttClient {
@@ -242,62 +218,6 @@ class TestMqttWriter extends AnyWordSpec with MqttCallback with ForEachTestConta
       // simply luck that set ordering was retained by default.
       // Writer should take in a Seq and retain the ordering through processing.
       queue.map(msg => new String(msg.getPayload)) should contain(JSON)
-      queue.clear()
-      writer.close()
-    }
-  }
-
-  "writer should writer all fields in avro" in {
-
-    val res        = getClass.getClassLoader.getResource("test.avsc")
-    val schemaPath = Paths.get(res.toURI).toFile.getAbsolutePath
-
-    val sinkAvroSchemas = s"kafka_topic=$schemaPath;kafka_topic2=$schemaPath"
-
-    val props = Map(
-      MqttConfigConstants.HOSTS_CONFIG                 -> getMqttConnectionUrl,
-      MqttConfigConstants.KCQL_CONFIG                  -> s"INSERT INTO $TARGET SELECT * FROM $TOPIC WITHCONVERTER=`io.lenses.streamreactor.common.converters.sink.AvroConverter` WITHTARGET=string_field;INSERT INTO $TARGET SELECT * FROM $TOPIC2 WITHCONVERTER=`io.lenses.streamreactor.common.converters.sink.AvroConverter` WITHTARGET=string_field",
-      MqttConfigConstants.QS_CONFIG                    -> "1",
-      MqttConfigConstants.AVRO_CONVERTERS_SCHEMA_FILES -> sinkAvroSchemas,
-      MqttConfigConstants.CLEAN_SESSION_CONFIG         -> "true",
-      MqttConfigConstants.CLIENT_ID_CONFIG             -> UUID.randomUUID().toString,
-      MqttConfigConstants.CONNECTION_TIMEOUT_CONFIG    -> "1000",
-      MqttConfigConstants.KEEP_ALIVE_INTERVAL_CONFIG   -> "1000",
-      MqttConfigConstants.PASSWORD_CONFIG              -> mqttPassword,
-      MqttConfigConstants.USER_CONFIG                  -> mqttUser,
-    )
-
-    val config   = MqttSinkConfig(props)
-    val settings = MqttSinkSettings(config)
-
-    val convertersMap = settings.sinksToConverters.map {
-      case (topic, clazz) =>
-        logger.info(s"Creating converter instance for $clazz")
-        val converter = Try(Class.forName(clazz).getDeclaredConstructor().newInstance()) match {
-          case Success(value) => value.asInstanceOf[Converter]
-          case Failure(_) =>
-            throw new ConfigException(
-              s"Invalid ${MqttConfigConstants.KCQL_CONFIG} is invalid. $clazz should have an empty ctor!",
-            )
-        }
-
-        converter.initialize(props)
-        topic -> converter
-    }
-
-    val writer  = MqttWriter(settings, convertersMap)
-    val records = getTestRecords
-
-    withSubscribedMqttClient {
-      writer.write(records)
-      Thread.sleep(2000)
-
-      queue.size shouldBe 3
-
-      val message = createAvroRecord(s"$schemaPath")
-      queue.map(msg => msg.getPayload) should contain(message)
-
-      // queue.asScala.take(1).head.getPayload shouldBe message
       queue.clear()
       writer.close()
     }

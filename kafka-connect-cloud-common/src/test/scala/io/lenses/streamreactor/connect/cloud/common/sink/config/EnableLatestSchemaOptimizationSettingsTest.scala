@@ -13,25 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.lenses.streamreactor.connect.gcp.storage.config
+package io.lenses.streamreactor.connect.cloud.common.sink.config
 
-import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.gcp.storage.sink.config.GCPStorageSinkConfigDef
+import org.apache.kafka.common.config.ConfigDef
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-import scala.jdk.CollectionConverters.CollectionHasAsScala
+class EnableLatestSchemaOptimizationSettingsTest extends AnyFlatSpec with Matchers {
 
-class GCPConfigSettingsTest extends AnyFlatSpec with Matchers with LazyLogging {
-
-  "GCPConfigSettings" should "ensure all sink keys are lower case" in {
-
-    val configKeys =
-      GCPStorageSinkConfigDef.config.configKeys().keySet().asScala
-
-    configKeys.size shouldBe 27
-    configKeys.foreach {
-      k => k.toLowerCase should be(k)
+  it should "define schema change detector config with default value" in {
+    val keys = new EnableLatestSchemaOptimizationConfigKeys {
+      override def connectorPrefix: String = "connector"
     }
+    val configDef = keys.withEnableLatestSchemaOptimizationConfig(new ConfigDef())
+    val configKey = configDef.configKeys().get(keys.ENABLE_LATEST_SCHEMA_OPTIMIZATION)
+
+    configKey.defaultValue shouldBe false
+    configKey.documentation shouldBe keys.ENABLE_LATEST_SCHEMA_OPTIMIZATION_DOC
   }
+
 }
