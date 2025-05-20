@@ -21,7 +21,7 @@ object Dependencies {
 
   // scala versions
   val scalaOrganization = "org.scala-lang"
-  val scalaVersion      = "2.13.15"
+  val scalaVersion      = "2.13.16"
   val supportedScalaVersions: Seq[String] = List(Dependencies.scalaVersion)
 
   val commonResolvers: Seq[MavenRepository] = Resolver.sonatypeOssRepos("public") ++
@@ -42,7 +42,7 @@ object Dependencies {
     val javaFakerVersion               = "1.0.2"
 
     val mockitoJunitJupiterVersion = "5.17.0"
-    val junitJupiterVersion        = "5.11.3"
+    val junitJupiterVersion        = "5.11.4"
     val assertjCoreVersion         = "3.27.3"
 
     val cyclopsVersion = "10.4.1"
@@ -73,22 +73,22 @@ object Dependencies {
     val logbackVersion      = "1.5.18"
     val scalaLoggingVersion = "3.9.5"
 
-    val dnsJavaVersion  = "3.6.2"
-    val wiremockVersion = "3.10.0"
+    val dnsJavaVersion  = "3.6.3"
+    val wiremockVersion = "3.13.0"
     val parquetVersion  = "1.15.2"
 
-    val jerseyCommonVersion = "3.1.9"
+    val jerseyCommonVersion = "3.1.10"
 
     val calciteVersion = "1.34.0"
-    val awsSdkVersion  = "2.29.23"
+    val awsSdkVersion  = "2.29.52"
 
-    val azureDataLakeVersion              = "12.22.0"
+    val azureDataLakeVersion              = "12.22.1"
     val azureIdentityVersion              = "1.16.1"
-    val azureCoreVersion                  = "1.54.1"
-    val msal4jVersion                     = "1.17.3"
+    val azureCoreVersion                  = "1.55.3"
+    val msal4jVersion                     = "1.20.1"
     val msal4jPersistenceExtensionVersion = "1.3.0"
     val gcpCloudVersion                   = "2.56.0"
-    val gcpCloudStorageVersion            = "2.44.0"
+    val gcpCloudStorageVersion            = "2.44.1"
 
     val woodstoxVersion     = "7.1.0"
     val jacksonVersion      = "2.18.4"
@@ -96,12 +96,12 @@ object Dependencies {
     val mockitoScalaVersion = "1.17.37"
     val mockitoJavaVersion  = "5.2.0"
     val openCsvVersion      = "5.11"
-    val jsonSmartVersion    = "2.5.1"
+    val jsonSmartVersion    = "2.5.2"
 
     val xzVersion  = "1.10"
     val lz4Version = "1.8.0"
 
-    val bouncyCastleVersion = "1.79"
+    val bouncyCastleVersion = "1.80"
     val nettyVersion        = "4.1.121.Final"
 
     val cassandraDriverVersion = "3.11.5"
@@ -114,14 +114,14 @@ object Dependencies {
     val influxVersion = "7.2.0"
 
     val jmsApiVersion         = "3.1.0"
-    val activeMqVersion       = "6.1.4"
+    val activeMqVersion       = "6.1.6"
     val protocVersion         = "3.11.4"
-    val googleProtobufVersion = "3.25.5"
+    val googleProtobufVersion = "3.25.7"
 
     val mqttVersion = "1.2.5"
 
     val commonsNetVersion      = "3.11.1"
-    val commonsCodecVersion    = "1.17.1"
+    val commonsCodecVersion    = "1.17.2"
     val commonsCompressVersion = "1.27.1"
     val commonsConfigVersion   = "2.12.0"
     val commonsIOVersion       = "2.19.0"
@@ -129,23 +129,23 @@ object Dependencies {
     val commonsLang3Version    = "3.17.0"
     val jschVersion            = "0.2.26"
 
-    val minaVersion           = "2.2.3"
+    val minaVersion           = "2.2.4"
     val betterFilesVersion    = "3.9.2"
-    val ftpServerVersion      = "1.2.0"
+    val ftpServerVersion      = "1.2.1"
     val fakeSftpServerVersion = "2.0.0"
 
     val mongoDbVersion = "3.12.14"
 
     val jedisVersion = "5.1.5"
-    val gsonVersion  = "2.11.0"
+    val gsonVersion  = "2.13.1"
 
     val classGraphVersion    = "4.8.179"
-    val nimbusJoseJwtVersion = "9.47"
+    val nimbusJoseJwtVersion = "9.48"
     val hadoopVersion        = "3.4.0"
     //val hadoopShadedProtobufVersion = "1.2.0"
 
     val airCompressorVersion = "2.0.2"
-    val zstdVersion          = "1.5.6-8"
+    val zstdVersion          = "1.5.6-10"
 
     trait ElasticVersions {
       val elastic4sVersion, elasticSearchVersion, jnaVersion: String
@@ -159,8 +159,8 @@ object Dependencies {
 
     object Elastic7Versions extends ElasticVersions {
       override val elastic4sVersion:     String = "7.17.4"
-      override val elasticSearchVersion: String = "7.17.25"
-      override val jnaVersion:           String = "5.15.0"
+      override val elasticSearchVersion: String = "7.17.28"
+      override val jnaVersion:           String = "5.17.0"
     }
 
   }
@@ -183,8 +183,8 @@ object Dependencies {
   val logback          = "ch.qos.logback"              % "logback-classic"  % logbackVersion
   lazy val logbackCore = "ch.qos.logback"              % "logback-core"     % logbackVersion
   val scalaLogging     = "com.typesafe.scala-logging" %% "scala-logging"    % scalaLoggingVersion
-  val log4jToSlf4j     = "org.slf4j"                   % "log4j-over-slf4j" % "2.0.16"
-  val jclToSlf4j       = "org.slf4j"                   % "jcl-over-slf4j"   % "2.0.16"
+  val log4jToSlf4j     = "org.slf4j"                   % "log4j-over-slf4j" % "2.0.17"
+  val jclToSlf4j       = "org.slf4j"                   % "jcl-over-slf4j"   % "2.0.17"
 
   // testing
   val scalatest = "org.scalatest" %% "scalatest" % scalatestVersion
@@ -431,8 +431,8 @@ trait Dependencies {
   import Versions._
 
   val loggingDeps: Seq[ModuleID] = Seq(
-    "org.apache.logging.log4j" % "log4j-api"      % "2.24.2",
-    "org.apache.logging.log4j" % "log4j-to-slf4j" % "2.24.2",
+    "org.apache.logging.log4j" % "log4j-api"      % "2.24.3",
+    "org.apache.logging.log4j" % "log4j-to-slf4j" % "2.24.3",
     log4jToSlf4j,
     jclToSlf4j,
     logback,
