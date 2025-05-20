@@ -142,7 +142,7 @@ case class MovePostProcessAction(
       newPath = originalPrefix.map(o => path.replace(o, newPrefix)).getOrElse(path)
       _       = logger.info(s"Moving file from ${cloudLocation.bucket}/$path to $newBucket/$newPath newPrefix: $newPrefix")
       mov <- IO.fromEither(
-        storageInterface.mvFile(cloudLocation.bucket, path, newBucket, newPath).leftMap(_.exception),
+        storageInterface.mvFile(cloudLocation.bucket, path, newBucket, newPath, Option.empty).leftMap(_.exception),
       )
     } yield mov
 }
