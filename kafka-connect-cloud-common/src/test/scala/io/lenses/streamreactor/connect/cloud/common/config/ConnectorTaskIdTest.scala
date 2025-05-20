@@ -16,6 +16,7 @@
 package io.lenses.streamreactor.connect.cloud.common.config
 
 import cats.implicits.catsSyntaxEitherId
+import io.lenses.streamreactor.connect.cloud.common.config.UUIDMatchers.aValidUUID
 import io.lenses.streamreactor.connect.cloud.common.source.config.distribution.PartitionHasher
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -135,6 +136,21 @@ class ConnectorTaskIdTest extends AnyWordSpec with Matchers with TaskIndexKey {
       one.ownsDir("3") shouldBe true
       two.ownsDir("3") shouldBe false
       three.ownsDir("3") shouldBe false
+    }
+
+    "each task should have a different UUID" in {
+      val task1 = ConnectorTaskId("myTask1", 2, 0)
+      val task2 = ConnectorTaskId("myTask2", 2, 1)
+      val task3 = ConnectorTaskId("myTask3", 2, 2)
+      val task4 = ConnectorTaskId("myTask3", 2, 2) // same params as task3 but should have unique uuid anyway
+
+      task1.lockUuid should be(aValidUUID)
+      task2.lockUuid should be(aValidUUID)
+      task3.lockUuid should be(aValidUUID)
+      task4.lockUuid should be(aValidUUID)
+
+      Set(task1.lockUuid, task2.lockUuid, task3.lockUuid, task4.lockUuid) should have size 4
+
     }
   }
 

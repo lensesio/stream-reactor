@@ -21,6 +21,7 @@ import io.lenses.streamreactor.connect.aws.s3.model.location.S3LocationValidator
 import io.lenses.streamreactor.connect.aws.s3.storage.S3FileMetadata
 import io.lenses.streamreactor.connect.cloud.common.config.AvroFormatSelection
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
+import io.lenses.streamreactor.connect.cloud.common.config.traits.CloudSourceConfig
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
 import io.lenses.streamreactor.connect.cloud.common.source.config.CloudSourceBucketOptions
@@ -28,7 +29,6 @@ import io.lenses.streamreactor.connect.cloud.common.source.config.EmptySourceBac
 import io.lenses.streamreactor.connect.cloud.common.source.config.OrderingType
 import io.lenses.streamreactor.connect.cloud.common.source.state.ReaderManagerBuilder
 import io.lenses.streamreactor.connect.cloud.common.storage.FileListError
-import io.lenses.streamreactor.connect.cloud.common.storage.FileLoadError
 import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
 import org.mockito.Mockito.when
 import org.mockito.MockitoSugar.mock
@@ -38,8 +38,10 @@ import org.scalatest.matchers.should.Matchers
 class ReaderManagerBuilderTest extends AsyncFlatSpec with AsyncIOSpec with Matchers {
   implicit val cloudLocationValidator: CloudLocationValidator = S3LocationValidator
   "ReaderManagerBuilder" should "create a reader manager" in {
-    val si   = mock[StorageInterface[S3FileMetadata]]
-    val path = "prefix1/subprefixA/subprefixB/"
+    val si     = mock[StorageInterface[S3FileMetadata]]
+    val path   = "prefix1/subprefixA/subprefixB/"
+    val config = mock[CloudSourceConfig[S3FileMetadata]]
+
     val root = CloudLocation(
       "bucket",
       None,
@@ -47,7 +49,7 @@ class ReaderManagerBuilderTest extends AsyncFlatSpec with AsyncIOSpec with Match
       None,
       None,
     )
-    when(si.pathExists(root.bucket, root.path.get)).thenReturn(true.asRight[FileLoadError])
+    when(si.pathExists(root.bucket, root.path.get)).thenReturn(true.asRight)
 
     var rootValue: Option[CloudLocation] = None
     val contextF: CloudLocation => Option[CloudLocation] = { in =>
@@ -68,6 +70,7 @@ class ReaderManagerBuilderTest extends AsyncFlatSpec with AsyncIOSpec with Match
     val pathLocation = root.withPath(path)
     ReaderManagerBuilder(root,
                          pathLocation,
+                         config.compressionCodec,
                          si,
                          taskId,
                          contextF,
@@ -80,9 +83,10 @@ class ReaderManagerBuilderTest extends AsyncFlatSpec with AsyncIOSpec with Match
 
   //handle the case where the location does not exist
   it should "not fail if the location does not exist" in {
-    val si = mock[StorageInterface[S3FileMetadata]]
+    val si     = mock[StorageInterface[S3FileMetadata]]
+    val path   = "prefix1/subprefixA/subprefixB/"
+    val config = mock[CloudSourceConfig[S3FileMetadata]]
 
-    val path = "prefix1/subprefixA/subprefixB/"
     val root = CloudLocation(
       "bucket",
       None,
@@ -91,7 +95,7 @@ class ReaderManagerBuilderTest extends AsyncFlatSpec with AsyncIOSpec with Match
       None,
     )
     when(si.listFileMetaRecursive(root.bucket, root.prefix)).thenReturn(None.asRight[FileListError])
-    when(si.pathExists(root.bucket, root.path.get)).thenReturn(false.asRight[FileLoadError])
+    when(si.pathExists(root.bucket, root.path.get)).thenReturn(false.asRight)
 
     var rootValue: Option[CloudLocation] = None
     val contextF: CloudLocation => Option[CloudLocation] = { in =>
@@ -112,6 +116,7 @@ class ReaderManagerBuilderTest extends AsyncFlatSpec with AsyncIOSpec with Match
     val pathLocation = root.withPath(path)
     ReaderManagerBuilder.apply(root,
                                pathLocation,
+                               config.compressionCodec,
                                si,
                                taskId,
                                contextF,

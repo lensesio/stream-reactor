@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 package io.lenses.streamreactor.connect.cloud.common.source.files
+
 import cats.implicits.catsSyntaxEitherId
 import cats.implicits.catsSyntaxOptionId
 import cats.implicits.toShow
@@ -21,7 +22,6 @@ import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
-import io.lenses.streamreactor.connect.cloud.common.source.config.PostProcessAction
 import io.lenses.streamreactor.connect.cloud.common.storage.FileListError
 import io.lenses.streamreactor.connect.cloud.common.storage.FileMetadata
 import io.lenses.streamreactor.connect.cloud.common.storage.ListOfKeysResponse
@@ -31,14 +31,6 @@ import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
 trait SourceFileQueue {
   def next(): Either[FileListError, Option[CloudLocation]]
 }
-
-/**
-  * A tracker for the last seen file.
-  *
-  * @param lastSeenFile An optional metadata object representing the last seen file.
-  * @tparam SM The type of the file metadata.
-  */
-case class LastSeenFileTracker[SM <: FileMetadata](var lastSeenFile: Option[SM])
 
 /**
   * Blocking processor for queues of operations.  Used to ensure consistency.
@@ -57,7 +49,7 @@ class CloudSourceFileQueue[SM <: FileMetadata] private (
     *                            files will be cleaned up after processing, removing the need to track the last seen file.
     *                            In such cases, this parameter will be None.
     */
-  private var lastSeenFileTracker: Option[LastSeenFileTracker[SM]],
+  private var lastSeenFile: Option[SM],
 )(
   implicit
   cloudLocationValidator: CloudLocationValidator,
@@ -70,7 +62,7 @@ class CloudSourceFileQueue[SM <: FileMetadata] private (
   )(
     implicit
     cloudLocationValidator: CloudLocationValidator,
-  ) = this(taskId, batchListerFn, Seq.empty, Some(LastSeenFileTracker[SM](None)))
+  ) = this(taskId, batchListerFn, Seq.empty, None)
 
   override def next(): Either[FileListError, Option[CloudLocation]] =
     files match {
@@ -90,11 +82,10 @@ class CloudSourceFileQueue[SM <: FileMetadata] private (
 
   private def retrieveNextFile(
   ): Either[FileListError, Option[CloudLocation]] = {
-    val nextBatch: Either[FileListError, Option[ListResponse[String, SM]]] =
-      batchListerFn(lastSeenFileTracker.flatMap(_.lastSeenFile))
+    val nextBatch: Either[FileListError, Option[ListResponse[String, SM]]] = batchListerFn(lastSeenFile)
     nextBatch.flatMap {
       case Some(ListOfKeysResponse(bucket, prefix, value, meta)) =>
-        lastSeenFileTracker = lastSeenFileTracker.map(_.copy(lastSeenFile = meta.some))
+        lastSeenFile = meta.some
         files = value.map(path =>
           CloudLocation(
             bucket,
@@ -116,11 +107,10 @@ class CloudSourceFileQueue[SM <: FileMetadata] private (
 
 object CloudSourceFileQueue {
   def from[SM <: FileMetadata](
-    batchListerFn:          Option[SM] => Either[FileListError, Option[ListOfKeysResponse[SM]]],
-    storageInterface:       StorageInterface[SM],
-    startingFile:           CloudLocation,
-    taskId:                 ConnectorTaskId,
-    maybePostProcessAction: Option[PostProcessAction],
+    batchListerFn:    Option[SM] => Either[FileListError, Option[ListOfKeysResponse[SM]]],
+    storageInterface: StorageInterface[SM],
+    startingFile:     CloudLocation,
+    taskId:           ConnectorTaskId,
   )(
     implicit
     cloudLocationValidator: CloudLocationValidator,
@@ -133,15 +123,7 @@ object CloudSourceFileQueue {
       case _ =>
         Option.empty[SM]
     }
-    new CloudSourceFileQueue[SM](
-      taskId,
-      batchListerFn,
-      Seq(startingFile),
-      // Creates an instance of LastSeenFileTracker if no PostProcessAction is set
-      // If PostProcessAction is set then files will be cleaned up after processing,
-      // which removes the requirement to seek through to the last seen file.
-      Option.when(maybePostProcessAction.isEmpty)(LastSeenFileTracker[SM](lastSeen)),
-    )
+    new CloudSourceFileQueue(taskId, batchListerFn, Seq(startingFile), lastSeen)
   }
 
 }

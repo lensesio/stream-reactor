@@ -75,6 +75,15 @@ trait CloudSinkConfig[CC] extends CloudConfig {
 
   def schemaChangeDetector: SchemaChangeDetector
 
+  def skipNullValues: Boolean
+
+  /**
+    *   If enabled, it will attach the latest known schema to the records sent to the sink
+    *   It's used when schema evolution is set to BACKWARDS compatible, and this avoids data flushing
+    *   when there are records with interleaved schema
+    */
+  def latestSchemaForWriteEnabled: Boolean
+
 }
 
 /**
@@ -124,4 +133,5 @@ trait CloudSourceConfig[MD <: FileMetadata] extends CloudConfig {
   def emptySourceBackoffSettings: EmptySourceBackoffSettings
 
   def writeWatermarkToHeaders: Boolean
+
 }

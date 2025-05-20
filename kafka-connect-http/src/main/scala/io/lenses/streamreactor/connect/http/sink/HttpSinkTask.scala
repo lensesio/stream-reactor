@@ -21,12 +21,17 @@ import cats.effect.Deferred
 import cats.effect.IO
 import cats.effect.Ref
 import cats.effect.unsafe.IORuntime
+import cats.syntax.all._
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.common.util.AsciiArtPrinter.printAsciiHeader
+import io.lenses.streamreactor.common.utils.JarManifestProvided
 import io.lenses.streamreactor.connect.cloud.common.model.Offset
 import io.lenses.streamreactor.connect.cloud.common.model.Topic
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
 import io.lenses.streamreactor.connect.http.sink.config.HttpSinkConfig
+import io.lenses.streamreactor.connect.http.sink.config.HttpSinkConfigDef
+import io.lenses.streamreactor.connect.http.sink.metrics.HttpSinkMetrics
+import io.lenses.streamreactor.connect.http.sink.metrics.MetricsRegistrar
 import io.lenses.streamreactor.connect.http.sink.tpl.RawTemplate
 import io.lenses.streamreactor.connect.http.sink.tpl.TemplateType
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
@@ -34,10 +39,6 @@ import org.apache.kafka.common.{ TopicPartition => KafkaTopicPartition }
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkRecord
 import org.apache.kafka.connect.sink.SinkTask
-import cats.syntax.all._
-import io.lenses.streamreactor.common.utils.JarManifestProvided
-import io.lenses.streamreactor.connect.http.sink.metrics.HttpSinkMetrics
-import io.lenses.streamreactor.connect.http.sink.metrics.MetricsRegistrar
 
 import java.util
 import scala.jdk.CollectionConverters.IterableHasAsScala
@@ -54,7 +55,8 @@ class HttpSinkTask extends SinkTask with LazyLogging with JarManifestProvided {
   private def sinkName = maybeSinkName.getOrElse("Lenses.io HTTP Sink")
   private val deferred: Deferred[IO, Either[Throwable, Unit]] = Deferred.unsafe[IO, Either[Throwable, Unit]]
 
-  private val errorRef: Ref[IO, List[Throwable]] = Ref.unsafe[IO, List[Throwable]](List.empty)
+  private val taskNumberRef: Ref[IO, Int]             = Ref.unsafe[IO, Int](0)
+  private val errorRef:      Ref[IO, List[Throwable]] = Ref.unsafe[IO, List[Throwable]](List.empty)
 
   override def start(props: util.Map[String, String]): Unit = {
 
@@ -69,9 +71,14 @@ class HttpSinkTask extends SinkTask with LazyLogging with JarManifestProvided {
       }
 
     (for {
-      config        <- IO.fromEither(HttpSinkConfig.from(propsAsScala))
+      taskNumber <- propsAsScala.getOrElse(HttpSinkConfigDef.TaskNumberProp, "1").toIntOption match {
+        case Some(value) => IO(value)
+        case None        => IO.raiseError(new IllegalArgumentException("Task number must be an integer"))
+      }
+      _             <- taskNumberRef.set(taskNumber)
+      config        <- IO.fromEither(HttpSinkConfig.from(propsAsScala - HttpSinkConfigDef.TaskNumberProp))
       metrics       <- IO(new HttpSinkMetrics())
-      _             <- IO(MetricsRegistrar.registerMetricsMBean(metrics, sinkName))
+      _             <- IO(MetricsRegistrar.registerMetricsMBean(metrics, sinkName, taskNumber))
       template       = RawTemplate(config.endpoint, config.content, config.headers, config.nullPayloadHandler)
       writerManager <- HttpWriterManager.apply(sinkName, config, template, deferred, metrics)
       _             <- writerManager.start(refUpdateCallback)
@@ -180,6 +187,8 @@ class HttpSinkTask extends SinkTask with LazyLogging with JarManifestProvided {
 
   override def stop(): Unit =
     (for {
+      taskNumber <- taskNumberRef.get
+      _          <- IO(MetricsRegistrar.unregisterMetricsMBean(sinkName, taskNumber))
       _ <- maybeWriterManager.traverse { x =>
         x.closeReportingControllers()
         x.close

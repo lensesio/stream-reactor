@@ -52,32 +52,37 @@ object S3SinkConfig extends PropsToConfigConverter[S3SinkConfig] {
     cloudLocationValidator: CloudLocationValidator,
   ): Either[Throwable, S3SinkConfig] =
     for {
-      sinkBucketOptions   <- CloudSinkBucketOptions(connectorTaskId, s3ConfigDefBuilder)
-      indexOptions         = s3ConfigDefBuilder.getIndexSettings
-      logMetrics           = s3ConfigDefBuilder.getBoolean(LOG_METRICS_CONFIG)
-      schemaChangeDetector = s3ConfigDefBuilder.schemaChangeDetector(),
+      sinkBucketOptions              <- CloudSinkBucketOptions(connectorTaskId, s3ConfigDefBuilder)
+      indexOptions                    = s3ConfigDefBuilder.getIndexSettings
+      logMetrics                      = s3ConfigDefBuilder.getBoolean(LOG_METRICS_CONFIG)
+      schemaChangeDetector            = s3ConfigDefBuilder.schemaChangeDetector()
+      latestSchemaOptimizationEnabled = s3ConfigDefBuilder.getEnableLatestSchemaOptimization()
     } yield S3SinkConfig(
       S3ConnectionConfig(s3ConfigDefBuilder.getParsedValues),
       sinkBucketOptions,
       indexOptions,
       s3ConfigDefBuilder.getCompressionCodec(),
       s3ConfigDefBuilder.batchDelete(),
-      errorPolicy          = s3ConfigDefBuilder.getErrorPolicyOrDefault,
-      connectorRetryConfig = s3ConfigDefBuilder.getRetryConfig,
-      logMetrics           = logMetrics,
-      schemaChangeDetector = schemaChangeDetector,
+      errorPolicy                 = s3ConfigDefBuilder.getErrorPolicyOrDefault,
+      connectorRetryConfig        = s3ConfigDefBuilder.getRetryConfig,
+      logMetrics                  = logMetrics,
+      schemaChangeDetector        = schemaChangeDetector,
+      skipNullValues              = s3ConfigDefBuilder.skipNullValues(),
+      latestSchemaForWriteEnabled = latestSchemaOptimizationEnabled,
     )
 
 }
 
 case class S3SinkConfig(
-  connectionConfig:     S3ConnectionConfig,
-  bucketOptions:        Seq[CloudSinkBucketOptions] = Seq.empty,
-  indexOptions:         Option[IndexOptions],
-  compressionCodec:     CompressionCodec,
-  batchDelete:          Boolean,
-  errorPolicy:          ErrorPolicy,
-  connectorRetryConfig: RetryConfig,
-  logMetrics:           Boolean,
-  schemaChangeDetector: SchemaChangeDetector,
+  connectionConfig:            S3ConnectionConfig,
+  bucketOptions:               Seq[CloudSinkBucketOptions] = Seq.empty,
+  indexOptions:                Option[IndexOptions],
+  compressionCodec:            CompressionCodec,
+  batchDelete:                 Boolean,
+  errorPolicy:                 ErrorPolicy,
+  connectorRetryConfig:        RetryConfig,
+  logMetrics:                  Boolean,
+  schemaChangeDetector:        SchemaChangeDetector,
+  skipNullValues:              Boolean,
+  latestSchemaForWriteEnabled: Boolean,
 ) extends CloudSinkConfig[S3ConnectionConfig]

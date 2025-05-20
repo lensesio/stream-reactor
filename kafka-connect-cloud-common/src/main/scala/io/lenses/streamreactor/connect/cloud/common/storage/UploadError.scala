@@ -15,14 +15,19 @@
  */
 package io.lenses.streamreactor.connect.cloud.common.storage
 
+import cats.implicits.catsSyntaxOptionId
+
 import java.io.File
 
 trait UploadError {
   def message(): String
+
+  def toExceptionOption: Option[Throwable] = Option.empty
 }
 
 case class NonExistingFileError(file: File) extends UploadError {
   override def message() = s"attempt to upload non-existing file (${file.getPath})"
+
 }
 
 case class ZeroByteFileError(file: File) extends UploadError {
@@ -31,6 +36,8 @@ case class ZeroByteFileError(file: File) extends UploadError {
 
 case class UploadFailedError(exception: Throwable, file: File) extends UploadError {
   override def message(): String = s"upload error (${file.getPath}) ${exception.getMessage}"
+
+  override def toExceptionOption: Option[Throwable] = exception.some
 }
 
 case class EmptyContentsStringError(data: String) extends UploadError {
@@ -39,27 +46,51 @@ case class EmptyContentsStringError(data: String) extends UploadError {
 
 case class FileMoveError(exception: Throwable, oldName: String, newName: String) extends UploadError {
   override def message() = s"error moving file from ($oldName) to ($newName) ${exception.getMessage}"
+
+  override def toExceptionOption: Option[Throwable] = exception.some
 }
 
 case class FileCreateError(exception: Throwable, data: String) extends UploadError {
   override def message() = s"error writing file (${data}) ${exception.getMessage}"
+
+  override def toExceptionOption: Option[Throwable] = exception.some
 }
 
 case class FileDeleteError(exception: Throwable, fileName: String) extends UploadError {
   override def message() = s"error deleting file ($fileName) ${exception.getMessage}"
+
+  override def toExceptionOption: Option[Throwable] = exception.some
 }
 
-case class FileLoadError(exception: Throwable, fileName: String) extends UploadError {
+case class PathError(exception: Throwable, pathName: String) extends UploadError {
+  override def message() = s"error loading file ($pathName) ${exception.getMessage}"
+  def toException        = new RuntimeException(message(), exception)
+  override def toExceptionOption: Option[Throwable] = exception.some
+}
+
+trait FileLoadError extends UploadError {
   override def message() = s"error loading file ($fileName) ${exception.getMessage}"
 
+  val fileName:  String
+  val exception: Throwable
+  override def toExceptionOption: Option[Throwable] = exception.some
   def toException = new RuntimeException(message(), exception)
+
 }
+
+case class GeneralFileLoadError(exception: Throwable, fileName: String) extends FileLoadError
+case class FileNotFoundError(exception: Throwable, fileName: String) extends FileLoadError
 
 case class FileNameParseError(exception: Throwable, fileName: String) extends UploadError {
   override def message() = s"error parsing file name ($fileName) ${exception.getMessage}"
 
   def toException = new RuntimeException(message(), exception)
+
+  override def toExceptionOption: Option[Throwable] = exception.some
 }
 case class FileListError(exception: Throwable, bucket: String, path: Option[String]) extends UploadError {
-  override def message() = s"error listing files (${path}) ${exception.getMessage}"
+  override def message() = s"error listing files ($path) ${exception.getMessage}"
+
+  override def toExceptionOption: Option[Throwable] = exception.some
+
 }

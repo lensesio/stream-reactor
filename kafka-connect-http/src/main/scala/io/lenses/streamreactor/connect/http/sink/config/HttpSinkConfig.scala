@@ -16,17 +16,12 @@
 package io.lenses.streamreactor.connect.http.sink.config
 
 import cats.implicits.toBifunctorOps
-import cats.implicits.toTraverseOps
 import io.lenses.streamreactor.common.security.StoresInfo
 import io.lenses.streamreactor.common.utils.CyclopsToScalaEither
 import io.lenses.streamreactor.connect.http.sink.client.Authentication
 import io.lenses.streamreactor.connect.http.sink.client.AuthenticationKeys
 import io.lenses.streamreactor.connect.http.sink.client.HttpMethod
-import io.lenses.streamreactor.connect.http.sink.commit.BatchPolicy
-import io.lenses.streamreactor.connect.http.sink.commit.BatchPolicyCondition
-import io.lenses.streamreactor.connect.http.sink.commit.Count
-import io.lenses.streamreactor.connect.http.sink.commit.FileSize
-import io.lenses.streamreactor.connect.http.sink.commit.Interval
+import io.lenses.streamreactor.connect.http.sink.commit._
 import io.lenses.streamreactor.connect.http.sink.config.HttpSinkConfigDef.AuthenticationTypeProp
 import io.lenses.streamreactor.connect.http.sink.config.HttpSinkConfigDef.BasicAuthenticationPasswordProp
 import io.lenses.streamreactor.connect.http.sink.config.HttpSinkConfigDef.BasicAuthenticationUsernameProp
@@ -34,13 +29,14 @@ import io.lenses.streamreactor.connect.http.sink.reporter.converter.HttpFailureS
 import io.lenses.streamreactor.connect.http.sink.reporter.converter.HttpSuccessSpecificHeaderRecordConverter
 import io.lenses.streamreactor.connect.http.sink.reporter.model.HttpFailureConnectorSpecificRecordData
 import io.lenses.streamreactor.connect.http.sink.reporter.model.HttpSuccessConnectorSpecificRecordData
-import io.lenses.streamreactor.connect.reporting.ReportingController
 import io.lenses.streamreactor.connect.reporting.ReportingController.ErrorReportingController
 import io.lenses.streamreactor.connect.reporting.ReportingController.SuccessReportingController
+import io.lenses.streamreactor.connect.reporting.ReportingController
 import io.lenses.streamreactor.connect.reporting.ReportingMessagesConfig
 import io.lenses.streamreactor.connect.reporting.model.ConnectorSpecificRecordData
 import io.lenses.streamreactor.connect.reporting.model.RecordConverter
 import org.apache.kafka.common.config.AbstractConfig
+import org.apache.kafka.connect.errors.ConnectException
 
 import java.net.MalformedURLException
 import java.net.URL
@@ -80,11 +76,76 @@ case class TimeoutConfig(
   connectionTimeoutMs: Int,
 )
 
-case class RetriesConfig(
+sealed trait RetryMode
+case object RetryMode {
+  case object ExponentialRetryMode extends RetryMode
+  case object FixedRetryMode       extends RetryMode
+
+  def withNameInsensitiveEither(name: String): Either[Throwable, RetryMode] =
+    name.toLowerCase match {
+      case "exponential" => Right(ExponentialRetryMode)
+      case "fixed"       => Right(FixedRetryMode)
+      case _             => Left(new IllegalArgumentException(s"Invalid retry mode: $name. Expected one of: Exponential, Fixed"))
+    }
+}
+
+sealed trait RetryConfig {
+  def maxRetries:    Int
+  def onStatusCodes: List[Int]
+}
+case class FixedRetryConfig(
+  maxRetries:    Int,
+  intervalMs:    Int,
+  onStatusCodes: List[Int],
+) extends RetryConfig {
+  def name: String = "Fixed"
+}
+
+object FixedRetryConfig {
+
+  /**
+    * Creates a fixed interval retry policy
+    *
+    * @param interval The fixed interval between retries
+    * @param maxRetry Maximum number of retry attempts
+    * @return A function that takes the current retry attempt and returns the next delay as an Option
+    */
+  def fixedInterval(interval: FiniteDuration, maxRetry: Int): Int => Option[FiniteDuration] = {
+    k => if (k > maxRetry) None else Some(interval)
+  }
+}
+case class ExponentialRetryConfig(
   maxRetries:    Int,
   maxTimeoutMs:  Int,
   onStatusCodes: List[Int],
-)
+) extends RetryConfig {
+  def name: String = "Exponential"
+}
+
+object RetriesConfig {
+  def fromConfig(config: AbstractConfig): Either[Throwable, RetryConfig] = {
+    val retryModeString = config.getString(HttpSinkConfigDef.RetryModeProp)
+    val retryMode       = RetryMode.withNameInsensitiveEither(retryModeString)
+    val onStatusCodes = Option(config.getList(HttpSinkConfigDef.RetriesOnStatusCodesProp))
+      .map(_.asScala.toList)
+      .filter(_.nonEmpty)
+      .getOrElse(Nil)
+      .map(_.toInt)
+    val maxRetries = config.getInt(HttpSinkConfigDef.RetriesMaxRetriesProp)
+    retryMode match {
+      case Right(RetryMode.ExponentialRetryMode) =>
+        val maxTimeoutMs = config.getInt(HttpSinkConfigDef.RetriesMaxTimeoutMsProp)
+        Right(
+          ExponentialRetryConfig(maxRetries, maxTimeoutMs, onStatusCodes),
+        )
+      case Right(RetryMode.FixedRetryMode) =>
+        val intervalMs = config.getInt(HttpSinkConfigDef.FixedRetryIntervalProp)
+
+        Right(FixedRetryConfig(maxRetries, intervalMs, onStatusCodes))
+      case Left(e) => Left(new ConnectException(e))
+    }
+  }
+}
 
 case class HttpSinkConfig(
   method:                     HttpMethod,
@@ -97,7 +158,7 @@ case class HttpSinkConfig(
   nullPayloadHandler:         NullPayloadHandler,
   errorThreshold:             Int,
   uploadSyncPeriod:           Int,
-  retries:                    RetriesConfig,
+  retries:                    RetryConfig,
   timeout:                    TimeoutConfig,
   tidyJson:                   Boolean,
   errorReportingController:   ReportingController[HttpFailureConnectorSpecificRecordData],
@@ -130,15 +191,9 @@ object HttpSinkConfig {
         connectConfig.getString(HttpSinkConfigDef.NullPayloadHandler),
         connectConfig.getString(HttpSinkConfigDef.CustomNullPayloadHandler),
       )
-      errorThreshold   = connectConfig.getInt(HttpSinkConfigDef.ErrorThresholdProp)
-      uploadSyncPeriod = connectConfig.getInt(HttpSinkConfigDef.UploadSyncPeriodProp)
-      maxRetries       = connectConfig.getInt(HttpSinkConfigDef.RetriesMaxRetriesProp)
-      maxTimeoutMs     = connectConfig.getInt(HttpSinkConfigDef.RetriesMaxTimeoutMsProp)
-      onStatusCodes <- Option(connectConfig.getList(HttpSinkConfigDef.RetriesOnStatusCodesProp))
-        .map(_.asScala.toList).filter(_.nonEmpty)
-        .getOrElse(Nil)
-        .traverse(v => Try(v.toInt).toEither.leftMap(e => new IllegalArgumentException(s"Invalid status code: $v", e)))
-      retries             = RetriesConfig(maxRetries, maxTimeoutMs, onStatusCodes)
+      errorThreshold      = connectConfig.getInt(HttpSinkConfigDef.ErrorThresholdProp)
+      uploadSyncPeriod    = connectConfig.getInt(HttpSinkConfigDef.UploadSyncPeriodProp)
+      retries            <- RetriesConfig.fromConfig(connectConfig)
       connectionTimeoutMs = connectConfig.getInt(HttpSinkConfigDef.ConnectionTimeoutMsProp)
       timeout             = TimeoutConfig(connectionTimeoutMs)
       jsonTidy            = connectConfig.getBoolean(HttpSinkConfigDef.JsonTidyProp)
