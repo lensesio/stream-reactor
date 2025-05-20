@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2024 Lenses.io Ltd
+ * Copyright 2017-2025 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -48,6 +48,8 @@ object CloudSourceBucketOptions {
           //extract the envelope. of not present default to false
           hasEnvelope <- config.extractEnvelope(sourceProps)
 
+          postProcessAction <- PostProcessAction(source.prefix, sourceProps)
+
         } yield CloudSourceBucketOptions[M](
           source,
           kcql.getTarget,
@@ -57,6 +59,7 @@ object CloudSourceBucketOptions {
           partitionExtractor = partitionExtractor,
           orderingType       = config.extractOrderingType,
           hasEnvelope        = hasEnvelope.getOrElse(false),
+          postProcessAction  = postProcessAction,
         )
     }.toSeq.traverse(identity)
 
@@ -71,6 +74,7 @@ case class CloudSourceBucketOptions[M <: FileMetadata](
   partitionExtractor:    Option[PartitionExtractor],
   orderingType:          OrderingType,
   hasEnvelope:           Boolean,
+  postProcessAction:     Option[PostProcessAction],
 ) {
   def createBatchListerFn(
     storageInterface: StorageInterface[M],

@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2024 Lenses.io Ltd
+ * Copyright 2017-2025 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,9 +15,11 @@
  */
 package io.lenses.streamreactor.connect.http.sink.tpl
 
+import cats.data.NonEmptySeq
 import cats.implicits.catsSyntaxEitherId
-import cats.implicits.catsSyntaxOptionId
 import cats.implicits.toTraverseOps
+import com.typesafe.scalalogging.LazyLogging
+import io.lenses.streamreactor.connect.http.sink.config.NullPayloadHandler
 import io.lenses.streamreactor.connect.http.sink.tpl.JsonTidy.cleanUp
 import io.lenses.streamreactor.connect.http.sink.tpl.renderer.RecordRenderer
 import io.lenses.streamreactor.connect.http.sink.tpl.substitutions.SubstitutionError
@@ -26,14 +28,19 @@ import org.apache.kafka.connect.sink.SinkRecord
 object RawTemplate {
   private val innerTemplatePattern = """\{\{#message}}([\s\S]*?)\{\{/message}}""".r
 
-  def apply(endpoint: String, content: String, headers: Seq[(String, String)]): TemplateType =
+  def apply(
+    endpoint:           String,
+    content:            String,
+    headers:            Seq[(String, String)],
+    nullPayloadHandler: NullPayloadHandler,
+  ): TemplateType =
     innerTemplatePattern.findFirstMatchIn(content) match {
       case Some(innerTemplate) =>
         val start = content.substring(0, innerTemplate.start)
         val end   = content.substring(innerTemplate.end)
-        TemplateWithInnerLoop(endpoint, start, end, innerTemplate.group(1), headers)
+        TemplateWithInnerLoop(endpoint, start, end, innerTemplate.group(1), headers, nullPayloadHandler)
       case None =>
-        SimpleTemplate(endpoint, content, headers)
+        SimpleTemplate(endpoint, content, headers, nullPayloadHandler)
     }
 }
 
@@ -41,70 +48,76 @@ trait TemplateType {
   def endpoint: String
   def headers:  Seq[(String, String)]
 
-  def renderRecords(record: Seq[SinkRecord]): Either[SubstitutionError, Seq[RenderedRecord]]
+  def renderRecords(record: NonEmptySeq[SinkRecord]): Either[SubstitutionError, NonEmptySeq[RenderedRecord]]
 
-  def process(records: Seq[RenderedRecord], tidyJson: Boolean): Either[SubstitutionError, ProcessedTemplate]
+  def process(records: NonEmptySeq[RenderedRecord], tidyJson: Boolean): Either[SubstitutionError, ProcessedTemplate]
 }
 
 // this template type will require individual requests, the messages can't be batched
 case class SimpleTemplate(
-  endpoint: String,
-  content:  String,
-  headers:  Seq[(String, String)],
-) extends TemplateType {
+  endpoint:           String,
+  content:            String,
+  headers:            Seq[(String, String)],
+  nullPayloadHandler: NullPayloadHandler,
+) extends TemplateType
+    with LazyLogging {
 
-  override def renderRecords(records: Seq[SinkRecord]): Either[SubstitutionError, Seq[RenderedRecord]] =
-    RecordRenderer.renderRecords(records, endpoint.some, content, headers)
+  override def renderRecords(records: NonEmptySeq[SinkRecord]): Either[SubstitutionError, NonEmptySeq[RenderedRecord]] =
+    RecordRenderer.renderRecords(records, endpoint, content, headers, nullPayloadHandler)
 
-  override def process(records: Seq[RenderedRecord], tidyJson: Boolean): Either[SubstitutionError, ProcessedTemplate] =
-    records.headOption match {
-      case Some(RenderedRecord(_, _, recordRendered, headersRendered, Some(endpointRendered))) =>
+  override def process(
+    records:  NonEmptySeq[RenderedRecord],
+    tidyJson: Boolean,
+  ): Either[SubstitutionError, ProcessedTemplate] =
+    records.head match {
+      case RenderedRecord(_, _, recordRendered, headersRendered, endpointRendered) =>
+        logger.debug(
+          s"Processed template with tidyJson=$tidyJson",
+        )
         ProcessedTemplate(endpointRendered, recordRendered, headersRendered).asRight
-      case _ => SubstitutionError("No record found").asLeft
     }
 }
 
 case class TemplateWithInnerLoop(
-  endpoint:      String,
-  prefixContent: String,
-  suffixContent: String,
-  innerTemplate: String,
-  headers:       Seq[(String, String)],
-) extends TemplateType {
+  endpoint:           String,
+  prefixContent:      String,
+  suffixContent:      String,
+  innerTemplate:      String,
+  headers:            Seq[(String, String)],
+  nullPayloadHandler: NullPayloadHandler,
+) extends TemplateType
+    with LazyLogging {
 
-  override def renderRecords(records: Seq[SinkRecord]): Either[SubstitutionError, Seq[RenderedRecord]] =
-    records.zipWithIndex.map {
-      case (record, i) =>
+  override def renderRecords(records: NonEmptySeq[SinkRecord]): Either[SubstitutionError, NonEmptySeq[RenderedRecord]] =
+    records.map {
+      record =>
         RecordRenderer.renderRecord(
           record,
-          Option.when(i == 0)(endpoint),
+          endpoint,
           innerTemplate,
           headers,
+          nullPayloadHandler,
         )
     }.sequence
 
   override def process(
-    records:  Seq[RenderedRecord],
+    records:  NonEmptySeq[RenderedRecord],
     tidyJson: Boolean,
   ): Either[SubstitutionError, ProcessedTemplate] = {
 
-    val replaceWith = records.flatMap(_.recordRendered).mkString("")
+    val replaceWith = records.toSeq.flatMap(_.recordRendered).mkString("")
     val fnContextFix: String => String = content => {
       if (tidyJson) cleanUp(content) else content
     }
     val contentOrError = fnContextFix(prefixContent + replaceWith + suffixContent)
-
-    val maybeProcessedTpl = for {
-      headRecord <- records.headOption
-      ep         <- headRecord.endpointRendered
-    } yield {
-      ProcessedTemplate(
-        endpoint = ep,
-        content  = contentOrError,
-        headers  = records.flatMap(_.headersRendered).distinct,
-      )
-    }
-    maybeProcessedTpl.toRight(SubstitutionError("No record or endpoint available"))
+    logger.debug(
+      s"Processed template with prefixContent=$prefixContent, suffixContent=$suffixContent, tidyJson=$tidyJson",
+    )
+    ProcessedTemplate(
+      endpoint = records.head.endpointRendered,
+      content  = contentOrError,
+      headers  = records.toSeq.flatMap(_.headersRendered).distinct,
+    ).asRight
   }
 
 }

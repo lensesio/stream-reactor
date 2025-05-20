@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2024 Lenses.io Ltd
+ * Copyright 2017-2025 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,6 +15,8 @@
  */
 package io.lenses.streamreactor.connect.http.sink.tpl
 
+import cats.data.NonEmptySeq
+import io.lenses.streamreactor.connect.http.sink.config.ErrorNullPayloadHandler
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaBuilder
 import org.apache.kafka.connect.data.Struct
@@ -66,9 +68,10 @@ class TemplateTest extends AnyFunSuiteLike with Matchers with EitherValues {
           |  <groupDomain>{{value.groupDomain}}</groupDomain>
           |</xml>""".stripMargin,
       Seq(),
+      nullPayloadHandler = ErrorNullPayloadHandler,
     )
 
-    val rendered = processedTemplate.renderRecords(Seq(record))
+    val rendered = processedTemplate.renderRecords(NonEmptySeq.of(record))
 
     val processed = processedTemplate.process(rendered.value, true)
     processed.value.endpoint should be("http://myExampleGroup.uk.example.com/10/Abcd1234/myTopic")
@@ -106,12 +109,13 @@ class TemplateTest extends AnyFunSuiteLike with Matchers with EitherValues {
     val record1 = new SinkRecord("myTopic", 0, null, null, valueSchema, value1, 9)
     val record2 = new SinkRecord("myTopic", 0, null, null, valueSchema, value2, 10)
 
-    val records = Seq(record1, record2)
+    val records = NonEmptySeq.of(record1, record2)
 
     val processedTemplate = RawTemplate(
       endpoint = "http://{{value.groupDomain}}.example.com/{{value.orderNo}}/{{value.employeeId}}/{{topic}}",
       content  = multiTemplate,
       Seq(),
+      nullPayloadHandler = ErrorNullPayloadHandler,
     )
 
     val rendered = processedTemplate.renderRecords(records)
@@ -165,12 +169,13 @@ class TemplateTest extends AnyFunSuiteLike with Matchers with EitherValues {
     val record1 = new SinkRecord("myTopic", 0, null, null, valueSchema, value1, 9)
     val record2 = new SinkRecord("myTopic", 0, null, null, valueSchema, value2, 10)
 
-    val records = Seq(record1, record2)
+    val records = NonEmptySeq.of(record1, record2)
 
     val processedTemplate = RawTemplate(
       endpoint = "http://{{value.groupDomain}}.example.com/{{value.orderNo}}/{{value.employeeId}}/{{topic}}",
       content  = normalized(multiTemplate),
       Seq(),
+      nullPayloadHandler = ErrorNullPayloadHandler,
     )
 
     val rendered = processedTemplate.renderRecords(records)

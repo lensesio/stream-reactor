@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2024 Lenses.io Ltd
+ * Copyright 2017-2025 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,32 +26,57 @@ import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
 import java.time.Instant
+import scala.jdk.CollectionConverters.IteratorHasAsScala
 import scala.jdk.CollectionConverters.MapHasAsJava
 
 class SchemaAndValueConverterTest extends AnyFunSuite with Matchers {
   implicit val cloudLocationValidator: CloudLocationValidator = SampleData.cloudLocationValidator
 
-  test("converts a schema and value and populates the source record") {
-    val value = new SchemaAndValue(
-      Schema.OPTIONAL_STRING_SCHEMA,
-      "lore ipsum",
-    )
-    val location     = CloudLocation("bucket", "prefix".some, "a/b/c.txt".some)
-    val lastModified = Instant.ofEpochMilli(1000)
+  private val schemaAndValue: SchemaAndValue = new SchemaAndValue(
+    Schema.OPTIONAL_STRING_SCHEMA,
+    "lore ipsum",
+  )
+  private val location     = CloudLocation("bucket", "prefix".some, "a/b/c.txt".some)
+  private val lastModified = Instant.ofEpochMilli(1000)
+
+  test("converts a schema and value and populates the source record with watermark headers") {
+
     val actual = new SchemaAndValueConverter(
+      true,
       Map("a" -> "1").asJava,
       Topic("topic1"),
       1,
       location,
       lastModified,
-    ).convert(value, 1)
+    ).convert(schemaAndValue, 1, lastLine = false)
     actual.valueSchema().`type`() shouldBe Schema.OPTIONAL_STRING_SCHEMA.`type`()
     actual.value() shouldBe "lore ipsum"
     actual.kafkaPartition() shouldBe 1
     actual.sourcePartition() shouldBe Map("a" -> "1").asJava
-    actual.sourceOffset() shouldBe Map("line" -> "1", "path" -> "a/b/c.txt", "ts" -> "1000").asJava
+    actual.sourceOffset() shouldBe Map("line" -> "1", "path" -> "a/b/c.txt", "ts" -> "1000", "last" -> "f").asJava
     actual.key() shouldBe null
     actual.keySchema() shouldBe null
-    actual.headers().size() shouldBe 0
+    actual.headers().iterator().asScala.map(hdr =>
+      (hdr.key(), hdr.value().asInstanceOf[String]),
+    ).toMap should contain allOf (
+      ("path", "a/b/c.txt"),
+      ("line", "1"),
+      ("ts", "1000"),
+      ("a", "1"),
+      ("last", "f"),
+    )
+  }
+
+  test("converts a schema and value without injecting watermark headers") {
+
+    val actual = new SchemaAndValueConverter(
+      false,
+      Map("a" -> "1").asJava,
+      Topic("topic1"),
+      1,
+      location,
+      lastModified,
+    ).convert(schemaAndValue, 1, lastLine = false)
+    actual.headers() shouldBe empty
   }
 }

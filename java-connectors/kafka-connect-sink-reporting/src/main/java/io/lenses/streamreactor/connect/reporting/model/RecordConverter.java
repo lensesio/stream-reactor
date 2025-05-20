@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2024 Lenses.io Ltd
+ * Copyright 2017-2025 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ import cyclops.control.Try;
 import io.lenses.streamreactor.connect.reporting.ReportingMessagesConfig;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.internals.RecordHeader;
@@ -54,9 +55,11 @@ public class RecordConverter<C extends ConnectorSpecificRecordData> {
    * @return an {@link Option} containing the producer record, or {@link Option#none()} if conversion fails
    */
   public Option<ProducerRecord<byte[], String>> convert(ReportingRecord<C> source) {
-    return convertToHeaders(source)
-        .flatMap(headers -> createRecord(headers, source, messagesConfig));
-
+    val converted =
+        convertToHeaders(source)
+            .flatMap(headers -> createRecord(headers, source, messagesConfig));
+    log.debug("Successfully converted report");
+    return converted;
   }
 
   /**

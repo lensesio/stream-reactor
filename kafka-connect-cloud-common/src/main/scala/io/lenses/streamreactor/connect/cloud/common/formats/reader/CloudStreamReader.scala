@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2024 Lenses.io Ltd
+ * Copyright 2017-2025 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,10 +25,22 @@ trait CloudStreamReader extends AutoCloseable with Iterator[SourceRecord] {
   def currentRecordIndex: Long
 }
 
+class EmptyCloudStreamReader(location: CloudLocation) extends CloudStreamReader {
+  override def getBucketAndPath: CloudLocation = location
+
+  override def currentRecordIndex: Long = -1L
+
+  override def hasNext: Boolean = false
+
+  override def next(): SourceRecord = throw new UnsupportedOperationException("EmptyCloudStreamReader")
+
+  override def close(): Unit = ()
+}
+
 trait CloudDataIterator[T] extends Iterator[T] with AutoCloseable
 
 trait Converter[T] {
-  def convert(t: T, index: Long): SourceRecord
+  def convert(t: T, index: Long, lastLine: Boolean): SourceRecord
 }
 
 class DelegateIteratorCloudStreamReader[T](
@@ -52,7 +64,7 @@ class DelegateIteratorCloudStreamReader[T](
   override def next(): SourceRecord = {
     val data = iterator.next()
     recordIndex = recordIndex + 1
-    converter.convert(data, recordIndex)
+    converter.convert(data, recordIndex, !hasNext)
   }
 
   override def close(): Unit = iterator.close()

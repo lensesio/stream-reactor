@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2024 Lenses.io Ltd
+ * Copyright 2017-2025 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@ package io.lenses.streamreactor.connect.http.sink.tpl.renderer
 
 import cats.implicits._
 import enumeratum.Enum
+import io.lenses.streamreactor.connect.http.sink.config.NullPayloadHandler
 import io.lenses.streamreactor.connect.http.sink.tpl.substitutions.SubstitutionError
 import io.lenses.streamreactor.connect.http.sink.tpl.substitutions.SubstitutionType
 import org.apache.kafka.connect.sink.SinkRecord
@@ -28,8 +29,7 @@ class TemplateRenderer[X <: SubstitutionType](substitutionType: Enum[X]) {
 
   private val templatePattern: Regex = "\\{\\{([^{}]*)}}".r
 
-  private val nullSubstitutionError:           SubstitutionError = SubstitutionError("SubstitutionType returned null")
-  private val noTagSpecifiedSubstitutionError: SubstitutionError = SubstitutionError("No tag specified")
+  private val noTagSpecifiedSubstitutionErrorFn: () => SubstitutionError = () => SubstitutionError("No tag specified")
   private val invalidSubstitutionTypeSubstitutionErrorFn: String => SubstitutionError = k =>
     SubstitutionError(s"Couldn't find `$k` SubstitutionType")
 
@@ -41,9 +41,14 @@ class TemplateRenderer[X <: SubstitutionType](substitutionType: Enum[X]) {
     *
     * @param data the `SinkRecord` containing the data to be rendered
     * @param tplText the template text with placeholders to be replaced
+    * @param nullPayloadHandler handler for null payloads
     * @return either a `SubstitutionError` if an error occurs, or the rendered string
     */
-  def render(data: SinkRecord, tplText: String): Either[SubstitutionError, String] =
+  def render(
+    data:               SinkRecord,
+    tplText:            String,
+    nullPayloadHandler: NullPayloadHandler,
+  ): Either[SubstitutionError, String] =
     Either.catchOnly[SubstitutionError](
       templatePattern
         .replaceAllIn(
@@ -51,15 +56,19 @@ class TemplateRenderer[X <: SubstitutionType](substitutionType: Enum[X]) {
           matchTag =>
             Matcher.quoteReplacement {
               val tag = Option(matchTag.group(1)).getOrElse("").trim
-              getTagValueFromData(tag, data)
+              getTagValueFromData(tag, data, nullPayloadHandler)
                 .leftMap(throw _)
                 .merge
             },
         ),
     )
 
-  private[renderer] def getTagValueFromData(tag: String, data: SinkRecord): Either[SubstitutionError, String] = {
-    val tagOpt = Option(tag).filter(_.nonEmpty).toRight(noTagSpecifiedSubstitutionError)
+  private[renderer] def getTagValueFromData(
+    tag:                String,
+    data:               SinkRecord,
+    nullPayloadHandler: NullPayloadHandler,
+  ): Either[SubstitutionError, String] = {
+    val tagOpt = Option(tag).filter(_.nonEmpty).toRight(noTagSpecifiedSubstitutionErrorFn())
     tagOpt.flatMap { t =>
       val locs    = t.split("\\.", 2)
       val key     = locs.headOption.map(_.toLowerCase).getOrElse("")
@@ -72,7 +81,13 @@ class TemplateRenderer[X <: SubstitutionType](substitutionType: Enum[X]) {
             sType <- substitutionType.withNameInsensitiveOption(k).toRight(
               invalidSubstitutionTypeSubstitutionErrorFn(k),
             )
-            value <- sType.get(loc, data).map(_.toString).leftMap(_ => nullSubstitutionError)
+            value <- sType
+              .get(loc, data)
+              .flatMap(
+                Option(_).fold(
+                  nullPayloadHandler.handleNullValue,
+                )(v => Right(v.toString)),
+              )
           } yield value
       }
     }

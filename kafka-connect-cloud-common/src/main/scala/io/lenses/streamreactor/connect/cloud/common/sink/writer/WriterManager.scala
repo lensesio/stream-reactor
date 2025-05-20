@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2024 Lenses.io Ltd
+ * Copyright 2017-2025 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,10 +20,10 @@ import com.typesafe.scalalogging.StrictLogging
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.FormatWriter
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.MessageDetail
+import io.lenses.streamreactor.connect.cloud.common.formats.writer.schema.SchemaChangeDetector
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartitionOffset
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
-import io.lenses.streamreactor.connect.cloud.common.sink
 import io.lenses.streamreactor.connect.cloud.common.sink.BatchCloudSinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.FatalCloudSinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
@@ -31,8 +31,9 @@ import io.lenses.streamreactor.connect.cloud.common.sink.commit.CommitPolicy
 import io.lenses.streamreactor.connect.cloud.common.sink.config.PartitionField
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.KeyNamer
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.ObjectKeyBuilder
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexManager
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.PendingOperationsProcessors
 import io.lenses.streamreactor.connect.cloud.common.storage.FileMetadata
-import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.connect.data.Schema
 
@@ -53,74 +54,35 @@ case class MapKey(topicPartition: TopicPartition, partitionValues: immutable.Map
   * sinks, since file handles cannot be safely shared without considerable overhead.
   */
 class WriterManager[SM <: FileMetadata](
-  commitPolicyFn:    TopicPartition => Either[SinkError, CommitPolicy],
-  bucketAndPrefixFn: TopicPartition => Either[SinkError, CloudLocation],
-  keyNamerFn:        TopicPartition => Either[SinkError, KeyNamer],
-  stagingFilenameFn: (TopicPartition, Map[PartitionField, String]) => Either[SinkError, File],
-  objKeyBuilderFn:   (TopicPartition, Map[PartitionField, String]) => ObjectKeyBuilder,
-  formatWriterFn:    (TopicPartition, File) => Either[SinkError, FormatWriter],
-  writerIndexer:     WriterIndexer[SM],
-  transformerF:      MessageDetail => Either[RuntimeException, MessageDetail],
+  commitPolicyFn:              TopicPartition => Either[SinkError, CommitPolicy],
+  bucketAndPrefixFn:           TopicPartition => Either[SinkError, CloudLocation],
+  keyNamerFn:                  TopicPartition => Either[SinkError, KeyNamer],
+  stagingFilenameFn:           (TopicPartition, Map[PartitionField, String]) => Either[SinkError, File],
+  objKeyBuilderFn:             (TopicPartition, Map[PartitionField, String]) => ObjectKeyBuilder,
+  formatWriterFn:              (TopicPartition, File) => Either[SinkError, FormatWriter],
+  indexManager:                IndexManager,
+  transformerF:                MessageDetail => Either[RuntimeException, MessageDetail],
+  schemaChangeDetector:        SchemaChangeDetector,
+  skipNullValues:              Boolean,
+  pendingOperationsProcessors: PendingOperationsProcessors,
 )(
   implicit
-  connectorTaskId:  ConnectorTaskId,
-  storageInterface: StorageInterface[SM],
+  connectorTaskId: ConnectorTaskId,
 ) extends StrictLogging {
 
-  private val writers = mutable.Map.empty[MapKey, Writer[SM]]
-
-  def commitAllWritersIfFlushRequired(): Either[BatchCloudSinkError, Unit] =
-    if (writers.values.exists(_.shouldFlush)) {
-      commitAllWriters()
-    } else {
-      ().asRight
-    }
-
-  private def commitAllWriters(): Either[BatchCloudSinkError, Unit] = {
-    logger.debug(s"[{}] Received call to WriterManager.commit", connectorTaskId.show)
-    commitWritersWithFilter(_ => true)
-  }
+  private val writers             = mutable.Map.empty[MapKey, Writer[SM]]
+  private val writerCommitManager = new WriterCommitManager[SM](() => writers.toMap)
 
   def recommitPending(): Either[SinkError, Unit] = {
     logger.debug(s"[{}] Retry Pending", connectorTaskId.show)
-    val result = commitWritersWithFilter(_._2.hasPendingUpload)
+    val result = writerCommitManager.commitPending()
     logger.debug(s"[{}] Retry Pending Complete", connectorTaskId.show)
     result
   }
 
-  private def commitWriters(topicPartition: TopicPartition): Either[BatchCloudSinkError, Unit] =
-    commitWritersWithFilter(_._1.topicPartition == topicPartition)
-
-  private def commitWriters(writer: Writer[SM], topicPartition: TopicPartition): Either[BatchCloudSinkError, Unit] = {
-    logger.debug(s"[{}] Received call to WriterManager.commitWritersWithFilter (w, tp {})",
-                 connectorTaskId.show,
-                 topicPartition,
-    )
-    if (writer.shouldFlush) {
-      commitWritersWithFilter((kv: (MapKey, Writer[SM])) => kv._1.topicPartition == topicPartition)
-    } else {
-      ().asRight
-    }
-  }
-
-  private def commitWritersWithFilter(
-    keyValueFilterFn: ((MapKey, Writer[SM])) => Boolean,
-  ): Either[BatchCloudSinkError, Unit] = {
-
-    logger.debug(s"[{}] Received call to WriterManager.commitWritersWithFilter (filter)", connectorTaskId.show)
-    val writerCommitErrors = writers
-      .filter(keyValueFilterFn)
-      .view.mapValues(_.commit)
-      .collect {
-        case (_, Left(err)) => err
-      }.toSet
-
-    if (writerCommitErrors.nonEmpty) {
-      sink.BatchCloudSinkError(writerCommitErrors).asLeft
-    } else {
-      ().asRight
-    }
-
+  def commitFlushableWriters(): Either[BatchCloudSinkError, Unit] = {
+    logger.debug(s"[{}] Received call to WriterManager.commitFlushableWriters", connectorTaskId.show)
+    writerCommitManager.commitFlushableWriters()
   }
 
   def close(): Unit = {
@@ -159,7 +121,7 @@ class WriterManager[SM <: FileMetadata](
       _ <- rollOverTopicPartitionWriters(writer, topicPartitionOffset.toTopicPartition, messageDetail)
       // a processErr can potentially be recovered from in the next iteration.  Can be due to network problems
       _         <- writer.write(messageDetail)
-      commitRes <- commitWriters(writer, topicPartitionOffset.toTopicPartition)
+      commitRes <- writerCommitManager.commitFlushableWritersForTopicPartition(topicPartitionOffset.toTopicPartition)
     } yield commitRes
 
   private def rollOverTopicPartitionWriters(
@@ -169,7 +131,8 @@ class WriterManager[SM <: FileMetadata](
   ): Either[BatchCloudSinkError, Unit] =
     //TODO: fix this; it cannot always be VALUE and it depends on writer requiring a roll over to new file
     message.value.schema() match {
-      case Some(value: Schema) if writer.shouldRollover(value) => commitWriters(topicPartition)
+      case Some(value: Schema) if writer.shouldRollover(value) =>
+        writerCommitManager.commitForTopicPartition(topicPartition)
       case _ => ().asRight
     }
 
@@ -214,10 +177,12 @@ class WriterManager[SM <: FileMetadata](
       new Writer(
         topicPartition,
         commitPolicy,
-        writerIndexer,
+        indexManager,
         () => stagingFilenameFn(topicPartition, partitionValues),
         objKeyBuilderFn(topicPartition, partitionValues),
         formatWriterFn.curried(topicPartition),
+        schemaChangeDetector,
+        pendingOperationsProcessors,
       )
     }
   }
@@ -261,5 +226,7 @@ class WriterManager[SM <: FileMetadata](
       )
       .keys
       .foreach(writers.remove)
+
+  def shouldSkipNullValues(): Boolean = skipNullValues
 
 }

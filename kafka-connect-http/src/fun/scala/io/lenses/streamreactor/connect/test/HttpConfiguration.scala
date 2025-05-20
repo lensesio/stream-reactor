@@ -7,19 +7,28 @@ import io.lenses.streamreactor.connect.http.sink.config.HttpSinkConfigDef
 
 trait HttpConfiguration extends LazyLogging {
 
-  val ERROR_REPORTING_ENABLED_PROP   = "connect.reporting.error.config.enabled";
-  val SUCCESS_REPORTING_ENABLED_PROP = "connect.reporting.success.config.enabled";
+  val ERROR_REPORTING_ENABLED_PROP   = "connect.reporting.error.config.enabled"
+  val SUCCESS_REPORTING_ENABLED_PROP = "connect.reporting.success.config.enabled"
+
+  val ERROR_REPORTING_TOPIC_PROP   = "connect.reporting.error.config.topic"
+  val SUCCESS_REPORTING_TOPIC_PROP = "connect.reporting.success.config.topic"
+
+  val ERROR_REPORTING_BOOTSTRAP_SERVERS_PROP   = "connect.reporting.error.config.bootstrap.servers"
+  val SUCCESS_REPORTING_BOOTSTRAP_SERVERS_PROP = "connect.reporting.success.config.bootstrap.servers"
 
   def sinkConfig(
-    randomTestId:    String,
-    endpointUrl:     String,
-    httpMethod:      String,
-    contentTemplate: String,
-    headerTemplates: Seq[(String, String)],
-    topicName:       String,
-    converters:      Map[String, String],
-    batchSize:       Int,
-    jsonTidy:        Boolean,
+    randomTestId:          String,
+    endpointUrl:           String,
+    httpMethod:            String,
+    contentTemplate:       String,
+    headerTemplates:       Seq[(String, String)],
+    topicName:             String,
+    converters:            Map[String, String],
+    batchSize:             Int,
+    jsonTidy:              Boolean,
+    errorReportingTopic:   String,
+    successReportingTopic: String,
+    bootstrapServers:      String,
   ): ConnectorConfiguration = {
     val configMap: Map[String, ConfigValue[_]] = converters.view.mapValues(new ConfigValue[String](_)).toMap ++
       Map(
@@ -32,9 +41,16 @@ trait HttpConfiguration extends LazyLogging {
         HttpSinkConfigDef.HttpRequestHeadersProp -> ConfigValue(headerTemplates.mkString(",")),
         HttpSinkConfigDef.AuthenticationTypeProp -> ConfigValue("none"), //NoAuthentication
         HttpSinkConfigDef.BatchCountProp         -> ConfigValue(batchSize),
+        HttpSinkConfigDef.BatchSizeProp          -> ConfigValue(100_000_000),
+        HttpSinkConfigDef.TimeIntervalProp       -> ConfigValue(100_000_000),
         HttpSinkConfigDef.JsonTidyProp           -> ConfigValue(jsonTidy),
-        ERROR_REPORTING_ENABLED_PROP             -> ConfigValue("false"),
-        SUCCESS_REPORTING_ENABLED_PROP           -> ConfigValue("false"),
+        ERROR_REPORTING_ENABLED_PROP             -> ConfigValue("true"),
+        ERROR_REPORTING_TOPIC_PROP               -> ConfigValue(errorReportingTopic),
+        ERROR_REPORTING_BOOTSTRAP_SERVERS_PROP   -> ConfigValue(bootstrapServers),
+        SUCCESS_REPORTING_ENABLED_PROP           -> ConfigValue("true"),
+        SUCCESS_REPORTING_TOPIC_PROP             -> ConfigValue(successReportingTopic),
+        SUCCESS_REPORTING_BOOTSTRAP_SERVERS_PROP -> ConfigValue(bootstrapServers),
+        HttpSinkConfigDef.RetriesMaxRetriesProp  -> ConfigValue(0),
       )
     debugLogConnectorConfig(configMap)
     ConnectorConfiguration(

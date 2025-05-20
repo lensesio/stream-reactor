@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2024 Lenses.io Ltd
+ * Copyright 2017-2025 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,8 +31,9 @@ import scala.jdk.CollectionConverters._
 
 object HttpSinkConfigDef {
 
-  val ConnectorPrefix: String = "connect.http"
-  val HttpMethodProp:  String = "connect.http.method"
+  val TaskNumberProp: String = "connect.http.task.number"
+
+  val HttpMethodProp: String = "connect.http.method"
   val HttpMethodDoc: String =
     """
       |The HTTP method to use.
@@ -90,6 +91,14 @@ object HttpSinkConfigDef {
     ServiceUnavailable.code,
   )
 
+  val RetryModeProp: String = "connect.http.retry.mode"
+  val RetryModeDoc:  String = "The retry mode to use. Options are 'fixed' or 'exponential'."
+  val RetryModeDefault = "exponential"
+
+  val FixedRetryIntervalProp    = "connect.http.retry.fixed.interval.ms"
+  val FixedRetryIntervalDoc     = "The fixed interval in milliseconds to wait before retrying."
+  val FixedRetryIntervalDefault = 10000
+
   val ErrorThresholdProp: String = "connect.http.error.threshold"
   val ErrorThresholdDoc: String =
     """
@@ -145,6 +154,32 @@ object HttpSinkConfigDef {
     """
       |Tidy the output json.
       |""".stripMargin
+
+  val CustomNullPayloadHandler: String = "connect.http.null.payload.handler.custom"
+  val CustomNullPayloadHandlerDoc: String =
+    """
+      |Custom string to use in place of a null template.
+      |""".stripMargin
+
+  val NullPayloadHandler: String = "connect.http.null.payload.handler"
+  val NullPayloadHandlerDoc: String =
+    s"""
+       |Literal to output in templates in place of a null payload.  Values are `error` (raises an error), `empty` (empty string, eg ""), `null` (the literal 'null') or `custom` (a string of your choice, as defined by `$CustomNullPayloadHandler`). `Defaults to `error`.
+       |""".stripMargin
+
+  val MaxQueueSizeProp: String = "connect.http.max.queue.size"
+  val MaxQueueSizeDoc: String =
+    """
+      |The maximum number of records to queue per topic before blocking. If the queue limit is reached the connector will throw RetriableException and the connector settings to handle retries will be used.
+      |""".stripMargin
+  val MaxQueueSizeDefault = 1000000
+
+  val MaxQueueOfferTimeoutProp: String = "connect.http.max.queue.offer.timeout.ms"
+  val MaxQueueOfferTimeoutDoc: String =
+    """
+      |The maximum time in milliseconds to wait for the queue to accept a record. If the queue does not accept the record within this time, the connector will throw RetriableException and the connector settings to handle retries will be used.
+      |""".stripMargin
+  val MaxQueueOfferTimeoutDefault = 120000
 
   val config: ConfigDef = {
     val configDef = new ConfigDef()
@@ -211,11 +246,25 @@ object HttpSinkConfigDef {
         RetriesMaxRetriesDoc,
       )
       .define(
+        RetryModeProp,
+        Type.STRING,
+        RetryModeDefault,
+        Importance.HIGH,
+        RetryModeDoc,
+      )
+      .define(
         RetriesOnStatusCodesProp,
         Type.LIST,
         RetriesOnStatusCodesDefault.map(_.toString).asJava,
         Importance.HIGH,
         RetriesOnStatusCodesDoc,
+      )
+      .define(
+        FixedRetryIntervalProp,
+        Type.INT,
+        FixedRetryIntervalDefault,
+        Importance.HIGH,
+        FixedRetryIntervalDoc,
       )
       .define(
         BatchCountProp,
@@ -265,6 +314,34 @@ object HttpSinkConfigDef {
         false,
         Importance.HIGH,
         JsonTidyPropDoc,
+      )
+      .define(
+        NullPayloadHandler,
+        Type.STRING,
+        "error",
+        Importance.HIGH,
+        NullPayloadHandlerDoc,
+      )
+      .define(
+        CustomNullPayloadHandler,
+        Type.STRING,
+        "",
+        Importance.HIGH,
+        CustomNullPayloadHandlerDoc,
+      )
+      .define(
+        MaxQueueSizeProp,
+        Type.INT,
+        MaxQueueSizeDefault,
+        Importance.HIGH,
+        MaxQueueSizeDoc,
+      )
+      .define(
+        MaxQueueOfferTimeoutProp,
+        Type.LONG,
+        MaxQueueOfferTimeoutDefault,
+        Importance.HIGH,
+        MaxQueueOfferTimeoutDoc,
       )
     ReporterConfig.withErrorRecordReportingSupport(configDef)
     ReporterConfig.withSuccessRecordReportingSupport(configDef)

@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2024 Lenses.io Ltd
+ * Copyright 2017-2025 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,8 @@ package io.lenses.streamreactor.connect.reporting;
 import cyclops.control.Either;
 import cyclops.control.Option;
 import cyclops.control.Try;
+import cyclops.instances.control.OptionInstances;
+import cyclops.typeclasses.Do;
 import io.lenses.streamreactor.common.config.source.ConfigSource;
 import io.lenses.streamreactor.common.config.source.MapConfigSource;
 import io.lenses.streamreactor.common.exception.StreamReactorException;
@@ -33,7 +35,7 @@ import lombok.val;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerConfig;
-import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 
@@ -41,14 +43,19 @@ import java.time.Duration;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static io.lenses.streamreactor.common.util.EitherUtils.unpackOrThrow;
+import static io.lenses.streamreactor.common.util.TryHandler.logAndDiscardTry;
+import static java.util.function.Function.identity;
 
 /**
  * @param <C> the type of connector-specific record data
@@ -79,16 +86,37 @@ public class ReportSender<C extends ConnectorSpecificRecordData> {
   public void start() {
     log.info("Starting reporting Kafka Producer with clientId:" + reportingClientId);
     executorService.scheduleWithFixedDelay(
-        () -> reportHolder.pollReport().forEach(
-            report -> {
-              Option<ProducerRecord<byte[], String>> optionalReport =
-                  recordConverter.convert(report);
-              Try.runWithCatch(() -> optionalReport.map(producer::send))
-                  .toFailedOption()
-                  .stream()
-                  .forEach(ex -> log.warn(EXCEPTION_WHILE_PRODUCING_MESSAGE, ex));
+        () -> reportHolder.pollReport().forEach(this::sendReport), 0, 50, TimeUnit.MILLISECONDS);
+  }
+
+  private void sendReport(ReportingRecord<C> report) {
+    log.debug("Sending Report");
+
+    logAndDiscardTry(
+        Try.withCatch(() -> recordConverter.convert(report), Exception.class), EXCEPTION_WHILE_PRODUCING_MESSAGE
+    ).flatMap(identity())
+        .forEach3(
+            producerRecord -> logAndDiscardTry(
+                Try.withCatch(() -> producer.send(producerRecord), Exception.class),
+                EXCEPTION_WHILE_PRODUCING_MESSAGE
+            ),
+            (producerRecord, future) -> logAndDiscardTry(
+                resolveFuture(future),
+                EXCEPTION_WHILE_PRODUCING_MESSAGE
+            ),
+            (producerRecord, future, md) -> {
+              log.debug("Report send complete");
+              return md;
             }
-        ), 0, 1, TimeUnit.SECONDS);
+        );
+
+  }
+
+  private static Try<RecordMetadata, Exception> resolveFuture(Future<RecordMetadata> fut) {
+    return Try.withCatch(
+        () -> fut.get(5L, TimeUnit.SECONDS), InterruptedException.class, ExecutionException.class,
+        TimeoutException.class
+    );
   }
 
   public void close() {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2024 Lenses.io Ltd
+ * Copyright 2017-2025 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,18 +24,30 @@ import com.google.cloud.storage.BlobId
 import com.google.cloud.storage.BlobInfo
 import com.google.cloud.storage.Storage
 import com.google.cloud.storage.Storage.BlobListOption
+import com.google.cloud.storage.Storage.BlobSourceOption
+import com.google.cloud.storage.Storage.BlobTargetOption
+import com.google.cloud.storage.StorageException
 import com.typesafe.scalalogging.LazyLogging
+import io.circe.Encoder
+import io.circe.syntax.EncoderOps
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.config.ObjectMetadata
 import io.lenses.streamreactor.connect.cloud.common.model.UploadableFile
 import io.lenses.streamreactor.connect.cloud.common.model.UploadableString
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.NoOverwriteExistingObject
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.ObjectProtection
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.ObjectWithETag
 import io.lenses.streamreactor.connect.cloud.common.storage.ExtensionFilter
 import io.lenses.streamreactor.connect.cloud.common.storage.FileCreateError
 import io.lenses.streamreactor.connect.cloud.common.storage.FileDeleteError
 import io.lenses.streamreactor.connect.cloud.common.storage.FileListError
 import io.lenses.streamreactor.connect.cloud.common.storage.FileLoadError
+import io.lenses.streamreactor.connect.cloud.common.storage.GeneralFileLoadError
+import io.lenses.streamreactor.connect.cloud.common.storage.FileMoveError
+import io.lenses.streamreactor.connect.cloud.common.storage.FileNotFoundError
 import io.lenses.streamreactor.connect.cloud.common.storage.ListOfKeysResponse
 import io.lenses.streamreactor.connect.cloud.common.storage.ListOfMetadataResponse
+import io.lenses.streamreactor.connect.cloud.common.storage.PathError
 import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
 import io.lenses.streamreactor.connect.cloud.common.storage.UploadError
 import io.lenses.streamreactor.connect.cloud.common.storage.UploadFailedError
@@ -45,8 +57,9 @@ import java.nio.channels.Channels
 import java.nio.file.Files
 import java.time.Instant
 import scala.annotation.tailrec
-import scala.collection.immutable.Seq
 import scala.jdk.CollectionConverters.IterableHasAsScala
+import scala.util.Failure
+import scala.util.Success
 import scala.util.Try
 
 class GCPStorageStorageInterface(
@@ -56,24 +69,25 @@ class GCPStorageStorageInterface(
   extensionFilter:     Option[ExtensionFilter],
 ) extends StorageInterface[GCPStorageFileMetadata]
     with LazyLogging {
-  override def uploadFile(source: UploadableFile, bucket: String, path: String): Either[UploadError, Unit] = {
+  override def uploadFile(source: UploadableFile, bucket: String, path: String): Either[UploadError, String] = {
     logger.debug(s"[{}] GCP Uploading file from local {} to Storage {}:{}", connectorTaskId.show, source, bucket, path)
     for {
       file <- source.validate.toEither
-      _ <- Try {
+      eTag <- Try {
         val blobId   = BlobId.of(bucket, path)
         val blobInfo = BlobInfo.newBuilder(blobId).build()
-        if (avoidReumableUpload) {
+        val blob = if (avoidReumableUpload) {
           storage.create(blobInfo, Files.readAllBytes(file.toPath))
         } else {
           storage.createFrom(blobInfo, file.toPath)
-          //Using(new FileInputStream(file)){
-          //  is =>  {
-          //    storage.createFrom(blobInfo, is)
-          //  }
-          //}(_.close())
         }
-        logger.info(s"[{}] Completed upload from local {} to Storage {}:{}", connectorTaskId.show, source, bucket, path)
+        logger.debug(s"[{}] Completed upload from local {} to Storage {}:{}",
+                     connectorTaskId.show,
+                     source,
+                     bucket,
+                     path,
+        )
+        String.valueOf(blob.getGeneration)
       }.toEither.leftMap { ex: Throwable =>
         logger.error(s"[{}] Failed upload from local {} to Storage {}:{}. Reason:{}",
                      connectorTaskId.show,
@@ -84,7 +98,7 @@ class GCPStorageStorageInterface(
         )
         UploadFailedError(ex, source.file)
       }
-    } yield ()
+    } yield eTag
 
   }
 
@@ -96,14 +110,17 @@ class GCPStorageStorageInterface(
       val optiBlob = Option(blob)
       f(optiBlob)
     }.toEither.leftMap {
-      FileLoadError(_, path)
+      case se: StorageException if se.getCode == 404 =>
+        FileNotFoundError(se, path)
+      case other =>
+        GeneralFileLoadError(other, path)
     }
 
-  override def pathExists(bucket: String, path: String): Either[FileLoadError, Boolean] =
+  override def pathExists(bucket: String, path: String): Either[PathError, Boolean] =
     usingBlob[Boolean](bucket, path) {
       maybeBlob =>
         maybeBlob.nonEmpty && maybeBlob.exists(blob => blob.exists())
-    }
+    }.leftMap(fileLoadError => PathError(fileLoadError.exception, fileLoadError.fileName))
 
   override def getBlob(bucket: String, path: String): Either[FileLoadError, InputStream] =
     usingBlob[InputStream](bucket, path) {
@@ -140,9 +157,9 @@ class GCPStorageStorageInterface(
     for {
       content <- data.validate.toEither
       _ <- Try {
-        val blobId   = BlobId.of(bucket, path)
-        val blobInfo = BlobInfo.newBuilder(blobId).build()
-        val _        = storage.create(blobInfo, content.getBytes)
+        val blobId = BlobId.of(bucket, path)
+        val blobInfo: BlobInfo = BlobInfo.newBuilder(blobId).build()
+        storage.create(blobInfo, content.getBytes)
         logger.debug(s"[{}] Completed upload from data string ({}) to Storage {}:{}",
                      connectorTaskId.show,
                      data,
@@ -160,6 +177,55 @@ class GCPStorageStorageInterface(
         FileCreateError(ex, content)
       }
     } yield ()
+  }
+
+  override def writeBlobToFile[O](
+    bucket:           String,
+    path:             String,
+    objectProtection: ObjectProtection[O],
+  )(
+    implicit
+    encoder: Encoder[O],
+  ): Either[UploadError, ObjectWithETag[O]] = {
+    val content = objectProtection.wrappedObject.asJson.noSpaces
+
+    Try {
+      logger.debug(
+        s"[{}] Uploading file from json object ({}) to Storage {}:{}",
+        connectorTaskId.show,
+        objectProtection.wrappedObject,
+        bucket,
+        path,
+      )
+
+      val blobId = BlobId.of(bucket, path)
+      val blobInfo: BlobInfo = BlobInfo.newBuilder(blobId).build()
+      val created = objectProtection match {
+        case NoOverwriteExistingObject(_) =>
+          storage.create(blobInfo, content.getBytes, BlobTargetOption.generationMatch(0L))
+        case ObjectWithETag(_, eTag) =>
+          storage.create(blobInfo, content.getBytes, BlobTargetOption.generationMatch(eTag.toLong))
+        case _ => storage.create(blobInfo, content.getBytes)
+      }
+      logger.debug(
+        s"[{}] Completed upload from data string ({}) to Storage {}:{}",
+        connectorTaskId.show,
+        objectProtection.wrappedObject,
+        bucket,
+        path,
+      )
+      new ObjectWithETag[O](objectProtection.wrappedObject, String.valueOf(created.getGeneration))
+    }.toEither.leftMap { ex: Throwable =>
+      logger.error(
+        s"[{}] Failed upload from data string ({}) to Storage {}:{}",
+        connectorTaskId.show,
+        objectProtection.wrappedObject,
+        bucket,
+        path,
+        ex,
+      )
+      FileCreateError(ex, content)
+    }
   }
 
   override def deleteFiles(bucket: String, files: Seq[String]): Either[FileDeleteError, Unit] =
@@ -256,7 +322,7 @@ class GCPStorageStorageInterface(
   implicit val metadataFilterable: Filterable[GCPStorageFileMetadata] =
     (extensionFilter: ExtensionFilter, t: GCPStorageFileMetadata) => extensionFilter.filter(t.file)
 
-  def filterKeys[T: Filterable](accumulatedKeys: Seq[T]): Seq[T] = {
+  private def filterKeys[T: Filterable](accumulatedKeys: Seq[T]): Seq[T] = {
     val filterable = implicitly[Filterable[T]]
     extensionFilter
       .map(ex => accumulatedKeys.filter(filterable.filter(ex, _)))
@@ -312,4 +378,80 @@ class GCPStorageStorageInterface(
     * @return
     */
   override def system(): String = "GCP Storage"
+
+  override def mvFile(
+    oldBucket: String,
+    oldPath:   String,
+    newBucket: String,
+    newPath:   String,
+    maybeEtag: Option[String],
+  ): Either[FileMoveError, Unit] = {
+
+    val sourceBlobId = BlobId.of(oldBucket, oldPath)
+    val sourceBlob   = Try(storage.get(sourceBlobId)).map(Option(_)).map(_.filter(_.exists()))
+    sourceBlob match {
+      case Success(None) =>
+        logger.warn("Object ({}/{}) doesn't exist to move", oldBucket, oldPath)
+        ().asRight
+      case Failure(ex) =>
+        logger.error("Object ({}/{}) could not be retrieved", ex)
+        FileMoveError(ex, oldPath, newPath).asLeft
+      case Success(Some(_: Blob)) =>
+        Try {
+          val destinationBlobId = BlobId.of(newBucket, newPath)
+          val destinationBlob   = Option(storage.get(newBucket, newPath))
+          val precondition: Storage.BlobTargetOption = decideMovePrecondition(destinationBlob)
+
+          storage.copy(
+            Storage.CopyRequest.newBuilder()
+              .setSource(sourceBlobId)
+              .setTarget(destinationBlobId, precondition)
+              .build(),
+          )
+
+          // Delete the original blob to complete the move operation
+          storage.delete(sourceBlobId)
+        }.toEither.leftMap(FileMoveError(_, oldPath, newPath)).void
+    }
+  }
+
+  /**
+    * Decides the precondition for moving a blob based on the existence of the destination blob.
+    *
+    * @param destinationBlob An optional Blob object representing the destination blob.
+    * @return A Storage.BlobTargetOption indicating the precondition for the move operation.
+    *         If the destination blob does not exist, returns Storage.BlobTargetOption.doesNotExist().
+    *         If the destination blob exists, returns Storage.BlobTargetOption.generationMatch() with the blob's generation.
+    */
+  private def decideMovePrecondition(destinationBlob: Option[Blob]): Storage.BlobTargetOption =
+    destinationBlob match {
+      case None =>
+        Storage.BlobTargetOption.doesNotExist()
+      case Some(blob) =>
+        Storage.BlobTargetOption.generationMatch(blob.getGeneration)
+    }
+
+  override def createDirectoryIfNotExists(bucket: String, path: String): Either[FileCreateError, Unit] = ().asRight
+
+  override def getBlobAsStringAndEtag(bucket: String, path: String): Either[FileLoadError, (String, String)] =
+    usingBlob[(String, String)](bucket, path) {
+      case Some(blob) =>
+        (new String(blob.getContent()), blob.getGeneration.toString)
+      case None =>
+        throw new StorageException(404, "No/null blob found (file doesn't exist?)")
+    }
+
+  override def deleteFile(bucket: String, file: String, eTag: String): Either[FileDeleteError, Unit] = {
+    val blobId = BlobId.of(bucket, file)
+    Try(
+      storage.delete(blobId, BlobSourceOption.generationMatch(eTag.toLong)),
+    ).toEither.leftMap {
+      ex: Throwable =>
+        logger.error(s"[{}] Failed to delete files {} from bucket {}", connectorTaskId.show, file, bucket, ex)
+        FileDeleteError(ex, file)
+    }.map {
+      _ => ()
+    }
+  }
+
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2024 Lenses.io Ltd
+ * Copyright 2017-2025 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -68,7 +68,7 @@ class SchemaAndValueEnvelopeConverter(
   lastModified:       Instant,
   instantF:           () => Instant = () => Instant.now(),
 ) extends Converter[SchemaAndValue] {
-  override def convert(schemaAndValue: SchemaAndValue, index: Long): SourceRecord = {
+  override def convert(schemaAndValue: SchemaAndValue, index: Long, lastLine: Boolean): SourceRecord = {
     if (schemaAndValue.schema().`type`() != Schema.Type.STRUCT) {
       throw new RuntimeException(
         s"Invalid schema type [${schemaAndValue.schema().`type`()}]. Expected [${Schema.Type.STRUCT}]",
@@ -101,7 +101,7 @@ class SchemaAndValueEnvelopeConverter(
 
     new SourceRecord(
       watermarkPartition,
-      SourceWatermark.offset(location, index, lastModified),
+      SourceWatermark.offset(location, index, lastModified, lastLine),
       topic.value,
       partition,
       keySchema.orNull,

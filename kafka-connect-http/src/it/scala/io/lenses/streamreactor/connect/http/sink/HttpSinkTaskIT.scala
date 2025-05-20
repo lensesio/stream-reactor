@@ -22,6 +22,7 @@ import org.scalatest.funsuite.AsyncFunSuite
 import org.scalatest.time.Minute
 import org.scalatest.time.Span
 
+import java.util.UUID
 import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.jdk.CollectionConverters.SeqHasAsJava
 
@@ -38,17 +39,13 @@ class HttpSinkTaskIT extends AsyncFunSuite with AsyncIOSpec with Eventually {
       _ <- Resource.make(IO.delay(server.start()))(_ => IO.delay(server.stop()))
     } yield server
 
-  def sinkTask(config: String): Resource[IO, HttpSinkTask] =
+  def sinkTaskUsingProps(config: Map[String, String]): Resource[IO, HttpSinkTask] = {
+    val configWithUniqueName: Map[String, String] = config + ("name" -> ("mySinkName" + UUID.randomUUID().toString))
     for {
       task <- Resource.eval(IO.delay(new HttpSinkTask()))
-      _    <- Resource.make(IO.delay(task.start(Map("connect.http.config" -> config).asJava)))(_ => IO.delay(task.stop()))
+      _    <- Resource.make(IO.delay(task.start(configWithUniqueName.asJava)))(_ => IO.delay(task.stop()))
     } yield task
-
-  def sinkTaskUsingProps(config: Map[String, String]): Resource[IO, HttpSinkTask] =
-    for {
-      task <- Resource.eval(IO.delay(new HttpSinkTask()))
-      _    <- Resource.make(IO.delay(task.start(config.asJava)))(_ => IO.delay(task.stop()))
-    } yield task
+  }
 
   private val Host             = "localhost"
   private val users            = SampleData.Employees
@@ -61,9 +58,10 @@ class HttpSinkTaskIT extends AsyncFunSuite with AsyncIOSpec with Eventually {
       config: Map[String, String] = Map(
         HttpSinkConfigDef.HttpMethodProp         -> HttpMethod.Post.toString,
         HttpSinkConfigDef.HttpEndpointProp       -> s"http://$Host:${server.port()}/awesome/endpoint",
-        HttpSinkConfigDef.HttpRequestContentProp -> "test",
+        HttpSinkConfigDef.HttpRequestContentProp -> "test {{value.name}}",
         HttpSinkConfigDef.AuthenticationTypeProp -> noAuthentication,
         HttpSinkConfigDef.BatchCountProp         -> "1",
+        HttpSinkConfigDef.TimeIntervalProp       -> "1",
         ERROR_REPORTING_ENABLED_PROP             -> "false",
         SUCCESS_REPORTING_ENABLED_PROP           -> "false",
       )

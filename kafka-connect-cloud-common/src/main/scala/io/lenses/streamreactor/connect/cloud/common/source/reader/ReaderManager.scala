@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2024 Lenses.io Ltd
+ * Copyright 2017-2025 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,11 @@ import cats.implicits.toShow
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
+import io.lenses.streamreactor.connect.cloud.common.source.CommitWatermark
+import io.lenses.streamreactor.connect.cloud.common.source.config.DirectoryCache
+import io.lenses.streamreactor.connect.cloud.common.source.config.PostProcessAction
 import io.lenses.streamreactor.connect.cloud.common.source.files.SourceFileQueue
+import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
 import org.apache.kafka.connect.source.SourceRecord
 
 import scala.util.Try
@@ -31,12 +35,18 @@ import scala.util.Try
   * Given a sourceBucketOptions, manages readers for all of the files
   */
 class ReaderManager(
-  recordsLimit:    Int,
-  fileSource:      SourceFileQueue,
-  readerBuilderF:  CloudLocation => Either[Throwable, ResultReader],
-  connectorTaskId: ConnectorTaskId,
-  readerRef:       Ref[IO, Option[ResultReader]],
+  val root:               CloudLocation,
+  val path:               CloudLocation,
+  recordsLimit:           Int,
+  fileSource:             SourceFileQueue,
+  readerBuilderF:         CloudLocation => Either[Throwable, ResultReader],
+  connectorTaskId:        ConnectorTaskId,
+  readerRef:              Ref[IO, Option[ResultReader]],
+  storageInterface:       StorageInterface[_],
+  maybePostProcessAction: Option[PostProcessAction],
 ) extends LazyLogging {
+
+  val directoryCache = new DirectoryCache(storageInterface)
 
   def poll(): IO[Vector[SourceRecord]] = {
     def fromNexFile(pollResults: Vector[SourceRecord], allLimit: Int): IO[Vector[SourceRecord]] =
@@ -123,5 +133,15 @@ class ReaderManager(
       currentState <- readerRef.get
       _            <- closeAndLog(currentState)
     } yield ()
+
+  def postProcess(commitWatermark: CommitWatermark): IO[Unit] =
+    maybePostProcessAction match {
+      case Some(action) =>
+        logger.info("PostProcess for {}", commitWatermark)
+        action.run(storageInterface, directoryCache, commitWatermark.cloudLocation)
+      case None =>
+        logger.info("No PostProcess for {}", commitWatermark)
+        IO.unit
+    }
 
 }

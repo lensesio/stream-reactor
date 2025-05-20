@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2024 Lenses.io Ltd
+ * Copyright 2017-2025 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@ import io.lenses.streamreactor.connect.aws.s3.config.S3ConnectionConfig
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.config.traits.CloudSinkConfig
 import io.lenses.streamreactor.connect.cloud.common.config.traits.PropsToConfigConverter
+import io.lenses.streamreactor.connect.cloud.common.formats.writer.schema.SchemaChangeDetector
 import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodec
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
 import io.lenses.streamreactor.connect.cloud.common.sink.config.CloudSinkBucketOptions
@@ -51,29 +52,37 @@ object S3SinkConfig extends PropsToConfigConverter[S3SinkConfig] {
     cloudLocationValidator: CloudLocationValidator,
   ): Either[Throwable, S3SinkConfig] =
     for {
-      sinkBucketOptions <- CloudSinkBucketOptions(connectorTaskId, s3ConfigDefBuilder)
-      indexOptions       = s3ConfigDefBuilder.getIndexSettings
-      logMetrics         = s3ConfigDefBuilder.getBoolean(LOG_METRICS_CONFIG)
+      sinkBucketOptions              <- CloudSinkBucketOptions(connectorTaskId, s3ConfigDefBuilder)
+      indexOptions                    = s3ConfigDefBuilder.getIndexSettings
+      logMetrics                      = s3ConfigDefBuilder.getBoolean(LOG_METRICS_CONFIG)
+      schemaChangeDetector            = s3ConfigDefBuilder.schemaChangeDetector()
+      latestSchemaOptimizationEnabled = s3ConfigDefBuilder.getEnableLatestSchemaOptimization()
     } yield S3SinkConfig(
       S3ConnectionConfig(s3ConfigDefBuilder.getParsedValues),
       sinkBucketOptions,
       indexOptions,
       s3ConfigDefBuilder.getCompressionCodec(),
       s3ConfigDefBuilder.batchDelete(),
-      errorPolicy          = s3ConfigDefBuilder.getErrorPolicyOrDefault,
-      connectorRetryConfig = s3ConfigDefBuilder.getRetryConfig,
-      logMetrics           = logMetrics,
+      errorPolicy                 = s3ConfigDefBuilder.getErrorPolicyOrDefault,
+      connectorRetryConfig        = s3ConfigDefBuilder.getRetryConfig,
+      logMetrics                  = logMetrics,
+      schemaChangeDetector        = schemaChangeDetector,
+      skipNullValues              = s3ConfigDefBuilder.skipNullValues(),
+      latestSchemaForWriteEnabled = latestSchemaOptimizationEnabled,
     )
 
 }
 
 case class S3SinkConfig(
-  connectionConfig:     S3ConnectionConfig,
-  bucketOptions:        Seq[CloudSinkBucketOptions] = Seq.empty,
-  indexOptions:         Option[IndexOptions],
-  compressionCodec:     CompressionCodec,
-  batchDelete:          Boolean,
-  errorPolicy:          ErrorPolicy,
-  connectorRetryConfig: RetryConfig,
-  logMetrics:           Boolean,
+  connectionConfig:            S3ConnectionConfig,
+  bucketOptions:               Seq[CloudSinkBucketOptions] = Seq.empty,
+  indexOptions:                Option[IndexOptions],
+  compressionCodec:            CompressionCodec,
+  batchDelete:                 Boolean,
+  errorPolicy:                 ErrorPolicy,
+  connectorRetryConfig:        RetryConfig,
+  logMetrics:                  Boolean,
+  schemaChangeDetector:        SchemaChangeDetector,
+  skipNullValues:              Boolean,
+  latestSchemaForWriteEnabled: Boolean,
 ) extends CloudSinkConfig[S3ConnectionConfig]

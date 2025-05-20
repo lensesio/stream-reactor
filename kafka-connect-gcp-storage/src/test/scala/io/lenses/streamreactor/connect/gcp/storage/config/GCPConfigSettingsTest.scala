@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2024 Lenses.io Ltd
+ * Copyright 2017-2025 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,7 +29,7 @@ class GCPConfigSettingsTest extends AnyFlatSpec with Matchers with LazyLogging {
     val configKeys =
       GCPStorageSinkConfigDef.config.configKeys().keySet().asScala
 
-    configKeys.size shouldBe 24
+    configKeys.size shouldBe 27
     configKeys.foreach {
       k => k.toLowerCase should be(k)
     }

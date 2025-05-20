@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2024 Lenses.io Ltd
+ * Copyright 2017-2025 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -67,7 +67,7 @@ class SchemalessEnvelopeConverter(
   lastModified:       Instant,
   instantF:           () => Instant = () => Instant.now(),
 ) extends Converter[String] {
-  override def convert(envelope: String, index: Long): SourceRecord =
+  override def convert(envelope: String, index: Long, lastLine: Boolean): SourceRecord =
     //parse the json and then extract key,value, headers and metadata
     parse(envelope) match {
       case Left(value) => throw new RuntimeException(s"Failed to parse envelope [$envelope].", value)
@@ -86,7 +86,7 @@ class SchemalessEnvelopeConverter(
 
         val sourceRecord = new SourceRecord(
           watermarkPartition,
-          SourceWatermark.offset(location, index, lastModified),
+          SourceWatermark.offset(location, index, lastModified, lastLine),
           topic.value,
           metadata.flatMap(j => j("partition").get.asNumber.flatMap(_.toInt).map(Integer.valueOf)).getOrElse(partition),
           key.map { _ =>

@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2024 Lenses.io Ltd
+ * Copyright 2017-2025 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -61,7 +61,7 @@ class SchemalessEnvelopeConverterTest extends AnyFunSuite with Matchers {
       "metadata" -> createMetadata(),
     )
 
-    val actual = createConverter().convert(json.noSpaces, 0)
+    val actual = createConverter().convert(json.noSpaces, 0, lastLine = false)
     assertOffsets(actual)
     actual.topic() shouldBe TargetTopic
     actual.kafkaPartition() shouldBe Partition
@@ -83,7 +83,7 @@ class SchemalessEnvelopeConverterTest extends AnyFunSuite with Matchers {
       "metadata" -> createMetadata(),
     )
 
-    val actual = createConverter().convert(json.noSpaces, 0)
+    val actual = createConverter().convert(json.noSpaces, 0, lastLine = false)
     assertOffsets(actual)
     actual.topic() shouldBe TargetTopic
     actual.kafkaPartition() shouldBe Partition
@@ -105,7 +105,7 @@ class SchemalessEnvelopeConverterTest extends AnyFunSuite with Matchers {
     )
 
     val now    = Instant.now()
-    val actual = createConverter(() => now).convert(json.noSpaces, 0)
+    val actual = createConverter(() => now).convert(json.noSpaces, 0, lastLine = false)
     assertOffsets(actual)
     actual.topic() shouldBe TargetTopic
     actual.kafkaPartition() shouldBe TargetPartition
@@ -126,7 +126,7 @@ class SchemalessEnvelopeConverterTest extends AnyFunSuite with Matchers {
     )
 
     val now    = Instant.now()
-    val actual = createConverter(() => now).convert(json.noSpaces, 0)
+    val actual = createConverter(() => now).convert(json.noSpaces, 0, lastLine = false)
     assertOffsets(actual)
     actual.topic() shouldBe TargetTopic
     actual.kafkaPartition() shouldBe TargetPartition
@@ -147,7 +147,7 @@ class SchemalessEnvelopeConverterTest extends AnyFunSuite with Matchers {
     )
 
     val now    = Instant.now()
-    val actual = createConverter(() => now).convert(json.noSpaces, 0)
+    val actual = createConverter(() => now).convert(json.noSpaces, 0, lastLine = false)
     assertOffsets(actual)
     actual.topic() shouldBe TargetTopic
     actual.kafkaPartition() shouldBe TargetPartition
@@ -167,7 +167,7 @@ class SchemalessEnvelopeConverterTest extends AnyFunSuite with Matchers {
     )
 
     val now    = Instant.now()
-    val actual = createConverter(() => now).convert(json.noSpaces, 0)
+    val actual = createConverter(() => now).convert(json.noSpaces, 0, lastLine = false)
     assertOffsets(actual)
     actual.topic() shouldBe TargetTopic
     actual.kafkaPartition() shouldBe TargetPartition
@@ -180,7 +180,7 @@ class SchemalessEnvelopeConverterTest extends AnyFunSuite with Matchers {
   }
   test("input not object raises an error") {
     val json = Json.fromString("not an object")
-    assertThrows[RuntimeException](createConverter().convert(json.noSpaces, 0))
+    assertThrows[RuntimeException](createConverter().convert(json.noSpaces, 0, lastLine = true))
   }
   test("base64 encoded key and value are decoded as arrays") {
     val json = Json.obj(
@@ -191,7 +191,7 @@ class SchemalessEnvelopeConverterTest extends AnyFunSuite with Matchers {
       "headers"      -> createHeaders(),
       "metadata"     -> createMetadata(),
     )
-    val actual = createConverter().convert(json.noSpaces, 0)
+    val actual = createConverter().convert(json.noSpaces, 0, lastLine = false)
     assertOffsets(actual)
     actual.topic() shouldBe TargetTopic
     actual.kafkaPartition() shouldBe Partition
@@ -216,6 +216,7 @@ class SchemalessEnvelopeConverterTest extends AnyFunSuite with Matchers {
     sourceRecord.sourceOffset().asScala shouldBe Map("path" -> "/a/b/c.avro",
                                                      "line" -> "0",
                                                      "ts"   -> LastModifiedTimestamp.toEpochMilli.toString,
+                                                     "last" -> "f",
     )
   }
 

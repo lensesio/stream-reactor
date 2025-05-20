@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2024 Lenses.io Ltd
+ * Copyright 2017-2025 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,10 +15,12 @@
  */
 package io.lenses.streamreactor.connect.http.sink.tpl.renderer
 
+import cats.data.NonEmptySeq
 import cats.implicits._
 import io.lenses.streamreactor.connect.cloud.common.model.Offset
 import io.lenses.streamreactor.connect.cloud.common.model.Topic
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartitionOffset
+import io.lenses.streamreactor.connect.http.sink.config.NullPayloadHandler
 import io.lenses.streamreactor.connect.http.sink.tpl.substitutions.SubstitutionError
 import io.lenses.streamreactor.connect.http.sink.tpl.RenderedRecord
 import io.lenses.streamreactor.connect.http.sink.tpl.substitutions.SubstitutionType
@@ -29,50 +31,48 @@ object RecordRenderer {
   private val templateRenderer = new TemplateRenderer[SubstitutionType](SubstitutionType)
 
   def renderRecords(
-    data:        Seq[SinkRecord],
-    endpointTpl: Option[String],
-    contentTpl:  String,
-    headers:     Seq[(String, String)],
-  ): Either[SubstitutionError, Seq[RenderedRecord]] =
-    data.map(renderRecord(_, endpointTpl, contentTpl, headers)).sequence
+    data:               NonEmptySeq[SinkRecord],
+    endpointTpl:        String,
+    contentTpl:         String,
+    headers:            Seq[(String, String)],
+    nullPayloadHandler: NullPayloadHandler,
+  ): Either[SubstitutionError, NonEmptySeq[RenderedRecord]] =
+    data.map(renderRecord(_, endpointTpl, contentTpl, headers, nullPayloadHandler)).sequence
   def renderRecord(
-    sinkRecord:  SinkRecord,
-    endpointTpl: Option[String],
-    contentTpl:  String,
-    headers:     Seq[(String, String)],
+    sinkRecord:         SinkRecord,
+    endpointTpl:        String,
+    contentTpl:         String,
+    headers:            Seq[(String, String)],
+    nullPayloadHandler: NullPayloadHandler,
   ): Either[SubstitutionError, RenderedRecord] = {
     val topicPartitionOffset: TopicPartitionOffset =
       Topic(sinkRecord.topic()).withPartition(sinkRecord.kafkaPartition()).withOffset(Offset(sinkRecord.kafkaOffset()))
 
     for {
-      recordRend:   String <- templateRenderer.render(sinkRecord, contentTpl)
-      headersRend:  Seq[(String, String)] <- renderHeaders(sinkRecord, headers)
-      endpointRend: Option[String] <- renderEndpoint(sinkRecord, endpointTpl)
+      recordRend:   String <- templateRenderer.render(sinkRecord, contentTpl, nullPayloadHandler)
+      headersRend:  Seq[(String, String)] <- renderHeaders(sinkRecord, headers, nullPayloadHandler)
+      endpointRend: String <- templateRenderer.render(sinkRecord, endpointTpl, nullPayloadHandler)
     } yield RenderedRecord(topicPartitionOffset, sinkRecord.timestamp(), recordRend, headersRend, endpointRend)
   }
 
   private def renderHeader(
-    sinkRecord: SinkRecord,
-    header:     (String, String),
+    sinkRecord:         SinkRecord,
+    header:             (String, String),
+    nullPayloadHandler: NullPayloadHandler,
   ): Either[SubstitutionError, (String, String)] =
     header match {
       case (hKey, hVal) =>
         for {
-          k <- templateRenderer.render(sinkRecord, hKey)
-          v <- templateRenderer.render(sinkRecord, hVal)
+          k <- templateRenderer.render(sinkRecord, hKey, nullPayloadHandler)
+          v <- templateRenderer.render(sinkRecord, hVal, nullPayloadHandler)
         } yield k -> v
     }
 
   private def renderHeaders(
-    sinkRecord: SinkRecord,
-    headers:    Seq[(String, String)],
+    sinkRecord:         SinkRecord,
+    headers:            Seq[(String, String)],
+    nullPayloadHandler: NullPayloadHandler,
   ): Either[SubstitutionError, Seq[(String, String)]] =
-    headers.map(h => renderHeader(sinkRecord, h)).sequence
-
-  private def renderEndpoint(
-    sinkRecord:  SinkRecord,
-    endpointTpl: Option[String],
-  ): Either[SubstitutionError, Option[String]] =
-    endpointTpl.map(tpl => templateRenderer.render(sinkRecord, tpl)).sequence
+    headers.map(h => renderHeader(sinkRecord, h, nullPayloadHandler)).sequence
 
 }

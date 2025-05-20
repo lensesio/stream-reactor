@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2024 Lenses.io Ltd
+ * Copyright 2017-2025 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,7 +34,7 @@ object PartitionDiscovery extends LazyLogging {
     connectorTaskId:       ConnectorTaskId,
     settings:              PartitionSearcherOptions,
     partitionSearcher:     PartitionSearcherF,
-    readerManagerCreateFn: (CloudLocation, String) => IO[ReaderManager],
+    readerManagerCreateFn: (CloudLocation, CloudLocation) => IO[ReaderManager],
     readerManagerState:    Ref[IO, ReaderManagerState],
     cancelledRef:          Ref[IO, Boolean],
   ): IO[Unit] = {
@@ -42,7 +42,10 @@ object PartitionDiscovery extends LazyLogging {
       _        <- IO(logger.info(s"[${connectorTaskId.show}] Starting the partition discovery task."))
       oldState <- readerManagerState.get
       newParts <- partitionSearcher(oldState.partitionResponses)
-      tuples    = newParts.flatMap(part => part.results.map(part.root -> _))
+      // FIXME:
+      // strictly the prefix should always stay as the prefix configured in the config - however it seems that in parts
+      // of the code `prefix` actually means `directory path`.  This should be investigated and fixed
+      tuples = newParts.flatMap(part => part.results.map(part.root -> part.root.withPrefix(_)))
       newReaderManagers <- tuples
         .map {
           case (location, path) =>

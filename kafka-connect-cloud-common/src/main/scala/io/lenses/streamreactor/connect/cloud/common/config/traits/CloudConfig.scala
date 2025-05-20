@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2024 Lenses.io Ltd
+ * Copyright 2017-2025 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,10 +17,12 @@ package io.lenses.streamreactor.connect.cloud.common.config.traits
 
 import io.lenses.streamreactor.common.config.base.RetryConfig
 import io.lenses.streamreactor.common.errors.ErrorPolicy
+import io.lenses.streamreactor.connect.cloud.common.formats.writer.schema.SchemaChangeDetector
 import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodec
 import io.lenses.streamreactor.connect.cloud.common.sink.config.CloudSinkBucketOptions
 import io.lenses.streamreactor.connect.cloud.common.sink.config.IndexOptions
 import io.lenses.streamreactor.connect.cloud.common.source.config.CloudSourceBucketOptions
+import io.lenses.streamreactor.connect.cloud.common.source.config.EmptySourceBackoffSettings
 import io.lenses.streamreactor.connect.cloud.common.source.config.PartitionSearcherOptions
 import io.lenses.streamreactor.connect.cloud.common.storage.ExtensionFilter
 import io.lenses.streamreactor.connect.cloud.common.storage.FileMetadata
@@ -70,6 +72,18 @@ trait CloudSinkConfig[CC] extends CloudConfig {
   def errorPolicy: ErrorPolicy
 
   def logMetrics: Boolean
+
+  def schemaChangeDetector: SchemaChangeDetector
+
+  def skipNullValues: Boolean
+
+  /**
+    *   If enabled, it will attach the latest known schema to the records sent to the sink
+    *   It's used when schema evolution is set to BACKWARDS compatible, and this avoids data flushing
+    *   when there are records with interleaved schema
+    */
+  def latestSchemaForWriteEnabled: Boolean
+
 }
 
 /**
@@ -110,5 +124,14 @@ trait CloudSourceConfig[MD <: FileMetadata] extends CloudConfig {
     * @return Option containing the extension filter for the cloud source.
     */
   def extensionFilter: Option[ExtensionFilter]
+
+  /**
+    * Retrieves the empty source backoff settings for the cloud source.
+    *
+    * @return The empty source backoff settings for the cloud source.
+    */
+  def emptySourceBackoffSettings: EmptySourceBackoffSettings
+
+  def writeWatermarkToHeaders: Boolean
 
 }

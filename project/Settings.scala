@@ -18,19 +18,29 @@ import com.simplytyped.Antlr4Plugin.autoImport.Antlr4
 import com.simplytyped.Antlr4Plugin.autoImport.antlr4PackageName
 import com.simplytyped.Antlr4Plugin.autoImport.antlr4Version
 import de.heikoseeberger.sbtheader.HeaderPlugin.autoImport.*
-import sbt.Keys.*
-import sbt.Package.ManifestAttributes
+import sbt.*
 import sbt.Compile
 import sbt.Def
-import sbt.*
+import sbt.Keys.*
+import sbt.Package.ManifestAttributes
+import sbt.internal.util.ManagedLogger
+import sbtassembly.Assembly.JarEntry
 import sbtassembly.AssemblyKeys.*
+import sbtassembly.CustomMergeStrategy
 import sbtassembly.MergeStrategy
 import sbtassembly.PathList
 
+import java.io.File
+import java.io.IOException
+import java.net.HttpURLConnection
+import java.net.MalformedURLException
+import java.net.URL
+import java.net.URLConnection
 import java.nio.file.Files
 import java.nio.file.Paths
 import java.time.Year
 import scala.sys.process.*
+import scala.util.Try
 
 object Settings extends Dependencies {
 
@@ -166,12 +176,7 @@ object Settings extends Dependencies {
       excludeFilePatterns.exists(p.endsWith)
 
     val excludePatterns = Set(
-      "kafka-client",
-      "kafka-connect-json",
       "hadoop-yarn",
-      "org.apache.kafka",
-      "zookeeper",
-      "log4j",
       "junit",
     )
 
@@ -190,8 +195,21 @@ object Settings extends Dependencies {
             }
           },
           assembly / assemblyMergeStrategy := {
-            case PathList("META-INF", "MANIFEST.MF")                 => MergeStrategy.discard
-            case p if excludeFileFilter(p)                           => MergeStrategy.discard
+            case PathList("META-INF", "maven", _ @_*) =>
+              CustomMergeStrategy("keep-only-fresh-maven-descriptors", 1) {
+                assemblyDependency =>
+                  val keepDeps = assemblyDependency.collect {
+                    case dependency @ (_: sbtassembly.Assembly.Project) =>
+                      JarEntry(dependency.target, dependency.stream)
+                  }
+                  Right(keepDeps)
+              }
+            case PathList("META-INF", "maven", _ @_*) =>
+              MergeStrategy.discard
+            case PathList("META-INF", "MANIFEST.MF") =>
+              MergeStrategy.discard
+            case p if excludeFileFilter(p) =>
+              MergeStrategy.discard
             case PathList(ps @ _*) if ps.last == "module-info.class" => MergeStrategy.discard
             case _                                                   => MergeStrategy.first
           },
@@ -201,6 +219,12 @@ object Settings extends Dependencies {
             ShadeRule.rename("com.fasterxml.**" -> "lshaded.fasterxml.@1").inAll,
             ShadeRule.rename("org.apache.hadoop" -> "lshaded.apache.hadoop").inAll,
             ShadeRule.rename("org.antlr.**" -> "lshaded.antlr.@1").inAll,
+            ShadeRule.zap("org.apache.kafka.**").inAll,
+            ShadeRule.zap("org.apache.zookeeper.**").inAll,
+            ShadeRule.zap("org.apache.log4j.**").inAll,
+            ShadeRule.zap("org.apache.logging.**").inAll,
+            ShadeRule.zap("org.slf4j.**").inAll,
+            ShadeRule.zap("org.eclipse.jetty.**").inAll,
           ),
           dependencyOverrides ++= Seq(
             googleProtobuf,
@@ -234,6 +258,128 @@ object Settings extends Dependencies {
 
   val IntegrationTest: Configuration = config("it").extend(Test).describedAs("Runs integration tests")
   val FunctionalTest:  Configuration = config("fun").extend(Test).describedAs("Runs system and acceptance tests")
+
+  implicit final class MavenDescriptorConfigurator(project: Project) {
+
+    val generateMetaInfMaven = taskKey[Unit]("Generate META-INF/maven directory")
+
+    def configureMavenDescriptor(): Project =
+      project
+        .settings(
+          generateMetaInfMaven := {
+            val log = streams.value.log
+
+            val targetDirBase = (Compile / crossTarget).value / "classes" / "META-INF" / "maven"
+
+            val allModuleIds: Map[ModuleID, String] = update
+              .value
+              .configuration(Compile)
+              .toVector
+              .flatMap(_.modules)
+              .map {
+                e: ModuleReport => e.module -> e.artifacts.headOption
+              }
+              .collect {
+                case (moduleId, Some((moduleJar, moduleFile))) =>
+                  moduleId ->
+                    moduleJar.url.get.toString
+                      .reverse
+                      .replaceFirst(".jar".reverse, ".pom".reverse)
+                      .reverse
+              }.toMap
+
+            for ((moduleId, pomUrl) <- allModuleIds) {
+
+              log.info(s"Processing ${moduleId.name}")
+
+              val groupId    = moduleId.organization
+              val artifactId = moduleId.name
+              val version    = moduleId.revision
+              val targetDir  = targetDirBase / groupId / artifactId
+              targetDir.mkdirs()
+
+              val propertiesFileChanged = createPomPropertiesIfChanged(groupId, artifactId, version, targetDir)
+              if (propertiesFileChanged) {
+                createPomXml(log, targetDir, pomUrl)
+              }
+            }
+
+          },
+          (Compile / compile) := ((Compile / compile) dependsOn generateMetaInfMaven).value,
+        )
+
+    private def createPomXml(log: ManagedLogger, targetDir: File, pomUrl: String): Option[File] = {
+      val pomFile = targetDir / "pom.xml"
+
+      try {
+        val url        = new URL(pomUrl)
+        val connection = url.openConnection()
+        connection match {
+          case httpConnection: HttpURLConnection =>
+            httpConnection.setRequestMethod("GET")
+            if (
+              httpConnection.getResponseCode == HttpURLConnection.HTTP_OK && connection.getContentType == "text/xml"
+            ) {
+              readInputStreamToPom(log, pomUrl, pomFile, connection)
+            } else {
+              log.error(
+                s"Failed to retrieve POM from $pomUrl. HTTP Status: ${httpConnection.getResponseCode}, Content Type: ${connection.getContentType}",
+              )
+              Option.empty
+            }
+          case connection: URLConnection =>
+            readInputStreamToPom(log, pomUrl, pomFile, connection)
+        }
+
+      } catch {
+        case e: MalformedURLException =>
+          log.error(s"Invalid URL: $pomUrl")
+          Option.empty
+        case e: IOException =>
+          log.error(s"Error while retrieving POM from $pomUrl: ${e.getMessage}")
+          Option.empty
+      }
+
+    }
+
+    private def readInputStreamToPom(log: ManagedLogger, pomUrl: String, pomFile: File, connection: URLConnection) = {
+      val inputStream = connection.getInputStream
+      try {
+        val pomContent = new String(inputStream.readAllBytes())
+        IO.write(pomFile, pomContent)
+        log.info(s"Successfully retrieved and saved POM from $pomUrl to $pomFile")
+        Some(pomFile)
+
+      } finally {
+        inputStream.close()
+      }
+    }
+
+    private def createPomPropertiesIfChanged(
+      groupId:    String,
+      artifactId: String,
+      version:    String,
+      targetDir:  File,
+    ): Boolean = {
+      val propertiesFile = targetDir / "pom.properties"
+      val propertiesContent =
+        s"""version=$version
+           |groupId=$groupId
+           |artifactId=$artifactId
+                  """.stripMargin
+
+      val alreadyExists = Try(IO.read(propertiesFile))
+        .toOption
+        .contains(propertiesContent)
+
+      if (!alreadyExists) {
+        IO.write(propertiesFile, propertiesContent)
+      }
+
+      !alreadyExists
+
+    }
+  }
 
   sealed abstract class TestConfigurator(
     project:         Project,

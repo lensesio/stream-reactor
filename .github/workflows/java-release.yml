@@ -42,11 +42,77 @@ jobs:
       version: ${{ needs.validate-tag.outputs.tag }}
     secrets: inherit
 
+  antivirus-scan-initialization:
+    timeout-minutes: 15
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install and Update Antivirus Software
+        run: |
+          # Install ClamAV
+          sudo apt-get update
+          sudo apt-get install -y clamav
+          sudo systemctl stop clamav-freshclam
+          sudo freshclam || exit 0
+      - name: Run Antivirus Scan for Source Code
+        run: |
+          clamscan --recursive --alert-broken --alert-encrypted \
+            --alert-encrypted-archive --alert-exceeds-max --detect-pua .
+      - name: Cache Antivirus Database
+        uses: actions/cache/save@v4
+        with:
+          path: /var/lib/clamav
+          key: clamav-database-${{ github.run_id }}
+
+  antivirus-scan:
+    needs:
+      - build
+      - antivirus-scan-initialization
+    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        module: ${{fromJSON(needs.build.outputs.java_modules)}}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Uncache assembly
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ./java-connectors/release/libs/${{ matrix.module }}/*.jar
+          key: assembly-java-all-${{ github.run_id }}
+          fail-on-cache-miss: true
+      - name: Install Antivirus Software
+        run: |
+          # Install ClamAV and prepare database directory to be restored
+          sudo apt-get update && sudo apt-get install -y clamav
+          sudo systemctl stop clamav-freshclam
+          sudo chmod 777 /var/lib/clamav
+      - name: Restore Antivirus Database
+        uses: actions/cache/restore@v4
+        with:
+          path: /var/lib/clamav
+          key: clamav-database-${{ github.run_id }}
+      - name: Run Antivirus Scan
+        run: |
+          clamscan --recursive --alert-broken --alert-encrypted \
+            --alert-encrypted-archive --alert-exceeds-max \
+            --include-pua=Unix --include-pua=Java \
+            --max-scansize=1000m --max-scantime=1200000 \
+            --max-filesize=500m --max-files=100000 \
+            java-connectors/release/
+
   create-release:
     runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      id-token: write
+      contents: write
+      attestations: write
     needs:
       - validate-tag
       - build
+      - antivirus-scan
     strategy:
       # Avoid parallel uploads
       max-parallel: 1
@@ -77,13 +143,22 @@ jobs:
           key: assembly-java-${{ github.run_id }}
           fail-on-cache-miss: true
 
+      - name: Generate SBOM
+        uses: anchore/sbom-action@v0
+        with:
+          format: 'spdx-json'
+          path: java-connectors/release
+          artifact-name: '${{ matrix.module }}-${{ env.TAG }}.sbom.spdx.json'
+          output-file: ${{ github.workspace }}/${{ matrix.module }}-${{ env.TAG }}.sbom.spdx.json
+          upload-release-assets: false
+
       - name: Package Connector
         shell: bash
         run: |
           JAVA_RELEASE_FOLDER=java-connectors/release
           FOLDER=${{ matrix.module }}-${{ env.TAG }}
           mkdir -p $FOLDER
-          cp $JAVA_RELEASE_FOLDER/${{ matrix.module }}*.jar LICENSE $FOLDER/
+          cp $JAVA_RELEASE_FOLDER/${{ matrix.module }}*.jar LICENSE ${{ matrix.module }}-${{ env.TAG }}.sbom.spdx.json $FOLDER/
           zip -r "$FOLDER.zip" $FOLDER/
 
       - name: Upload binaries to release
@@ -93,3 +168,14 @@ jobs:
           asset_name: "${{ matrix.module }}-${{ env.TAG }}.zip"
           release_name: 'Stream Reactor ${{ env.TAG }}'
           prerelease: ${{ env.DRAFT_RELEASE }}
+
+      - name: Generate SBOM attestation
+        uses: actions/attest-sbom@v1
+        with:
+          subject-path: ${{ matrix.module }}-${{ env.TAG }}.zip
+          sbom-path: '${{ matrix.module }}-${{ env.TAG }}.sbom.spdx.json'
+
+      - name: Generate artifact attestation
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-path: ${{ matrix.module }}-${{ env.TAG }}.zip

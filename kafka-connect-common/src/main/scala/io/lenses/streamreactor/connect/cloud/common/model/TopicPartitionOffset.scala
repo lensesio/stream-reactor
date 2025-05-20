@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2024 Lenses.io Ltd
+ * Copyright 2017-2025 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,6 +26,8 @@ object Topic {
 
   val All: Topic = Topic("*")
 
+  implicit def orderingByTopicValue: Ordering[Topic] =
+    Ordering.by[Topic, String](_.value)
 }
 
 object Offset {

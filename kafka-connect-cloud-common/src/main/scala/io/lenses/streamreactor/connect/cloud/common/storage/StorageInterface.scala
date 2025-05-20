@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2024 Lenses.io Ltd
+ * Copyright 2017-2025 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,9 +15,15 @@
  */
 package io.lenses.streamreactor.connect.cloud.common.storage
 
+import cats.implicits.toBifunctorOps
+import io.circe.Decoder
+import io.circe.Encoder
+import io.circe.parser.decode
 import io.lenses.streamreactor.connect.cloud.common.config.ObjectMetadata
 import io.lenses.streamreactor.connect.cloud.common.model.UploadableFile
 import io.lenses.streamreactor.connect.cloud.common.model.UploadableString
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.ObjectProtection
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.ObjectWithETag
 
 import java.io.InputStream
 import java.time.Instant
@@ -30,11 +36,11 @@ trait StorageInterface[SM <: FileMetadata] extends ResultProcessors {
     */
   def system(): String
 
-  def uploadFile(source: UploadableFile, bucket: String, path: String): Either[UploadError, Unit]
+  def uploadFile(source: UploadableFile, bucket: String, path: String): Either[UploadError, String]
 
   def close(): Unit
 
-  def pathExists(bucket: String, path: String): Either[FileLoadError, Boolean]
+  def pathExists(bucket: String, path: String): Either[PathError, Boolean]
 
   def list(
     bucket:     String,
@@ -63,9 +69,53 @@ trait StorageInterface[SM <: FileMetadata] extends ResultProcessors {
 
   def getBlobAsString(bucket: String, path: String): Either[FileLoadError, String]
 
+  def getBlobAsObject[O](
+    bucket: String,
+    path:   String,
+  )(
+    implicit
+    decoder: Decoder[O],
+  ): Either[FileLoadError, ObjectWithETag[O]] =
+    for {
+      (s, eTag) <- getBlobAsStringAndEtag(bucket, path)
+      decoded   <- decode[O](s).leftMap(e => GeneralFileLoadError(e, path))
+    } yield {
+      ObjectWithETag[O](decoded, eTag)
+    }
+
+  def writeBlobToFile[O](
+    bucket:           String,
+    path:             String,
+    objectProtection: ObjectProtection[O],
+  )(
+    implicit
+    encoder: Encoder[O],
+  ): Either[UploadError, ObjectWithETag[O]]
+
+  def getBlobAsStringAndEtag(bucket: String, path: String): Either[FileLoadError, (String, String)]
+
   def getMetadata(bucket: String, path: String): Either[FileLoadError, ObjectMetadata]
 
   def writeStringToFile(bucket: String, path: String, data: UploadableString): Either[UploadError, Unit]
 
   def deleteFiles(bucket: String, files: Seq[String]): Either[FileDeleteError, Unit]
+
+  def deleteFile(bucket: String, file: String, eTag: String): Either[FileDeleteError, Unit]
+
+  def mvFile(
+    oldBucket: String,
+    oldPath:   String,
+    newBucket: String,
+    newPath:   String,
+    maybeEtag: Option[String],
+  ): Either[FileMoveError, Unit]
+
+  /**
+    * Creates a directory if it does not already exist.
+    *
+    * @param bucket The name of the bucket where the directory should be created.
+    * @param path The path of the directory to create.
+    * @return Either a FileCreateError if the directory creation failed, or Unit if the directory was created successfully or already exists.
+    */
+  def createDirectoryIfNotExists(bucket: String, path: String): Either[FileCreateError, Unit]
 }

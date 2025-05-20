@@ -15,6 +15,8 @@ import io.lenses.streamreactor.connect.model.Order
 import io.lenses.streamreactor.connect.testcontainers.connect.KafkaConnectClient.createConnector
 import io.lenses.streamreactor.connect.testcontainers.scalatest.StreamReactorContainerPerSuite
 import org.apache.avro.generic.GenericRecord
+import org.apache.kafka.clients.consumer.ConsumerRecord
+import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.common.serialization.StringSerializer
@@ -26,8 +28,15 @@ import org.scalatest.time.Millis
 import org.scalatest.time.Seconds
 import org.scalatest.time.Span
 
+import java.time.Duration
+import java.time.temporal.ChronoUnit
 import java.util.UUID
+import java.util.concurrent.TimeUnit
+import scala.collection.mutable
+import scala.concurrent.Future
+import scala.jdk.CollectionConverters.IteratorHasAsScala
 import scala.jdk.CollectionConverters.ListHasAsScala
+import scala.jdk.CollectionConverters.SeqHasAsJava
 
 class HttpSinkTest
     extends AsyncFunSuiteLike
@@ -45,6 +54,7 @@ class HttpSinkTest
   private val stringProducer    = createProducer[String, String](stringSerializer, stringSerializer)
   private val orderProducer     = createProducer[String, Order](stringSerializer, classOf[KafkaJsonSerializer[Order]])
   private val avroOrderProducer = createProducer[String, GenericRecord](stringSerializer, classOf[KafkaAvroSerializer])
+
   private val stringConverters = Map(
     "value.converter" -> "org.apache.kafka.connect.storage.StringConverter",
     "key.converter"   -> "org.apache.kafka.connect.storage.StringConverter",
@@ -71,10 +81,14 @@ class HttpSinkTest
   override val connectorModule: String = "http"
   private var randomTestId:     String = _
   private var topic:            String = _
+  private var successTopicName: String = _
+  private var failureTopicName: String = _
 
   before {
-    randomTestId = UUID.randomUUID().toString
-    topic        = "topic" + randomTestId
+    randomTestId     = UUID.randomUUID().toString
+    topic            = "topic" + randomTestId
+    successTopicName = s"successTopic-$randomTestId"
+    failureTopicName = s"failureTopic-$randomTestId"
   }
 
   override def beforeAll(): Unit = {
@@ -91,21 +105,71 @@ class HttpSinkTest
 
     setUpWiremockResponse()
 
-    val record = "My First Record"
-    sendRecordsWithProducer(stringProducer,
-                            stringConverters,
-                            randomTestId,
-                            topic,
-                            "My Static Content Template",
-                            BatchSizeSingleRecord,
-                            false,
-                            record,
+    val records = (1 to 5).map(i => s"Record number $i")
+    sendRecordsWithProducer(
+      stringProducer,
+      stringConverters,
+      randomTestId,
+      topic,
+      "My Static Content Template",
+      BatchSizeSingleRecord,
+      false,
+      5,
+      0,
+      records: _*,
     ).asserting {
-      requests =>
-        requests.size should be(1)
-        val firstRequest = requests.head
-        firstRequest.getMethod should be(RequestMethod.POST)
-        new String(firstRequest.getBody) should be("My Static Content Template")
+      case (requests, successReporterRecords, failureReporterRecords) =>
+        requests.size should be(5)
+        requests.map(_.getBody).map(new String(_)).toSet should contain only "My Static Content Template"
+        requests.map(_.getMethod).toSet should be(Set(RequestMethod.POST))
+
+        failureReporterRecords should be(Seq.empty)
+
+        successReporterRecords.size should be(5)
+        val record = successReporterRecords.head
+        record.topic() should be(successTopicName)
+        record.value() should be("My Static Content Template")
+    }
+  }
+
+  /**
+    * Retries occur by default and the failed HTTP post will be retried twice before succeeding.
+    */
+  test("failing scenario written to error reporter") {
+
+    setUpWiremockFailureResponse()
+
+    sendRecordsWithProducer(
+      stringProducer,
+      stringConverters,
+      randomTestId,
+      topic,
+      "My Static Content Template",
+      BatchSizeSingleRecord,
+      false,
+      1,
+      2,
+      "Record number 1", // fails
+      "Record number 2", // fails
+      "Record number 3", // succeeds
+    ).asserting {
+      case (requests, successReporterRecords, failureReporterRecords) =>
+        requests.size should be(3)
+        requests.map(_.getBody).map(new String(_)).toSet should contain only "My Static Content Template"
+        requests.map(_.getMethod).toSet should be(Set(RequestMethod.POST))
+
+        failureReporterRecords.size should be(2)
+        failureReporterRecords.foreach {
+          rec =>
+            rec.topic() should be(failureTopicName)
+            rec.value() should be("My Static Content Template")
+        }
+
+        successReporterRecords.size should be(1)
+        val successRecord = successReporterRecords.head
+        successRecord.topic() should be(successTopicName)
+        successRecord.value() should be("My Static Content Template")
+
     }
   }
 
@@ -121,9 +185,11 @@ class HttpSinkTest
                             record,
                             BatchSizeSingleRecord,
                             false,
+                            1,
+                            0,
                             "{{value}}",
     ).asserting {
-      requests =>
+      case (requests, _, _) =>
         requests.size should be(1)
         val firstRequest = requests.head
         new String(firstRequest.getBody) should be(record)
@@ -143,9 +209,11 @@ class HttpSinkTest
       "product: {{value.product}}",
       BatchSizeSingleRecord,
       false,
+      1,
+      0,
       Order(1, "myOrder product", 1.3d, 10),
     ).asserting {
-      requests =>
+      case (requests, _, _) =>
         requests.size should be(1)
         val firstRequest = requests.head
         firstRequest.getMethod should be(RequestMethod.POST)
@@ -165,9 +233,11 @@ class HttpSinkTest
       "whole product message: {{value}}",
       BatchSizeSingleRecord,
       false,
+      1,
+      0,
       Order(1, "myOrder product", 1.3d, 10),
     ).asserting {
-      requests =>
+      case (requests, _, _) =>
         requests.size should be(1)
         val firstRequest = requests.head
         firstRequest.getMethod should be(RequestMethod.POST)
@@ -189,14 +259,19 @@ class HttpSinkTest
       "{\"data\":[{{#message}}{{value}},{{/message}}]}",
       BatchSizeMultipleRecords,
       true,
+      1,
+      0,
       Order(1, "myOrder product", 1.3d, 10),
       Order(2, "another product", 1.4d, 109),
     ).asserting {
-      requests =>
+      case (requests, _, _) =>
+        logger.info("Requests size: {}", requests.size)
         requests.size should be(1)
         val firstRequest = requests.head
         firstRequest.getMethod should be(RequestMethod.POST)
-        new String(firstRequest.getBody) should be(
+        logger.info("First request: {}", firstRequest)
+        logger.info("First request body: {}", firstRequest.getBodyAsString)
+        firstRequest.getBodyAsString should be(
           "{\"data\":[{\"id\":1,\"product\":\"myOrder product\",\"price\":1.3,\"qty\":10,\"created\":null},{\"id\":2,\"product\":\"another product\",\"price\":1.4,\"qty\":109,\"created\":null}]}",
         )
     }
@@ -215,9 +290,11 @@ class HttpSinkTest
       "product: {{value.product}}",
       BatchSizeSingleRecord,
       false,
+      1,
+      0,
       order,
     ).asserting {
-      requests =>
+      case (requests, _, _) =>
         requests.size should be(1)
         val firstRequest = requests.head
         firstRequest.getMethod should be(RequestMethod.POST)
@@ -236,44 +313,132 @@ class HttpSinkTest
     ()
   }
 
-  private def sendRecordsWithProducer[K, V](
-    producer:        Resource[IO, KafkaProducer[K, V]],
-    converters:      Map[String, String],
-    randomTestId:    String,
-    topic:           String,
-    contentTemplate: String,
-    batchSize:       Int,
-    jsonTidy:        Boolean,
-    record:          V*,
-  ): IO[List[LoggedRequest]] =
-    producer.use {
-      producer =>
-        createConnectorResource(randomTestId, topic, contentTemplate, converters, batchSize, jsonTidy).use {
-          _ =>
-            record.map {
-              rec => IO(sendRecord[K, V](topic, producer, rec))
-            }.sequence
-              .map { _ =>
-                eventually(timeout(Span(10, Seconds)), interval(Span(500, Millis))) {
-                  verify(postRequestedFor(urlEqualTo(s"/$randomTestId")))
-                  findAll(postRequestedFor(urlEqualTo(s"/$randomTestId"))).asScala.toList
-                }
-              }
+  private def setUpWiremockFailureResponse(): Unit = {
+    WireMock.configureFor(container.getHost, container.getFirstMappedPort)
+    WireMock.resetAllScenarios()
+    WireMock.resetAllRequests()
+    WireMock.resetToDefault()
+    WireMock.reset()
 
-        }
-    }
-  private def sendRecord[K, V](topic: String, producer: KafkaProducer[K, V], record: V): Unit = {
-    producer.send(new ProducerRecord[K, V](topic, record)).get
-    producer.flush()
+    val url = s"/$randomTestId"
+
+    stubFor(
+      post(urlEqualTo(url))
+        .inScenario("failure")
+        .whenScenarioStateIs("STARTED")
+        .willSetStateTo("ONE ATTEMPT")
+        .willReturn(aResponse.withStatus(404).withHeader("Content-Type", "text/plain").withBody("File Not Found")),
+    )
+
+    stubFor(
+      post(urlEqualTo(url))
+        .inScenario("failure")
+        .whenScenarioStateIs("ONE ATTEMPT")
+        .willSetStateTo("TWO ATTEMPTS")
+        .willReturn(aResponse.withStatus(404).withHeader("Content-Type", "text/plain").withBody("File Not Found")),
+    )
+
+    stubFor(
+      post(urlEqualTo(url))
+        .inScenario("failure")
+        .whenScenarioStateIs("TWO ATTEMPTS")
+        .willReturn(aResponse.withHeader("Content-Type", "text/plain")
+          .withBody("Hello world!")),
+    )
+
+    WireMock.setScenarioState("failure", "STARTED")
+
+    ()
+
   }
 
+  def getBootstrapServers: String = s"PLAINTEXT://kafka:9092"
+
+  private def sendRecordsWithProducer[K, V](
+    producer:          Resource[IO, KafkaProducer[K, V]],
+    converters:        Map[String, String],
+    randomTestId:      String,
+    topic:             String,
+    contentTemplate:   String,
+    batchSize:         Int,
+    jsonTidy:          Boolean,
+    expectedSuccesses: Int,
+    expectedFailures:  Int,
+    record:            V*,
+  ): IO[(
+    List[LoggedRequest],
+    Seq[ConsumerRecord[String, String]],
+    Seq[ConsumerRecord[String, String]],
+  )] =
+    (for {
+      successConsumer <- Resource.fromAutoCloseable(IO(createConsumer()))
+      _               <- Resource.eval(IO(successConsumer.subscribe(Seq(successTopicName).asJava)))
+      failureConsumer <- Resource.fromAutoCloseable(IO(createConsumer()))
+      _               <- Resource.eval(IO(failureConsumer.subscribe(Seq(failureTopicName).asJava)))
+      producer        <- producer
+      _ <- createConnectorResource(
+        randomTestId,
+        topic,
+        contentTemplate,
+        converters,
+        batchSize,
+        jsonTidy,
+        failureTopicName,
+        successTopicName,
+        getBootstrapServers,
+      )
+    } yield {
+
+      record.map(
+        sendRecord[K, V](topic, producer, _)
+          .handleError { error =>
+            logger.error("Error encountered sending record via producer", error)
+            fail("Error encountered sending record via producer")
+          },
+      ).sequence.map { _ =>
+        var successes = mutable.Seq[ConsumerRecord[String, String]]()
+        var failures  = mutable.Seq[ConsumerRecord[String, String]]()
+        eventually(timeout(Span(10, Seconds)), interval(Span(500, Millis))) {
+          verify(postRequestedFor(urlEqualTo(s"/$randomTestId")))
+          val posts = findAll(postRequestedFor(urlEqualTo(s"/$randomTestId"))).asScala.toList
+          posts.size should be(expectedFailures + expectedSuccesses)
+
+          successes ++= pollConsumer(successConsumer)
+          successes.size should be(expectedSuccesses)
+
+          failures ++= pollConsumer(failureConsumer)
+          failures.size should be(expectedFailures)
+
+          (posts, successes.toSeq, failures.toSeq)
+        }
+      }
+
+    }).use(identity)
+
+  private def pollConsumer[V, K](consumer: KafkaConsumer[String, String]) = {
+    val polled       = consumer.poll(Duration.of(10, ChronoUnit.SECONDS))
+    val seqOfRecords = polled.iterator().asScala.toSeq
+    seqOfRecords
+  }
+
+  private def sendRecord[K, V](topic: String, producer: KafkaProducer[K, V], record: V): IO[Unit] =
+    for {
+      producerRecord <- IO.pure(new ProducerRecord[K, V](topic, record))
+      scalaFuture     = IO(Future(producer.send(producerRecord).get(10, TimeUnit.SECONDS)))
+      _              <- IO.fromFuture(scalaFuture)
+      _              <- IO(producer.flush())
+    } yield ()
+
   def createConnectorResource(
-    randomTestId:    String,
-    topic:           String,
-    contentTemplate: String,
-    converters:      Map[String, String],
-    batchSize:       Int,
-    jsonTidy:        Boolean,
+    randomTestId:          String,
+    topic:                 String,
+    contentTemplate:       String,
+    converters:            Map[String, String],
+    batchSize:             Int,
+    jsonTidy:              Boolean,
+    errorReportingTopic:   String,
+    successReportingTopic: String,
+    bootstrapServers:      String,
   ): Resource[IO, String] =
     createConnector(
       sinkConfig(
@@ -286,6 +451,9 @@ class HttpSinkTest
         converters,
         batchSize,
         jsonTidy,
+        errorReportingTopic,
+        successReportingTopic,
+        bootstrapServers,
       ),
     )
 

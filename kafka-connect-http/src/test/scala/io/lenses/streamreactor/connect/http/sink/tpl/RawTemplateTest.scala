@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2024 Lenses.io Ltd
+ * Copyright 2017-2025 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,7 +15,9 @@
  */
 package io.lenses.streamreactor.connect.http.sink.tpl
 
+import cats.data.NonEmptySeq
 import com.typesafe.scalalogging.LazyLogging
+import io.lenses.streamreactor.connect.http.sink.config.ErrorNullPayloadHandler
 import org.apache.kafka.connect.sink.SinkRecord
 import org.mockito.MockitoSugar.mock
 import org.mockito.MockitoSugar.when
@@ -34,13 +36,14 @@ class RawTemplateTest extends AnyFunSuite with Matchers with EitherValues with L
         ("HeaderKey1", "HeaderValue1"),
         ("HeaderKey2", "HeaderValue2"),
       ),
+      nullPayloadHandler = ErrorNullPayloadHandler,
     )
 
     val sinkRecord = mock[SinkRecord]
     when(sinkRecord.key()).thenReturn("KeyData")
     when(sinkRecord.value()).thenReturn("ValueData")
 
-    val rendered = template.renderRecords(Seq(sinkRecord))
+    val rendered = template.renderRecords(NonEmptySeq.of(sinkRecord))
 
     val processedTemplate = template.process(rendered.value, true)
     processedTemplate.value.endpoint should be("Endpoint: KeyData")
@@ -58,6 +61,7 @@ class RawTemplateTest extends AnyFunSuite with Matchers with EitherValues with L
         ("HeaderKey1-{{topic}}", "HeaderValue1-{{topic}}"),
         ("HeaderKey2-{{partition}}", "HeaderValue2-{{partition}}"),
       ),
+      nullPayloadHandler = ErrorNullPayloadHandler,
     )
 
     val sinkRecord = mock[SinkRecord]
@@ -71,7 +75,7 @@ class RawTemplateTest extends AnyFunSuite with Matchers with EitherValues with L
       "HeaderKey2-100"     -> "HeaderValue2-100",
     )
 
-    val rendered = template.renderRecords(Seq(sinkRecord))
+    val rendered = template.renderRecords(NonEmptySeq.of(sinkRecord))
 
     val processedTemplate = template.process(rendered.value, true)
     processedTemplate.value.headers shouldBe headerResults

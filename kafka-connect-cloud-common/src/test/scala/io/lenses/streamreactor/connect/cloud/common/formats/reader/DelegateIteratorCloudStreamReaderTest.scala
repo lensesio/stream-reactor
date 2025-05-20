@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2024 Lenses.io Ltd
+ * Copyright 2017-2025 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -45,7 +45,7 @@ class DelegateIteratorCloudStreamReaderTest extends AnyFunSuite with Matchers {
       override def close(): Unit = {}
     }
     val converter = new Converter[Int] {
-      override def convert(t: Int, index: Long): SourceRecord =
+      override def convert(t: Int, index: Long, lastLine: Boolean): SourceRecord =
         new SourceRecord(
           Map("a" -> "1").asJava,
           Map("line" -> index.toString, "path" -> "a/b/c.txt", "ts" -> "1000").asJava,
@@ -73,7 +73,7 @@ class DelegateIteratorCloudStreamReaderTest extends AnyFunSuite with Matchers {
       override def close(): Unit = {}
     }
     val converter = new Converter[Int] {
-      override def convert(t: Int, index: Long): SourceRecord =
+      override def convert(t: Int, index: Long, lastLine: Boolean): SourceRecord =
         new SourceRecord(
           Map("a" -> "1").asJava,
           Map("line" -> index.toString, "path" -> "a/b/c.txt", "ts" -> "1000").asJava,

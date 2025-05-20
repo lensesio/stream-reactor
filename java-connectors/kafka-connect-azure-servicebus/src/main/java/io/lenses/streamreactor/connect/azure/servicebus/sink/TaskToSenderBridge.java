@@ -82,7 +82,7 @@ public class TaskToSenderBridge {
    * @return Optional of {@link ConfigException}s (if they happen)
    */
   public Optional<ConfigException> initializeSenders(Collection<TopicPartition> partitions) {
-    String connectionString = config.getString(AzureServiceBusConfigConstants.CONNECTION_STRING);
+    String connectionString = config.getPassword(AzureServiceBusConfigConstants.CONNECTION_STRING).value();
 
     Set<String> missingMappings =
         findMissingMappings(partitions).stream()
@@ -106,10 +106,15 @@ public class TaskToSenderBridge {
 
           initializeSender(new ServiceBusConnectionDetails(connectionString, mappingForTopic.getOutputServiceBusName(),
               ServiceBusType.fromString(mappingForTopic.getProperties()
-                  .get(ServiceBusKcqlProperties.SERVICE_BUS_TYPE.getPropertyName())), updateOffsetFunction, tp
-                      .topic()));
+                  .get(ServiceBusKcqlProperties.SERVICE_BUS_TYPE.getPropertyName())), updateOffsetFunction,
+              tp.topic(), getBatchEnabled(mappingForTopic)));
           serviceBusSendersStore.get(mappingForTopic.getInputKafkaTopic()).initializePartition(tp);
         });
+  }
+
+  private static boolean getBatchEnabled(ServiceBusSinkMapping mappingForTopic) {
+    return Boolean.FALSE.toString().equalsIgnoreCase(mappingForTopic.getProperties()
+        .get(ServiceBusKcqlProperties.BATCH_ENABLED.getPropertyName()));
   }
 
   private Set<String> findMissingMappings(Collection<TopicPartition> partitions) {

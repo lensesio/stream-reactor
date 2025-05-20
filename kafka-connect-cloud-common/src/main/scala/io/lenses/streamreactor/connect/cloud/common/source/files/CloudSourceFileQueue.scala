@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2024 Lenses.io Ltd
+ * Copyright 2017-2025 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -40,7 +40,16 @@ class CloudSourceFileQueue[SM <: FileMetadata] private (
   private val taskId:        ConnectorTaskId,
   private val batchListerFn: Option[SM] => Either[FileListError, Option[ListResponse[String, SM]]],
   private var files:         Seq[CloudLocation],
-  private var lastSeenFile:  Option[SM],
+  /**
+    * An optional tracker for the last seen file.
+    *
+    * @param lastSeenFileTracker An optional instance of LastSeenFileTracker that keeps track of the last seen file.
+    *                            This tracker is used to maintain the state of the last processed file, which is useful
+    *                            for resuming operations from the last known point. If a PostProcessAction is set, the
+    *                            files will be cleaned up after processing, removing the need to track the last seen file.
+    *                            In such cases, this parameter will be None.
+    */
+  private var lastSeenFile: Option[SM],
 )(
   implicit
   cloudLocationValidator: CloudLocationValidator,

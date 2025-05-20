@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2024 Lenses.io Ltd
+ * Copyright 2017-2025 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,11 +21,12 @@ import cats.effect.testing.scalatest.AsyncIOSpec
 import cats.implicits.catsSyntaxOptionId
 import io.lenses.streamreactor.connect.http.sink.client.oauth2.AccessToken
 import io.lenses.streamreactor.connect.http.sink.client.oauth2.AccessTokenProvider
+import io.lenses.streamreactor.connect.http.sink.metrics.HttpSinkMetrics
 import io.lenses.streamreactor.connect.http.sink.tpl.ProcessedTemplate
 import org.http4s._
 import org.http4s.client.Client
-import org.mockito.ArgumentCaptor
 import org.mockito.ArgumentMatchers.any
+import org.mockito.ArgumentCaptor
 import org.mockito.MockitoSugar
 import org.scalatest.EitherValues
 import org.scalatest.freespec.AsyncFreeSpec
@@ -43,6 +44,7 @@ class OAuth2AuthenticationHttpRequestSenderTest
 
   private val StatusCodeOK      = 200
   private val ResponseContentOK = "OK"
+
   "OAuth2AuthenticationHttpRequestSender" - {
     "should attach the OAuth2 token header to the request" in {
       val sinkName = "sink"
@@ -58,7 +60,8 @@ class OAuth2AuthenticationHttpRequestSenderTest
           IO.pure(AccessToken(token, "type", Instant.now().plusSeconds(10)))
       }
 
-      val sender = new OAuth2AuthenticationHttpRequestSender(sinkName, method, client, tokenProvider)
+      val metrics = new HttpSinkMetrics
+      val sender  = new OAuth2AuthenticationHttpRequestSender(sinkName, method, client, tokenProvider, metrics)
       val template = ProcessedTemplate(
         "http://localhost:8080",
         "content",
@@ -80,6 +83,9 @@ class OAuth2AuthenticationHttpRequestSenderTest
           capturedRequest.headers.headers should contain(Header.Raw(CIString("Authorization"), s"Bearer $token"))
 
           response.value should be(HttpResponseSuccess(StatusCodeOK, ResponseContentOK.some))
+          metrics.get2xxCount shouldBe 1
+          metrics.get4xxCount shouldBe 0
+          metrics.get5xxCount shouldBe 0
       }
     }
   }
