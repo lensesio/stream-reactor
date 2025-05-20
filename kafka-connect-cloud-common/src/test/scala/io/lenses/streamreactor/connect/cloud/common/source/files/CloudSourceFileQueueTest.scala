@@ -22,13 +22,11 @@ import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.TestFileMetadata
-import io.lenses.streamreactor.connect.cloud.common.source.config.DeletePostProcessAction
 import io.lenses.streamreactor.connect.cloud.common.storage.FileListError
 import io.lenses.streamreactor.connect.cloud.common.storage.ListOfKeysResponse
 import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
 import io.lenses.streamreactor.connect.cloud.common.utils.SampleData
 import org.mockito.ArgumentMatchers._
-import org.mockito.InOrder
 import org.mockito.MockitoSugar
 import org.scalatest.BeforeAndAfter
 import org.scalatest.flatspec.AnyFlatSpec
@@ -85,7 +83,12 @@ class CloudSourceFileQueueTest extends AnyFlatSpec with Matchers with MockitoSug
       any[Option[TestFileMetadata]],
     )
     // file 0 = 0.json
-    verifyRefreshAndRollover(batchListerFn, sourceFileQueue, order)
+    sourceFileQueue.next() should be(Right(Some(fileLocs(0).atLine(-1).withTimestamp(lastModified))))
+    order.verify(batchListerFn)(none)
+
+    // file 1 = 1.json
+    sourceFileQueue.next() should be(Right(Some(fileLocs(1).atLine(-1).withTimestamp(lastModified))))
+    order.verifyNoMoreInteractions()
 
     // file 2 = 2.json
     sourceFileQueue.next() should be(Right(Some(fileLocs(2).atLine(-1).withTimestamp(lastModified))))
@@ -124,7 +127,6 @@ class CloudSourceFileQueueTest extends AnyFlatSpec with Matchers with MockitoSug
                                 mockStorageIface,
                                 fileLocs(2).atLine(1000).withTimestamp(lastModified),
                                 taskId,
-                                Option.empty,
       )
 
     val order = inOrder(batchListerFn)
@@ -173,54 +175,4 @@ class CloudSourceFileQueueTest extends AnyFlatSpec with Matchers with MockitoSug
     sourceFileQueue.next() shouldBe expected
   }
 
-  "list" should "not pass lastSeenFile to batchListerFn when PostProcessAction is set" in {
-
-    val batchListerFn =
-      mock[Option[TestFileMetadata] => Either[FileListError, Option[ListOfKeysResponse[TestFileMetadata]]]]
-
-    val mockStorageIface = mock[StorageInterface[TestFileMetadata]]
-    when(
-      mockStorageIface.seekToFile(
-        anyString(),
-        anyString(),
-        any[Option[Instant]],
-      ),
-    ).thenAnswer((_: String, file: String, _: Option[Instant]) => TestFileMetadata(file, lastModified).some)
-
-    val sourceFileQueue =
-      CloudSourceFileQueue.from(
-        batchListerFn,
-        mockStorageIface,
-        fileLocs(1).atLine(1000).withTimestamp(lastModified),
-        taskId,
-        Some(new DeletePostProcessAction()),
-      )
-
-    doAnswer(x => listBatch(x)).when(batchListerFn)(
-      any[Option[TestFileMetadata]],
-    )
-
-    val order = inOrder(batchListerFn)
-
-    // we are starting from a previously read file, so we use fileLocs(1) - this doesn't cause a read to the storage layer to discover next file
-    sourceFileQueue.next() should be(Right(Some(fileLocs(1).atLine(1000).withTimestamp(lastModified))))
-    order.verifyNoMoreInteractions()
-
-    verifyRefreshAndRollover(batchListerFn, sourceFileQueue, order)
-    verifyRefreshAndRollover(batchListerFn, sourceFileQueue, order)
-    verifyRefreshAndRollover(batchListerFn, sourceFileQueue, order)
-
-  }
-
-  private def verifyRefreshAndRollover(
-    batchListerFn:   Option[TestFileMetadata] => Either[FileListError, Option[ListOfKeysResponse[TestFileMetadata]]],
-    sourceFileQueue: CloudSourceFileQueue[TestFileMetadata],
-    order:           InOrder,
-  ): Unit = {
-    // REFRESH
-    sourceFileQueue.next() should be(Right(Some(fileLocs(0).atLine(-1).withTimestamp(lastModified))))
-    order.verify(batchListerFn)(none)
-    sourceFileQueue.next() should be(Right(Some(fileLocs(1).atLine(-1).withTimestamp(lastModified))))
-    order.verifyNoMoreInteractions()
-  }
 }

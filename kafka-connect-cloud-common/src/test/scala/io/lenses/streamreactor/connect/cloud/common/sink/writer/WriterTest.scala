@@ -17,15 +17,18 @@ package io.lenses.streamreactor.connect.cloud.common.sink.writer
 
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.FormatWriter
+import io.lenses.streamreactor.connect.cloud.common.formats.writer.schema.SchemaChangeDetector
 import io.lenses.streamreactor.connect.cloud.common.model.Offset
 import io.lenses.streamreactor.connect.cloud.common.model.Topic
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
 import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.CommitPolicy
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.ObjectKeyBuilder
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexManager
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.PendingOperationsProcessors
 import io.lenses.streamreactor.connect.cloud.common.storage.FileMetadata
-import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
 import org.apache.kafka.connect.data.Schema
+import org.mockito.Answers
 import org.mockito.MockitoSugar
 import org.scalatest.funsuite.AnyFunSuiteLike
 import org.scalatest.matchers.should.Matchers
@@ -34,19 +37,20 @@ import java.io.File
 
 class WriterTest extends AnyFunSuiteLike with Matchers with MockitoSugar {
 
-  private implicit val connectorTaskId:  ConnectorTaskId                         = ConnectorTaskId("test-connector", 1, 1)
-  private implicit val storageInterface: StorageInterface[FileMetadata]          = mock[StorageInterface[FileMetadata]]
-  private val commitPolicy:              CommitPolicy                            = mock[CommitPolicy]
-  private val writerIndexer:             WriterIndexer[FileMetadata]             = mock[WriterIndexer[FileMetadata]]
-  private val objectKeyBuilder:          ObjectKeyBuilder                        = mock[ObjectKeyBuilder]
-  private val formatWriter:              FormatWriter                            = mock[FormatWriter]
-  private val stagingFilenameFn:         () => Either[SinkError, File]           = () => Right(new File("test-file"))
-  private val formatWriterFn:            File => Either[SinkError, FormatWriter] = _ => Right(formatWriter)
-  private val topicPartition:            TopicPartition                          = Topic("test-topic").withPartition(0)
-  private val rolloverOnSchemaChangeEnabled = true;
+  private implicit val connectorTaskId: ConnectorTaskId = ConnectorTaskId("test-connector", 1, 1)
+
+  private val commitPolicy:                CommitPolicy                            = mock[CommitPolicy]
+  private val writerIndexer:               IndexManager                            = mock[IndexManager]
+  private val objectKeyBuilder:            ObjectKeyBuilder                        = mock[ObjectKeyBuilder]
+  private val formatWriter:                FormatWriter                            = mock[FormatWriter]
+  private val stagingFilenameFn:           () => Either[SinkError, File]           = () => Right(new File("test-file"))
+  private val formatWriterFn:              File => Either[SinkError, FormatWriter] = _ => Right(formatWriter)
+  private val topicPartition:              TopicPartition                          = Topic("test-topic").withPartition(0)
+  private val schemaChangeDetector:        SchemaChangeDetector                    = mock[SchemaChangeDetector]
+  private val pendingOperationsProcessors: PendingOperationsProcessors             = mock[PendingOperationsProcessors]
 
   test("shouldSkip should return false when indexing is disabled") {
-    when(writerIndexer.indexingEnabled()).thenReturn(false)
+    when(writerIndexer.indexingEnabled).thenReturn(false)
     when(writerIndexer.getSeekedOffsetForTopicPartition(topicPartition)).thenReturn(None)
     val writer = new Writer[FileMetadata](topicPartition,
                                           commitPolicy,
@@ -54,7 +58,8 @@ class WriterTest extends AnyFunSuiteLike with Matchers with MockitoSugar {
                                           stagingFilenameFn,
                                           objectKeyBuilder,
                                           formatWriterFn,
-                                          rolloverOnSchemaChangeEnabled,
+                                          schemaChangeDetector,
+                                          pendingOperationsProcessors,
     )
     writer.shouldSkip(Offset(100)) shouldBe false
   }
@@ -62,7 +67,7 @@ class WriterTest extends AnyFunSuiteLike with Matchers with MockitoSugar {
   test(
     "shouldSkip should return true when current offset is less than or equal to committed offset in NoWriter state",
   ) {
-    when(writerIndexer.indexingEnabled()).thenReturn(true)
+    when(writerIndexer.indexingEnabled).thenReturn(true)
     when(writerIndexer.getSeekedOffsetForTopicPartition(topicPartition)).thenReturn(Some(Offset(50)))
     val writer = new Writer[FileMetadata](topicPartition,
                                           commitPolicy,
@@ -70,7 +75,8 @@ class WriterTest extends AnyFunSuiteLike with Matchers with MockitoSugar {
                                           stagingFilenameFn,
                                           objectKeyBuilder,
                                           formatWriterFn,
-                                          rolloverOnSchemaChangeEnabled,
+                                          schemaChangeDetector,
+                                          pendingOperationsProcessors,
     )
     writer.writeState = NoWriter(CommitState(topicPartition, Some(Offset(100))))
     writer.shouldSkip(Offset(100)) shouldBe true
@@ -78,7 +84,7 @@ class WriterTest extends AnyFunSuiteLike with Matchers with MockitoSugar {
   }
 
   test("shouldSkip should return false when current offset is greater than committed offset in NoWriter state") {
-    when(writerIndexer.indexingEnabled()).thenReturn(true)
+    when(writerIndexer.indexingEnabled).thenReturn(true)
     when(writerIndexer.getSeekedOffsetForTopicPartition(topicPartition)).thenReturn(Some(Offset(50)))
     val writer = new Writer[FileMetadata](topicPartition,
                                           commitPolicy,
@@ -86,14 +92,15 @@ class WriterTest extends AnyFunSuiteLike with Matchers with MockitoSugar {
                                           stagingFilenameFn,
                                           objectKeyBuilder,
                                           formatWriterFn,
-                                          rolloverOnSchemaChangeEnabled,
+                                          schemaChangeDetector,
+                                          pendingOperationsProcessors,
     )
     writer.writeState = NoWriter(CommitState(topicPartition, Some(Offset(100))))
     writer.shouldSkip(Offset(101)) shouldBe false
   }
 
   test("shouldSkip should return true when current offset is less than or equal to largest offset in Uploading state") {
-    when(writerIndexer.indexingEnabled()).thenReturn(true)
+    when(writerIndexer.indexingEnabled).thenReturn(true)
     when(writerIndexer.getSeekedOffsetForTopicPartition(topicPartition)).thenReturn(Some(Offset(50)))
     val writer = new Writer[FileMetadata](topicPartition,
                                           commitPolicy,
@@ -101,7 +108,8 @@ class WriterTest extends AnyFunSuiteLike with Matchers with MockitoSugar {
                                           stagingFilenameFn,
                                           objectKeyBuilder,
                                           formatWriterFn,
-                                          rolloverOnSchemaChangeEnabled,
+                                          schemaChangeDetector,
+                                          pendingOperationsProcessors,
     )
     writer.writeState = Uploading(
       CommitState(topicPartition, Some(Offset(100))),
@@ -115,7 +123,7 @@ class WriterTest extends AnyFunSuiteLike with Matchers with MockitoSugar {
   }
 
   test("shouldSkip should return false when current offset is greater than largest offset in Uploading state") {
-    when(writerIndexer.indexingEnabled()).thenReturn(true)
+    when(writerIndexer.indexingEnabled).thenReturn(true)
     when(writerIndexer.getSeekedOffsetForTopicPartition(topicPartition)).thenReturn(Some(Offset(50)))
     val writer = new Writer[FileMetadata](topicPartition,
                                           commitPolicy,
@@ -123,7 +131,8 @@ class WriterTest extends AnyFunSuiteLike with Matchers with MockitoSugar {
                                           stagingFilenameFn,
                                           objectKeyBuilder,
                                           formatWriterFn,
-                                          rolloverOnSchemaChangeEnabled,
+                                          schemaChangeDetector,
+                                          pendingOperationsProcessors,
     )
     writer.writeState =
       Uploading(CommitState(topicPartition, Some(Offset(100))), new File("test-file"), Offset(150), 1L, 1L)
@@ -131,7 +140,7 @@ class WriterTest extends AnyFunSuiteLike with Matchers with MockitoSugar {
   }
 
   test("shouldSkip should return true when current offset is less than or equal to largest offset in Writing state") {
-    when(writerIndexer.indexingEnabled()).thenReturn(true)
+    when(writerIndexer.indexingEnabled).thenReturn(true)
     when(writerIndexer.getSeekedOffsetForTopicPartition(topicPartition)).thenReturn(Some(Offset(50)))
     val writer = new Writer[FileMetadata](topicPartition,
                                           commitPolicy,
@@ -139,7 +148,8 @@ class WriterTest extends AnyFunSuiteLike with Matchers with MockitoSugar {
                                           stagingFilenameFn,
                                           objectKeyBuilder,
                                           formatWriterFn,
-                                          rolloverOnSchemaChangeEnabled,
+                                          schemaChangeDetector,
+                                          pendingOperationsProcessors,
     )
     writer.writeState =
       Writing(CommitState(topicPartition, Some(Offset(100))), formatWriter, new File("test-file"), Offset(150), 1L, 1L)
@@ -148,7 +158,7 @@ class WriterTest extends AnyFunSuiteLike with Matchers with MockitoSugar {
   }
 
   test("shouldSkip should return false when current offset is greater than largest offset in Writing state") {
-    when(writerIndexer.indexingEnabled()).thenReturn(true)
+    when(writerIndexer.indexingEnabled).thenReturn(true)
     when(writerIndexer.getSeekedOffsetForTopicPartition(topicPartition)).thenReturn(Some(Offset(50)))
     val writer = new Writer[FileMetadata](topicPartition,
                                           commitPolicy,
@@ -156,7 +166,8 @@ class WriterTest extends AnyFunSuiteLike with Matchers with MockitoSugar {
                                           stagingFilenameFn,
                                           objectKeyBuilder,
                                           formatWriterFn,
-                                          rolloverOnSchemaChangeEnabled,
+                                          schemaChangeDetector,
+                                          pendingOperationsProcessors,
     )
     writer.writeState =
       Writing(CommitState(topicPartition, Some(Offset(100))), formatWriter, new File("test-file"), Offset(150), 1L, 1L)
@@ -172,7 +183,8 @@ class WriterTest extends AnyFunSuiteLike with Matchers with MockitoSugar {
                                stagingFilenameFn,
                                objectKeyBuilder,
                                formatWriterFn,
-                               rolloverOnSchemaChangeEnabled = true,
+                               schemaChangeDetector,
+                               pendingOperationsProcessors,
       ),
     )
     when(writer.schemaHasChanged(schema)).thenReturn(true)
@@ -180,54 +192,126 @@ class WriterTest extends AnyFunSuiteLike with Matchers with MockitoSugar {
     writer.shouldRollover(schema) shouldBe true
   }
 
-  test("shouldRollover returns false when rollover is disabled") {
-    val schema = mock[Schema]
-    val writer = spy(
-      new Writer[FileMetadata](topicPartition,
-                               commitPolicy,
-                               writerIndexer,
-                               stagingFilenameFn,
-                               objectKeyBuilder,
-                               formatWriterFn,
-                               rolloverOnSchemaChangeEnabled = false,
-      ),
+  test("schemaHasChanged should return true when schema has changed in Writing state") {
+    val schema       = mock[Schema]
+    val lastSchema   = mock[Schema]
+    val formatWriter = mock[FormatWriter](Answers.RETURNS_DEEP_STUBS)
+    val commitState = CommitState(topicPartition, Some(Offset(100)))
+      .copy(lastKnownSchema = Some(lastSchema))
+    val writingState = Writing(commitState, formatWriter, new File("test-file"), Offset(150), 1L, 1L)
+    val writer = new Writer[FileMetadata](topicPartition,
+                                          commitPolicy,
+                                          writerIndexer,
+                                          stagingFilenameFn,
+                                          objectKeyBuilder,
+                                          formatWriterFn,
+                                          schemaChangeDetector,
+                                          pendingOperationsProcessors,
     )
-    when(writer.schemaHasChanged(schema)).thenReturn(true)
-    when(writer.rolloverOnSchemaChange).thenReturn(true)
-    writer.shouldRollover(schema) shouldBe false
+    writer.writeState = writingState
+
+    when(schemaChangeDetector.detectSchemaChange(lastSchema, schema)).thenReturn(true)
+
+    writer.schemaHasChanged(schema) shouldBe true
   }
 
-  test("shouldRollover returns false when schema has not changed") {
-    val schema = mock[Schema]
-    val writer = spy(
-      new Writer[FileMetadata](topicPartition,
-                               commitPolicy,
-                               writerIndexer,
-                               stagingFilenameFn,
-                               objectKeyBuilder,
-                               formatWriterFn,
-                               rolloverOnSchemaChangeEnabled = true,
-      ),
+  test("schemaHasChanged should return false when schema has not changed in Writing state") {
+    val schema       = mock[Schema]
+    val lastSchema   = mock[Schema]
+    val formatWriter = mock[FormatWriter](Answers.RETURNS_DEEP_STUBS)
+    val commitState = CommitState(topicPartition, Some(Offset(100)))
+      .copy(lastKnownSchema = Some(lastSchema))
+    val writingState = Writing(commitState, formatWriter, new File("test-file"), Offset(150), 1L, 1L)
+    val writer = new Writer[FileMetadata](topicPartition,
+                                          commitPolicy,
+                                          writerIndexer,
+                                          stagingFilenameFn,
+                                          objectKeyBuilder,
+                                          formatWriterFn,
+                                          schemaChangeDetector,
+                                          pendingOperationsProcessors,
     )
-    when(writer.schemaHasChanged(schema)).thenReturn(false)
-    when(writer.rolloverOnSchemaChange).thenReturn(true)
-    writer.shouldRollover(schema) shouldBe false
+    writer.writeState = writingState
+
+    when(schemaChangeDetector.detectSchemaChange(lastSchema, schema)).thenReturn(false)
+
+    writer.schemaHasChanged(schema) shouldBe false
   }
 
-  test("shouldRollover returns false when rolloverOnSchemaChange is false") {
+  test("schemaHasChanged should return false when not in Writing state") {
     val schema = mock[Schema]
-    val writer = spy(
-      new Writer[FileMetadata](topicPartition,
-                               commitPolicy,
-                               writerIndexer,
-                               stagingFilenameFn,
-                               objectKeyBuilder,
-                               formatWriterFn,
-                               rolloverOnSchemaChangeEnabled = true,
-      ),
+    val writer = new Writer[FileMetadata](topicPartition,
+                                          commitPolicy,
+                                          writerIndexer,
+                                          stagingFilenameFn,
+                                          objectKeyBuilder,
+                                          formatWriterFn,
+                                          schemaChangeDetector,
+                                          pendingOperationsProcessors,
     )
-    when(writer.schemaHasChanged(schema)).thenReturn(true)
-    when(writer.rolloverOnSchemaChange).thenReturn(false)
-    writer.shouldRollover(schema) shouldBe false
+    writer.writeState = NoWriter(CommitState(topicPartition, Some(Offset(100))))
+
+    writer.schemaHasChanged(schema) shouldBe false
+  }
+
+  test("schemaHasChanged should return false when lastKnownSchema is None in Writing state") {
+    val schema       = mock[Schema]
+    val formatWriter = mock[FormatWriter]
+    val commitState  = CommitState(topicPartition, Some(Offset(100)))
+    val writingState = Writing(commitState, formatWriter, new File("test-file"), Offset(150), 1L, 1L)
+    val writer = new Writer[FileMetadata](topicPartition,
+                                          commitPolicy,
+                                          writerIndexer,
+                                          stagingFilenameFn,
+                                          objectKeyBuilder,
+                                          formatWriterFn,
+                                          schemaChangeDetector,
+                                          pendingOperationsProcessors,
+    )
+    writer.writeState = writingState
+
+    writer.schemaHasChanged(schema) shouldBe false
+  }
+  test("schemaHasChanged should return false when lastKnownSchema is the same as the new schema in Writing state") {
+    val schema       = mock[Schema]
+    val formatWriter = mock[FormatWriter]
+    val commitState = CommitState(topicPartition, Some(Offset(100)))
+      .copy(lastKnownSchema = Some(schema))
+    val writingState = Writing(commitState, formatWriter, new File("test-file"), Offset(150), 1L, 1L)
+    val writer = new Writer[FileMetadata](topicPartition,
+                                          commitPolicy,
+                                          writerIndexer,
+                                          stagingFilenameFn,
+                                          objectKeyBuilder,
+                                          formatWriterFn,
+                                          schemaChangeDetector,
+                                          pendingOperationsProcessors,
+    )
+    writer.writeState = writingState
+
+    writer.schemaHasChanged(schema) shouldBe false
+  }
+
+  test(
+    "schemaHasChanged should return false when lastKnownSchema is None and schemaHasChanged returns false in Writing state",
+  ) {
+    val schema       = mock[Schema]
+    val formatWriter = mock[FormatWriter](Answers.RETURNS_DEEP_STUBS)
+    val commitState  = CommitState(topicPartition, Some(Offset(100)))
+    val writingState = Writing(commitState, formatWriter, new File("test-file"), Offset(150), 1L, 1L)
+    val writer = new Writer[FileMetadata](topicPartition,
+                                          commitPolicy,
+                                          writerIndexer,
+                                          stagingFilenameFn,
+                                          objectKeyBuilder,
+                                          formatWriterFn,
+                                          schemaChangeDetector,
+                                          pendingOperationsProcessors,
+    )
+    writer.writeState = writingState
+
+    when(schemaChangeDetector.detectSchemaChange(null, schema)).thenReturn(false)
+
+    writer.schemaHasChanged(schema) shouldBe false
   }
 }

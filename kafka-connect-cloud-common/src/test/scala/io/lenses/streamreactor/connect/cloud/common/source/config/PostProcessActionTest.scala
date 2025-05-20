@@ -15,10 +15,12 @@
  */
 package io.lenses.streamreactor.connect.cloud.common.source.config
 
+import cats.implicits.catsSyntaxEitherId
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEntry
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.PostProcessActionBucket
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.PostProcessActionPrefix
+import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.PostProcessActionRetain
 import io.lenses.streamreactor.connect.cloud.common.source.config.kcqlprops.PostProcessActionEntry
 import io.lenses.streamreactor.connect.cloud.common.source.config.kcqlprops.PostProcessActionEnum
 import io.lenses.streamreactor.connect.cloud.common.source.config.kcqlprops.PostProcessActionEnum.Delete
@@ -40,6 +42,7 @@ class PostProcessActionTest extends AnyFlatSpec with Matchers with EitherValues 
       ),
     )
       .thenReturn(Some(Delete))
+    when(kcqlProperties.getBooleanOrDefault(PostProcessActionRetain, default = false)).thenReturn(true.asRight)
 
     val result = PostProcessAction(Option.empty, kcqlProperties)
 
@@ -54,6 +57,7 @@ class PostProcessActionTest extends AnyFlatSpec with Matchers with EitherValues 
       ),
     )
       .thenReturn(Some(Move))
+    when(kcqlProperties.getBooleanOrDefault(PostProcessActionRetain, default = false)).thenReturn(true.asRight)
     when(kcqlProperties.getString(PostProcessActionPrefix)).thenReturn(Some("some/prefix"))
     when(kcqlProperties.getString(PostProcessActionBucket)).thenReturn(Some("myNewBucket"))
 
@@ -120,6 +124,7 @@ class PostProcessActionTest extends AnyFlatSpec with Matchers with EitherValues 
       ),
     )
       .thenReturn(Some(Move))
+    when(kcqlProperties.getBooleanOrDefault(PostProcessActionRetain, default = false)).thenReturn(true.asRight)
     when(kcqlProperties.getString(PostProcessActionPrefix)).thenReturn(Some("some/prefix/"))
     when(kcqlProperties.getString(PostProcessActionBucket)).thenReturn(Some("myNewBucket/"))
 

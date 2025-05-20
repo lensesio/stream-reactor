@@ -28,12 +28,15 @@ import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.CommitPolicy
 import io.lenses.streamreactor.connect.cloud.common.sink.config.CloudSinkBucketOptions
 import io.lenses.streamreactor.connect.cloud.common.sink.config.PartitionField
-import io.lenses.streamreactor.connect.cloud.common.sink.naming.IndexFilenames
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.KeyNamer
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.ObjectKeyBuilder
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexManager
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexManagerV2
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.NoIndexManager
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.PendingOperationsProcessors
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.deprecated.IndexFilenames
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.deprecated.IndexManagerV1
 import io.lenses.streamreactor.connect.cloud.common.sink.transformers.TopicsTransformers
-import io.lenses.streamreactor.connect.cloud.common.sink.writer.WriterIndexer
 import io.lenses.streamreactor.connect.cloud.common.sink.writer.WriterManager
 import io.lenses.streamreactor.connect.cloud.common.storage.FileMetadata
 import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
@@ -49,7 +52,7 @@ class WriterManagerCreator[MD <: FileMetadata, SC <: CloudSinkConfig[_]] extends
     implicit
     connectorTaskId:  ConnectorTaskId,
     storageInterface: StorageInterface[MD],
-  ): (Option[IndexManager[MD]], WriterManager[MD]) = {
+  ): (IndexManager, WriterManager[MD]) = {
 
     val bucketAndPrefixFn: TopicPartition => Either[SinkError, CloudLocation] = topicPartition => {
       bucketOptsForTopic(config, topicPartition.topic) match {
@@ -114,33 +117,42 @@ class WriterManagerCreator[MD <: FileMetadata, SC <: CloudSinkConfig[_]] extends
             for {
               formatWriter <- formats.writer.FormatWriter(
                 bucketOptions.formatSelection,
-                stagingFilename,
+                stagingFilename.toPath,
                 topicPartition,
               )(config.compressionCodec)
             } yield formatWriter
           case None => FatalCloudSinkError("Can't find format choice in config", topicPartition).asLeft
         }
 
-    val indexManager = config.indexOptions.map(io =>
-      new IndexManager(
-        io.maxIndexFiles,
-        new IndexFilenames(io.indexesDirectoryName),
-        bucketAndPrefixFn,
-      ),
+    val pendingOperationsProcessors = new PendingOperationsProcessors(
+      storageInterface,
     )
-    val writerIndexer = new WriterIndexer[MD](indexManager)
+
+    val indexManager: IndexManager = config.indexOptions.map(io =>
+      new IndexManagerV2(
+        bucketAndPrefixFn,
+        new IndexManagerV1(
+          new IndexFilenames(io.indexesDirectoryName),
+          bucketAndPrefixFn,
+        ),
+        pendingOperationsProcessors,
+      ),
+    ).getOrElse(new NoIndexManager())
 
     val transformers = TopicsTransformers.from(config.bucketOptions)
-    val writerManager = new WriterManager(
+
+    val writerManager = new WriterManager[MD](
       commitPolicyFn,
       bucketAndPrefixFn,
       keyNamerBuilderFn,
       stagingFilenameFn,
       finalFilenameFn,
       formatWriterFn,
-      writerIndexer,
+      indexManager,
       transformers.transform,
-      config.rolloverOnSchemaChangeEnabled,
+      config.schemaChangeDetector,
+      config.skipNullValues,
+      pendingOperationsProcessors,
     )
     (indexManager, writerManager)
   }
