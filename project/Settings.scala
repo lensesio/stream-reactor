@@ -222,6 +222,9 @@ object Settings extends Dependencies {
             ShadeRule.zap("org.apache.kafka.**").inAll,
             ShadeRule.zap("org.apache.zookeeper.**").inAll,
             ShadeRule.zap("org.apache.log4j.**").inAll,
+            ShadeRule.zap("org.apache.logging.**").inAll,
+            ShadeRule.zap("org.slf4j.**").inAll,
+            ShadeRule.zap("org.eclipse.jetty.**").inAll,
           ),
           dependencyOverrides ++= Seq(
             googleProtobuf,
