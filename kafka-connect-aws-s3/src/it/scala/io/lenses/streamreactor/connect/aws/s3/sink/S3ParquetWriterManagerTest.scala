@@ -117,10 +117,12 @@ class S3ParquetWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyC
 
   "parquet sink" should "write 2 records to parquet format in s3" in {
 
-    val sink = writerManagerCreator.from(parquetConfig)._2
+    val (indexManager, sink) = writerManagerCreator.from(parquetConfig)
+    val topic                = Topic(TopicName)
+    val topicPartition       = topic.withPartition(1)
+    indexManager.open(Set(topicPartition))
     firstUsers.zipWithIndex.foreach {
       case (struct: Struct, index: Int) =>
-        val topic  = Topic(TopicName)
         val offset = Offset(index.toLong + 1)
         sink.write(
           TopicPartitionOffset(topic, 1, offset),
@@ -164,10 +166,12 @@ class S3ParquetWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyC
       new Struct(secondSchema).put("name", "coco").put("designation", null).put("salary", 395.44),
     )
 
-    val sink = writerManagerCreator.from(parquetConfig)._2
+    val (indexManager, sink) = writerManagerCreator.from(parquetConfig)
+    val topic                = Topic(TopicName)
+    val topicPartition       = topic.withPartition(1)
+    indexManager.open(Set(topicPartition))
     firstUsers.concat(usersWithNewSchema).zipWithIndex.foreach {
       case (user, index) =>
-        val topic  = Topic(TopicName)
         val offset = Offset(index.toLong + 1)
         sink.write(
           TopicPartitionOffset(topic, 1, offset),

@@ -7,6 +7,8 @@ import com.opencsv.CSVReader
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.common.config.base.intf.ConnectionConfig
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.FlushCount
+
+import scala.annotation.nowarn
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.FlushInterval
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.FlushSize
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.PartitionIncludeKeys
@@ -66,8 +68,10 @@ abstract class CoreSinkTaskTestCases[
 
   private val context = mock[SinkTaskContext]
 
+  @nowarn
   private val parquetFormatReader = new ParquetFormatReader()
-  private val avroFormatReader    = new AvroFormatReader()
+  @nowarn
+  private val avroFormatReader = new AvroFormatReader()
 
   protected val PrefixName = "streamReactorBackups"
   protected val TopicName  = "myTopic"
@@ -109,6 +113,7 @@ abstract class CoreSinkTaskTestCases[
     .field("region", SchemaBuilder.int32().optional().build())
     .build()
 
+  @nowarn
   private val keyPartitionedRecords = List(
     new SinkRecord(TopicName,
                    1,
@@ -879,7 +884,7 @@ abstract class CoreSinkTaskTestCases[
     )).asJava
 
     task.start(props)
-    task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
+    task.open(Seq(new TopicPartition(TopicName, 1), new TopicPartition(TopicName, 2)).asJava)
     task.put(textRecords.asJava)
     task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
     task.stop()
@@ -1118,7 +1123,7 @@ abstract class CoreSinkTaskTestCases[
     // the results do contain the index.  The sink always looks for the index at the root of the bucket when offset synching.
     // The source excludes the index files.
     fileList should contain allOf (
-      ".indexes/s3SinkTaskBuildLocalTest/myTopic/00001/00000000000000000002",
+      ".indexes/.locks/Topic(myTopic)/1.lock",
       "region=8/name=sam/myTopic(000000000001_000000000000).json",
       "region=5/name=laura/myTopic(000000000001_000000000001).json",
       "region=5/name=tom/myTopic(000000000001_000000000002).json"
@@ -1981,12 +1986,14 @@ abstract class CoreSinkTaskTestCases[
     task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
     task.stop()
 
-    listBucketPath(BucketName, "streamReactorBackups/myTopic/000000000001/").size should be(2)
+    listBucketPath(BucketName, "streamReactorBackups/myTopic/000000000001/").size should be(3)
 
     remoteFileAsString(BucketName, "streamReactorBackups/myTopic/000000000001/000000000000_0_0.json") should be(
       """{"name":"sam","title":"mr","salary":100.43}""",
     )
-    // file 1 will not exist because it had been deleted before upload.  We continue with the upload regardless.  There will be a message in the log.
+    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/000000000001/000000000001_1_1.json") should be(
+      """{"name":"laura","title":"ms","salary":429.06}""",
+    )
     remoteFileAsString(BucketName, "streamReactorBackups/myTopic/000000000001/000000000002_2_2.json") should be(
       """{"name":"tom","title":null,"salary":395.44}""",
     )
@@ -2138,6 +2145,7 @@ abstract class CoreSinkTaskTestCases[
 
   }
 
+  @nowarn
   private def createSinkRecord(partition: Int, valueStruct: Struct, offset: Int, headers: lang.Iterable[Header]) =
     new SinkRecord(TopicName,
                    partition,
@@ -2167,6 +2175,7 @@ abstract class CoreSinkTaskTestCases[
     headers
   }
 
+  @nowarn
   private def openCsvReaderToBucketFile(bucketFileName: String) = {
     val file1Bytes = remoteFileAsBytes(BucketName, bucketFileName)
 
