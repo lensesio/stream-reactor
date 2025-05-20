@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2024 Lenses.io Ltd
+ * Copyright 2017-2025 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -74,7 +74,8 @@ object CloudSinkBucketOptions extends LazyLogging {
         partitionSelection <- PartitionSelection(kcql, sinkProps)
         paddingService     <- PaddingService.fromConfig(config, sinkProps)
         storageSettings    <- DataStorageSettings.from(sinkProps)
-        fileNamer          <- getFileNamer(storageSettings, fileExtension, partitionSelection, paddingService)
+        fileNamerSuffix     = KeySuffix.fromKcql(kcql, SinkPropsSchema.schema)
+        fileNamer          <- getFileNamer(storageSettings, fileExtension, partitionSelection, paddingService, fileNamerSuffix)
         keyNamer            = CloudKeyNamer(formatSelection, partitionSelection, fileNamer, paddingService)
         stagingArea        <- config.getLocalStagingArea()(connectorTaskId)
         target             <- CloudLocation.splitAndValidate(kcql.getTarget)
@@ -111,17 +112,20 @@ object CloudSinkBucketOptions extends LazyLogging {
     fileExtension:      String,
     partitionSelection: PartitionSelection,
     paddingService:     PaddingService,
+    suffix:             Option[String],
   ): Either[Throwable, FileNamer] =
     if (partitionSelection.isCustom) {
       new TopicPartitionOffsetFileNamer(
         paddingService.padderFor("partition"),
         paddingService.padderFor("offset"),
         fileExtension,
+        suffix,
       ).asRight
     } else {
       new OffsetFileNamer(
         paddingService.padderFor("offset"),
         fileExtension,
+        suffix,
       ).asRight
     }
 

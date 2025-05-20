@@ -37,7 +37,7 @@ class S3SourceTaskXmlReaderTest
       val file = new File(getClass.getResource(f).toURI)
       storageInterface.uploadFile(UploadableFile(file), BucketName, "streamReactorBackups" + f)
     }
-    res should be(Right(Vector((), ())))
+    res.value.foreach(_ should not be empty)
     ().asRight
   }
 

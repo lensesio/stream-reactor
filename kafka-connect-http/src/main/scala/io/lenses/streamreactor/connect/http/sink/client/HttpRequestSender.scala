@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2024 Lenses.io Ltd
+ * Copyright 2017-2025 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@ import io.lenses.streamreactor.connect.http.sink.client.oauth2.AccessToken
 import io.lenses.streamreactor.connect.http.sink.client.oauth2.AccessTokenProvider
 import io.lenses.streamreactor.connect.http.sink.client.oauth2.OAuth2AccessTokenProvider
 import io.lenses.streamreactor.connect.http.sink.client.oauth2.cache.CachedAccessTokenProvider
+import io.lenses.streamreactor.connect.http.sink.metrics.HttpSinkMetricsMBean
 import io.lenses.streamreactor.connect.http.sink.tpl.ProcessedTemplate
 import org.http4s.EntityDecoder
 import org.http4s._
@@ -36,7 +37,8 @@ class NoAuthenticationHttpRequestSender(
   sinkName: String,
   method:   Method,
   client:   Client[IO],
-) extends HttpRequestSender(sinkName, method, client) {
+  metrics:  HttpSinkMetricsMBean,
+) extends HttpRequestSender(sinkName, method, client, metrics) {
 
   override protected def updateRequest(request: Request[IO]): IO[Request[IO]] = IO.pure(request)
 }
@@ -47,7 +49,8 @@ class BasicAuthenticationHttpRequestSender(
   client:   Client[IO],
   username: String,
   password: String,
-) extends HttpRequestSender(sinkName, method, client) {
+  metrics:  HttpSinkMetricsMBean,
+) extends HttpRequestSender(sinkName, method, client, metrics) {
 
   override protected def updateRequest(request: Request[IO]): IO[Request[IO]] =
     IO.pure(request.putHeaders(Authorization(BasicCredentials(username, password))))
@@ -58,7 +61,8 @@ class OAuth2AuthenticationHttpRequestSender(
   method:        Method,
   client:        Client[IO],
   tokenProvider: AccessTokenProvider[IO],
-) extends HttpRequestSender(sinkName, method, client) {
+  metrics:       HttpSinkMetricsMBean,
+) extends HttpRequestSender(sinkName, method, client, metrics) {
 
   override protected def updateRequest(request: Request[IO]): IO[Request[IO]] =
     for {
@@ -73,25 +77,28 @@ object HttpRequestSender {
     method:         Method,
     client:         Client[IO],
     authentication: Authentication,
-  ): IO[HttpRequestSender] = authentication match {
-    case NoAuthentication => IO(new NoAuthenticationHttpRequestSender(sinkName, method, client))
-    case BasicAuthentication(username, password) =>
-      IO(new BasicAuthenticationHttpRequestSender(sinkName, method, client, username, password))
-    case OAuth2Authentication(uri, clientId, clientSecret, tokenProperty, clientScope, clientHeaders) =>
-      val rawHeaders = clientHeaders.map { case (k, v) => Header.Raw(CIString(k), v) }
-      val tokenProvider =
-        new OAuth2AccessTokenProvider(client, uri, clientId, clientSecret, clientScope, rawHeaders, tokenProperty)
-      for {
-        ref                <- Ref.of[IO, Option[AccessToken]](none)
-        cachedTokenProvider = new CachedAccessTokenProvider(tokenProvider, ref)
-      } yield new OAuth2AuthenticationHttpRequestSender(sinkName, method, client, cachedTokenProvider)
-  }
+    metrics:        HttpSinkMetricsMBean,
+  ): IO[HttpRequestSender] =
+    authentication match {
+      case NoAuthentication => IO(new NoAuthenticationHttpRequestSender(sinkName, method, client, metrics))
+      case BasicAuthentication(username, password) =>
+        IO(new BasicAuthenticationHttpRequestSender(sinkName, method, client, username, password, metrics))
+      case OAuth2Authentication(uri, clientId, clientSecret, tokenProperty, clientScope, clientHeaders) =>
+        val rawHeaders = clientHeaders.map { case (k, v) => Header.Raw(CIString(k), v) }
+        val tokenProvider =
+          new OAuth2AccessTokenProvider(client, uri, clientId, clientSecret, clientScope, rawHeaders, tokenProperty)
+        for {
+          ref                <- Ref.of[IO, Option[AccessToken]](none)
+          cachedTokenProvider = new CachedAccessTokenProvider(tokenProvider, ref)
+        } yield new OAuth2AuthenticationHttpRequestSender(sinkName, method, client, cachedTokenProvider, metrics)
+    }
 }
 
 abstract class HttpRequestSender(
   sinkName: String,
   method:   Method,
   client:   Client[IO],
+  metrics:  HttpSinkMetricsMBean,
 ) extends LazyLogging {
 
   private case class HeaderInfo(contentType: Option[`Content-Type`], headers: Headers)
@@ -160,8 +167,14 @@ abstract class HttpRequestSender(
       // Add authentication if present
       authenticatedRequest <- updateRequest(requestWithContentType)
       _                    <- IO.delay(logger.debug(s"[$sinkName] Auth: $authenticatedRequest"))
+      startTime            <- IO(System.nanoTime())
       response             <- executeRequestAndHandleErrors(authenticatedRequest)
-      _                    <- IO.delay(logger.trace(s"[$sinkName] Response: $response"))
+      //only record the request time if the request was successful
+      _ <- response.fold(
+        _ => IO.unit,
+        _ => IO(metrics.recordRequestTime((System.nanoTime() - startTime) / 1000000)),
+      )
+      _ <- IO.delay(logger.trace(s"[$sinkName] Response: $response"))
     } yield response
 
   implicit val optionStringDecoder: EntityDecoder[IO, Option[String]] =
@@ -188,8 +201,16 @@ abstract class HttpRequestSender(
       response.as[Option[String]].map {
         body =>
           if (response.status.isSuccess) {
+            metrics.increment2xxCount()
             HttpResponseSuccess(response.status.code, body).asRight[HttpResponseFailure]
           } else {
+            if (response.status.code >= 400 && response.status.code < 500) {
+              metrics.increment4xxCount()
+            } else if (response.status.code >= 500 && response.status.code < 600) {
+              metrics.increment5xxCount()
+            } else {
+              metrics.incrementOtherErrorsCount()
+            }
             HttpResponseFailure(
               message         = "Request failed with error response",
               cause           = Option.empty,

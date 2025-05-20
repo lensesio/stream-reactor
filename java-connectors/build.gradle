@@ -1,6 +1,6 @@
 plugins {
-    id 'com.gradleup.shadow' version '8.3.5'
-    id 'com.diffplug.spotless' version "6.25.0"
+    id 'com.gradleup.shadow' version '8.3.6'
+    id 'com.diffplug.spotless' version "7.0.3"
     id 'java'
     id 'java-library'
 }
@@ -24,7 +24,7 @@ allprojects {
     ext {
         //DEPENDENCY VERSIONS
         lombokVersion = '1.18.32'
-        kafkaVersion = '3.7.0'
+        kafkaVersion = '3.9.1'
         logbackVersion = '1.4.14'
         jUnitVersion = '5.9.1'
         mockitoJupiterVersion = '5.10.0'
@@ -42,8 +42,7 @@ allprojects {
         //for jar building
         rootRelease = "${project.rootDir}/release/"
         versionDir = "${rootRelease}/${project.description}-${project.version}"
-        confDir = "${versionDir}/conf"
-        libsDir = "${versionDir}/libs"
+        libsDir = "${rootRelease}/libs"
     }
 
     repositories {
@@ -54,31 +53,25 @@ allprojects {
     }
 
     dependencies {
-        //logback
         implementation group: 'ch.qos.logback', name: 'logback-classic', version: logbackVersion
 
-        //lombok
         compileOnly group: 'org.projectlombok', name: 'lombok', version: lombokVersion
         testCompileOnly group: 'org.projectlombok', name: 'lombok', version: lombokVersion
         annotationProcessor group: 'org.projectlombok', name: 'lombok', version: lombokVersion
         testAnnotationProcessor group: 'org.projectlombok', name: 'lombok', version: lombokVersion
 
-        // functional java
         implementation group: 'com.oath.cyclops', name: 'cyclops', version: cyclopsVersion
         implementation group: 'com.oath.cyclops', name: 'cyclops-pure', version: cyclopsVersion
 
-        //tests
         testImplementation group: 'org.mockito', name: 'mockito-core', version: mockitoJupiterVersion
         testImplementation group: 'org.mockito', name: 'mockito-junit-jupiter', version: mockitoJupiterVersion
         testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter', version: jUnitVersion
-        testImplementation group: 'org.assertj', name: 'assertj-core', version: '3.26.3'
+        testImplementation group: 'org.assertj', name: 'assertj-core', version: '3.27.3'
     }
 
     test {
         useJUnitPlatform()
-
         maxHeapSize = '1G'
-
         testLogging {
             events "passed"
         }
@@ -86,15 +79,16 @@ allprojects {
 
     jar {
         manifest {
-            attributes("StreamReactor-Version": project.version,
-            "Kafka-Version": kafkaVersion,
-            "Created-By": "Lenses",
-            "Created-At": new Date().format("YYYYMMDDHHmm"),
-            "Git-Repo": gitRepo,
-            "Git-Commit-Hash": gitCommitHash,
-            "Git-Tag": gitTag,
-            "StreamReactor-Docs": "https://docs.lenses.io/connectors/"
-            )
+            attributes(
+                    "StreamReactor-Version": project.version,
+                    "Kafka-Version": kafkaVersion,
+                    "Created-By": "Lenses",
+                    "Created-At": new Date().format("YYYYMMDDHHmm"),
+                    "Git-Repo": gitRepo,
+                    "Git-Commit-Hash": gitCommitHash,
+                    "Git-Tag": gitTag,
+                    "StreamReactor-Docs": "https://docs.lenses.io/connectors/"
+                    )
         }
     }
 
@@ -141,16 +135,11 @@ allprojects {
             //        exclude(dependency("com.google.guava:guava:28.1-android"))
         }
 
-
         spotless {
-
             format 'misc', {
-                // define the files to apply `misc` to
                 target '.gitattributes', '.gitignore'
-
-                // define the steps to apply to those files
                 trimTrailingWhitespace()
-                indentWithSpaces() // or spaces. Takes an integer argument if you don't like 4
+                indentWithSpaces()
                 endWithNewline()
             }
             groovyGradle {
@@ -187,7 +176,35 @@ allprojects {
         from("${buildDir}/libs").include("kafka-connect-*-all.jar")
                 .exclude("*-common-*").into(libsDir)
     }
+
+    task collectDependencies(type: Copy) {
+        from configurations.runtimeClasspath
+        into "${libsDir}/${project.name}"
+        exclude {
+            it.file.name.contains('log4j-core') ||
+                    it.file.name.startsWith('kafka-') ||
+                    it.file.name.startsWith('zookeeper-')
+        }
+    }
+
+    task copyModuleJar(type: Copy, dependsOn: jar) {
+        from jar.archiveFile
+        into "${libsDir}/${project.name}"
+        rename { filename ->
+            def artifactVersion = gitTag?.trim() ? gitTag : project.version
+            "${project.name}-${artifactVersion}.jar"
+        }
+    }
+
+    task collectArtifacts(dependsOn: [
+        test,
+        collectDependencies,
+        copyModuleJar
+    ])
 }
+
+
+task prepareReleaseRaw(dependsOn: subprojects.collectArtifacts)
 
 task prepareRelease(dependsOn: [collectFatJar]) {
     dependsOn subprojects.collectFatJar
@@ -195,11 +212,9 @@ task prepareRelease(dependsOn: [collectFatJar]) {
 
 task testModuleList() {
     def nonTestModules = ["java-reactor"]
-
     def modulesFile = new File("gradle-test-modules.txt")
     modulesFile.delete()
     modulesFile.createNewFile()
-
     def modulesBuilder = new StringBuilder("[")
     allprojects.name.stream()
             .filter { moduleName -> !nonTestModules.contains(moduleName) }
@@ -218,11 +233,9 @@ task releaseModuleList() {
         "kafka-connect-query-language",
         "kafka-connect-sink-reporting"
     ]
-
     def modulesFile = new File("gradle-modules.txt")
     modulesFile.delete()
     modulesFile.createNewFile()
-
     def modulesBuilder = new StringBuilder("[")
     allprojects.name.stream()
             .filter { moduleName -> !nonReleaseModules.contains(moduleName) }

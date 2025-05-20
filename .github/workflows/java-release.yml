@@ -79,8 +79,8 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: |
-            ./java-connectors/release/${{ matrix.module }}*.jar
-          key: assembly-java-${{ github.run_id }}
+            ./java-connectors/release/libs/${{ matrix.module }}/*.jar
+          key: assembly-java-all-${{ github.run_id }}
           fail-on-cache-miss: true
       - name: Install Antivirus Software
         run: |

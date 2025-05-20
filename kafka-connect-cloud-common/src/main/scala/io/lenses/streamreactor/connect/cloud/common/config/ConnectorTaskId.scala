@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2024 Lenses.io Ltd
+ * Copyright 2017-2025 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,15 +15,20 @@
  */
 package io.lenses.streamreactor.connect.cloud.common.config
 
+import java.util.UUID
 import cats.Show
 import cats.implicits.toBifunctorOps
 import io.lenses.streamreactor.common.config.base.traits.WithConnectorPrefix
 import io.lenses.streamreactor.connect.cloud.common.source.config.distribution.PartitionHasher
 
 case class ConnectorTaskId(name: String, maxTasks: Int, taskNo: Int) {
+
+  val lockUuid: String = UUID.randomUUID().toString
+
   def ownsDir(dirPath: String): Boolean =
     if (maxTasks == 1) true
     else PartitionHasher.hash(maxTasks, dirPath) == taskNo
+
 }
 
 trait TaskIndexKey extends WithConnectorPrefix {
