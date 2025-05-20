@@ -51,11 +51,7 @@ class BucketSetup(implicit storageInterface: StorageInterface[S3FileMetadata]) e
     bucketName: String,
     pathName:   String,
   ): Unit = {
-    storageInterface.writeStringToFile(
-      bucketName,
-      pathName,
-      UploadableString("someData"),
-    )
+    storageInterface.writeStringToFile(bucketName, pathName, UploadableString("someData"))
     ()
   }
 

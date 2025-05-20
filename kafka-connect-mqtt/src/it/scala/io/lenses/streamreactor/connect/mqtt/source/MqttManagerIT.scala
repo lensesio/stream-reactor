@@ -47,7 +47,7 @@ import java.util
 import java.util.UUID
 import scala.jdk.CollectionConverters.ListHasAsScala
 
-class MqttManagerTest extends AnyWordSpec with ForAllTestContainer with Matchers with StrictLogging {
+class MqttManagerIT extends AnyWordSpec with ForAllTestContainer with Matchers with StrictLogging {
 
   private val mqttPort = 1883
 
