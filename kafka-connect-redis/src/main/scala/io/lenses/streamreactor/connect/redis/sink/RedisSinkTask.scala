@@ -36,19 +36,19 @@ import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.jdk.CollectionConverters.MapHasAsScala
 
 /**
-  * <h1>RedisSinkTask</h1>
-  *
-  * Kafka Connect Redis sink task. Called by framework to put records to the
-  * target sink
-  */
+ * <h1>RedisSinkTask</h1>
+ *
+ * Kafka Connect Redis sink task. Called by framework to put records to the
+ * target sink
+ */
 class RedisSinkTask extends SinkTask with StrictLogging with JarManifestProvided {
   var writer: List[DbWriter] = List[DbWriter]()
   private val progressCounter = new ProgressCounter
   private var enableProgress: Boolean = false
 
   /**
-    * Parse the configurations and setup the writer
-    */
+   * Parse the configurations and setup the writer
+   */
   override def start(props: util.Map[String, String]): Unit = {
 
     printAsciiHeader(manifest, "/redis-ascii.txt")
@@ -115,14 +115,14 @@ class RedisSinkTask extends SinkTask with StrictLogging with JarManifestProvided
   }
 
   /**
-    * Construct a RedisSinkSettings object containing all the kcqlConfigs that use the Cache mode.
-    * This function will filter by the absence of the "STOREAS" keyword and the presence of primary keys.
-    *
-    * KCQL Example: INSERT INTO cache SELECT price FROM yahoo-fx PK symbol
-    *
-    * @param settings The RedisSinkSettings containing all kcqlConfigs.
-    * @return A RedisSinkSettings object containing only the kcqlConfigs that use the Cache mode.
-    */
+   * Construct a RedisSinkSettings object containing all the kcqlConfigs that use the Cache mode.
+   * This function will filter by the absence of the "STOREAS" keyword and the presence of primary keys.
+   *
+   * KCQL Example: INSERT INTO cache SELECT price FROM yahoo-fx PK symbol
+   *
+   * @param settings The RedisSinkSettings containing all kcqlConfigs.
+   * @return A RedisSinkSettings object containing only the kcqlConfigs that use the Cache mode.
+   */
   def filterModeCache(settings: RedisSinkSettings): RedisSinkSettings = settings.copy(kcqlSettings =
     settings.kcqlSettings
       .filter(k =>
@@ -132,14 +132,14 @@ class RedisSinkTask extends SinkTask with StrictLogging with JarManifestProvided
   )
 
   /**
-    * Construct a RedisSinkSettings object containing all the kcqlConfigs that use the Sorted Set mode.
-    * This function will filter by the presence of the "STOREAS" keyword and a target, as well as the absence of primary keys.
-    *
-    * KCQL Example: INSERT INTO cpu_stats SELECT * FROM cpuTopic STOREAS SortedSet(score=timestamp)
-    *
-    * @param settings The RedisSinkSettings containing all kcqlConfigs.
-    * @return A RedisSinkSettings object containing only the kcqlConfigs that use the Sorted Set mode.
-    */
+   * Construct a RedisSinkSettings object containing all the kcqlConfigs that use the Sorted Set mode.
+   * This function will filter by the presence of the "STOREAS" keyword and a target, as well as the absence of primary keys.
+   *
+   * KCQL Example: INSERT INTO cpu_stats SELECT * FROM cpuTopic STOREAS SortedSet(score=timestamp)
+   *
+   * @param settings The RedisSinkSettings containing all kcqlConfigs.
+   * @return A RedisSinkSettings object containing only the kcqlConfigs that use the Sorted Set mode.
+   */
   def filterModeInsertSS(settings: RedisSinkSettings): RedisSinkSettings = settings.copy(
     kcqlSettings =
       settings.kcqlSettings
@@ -151,14 +151,14 @@ class RedisSinkTask extends SinkTask with StrictLogging with JarManifestProvided
   )
 
   /**
-    * Construct a RedisSinkSettings object containing all the kcqlConfigs that use the PubSub mode.
-    * This function will filter by the presence of the "STOREAS" keyword and a target, as well as the absence of primary keys.
-    *
-    * KCQL Example: SELECT * FROM cpuTopic STOREAS PubSub (channel=channel)
-    *
-    * @param settings The RedisSinkSettings containing all kcqlConfigs.
-    * @return A RedisSinkSettings object containing only the kcqlConfigs that use the PubSub mode.
-    */
+   * Construct a RedisSinkSettings object containing all the kcqlConfigs that use the PubSub mode.
+   * This function will filter by the presence of the "STOREAS" keyword and a target, as well as the absence of primary keys.
+   *
+   * KCQL Example: SELECT * FROM cpuTopic STOREAS PubSub (channel=channel)
+   *
+   * @param settings The RedisSinkSettings containing all kcqlConfigs.
+   * @return A RedisSinkSettings object containing only the kcqlConfigs that use the PubSub mode.
+   */
   def filterModePubSub(settings: RedisSinkSettings): RedisSinkSettings = settings.copy(
     kcqlSettings =
       settings.kcqlSettings
@@ -169,14 +169,14 @@ class RedisSinkTask extends SinkTask with StrictLogging with JarManifestProvided
   )
 
   /**
-    * Constructs a RedisSinkSettings object containing all the kcqlConfigs that use the Multiple Sorted Sets mode.
-    * This function will filter by the presence of the "STOREAS" keyword and the presence of primary keys.
-    *
-    * KCQL Example: SELECT temperature, humidity FROM sensorsTopic PK sensorID STOREAS SortedSet(score=timestamp)
-    *
-    * @param settings The RedisSinkSettings containing all kcqlConfigs.
-    * @return A RedisSinkSettings object containing only the kcqlConfigs that use the Multiple Sorted Sets mode.
-    */
+   * Constructs a RedisSinkSettings object containing all the kcqlConfigs that use the Multiple Sorted Sets mode.
+   * This function will filter by the presence of the "STOREAS" keyword and the presence of primary keys.
+   *
+   * KCQL Example: SELECT temperature, humidity FROM sensorsTopic PK sensorID STOREAS SortedSet(score=timestamp)
+   *
+   * @param settings The RedisSinkSettings containing all kcqlConfigs.
+   * @return A RedisSinkSettings object containing only the kcqlConfigs that use the Multiple Sorted Sets mode.
+   */
   def filterModePKSS(settings: RedisSinkSettings): RedisSinkSettings = settings.copy(
     kcqlSettings =
       settings.kcqlSettings
@@ -187,15 +187,15 @@ class RedisSinkTask extends SinkTask with StrictLogging with JarManifestProvided
   )
 
   /**
-    * Constructs a RedisSinkSettings object containing all the kcqlConfigs that use the Geo Add mode.
-    * This function will filter by the presence of the "STOREAS" keyword and the presence of primary keys.
-    *
-    * KCQL Example: SELECT town, country, longitude, latitude FROM addressTopic PK country
-    * STOREAS GeoAdd (longitudeField=longitude,latitudeField=latitude)
-    *
-    * @param settings The RedisSinkSettings containing all kcqlConfigs.
-    * @return A RedisSinkSettings object containing only the kcqlConfigs that use the Geo Add mode.
-    */
+   * Constructs a RedisSinkSettings object containing all the kcqlConfigs that use the Geo Add mode.
+   * This function will filter by the presence of the "STOREAS" keyword and the presence of primary keys.
+   *
+   * KCQL Example: SELECT town, country, longitude, latitude FROM addressTopic PK country
+   * STOREAS GeoAdd (longitudeField=longitude,latitudeField=latitude)
+   *
+   * @param settings The RedisSinkSettings containing all kcqlConfigs.
+   * @return A RedisSinkSettings object containing only the kcqlConfigs that use the Geo Add mode.
+   */
   def filterGeoAddMode(settings: RedisSinkSettings): RedisSinkSettings = settings.copy(
     kcqlSettings =
       settings.kcqlSettings
@@ -213,8 +213,8 @@ class RedisSinkTask extends SinkTask with StrictLogging with JarManifestProvided
   )
 
   /**
-    * Pass the SinkRecords to the writer for Writing
-    */
+   * Pass the SinkRecords to the writer for Writing
+   */
   override def put(records: util.Collection[SinkRecord]): Unit =
     if (records.isEmpty) {
       logger.info("Empty list of records received.")
@@ -229,8 +229,8 @@ class RedisSinkTask extends SinkTask with StrictLogging with JarManifestProvided
     }
 
   /**
-    * Clean up Cassandra connections
-    */
+   * Clean up Cassandra connections
+   */
   override def stop(): Unit = {
     logger.info("Stopping Redis sink.")
     writer.foreach(w => w.close())

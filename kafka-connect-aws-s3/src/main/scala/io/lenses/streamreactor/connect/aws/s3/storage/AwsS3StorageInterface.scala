@@ -412,10 +412,10 @@ class AwsS3StorageInterface(
       .orElse(getMetadata(bucket, fileName).map(oMeta => S3FileMetadata(fileName, oMeta.lastModified)).toOption)
 
   /**
-    * Gets the system name for use in log messages.
-    *
-    * @return
-    */
+   * Gets the system name for use in log messages.
+   *
+   * @return
+   */
   override def system(): String = "S3"
 
   override def mvFile(
@@ -453,13 +453,13 @@ class AwsS3StorageInterface(
   }
 
   /**
-    * Creates a directory in the specified S3 bucket if it does not already exist.
-    *
-    * @param bucket The name of the S3 bucket.
-    * @param path The path of the directory to create.
-    * @return Either a FileCreateError if the directory could not be created,
-    *         or Unit if the directory was created successfully or already exists.
-    */
+   * Creates a directory in the specified S3 bucket if it does not already exist.
+   *
+   * @param bucket The name of the S3 bucket.
+   * @param path The path of the directory to create.
+   * @return Either a FileCreateError if the directory could not be created,
+   *         or Unit if the directory was created successfully or already exists.
+   */
   override def createDirectoryIfNotExists(bucket: String, path: String): Either[FileCreateError, Unit] = Try {
     def ensureEndsWithSlash(input: String): String =
       if (input.endsWith("/")) input else input + "/"

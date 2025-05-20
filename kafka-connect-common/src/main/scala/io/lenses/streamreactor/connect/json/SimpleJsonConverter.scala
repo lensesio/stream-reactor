@@ -39,23 +39,24 @@ import scala.jdk.CollectionConverters.CollectionHasAsScala
 import scala.jdk.CollectionConverters.MapHasAsScala
 
 /**
-  * Implementation of Converter that uses JSON to store schemas and objects.
-  */
+ * Implementation of Converter that uses JSON to store schemas and objects.
+ */
 object SimpleJsonConverter {
 
   private val ISO_DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-d'T'HH:mm:ss.SSS'Z'").withZone(ZoneId.of("UTC"))
   private val TIME_FORMAT     = DateTimeFormatter.ofPattern("HH:mm:ss.SSSZ").withZone(ZoneId.systemDefault())
 
   /**
-    * Convert this object, in the org.apache.kafka.connect.data format, into a JSON object, returning both the schema
-    * and the converted object.
-    */
+   * Convert this object, in the org.apache.kafka.connect.data format, into a JSON object, returning both the schema
+   * and the converted object.
+   */
   private def convertToJson(schema: Schema, logicalValue: Any): JsonNode =
     convertToJsonInner(Option(schema), Option(logicalValue)).orNull
 
   private def convertToJsonInner(maybeSchema: Option[Schema], maybeLogicalValue: Option[Any]): Option[JsonNode] =
     maybeLogicalValue match {
-      case Some(logicalValue) => try {
+      case Some(logicalValue) =>
+        try {
           extractSchemaType(logicalValue, maybeSchema) match {
             case INT8 =>
               JsonNodeFactory.instance.numberNode(logicalValue.asInstanceOf[Byte]).some
@@ -147,7 +148,8 @@ object SimpleJsonConverter {
       case None =>
         maybeSchema match {
           case None => Option.empty
-          case Some(schema) => if (schema.defaultValue != null) return Some(convertToJson(schema, schema.defaultValue))
+          case Some(schema) =>
+            if (schema.defaultValue != null) return Some(convertToJson(schema, schema.defaultValue))
             if (schema.isOptional) return Some(JsonNodeFactory.instance.nullNode)
             throw new DataException("Conversion error: null value for field that is required and has no default value")
         }

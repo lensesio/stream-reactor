@@ -105,13 +105,13 @@ object MongoSettings extends StrictLogging {
   }
 
   /**
-    * Parse out the jsonDateTimeFields list into the structure we need, which is
-    * a Set of field 'paths'; ie. :
-    *    Set(
-    *      Seq("top-level-field"),
-    *      Seq("top-level-parent", "child1", "child2", "fieldname"),
-    *    )
-    */
+   * Parse out the jsonDateTimeFields list into the structure we need, which is
+   * a Set of field 'paths'; ie. :
+   *    Set(
+   *      Seq("top-level-field"),
+   *      Seq("top-level-parent", "child1", "child2", "fieldname"),
+   *    )
+   */
   private def getJsonDateTimeFields(config: MongoConfig): Set[Seq[String]] = {
     val set: Set[Seq[String]] =
       config.getList(MongoConfigConstants.JSON_DATETIME_FIELDS_CONFIG).asScala.map { fullName =>

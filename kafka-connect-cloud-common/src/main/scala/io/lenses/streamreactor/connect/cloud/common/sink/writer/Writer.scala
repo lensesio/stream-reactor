@@ -98,11 +98,8 @@ class Writer[SM <: FileMetadata](
         val writingStateEither = for {
           file         <- stagingFilenameFn()
           formatWriter <- formatWriterFn(file)
-          writingState <- noWriter.toWriting(formatWriter,
-                                             file,
-                                             messageDetail.offset,
-                                             messageDetail.epochTimestamp,
-          ).asRight
+          writingState <-
+            noWriter.toWriting(formatWriter, file, messageDetail.offset, messageDetail.epochTimestamp).asRight
         } yield writingState
         writingStateEither.flatMap { writingState =>
           writeState = writingState
@@ -201,11 +198,11 @@ class Writer[SM <: FileMetadata](
     }
 
   /**
-    * If the offsets provided by Kafka Connect have already been processed, then they must be skipped to avoid duplicate records and protect the integrity of the data files.
-    *
-    * @param currentOffset the current offset
-    * @return true if the given offset should be skipped, false otherwise
-    */
+   * If the offsets provided by Kafka Connect have already been processed, then they must be skipped to avoid duplicate records and protect the integrity of the data files.
+   *
+   * @param currentOffset the current offset
+   * @return true if the given offset should be skipped, false otherwise
+   */
   def shouldSkip(currentOffset: Offset): Boolean =
     if (!indexManager.indexingEnabled) false
     else {
@@ -228,13 +225,14 @@ class Writer[SM <: FileMetadata](
           )
         }
 
-        val shouldSkip = if (latestOffset.isEmpty) {
-          false
-        } else if (latestOffset.exists(_ >= currentOffset)) {
-          true
-        } else {
-          false
-        }
+        val shouldSkip =
+          if (latestOffset.isEmpty) {
+            false
+          } else if (latestOffset.exists(_ >= currentOffset)) {
+            true
+          } else {
+            false
+          }
         logSkipOutcome(currentOffset, latestOffset, skipRecord = shouldSkip)
         shouldSkip
       }

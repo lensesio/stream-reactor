@@ -33,9 +33,9 @@ import scala.jdk.CollectionConverters.IterableHasAsScala
 import scala.jdk.CollectionConverters.MapHasAsScala
 
 /**
-  * Created by andrew@datamountaineer.com on 27/08/2017.
-  * stream-reactor
-  */
+ * Created by andrew@datamountaineer.com on 27/08/2017.
+ * stream-reactor
+ */
 class MqttSinkTask extends SinkTask with StrictLogging with JarManifestProvided {
   private val progressCounter = new ProgressCounter
   private var enableProgress: Boolean            = false
@@ -76,8 +76,8 @@ class MqttSinkTask extends SinkTask with StrictLogging with JarManifestProvided 
   }
 
   /**
-    * Clean up writer
-    */
+   * Clean up writer
+   */
   override def stop(): Unit = {
     logger.info("Stopping Mqtt sink.")
     writer.foreach(w => w.close())

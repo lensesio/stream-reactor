@@ -18,22 +18,22 @@ package io.lenses.streamreactor.connect.io.text
 import java.io.InputStream
 
 /**
-  * Read the input stream and uses a sequence number to identify the line. A line returned by the reader
-  * can correspond to multiple lines in the underlying input. Consider this example input stream content
-  *
-  * {{{
-  * header line
-  * second header line
-  * 1 first line
-  * 2 second line
-  * second line continued
-  * 3 third line
-  *
-  * 4 fourth line
-  * }}}
-  * returns 4 lines
-  * @param input
-  */
+ * Read the input stream and uses a sequence number to identify the line. A line returned by the reader
+ * can correspond to multiple lines in the underlying input. Consider this example input stream content
+ *
+ * {{{
+ * header line
+ * second header line
+ * 1 first line
+ * 2 second line
+ * second line continued
+ * 3 third line
+ *
+ * 4 fourth line
+ * }}}
+ * returns 4 lines
+ * @param input
+ */
 class SequenceBasedLineReader(input: InputStream) extends LineReader {
   private val br           = new java.io.BufferedReader(new java.io.InputStreamReader(input))
   private var currentIndex = -1
@@ -76,8 +76,8 @@ class SequenceBasedLineReader(input: InputStream) extends LineReader {
   }
 
   /**
-    * Read to first sequence number and return the line.
-    */
+   * Read to first sequence number and return the line.
+   */
   private def readUntilFirstIndexOrNone(): Option[String] = {
     var line = br.readLine()
     while (line != null && !line.startsWith("1")) {

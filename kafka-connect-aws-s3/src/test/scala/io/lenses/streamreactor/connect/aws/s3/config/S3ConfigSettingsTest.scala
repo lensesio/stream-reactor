@@ -24,10 +24,10 @@ import org.scalatest.matchers.should.Matchers
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 
 /**
-  * Reads the constants in the S3ConfigSettings class and ensures that they are
-  * all lower cased for consistency.  This will help protect for regressions in
-  * future when adding new properties to this file.  Uses reflection.
-  */
+ * Reads the constants in the S3ConfigSettings class and ensures that they are
+ * all lower cased for consistency.  This will help protect for regressions in
+ * future when adding new properties to this file.  Uses reflection.
+ */
 class S3ConfigSettingsTest extends AnyFlatSpec with Matchers with LazyLogging {
 
   "S3ConfigSettings" should "ensure all keys are lower case" in {

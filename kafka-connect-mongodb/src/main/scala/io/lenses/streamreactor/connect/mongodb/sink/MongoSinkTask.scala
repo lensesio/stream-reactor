@@ -35,11 +35,11 @@ import scala.util.Success
 import scala.util.Try
 
 /**
-  * <h1>MongoSinkTask</h1>
-  *
-  * Kafka Connect Mongo DB sink task. Called by
-  * framework to put records to the target sink
-  */
+ * <h1>MongoSinkTask</h1>
+ *
+ * Kafka Connect Mongo DB sink task. Called by
+ * framework to put records to the target sink
+ */
 class MongoSinkTask extends SinkTask with StrictLogging with JarManifestProvided {
   private var writer: Option[MongoWriter] = None
 
@@ -49,8 +49,8 @@ class MongoSinkTask extends SinkTask with StrictLogging with JarManifestProvided
   logger.info("Task initialising")
 
   /**
-    * Parse the configurations and setup the writer
-    */
+   * Parse the configurations and setup the writer
+   */
   override def start(props: util.Map[String, String]): Unit = {
 
     val conf = if (context.configs().isEmpty) props else context.configs()
@@ -67,8 +67,8 @@ class MongoSinkTask extends SinkTask with StrictLogging with JarManifestProvided
   }
 
   /**
-    * Pass the SinkRecords to the mongo db writer for storing them
-    */
+   * Pass the SinkRecords to the mongo db writer for storing them
+   */
   override def put(records: util.Collection[SinkRecord]): Unit = {
     require(writer.nonEmpty, "Writer is not set!")
     val seq = records.asScala.toVector

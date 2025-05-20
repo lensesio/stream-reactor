@@ -27,8 +27,8 @@ import java.util.Collections
 import scala.jdk.CollectionConverters.ListHasAsScala
 
 /**
-  * Experimental
-  */
+ * Experimental
+ */
 class JsonConverterWithSchemaEvolution extends Converter {
   private val avroData = new AvroData(4)
   implicit private var latestSchema: Option[Schema] = None

@@ -278,10 +278,10 @@ object JMSConfig {
 }
 
 /**
-  * <h1>JMSSinkConfig</h1>
-  *
-  * Holds config, extends AbstractConfig.
-  */
+ * <h1>JMSSinkConfig</h1>
+ *
+ * Holds config, extends AbstractConfig.
+ */
 case class JMSConfig(props: Map[String, String])
     extends BaseConfig(JMSConfigConstants.CONNECTOR_PREFIX, JMSConfig.config, props)
     with KcqlWithFieldsSettings

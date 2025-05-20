@@ -19,22 +19,22 @@ import com.typesafe.scalalogging.LazyLogging
 import com.typesafe.scalalogging.Logger
 
 /**
-  * The [[CommitPolicy]] is responsible for determining when
-  * a sink partition (a single file) should be flushed (closed on disk, and moved to be visible).
-  *
-  * By default, it flushes based on configurable conditions such as number of records, file size,
-  * or time since the file was last flushed.
-  *
-  * @param conditions the conditions to evaluate for flushing the partition
-  */
+ * The [[CommitPolicy]] is responsible for determining when
+ * a sink partition (a single file) should be flushed (closed on disk, and moved to be visible).
+ *
+ * By default, it flushes based on configurable conditions such as number of records, file size,
+ * or time since the file was last flushed.
+ *
+ * @param conditions the conditions to evaluate for flushing the partition
+ */
 case class CommitPolicy(logger: Logger, conditions: CommitPolicyCondition*) {
 
   /**
-    * Checks if the output file should be flushed based on the provided `CommitContext`.
-    *
-    * @param context the commit context
-    * @return true if the partition should be flushed, false otherwise
-    */
+   * Checks if the output file should be flushed based on the provided `CommitContext`.
+   *
+   * @param context the commit context
+   * @return true if the partition should be flushed, false otherwise
+   */
   def shouldFlush(context: CommitContext): Boolean = {
     val res = conditions.map(_.eval(context, true))
     val flush = res.exists {

@@ -27,9 +27,9 @@ import org.apache.kafka.common.config.ConfigException
 import scala.util.Try
 
 /**
-  * The ConverterClassLoader is responsible for loading and initialising converters.
-  * @tparam C supertype of the resultant converter
-  */
+ * The ConverterClassLoader is responsible for loading and initialising converters.
+ * @tparam C supertype of the resultant converter
+ */
 trait ConverterClassLoader[C <: JMSMessageConverter] extends LazyLogging {
 
   def load(className: String, props: Map[String, String]): Either[ConfigException, C] = {

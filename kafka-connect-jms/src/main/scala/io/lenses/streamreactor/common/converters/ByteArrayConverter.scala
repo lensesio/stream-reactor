@@ -23,8 +23,8 @@ import org.apache.kafka.connect.storage.Converter
 import java.util
 
 /**
-  * Pass-through converter for raw byte data.
-  */
+ * Pass-through converter for raw byte data.
+ */
 class ByteArrayConverter extends Converter {
   override def configure(configs: util.Map[String, _], isKey: Boolean): Unit = {}
   override def fromConnectData(topic: String, schema: Schema, value: AnyRef): Array[Byte] = {

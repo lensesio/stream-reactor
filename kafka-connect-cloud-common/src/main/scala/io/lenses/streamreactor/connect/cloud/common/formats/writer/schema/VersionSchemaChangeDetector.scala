@@ -18,17 +18,17 @@ package io.lenses.streamreactor.connect.cloud.common.formats.writer.schema
 import org.apache.kafka.connect.data.{ Schema => ConnectSchema }
 
 /**
-  * Implementation of SchemaChangeDetector that detects schema changes based on version numbers.
-  */
+ * Implementation of SchemaChangeDetector that detects schema changes based on version numbers.
+ */
 object VersionSchemaChangeDetector extends SchemaChangeDetector {
 
   /**
-    * Compares the version of the old schema with the version of the new schema.
-    *
-    * @param oldSchema The old schema.
-    * @param newSchema The new schema.
-    * @return True if the new schema's version is greater than the old schema's version, false otherwise.
-    */
+   * Compares the version of the old schema with the version of the new schema.
+   *
+   * @param oldSchema The old schema.
+   * @param newSchema The new schema.
+   * @return True if the new schema's version is greater than the old schema's version, false otherwise.
+   */
   override def detectSchemaChange(oldSchema: ConnectSchema, newSchema: ConnectSchema): Boolean = {
 
     val oldName = oldSchema.name()

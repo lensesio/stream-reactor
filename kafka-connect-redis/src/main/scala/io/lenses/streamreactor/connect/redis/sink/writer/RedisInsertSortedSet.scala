@@ -32,18 +32,18 @@ import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.util.Try
 
 /**
-  * A generic Redis `writer` that can store data into 1 Sorted Set / KCQL
-  *
-  * Requires KCQL syntax:   INSERT .. SELECT .. STOREAS SortedSet
-  *
-  * If a field <timestamp> exists it will automatically be used to `score` each value inside the (sorted) set
-  * Otherwise you would need to explicitly define how the values will be scored
-  *
-  * Examples:
-  *
-  * INSERT INTO cpu_stats SELECT * from cpuTopic STOREAS SortedSet
-  * INSERT INTO cpu_stats_SS SELECT * from cpuTopic STOREAS SortedSet (score=ts)
-  */
+ * A generic Redis `writer` that can store data into 1 Sorted Set / KCQL
+ *
+ * Requires KCQL syntax:   INSERT .. SELECT .. STOREAS SortedSet
+ *
+ * If a field <timestamp> exists it will automatically be used to `score` each value inside the (sorted) set
+ * Otherwise you would need to explicitly define how the values will be scored
+ *
+ * Examples:
+ *
+ * INSERT INTO cpu_stats SELECT * from cpuTopic STOREAS SortedSet
+ * INSERT INTO cpu_stats_SS SELECT * from cpuTopic STOREAS SortedSet (score=ts)
+ */
 class RedisInsertSortedSet(sinkSettings: RedisSinkSettings, jedis: Jedis)
     extends DbWriter
     with StrictLogging
@@ -92,7 +92,8 @@ class RedisInsertSortedSet(sinkSettings: RedisSinkSettings, jedis: Jedis)
   def insert(records: Map[String, Seq[SinkRecord]]): Unit =
     records.foreach(
       {
-        case (topic, sinkRecords: Seq[SinkRecord]) => {
+        case (topic, sinkRecords: Seq[SinkRecord]) =>
+          {
             val topicSettings: Set[RedisKCQLSetting] = sinkSettings.kcqlSettings.filter(_.kcqlConfig.getSource == topic)
             if (topicSettings.isEmpty)
               logger.warn(s"No KCQL statement set for [$topic]")

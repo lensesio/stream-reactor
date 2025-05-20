@@ -24,8 +24,8 @@ import org.apache.kafka.common.config.ConfigDef.Importance
 import org.apache.kafka.common.config.ConfigDef.Type
 
 /**
-  * Retrieves Padding settings from KCQL
-  */
+ * Retrieves Padding settings from KCQL
+ */
 trait PaddingStrategyConfigKeys extends WithConnectorPrefix {
 
   val PADDING_STRATEGY = s"$connectorPrefix.padding.strategy"

@@ -30,9 +30,9 @@ import scala.jdk.CollectionConverters.MapHasAsScala
 import scala.jdk.CollectionConverters.SeqHasAsJava
 
 /**
-  * Created by andrew@datamountaineer.com on 28/08/2017.
-  * stream-reactor
-  */
+ * Created by andrew@datamountaineer.com on 28/08/2017.
+ * stream-reactor
+ */
 class MqttSinkConnector extends SinkConnector with StrictLogging with JarManifestProvided {
   private val configDef = MqttSinkConfig.config
   private var configProps: Option[util.Map[String, String]] = None

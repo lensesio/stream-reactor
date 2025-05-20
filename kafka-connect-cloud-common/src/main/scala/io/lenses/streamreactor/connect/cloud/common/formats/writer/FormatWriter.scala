@@ -62,10 +62,10 @@ object FormatWriter {
 trait FormatWriter extends AutoCloseable {
 
   /**
-    * Determines if the file should be rolled over when a schema change is detected.
-    *
-    * @return True if the file should be rolled over on schema change, false otherwise.
-    */
+   * Determines if the file should be rolled over when a schema change is detected.
+   *
+   * @return True if the file should be rolled over on schema change, false otherwise.
+   */
   def rolloverFileOnSchemaChange(): Boolean
 
   def write(message: MessageDetail): Either[Throwable, Unit]

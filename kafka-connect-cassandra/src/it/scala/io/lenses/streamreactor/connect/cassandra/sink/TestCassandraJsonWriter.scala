@@ -48,9 +48,9 @@ import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.jdk.CollectionConverters.SeqHasAsJava
 
 /**
-  * Created by andrew@datamountaineer.com on 04/05/16.
-  * stream-reactor
-  */
+ * Created by andrew@datamountaineer.com on 04/05/16.
+ * stream-reactor
+ */
 @DoNotDiscover
 class TestCassandraJsonWriter
     extends AnyWordSpec

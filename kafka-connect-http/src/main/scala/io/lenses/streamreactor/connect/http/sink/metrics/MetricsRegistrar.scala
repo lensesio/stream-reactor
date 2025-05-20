@@ -24,10 +24,10 @@ object MetricsRegistrar {
   val NameTemplate = "io.lenses.streamreactor.connect.http.sink:type=metrics,name=%s,task=%d"
 
   /**
-    * Register the metrics MBean exposing the count on 200, 400, 500 and other response codes as well as the http request time percentiles
-    * @param metrics
-    * @param sinkName
-    */
+   * Register the metrics MBean exposing the count on 200, 400, 500 and other response codes as well as the http request time percentiles
+   * @param metrics
+   * @param sinkName
+   */
   def registerMetricsMBean(metrics: HttpSinkMetricsMBean, sinkName: String, taskNumber: Int): Unit = {
     val mbs: MBeanServer = ManagementFactory.getPlatformMBeanServer
     val objectName =

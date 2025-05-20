@@ -76,11 +76,12 @@ class GCPStorageStorageInterface(
       eTag <- Try {
         val blobId   = BlobId.of(bucket, path)
         val blobInfo = BlobInfo.newBuilder(blobId).build()
-        val blob = if (avoidReumableUpload) {
-          storage.create(blobInfo, Files.readAllBytes(file.toPath))
-        } else {
-          storage.createFrom(blobInfo, file.toPath)
-        }
+        val blob =
+          if (avoidReumableUpload) {
+            storage.create(blobInfo, Files.readAllBytes(file.toPath))
+          } else {
+            storage.createFrom(blobInfo, file.toPath)
+          }
         logger.debug(s"[{}] Completed upload from local {} to Storage {}:{}",
                      connectorTaskId.show,
                      source,
@@ -316,8 +317,8 @@ class GCPStorageStorageInterface(
     def filter(extensionFilter: ExtensionFilter, t: T): Boolean
   }
 
-  implicit val stringFilterable: Filterable[String] = (extensionFilter: ExtensionFilter, t: String) =>
-    extensionFilter.filter(t)
+  implicit val stringFilterable: Filterable[String] =
+    (extensionFilter: ExtensionFilter, t: String) => extensionFilter.filter(t)
 
   implicit val metadataFilterable: Filterable[GCPStorageFileMetadata] =
     (extensionFilter: ExtensionFilter, t: GCPStorageFileMetadata) => extensionFilter.filter(t.file)
@@ -373,10 +374,10 @@ class GCPStorageStorageInterface(
       .orElse(getMetadata(bucket, fileName).map(oMeta => GCPStorageFileMetadata(fileName, oMeta.lastModified)).toOption)
 
   /**
-    * Gets the system name for use in log messages.
-    *
-    * @return
-    */
+   * Gets the system name for use in log messages.
+   *
+   * @return
+   */
   override def system(): String = "GCP Storage"
 
   override def mvFile(
@@ -416,13 +417,13 @@ class GCPStorageStorageInterface(
   }
 
   /**
-    * Decides the precondition for moving a blob based on the existence of the destination blob.
-    *
-    * @param destinationBlob An optional Blob object representing the destination blob.
-    * @return A Storage.BlobTargetOption indicating the precondition for the move operation.
-    *         If the destination blob does not exist, returns Storage.BlobTargetOption.doesNotExist().
-    *         If the destination blob exists, returns Storage.BlobTargetOption.generationMatch() with the blob's generation.
-    */
+   * Decides the precondition for moving a blob based on the existence of the destination blob.
+   *
+   * @param destinationBlob An optional Blob object representing the destination blob.
+   * @return A Storage.BlobTargetOption indicating the precondition for the move operation.
+   *         If the destination blob does not exist, returns Storage.BlobTargetOption.doesNotExist().
+   *         If the destination blob exists, returns Storage.BlobTargetOption.generationMatch() with the blob's generation.
+   */
   private def decideMovePrecondition(destinationBlob: Option[Blob]): Storage.BlobTargetOption =
     destinationBlob match {
       case None =>

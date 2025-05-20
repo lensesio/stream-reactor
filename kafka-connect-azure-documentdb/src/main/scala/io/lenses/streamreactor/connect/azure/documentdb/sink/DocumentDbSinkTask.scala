@@ -35,11 +35,11 @@ import scala.util.Success
 import scala.util.Try
 
 /**
-  * <h1>DocumentSinkTask</h1>
-  *
-  * Kafka Connect Azure Document DB sink task. Called by
-  * framework to put records to the target sink
-  */
+ * <h1>DocumentSinkTask</h1>
+ *
+ * Kafka Connect Azure Document DB sink task. Called by
+ * framework to put records to the target sink
+ */
 class DocumentDbSinkTask extends SinkTask with StrictLogging with JarManifestProvided {
   private var writer: Option[DocumentDbWriter] = None
 
@@ -47,8 +47,8 @@ class DocumentDbSinkTask extends SinkTask with StrictLogging with JarManifestPro
   private var enableProgress: Boolean = false
 
   /**
-    * Parse the configurations and setup the writer
-    */
+   * Parse the configurations and setup the writer
+   */
   override def start(props: util.Map[String, String]): Unit = {
     val config = if (context.configs().isEmpty) props else context.configs()
 
@@ -65,8 +65,8 @@ class DocumentDbSinkTask extends SinkTask with StrictLogging with JarManifestPro
   }
 
   /**
-    * Pass the SinkRecords to the Azure Document DB writer for storing them
-    */
+   * Pass the SinkRecords to the Azure Document DB writer for storing them
+   */
   override def put(records: util.Collection[SinkRecord]): Unit = {
     require(writer.nonEmpty, "Writer is not set!")
     val seq = records.asScala.toVector

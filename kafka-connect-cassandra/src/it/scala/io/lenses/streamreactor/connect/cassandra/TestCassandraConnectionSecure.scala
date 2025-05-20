@@ -24,9 +24,9 @@ import org.scalatest.DoNotDiscover
 import org.scalatest.Suite
 
 /**
-  * Created by andrew@datamountaineer.com on 14/04/16.
-  * stream-reactor
-  */
+ * Created by andrew@datamountaineer.com on 14/04/16.
+ * stream-reactor
+ */
 @DoNotDiscover
 class TestCassandraConnectionSecure extends AnyWordSpec with Matchers with ItTestConfig {
 

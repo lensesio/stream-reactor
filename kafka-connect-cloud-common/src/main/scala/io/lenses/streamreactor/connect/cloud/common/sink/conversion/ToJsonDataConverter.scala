@@ -63,8 +63,8 @@ object ToJsonDataConverter {
     }
 
   /**
-    * This is a workaround to help some of the customers who use Kafka Connect SMT ignoring the best practices
-    */
+   * This is a workaround to help some of the customers who use Kafka Connect SMT ignoring the best practices
+   */
   private def isPojo(array: java.util.List[_]) =
     array.size() > 0 && array.asScala.exists {
       case _: Struct => false

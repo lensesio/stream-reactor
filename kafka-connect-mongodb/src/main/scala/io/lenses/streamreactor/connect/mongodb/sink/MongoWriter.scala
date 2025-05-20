@@ -39,10 +39,10 @@ import scala.util.Failure
 import scala.util.Try
 
 /**
-  * <h1>MongoJsonWriter</h1>
-  * Mongo Json writer for Kafka connect
-  * Writes a list of Kafka connect sink records to Mongo using the JSON support.
-  */
+ * <h1>MongoJsonWriter</h1>
+ * Mongo Json writer for Kafka connect
+ * Writes a list of Kafka connect sink records to Mongo using the JSON support.
+ */
 class MongoWriter(settings: MongoSettings, mongoClient: MongoClient)
     extends StrictLogging
     with ConverterUtil @nowarn
@@ -65,10 +65,10 @@ class MongoWriter(settings: MongoSettings, mongoClient: MongoClient)
   initialize(settings.taskRetries, settings.errorPolicy)
 
   /**
-    * Write SinkRecords to MongoDb.
-    *
-    * @param records A list of SinkRecords from Kafka Connect to write.
-    */
+   * Write SinkRecords to MongoDb.
+   *
+   * @param records A list of SinkRecords from Kafka Connect to write.
+   */
   def write(records: Seq[SinkRecord]): Unit = {
     if (records.isEmpty) {
       logger.debug("No records received.")
@@ -80,11 +80,11 @@ class MongoWriter(settings: MongoSettings, mongoClient: MongoClient)
   }
 
   /**
-    * Write SinkRecords to MongoDb
-    *
-    * @param records A list of SinkRecords from Kafka Connect to write.
-    * @return boolean indication successful write.
-    */
+   * Write SinkRecords to MongoDb
+   *
+   * @param records A list of SinkRecords from Kafka Connect to write.
+   * @return boolean indication successful write.
+   */
   private def insert(records: Seq[SinkRecord]) =
     try {
       records.groupBy(_.topic()).foreach {

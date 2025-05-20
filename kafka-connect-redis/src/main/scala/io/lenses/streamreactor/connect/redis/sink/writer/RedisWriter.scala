@@ -25,8 +25,8 @@ import java.io.File
 import java.io.FileNotFoundException
 
 /**
-  * Responsible for taking a sequence of SinkRecord and write them to Redis
-  */
+ * Responsible for taking a sequence of SinkRecord and write them to Redis
+ */
 abstract class RedisWriter extends DbWriter with StrictLogging with ErrorHandler {
 
   var jedis: Jedis = _

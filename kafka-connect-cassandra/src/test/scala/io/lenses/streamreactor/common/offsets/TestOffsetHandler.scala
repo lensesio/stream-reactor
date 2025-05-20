@@ -27,13 +27,13 @@ import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.jdk.CollectionConverters.SeqHasAsJava
 
 /**
-  * Created by andrew@datamountaineer.com on 28/04/16.
-  * kafka-connect-common
-  */
+ * Created by andrew@datamountaineer.com on 28/04/16.
+ * kafka-connect-common
+ */
 /**
-  * Created by andrew@datamountaineer.com on 27/04/16.
-  * stream-reactor
-  */
+ * Created by andrew@datamountaineer.com on 27/04/16.
+ * stream-reactor
+ */
 class TestOffsetHandler extends AnyWordSpec with Matchers with MockitoSugar {
   "should return an offset" in {
     val lookupPartitionKey = "test_lk_key"
@@ -57,11 +57,11 @@ class TestOffsetHandler extends AnyWordSpec with Matchers with MockitoSugar {
   ): SourceTaskContext = {
 
     /**
-      * offset holds a map of map[string, something],map[identifier, value]
-      *
-      * first map is used for identification, second means current offset (depending on connector's implementation)
-      * map(map(assign.import.table->table1) -> map("my_timeuuid"->"2013-01-01 00:05+0000")
-      */
+     * offset holds a map of map[string, something],map[identifier, value]
+     *
+     * first map is used for identification, second means current offset (depending on connector's implementation)
+     * map(map(assign.import.table->table1) -> map("my_timeuuid"->"2013-01-01 00:05+0000")
+     */
 
     //set up partition
     val partition: util.Map[String, String] = Collections.singletonMap(lookupPartitionKey, table)

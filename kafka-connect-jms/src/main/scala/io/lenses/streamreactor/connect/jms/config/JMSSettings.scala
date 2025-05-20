@@ -68,11 +68,11 @@ case class JMSSettings(
 object JMSSettings extends StrictLogging {
 
   /**
-    * Creates an instance of JMSSettings from a JMSSinkConfig
-    *
-    * @param config : The map of all provided configurations
-    * @return An instance of JmsSettings
-    */
+   * Creates an instance of JMSSettings from a JMSSinkConfig
+   *
+   * @param config : The map of all provided configurations
+   * @return An instance of JmsSettings
+   */
   def apply(config: JMSConfig, sink: Boolean): JMSSettings = {
 
     val kcql           = config.getKCQL

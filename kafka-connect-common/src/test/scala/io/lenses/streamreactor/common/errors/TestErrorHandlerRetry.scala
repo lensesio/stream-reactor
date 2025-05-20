@@ -21,9 +21,9 @@ import org.apache.kafka.connect.errors.RetriableException
 import scala.util.Failure
 
 /**
-  * Created by andrew@datamountaineer.com on 24/08/2017.
-  * kafka-connect-common
-  */
+ * Created by andrew@datamountaineer.com on 24/08/2017.
+ * kafka-connect-common
+ */
 class TestErrorHandlerRetry extends TestUtilsBase with ErrorHandler {
 
   initialize(10, ErrorPolicy(ErrorPolicyEnum.RETRY))

@@ -44,9 +44,10 @@ private object TransformAndExtractPK extends StrictLogging {
       val result = for {
         jsonNode       <- extractJsonNode(value, schema)
         transformedJson = jsonNode.sql(kcqlValues.fields, !withStructure)
-        keyJsonNodeOpt: Option[JsonNode] <- if (hasKeyFieldPath(kcqlValues.primaryKeysPath))
-          extractOptionalJsonNode(key, keySchema)
-        else Try(Option.empty[JsonNode])
+        keyJsonNodeOpt: Option[JsonNode] <-
+          if (hasKeyFieldPath(kcqlValues.primaryKeysPath))
+            extractOptionalJsonNode(key, keySchema)
+          else Try(Option.empty[JsonNode])
       } yield {
         val primaryKeys = kcqlValues.primaryKeysPath.map { path =>
           extractPrimaryKey(path, jsonNode, keyJsonNodeOpt, headers)

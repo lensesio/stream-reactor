@@ -19,8 +19,8 @@ import cats.implicits.catsSyntaxEitherId
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.MessageDetail
 
 /**
-  * A generic interface for transforming messages.
-  */
+ * A generic interface for transforming messages.
+ */
 trait Transformer {
   def transform(message: MessageDetail): Either[RuntimeException, MessageDetail]
 }

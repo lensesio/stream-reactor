@@ -69,10 +69,10 @@ object OAuth2Config {
   val OAuth2ClientHeadersSeparatorDefault = ":"
 
   /**
-    * Appends the OAuth2 ConfigDefs to the provided ConfigDef
-    * @param config
-    * @return
-    */
+   * Appends the OAuth2 ConfigDefs to the provided ConfigDef
+   * @param config
+   * @return
+   */
   def append(config: ConfigDef): ConfigDef =
     config.define(
       OAuth2TokenUrlProp,

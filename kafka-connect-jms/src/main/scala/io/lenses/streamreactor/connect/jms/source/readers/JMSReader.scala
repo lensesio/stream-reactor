@@ -28,9 +28,9 @@ import jakarta.jms.MessageConsumer
 import scala.util.Try
 
 /**
-  * Created by andrew@datamountaineer.com on 10/03/2017.
-  * stream-reactor
-  */
+ * Created by andrew@datamountaineer.com on 10/03/2017.
+ * stream-reactor
+ */
 class JMSReader(settings: JMSSettings) extends StrictLogging {
 
   val provider: JMSSessionProvider = JMSSessionProvider(settings)

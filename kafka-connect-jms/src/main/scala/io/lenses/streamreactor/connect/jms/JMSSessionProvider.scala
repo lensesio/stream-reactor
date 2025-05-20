@@ -35,9 +35,9 @@ import scala.util.Success
 import scala.util.Try
 
 /**
-  * Created by andrew@datamountaineer.com on 10/03/2017.
-  * stream-reactor
-  */
+ * Created by andrew@datamountaineer.com on 10/03/2017.
+ * stream-reactor
+ */
 case class JMSSessionProvider(
   queueConsumers:  Map[String, MessageConsumer],
   topicsConsumers: Map[String, MessageConsumer],
@@ -190,9 +190,9 @@ object JMSSessionProvider extends StrictLogging {
     }
 
   /**
-    * Construct the properties for the initial context
-    * adding in anything in the extra properties for solace or ibm
-    */
+   * Construct the properties for the initial context
+   * adding in anything in the extra properties for solace or ibm
+   */
   private def getProps(settings: JMSSettings) = {
     val props = new Properties()
     props.setProperty(javax.naming.Context.INITIAL_CONTEXT_FACTORY, settings.initialContextClass)

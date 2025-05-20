@@ -18,8 +18,8 @@ package io.lenses.streamreactor.connect.cloud.common.config.processors
 import cats.implicits.catsSyntaxEitherId
 
 /**
-  * Ensures the keys coming into the sink are all lower cased.
-  */
+ * Ensures the keys coming into the sink are all lower cased.
+ */
 class LowerCaseKeyConfigDefProcessor(prefix: String) extends ConfigDefProcessor {
   override def process(input: Map[String, Any]): Either[Throwable, Map[String, Any]] =
     input.map {

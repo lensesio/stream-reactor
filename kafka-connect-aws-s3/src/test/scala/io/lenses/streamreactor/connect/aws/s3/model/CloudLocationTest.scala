@@ -52,7 +52,8 @@ class CloudLocationTest extends AnyFlatSpec with Matchers with EitherValues {
 
   private def expectException(response: Either[Throwable, CloudLocation], expectedMessage: String): Unit =
     response.left.value match {
-      case ex: IllegalArgumentException => ex.getMessage should be(expectedMessage)
+      case ex: IllegalArgumentException =>
+        ex.getMessage should be(expectedMessage)
         ()
       case _ => fail("Unexpected error message")
     }

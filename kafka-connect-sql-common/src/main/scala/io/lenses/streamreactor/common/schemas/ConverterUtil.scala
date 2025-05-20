@@ -37,9 +37,9 @@ import scala.util.Success
 import scala.util.Try
 
 /**
-  * Created by andrew@datamountaineer.com on 22/02/16.
-  * stream-reactor
-  */
+ * Created by andrew@datamountaineer.com on 22/02/16.
+ * stream-reactor
+ */
 @deprecated("Consolidated into SinkRecord.newFilteredRecord", "3.0")
 trait ConverterUtil {
   type avroSchema = org.apache.avro.Schema
@@ -80,15 +80,15 @@ trait ConverterUtil {
     }
 
   /**
-    * For a schemaless payload when used for a json the connect JsonConverter will provide a Map[_,_] instance as it deserializes
-    * the payload
-    *
-    * @param record       - The connect record to extract the fields from
-    * @param fields       - A map of fields alias
-    * @param ignoreFields - The list of fields to leave out
-    * @param key          - if true it will use record.key to do the transformation; if false will use record.value
-    * @return
-    */
+   * For a schemaless payload when used for a json the connect JsonConverter will provide a Map[_,_] instance as it deserializes
+   * the payload
+   *
+   * @param record       - The connect record to extract the fields from
+   * @param fields       - A map of fields alias
+   * @param ignoreFields - The list of fields to leave out
+   * @param key          - if true it will use record.key to do the transformation; if false will use record.value
+   * @return
+   */
   @deprecated("Consolidated into SinkRecord.newFilteredRecord", "3.0")
   def convertSchemalessJson(
     record:           SinkRecord,
@@ -125,16 +125,16 @@ trait ConverterUtil {
   }
 
   /**
-    * Handles scenarios where the sink record schema is set to string and the payload is json
-    *
-    * @param record              - the sink record instance
-    * @param fields              - fields to include/select
-    * @param ignoreFields        - fields to ignore/remove
-    * @param key                 -if true it targets the sinkrecord key; otherwise it uses the sinkrecord.value
-    * @param includeAllFields    - if false it will remove the fields not present in the fields parameter
-    * @param ignoredFieldsValues - We need to retain the removed fields; in influxdb we might choose to set tags from ignored fields
-    * @return
-    */
+   * Handles scenarios where the sink record schema is set to string and the payload is json
+   *
+   * @param record              - the sink record instance
+   * @param fields              - fields to include/select
+   * @param ignoreFields        - fields to ignore/remove
+   * @param key                 -if true it targets the sinkrecord key; otherwise it uses the sinkrecord.value
+   * @param includeAllFields    - if false it will remove the fields not present in the fields parameter
+   * @param ignoredFieldsValues - We need to retain the removed fields; in influxdb we might choose to set tags from ignored fields
+   * @return
+   */
   @deprecated("Consolidated into SinkRecord.newFilteredRecord", "3.0")
   def convertFromStringAsJson(
     record:              SinkRecord,
@@ -173,9 +173,10 @@ trait ConverterUtil {
                   }
               }
 
-              val jvalue = if (!includeAllFields) {
-                withFieldsRemoved.removeField { case (field, _) => !fields.contains(field) }
-              } else withFieldsRemoved
+              val jvalue =
+                if (!includeAllFields) {
+                  withFieldsRemoved.removeField { case (field, _) => !fields.contains(field) }
+                } else withFieldsRemoved
 
               val converted = fields.filter { case (field, alias) => field != alias }
                 .foldLeft(jvalue) {
@@ -198,14 +199,14 @@ trait ConverterUtil {
   case class ConversionResult(original: JValue, converted: JValue)
 
   /**
-    * Create a Struct based on a set of fields to extract from a ConnectRecord
-    *
-    * @param record       The connectRecord to extract the fields from.
-    * @param fields       The fields to extract.
-    * @param ignoreFields Fields to ignore from the sink records.
-    * @param key          Extract the fields from the key or the value of the ConnectRecord.
-    * @return A new Struct with the fields specified in the fieldsMappings.
-    */
+   * Create a Struct based on a set of fields to extract from a ConnectRecord
+   *
+   * @param record       The connectRecord to extract the fields from.
+   * @param fields       The fields to extract.
+   * @param ignoreFields Fields to ignore from the sink records.
+   * @param key          Extract the fields from the key or the value of the ConnectRecord.
+   * @return A new Struct with the fields specified in the fieldsMappings.
+   */
   @deprecated("Consolidated into SinkRecord.newFilteredRecord", "3.0")
   def convert(
     record:       SinkRecord,
@@ -251,33 +252,33 @@ trait ConverterUtil {
     }
 
   /**
-    * Convert a ConnectRecord value to a Json string using Kafka Connects deserializer
-    *
-    * @param record A ConnectRecord to extract the payload value from
-    * @return A json string for the payload of the record
-    */
+   * Convert a ConnectRecord value to a Json string using Kafka Connects deserializer
+   *
+   * @param record A ConnectRecord to extract the payload value from
+   * @return A json string for the payload of the record
+   */
   def convertValueToJson[T <: ConnectRecord[T]](
     record: ConnectRecord[T],
   ): JsonNode =
     simpleJsonConverter.fromConnectData(record.valueSchema(), record.value())
 
   /**
-    * Convert a ConnectRecord key to a Json string using Kafka Connects deserializer
-    *
-    * @param record A ConnectRecord to extract the payload value from
-    * @return A json string for the payload of the record
-    */
+   * Convert a ConnectRecord key to a Json string using Kafka Connects deserializer
+   *
+   * @param record A ConnectRecord to extract the payload value from
+   * @return A json string for the payload of the record
+   */
   def convertKeyToJson[T <: ConnectRecord[T]](
     record: ConnectRecord[T],
   ): JsonNode =
     simpleJsonConverter.fromConnectData(record.keySchema(), record.key())
 
   /**
-    * Convert SinkRecord to GenericRecord
-    *
-    * @param record ConnectRecord to convert
-    * @return a GenericRecord
-    */
+   * Convert SinkRecord to GenericRecord
+   *
+   * @param record ConnectRecord to convert
+   * @return a GenericRecord
+   */
   def convertValueToGenericAvro[T <: ConnectRecord[T]](
     record: ConnectRecord[T],
   ): GenericRecord = {
