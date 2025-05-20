@@ -21,8 +21,6 @@ import com.azure.messaging.servicebus.ServiceBusReceivedMessage;
 import com.azure.messaging.servicebus.ServiceBusReceiverAsyncClient;
 import com.azure.messaging.servicebus.models.ServiceBusReceiveMode;
 import io.lenses.kcql.Kcql;
-import io.lenses.streamreactor.connect.azure.servicebus.source.ServiceBusPartitionOffsetProvider.AzureServiceBusOffsetMarker;
-import io.lenses.streamreactor.connect.azure.servicebus.source.ServiceBusPartitionOffsetProvider.AzureServiceBusPartitionKey;
 import io.lenses.streamreactor.connect.azure.servicebus.util.ServiceBusKcqlProperties;
 import io.lenses.streamreactor.connect.azure.servicebus.util.ServiceBusType;
 import lombok.Getter;
@@ -144,13 +142,7 @@ public class ServiceBusReceiverFacade {
       String inputBus,
       String outputTopic) {
     return message -> {
-      long sequenceNumber = message.getSequenceNumber();
-      AzureServiceBusOffsetMarker offsetMarker =
-          new AzureServiceBusOffsetMarker(sequenceNumber);
-      AzureServiceBusPartitionKey partitionKey =
-          new AzureServiceBusPartitionKey(inputBus, message.getPartitionKey());
-
-      SourceRecord sourceRecord = mapSingleServiceBusMessage(message, outputTopic, partitionKey, offsetMarker);
+      SourceRecord sourceRecord = mapSingleServiceBusMessage(message, outputTopic);
       ServiceBusMessageHolder serviceBusMessageHolder =
           new ServiceBusMessageHolder(message, sourceRecord, receiverId);
       boolean offer = false;

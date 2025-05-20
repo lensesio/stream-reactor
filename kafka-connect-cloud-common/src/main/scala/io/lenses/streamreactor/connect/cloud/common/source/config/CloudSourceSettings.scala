@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2024 Lenses.io Ltd
+ * Copyright 2017-2025 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -53,6 +53,19 @@ trait CloudSourceSettings extends BaseSettings with CloudSourceSettingsKeys {
       wildcardExcludes = getString(PARTITION_SEARCH_INDEX_EXCLUDES).split(',').toSet[String].map(_.trim),
     )
 
+  def getEmptySourceBackoffSettings(properties: Map[String, _]): EmptySourceBackoffSettings =
+    EmptySourceBackoffSettings.apply(
+      ConfigParse.getLong(properties, SOURCE_EMPTY_RESULTS_BACKOFF_INITIAL_DELAY).getOrElse(
+        SOURCE_EMPTY_RESULTS_BACKOFF_INITIAL_DELAY_DEFAULT,
+      ),
+      ConfigParse.getLong(properties, SOURCE_EMPTY_RESULTS_BACKOFF_MAX_DELAY).getOrElse(
+        SOURCE_EMPTY_RESULTS_BACKOFF_MAX_DELAY_DEFAULT,
+      ),
+      ConfigParse.getDouble(properties, SOURCE_EMPTY_RESULTS_BACKOFF_MULTIPLIER).getOrElse(
+        SOURCE_EMPTY_RESULTS_BACKOFF_MULTIPLIER_DEFAULT,
+      ),
+    )
+
   /**
     * Retrieves the extension filter for the source.
     *
@@ -69,6 +82,8 @@ trait CloudSourceSettings extends BaseSettings with CloudSourceSettingsKeys {
                                                                             excludes.getOrElse(Set.empty),
     ))
   }
+
+  def getWriteWatermarkToHeaders: Boolean = getBoolean(WRITE_WATERMARK_TO_HEADERS)
 
   /**
     * Extracts the property value from the configuration and transforms it into a set of strings.

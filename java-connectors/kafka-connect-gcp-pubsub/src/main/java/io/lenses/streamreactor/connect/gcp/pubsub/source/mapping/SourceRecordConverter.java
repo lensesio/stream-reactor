@@ -17,6 +17,9 @@ package io.lenses.streamreactor.connect.gcp.pubsub.source.mapping;
 
 import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.header.ConnectHeaders;
+import org.apache.kafka.connect.header.Header;
+import org.apache.kafka.connect.header.Headers;
 import org.apache.kafka.connect.source.SourceRecord;
 
 import io.lenses.streamreactor.common.config.base.intf.Converter;
@@ -34,14 +37,22 @@ public class SourceRecordConverter extends Converter<PubSubMessageData, SourceRe
 
   @Override
   protected SourceRecord convert(final PubSubMessageData source) throws ConfigException {
+
+    final Headers headers = new ConnectHeaders();
+    mappingConfig.getHeaderMapper().mapHeaders(source).forEach((k, v) -> {
+      headers.add(k, v, Schema.STRING_SCHEMA);
+    });
     return new SourceRecord(
         source.getSourcePartition().toMap(),
         source.getSourceOffset().toMap(),
         source.getTargetTopicName(),
+        null,
         getKeySchema(),
         getKey(source),
         getValueSchema(),
-        getValue(source)
+        getValue(source),
+        System.currentTimeMillis(),
+        headers
     );
   }
 

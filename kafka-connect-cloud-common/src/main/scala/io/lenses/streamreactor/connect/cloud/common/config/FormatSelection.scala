@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2024 Lenses.io Ltd
+ * Copyright 2017-2025 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,6 +25,7 @@ import io.lenses.streamreactor.connect.cloud.common.formats.reader.converters.Sc
 import io.lenses.streamreactor.connect.cloud.common.formats.reader.converters.SchemaAndValueEnvelopeConverter
 import io.lenses.streamreactor.connect.cloud.common.formats.reader.converters.SchemalessEnvelopeConverter
 import io.lenses.streamreactor.connect.cloud.common.formats.reader._
+import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodec
 import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodecName
 import io.lenses.streamreactor.connect.cloud.common.model.Topic
 import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodecName.BROTLI
@@ -48,14 +49,16 @@ import scala.jdk.CollectionConverters.MapHasAsScala
 case class ObjectMetadata(size: Long, lastModified: Instant)
 
 case class ReaderBuilderContext(
-  stream:               InputStream,
-  bucketAndPath:        CloudLocation,
-  metadata:             ObjectMetadata,
-  hasEnvelope:          Boolean,
-  recreateInputStreamF: () => Either[Throwable, InputStream],
-  targetPartition:      Integer,
-  targetTopic:          Topic,
-  watermarkPartition:   java.util.Map[String, String],
+  writeWatermarkToHeaders: Boolean,
+  stream:                  InputStream,
+  bucketAndPath:           CloudLocation,
+  metadata:                ObjectMetadata,
+  compressionCodec:        CompressionCodec,
+  hasEnvelope:             Boolean,
+  recreateInputStreamF:    () => Either[Throwable, InputStream],
+  targetPartition:         Integer,
+  targetTopic:             Topic,
+  watermarkPartition:      java.util.Map[String, String],
 )
 
 sealed trait FormatSelection {
@@ -113,13 +116,14 @@ case object FormatSelection {
 case object JsonFormatSelection extends FormatSelection {
   override def availableCompressionCodecs: Map[CompressionCodecName, Boolean] = Map(
     UNCOMPRESSED -> true,
-    GZIP         -> true, // Only applies to sink currently.
+    GZIP         -> true,
   )
 
   override def toStreamReader(
     input: ReaderBuilderContext,
   ): Either[Throwable, CloudStreamReader] = {
-    val inner = new TextStreamReader(input.stream)
+    implicit val compressionCodec: CompressionCodec = input.compressionCodec
+    val inner = new JsonStreamReader(input.stream)
     val converter = if (input.hasEnvelope) {
       new SchemalessEnvelopeConverter(input.watermarkPartition,
                                       input.targetTopic,
@@ -163,11 +167,13 @@ case object AvroFormatSelection extends FormatSelection {
                                           input.metadata.lastModified,
       )
     } else {
-      new SchemaAndValueConverter(input.watermarkPartition,
-                                  input.targetTopic,
-                                  input.targetPartition,
-                                  input.bucketAndPath,
-                                  input.metadata.lastModified,
+      new SchemaAndValueConverter(
+        input.writeWatermarkToHeaders,
+        input.watermarkPartition,
+        input.targetTopic,
+        input.targetPartition,
+        input.bucketAndPath,
+        input.metadata.lastModified,
       )
     }
     new DelegateIteratorCloudStreamReader(inner, converter, input.bucketAndPath).asRight
@@ -202,11 +208,13 @@ case object ParquetFormatSelection extends FormatSelection {
                                           input.metadata.lastModified,
       )
     } else {
-      new SchemaAndValueConverter(input.watermarkPartition,
-                                  input.targetTopic,
-                                  input.targetPartition,
-                                  input.bucketAndPath,
-                                  input.metadata.lastModified,
+      new SchemaAndValueConverter(
+        input.writeWatermarkToHeaders,
+        input.watermarkPartition,
+        input.targetTopic,
+        input.targetPartition,
+        input.bucketAndPath,
+        input.metadata.lastModified,
       )
     }
     inner.map {
@@ -261,7 +269,8 @@ object BytesFormatSelection extends FormatSelection {
   ): Either[Throwable, CloudStreamReader] = {
 
     val inner = new BytesStreamFileReader(input.stream, input.metadata.size)
-    val converter = new BytesOutputRowConverter(input.watermarkPartition,
+    val converter = new BytesOutputRowConverter(input.writeWatermarkToHeaders,
+                                                input.watermarkPartition,
                                                 input.targetTopic,
                                                 input.targetPartition,
                                                 input.bucketAndPath,
