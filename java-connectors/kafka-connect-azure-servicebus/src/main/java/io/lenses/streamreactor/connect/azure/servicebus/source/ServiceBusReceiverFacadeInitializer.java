@@ -15,15 +15,19 @@
  */
 package io.lenses.streamreactor.connect.azure.servicebus.source;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
+import com.azure.messaging.servicebus.ServiceBusReceiverAsyncClient;
 import io.lenses.kcql.Kcql;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
+import reactor.util.retry.RetrySpec;
 
 /**
  * Class that initializes {@link ServiceBusReceiverFacade}s.
@@ -44,11 +48,29 @@ public class ServiceBusReceiverFacadeInitializer {
   static Map<String, ServiceBusReceiverFacade> initializeReceiverFacades(
       BlockingQueue<ServiceBusMessageHolder> recordsQueue,
       List<Kcql> kcqls,
-      String connectionString
+      String connectionString,
+      int prefetchCount,
+      int maxCompleteRetries,
+      Duration minBackoffCompleteRetries,
+      AtomicReference<Throwable> serviceBusReceiverError
   ) {
     return kcqls.stream()
-        .map(kcql -> new ServiceBusReceiverFacade(kcql, recordsQueue, connectionString,
-            FACADE_CLASS_SIMPLE_NAME + UUID.randomUUID()))
+        .map(kcql -> {
+          final ServiceBusReceiverAsyncClient serviceBusReceiverAsyncClient =
+              ServiceBusReceiverFacade.buildAsyncClient(kcql, connectionString, prefetchCount);
+          final String asyncClientId = FACADE_CLASS_SIMPLE_NAME + UUID.randomUUID();
+          final MessageAck messageAck =
+              new RetryMessageAck(RetrySpec.backoff(maxCompleteRetries, minBackoffCompleteRetries),
+                  RetryMessageAck.logSuccess(),
+                  RetryMessageAck.logError());
+          return new ServiceBusReceiverFacade(
+              asyncClientId,
+              serviceBusReceiverAsyncClient,
+              ServiceBusReceiverFacade.onSuccessfulMessage(asyncClientId, recordsQueue, kcql.getSource(), kcql
+                  .getTarget()),
+              ServiceBusReceiverFacade.onError(asyncClientId, serviceBusReceiverError),
+              messageAck);
+        })
         .collect(Collectors.toMap(ServiceBusReceiverFacade::getReceiverId, e -> e));
   }
 }

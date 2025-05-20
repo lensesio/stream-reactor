@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2024 Lenses.io Ltd
+ * Copyright 2017-2025 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,21 +25,26 @@ import org.apache.kafka.connect.source.SourceRecord
 import java.time.Instant
 
 class SchemaAndValueConverter(
-  watermarkPartition: java.util.Map[String, String],
-  topic:              Topic,
-  partition:          Integer,
-  location:           CloudLocation,
-  lastModified:       Instant,
+  writeWatermarkToHeaders: Boolean,
+  watermarkPartition:      java.util.Map[String, String],
+  topic:                   Topic,
+  partition:               Integer,
+  location:                CloudLocation,
+  lastModified:            Instant,
 ) extends Converter[SchemaAndValue] {
-  override def convert(schemaAndValue: SchemaAndValue, index: Long, lastLine: Boolean): SourceRecord =
+  override def convert(schemaAndValue: SchemaAndValue, index: Long, lastLine: Boolean): SourceRecord = {
+    val offset = SourceWatermark.offset(location, index, lastModified, lastLine)
     new SourceRecord(
       watermarkPartition,
-      SourceWatermark.offset(location, index, lastModified, lastLine),
+      offset,
       topic.value,
       partition,
       null,
       null,
       schemaAndValue.schema(),
       schemaAndValue.value(),
+      null,
+      SourceWatermark.convertWatermarkToHeaders(writeWatermarkToHeaders, watermarkPartition, offset).orNull,
     )
+  }
 }

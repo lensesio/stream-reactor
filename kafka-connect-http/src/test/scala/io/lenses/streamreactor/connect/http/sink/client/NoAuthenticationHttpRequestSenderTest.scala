@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2024 Lenses.io Ltd
+ * Copyright 2017-2025 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package io.lenses.streamreactor.connect.http.sink.client
 import cats.effect.IO
 import cats.effect.kernel.Resource
 import cats.effect.unsafe.IORuntime
+import io.lenses.streamreactor.connect.http.sink.metrics.HttpSinkMetrics
 import io.lenses.streamreactor.connect.http.sink.tpl.ProcessedTemplate
 import org.http4s.Header
 import org.http4s.Method
@@ -41,7 +42,8 @@ class NoAuthenticationHttpRequestSenderTest extends AnyFunSuiteLike with Matcher
     val client: Client[IO] = mock[Client[IO]]
     when(client.run(any[Request[IO]])).thenReturn(Resource.pure(Response[IO](status = Status.Ok).withEntity("OK")))
 
-    val sender = new NoAuthenticationHttpRequestSender(sinkName, method, client)
+    val metrics = new HttpSinkMetrics
+    val sender  = new NoAuthenticationHttpRequestSender(sinkName, method, client, metrics)
     val template = ProcessedTemplate(
       "http://localhost:8080",
       "content",

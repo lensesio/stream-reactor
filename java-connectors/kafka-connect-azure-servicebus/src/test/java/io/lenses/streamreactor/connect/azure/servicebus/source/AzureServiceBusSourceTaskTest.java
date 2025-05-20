@@ -15,6 +15,19 @@
  */
 package io.lenses.streamreactor.connect.azure.servicebus.source;
 
+import com.azure.messaging.servicebus.ServiceBusReceivedMessage;
+import io.lenses.streamreactor.connect.azure.servicebus.mapping.AzureServiceBusSourceRecord;
+import org.apache.kafka.connect.source.SourceRecord;
+import org.junit.jupiter.api.Test;
+
+import java.time.Duration;
+import java.time.OffsetDateTime;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+
+import static io.lenses.streamreactor.connect.azure.servicebus.source.Helper.createMockedServiceBusMessage;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -24,31 +37,16 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.util.List;
-
-import org.apache.kafka.connect.source.SourceRecord;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
 class AzureServiceBusSourceTaskTest {
-
-  private TaskToReceiverBridge taskToReceiverBridge;
-  private AzureServiceBusSourceTask testObj;
-
-  @BeforeEach
-  void setUp() {
-    taskToReceiverBridge = mock(TaskToReceiverBridge.class);
-    testObj = new AzureServiceBusSourceTask();
-    testObj.initialize(taskToReceiverBridge);
-  }
 
   @Test
   void pollShouldPollTheBridgeAndReturnNullIfEmpty() {
+    TaskToReceiverBridge taskToReceiverBridge = mock(TaskToReceiverBridge.class);
+    AzureServiceBusSourceTask task = new AzureServiceBusSourceTask();
+    task.initialize(taskToReceiverBridge);
     //given
     when(taskToReceiverBridge.poll()).thenReturn(emptyList());
-
-    //when
-    List<SourceRecord> poll = testObj.poll();
+    List<SourceRecord> poll = task.poll();
 
     //then
     assertNull(poll);
@@ -56,13 +54,16 @@ class AzureServiceBusSourceTaskTest {
 
   @Test
   void pollShouldPollTheBridgeAndReturnListOfRecordsIfNotEmpty() {
+    TaskToReceiverBridge taskToReceiverBridge = mock(TaskToReceiverBridge.class);
+    AzureServiceBusSourceTask task = new AzureServiceBusSourceTask();
+    task.initialize(taskToReceiverBridge);
     //given
     SourceRecord mockedRecord = mock(SourceRecord.class);
     List<SourceRecord> sourceRecords = singletonList(mockedRecord);
     when(taskToReceiverBridge.poll()).thenReturn(sourceRecords);
 
     //when
-    List<SourceRecord> poll = testObj.poll();
+    List<SourceRecord> poll = task.poll();
 
     //then
     verify(taskToReceiverBridge).poll();
@@ -72,12 +73,42 @@ class AzureServiceBusSourceTaskTest {
 
   @Test
   void stopShouldCloseBridgeReceivers() {
+    TaskToReceiverBridge taskToReceiverBridge = mock(TaskToReceiverBridge.class);
+    AzureServiceBusSourceTask task = new AzureServiceBusSourceTask();
+    task.initialize(taskToReceiverBridge);
     //given
 
     //when
-    testObj.stop();
+    task.stop();
 
     //then
     verify(taskToReceiverBridge).closeReceivers();
+  }
+
+  @Test
+  void returnTheSequenceOfRecordsEnqueued() {
+    final ServiceBusReceivedMessage message1 =
+        createMockedServiceBusMessage(1, OffsetDateTime.now(), Duration.ofSeconds(10));
+    final ServiceBusReceivedMessage message2 =
+        createMockedServiceBusMessage(2, OffsetDateTime.now(), Duration.ofSeconds(10));
+    final String receivedId = "RECEIVER1";
+    final BlockingQueue<ServiceBusMessageHolder> recordsQueue = new ArrayBlockingQueue<>(10);
+    final String inputBus = "inputBus";
+    final String outputTopic = "outputTopic";
+    ServiceBusReceiverFacade.onSuccessfulMessage(receivedId, recordsQueue, inputBus, outputTopic).accept(message1);
+    ServiceBusReceiverFacade.onSuccessfulMessage(receivedId, recordsQueue, inputBus, outputTopic).accept(message2);
+    final TaskToReceiverBridge taskToReceiverBridge = new TaskToReceiverBridge(recordsQueue, Collections.emptyMap());
+    final AzureServiceBusSourceTask task = new AzureServiceBusSourceTask();
+    task.initialize(taskToReceiverBridge);
+
+    final List<SourceRecord> actualRecords = task.poll();
+    assertEquals(2, actualRecords.size());
+
+    final AzureServiceBusSourceRecord sourceRecord1 = (AzureServiceBusSourceRecord) actualRecords.get(0);
+    assertEquals("messageId1", sourceRecord1.key());
+
+    final AzureServiceBusSourceRecord sourceRecord2 = (AzureServiceBusSourceRecord) actualRecords.get(1);
+    assertEquals("messageId2", sourceRecord2.key());
+
   }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2024 Lenses.io Ltd
+ * Copyright 2017-2025 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -142,10 +142,13 @@ abstract class CloudSourceTask[MD <: FileMetadata, C <: CloudSourceConfig[MD], C
         ReaderManagerBuilder(
           root,
           path,
+          config.compressionCodec,
           storageInterface,
           connectorTaskId,
           contextOffsetFn,
           location => config.bucketOptions.find(sb => sb.sourceBucketAndPrefix == location),
+          config.emptySourceBackoffSettings,
+          config.writeWatermarkToHeaders,
         )(validator)
       }
       val partitionDiscoveryLoop = PartitionDiscovery.run(connectorTaskId,

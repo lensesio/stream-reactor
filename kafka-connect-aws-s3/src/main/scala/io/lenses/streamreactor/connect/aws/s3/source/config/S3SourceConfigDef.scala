@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2024 Lenses.io Ltd
+ * Copyright 2017-2025 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,5 +31,7 @@ object S3SourceConfigDef extends S3CommonConfigDef with CloudSourceSettingsKeys 
     addSourcePartitionSearcherSettings(settings)
     addSourcePartitionExtractorSettings(settings)
     addSourceFilteringSettings(settings)
+    addSourceEmptyResultsBackoffSettings(settings)
+    addSourceWatermarkSettings(settings)
   }
 }

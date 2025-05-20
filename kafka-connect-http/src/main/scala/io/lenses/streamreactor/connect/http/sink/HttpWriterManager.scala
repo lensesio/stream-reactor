@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2024 Lenses.io Ltd
+ * Copyright 2017-2025 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,7 +33,11 @@ import io.lenses.streamreactor.connect.http.sink.client.HttpRequestSender
 import io.lenses.streamreactor.connect.http.sink.commit.BatchPolicy
 import io.lenses.streamreactor.connect.http.sink.commit.HttpBatchPolicy
 import io.lenses.streamreactor.connect.http.sink.commit.HttpCommitContext
+import io.lenses.streamreactor.connect.http.sink.config.ExponentialRetryConfig
+import io.lenses.streamreactor.connect.http.sink.config.FixedRetryConfig
 import io.lenses.streamreactor.connect.http.sink.config.HttpSinkConfig
+import io.lenses.streamreactor.connect.http.sink.metrics.HttpSinkMetricsMBean
+import io.lenses.streamreactor.connect.http.sink.metrics.MetricsResetter
 import io.lenses.streamreactor.connect.http.sink.reporter.model.HttpFailureConnectorSpecificRecordData
 import io.lenses.streamreactor.connect.http.sink.reporter.model.HttpSuccessConnectorSpecificRecordData
 import io.lenses.streamreactor.connect.http.sink.tpl.RenderedRecord
@@ -73,6 +77,7 @@ object HttpWriterManager extends StrictLogging {
     config:    HttpSinkConfig,
     template:  TemplateType,
     terminate: Deferred[IO, Either[Throwable, Unit]],
+    metrics:   HttpSinkMetricsMBean,
   )(
     implicit
     t: Temporal[IO],
@@ -85,30 +90,24 @@ object HttpWriterManager extends StrictLogging {
       convertToScalaOption(unpackOrThrow(config.ssl.toSslContext)).fold(httpClientBuilder)(httpClientBuilder.sslContext)
 
     val httpClient = builderAfterSSL.build()
-    logger.info(
-      s"[$sinkName] Setting up http client with maxTimeout: ${config.retries.maxTimeoutMs.millis}, retries: ${config.retries.maxRetries}",
-    )
-    val retryPolicy = RetryPolicy.exponentialBackoff(config.retries.maxTimeoutMs.millis, config.retries.maxRetries)
 
-    val retriableFn: Either[Throwable, Response[IO]] => Boolean =
-      isErrorOrRetriableStatus(_, config.retries.onStatusCodes.toSet)
-
-    val retriablePolicy = RetryPolicy[IO](
-      retryPolicy,
-      retriable = (_, response) => retriableFn(response),
-    )
+    val retriablePolicy: RetryPolicy[IO] = buildRetriablePolicy(sinkName, config)
 
     val clientResource: Resource[IO, Client[IO]] = JdkHttpClient[IO](httpClient)
 
+    val metricsResetter = new MetricsResetter(metrics, 5.minutes, 30.seconds)
     for {
-      (client, cResRel) <- clientResource.allocated
-      retriableClient    = Retry(retriablePolicy)(client)
-      writersRef        <- Ref.of[IO, Map[Topic, HttpWriter]](Map.empty)
+
+      (client, cResRel)    <- clientResource.allocated
+      (_, resetterRelease) <- metricsResetter.scheduleResetAndUpdate.allocated
+      retriableClient       = Retry(retriablePolicy)(client)
+      writersRef           <- Ref.of[IO, Map[Topic, HttpWriter]](Map.empty)
       sender <- HttpRequestSender(
         sinkName,
         config.method.toHttp4sMethod,
         retriableClient,
         config.authentication,
+        metrics,
       )
       batchPolicy = config.batch.toBatchPolicy
 
@@ -117,7 +116,8 @@ object HttpWriterManager extends StrictLogging {
       template,
       sender,
       if (batchPolicy.conditions.nonEmpty) batchPolicy else HttpBatchPolicy.Default,
-      cResRel,
+      //close the resetter first
+      resetterRelease.guarantee(cResRel),
       writersRef,
       terminate,
       config.errorThreshold,
@@ -128,6 +128,30 @@ object HttpWriterManager extends StrictLogging {
       config.maxQueueSize,
       config.maxQueueOfferTimeout,
     )
+  }
+
+  def buildRetriablePolicy(sinkName: String, config: HttpSinkConfig): RetryPolicy[IO] = {
+    val retryPolicy: Int => Option[FiniteDuration] = config.retries match {
+      case FixedRetryConfig(maxRetries, intervalMs, _) =>
+        logger.info(
+          s"[$sinkName] Setting up http client with Fixed retry mode and the max retries is $maxRetries and the interval is $intervalMs ms",
+        )
+        FixedRetryConfig.fixedInterval(intervalMs.millis, maxRetries)
+      case ExponentialRetryConfig(maxRetries, maxTimeoutMs, _) =>
+        logger.info(
+          s"[$sinkName] Setting up http client with Exponential retry mode and the max retries is $maxRetries and max timeout is $maxTimeoutMs ms",
+        )
+        RetryPolicy.exponentialBackoff(maxTimeoutMs.millis, maxRetries)
+    }
+
+    val retriableFn: Either[Throwable, Response[IO]] => Boolean =
+      isErrorOrRetriableStatus(_, config.retries.onStatusCodes.toSet)
+
+    val retriablePolicy = RetryPolicy[IO](
+      retryPolicy,
+      retriable = (_, response) => retriableFn(response),
+    )
+    retriablePolicy
   }
 
   /**
@@ -327,7 +351,7 @@ class HttpWriterManager(
       // Log if there are no writers
       _ <- IO.whenA(writers.isEmpty) {
         IO.delay(
-          logger.info(
+          logger.trace(
             s"[$sinkName] HttpWriterManager has no writers. " +
               "Perhaps no records have been put to the sink yet.",
           ),
