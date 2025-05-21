@@ -21,6 +21,7 @@ import io.lenses.streamreactor.common.util.JarManifest
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.sink.CloudSinkTask
 import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
+
 import io.lenses.streamreactor.connect.gcp.common.auth.GCPConnectionConfig
 import io.lenses.streamreactor.connect.gcp.storage.auth.GCPStorageClientCreator
 import io.lenses.streamreactor.connect.gcp.storage.config.GCPConfigSettings
@@ -61,4 +62,5 @@ class GCPStorageSinkTask
     props:           Map[String, String],
   ): Either[Throwable, GCPStorageSinkConfig] =
     GCPStorageSinkConfig.fromProps(connectorTaskId, props)(GCPStorageLocationValidator)
+
 }
