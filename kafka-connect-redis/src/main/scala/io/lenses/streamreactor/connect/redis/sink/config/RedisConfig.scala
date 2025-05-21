@@ -136,10 +136,10 @@ object RedisConfig {
 }
 
 /**
-  * <h1>RedisSinkConfig</h1>
-  *
-  * Holds config, extends AbstractConfig.
-  */
+ * <h1>RedisSinkConfig</h1>
+ *
+ * Holds config, extends AbstractConfig.
+ */
 case class RedisConfig(props: Map[String, String])
     extends BaseConfig(RedisConfigConstants.CONNECTOR_PREFIX, RedisConfig.config, props)
     with KcqlSettings

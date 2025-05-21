@@ -22,33 +22,33 @@ import scala.jdk.OptionConverters.RichOptional
 import scala.{ Option => ScalaOption }
 
 /**
-  * Utility object for converting Cyclops Option to Scala Option.
-  *
-  * This object provides a method to convert an instance of Cyclops Option to a Scala Option.
-  */
+ * Utility object for converting Cyclops Option to Scala Option.
+ *
+ * This object provides a method to convert an instance of Cyclops Option to a Scala Option.
+ */
 object CyclopsToScalaOption {
 
   /**
-    * Converts a Cyclops Option to a Scala Option.
-    *
-    * This method converts an instance of Cyclops Option to a Scala Option.
-    *
-    * @tparam M the type of the value contained in the Option
-    * @param cyclopsOption the Cyclops Option to convert
-    * @return the converted Scala Option
-    */
+   * Converts a Cyclops Option to a Scala Option.
+   *
+   * This method converts an instance of Cyclops Option to a Scala Option.
+   *
+   * @tparam M the type of the value contained in the Option
+   * @param cyclopsOption the Cyclops Option to convert
+   * @return the converted Scala Option
+   */
   def convertToScalaOption[M](cyclopsOption: CyclopsOption[M]): ScalaOption[M] =
     cyclopsOption.toOptional.toScala
 
   /**
-    * Converts a Scala Option to a Cyclops Option.
-    *
-    * This method converts an instance of Scala Option to a Cyclops Option.
-    *
-    * @tparam M the type of the value contained in the Option
-    * @param scalaOption the Scala Option to convert
-    * @return the converted Cyclops Option
-    */
+   * Converts a Scala Option to a Cyclops Option.
+   *
+   * This method converts an instance of Scala Option to a Cyclops Option.
+   *
+   * @tparam M the type of the value contained in the Option
+   * @param scalaOption the Scala Option to convert
+   * @return the converted Cyclops Option
+   */
   def convertToCyclopsOption[M](scalaOption: Option[M]): CyclopsOption[M] =
     CyclopsOption.fromOptional(scalaOption.toJava)
 

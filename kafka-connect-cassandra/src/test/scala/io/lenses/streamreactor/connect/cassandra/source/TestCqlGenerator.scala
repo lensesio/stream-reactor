@@ -27,7 +27,7 @@ import org.scalatest.wordspec.AnyWordSpec
 import scala.annotation.nowarn
 
 /**
-  */
+ */
 @nowarn
 class TestCqlGenerator extends AnyWordSpec with Matchers with MockitoSugar with ConverterUtil {
 

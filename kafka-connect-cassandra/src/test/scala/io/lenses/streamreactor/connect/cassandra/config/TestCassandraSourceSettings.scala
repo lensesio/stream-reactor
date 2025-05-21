@@ -20,9 +20,9 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
 /**
-  * Created by andrew@datamountaineer.com on 28/04/16.
-  * stream-reactor
-  */
+ * Created by andrew@datamountaineer.com on 28/04/16.
+ * stream-reactor
+ */
 class TestCassandraSourceSettings extends AnyWordSpec with Matchers with TestConfig {
   "CassandraSettings should return setting for a source" in {
     val props = Map(

@@ -40,11 +40,11 @@ import scala.util.Success
 import scala.util.Try
 
 /**
-  * <h1>DocumentDbSinkConnector</h1>
-  * Kafka Connect Azure DocumentDb Sink connector
-  *
-  * Sets up DocumentDbSinkTask and configurations for the tasks.
-  */
+ * <h1>DocumentDbSinkConnector</h1>
+ * Kafka Connect Azure DocumentDb Sink connector
+ *
+ * Sets up DocumentDbSinkTask and configurations for the tasks.
+ */
 class DocumentDbSinkConnector private[sink] (builder: DocumentDbSinkSettings => DocumentClient)
     extends SinkConnector
     with StrictLogging
@@ -54,16 +54,16 @@ class DocumentDbSinkConnector private[sink] (builder: DocumentDbSinkSettings => 
   def this() = this(DocumentClientProvider.get)
 
   /**
-    * States which SinkTask class to use
-    */
+   * States which SinkTask class to use
+   */
   override def taskClass(): Class[_ <: Task] = classOf[DocumentDbSinkTask]
 
   /**
-    * Set the configuration for each work and determine the split
-    *
-    * @param maxTasks The max number of task workers be can spawn
-    * @return a List of configuration properties per worker
-    */
+   * Set the configuration for each work and determine the split
+   *
+   * @param maxTasks The max number of task workers be can spawn
+   * @return a List of configuration properties per worker
+   */
   override def taskConfigs(maxTasks: Int): util.List[util.Map[String, String]] = {
     logger.info(s"Setting task configurations for [$maxTasks ]workers.")
 
@@ -85,10 +85,10 @@ class DocumentDbSinkConnector private[sink] (builder: DocumentDbSinkSettings => 
   }
 
   /**
-    * Start the sink and set to configuration
-    *
-    * @param props A map of properties for the connector and worker
-    */
+   * Start the sink and set to configuration
+   *
+   * @param props A map of properties for the connector and worker
+   */
   override def start(props: util.Map[String, String]): Unit = {
     val config = Try(DocumentDbConfig(props.asScala.toMap)) match {
       case Failure(f) =>

@@ -35,7 +35,8 @@ object PrimitiveExtractor extends LazyLogging {
       case BYTES => Option(value).fold(ExtractorError(ExtractorErrorType.MissingValue).asLeft[String]) {
           case byteVal: Array[Byte] => new String(byteVal).asRight[ExtractorError]
         }
-      case other => logger.error("Non-primitive values not supported: " + other)
+      case other =>
+        logger.error("Non-primitive values not supported: " + other)
         ExtractorError(ExtractorErrorType.UnexpectedType).asLeft[String]
     }
 

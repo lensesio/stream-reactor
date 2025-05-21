@@ -29,8 +29,8 @@ import org.apache.kafka.common.config.ConfigDef.Type
 class S3ConfigDef() extends CloudConfigDef(CONNECTOR_PREFIX, new DeprecationConfigDefProcessor()) {}
 
 /**
-  * ConfigDef elements shared between both sink and source.
-  */
+ * ConfigDef elements shared between both sink and source.
+ */
 trait S3CommonConfigDef
     extends CompressionCodecConfigKeys
     with ConnectorRetryConfigKeys

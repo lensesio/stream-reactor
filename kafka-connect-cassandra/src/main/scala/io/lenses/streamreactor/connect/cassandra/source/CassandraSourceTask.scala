@@ -40,9 +40,9 @@ import scala.util.Success
 import scala.util.Try
 
 /**
-  * Created by andrew@datamountaineer.com on 14/04/16.
-  * stream-reactor
-  */
+ * Created by andrew@datamountaineer.com on 14/04/16.
+ * stream-reactor
+ */
 
 class CassandraSourceTask extends SourceTask with StrictLogging with JarManifestProvided {
   private val queues      = mutable.Map.empty[String, LinkedBlockingQueue[SourceRecord]]
@@ -58,10 +58,10 @@ class CassandraSourceTask extends SourceTask with StrictLogging with JarManifest
   private var name:         String                        = ""
 
   /**
-    * Starts the Cassandra source, parsing the options and setting up the reader.
-    *
-    * @param props A map of supplied properties.
-    */
+   * Starts the Cassandra source, parsing the options and setting up the reader.
+   *
+   * @param props A map of supplied properties.
+   */
   override def start(props: util.Map[String, String]): Unit = {
     printAsciiHeader(manifest, "/cass-source-ascii.txt")
 
@@ -109,12 +109,12 @@ class CassandraSourceTask extends SourceTask with StrictLogging with JarManifest
   }
 
   /**
-    * Called by the Framework
-    *
-    * Map over the queues, draining each and returning SourceRecords.
-    *
-    * @return A util.List of SourceRecords.
-    */
+   * Called by the Framework
+   *
+   * Map over the queues, draining each and returning SourceRecords.
+   *
+   * @return A util.List of SourceRecords.
+   */
   override def poll(): util.List[SourceRecord] =
     settings
       .map(s => s.kcql)
@@ -122,8 +122,8 @@ class CassandraSourceTask extends SourceTask with StrictLogging with JarManifest
       .toList.asJava
 
   /**
-    * Waiting Poll Interval
-    */
+   * Waiting Poll Interval
+   */
   private def waitPollInterval() = {
     val now = System.currentTimeMillis()
     if (tracker + pollInterval <= now) {
@@ -137,14 +137,14 @@ class CassandraSourceTask extends SourceTask with StrictLogging with JarManifest
   }
 
   /**
-    * Process the table
-    *
-    * Get the reader can call read, if querying it will return then drain it's queue
-    * else if will start a new query then drain.
-    *
-    * @param tableName The table to query and drain
-    * @return A list of Source records
-    */
+   * Process the table
+   *
+   * Get the reader can call read, if querying it will return then drain it's queue
+   * else if will start a new query then drain.
+   *
+   * @param tableName The table to query and drain
+   * @return A list of Source records
+   */
   def process(tableName: String): List[SourceRecord] = {
     val reader = readers(tableName)
     val queue  = queues(tableName)
@@ -169,13 +169,14 @@ class CassandraSourceTask extends SourceTask with StrictLogging with JarManifest
 
     // let's make some of the data on the queue
     // available for publishing to Kafka
-    val records = if (!queue.isEmpty) {
-      val sendSize = if (queue.size() > batchSize.get) batchSize.get else queue.size()
-      logger.info(s"Sending $sendSize records for connector $name")
-      QueueHelpers.drainQueue(queue, batchSize.get).asScala.toList
-    } else {
-      List[SourceRecord]()
-    }
+    val records =
+      if (!queue.isEmpty) {
+        val sendSize = if (queue.size() > batchSize.get) batchSize.get else queue.size()
+        logger.info(s"Sending $sendSize records for connector $name")
+        QueueHelpers.drainQueue(queue, batchSize.get).asScala.toList
+      } else {
+        List[SourceRecord]()
+      }
 
     logger.debug(s"Connector $name end of poll queue size for $tableName is: ${queue.size}")
 
@@ -183,8 +184,8 @@ class CassandraSourceTask extends SourceTask with StrictLogging with JarManifest
   }
 
   /**
-    * Stop the task and close readers.
-    */
+   * Stop the task and close readers.
+   */
   override def stop(): Unit = {
     logger.info(s"Stopping Cassandra source $name.")
     stopControl.synchronized {
@@ -200,11 +201,11 @@ class CassandraSourceTask extends SourceTask with StrictLogging with JarManifest
   }
 
   /**
-    * Check the queue size of a table.
-    *
-    * @param table The table to check the queue size for.
-    * @return The size of the queue.
-    */
+   * Check the queue size of a table.
+   *
+   * @param table The table to check the queue size for.
+   * @return The size of the queue.
+   */
   private[lenses] def queueSize(table: String): Int =
     queues(table).size()
 }

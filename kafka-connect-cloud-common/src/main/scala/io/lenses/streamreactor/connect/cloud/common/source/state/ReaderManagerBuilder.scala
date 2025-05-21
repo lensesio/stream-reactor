@@ -38,8 +38,8 @@ import org.apache.kafka.connect.errors.ConnectException
 import scala.concurrent.duration.DurationLong
 
 /**
-  * Responsible for creating an instance of {{{ReaderManager}}} for a given path.
-  */
+ * Responsible for creating an instance of {{{ReaderManager}}} for a given path.
+ */
 object ReaderManagerBuilder extends LazyLogging {
   def apply[M <: FileMetadata](
     root:                       CloudLocation,

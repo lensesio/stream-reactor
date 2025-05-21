@@ -59,10 +59,10 @@ object CompressionCodecName extends Enum[CompressionCodecName] {
 }
 
 /**
-  * @param extension
-  *   Some format selections have compression built-in, such as Avro and Parquet.
-  *   Text formats like CSV and JSON do not, and require an update to the file extension when compressed.
-  */
+ * @param extension
+ *   Some format selections have compression built-in, such as Avro and Parquet.
+ *   Text formats like CSV and JSON do not, and require an update to the file extension when compressed.
+ */
 case class CompressionCodec(
   compressionCodec: CompressionCodecName,
   level:            Option[Int]    = Option.empty,

@@ -39,7 +39,8 @@ class IteratorOpsTest extends AnyFlatSpecLike with Matchers {
     val iterator = Iterator(1, 2, 3)
     IteratorOps.skip(iterator, 2) match {
       case Left(err) => fail(s"Should not be left. $err")
-      case Right(_) => iterator.hasNext shouldBe true
+      case Right(_) =>
+        iterator.hasNext shouldBe true
         iterator.next() shouldBe 3
     }
   }

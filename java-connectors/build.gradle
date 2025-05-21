@@ -139,7 +139,7 @@ allprojects {
             format 'misc', {
                 target '.gitattributes', '.gitignore'
                 trimTrailingWhitespace()
-                indentWithSpaces()
+                leadingTabsToSpaces()
                 endWithNewline()
             }
             groovyGradle {
@@ -148,7 +148,7 @@ allprojects {
                 trimTrailingWhitespace()
                 removeSemicolons()
                 greclipse()
-                indentWithSpaces(4)
+                leadingTabsToSpaces(4)
             }
             java {
                 targetExclude '**/io/lenses/kcql/antlr4/**/*.java'

@@ -124,17 +124,18 @@ case object JsonFormatSelection extends FormatSelection {
   ): Either[Throwable, CloudStreamReader] = {
     implicit val compressionCodec: CompressionCodec = input.compressionCodec
     val inner = new JsonStreamReader(input.stream)
-    val converter = if (input.hasEnvelope) {
-      new SchemalessEnvelopeConverter(input.watermarkPartition,
-                                      input.targetTopic,
-                                      input.targetPartition,
-                                      input.bucketAndPath,
-                                      input.metadata.lastModified,
-      )
+    val converter =
+      if (input.hasEnvelope) {
+        new SchemalessEnvelopeConverter(input.watermarkPartition,
+                                        input.targetTopic,
+                                        input.targetPartition,
+                                        input.bucketAndPath,
+                                        input.metadata.lastModified,
+        )
 
-    } else {
-      converters.TextConverter(input)
-    }
+      } else {
+        converters.TextConverter(input)
+      }
 
     new DelegateIteratorCloudStreamReader[String](inner, converter, input.bucketAndPath).asRight
   }
@@ -159,23 +160,24 @@ case object AvroFormatSelection extends FormatSelection {
   ): Either[Throwable, CloudStreamReader] = {
 
     val inner = new AvroStreamReader(input.stream)
-    val converter = if (input.hasEnvelope) {
-      new SchemaAndValueEnvelopeConverter(input.watermarkPartition,
-                                          input.targetTopic,
-                                          input.targetPartition,
-                                          input.bucketAndPath,
-                                          input.metadata.lastModified,
-      )
-    } else {
-      new SchemaAndValueConverter(
-        input.writeWatermarkToHeaders,
-        input.watermarkPartition,
-        input.targetTopic,
-        input.targetPartition,
-        input.bucketAndPath,
-        input.metadata.lastModified,
-      )
-    }
+    val converter =
+      if (input.hasEnvelope) {
+        new SchemaAndValueEnvelopeConverter(input.watermarkPartition,
+                                            input.targetTopic,
+                                            input.targetPartition,
+                                            input.bucketAndPath,
+                                            input.metadata.lastModified,
+        )
+      } else {
+        new SchemaAndValueConverter(
+          input.writeWatermarkToHeaders,
+          input.watermarkPartition,
+          input.targetTopic,
+          input.targetPartition,
+          input.bucketAndPath,
+          input.metadata.lastModified,
+        )
+      }
     new DelegateIteratorCloudStreamReader(inner, converter, input.bucketAndPath).asRight
 
   }
@@ -200,23 +202,24 @@ case object ParquetFormatSelection extends FormatSelection {
     input: ReaderBuilderContext,
   ): Either[Throwable, CloudStreamReader] = {
     val inner = ParquetStreamReader(input.metadata.size, input.recreateInputStreamF)
-    val converter = if (input.hasEnvelope) {
-      new SchemaAndValueEnvelopeConverter(input.watermarkPartition,
-                                          input.targetTopic,
-                                          input.targetPartition,
-                                          input.bucketAndPath,
-                                          input.metadata.lastModified,
-      )
-    } else {
-      new SchemaAndValueConverter(
-        input.writeWatermarkToHeaders,
-        input.watermarkPartition,
-        input.targetTopic,
-        input.targetPartition,
-        input.bucketAndPath,
-        input.metadata.lastModified,
-      )
-    }
+    val converter =
+      if (input.hasEnvelope) {
+        new SchemaAndValueEnvelopeConverter(input.watermarkPartition,
+                                            input.targetTopic,
+                                            input.targetPartition,
+                                            input.bucketAndPath,
+                                            input.metadata.lastModified,
+        )
+      } else {
+        new SchemaAndValueConverter(
+          input.writeWatermarkToHeaders,
+          input.watermarkPartition,
+          input.targetTopic,
+          input.targetPartition,
+          input.bucketAndPath,
+          input.metadata.lastModified,
+        )
+      }
     inner.map {
       is => new DelegateIteratorCloudStreamReader(is, converter, input.bucketAndPath)
     }

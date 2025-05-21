@@ -32,18 +32,18 @@ import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.util.Try
 
 /**
-  * A generic Redis `writer` that can store data into Redis PubSub / KCQL
-  *
-  * Requires KCQL syntax:   INSERT .. SELECT .. STOREAS PubSub
-  *
-  * If a field <channel> exists it will automatically be used as the Redis PubSub topic.
-  * Otherwise you would need to explicitly define how the values will be scored.
-  *
-  * Examples:
-  *
-  * SELECT * from cpuTopic STOREAS PubSub
-  * SELECT * from cpuTopic STOREAS PubSub (channel=channel)
-  */
+ * A generic Redis `writer` that can store data into Redis PubSub / KCQL
+ *
+ * Requires KCQL syntax:   INSERT .. SELECT .. STOREAS PubSub
+ *
+ * If a field <channel> exists it will automatically be used as the Redis PubSub topic.
+ * Otherwise you would need to explicitly define how the values will be scored.
+ *
+ * Examples:
+ *
+ * SELECT * from cpuTopic STOREAS PubSub
+ * SELECT * from cpuTopic STOREAS PubSub (channel=channel)
+ */
 class RedisPubSub(sinkSettings: RedisSinkSettings, jedis: Jedis)
     extends DbWriter
     with StrictLogging
@@ -91,7 +91,8 @@ class RedisPubSub(sinkSettings: RedisSinkSettings, jedis: Jedis)
   def insert(records: Map[String, Seq[SinkRecord]]): Unit =
     records.foreach(
       {
-        case (topic, sinkRecords: Seq[SinkRecord]) => {
+        case (topic, sinkRecords: Seq[SinkRecord]) =>
+          {
             val topicSettings: Set[RedisKCQLSetting] = sinkSettings.kcqlSettings.filter(_.kcqlConfig.getSource == topic)
             if (topicSettings.isEmpty)
               logger.warn(s"No KCQL statement set for [$topic]")

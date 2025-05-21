@@ -34,9 +34,9 @@ import scala.jdk.CollectionConverters.MapHasAsScala
 import scala.jdk.CollectionConverters.SeqHasAsJava
 
 /**
-  * Created by andrew@datamountaineer.com on 29/02/16.
-  * stream-reactor
-  */
+ * Created by andrew@datamountaineer.com on 29/02/16.
+ * stream-reactor
+ */
 @nowarn
 class TestConverterUtil extends TestUtilsBase with ConverterUtil {
 
@@ -492,7 +492,7 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
         simpleJsonConverter
           .fromConnectData(originalRecord.valueSchema(), originalRecord.value())
           .toString
-        )
+      )
     }
 
     "select * from key fields for struct" in {
@@ -521,7 +521,7 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
         simpleJsonConverter
           .fromConnectData(originalRecord.keySchema(), originalRecord.key())
           .toString
-        )
+      )
     }
 
     "select * from headers fields for struct" in {

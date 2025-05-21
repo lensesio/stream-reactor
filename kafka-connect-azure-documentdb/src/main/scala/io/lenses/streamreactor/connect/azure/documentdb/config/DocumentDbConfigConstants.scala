@@ -24,8 +24,8 @@ import io.lenses.streamreactor.common.config.base.const.TraitConfigConst.PROGRES
 import io.lenses.streamreactor.common.config.base.const.TraitConfigConst.RETRY_INTERVAL_PROP_SUFFIX
 
 /**
-  * Holds the constants used in the config.
-  */
+ * Holds the constants used in the config.
+ */
 
 object DocumentDbConfigConstants {
   val CONNECTOR_PREFIX = "connect.documentdb"

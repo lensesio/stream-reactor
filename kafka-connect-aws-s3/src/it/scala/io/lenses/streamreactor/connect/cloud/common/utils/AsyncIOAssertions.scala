@@ -3,8 +3,8 @@ package io.lenses.streamreactor.connect.cloud.common.utils
 import cats.effect.IO
 
 /**
-  * This is a workaround for being unable to use AsyncIOSpec in some tests due to their superclasses using some other non-IO spec.
-  */
+ * This is a workaround for being unable to use AsyncIOSpec in some tests due to their superclasses using some other non-IO spec.
+ */
 trait AsyncIOAssertions {
 
   implicit class IOAssertionOps[T](io: IO[T]) {

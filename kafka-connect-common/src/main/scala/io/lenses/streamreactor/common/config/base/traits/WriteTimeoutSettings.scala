@@ -18,9 +18,9 @@ package io.lenses.streamreactor.common.config.base.traits
 import io.lenses.streamreactor.common.config.base.const.TraitConfigConst.WRITE_TIMEOUT_SUFFIX
 
 /**
-  * Created by andrew@datamountaineer.com on 31/07/2017.
-  * stream-reactor
-  */
+ * Created by andrew@datamountaineer.com on 31/07/2017.
+ * stream-reactor
+ */
 trait WriteTimeoutSettings extends BaseSettings {
   val writeTimeoutSettingsConst = s"$connectorPrefix.$WRITE_TIMEOUT_SUFFIX"
 

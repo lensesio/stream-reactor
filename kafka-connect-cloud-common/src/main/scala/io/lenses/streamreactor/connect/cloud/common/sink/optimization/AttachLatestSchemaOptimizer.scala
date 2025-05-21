@@ -29,22 +29,22 @@ import scala.util.Success
 import scala.util.Try
 
 /**
-  * Optimizes writing data (e.g., Avro, Parquet) by ensuring a consistent schema is used,
-  * specifically targeting scenarios with backward-compatible schema evolution.
-  *
-  * Problem: Writing records sequentially with varying (but backward-compatible) schemas
-  * (e.g., schema1, schema1, schema2, schema1, schema2) can trigger frequent flushes
-  * in Avro/Parquet writers. Each schema change might force a new block/segment,
-  * reducing file efficiency and write throughput.
-  *
-  * Solution: This class attaches the *latest* known schema to all outgoing records within
-  * a write operation. It adapts records originally conforming to older, compatible schemas
-  * to match the latest one before they reach the underlying writer.
-  *
-  * Benefit: Prevents flushes caused by compatible schema variations, improving write performance.
-  * Avoids serialization exceptions that would occur if attempting to write an old-schema
-  * record with a writer expecting the latest schema.
-  */
+ * Optimizes writing data (e.g., Avro, Parquet) by ensuring a consistent schema is used,
+ * specifically targeting scenarios with backward-compatible schema evolution.
+ *
+ * Problem: Writing records sequentially with varying (but backward-compatible) schemas
+ * (e.g., schema1, schema1, schema2, schema1, schema2) can trigger frequent flushes
+ * in Avro/Parquet writers. Each schema change might force a new block/segment,
+ * reducing file efficiency and write throughput.
+ *
+ * Solution: This class attaches the *latest* known schema to all outgoing records within
+ * a write operation. It adapts records originally conforming to older, compatible schemas
+ * to match the latest one before they reach the underlying writer.
+ *
+ * Benefit: Prevents flushes caused by compatible schema variations, improving write performance.
+ * Avoids serialization exceptions that would occur if attempting to write an old-schema
+ * record with a writer expecting the latest schema.
+ */
 class AttachLatestSchemaOptimizer extends StrictLogging {
   // Store latest schema (key and value) found per topic.
   private case class TopicSchema(key: Option[Schema], value: Option[Schema])
@@ -114,18 +114,20 @@ class AttachLatestSchemaOptimizer extends StrictLogging {
 
           Try {
             // Adapt Key
-            val finalKey = if (keyNeedsUpdate && originalKeySchemaOpt.isDefined && targetKeySchema != null) {
-              adaptValue(record.key(), originalKeySchemaOpt.get, targetKeySchema)
-            } else {
-              record.key()
-            }
+            val finalKey =
+              if (keyNeedsUpdate && originalKeySchemaOpt.isDefined && targetKeySchema != null) {
+                adaptValue(record.key(), originalKeySchemaOpt.get, targetKeySchema)
+              } else {
+                record.key()
+              }
 
             // Adapt Value
-            val finalValue = if (valueNeedsUpdate && originalValueSchemaOpt.isDefined && targetValueSchema != null) {
-              adaptValue(record.value(), originalValueSchemaOpt.get, targetValueSchema)
-            } else {
-              record.value()
-            }
+            val finalValue =
+              if (valueNeedsUpdate && originalValueSchemaOpt.isDefined && targetValueSchema != null) {
+                adaptValue(record.value(), originalValueSchemaOpt.get, targetValueSchema)
+              } else {
+                record.value()
+              }
 
             // Create the new record
             new SinkRecord(
@@ -160,15 +162,15 @@ class AttachLatestSchemaOptimizer extends StrictLogging {
     }
 
   /**
-    * Recursively adapts a value from its original schema to a target schema.
-    * Handles Structs, Arrays, Maps, and primitive types.
-    *
-    * @param originalValue   The original data value.
-    * @param originalSchema  The schema corresponding to the original value.
-    * @param targetSchema    The target schema to adapt the value to.
-    * @return The adapted value conforming to the target schema.
-    * @throws DataException if adaptation is not possible (e.g., incompatible types, required fields missing).
-    */
+   * Recursively adapts a value from its original schema to a target schema.
+   * Handles Structs, Arrays, Maps, and primitive types.
+   *
+   * @param originalValue   The original data value.
+   * @param originalSchema  The schema corresponding to the original value.
+   * @param targetSchema    The target schema to adapt the value to.
+   * @return The adapted value conforming to the target schema.
+   * @throws DataException if adaptation is not possible (e.g., incompatible types, required fields missing).
+   */
   @throws[DataException]
   private def adaptValue(originalValue: Any, originalSchema: Schema, targetSchema: Schema): Any =
     if (originalSchema == targetSchema) originalValue
@@ -304,12 +306,12 @@ class AttachLatestSchemaOptimizer extends StrictLogging {
   }
 
   /**
-    * Determines if newSchema is newer than currentSchema based on version.
-    * Assumes Schema.version() returns a comparable integer where higher means newer.
-    * @param newSchema The schema to check (assumed non-null)
-    * @param currentSchema The current schema we have stored (assumed non-null)
-    * @return true if newSchema has a higher version, false otherwise.
-    */
+   * Determines if newSchema is newer than currentSchema based on version.
+   * Assumes Schema.version() returns a comparable integer where higher means newer.
+   * @param newSchema The schema to check (assumed non-null)
+   * @param currentSchema The current schema we have stored (assumed non-null)
+   * @return true if newSchema has a higher version, false otherwise.
+   */
   private def isNewerSchema(newSchema: Schema, currentSchema: Schema): Boolean =
     // Ensure both schemas have versions; handle potential null versions if necessary.
     // If version() can return null or comparison isn't straightforward, add checks here.

@@ -27,9 +27,9 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
 /**
-  * Created by andrew@datamountaineer.com on 28/04/16.
-  * stream-reactor
-  */
+ * Created by andrew@datamountaineer.com on 28/04/16.
+ * stream-reactor
+ */
 class TestCassandraSinkSettings extends AnyWordSpec with Matchers with MockitoSugar with TestConfig {
 
   def getCassandraConfigSinkPropsRetry =

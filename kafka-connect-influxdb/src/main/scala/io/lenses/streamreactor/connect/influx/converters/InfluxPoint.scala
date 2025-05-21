@@ -169,9 +169,9 @@ object InfluxPoint {
   }
 
   /**
-    * Flatten an array writing each element as a new field with the following convention:
-    * "name": ["a", "b", "c"] => name0 = "a", name1 = "b", name3 = "c"
-    */
+   * Flatten an array writing each element as a new field with the following convention:
+   * "name": ["a", "b", "c"] => name0 = "a", name1 = "b", name3 = "c"
+   */
   private def flattenArray(builder: Point)(field: String, value: java.util.List[_]) = {
     val res = value.asScala.zipWithIndex.map {
       case (el, i) => writeField(builder)(field + i, el)

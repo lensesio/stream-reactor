@@ -31,9 +31,9 @@ import java.time.Instant
 trait StorageInterface[SM <: FileMetadata] extends ResultProcessors {
 
   /**
-    * Gets the system name for use in log messages.
-    * @return
-    */
+   * Gets the system name for use in log messages.
+   * @return
+   */
   def system(): String
 
   def uploadFile(source: UploadableFile, bucket: String, path: String): Either[UploadError, String]
@@ -111,11 +111,11 @@ trait StorageInterface[SM <: FileMetadata] extends ResultProcessors {
   ): Either[FileMoveError, Unit]
 
   /**
-    * Creates a directory if it does not already exist.
-    *
-    * @param bucket The name of the bucket where the directory should be created.
-    * @param path The path of the directory to create.
-    * @return Either a FileCreateError if the directory creation failed, or Unit if the directory was created successfully or already exists.
-    */
+   * Creates a directory if it does not already exist.
+   *
+   * @param bucket The name of the bucket where the directory should be created.
+   * @param path The path of the directory to create.
+   * @return Either a FileCreateError if the directory creation failed, or Unit if the directory was created successfully or already exists.
+   */
   def createDirectoryIfNotExists(bucket: String, path: String): Either[FileCreateError, Unit]
 }

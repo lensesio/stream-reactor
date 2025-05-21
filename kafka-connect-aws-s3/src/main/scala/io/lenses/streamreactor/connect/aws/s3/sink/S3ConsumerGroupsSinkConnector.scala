@@ -27,8 +27,8 @@ import org.apache.kafka.connect.sink.SinkConnector
 import java.util
 
 /**
-  * A connector which stores the latest Kafka consumer group offset from "__consumer_offsets" topic in S3.
-  */
+ * A connector which stores the latest Kafka consumer group offset from "__consumer_offsets" topic in S3.
+ */
 class S3ConsumerGroupsSinkConnector extends SinkConnector with LazyLogging with JarManifestProvided {
 
   private val props: util.Map[String, String] = new util.HashMap[String, String]()

@@ -16,8 +16,8 @@
 package io.lenses.streamreactor.connect.cloud.common.consumers
 
 /**
-  * Mimics the Kafka core GroupTopicPartition class.
-  */
+ * Mimics the Kafka core GroupTopicPartition class.
+ */
 case class GroupTopicPartition(
   group:     String,
   topic:     String,

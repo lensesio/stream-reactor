@@ -20,9 +20,9 @@ import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.ConfigException
 
 /**
-  * Created by andrew@datamountaineer.com on 13/05/16.
-  * kafka-connect-common
-  */
+ * Created by andrew@datamountaineer.com on 13/05/16.
+ * kafka-connect-common
+ */
 
 object Helpers extends StrictLogging {
 

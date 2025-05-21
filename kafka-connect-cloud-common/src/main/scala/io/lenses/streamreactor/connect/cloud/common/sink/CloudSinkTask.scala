@@ -53,14 +53,14 @@ import scala.jdk.CollectionConverters.MapHasAsScala
 import scala.util.Try
 
 /**
-  * @param connectorPrefix
-  * @param sinkAsciiArtResource
-  * @param manifest
-  * @tparam MD file metadata type
-  * @tparam C cloud sink config subtype
-  * @tparam CC connection configuration type
-  * @tparam CT client type
-  */
+ * @param connectorPrefix
+ * @param sinkAsciiArtResource
+ * @param manifest
+ * @tparam MD file metadata type
+ * @tparam C cloud sink config subtype
+ * @tparam CC connection configuration type
+ * @tparam CT client type
+ */
 abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <: ConnectionConfig, CT](
   connectorPrefix:      String,
   sinkAsciiArtResource: String,
@@ -156,11 +156,12 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
           handleErrors(writerManager.recommitPending())
 
           //check if the optimizer on schema is enabled
-          val updatedRecords: Iterable[SinkRecord] = if (config.latestSchemaForWriteEnabled) {
-            attachLatestSchemaOptimizer.update(records.asScala.toList)
-          } else {
-            records.asScala
-          }
+          val updatedRecords: Iterable[SinkRecord] =
+            if (config.latestSchemaForWriteEnabled) {
+              attachLatestSchemaOptimizer.update(records.asScala.toList)
+            } else {
+              records.asScala
+            }
 
           updatedRecords.foreach {
             record =>
@@ -271,10 +272,10 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
   }
 
   /**
-    * Whenever close is called, the topics and partitions assigned to this task
-    * may be changing, eg, in a re-balance. Therefore, we must commit our open files
-    * for those (topic,partitions) to ensure no records are lost.
-    */
+   * Whenever close is called, the topics and partitions assigned to this task
+   * may be changing, eg, in a re-balance. Therefore, we must commit our open files
+   * for those (topic,partitions) to ensure no records are lost.
+   */
   override def close(partitions: util.Collection[KafkaTopicPartition]): Unit = {
     logger.debug(
       "[{}] CloudSinkTask.close with {} partitions",

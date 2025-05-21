@@ -16,9 +16,9 @@
 package io.lenses.streamreactor.connect.cassandra.utils
 
 /**
-  * Created by andrew@datamountaineer.com on 29/04/16.
-  * stream-reactor
-  */
+ * Created by andrew@datamountaineer.com on 29/04/16.
+ * stream-reactor
+ */
 
 import com.datastax.driver.core.ResultSet
 import com.datastax.driver.core.ResultSetFuture
@@ -32,11 +32,11 @@ import scala.concurrent.Promise
 object CassandraResultSetWrapper {
 
   /**
-    * Converts a `ResultSetFuture` into a Scala `Future[ResultSet]`
-    *
-    * @param f ResultSetFuture to convert
-    * @return Converted Future
-    */
+   * Converts a `ResultSetFuture` into a Scala `Future[ResultSet]`
+   *
+   * @param f ResultSetFuture to convert
+   * @return Converted Future
+   */
   implicit def resultSetFutureToScala(f: ResultSetFuture): Future[ResultSet] = {
     val p = Promise[ResultSet]()
     Futures.addCallback(

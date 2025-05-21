@@ -27,13 +27,13 @@ import io.lenses.streamreactor.common.config.base.const.TraitConfigConst.THREAD_
 import io.lenses.streamreactor.common.config.base.const.TraitConfigConst.USERNAME_SUFFIX
 
 /**
-  * Created by andrew@datamountaineer.com on 25/04/16.
-  * stream-reactor
-  */
+ * Created by andrew@datamountaineer.com on 25/04/16.
+ * stream-reactor
+ */
 
 /**
-  * Holds the constants used in the config.
-  */
+ * Holds the constants used in the config.
+ */
 
 object CassandraConfigConstants {
   val CONNECTOR_PREFIX = "connect.cassandra"

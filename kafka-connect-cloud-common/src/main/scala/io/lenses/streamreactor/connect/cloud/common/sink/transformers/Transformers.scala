@@ -25,10 +25,10 @@ import io.lenses.streamreactor.connect.cloud.common.model.Topic
 import io.lenses.streamreactor.connect.cloud.common.sink.config.WithTransformableDataStorage
 
 /**
-  * Applies a sequence of transformations to a message.
-  *
-  * @param transformers A sequence of transformations to apply.
-  */
+ * Applies a sequence of transformations to a message.
+ *
+ * @param transformers A sequence of transformations to apply.
+ */
 case class SequenceTransformer(transformers: Transformer*) extends Transformer {
   def transform(message: MessageDetail): Either[RuntimeException, MessageDetail] =
     transformers.foldLeft(message.asRight[RuntimeException]) {

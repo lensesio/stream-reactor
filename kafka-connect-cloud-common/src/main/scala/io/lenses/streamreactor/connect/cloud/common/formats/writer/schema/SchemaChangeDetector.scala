@@ -18,17 +18,17 @@ package io.lenses.streamreactor.connect.cloud.common.formats.writer.schema
 import org.apache.kafka.connect.data.{ Schema => ConnectSchema }
 
 /**
-  * Trait defining the contract for schema change detection.
-  */
+ * Trait defining the contract for schema change detection.
+ */
 trait SchemaChangeDetector {
 
   /**
-    * Detects if there is a change between the old schema and the new schema.
-    *
-    * @param oldSchema The old schema.
-    * @param newSchema The new schema.
-    * @return True if the schema has changed, false otherwise.
-    */
+   * Detects if there is a change between the old schema and the new schema.
+   *
+   * @param oldSchema The old schema.
+   * @param newSchema The new schema.
+   * @return True if the schema has changed, false otherwise.
+   */
   def detectSchemaChange(oldSchema: ConnectSchema, newSchema: ConnectSchema): Boolean
 }
 

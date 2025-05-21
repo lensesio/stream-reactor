@@ -26,9 +26,9 @@ import scala.jdk.CollectionConverters.MapHasAsScala
 import scala.reflect.io.Path
 
 /**
-  * Created by andrew@datamountaineer.com on 24/03/2017.
-  * stream-reactor
-  */
+ * Created by andrew@datamountaineer.com on 24/03/2017.
+ * stream-reactor
+ */
 class JMSSourceConnectorTest extends TestBase with BeforeAndAfterAll {
 
   override def afterAll(): Unit = {

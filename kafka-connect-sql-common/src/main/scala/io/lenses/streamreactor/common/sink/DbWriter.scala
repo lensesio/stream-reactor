@@ -18,8 +18,8 @@ package io.lenses.streamreactor.common.sink
 import org.apache.kafka.connect.sink.SinkRecord
 
 /**
-  * Defines the construct for inserting a new row for the connect sink record
-  */
+ * Defines the construct for inserting a new row for the connect sink record
+ */
 trait DbWriter extends AutoCloseable {
   def write(records: Seq[SinkRecord]): Unit
 }

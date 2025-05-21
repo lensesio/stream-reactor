@@ -30,9 +30,9 @@ import scala.jdk.CollectionConverters.IterableHasAsScala
 import scala.jdk.CollectionConverters.SeqHasAsJava
 
 /**
-  * Created by caio@caiooliveira.eti.br on 17/01/18.
-  * stream-reactor
-  */
+ * Created by caio@caiooliveira.eti.br on 17/01/18.
+ * stream-reactor
+ */
 class CassandraTypeConverter(private val codecRegistry: CodecRegistry, private val setting: CassandraSourceSetting)
     extends StrictLogging {
 
@@ -46,21 +46,21 @@ class CassandraTypeConverter(private val codecRegistry: CodecRegistry, private v
   def asJavaType(dataType: DataType): Class[_] = codecRegistry.codecFor(dataType).getJavaType.getRawType
 
   /**
-    * get the columns that are to be placed in the Source Record
-    * by removing the ignore columns from the select columns
-    *
-    * @return the comma separated columns
-    */
+   * get the columns that are to be placed in the Source Record
+   * by removing the ignore columns from the select columns
+   *
+   * @return the comma separated columns
+   */
   def getStructColumns(row: Row, ignoreList: Set[String]): List[ColumnDefinitions.Definition] =
     //TODO do we need to get the list of columns everytime?
     row.getColumnDefinitions.asScala.filter(cd => !ignoreList.contains(cd.getName)).toList
 
   /**
-    * Convert a Cassandra row to a SourceRecord
-    *
-    * @param row The Cassandra resultset row to convert
-    * @return a SourceRecord
-    */
+   * Convert a Cassandra row to a SourceRecord
+   *
+   * @param row The Cassandra resultset row to convert
+   * @return a SourceRecord
+   */
   def convert(
     row:        Row,
     schemaName: String,
@@ -79,12 +79,12 @@ class CassandraTypeConverter(private val codecRegistry: CodecRegistry, private v
   }
 
   /**
-    * Extract the Cassandra data type can convert to the Connect type
-    *
-    * @param columnDef The cassandra column def to convert
-    * @param row       The cassandra row to extract the data from
-    * @return The converted value
-    */
+   * Extract the Cassandra data type can convert to the Connect type
+   *
+   * @param columnDef The cassandra column def to convert
+   * @param row       The cassandra row to extract the data from
+   * @return The converted value
+   */
   private def mapTypes(columnDef: Definition, row: Row): Any =
     columnDef.getType.getName match {
       case DataType.Name.DECIMAL =>
@@ -121,12 +121,12 @@ class CassandraTypeConverter(private val codecRegistry: CodecRegistry, private v
     }
 
   /**
-    * Extract the Cassandra collection data type can convert to the Connect type
-    *
-    * @param columnDef The cassandra column def to convert
-    * @param row       The cassandra row to extract the data from
-    * @return The converted value
-    */
+   * Extract the Cassandra collection data type can convert to the Connect type
+   *
+   * @param columnDef The cassandra column def to convert
+   * @param row       The cassandra row to extract the data from
+   * @return The converted value
+   */
   private def collectionMapTypes(columnDef: Definition, row: Row): Any = {
     val dataType = columnDef.getType
 
@@ -144,12 +144,12 @@ class CassandraTypeConverter(private val codecRegistry: CodecRegistry, private v
   }
 
   /**
-    * Convert a set of CQL columns from a Cassandra row to a
-    * Connect schema
-    *
-    * @param cols A set of Column Definitions
-    * @return a Connect Schema
-    */
+   * Convert a set of CQL columns from a Cassandra row to a
+   * Connect schema
+   *
+   * @param cols A set of Column Definitions
+   * @return a Connect Schema
+   */
   def convertToConnectSchema(cols: List[Definition], name: String): Schema = {
     val builder = SchemaBuilder.struct().name(name)
     if (cols != null) cols.map(c => builder.field(c.getName, typeMapToConnect(c.getType)))
@@ -157,11 +157,11 @@ class CassandraTypeConverter(private val codecRegistry: CodecRegistry, private v
   }
 
   /**
-    * Map the Cassandra DataType to the Connect types
-    *
-    * @param dataType The cassandra column definition
-    * @return the Connect schema type
-    */
+   * Map the Cassandra DataType to the Connect types
+   *
+   * @param dataType The cassandra column definition
+   * @return the Connect schema type
+   */
   private def typeMapToConnect(dataType: DataType): Schema =
     dataType.getName match {
       case DataType.Name.TIMEUUID | DataType.Name.UUID | DataType.Name.INET | DataType.Name.ASCII | DataType.Name.TEXT |
@@ -184,11 +184,11 @@ class CassandraTypeConverter(private val codecRegistry: CodecRegistry, private v
     }
 
   /**
-    * Map the Cassandra DataType Collection to the Connect types
-    *
-    * @param dataType The cassandra column definition
-    * @return the Connect schema type
-    */
+   * Map the Cassandra DataType Collection to the Connect types
+   *
+   * @param dataType The cassandra column definition
+   * @return the Connect schema type
+   */
   private def collectionTypeMapToConnect(dataType: DataType): Schema =
     if (mappingCollectionToJson) {
       Schema.OPTIONAL_STRING_SCHEMA

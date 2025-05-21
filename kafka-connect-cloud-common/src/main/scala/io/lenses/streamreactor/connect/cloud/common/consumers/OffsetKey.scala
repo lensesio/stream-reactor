@@ -18,19 +18,19 @@ package io.lenses.streamreactor.connect.cloud.common.consumers
 import java.nio.ByteBuffer
 
 /**
-  * Mimics the Kafka core OffsetKey class.
-  */
+ * Mimics the Kafka core OffsetKey class.
+ */
 case class OffsetKey(version: Short, key: GroupTopicPartition)
 
 object OffsetKey {
 
   /**
-    * Deserializes the OffsetKey from a byte array.
-    *
-    * @param version the version of the OffsetKey
-    * @param buffer  the buffer to deserialize from
-    * @return the deserialized OffsetKey
-    */
+   * Deserializes the OffsetKey from a byte array.
+   *
+   * @param version the version of the OffsetKey
+   * @param buffer  the buffer to deserialize from
+   * @return the deserialized OffsetKey
+   */
   def from(version: Short, buffer: ByteBuffer): Either[Throwable, OffsetKey] = {
     def readStringField(fieldName: String): Either[Throwable, String] = {
       val length = buffer.getShort

@@ -38,8 +38,8 @@ class ElasticSinkTask extends SinkTask with StrictLogging with JarManifestProvid
   private var enableProgress: Boolean = false
 
   /**
-    * Parse the configurations and setup the writer
-    */
+   * Parse the configurations and setup the writer
+   */
   override def start(props: util.Map[String, String]): Unit = {
     printAsciiHeader(manifest, "/elastic-ascii.txt")
 
@@ -60,8 +60,8 @@ class ElasticSinkTask extends SinkTask with StrictLogging with JarManifestProvid
   }
 
   /**
-    * Pass the SinkRecords to the writer for Writing
-    */
+   * Pass the SinkRecords to the writer for Writing
+   */
   override def put(records: util.Collection[SinkRecord]): Unit = {
     require(writer.nonEmpty, "Writer is not set!")
     val seq = records.asScala.toVector
@@ -73,8 +73,8 @@ class ElasticSinkTask extends SinkTask with StrictLogging with JarManifestProvid
   }
 
   /**
-    * Clean up writer
-    */
+   * Clean up writer
+   */
   override def stop(): Unit = {
     logger.info("Stopping Elastic sink.")
     writer.foreach(w => w.close())

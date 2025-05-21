@@ -33,18 +33,18 @@ import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
 import io.lenses.streamreactor.connect.config.kcqlprops.KcqlProperties
 
 /**
-  * Trait representing a post-process action to be performed on cloud storage.
-  */
+ * Trait representing a post-process action to be performed on cloud storage.
+ */
 trait PostProcessAction {
 
   /**
-    * Runs the post-process action.
-    *
-    * @param storageInterface The storage interface used to interact with the cloud storage.
-    * @param directoryCache The cache used to track created directories.
-    * @param cloudLocation The location in the cloud storage where the action should be performed.
-    * @return An IO effect representing the completion of the action.
-    */
+   * Runs the post-process action.
+   *
+   * @param storageInterface The storage interface used to interact with the cloud storage.
+   * @param directoryCache The cache used to track created directories.
+   * @param cloudLocation The location in the cloud storage where the action should be performed.
+   * @return An IO effect representing the completion of the action.
+   */
   def run(
     storageInterface: StorageInterface[_],
     directoryCache:   DirectoryCache,
@@ -52,12 +52,12 @@ trait PostProcessAction {
   ): IO[Unit]
 
   /**
-    * Prepares the paths needed for the post-process action.
-    *
-    * @param cloudLocation The location in the cloud storage.
-    * @param directoryCache The cache used to track created directories.
-    * @return An IO effect containing a tuple with the path and the directory path.
-    */
+   * Prepares the paths needed for the post-process action.
+   *
+   * @param cloudLocation The location in the cloud storage.
+   * @param directoryCache The cache used to track created directories.
+   * @return An IO effect containing a tuple with the path and the directory path.
+   */
   protected def preparePaths(
     retainDirs:     Boolean,
     cloudLocation:  CloudLocation,
@@ -70,11 +70,12 @@ trait PostProcessAction {
       dirPath <- IO.fromOption(cloudLocation.pathToLowestDirectory())(
         new IllegalArgumentException("Cannot proceed without a path, this is probably a logic error"),
       )
-      _ <- if (retainDirs) {
-        IO.fromEither(directoryCache.ensureDirectoryExists(cloudLocation.bucket, dirPath).leftMap(_.exception))
-      } else {
-        IO.unit
-      }
+      _ <-
+        if (retainDirs) {
+          IO.fromEither(directoryCache.ensureDirectoryExists(cloudLocation.bucket, dirPath).leftMap(_.exception))
+        } else {
+          IO.unit
+        }
     } yield (path, dirPath)
 }
 

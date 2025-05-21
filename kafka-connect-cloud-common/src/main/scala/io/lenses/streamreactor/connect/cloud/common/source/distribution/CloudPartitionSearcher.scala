@@ -24,13 +24,13 @@ import io.lenses.streamreactor.connect.cloud.common.source.config.PartitionSearc
 import io.lenses.streamreactor.connect.cloud.common.storage.DirectoryLister
 
 /**
-  * Class implementing a partition searcher for S3 cloud storage.
-  * This class searches for new partitions within specified roots in S3.
-  *
-  * @param roots           The list of root locations in which to search for partitions.
-  * @param settings        The configuration options for partition searching.
-  * @param connectorTaskId The identifier for the connector task.
-  */
+ * Class implementing a partition searcher for S3 cloud storage.
+ * This class searches for new partitions within specified roots in S3.
+ *
+ * @param roots           The list of root locations in which to search for partitions.
+ * @param settings        The configuration options for partition searching.
+ * @param connectorTaskId The identifier for the connector task.
+ */
 class CloudPartitionSearcher(
   fFilesLimit:     CloudLocation => Either[Throwable, Int],
   directoryLister: DirectoryLister,
@@ -41,11 +41,11 @@ class CloudPartitionSearcher(
     with LazyLogging {
 
   /**
-    * Finds new partitions based on the provided last found partition responses.
-    *
-    * @param lastFound The previously found partition responses.
-    * @return          A sequence of new partition responses.
-    */
+   * Finds new partitions based on the provided last found partition responses.
+   *
+   * @param lastFound The previously found partition responses.
+   * @return          A sequence of new partition responses.
+   */
   def find(
     lastFound: Seq[PartitionSearcherResponse],
   ): IO[Seq[PartitionSearcherResponse]] =

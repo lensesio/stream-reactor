@@ -135,15 +135,15 @@ abstract class HttpRequestSender(
   protected def updateRequest(request: Request[IO]): IO[Request[IO]]
 
   /**
-    * Sends an HTTP request based on the provided processed template.
-    *
-    * This method constructs an HTTP request using the provided template,
-    * adds necessary headers and authentication, and sends the request using the client.
-    * It processes the response and handles any errors that may occur during the request.
-    *
-    * @param processedTemplate the template containing the endpoint, content, and headers for the request
-    * @return an `IO` containing either a `HttpResponseFailure` or a `HttpResponseSuccess`
-    */
+   * Sends an HTTP request based on the provided processed template.
+   *
+   * This method constructs an HTTP request using the provided template,
+   * adds necessary headers and authentication, and sends the request using the client.
+   * It processes the response and handles any errors that may occur during the request.
+   *
+   * @param processedTemplate the template containing the endpoint, content, and headers for the request
+   * @return an `IO` containing either a `HttpResponseFailure` or a `HttpResponseSuccess`
+   */
   def sendHttpRequest(
     processedTemplate: ProcessedTemplate,
   ): IO[Either[HttpResponseFailure, HttpResponseSuccess]] =
@@ -186,14 +186,14 @@ abstract class HttpRequestSender(
     }
 
   /**
-    * Executes the HTTP request and handles any errors that occur.
-    *
-    * This method sends the authenticated HTTP request using the provided client,
-    * processes the response, and handles any errors that may occur during the request.
-    *
-    * @param authenticatedRequest the authenticated HTTP request to be sent
-    * @return an `IO` containing either a `HttpResponseFailure` or a `HttpResponseSuccess`
-    */
+   * Executes the HTTP request and handles any errors that occur.
+   *
+   * This method sends the authenticated HTTP request using the provided client,
+   * processes the response, and handles any errors that may occur during the request.
+   *
+   * @param authenticatedRequest the authenticated HTTP request to be sent
+   * @return an `IO` containing either a `HttpResponseFailure` or a `HttpResponseSuccess`
+   */
   private def executeRequestAndHandleErrors(
     authenticatedRequest: Request[IO],
   ): IO[Either[HttpResponseFailure, HttpResponseSuccess]] =

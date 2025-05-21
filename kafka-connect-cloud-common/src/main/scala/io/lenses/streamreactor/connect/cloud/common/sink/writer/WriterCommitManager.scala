@@ -24,12 +24,12 @@ import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
 import io.lenses.streamreactor.connect.cloud.common.storage.FileMetadata
 
 /**
-  * Manages the commit operations for writers.
-  *
-  * @param fnGetWriters Function to retrieve the current map of writers.
-  * @param connectorTaskId Implicit task ID for logging purposes.
-  * @tparam SM Type parameter for file metadata.
-  */
+ * Manages the commit operations for writers.
+ *
+ * @param fnGetWriters Function to retrieve the current map of writers.
+ * @param connectorTaskId Implicit task ID for logging purposes.
+ * @tparam SM Type parameter for file metadata.
+ */
 class WriterCommitManager[SM <: FileMetadata](
   fnGetWriters: () => Map[MapKey, Writer[SM]],
 )(
@@ -38,21 +38,21 @@ class WriterCommitManager[SM <: FileMetadata](
 ) extends LazyLogging {
 
   /**
-    * Commits writers that have pending uploads.
-    *
-    * @return Either a SinkError or Unit if successful.
-    */
+   * Commits writers that have pending uploads.
+   *
+   * @return Either a SinkError or Unit if successful.
+   */
   def commitPending(): Either[SinkError, Unit] =
     commitWritersWithFilter {
       case (_, writer) => writer.hasPendingUpload
     }
 
   /**
-    * Commits writers for a specific topic partition.
-    *
-    * @param topicPartition The topic partition to commit writers for.
-    * @return Either a BatchCloudSinkError or Unit if successful.
-    */
+   * Commits writers for a specific topic partition.
+   *
+   * @param topicPartition The topic partition to commit writers for.
+   * @return Either a BatchCloudSinkError or Unit if successful.
+   */
   def commitForTopicPartition(topicPartition: TopicPartition): Either[BatchCloudSinkError, Unit] =
     commitWritersWithFilter {
       case (mapKey, _) =>
@@ -60,32 +60,32 @@ class WriterCommitManager[SM <: FileMetadata](
     }
 
   /**
-    * Commits writers that should be flushed.
-    *
-    * @return Either a BatchCloudSinkError or Unit if successful.
-    */
+   * Commits writers that should be flushed.
+   *
+   * @return Either a BatchCloudSinkError or Unit if successful.
+   */
   def commitFlushableWriters(): Either[BatchCloudSinkError, Unit] =
     commitWritersWithFilter {
       case (_, writer) => writer.shouldFlush
     }
 
   /**
-    * Commits writers that should be flushed for a specific topic partition.
-    *
-    * @param topicPartition The topic partition to commit flushable writers for.
-    * @return Either a BatchCloudSinkError or Unit if successful.
-    */
+   * Commits writers that should be flushed for a specific topic partition.
+   *
+   * @param topicPartition The topic partition to commit flushable writers for.
+   * @return Either a BatchCloudSinkError or Unit if successful.
+   */
   def commitFlushableWritersForTopicPartition(topicPartition: TopicPartition): Either[BatchCloudSinkError, Unit] =
     commitWritersWithFilter {
       case (MapKey(tp, _), writer) => tp == topicPartition && writer.shouldFlush
     }
 
   /**
-    * Commits writers based on a filter function.
-    *
-    * @param keyValueFilterFn The filter function to determine which writers to commit.
-    * @return Either a BatchCloudSinkError or Unit if successful.
-    */
+   * Commits writers based on a filter function.
+   *
+   * @param keyValueFilterFn The filter function to determine which writers to commit.
+   * @return Either a BatchCloudSinkError or Unit if successful.
+   */
   private def commitWritersWithFilter(
     keyValueFilterFn: ((MapKey, Writer[SM])) => Boolean,
   ): Either[BatchCloudSinkError, Unit] = {

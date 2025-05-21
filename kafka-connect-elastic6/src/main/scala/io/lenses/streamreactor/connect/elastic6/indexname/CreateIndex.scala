@@ -36,8 +36,8 @@ import org.apache.kafka.connect.sink.SinkRecord
 import scala.jdk.OptionConverters.RichOptional
 
 /**
-  * Creates the index for the given KCQL configuration.
-  */
+ * Creates the index for the given KCQL configuration.
+ */
 object CreateIndex {
   def getIndexNameForAutoCreate(kcql: Kcql): Either[IllegalArgumentException, String] =
     for {

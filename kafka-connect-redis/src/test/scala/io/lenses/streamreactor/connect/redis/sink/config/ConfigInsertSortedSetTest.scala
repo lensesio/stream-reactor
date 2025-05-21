@@ -23,15 +23,15 @@ import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.jdk.CollectionConverters.MapHasAsScala
 
 /**
-  * Using INSERT we can store data from one Kafka topic into one Redis Sorted Set (SS)
-  *
-  * Requires KCQL syntax: .. INSERT .. STOREAS SortedSet(score=ts)
-  *
-  * The `score` can:
-  * 1. Be explicitly defined STOREAS SortedSet (score=ts)
-  * 2. If not, try to use the field `timestamp` (if it exists)
-  * 3. If not does not exist use current time as the timestamp <system.now>
-  */
+ * Using INSERT we can store data from one Kafka topic into one Redis Sorted Set (SS)
+ *
+ * Requires KCQL syntax: .. INSERT .. STOREAS SortedSet(score=ts)
+ *
+ * The `score` can:
+ * 1. Be explicitly defined STOREAS SortedSet (score=ts)
+ * 2. If not, try to use the field `timestamp` (if it exists)
+ * 3. If not does not exist use current time as the timestamp <system.now>
+ */
 class ConfigInsertSortedSetTest extends AnyWordSpec with Matchers with RedisMockSupport {
 
   // Insert into a Single Sorted Set

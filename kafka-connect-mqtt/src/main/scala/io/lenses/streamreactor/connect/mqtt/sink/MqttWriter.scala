@@ -38,9 +38,9 @@ import java.util.{ Collection => JCollection }
 import java.util.{ HashMap => JHashMap }
 
 /**
-  * Created by andrew@datamountaineer.com on 27/08/2017.
-  * stream-reactor
-  */
+ * Created by andrew@datamountaineer.com on 27/08/2017.
+ * stream-reactor
+ */
 
 object MqttWriter {
   def apply(settings: MqttSinkSettings): MqttWriter =

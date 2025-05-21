@@ -27,9 +27,9 @@ import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.jdk.CollectionConverters.MapHasAsJava
 
 /**
-  * Created by andrew@datamountaineer.com on 20/04/16.
-  * stream-reactor
-  */
+ * Created by andrew@datamountaineer.com on 20/04/16.
+ * stream-reactor
+ */
 
 @DoNotDiscover
 class TestCassandraSourceConnector extends AnyWordSpec with Matchers with ItTestConfig {

@@ -24,8 +24,8 @@ import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
 /**
-  * Created by jhofman on 13/03/2017.
-  */
+ * Created by jhofman on 13/03/2017.
+ */
 class FtpFileListerTest extends AnyFunSuite with Matchers with BeforeAndAfter with StrictLogging with MockitoSugar {
 
   def mockFile(name: String) = {
@@ -61,14 +61,14 @@ class FtpFileListerTest extends AnyFunSuite with Matchers with BeforeAndAfter wi
     val ftp = mock[FTPClient]
 
     /**
-      * /a
-      *   /dira
-      *        /path/file1.txt
-      *   /dirb
-      *       /nopath/file2.txt
-      *       /path/file3.txt
-      *       /path/file4.csv
-      */
+     * /a
+     *   /dira
+     *        /path/file1.txt
+     *   /dirb
+     *       /nopath/file2.txt
+     *       /path/file3.txt
+     *       /path/file4.csv
+     */
 
     val dira      = mockDir("dira")
     val dirb      = mockDir("dirb")

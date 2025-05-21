@@ -36,9 +36,9 @@ import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.jdk.CollectionConverters.SeqHasAsJava
 
 /**
-  * Created by andrew@datamountaineer.com on 29/02/16.
-  * stream-reactor
-  */
+ * Created by andrew@datamountaineer.com on 29/02/16.
+ * stream-reactor
+ */
 
 trait TestUtilsBase extends AnyWordSpec with Matchers with BeforeAndAfter with MockitoSugar {
   val TOPIC             = "sink_test"
@@ -109,10 +109,10 @@ trait TestUtilsBase extends AnyWordSpec with Matchers with BeforeAndAfter with M
   def getSourceTaskContext(lookupPartitionKey: String, offsetValue: String, offsetColumn: String, table: String) = {
 
     /**
-      * offset holds a map of map[string, something],map[identifier, value]
-      *
-      * map(map(assign.import.table->table1) -> map("my_timeuuid"->"2013-01-01 00:05+0000")
-      */
+     * offset holds a map of map[string, something],map[identifier, value]
+     *
+     * map(map(assign.import.table->table1) -> map("my_timeuuid"->"2013-01-01 00:05+0000")
+     */
 
     //set up partition
     val partition: util.Map[String, String] = Collections.singletonMap(lookupPartitionKey, table)

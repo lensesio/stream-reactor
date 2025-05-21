@@ -29,8 +29,8 @@ import org.scalatest.wordspec.AnyWordSpec
 import java.nio.ByteBuffer
 
 /**
-  * Will not test Kcql and Json-KCQL since it is covered already.
-  */
+ * Will not test Kcql and Json-KCQL since it is covered already.
+ */
 class TransformTests extends AnyWordSpec with Matchers {
 
   private val avroData = new AvroData(2)

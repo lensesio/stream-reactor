@@ -20,17 +20,17 @@ import org.apache.avro.SchemaCompatibility
 import org.apache.kafka.connect.data.{ Schema => ConnectSchema }
 
 /**
-  * Implementation of SchemaChangeDetector that detects schema changes based on compatibility.
-  */
+ * Implementation of SchemaChangeDetector that detects schema changes based on compatibility.
+ */
 object CompatibilitySchemaChangeDetector extends SchemaChangeDetector {
 
   /**
-    * Checks the compatibility between the old schema and the new schema.
-    *
-    * @param oldSchema The old schema.
-    * @param newSchema The new schema.
-    * @return False if the schemas are compatible, true otherwise.
-    */
+   * Checks the compatibility between the old schema and the new schema.
+   *
+   * @param oldSchema The old schema.
+   * @param newSchema The new schema.
+   * @return False if the schemas are compatible, true otherwise.
+   */
   override def detectSchemaChange(oldSchema: ConnectSchema, newSchema: ConnectSchema): Boolean = {
 
     val oldSchemaAvro = ToAvroDataConverter.convertSchema(oldSchema)

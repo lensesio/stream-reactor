@@ -18,8 +18,8 @@ package io.lenses.streamreactor.connect.mqtt.config
 import io.lenses.streamreactor.common.config.base.const.TraitConfigConst._
 
 /**
-  * Created by tomasfartaria on 10/04/2017.
-  */
+ * Created by tomasfartaria on 10/04/2017.
+ */
 object MqttConfigConstants {
 
   val CONNECTOR_PREFIX = "connect.mqtt"

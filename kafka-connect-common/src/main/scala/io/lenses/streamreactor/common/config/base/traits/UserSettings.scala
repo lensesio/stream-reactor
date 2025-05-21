@@ -19,9 +19,9 @@ import io.lenses.streamreactor.common.config.base.const.TraitConfigConst.PASSWOR
 import io.lenses.streamreactor.common.config.base.const.TraitConfigConst.USERNAME_SUFFIX
 
 /**
-  * Created by andrew@datamountaineer.com on 29/07/2017.
-  * stream-reactor
-  */
+ * Created by andrew@datamountaineer.com on 29/07/2017.
+ * stream-reactor
+ */
 trait UserSettings extends BaseSettings {
   private val passwordConst = s"$connectorPrefix.$PASSWORD_SUFFIX"
   private val usernameConst = s"$connectorPrefix.$USERNAME_SUFFIX"

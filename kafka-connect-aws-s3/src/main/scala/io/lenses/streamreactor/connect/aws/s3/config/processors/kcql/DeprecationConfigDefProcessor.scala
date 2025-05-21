@@ -54,10 +54,10 @@ object DeprecationConfigDefProcessor {
 }
 
 /**
-  * For consistency of configuration, some properties are deprecated in the connector.  To ensure users update their
-  * connector configuration, this will fail during connector initialisation advising of the errors and how to update the
-  * properties.  This will be removed in a future release.
-  */
+ * For consistency of configuration, some properties are deprecated in the connector.  To ensure users update their
+ * connector configuration, this will fail during connector initialisation advising of the errors and how to update the
+ * properties.  This will be removed in a future release.
+ */
 class DeprecationConfigDefProcessor
     extends ConfigDefProcessor
     with LazyLogging

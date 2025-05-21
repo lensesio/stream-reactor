@@ -118,14 +118,17 @@ class ExponentialBackoffSourceFileQueue private (
   }
 
   private def calculateBackoffDelay(currentState: BackoffState): Duration = {
-    val newDelay = if (currentState.isFirstBackoff) {
-      logger.info(s"[${connectorTaskId.show}] No files found; retrying in ${currentState.delay.toMillis} milliseconds")
-      currentState.delay
-    } else {
-      val exponentialDelay = (currentState.delay * backoffFactor) min maxTimeout
-      logger.info(s"[${connectorTaskId.show}] No files found; retrying in ${exponentialDelay.toMillis} milliseconds")
-      exponentialDelay
-    }
+    val newDelay =
+      if (currentState.isFirstBackoff) {
+        logger.info(
+          s"[${connectorTaskId.show}] No files found; retrying in ${currentState.delay.toMillis} milliseconds",
+        )
+        currentState.delay
+      } else {
+        val exponentialDelay = (currentState.delay * backoffFactor) min maxTimeout
+        logger.info(s"[${connectorTaskId.show}] No files found; retrying in ${exponentialDelay.toMillis} milliseconds")
+        exponentialDelay
+      }
     newDelay
   }
 

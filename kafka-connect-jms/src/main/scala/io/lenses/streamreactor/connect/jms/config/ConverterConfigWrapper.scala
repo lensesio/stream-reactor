@@ -20,8 +20,8 @@ import io.lenses.streamreactor.connect.jms.sink.converters.JMSSinkMessageConvert
 import io.lenses.streamreactor.connect.jms.source.converters.JMSSourceMessageConverter
 
 /**
-  * ConverterConfigWrapper holds the configured converter.  There are only 2 implementations, for source or Sink.  This ensures that only one converter can be configured at a given time for a KCQL row.
-  */
+ * ConverterConfigWrapper holds the configured converter.  There are only 2 implementations, for source or Sink.  This ensures that only one converter can be configured at a given time for a KCQL row.
+ */
 trait ConverterConfigWrapper {
   def forSource: Either[String, JMSSourceMessageConverter] = "Configured sink, requested source".asLeft
 

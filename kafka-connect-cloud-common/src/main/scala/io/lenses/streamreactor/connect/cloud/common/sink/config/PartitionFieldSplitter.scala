@@ -16,17 +16,17 @@
 package io.lenses.streamreactor.connect.cloud.common.sink.config
 
 /**
-  * A utility for splitting a string into parts while respecting backticks.
-  */
+ * A utility for splitting a string into parts while respecting backticks.
+ */
 object PartitionFieldSplitter {
 
   /**
-    * Splits an input string into parts while respecting backticks.
-    * Backticks are treated as complete strings and not subject to splitting.
-    *
-    * @param input The input string to split.
-    * @return A sequence of strings representing the split parts.
-    */
+   * Splits an input string into parts while respecting backticks.
+   * Backticks are treated as complete strings and not subject to splitting.
+   *
+   * @param input The input string to split.
+   * @return A sequence of strings representing the split parts.
+   */
   def split(input: String): Seq[String] =
     input.foldLeft((Seq.empty[String], "", false)) {
       case ((result, currentPart, insideBacktick), char) =>

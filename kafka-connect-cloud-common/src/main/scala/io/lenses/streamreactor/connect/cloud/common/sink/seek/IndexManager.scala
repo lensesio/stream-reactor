@@ -20,27 +20,27 @@ import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
 import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
 
 /**
-  * A trait for managing indexing operations in a cloud sink.
-  * Provides methods to check if indexing is enabled, open topic partitions,
-  * update offsets, and retrieve seeked offsets.
-  */
+ * A trait for managing indexing operations in a cloud sink.
+ * Provides methods to check if indexing is enabled, open topic partitions,
+ * update offsets, and retrieve seeked offsets.
+ */
 trait IndexManager {
 
   /**
-    * Checks if indexing is enabled.
-    *
-    * @return A boolean value indicating whether indexing is enabled.
-    */
+   * Checks if indexing is enabled.
+   *
+   * @return A boolean value indicating whether indexing is enabled.
+   */
   def indexingEnabled: Boolean
 
   /**
-    * Opens a set of topic partitions for writing.
-    * If an index file is not found, a new one is created.
-    *
-    * @param topicPartitions A set of `TopicPartition` objects to open.
-    * @return An `Either` containing a `SinkError` on failure or a map of
-    *         `TopicPartition` to `Option[Offset]` on success.
-    */
+   * Opens a set of topic partitions for writing.
+   * If an index file is not found, a new one is created.
+   *
+   * @param topicPartitions A set of `TopicPartition` objects to open.
+   * @return An `Either` containing a `SinkError` on failure or a map of
+   *         `TopicPartition` to `Option[Offset]` on success.
+   */
   def open(
     topicPartitions: Set[TopicPartition],
   ): Either[
@@ -49,13 +49,13 @@ trait IndexManager {
   ]
 
   /**
-    * Updates the state for a specific topic partition.
-    *
-    * @param topicPartition  The `TopicPartition` to update.
-    * @param committedOffset An optional committed offset.
-    * @param pendingState    An optional pending state.
-    * @return An `Either` containing a `SinkError` on failure or an `Option[Offset]` on success.
-    */
+   * Updates the state for a specific topic partition.
+   *
+   * @param topicPartition  The `TopicPartition` to update.
+   * @param committedOffset An optional committed offset.
+   * @param pendingState    An optional pending state.
+   * @return An `Either` containing a `SinkError` on failure or an `Option[Offset]` on success.
+   */
   def update(
     topicPartition:  TopicPartition,
     committedOffset: Option[Offset],
@@ -66,11 +66,11 @@ trait IndexManager {
   ]
 
   /**
-    * Retrieves the seeked offset for a specific topic partition.
-    *
-    * @param topicPartition The `TopicPartition` to retrieve the offset for.
-    * @return An `Option[Offset]` containing the seeked offset, or `None` if not available.
-    */
+   * Retrieves the seeked offset for a specific topic partition.
+   *
+   * @param topicPartition The `TopicPartition` to retrieve the offset for.
+   * @return An `Option[Offset]` containing the seeked offset, or `None` if not available.
+   */
   def getSeekedOffsetForTopicPartition(
     topicPartition: TopicPartition,
   ): Option[Offset]

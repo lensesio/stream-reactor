@@ -28,16 +28,16 @@ import scala.collection.mutable
 object RecordsQueueBatcher extends LazyLogging {
 
   /**
-    * Iterates through the queue until the records trigger a commit based on the commit policy.
-    * Uses `foldM` to fold over the queue and stop at the first record that triggers a commit.
-    * If the commit policy is met, it returns a `Left` with the batch of records and the updated commit context.
-    * If the commit policy is not met, it returns a `Right` with the batch of records and the updated commit context.
-    *
-    * @param commitPolicy The commit policy.
-    * @param initialContext The initial commit context.
-    * @param records The queue of records to be processed.
-    * @return Either a tuple of the batch of records and the updated commit context, or the same tuple if the commit policy is not met.
-    */
+   * Iterates through the queue until the records trigger a commit based on the commit policy.
+   * Uses `foldM` to fold over the queue and stop at the first record that triggers a commit.
+   * If the commit policy is met, it returns a `Left` with the batch of records and the updated commit context.
+   * If the commit policy is not met, it returns a `Right` with the batch of records and the updated commit context.
+   *
+   * @param commitPolicy The commit policy.
+   * @param initialContext The initial commit context.
+   * @param records The queue of records to be processed.
+   * @return Either a tuple of the batch of records and the updated commit context, or the same tuple if the commit policy is not met.
+   */
   def takeBatch(
     batchPolicy:    BatchPolicy,
     initialContext: HttpCommitContext,

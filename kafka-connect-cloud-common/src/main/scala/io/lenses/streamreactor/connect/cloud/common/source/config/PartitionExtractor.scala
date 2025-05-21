@@ -18,8 +18,8 @@ package io.lenses.streamreactor.connect.cloud.common.source.config
 import com.typesafe.scalalogging.LazyLogging
 
 /**
-  * For a source, can extract the original partition so that the message can be returned to the original partition.
-  */
+ * For a source, can extract the original partition so that the message can be returned to the original partition.
+ */
 sealed trait PartitionExtractor {
 
   def extract(remotePath: String): Option[Int]
