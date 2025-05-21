@@ -58,7 +58,7 @@ object Dependencies {
     val avro4sVersion    = "4.1.2"
 
     val catsEffectVersion     = "3.6.1"
-    val `cats-effect-testing` = "1.5.0"
+    val `cats-effect-testing` = "1.6.0"
 
     val antlr4Version: String = "4.13.2"
 
@@ -91,9 +91,9 @@ object Dependencies {
     val gcpCloudStorageVersion            = "2.44.1"
 
     val woodstoxVersion     = "7.1.0"
-    val jacksonVersion      = "2.18.4"
+    val jacksonVersion      = "2.19.0"
     val json4sVersion       = "4.0.7"
-    val mockitoScalaVersion = "1.17.37"
+    val mockitoScalaVersion = "1.17.44"
     val mockitoJavaVersion  = "5.2.0"
     val openCsvVersion      = "5.11"
     val jsonSmartVersion    = "2.5.2"
@@ -102,7 +102,7 @@ object Dependencies {
     val lz4Version = "1.8.0"
 
     val bouncyCastleVersion = "1.80"
-    val nettyVersion        = "4.1.121.Final"
+    val nettyVersion        = "4.2.1.Final"
 
     val cassandraDriverVersion = "3.11.5"
     val jsonPathVersion        = "2.9.0"
@@ -127,7 +127,7 @@ object Dependencies {
     val commonsIOVersion       = "2.19.0"
     val commonsHttpVersion     = "4.5.14"
     val commonsLang3Version    = "3.17.0"
-    val jschVersion            = "0.2.26"
+    val jschVersion            = "2.27.0"
 
     val minaVersion           = "2.2.4"
     val betterFilesVersion    = "3.9.2"
