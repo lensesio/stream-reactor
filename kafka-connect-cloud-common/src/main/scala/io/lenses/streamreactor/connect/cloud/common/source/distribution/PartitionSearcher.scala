@@ -18,17 +18,17 @@ package io.lenses.streamreactor.connect.cloud.common.source.distribution
 import cats.effect.IO
 
 /**
-  * Trait defining a partition searcher.
-  * Implementations of this trait are responsible for finding partitions based on previous search results.
-  */
+ * Trait defining a partition searcher.
+ * Implementations of this trait are responsible for finding partitions based on previous search results.
+ */
 trait PartitionSearcher {
 
   /**
-    * Finds partitions based on the provided last found partition responses.
-    *
-    * @param lastFound The previously found partition responses.
-    * @return          An IO monad containing a sequence of new partition responses.
-    */
+   * Finds partitions based on the provided last found partition responses.
+   *
+   * @param lastFound The previously found partition responses.
+   * @return          An IO monad containing a sequence of new partition responses.
+   */
   def find(
     lastFound: Seq[PartitionSearcherResponse],
   ): IO[Seq[PartitionSearcherResponse]]

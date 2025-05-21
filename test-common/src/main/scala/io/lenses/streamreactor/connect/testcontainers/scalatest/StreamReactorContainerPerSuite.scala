@@ -145,14 +145,14 @@ trait StreamReactorContainerPerSuite extends BeforeAndAfterAll with Eventually w
   }
 
   /**
-    * Drain a kafka topic.
-    *
-    * @param consumer the kafka consumer
-    * @param expectedRecordCount the expected record count
-    * @tparam K the key type
-    * @tparam V the value type
-    * @return the records
-    */
+   * Drain a kafka topic.
+   *
+   * @param consumer the kafka consumer
+   * @param expectedRecordCount the expected record count
+   * @tparam K the key type
+   * @tparam V the value type
+   * @return the records
+   */
   def drain[K, V](consumer: KafkaConsumer[K, V], expectedRecordCount: Int): List[ConsumerRecord[K, V]] = {
     val allRecords = ListBuffer[ConsumerRecord[K, V]]()
     eventually {

@@ -23,10 +23,10 @@ import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.ConnectRecord
 
 /**
-  * The SQL transformer. It takes two sql entries for keys and values.
-  *
-  * @tparam T
-  */
+ * The SQL transformer. It takes two sql entries for keys and values.
+ *
+ * @tparam T
+ */
 class Transformation[T <: ConnectRecord[T]] extends org.apache.kafka.connect.transforms.Transformation[T] {
   private var sqlKeyMap   = Map.empty[String, Sql]
   private var sqlValueMap = Map.empty[String, Sql]

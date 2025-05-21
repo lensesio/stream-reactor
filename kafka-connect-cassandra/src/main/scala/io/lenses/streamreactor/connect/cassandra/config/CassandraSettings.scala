@@ -31,9 +31,9 @@ import scala.util.Success
 import scala.util.Try
 
 /**
-  * Created by andrew@datamountaineer.com on 22/04/16.
-  * stream-reactor
-  */
+ * Created by andrew@datamountaineer.com on 22/04/16.
+ * stream-reactor
+ */
 
 trait CassandraSetting
 
@@ -91,10 +91,10 @@ case class CassandraSinkSetting(
 ) extends CassandraSetting
 
 /**
-  * Cassandra Setting used for both Readers and writers
-  * Holds the table, topic, import mode and timestamp columns
-  * Import mode and timestamp columns are only applicable for the source.
-  */
+ * Cassandra Setting used for both Readers and writers
+ * Holds the table, topic, import mode and timestamp columns
+ * Import mode and timestamp columns are only applicable for the source.
+ */
 object CassandraSettings extends StrictLogging {
 
   def configureSource(config: CassandraConfigSource): Seq[CassandraSourceSetting] = {

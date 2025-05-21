@@ -275,10 +275,10 @@ class SinkRecordConverterTest extends AnyWordSpec with Matchers {
   }
 
   /**
-    * The date parsing depends on the JDK.  So as to avoid test failure we must filter out any dates that do manage to
-    * parse.
-    * TODO: find a more platform-agnostic way to parse dates.
-    */
+   * The date parsing depends on the JDK.  So as to avoid test failure we must filter out any dates that do manage to
+   * parse.
+   * TODO: find a more platform-agnostic way to parse dates.
+   */
   private def filterNonParsableDates(doc: Document) =
     new Document(doc.asScala.collect {
       case (k: String, v: String) =>

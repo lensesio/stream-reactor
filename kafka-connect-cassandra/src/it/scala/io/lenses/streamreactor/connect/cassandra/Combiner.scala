@@ -31,9 +31,9 @@ import org.scalatest.Suite
 import scala.collection.immutable
 
 /**
-  * Created by andrew@datamountaineer.com on 06/08/2017.
-  * stream-reactor
-  */
+ * Created by andrew@datamountaineer.com on 06/08/2017.
+ * stream-reactor
+ */
 class Combiner extends AnyFlatSpec with ItTestConfig with BeforeAndAfterAll with LazyLogging {
 
   val container = CassandraContainer()

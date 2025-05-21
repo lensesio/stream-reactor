@@ -31,8 +31,8 @@ import org.apache.kafka.common.config.AbstractConfig
 import scala.annotation.nowarn
 
 /**
-  * Set up a Casssandra connection
-  */
+ * Set up a Casssandra connection
+ */
 
 object CassandraConnection extends StrictLogging {
   def apply(connectorConfig: AbstractConfig): CassandraConnection = {
@@ -86,21 +86,21 @@ object CassandraConnection extends StrictLogging {
   }
 
   /**
-    * Get a Cassandra session
-    *
-    * @param keySpace A configuration to build the setting from
-    * @param cluster  The cluster the get the session for
-    */
+   * Get a Cassandra session
+   *
+   * @param keySpace A configuration to build the setting from
+   * @param cluster  The cluster the get the session for
+   */
   def getSession(keySpace: String, cluster: Cluster): Session =
     cluster.connect(keySpace)
 
   /**
-    * Add authentication to the connection builder
-    *
-    * @param connectorConfig The connector configuration to get the parameters from
-    * @param builder         The builder to add the authentication to
-    * @return The builder with authentication added.
-    */
+   * Add authentication to the connection builder
+   *
+   * @param connectorConfig The connector configuration to get the parameters from
+   * @param builder         The builder to add the authentication to
+   * @return The builder with authentication added.
+   */
   private def addAuthMode(connectorConfig: AbstractConfig, builder: Builder): Builder = {
     val username = connectorConfig.getString(CassandraConfigConstants.USERNAME)
     val password = connectorConfig.getPassword(CassandraConfigConstants.PASSWD).value
@@ -114,12 +114,12 @@ object CassandraConnection extends StrictLogging {
   }
 
   /**
-    * Add SSL connection options to the connection builder
-    *
-    * @param connectorConfig The connector configuration to get the parameters from
-    * @param builder         The builder to add the authentication to
-    * @return The builder with SSL added.
-    */
+   * Add SSL connection options to the connection builder
+   *
+   * @param connectorConfig The connector configuration to get the parameters from
+   * @param builder         The builder to add the authentication to
+   * @return The builder with SSL added.
+   */
   private def addSSL(connectorConfig: AbstractConfig, builder: Builder): Builder = {
     val ssl = connectorConfig.getBoolean(CassandraConfigConstants.SSL_ENABLED).asInstanceOf[Boolean]
     if (ssl) {
@@ -147,8 +147,8 @@ object CassandraConnection extends StrictLogging {
 }
 
 /**
-  * <h1>CassandraConnection</h1>
-  *
-  * Case class to hold a Cassandra cluster and session connection
-  */
+ * <h1>CassandraConnection</h1>
+ *
+ * Case class to hold a Cassandra cluster and session connection
+ */
 case class CassandraConnection(cluster: Cluster, session: Session)

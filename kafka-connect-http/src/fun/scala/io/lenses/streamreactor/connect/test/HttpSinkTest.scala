@@ -133,8 +133,8 @@ class HttpSinkTest
   }
 
   /**
-    * Retries occur by default and the failed HTTP post will be retried twice before succeeding.
-    */
+   * Retries occur by default and the failed HTTP post will be retried twice before succeeding.
+   */
   test("failing scenario written to error reporter") {
 
     setUpWiremockFailureResponse()

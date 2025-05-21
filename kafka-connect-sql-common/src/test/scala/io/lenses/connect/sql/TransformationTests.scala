@@ -28,8 +28,8 @@ import org.scalatest.wordspec.AnyWordSpec
 import scala.jdk.CollectionConverters.MapHasAsJava
 
 /**
-  * Created by stefan on 16/04/2017.
-  */
+ * Created by stefan on 16/04/2017.
+ */
 class TransformationTests extends AnyWordSpec with Matchers {
   "Transformation" should {
     "handle records for which we haven't specified SQL" in {

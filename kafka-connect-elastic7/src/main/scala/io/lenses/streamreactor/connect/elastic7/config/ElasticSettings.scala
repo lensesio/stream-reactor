@@ -22,9 +22,9 @@ import io.lenses.streamreactor.common.security.StoresInfo
 import io.lenses.streamreactor.common.util.EitherUtils.unpackOrThrow
 
 /**
-  * Created by andrew@datamountaineer.com on 13/05/16.
-  * stream-reactor-maven
-  */
+ * Created by andrew@datamountaineer.com on 13/05/16.
+ * stream-reactor-maven
+ */
 case class ElasticSettings(
   kcqls:                 Seq[Kcql],
   errorPolicy:           ErrorPolicy,

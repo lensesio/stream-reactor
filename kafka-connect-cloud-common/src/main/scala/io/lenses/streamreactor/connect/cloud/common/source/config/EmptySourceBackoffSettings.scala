@@ -16,11 +16,11 @@
 package io.lenses.streamreactor.connect.cloud.common.source.config
 
 /**
-  * Settings for the backoff strategy used when there are no files to process.
-  * @param initialDelay The initial delay before the first retry
-  * @param maxBackoff The maximum backoff time
-  * @param backoffMultiplier The multiplier for the backoff time
-  */
+ * Settings for the backoff strategy used when there are no files to process.
+ * @param initialDelay The initial delay before the first retry
+ * @param maxBackoff The maximum backoff time
+ * @param backoffMultiplier The multiplier for the backoff time
+ */
 case class EmptySourceBackoffSettings(
   initialDelay:      Long,
   maxBackoff:        Long,

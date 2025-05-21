@@ -33,16 +33,16 @@ class MqttSourceConnector extends SourceConnector with StrictLogging with JarMan
   private var configProps: util.Map[String, String] = _
 
   /**
-    * States which SourceTask class to use
-    */
+   * States which SourceTask class to use
+   */
   override def taskClass(): Class[_ <: Task] = classOf[MqttSourceTask]
 
   /**
-    * Set the configuration for each work and determine the split
-    *
-    * @param maxTasks The max number of task workers be can spawn
-    * @return a List of configuration properties per worker
-    */
+   * Set the configuration for each work and determine the split
+   *
+   * @param maxTasks The max number of task workers be can spawn
+   * @return a List of configuration properties per worker
+   */
   override def taskConfigs(maxTasks: Int): util.List[util.Map[String, String]] = {
 
     val settings = MqttSourceSettings(MqttSourceConfig(configProps.asScala.toMap))
@@ -74,19 +74,19 @@ class MqttSourceConnector extends SourceConnector with StrictLogging with JarMan
   }
 
   /**
-    * Indicate if an instruction should be replicated to every tasks
-    * @param instruction A KCQL instruction
-    * @return true if the instruction should be replicated and false if
-    *         the instruction should be given to only one task
-    */
+   * Indicate if an instruction should be replicated to every tasks
+   * @param instruction A KCQL instruction
+   * @return true if the instruction should be replicated and false if
+   *         the instruction should be given to only one task
+   */
   def shouldReplicate(instruction: String): Boolean =
     instruction.contains("$share/")
 
   /**
-    * Start the source and set to configuration
-    *
-    * @param props A map of properties for the connector and worker
-    */
+   * Start the source and set to configuration
+   *
+   * @param props A map of properties for the connector and worker
+   */
   override def start(props: util.Map[String, String]): Unit =
     configProps = props
 

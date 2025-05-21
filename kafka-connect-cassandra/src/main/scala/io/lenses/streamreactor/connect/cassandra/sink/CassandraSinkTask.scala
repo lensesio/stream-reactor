@@ -36,11 +36,11 @@ import scala.util.Success
 import scala.util.Try
 
 /**
-  * <h1>CassandraSinkTask</h1>
-  *
-  * Kafka Connect Cassandra sink task. Called by
-  * framework to put records to the target sink
-  */
+ * <h1>CassandraSinkTask</h1>
+ *
+ * Kafka Connect Cassandra sink task. Called by
+ * framework to put records to the target sink
+ */
 class CassandraSinkTask extends SinkTask with StrictLogging with JarManifestProvided {
   private var writer: Option[CassandraJsonWriter] = None
   private val progressCounter = new ProgressCounter
@@ -48,8 +48,8 @@ class CassandraSinkTask extends SinkTask with StrictLogging with JarManifestProv
   logger.info("Task initialising")
 
   /**
-    * Parse the configurations and setup the writer
-    */
+   * Parse the configurations and setup the writer
+   */
   override def start(props: util.Map[String, String]): Unit = {
     printAsciiHeader(manifest, "/cass-sink-ascii.txt")
 
@@ -67,8 +67,8 @@ class CassandraSinkTask extends SinkTask with StrictLogging with JarManifestProv
   }
 
   /**
-    * Pass the SinkRecords to the writer for Writing
-    */
+   * Pass the SinkRecords to the writer for Writing
+   */
   override def put(records: util.Collection[SinkRecord]): Unit = {
     require(writer.nonEmpty, "Writer is not set!")
     val seq = records.asScala.toVector
@@ -79,8 +79,8 @@ class CassandraSinkTask extends SinkTask with StrictLogging with JarManifestProv
   }
 
   /**
-    * Clean up Cassandra connections
-    */
+   * Clean up Cassandra connections
+   */
   override def stop(): Unit = {
     logger.info("Stopping Cassandra sink.")
     writer.foreach(w => w.close())

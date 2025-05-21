@@ -23,14 +23,14 @@ import org.apache.kafka.common.config.ConfigDef.Type
 trait UploadConfigKeys extends WithConnectorPrefix {
 
   /**
-    * Resumable upload is a feature in Google Cloud Storage that allows the interruption and continuation of large file uploads, improving the reliability and efficiency of the upload process. When uploading large files, network issues or interruptions can occur, causing traditional uploads to fail and requiring the entire file to be re-uploaded.
-    *
-    * The resumable upload feature addresses this challenge by breaking the file into smaller, manageable chunks. If an interruption occurs, only the affected chunk needs to be re-uploaded, rather than the entire file. This not only reduces the likelihood of upload failures but also saves bandwidth and time.
-    *
-    * Disabling the resumable upload feature might be necessary in certain scenarios where the benefits of reduced bandwidth usage and upload efficiency are outweighed by specific application requirements. For instance, in environments with highly stable and uninterrupted network connections, or when dealing with small files, disabling resumable uploads could simplify the upload process without significant drawbacks. It provides flexibility for users to tailor the upload behavior based on their specific use case and network conditions.
-    *
-    * We enable this setting in the integration tests as the stubs we use are incapable of accepting such uploads.
-    */
+   * Resumable upload is a feature in Google Cloud Storage that allows the interruption and continuation of large file uploads, improving the reliability and efficiency of the upload process. When uploading large files, network issues or interruptions can occur, causing traditional uploads to fail and requiring the entire file to be re-uploaded.
+   *
+   * The resumable upload feature addresses this challenge by breaking the file into smaller, manageable chunks. If an interruption occurs, only the affected chunk needs to be re-uploaded, rather than the entire file. This not only reduces the likelihood of upload failures but also saves bandwidth and time.
+   *
+   * Disabling the resumable upload feature might be necessary in certain scenarios where the benefits of reduced bandwidth usage and upload efficiency are outweighed by specific application requirements. For instance, in environments with highly stable and uninterrupted network connections, or when dealing with small files, disabling resumable uploads could simplify the upload process without significant drawbacks. It provides flexibility for users to tailor the upload behavior based on their specific use case and network conditions.
+   *
+   * We enable this setting in the integration tests as the stubs we use are incapable of accepting such uploads.
+   */
   protected val AVOID_RESUMABLE_UPLOAD: String = s"$connectorPrefix.avoid.resumable.upload"
 
   def addUploadSettingsToConfigDef(configDef: ConfigDef): ConfigDef =

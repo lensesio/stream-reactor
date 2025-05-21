@@ -30,12 +30,12 @@ class AwsS3DirectoryLister(connectorTaskId: ConnectorTaskId, s3Client: S3Client)
     extends LazyLogging
     with DirectoryLister {
 
-  private val listObjectsF: ListObjectsV2Request => IO[Iterator[ListObjectsV2Response]] = e =>
-    IO(s3Client.listObjectsV2Paginator(e).iterator().asScala)
+  private val listObjectsF: ListObjectsV2Request => IO[Iterator[ListObjectsV2Response]] =
+    e => IO(s3Client.listObjectsV2Paginator(e).iterator().asScala)
 
   /**
-    * @param wildcardExcludes allows ignoring paths containing certain strings.  Mainly it is used to prevent us from reading anything inside the .indexes key prefix, as these should be ignored by the source.
-    */
+   * @param wildcardExcludes allows ignoring paths containing certain strings.  Mainly it is used to prevent us from reading anything inside the .indexes key prefix, as these should be ignored by the source.
+   */
   override def findDirectories(
     bucketAndPrefix:  CloudLocation,
     filesLimit:       Int,
@@ -68,8 +68,8 @@ class AwsS3DirectoryLister(connectorTaskId: ConnectorTaskId, s3Client: S3Client)
   }
 
   /**
-    * @param wildcardExcludes allows ignoring paths containing certain strings.  Mainly it is used to prevent us from reading anything inside the .indexes key prefix, as these should be ignored by the source.
-    */
+   * @param wildcardExcludes allows ignoring paths containing certain strings.  Mainly it is used to prevent us from reading anything inside the .indexes key prefix, as these should be ignored by the source.
+   */
   private def flattenPrefixes(
     bucketAndPrefix:  CloudLocation,
     filesLimit:       Int,

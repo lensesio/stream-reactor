@@ -18,8 +18,8 @@ package io.lenses.streamreactor.connect.converters.source
 import org.apache.kafka.connect.source.SourceRecord
 
 /**
-  * Provides the interface for converting a Connect source payload (JMS, MQTT, etc) to a SourceRecord
-  */
+ * Provides the interface for converting a Connect source payload (JMS, MQTT, etc) to a SourceRecord
+ */
 trait Converter {
   def initialize(map: Map[String, String]): Unit = {}
 

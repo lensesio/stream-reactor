@@ -69,13 +69,13 @@ trait CloudSourceSettingsKeys extends WithConnectorPrefix {
       )
 
   /**
-    * Adds source filtering settings to the provided ConfigDef.
-    *
-    * The settings include the file extensions to include and exclude when searching for source files.
-    *
-    * @param configDef The ConfigDef to which the settings are added.
-    * @return The ConfigDef with the added settings.
-    */
+   * Adds source filtering settings to the provided ConfigDef.
+   *
+   * The settings include the file extensions to include and exclude when searching for source files.
+   *
+   * @param configDef The ConfigDef to which the settings are added.
+   * @return The ConfigDef with the added settings.
+   */
   def addSourceFilteringSettings(configDef: ConfigDef): ConfigDef =
     configDef
       .define(

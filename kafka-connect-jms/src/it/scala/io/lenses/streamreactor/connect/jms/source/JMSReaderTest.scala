@@ -39,9 +39,9 @@ import scala.jdk.CollectionConverters.MapHasAsScala
 import scala.reflect.io.Path
 
 /**
-  * Created by andrew@datamountaineer.com on 20/03/2017.
-  * stream-reactor
-  */
+ * Created by andrew@datamountaineer.com on 20/03/2017.
+ * stream-reactor
+ */
 class JMSReaderTest extends ItTestBase with BeforeAndAfterAll with Eventually {
   override implicit def patienceConfig: PatienceConfig = PatienceConfig(timeout = Span(10, Seconds))
 

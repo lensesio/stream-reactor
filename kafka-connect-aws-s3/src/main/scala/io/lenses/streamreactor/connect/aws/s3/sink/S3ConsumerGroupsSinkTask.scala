@@ -36,14 +36,14 @@ import scala.jdk.CollectionConverters.CollectionHasAsScala
 import scala.jdk.CollectionConverters.MapHasAsScala
 
 /**
-  * A Kafka connector designed to persist the most recent Kafka consumer group offsets from the `__consumer_offsets` topic to an S3 storage.
-  * The connector adheres to an eventually consistent model. It captures and stores the latest offset for each partition within each consumer group.
-  * These offsets are organized in S3 objects using the following key structure: `bucket/prefix.../consumerGroup/topic/partition`, with the offset value represented as a long.
-  *
-  * However, it's important to note that the connector does not actively track consumer groups that drop topic subscriptions or unsubscribe from topics. As a result, it does not automatically remove redundant keys.
-  * Also the writes are eventually consistent. Depending on Connect replaying messages, the offsets may be written multiple times.
-  * But since the s3 key is unique for group-topic-partition the last write will be the latest offset.
-  */
+ * A Kafka connector designed to persist the most recent Kafka consumer group offsets from the `__consumer_offsets` topic to an S3 storage.
+ * The connector adheres to an eventually consistent model. It captures and stores the latest offset for each partition within each consumer group.
+ * These offsets are organized in S3 objects using the following key structure: `bucket/prefix.../consumerGroup/topic/partition`, with the offset value represented as a long.
+ *
+ * However, it's important to note that the connector does not actively track consumer groups that drop topic subscriptions or unsubscribe from topics. As a result, it does not automatically remove redundant keys.
+ * Also the writes are eventually consistent. Depending on Connect replaying messages, the offsets may be written multiple times.
+ * But since the s3 key is unique for group-topic-partition the last write will be the latest offset.
+ */
 
 class S3ConsumerGroupsSinkTask extends SinkTask with ErrorHandler with JarManifestProvided {
 

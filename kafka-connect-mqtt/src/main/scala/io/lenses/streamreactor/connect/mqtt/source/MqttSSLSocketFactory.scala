@@ -38,30 +38,30 @@ object MqttSSLSocketFactory extends StrictLogging {
     try {
 
       /**
-        * Add BouncyCastle as a Security Provider
-        */
+       * Add BouncyCastle as a Security Provider
+       */
       Security.addProvider(new BouncyCastleProvider)
       val certificateConverter = new JcaX509CertificateConverter().setProvider("BC")
 
       /**
-        * Load Certificate Authority (CA) certificate
-        */
+       * Load Certificate Authority (CA) certificate
+       */
       var reader       = new PEMParser(new FileReader(caCrtFile))
       val caCertHolder = reader.readObject.asInstanceOf[X509CertificateHolder]
       reader.close()
       val caCert = certificateConverter.getCertificate(caCertHolder)
 
       /**
-        * Load client certificate
-        */
+       * Load client certificate
+       */
       reader = new PEMParser(new FileReader(crtFile))
       val certHolder = reader.readObject.asInstanceOf[X509CertificateHolder]
       reader.close()
       val cert = certificateConverter.getCertificate(certHolder)
 
       /**
-        * Load client private key
-        */
+       * Load client private key
+       */
       reader = new PEMParser(new FileReader(keyFile))
       val keyObject: Any = reader.readObject
       reader.close()
@@ -74,8 +74,8 @@ object MqttSSLSocketFactory extends StrictLogging {
       }
 
       /**
-        * CA certificate is used to authenticate server
-        */
+       * CA certificate is used to authenticate server
+       */
       val caKeyStore = KeyStore.getInstance(KeyStore.getDefaultType)
       caKeyStore.load(null, null)
       caKeyStore.setCertificateEntry("ca-certificate", caCert)
@@ -83,8 +83,8 @@ object MqttSSLSocketFactory extends StrictLogging {
       trustManagerFactory.init(caKeyStore)
 
       /**
-        * Client key and certificates are sent to server so it can authenticate the client
-        */
+       * Client key and certificates are sent to server so it can authenticate the client
+       */
       val clientKeyStore = KeyStore.getInstance(KeyStore.getDefaultType)
       clientKeyStore.load(null, null)
       clientKeyStore.setCertificateEntry("certificate", cert)
@@ -93,14 +93,14 @@ object MqttSSLSocketFactory extends StrictLogging {
       keyManagerFactory.init(clientKeyStore, password.toCharArray)
 
       /**
-        * Create SSL socket factory
-        */
+       * Create SSL socket factory
+       */
       val context = SSLContext.getInstance("TLSv1.2")
       context.init(keyManagerFactory.getKeyManagers, trustManagerFactory.getTrustManagers, null)
 
       /**
-        * Return the newly created socket factory object
-        */
+       * Return the newly created socket factory object
+       */
       context.getSocketFactory
     } catch {
       case e: Exception =>

@@ -39,11 +39,11 @@ case class InfluxSettings(
 object InfluxSettings {
 
   /**
-    * Creates an instance of InfluxSettings from a InfluxSinkConfig
-    *
-    * @param config : The map of all provided configurations
-    * @return An instance of InfluxSettings
-    */
+   * Creates an instance of InfluxSettings from a InfluxSinkConfig
+   *
+   * @param config : The map of all provided configurations
+   * @return An instance of InfluxSettings
+   */
   def apply(config: InfluxConfig): InfluxSettings = {
     val url = config.getString(InfluxConfigConstants.INFLUX_URL_CONFIG)
 

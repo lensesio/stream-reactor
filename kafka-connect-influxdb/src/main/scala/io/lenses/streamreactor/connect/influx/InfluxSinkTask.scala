@@ -35,10 +35,10 @@ import scala.jdk.CollectionConverters.CollectionHasAsScala
 import scala.jdk.CollectionConverters.MapHasAsScala
 
 /**
-  * <h1>InfluxSinkTask</h1>
-  *
-  * Kafka Connect InfluxDb sink task. Called by framework to put records to the target database
-  */
+ * <h1>InfluxSinkTask</h1>
+ *
+ * Kafka Connect InfluxDb sink task. Called by framework to put records to the target database
+ */
 class InfluxSinkTask extends SinkTask with StrictLogging with JarManifestProvided {
 
   var writer: Option[InfluxDbWriter] = None
@@ -46,8 +46,8 @@ class InfluxSinkTask extends SinkTask with StrictLogging with JarManifestProvide
   private var enableProgress: Boolean = false
 
   /**
-    * Parse the configurations and setup the writer
-    */
+   * Parse the configurations and setup the writer
+   */
   override def start(props: util.Map[String, String]): Unit = {
     printAsciiHeader(manifest, "/influx-ascii.txt")
 
@@ -68,8 +68,8 @@ class InfluxSinkTask extends SinkTask with StrictLogging with JarManifestProvide
   }
 
   /**
-    * Pass the SinkRecords to the writer for Writing
-    */
+   * Pass the SinkRecords to the writer for Writing
+   */
   override def put(records: util.Collection[SinkRecord]): Unit =
     if (records.size() == 0) {
       logger.info("Empty list of records received.")
@@ -84,8 +84,8 @@ class InfluxSinkTask extends SinkTask with StrictLogging with JarManifestProvide
     }
 
   /**
-    * Clean up Influx connections
-    */
+   * Clean up Influx connections
+   */
   override def stop(): Unit = {
     logger.info("Stopping InfluxDb sink.")
     writer.foreach(w => w.close())

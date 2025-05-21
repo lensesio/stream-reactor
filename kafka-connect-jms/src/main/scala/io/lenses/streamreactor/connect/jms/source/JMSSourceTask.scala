@@ -41,9 +41,9 @@ import scala.util.Success
 import scala.util.Try
 
 /**
-  * Created by andrew@datamountaineer.com on 10/03/2017.
-  * stream-reactor
-  */
+ * Created by andrew@datamountaineer.com on 10/03/2017.
+ * stream-reactor
+ */
 class JMSSourceTask extends SourceTask with StrictLogging with JarManifestProvided {
   private var reader: JMSReader = _
   private val progressCounter = new ProgressCounter

@@ -33,22 +33,22 @@ trait SourceFileQueue {
 }
 
 /**
-  * Blocking processor for queues of operations.  Used to ensure consistency.
-  * Will block any further writes by the current file until the remote has caught up.
-  */
+ * Blocking processor for queues of operations.  Used to ensure consistency.
+ * Will block any further writes by the current file until the remote has caught up.
+ */
 class CloudSourceFileQueue[SM <: FileMetadata] private (
   private val taskId:        ConnectorTaskId,
   private val batchListerFn: Option[SM] => Either[FileListError, Option[ListResponse[String, SM]]],
   private var files:         Seq[CloudLocation],
   /**
-    * An optional tracker for the last seen file.
-    *
-    * @param lastSeenFileTracker An optional instance of LastSeenFileTracker that keeps track of the last seen file.
-    *                            This tracker is used to maintain the state of the last processed file, which is useful
-    *                            for resuming operations from the last known point. If a PostProcessAction is set, the
-    *                            files will be cleaned up after processing, removing the need to track the last seen file.
-    *                            In such cases, this parameter will be None.
-    */
+   * An optional tracker for the last seen file.
+   *
+   * @param lastSeenFileTracker An optional instance of LastSeenFileTracker that keeps track of the last seen file.
+   *                            This tracker is used to maintain the state of the last processed file, which is useful
+   *                            for resuming operations from the last known point. If a PostProcessAction is set, the
+   *                            files will be cleaned up after processing, removing the need to track the last seen file.
+   *                            In such cases, this parameter will be None.
+   */
   private var lastSeenFile: Option[SM],
 )(
   implicit

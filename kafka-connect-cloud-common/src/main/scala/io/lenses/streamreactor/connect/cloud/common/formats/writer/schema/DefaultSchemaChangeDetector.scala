@@ -18,16 +18,16 @@ package io.lenses.streamreactor.connect.cloud.common.formats.writer.schema
 import org.apache.kafka.connect.data.Schema
 
 /**
-  * Default implementation of SchemaChangeDetector that always detects a schema change.
-  */
+ * Default implementation of SchemaChangeDetector that always detects a schema change.
+ */
 object DefaultSchemaChangeDetector extends SchemaChangeDetector {
 
   /**
-    * Detects if there is a change between the old schema and the new schema.
-    *
-    * @param oldSchema The old schema.
-    * @param newSchema The new schema.
-    * @return Always returns true, indicating a schema change.
-    */
+   * Detects if there is a change between the old schema and the new schema.
+   *
+   * @param oldSchema The old schema.
+   * @param newSchema The new schema.
+   * @return Always returns true, indicating a schema change.
+   */
   override def detectSchemaChange(oldSchema: Schema, newSchema: Schema): Boolean = true
 }

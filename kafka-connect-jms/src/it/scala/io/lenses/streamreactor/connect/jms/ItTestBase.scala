@@ -43,9 +43,9 @@ import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.jdk.CollectionConverters.SeqHasAsJava
 
 /**
-  * Created by andrew@datamountaineer.com on 14/03/2017.
-  * stream-reactor
-  */
+ * Created by andrew@datamountaineer.com on 14/03/2017.
+ * stream-reactor
+ */
 trait ItTestBase extends AnyWordSpec with Matchers with MockitoSugar {
 
   case class Student(name: String, age: Int, note: Double)

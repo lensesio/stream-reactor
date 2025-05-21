@@ -27,13 +27,13 @@ import scala.jdk.CollectionConverters.MapHasAsScala
 object ValuesExtractor {
 
   /**
-    * Extracts all the keys and values from the source json. It will ignore the fields present in the ignored collection
-    *
-    * @param node    -  The source json to extract all the key and values. Only ObjectNode is accepted - those are the ones accepting fields
-    * @param ignored - A collection of keys to ignore
-    * @return
-    * The list of keys and values. Throws [[IllegalArgumentException]] if any of the values are not primitives
-    */
+   * Extracts all the keys and values from the source json. It will ignore the fields present in the ignored collection
+   *
+   * @param node    -  The source json to extract all the key and values. Only ObjectNode is accepted - those are the ones accepting fields
+   * @param ignored - A collection of keys to ignore
+   * @return
+   * The list of keys and values. Throws [[IllegalArgumentException]] if any of the values are not primitives
+   */
   def extractAllFields(node: JsonNode, ignored: Set[String]): Seq[(String, Any)] =
     node match {
       case o: ObjectNode =>
@@ -66,12 +66,12 @@ object ValuesExtractor {
     }
 
   /**
-    * Extracts the value for the given field path from the specified Json
-    *
-    * @param node      - The Json to extract the field value
-    * @param fieldPath - The path to the field to get the value for.
-    * @return
-    */
+   * Extracts the value for the given field path from the specified Json
+   *
+   * @param node      - The Json to extract the field value
+   * @param fieldPath - The path to the field to get the value for.
+   * @return
+   */
   def extract(node: JsonNode, fieldPath: Seq[String]): Any = {
     @tailrec
     def innerExtract(n: JsonNode, path: Seq[String]): Any = {
@@ -153,13 +153,13 @@ object ValuesExtractor {
   }
 
   /**
-    * Extracts all the fields and values from the source struct. It will ignore the fields present in the ignored collection
-    *
-    * @param struct  -  An instance of Kafka Connect [[Struct]] json to extract all the fields and values from. If the fields resolve to Struct/Map/Array and error is thrown
-    * @param ignored - A collection of keys to ignore
-    * @return
-    * The list of keys and values. Throws [[IllegalArgumentException]] if any of the values are not primitives
-    */
+   * Extracts all the fields and values from the source struct. It will ignore the fields present in the ignored collection
+   *
+   * @param struct  -  An instance of Kafka Connect [[Struct]] json to extract all the fields and values from. If the fields resolve to Struct/Map/Array and error is thrown
+   * @param ignored - A collection of keys to ignore
+   * @return
+   * The list of keys and values. Throws [[IllegalArgumentException]] if any of the values are not primitives
+   */
   def extractAllFields(struct: Struct, ignored: Set[String]): Seq[(String, Any)] =
     struct.schema().fields.asScala.toList
       .filter(f => !ignored.contains(f.name()))
@@ -216,12 +216,12 @@ object ValuesExtractor {
       }
 
   /**
-    * Extracts the value for the given field path from the a Kafka Connect Struct
-    *
-    * @param struct    - The Kafka Connect Struct to extract the field value from
-    * @param fieldPath - The path to the field to get the value for.
-    * @return
-    */
+   * Extracts the value for the given field path from the a Kafka Connect Struct
+   *
+   * @param struct    - The Kafka Connect Struct to extract the field value from
+   * @param fieldPath - The path to the field to get the value for.
+   * @return
+   */
   def extract(struct: Struct, fieldPath: Seq[String]): Any = {
     // @tailrec
     def innerExtract(field: Field, value: AnyRef, path: Seq[String]): Any = {
@@ -365,13 +365,13 @@ object ValuesExtractor {
   }
 
   /**
-    * Extracts all the keys and values from the input map. It will ignore the keys present in the ignored collection
-    *
-    * @param map     -  The source map to extract all the key and values
-    * @param ignored - A collection of keys to ignore
-    * @return
-    * The list of keys and values. Throws [[IllegalArgumentException]] if any of the values are not primitives
-    */
+   * Extracts all the keys and values from the input map. It will ignore the keys present in the ignored collection
+   *
+   * @param map     -  The source map to extract all the key and values
+   * @param ignored - A collection of keys to ignore
+   * @return
+   * The list of keys and values. Throws [[IllegalArgumentException]] if any of the values are not primitives
+   */
   def extractAllFields(map: java.util.Map[String, Any], ignored: Set[String]): Seq[(String, Any)] =
     map.asScala.filter(p => !ignored.contains(p._1) && p._2 != null)
       .map {
@@ -388,12 +388,12 @@ object ValuesExtractor {
       }.toSeq
 
   /**
-    * Extracts the value for the given field path from the specified map.
-    *
-    * @param map       - The map to extract the field value
-    * @param fieldPath - The path to the field to get the value for.
-    * @return
-    */
+   * Extracts the value for the given field path from the specified map.
+   *
+   * @param map       - The map to extract the field value
+   * @param fieldPath - The path to the field to get the value for.
+   * @return
+   */
   def extract(map: java.util.Map[String, Any], fieldPath: Seq[String]): Any = {
     @tailrec
     def innerExtract(value: Any, path: Seq[String]): Any = {

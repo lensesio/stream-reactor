@@ -21,31 +21,31 @@ import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
 import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
 
 /**
-  * A class representing a no-op implementation of the `IndexManager` trait.
-  * This implementation disables indexing and provides default behavior for
-  * managing offsets and pending states.
-  */
+ * A class representing a no-op implementation of the `IndexManager` trait.
+ * This implementation disables indexing and provides default behavior for
+ * managing offsets and pending states.
+ */
 class NoIndexManager extends IndexManager {
 
   /**
-    * Opens the specified topic partitions and returns an empty offset map.
-    *
-    * @param topicPartitions A set of `TopicPartition` objects to open.
-    * @return An `Either` containing a map of `TopicPartition` to `Option[Offset]`,
-    *         where all offsets are empty.
-    */
+   * Opens the specified topic partitions and returns an empty offset map.
+   *
+   * @param topicPartitions A set of `TopicPartition` objects to open.
+   * @return An `Either` containing a map of `TopicPartition` to `Option[Offset]`,
+   *         where all offsets are empty.
+   */
   override def open(topicPartitions: Set[TopicPartition]): Either[SinkError, Map[TopicPartition, Option[Offset]]] =
     topicPartitions.map(tp => tp -> Option.empty[Offset]).toMap.asRight
 
   /**
-    * Updates the state for a specific topic partition. This implementation
-    * always returns an empty offset.
-    *
-    * @param topicPartition  The `TopicPartition` to update.
-    * @param committedOffset An optional committed offset.
-    * @param pendingState    An optional pending state.
-    * @return An `Either` containing an empty `Option[Offset]`.
-    */
+   * Updates the state for a specific topic partition. This implementation
+   * always returns an empty offset.
+   *
+   * @param topicPartition  The `TopicPartition` to update.
+   * @param committedOffset An optional committed offset.
+   * @param pendingState    An optional pending state.
+   * @return An `Either` containing an empty `Option[Offset]`.
+   */
   override def update(
     topicPartition:  TopicPartition,
     committedOffset: Option[Offset],
@@ -54,18 +54,18 @@ class NoIndexManager extends IndexManager {
     Option.empty.asRight
 
   /**
-    * Retrieves the seeked offset for a specific topic partition. This implementation
-    * always returns `None`.
-    *
-    * @param topicPartition The `TopicPartition` to retrieve the offset for.
-    * @return An `Option[Offset]`, which is always `None`.
-    */
+   * Retrieves the seeked offset for a specific topic partition. This implementation
+   * always returns `None`.
+   *
+   * @param topicPartition The `TopicPartition` to retrieve the offset for.
+   * @return An `Option[Offset]`, which is always `None`.
+   */
   override def getSeekedOffsetForTopicPartition(topicPartition: TopicPartition): Option[Offset] = Option.empty
 
   /**
-    * Indicates whether indexing is enabled. This implementation always returns `false`.
-    *
-    * @return A boolean value indicating that indexing is disabled.
-    */
+   * Indicates whether indexing is enabled. This implementation always returns `false`.
+   *
+   * @return A boolean value indicating that indexing is disabled.
+   */
   override def indexingEnabled: Boolean = false
 }

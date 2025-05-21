@@ -35,15 +35,15 @@ import scala.util.Success
 import scala.util.Try
 
 /**
-  * The Redis CACHE mode can store a snapshot a time-series into a Key
-  * so that u can always extract the latest (most recent) value from Redis
-  *
-  * Example KCQL syntax:
-  *
-  * SELECT price from yahoo-fx PK symbol
-  * INSERT INTO FX- SELECT price from yahoo-fx PK symbol
-  * SELECT price from yahoo-fx PK symbol WITHEXTRACT
-  */
+ * The Redis CACHE mode can store a snapshot a time-series into a Key
+ * so that u can always extract the latest (most recent) value from Redis
+ *
+ * Example KCQL syntax:
+ *
+ * SELECT price from yahoo-fx PK symbol
+ * INSERT INTO FX- SELECT price from yahoo-fx PK symbol
+ * SELECT price from yahoo-fx PK symbol WITHEXTRACT
+ */
 class RedisCache(sinkSettings: RedisSinkSettings, jedis: Jedis) extends DbWriter with StrictLogging with ErrorHandler {
   initialize(sinkSettings.taskRetries, sinkSettings.errorPolicy)
 
@@ -78,7 +78,8 @@ class RedisCache(sinkSettings: RedisSinkSettings, jedis: Jedis) extends DbWriter
   // Insert a batch of sink records
   def insert(records: Map[String, Seq[SinkRecord]]): Unit =
     records.foreach {
-      case (topic, sinkRecords) => {
+      case (topic, sinkRecords) =>
+        {
           val topicSettings: Set[RedisKCQLSetting] = sinkSettings.kcqlSettings.filter(_.kcqlConfig.getSource == topic)
           if (topicSettings.isEmpty)
             logger.warn(s"No KCQL statement set for [$topic]")

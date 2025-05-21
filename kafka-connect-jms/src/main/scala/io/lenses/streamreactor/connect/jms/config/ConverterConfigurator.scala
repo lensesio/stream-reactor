@@ -42,19 +42,19 @@ trait ConverterConfigurator[C <: JMSMessageConverter] extends LazyLogging {
 object JMSConnectorConverters {
 
   /**
-    * Enable configuration of converters
-    * @param sink whether this is a sink
-    * @param kcql the corresponding row from KCQL
-    * @param props properties from the connector
-    * @return the configured converter based on the precedence rules.
-    *         Precedence Rules:
-    *         <ol>
-    *           <li>The value defined in the connector properties JMSConfigConstants.DEFAULT_SINK_CONVERTER_CONFIG or JMSConfigConstants.DEFAULT_SOURCE_CONVERTER_CONFIG</li>
-    *           <li>The converter associated with Kcql.getFormatType (sinks only)</li>
-    *           <li>The converter defined in Kcql.getWithConverter</li>
-    *           <li>A "Default" KCQL converter (for sink this is defined as JSONMessageConverter, for source JMSStructMessageConverter)</li>
-    *         </ol>
-    */
+   * Enable configuration of converters
+   * @param sink whether this is a sink
+   * @param kcql the corresponding row from KCQL
+   * @param props properties from the connector
+   * @return the configured converter based on the precedence rules.
+   *         Precedence Rules:
+   *         <ol>
+   *           <li>The value defined in the connector properties JMSConfigConstants.DEFAULT_SINK_CONVERTER_CONFIG or JMSConfigConstants.DEFAULT_SOURCE_CONVERTER_CONFIG</li>
+   *           <li>The converter associated with Kcql.getFormatType (sinks only)</li>
+   *           <li>The converter defined in Kcql.getWithConverter</li>
+   *           <li>A "Default" KCQL converter (for sink this is defined as JSONMessageConverter, for source JMSStructMessageConverter)</li>
+   *         </ol>
+   */
   def apply(
     sink: Boolean,
   )(

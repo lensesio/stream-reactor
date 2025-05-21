@@ -59,8 +59,8 @@ class MqttSinkConnectorTest extends AnyWordSpecLike with Matchers {
     }
 
     /**
-      * If a client ID is not set for multiple tasks it will be set to a random value in the MqttSinkSettings.apply()
-      */
+     * If a client ID is not set for multiple tasks it will be set to a random value in the MqttSinkSettings.apply()
+     */
     "omit client ID when not set for multiple tasks" in {
       val props       = baseProps
       val taskConfigs = createTaskConfigs(props, 6)

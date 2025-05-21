@@ -21,8 +21,8 @@ import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 trait DirectoryLister {
 
   /**
-    * @param wildcardExcludes allows ignoring paths containing certain strings.  Mainly it is used to prevent us from reading anything inside the .indexes key prefix, as these should be ignored by the source.
-    */
+   * @param wildcardExcludes allows ignoring paths containing certain strings.  Mainly it is used to prevent us from reading anything inside the .indexes key prefix, as these should be ignored by the source.
+   */
   def findDirectories(
     bucketAndPrefix:  CloudLocation,
     filesLimit:       Int,

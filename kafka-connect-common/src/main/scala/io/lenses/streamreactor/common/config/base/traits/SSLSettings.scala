@@ -18,9 +18,9 @@ package io.lenses.streamreactor.common.config.base.traits
 import io.lenses.streamreactor.common.config.base.const.TraitConfigConst._
 
 /**
-  * Created by andrew@datamountaineer.com on 31/07/2017.
-  * stream-reactor
-  */
+ * Created by andrew@datamountaineer.com on 31/07/2017.
+ * stream-reactor
+ */
 trait SSLSettings extends BaseSettings {
   val trustStorePath: String = s"$connectorPrefix.$TRUSTSTORE_PATH_SUFFIX"
   val trustStorePass: String = s"$connectorPrefix.$TRUSTSTORE_PASS_SUFFIX"

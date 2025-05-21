@@ -21,9 +21,9 @@ import org.apache.kafka.common.config.ConfigDef.Importance
 import org.apache.kafka.common.config.ConfigDef.Type
 
 /**
-  * Created by andrew@datamountaineer.com on 27/08/2017.
-  * stream-reactor
-  */
+ * Created by andrew@datamountaineer.com on 27/08/2017.
+ * stream-reactor
+ */
 object MqttConfig {
   val config: ConfigDef = new ConfigDef()
     .define(

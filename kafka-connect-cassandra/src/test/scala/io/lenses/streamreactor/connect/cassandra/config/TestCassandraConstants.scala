@@ -19,8 +19,8 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
 /**
-  * The point of this test is to check that constants keys are not changed after the refactor of the code.
-  */
+ * The point of this test is to check that constants keys are not changed after the refactor of the code.
+ */
 class TestCassandraConstants extends AnyWordSpec with Matchers {
 
   // Constants

@@ -32,18 +32,18 @@ import org.apache.kafka.connect.errors.ConnectException
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 
 /**
-  * Created by andrew@datamountaineer.com on 21/04/16.
-  * stream-reactor
-  */
+ * Created by andrew@datamountaineer.com on 21/04/16.
+ * stream-reactor
+ */
 object CassandraUtils {
 
   /**
-    * Check if we have tables in Cassandra and if we have table named the same as our topic
-    *
-    * @param cluster  A Cassandra cluster to check on
-    * @param routes   A list of route mappings
-    * @param keySpace The keyspace to look in for the tables
-    */
+   * Check if we have tables in Cassandra and if we have table named the same as our topic
+   *
+   * @param cluster  A Cassandra cluster to check on
+   * @param routes   A list of route mappings
+   * @param keySpace The keyspace to look in for the tables
+   */
   def checkCassandraTables(cluster: Cluster, routes: Seq[Kcql], keySpace: String): Unit = {
     val metaData = cluster.getMetadata.getKeyspace(keySpace).getTables
     val tables   = metaData.asScala.map(t => t.getName.toLowerCase).toSeq
@@ -60,14 +60,14 @@ object CassandraUtils {
   }
 
   /**
-    * Get buckets between two dates (Instant), this is used within the BUCKETTIMESERIES mode
-    * @param previousDate The first date
-    * @param upperBoundDate The second date
-    * @param bucketMode The bucket mode that is been used on BUCKETTIMESERIES
-    * @param bucketFormat The format of the bucket that is been used BUCKETTIMESERIES
-    *
-    * @return a list of buckets that are between the two dates.
-    */
+   * Get buckets between two dates (Instant), this is used within the BUCKETTIMESERIES mode
+   * @param previousDate The first date
+   * @param upperBoundDate The second date
+   * @param bucketMode The bucket mode that is been used on BUCKETTIMESERIES
+   * @param bucketFormat The format of the bucket that is been used BUCKETTIMESERIES
+   *
+   * @return a list of buckets that are between the two dates.
+   */
   def getBucketsBetweenDates(
     previousDate:   Instant,
     upperBoundDate: Instant,

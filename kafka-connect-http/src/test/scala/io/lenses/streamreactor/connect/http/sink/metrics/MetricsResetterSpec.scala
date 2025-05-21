@@ -28,8 +28,8 @@ import java.time.ZoneId
 import scala.concurrent.duration._
 
 /**
-  * A fixed Clock that always returns the same Instant.
-  */
+ * A fixed Clock that always returns the same Instant.
+ */
 class CustomFixedClock(private val fixedInstant: Instant) extends Clock[IO] {
   override def realTime: IO[FiniteDuration] =
     IO.pure(FiniteDuration(fixedInstant.toEpochMilli, MILLISECONDS))
@@ -64,8 +64,8 @@ class MetricsResetterSpec extends AnyFunSuite with Matchers {
     override def getOtherErrorsCount: Long = ???
 
     /**
-      * Record the time taken to process a request
-      */
+     * Record the time taken to process a request
+     */
     override def recordRequestTime(time: Long): Unit = ???
 
     override def increment2xxCount(): Unit = ???

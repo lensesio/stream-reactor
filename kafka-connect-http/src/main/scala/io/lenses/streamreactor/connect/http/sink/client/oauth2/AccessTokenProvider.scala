@@ -17,9 +17,10 @@ package io.lenses.streamreactor.connect.http.sink.client.oauth2
 
 trait AccessTokenProvider[F[_]] {
 
-  /** Request new token with given scope from OAuth2 provider.
-    *
-    * The scope is the scope of the application we want to communicate with.
-    */
+  /**
+   * Request new token with given scope from OAuth2 provider.
+   *
+   * The scope is the scope of the application we want to communicate with.
+   */
   def requestToken(): F[AccessToken]
 }

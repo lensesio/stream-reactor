@@ -34,10 +34,10 @@ import scala.jdk.CollectionConverters.MapHasAsScala
 object SourceWatermark {
 
   /**
-    * Builds the source partition information from the CloudLocation
-    * @param root The CloudLocation
-    * @return A map of partition information
-    */
+   * Builds the source partition information from the CloudLocation
+   * @param root The CloudLocation
+   * @return A map of partition information
+   */
   def partition(root: CloudLocation): java.util.Map[String, String] =
     Map(
       ContainerKey -> root.bucket,
@@ -45,12 +45,12 @@ object SourceWatermark {
     ).asJava
 
   /**
-    * Builds the source offset information from the CloudLocation
-    * @param bucketAndPath The CloudLocation
-    * @param offset The offset
-    * @param lastModified The last modified time of the file processed
-    * @return A map of offset information
-    */
+   * Builds the source offset information from the CloudLocation
+   * @param bucketAndPath The CloudLocation
+   * @param offset The offset
+   * @param lastModified The last modified time of the file processed
+   * @return A map of offset information
+   */
   def offset(
     bucketAndPath: CloudLocation,
     offset:        Long,
@@ -65,12 +65,12 @@ object SourceWatermark {
     ).asJava
 
   /**
-    * Converts a partition map to a CloudLocation object.
-    *
-    * @param partitionMap A map containing partition information.
-    * @param cloudLocationValidator An implicit CloudLocationValidator.
-    * @return An Option containing the CloudLocation object if the conversion is successful, None otherwise.
-    */
+   * Converts a partition map to a CloudLocation object.
+   *
+   * @param partitionMap A map containing partition information.
+   * @param cloudLocationValidator An implicit CloudLocationValidator.
+   * @return An Option containing the CloudLocation object if the conversion is successful, None otherwise.
+   */
   def partitionMapToSourceRoot(
     partitionMap: Map[String, _],
   )(
@@ -87,12 +87,12 @@ object SourceWatermark {
     } yield CloudLocation(bucket, prefix)
 
   /**
-    * Reads the offset watermark from the given source root and offset map.
-    *
-    * @param sourceRoot The root CloudLocation object.
-    * @param offsetMap  A map containing offset information.
-    * @return An Option containing the CommitWatermark if the conversion is successful, None otherwise.
-    */
+   * Reads the offset watermark from the given source root and offset map.
+   *
+   * @param sourceRoot The root CloudLocation object.
+   * @param offsetMap  A map containing offset information.
+   * @return An Option containing the CommitWatermark if the conversion is successful, None otherwise.
+   */
   def readOffsetWatermark(
     sourceRoot: CloudLocation,
     offsetMap:  Map[String, _],
@@ -110,12 +110,12 @@ object SourceWatermark {
     }
 
   /**
-    * Converts a map of offset information to a CloudLocation object.
-    *
-    * @param sourceRoot The root CloudLocation object.
-    * @param offsetMap  A map containing offset information.
-    * @return An Option containing the updated CloudLocation object if the conversion is successful, None otherwise.
-    */
+   * Converts a map of offset information to a CloudLocation object.
+   *
+   * @param sourceRoot The root CloudLocation object.
+   * @param offsetMap  A map containing offset information.
+   * @return An Option containing the updated CloudLocation object if the conversion is successful, None otherwise.
+   */
   def mapToOffset(
     sourceRoot: CloudLocation,
     offsetMap:  Map[String, _],

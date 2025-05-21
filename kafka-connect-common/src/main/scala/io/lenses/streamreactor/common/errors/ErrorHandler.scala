@@ -25,9 +25,9 @@ import scala.util.Success
 import scala.util.Try
 
 /**
-  * Created by andrew@datamountaineer.com on 29/05/16.
-  * stream-reactor-maven
-  */
+ * Created by andrew@datamountaineer.com on 29/05/16.
+ * stream-reactor-maven
+ */
 trait ErrorHandler extends StrictLogging {
   private var errorTracker: Option[ErrorTracker] = None
   private val dateFormatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS'Z'")

@@ -34,10 +34,10 @@ import scala.jdk.CollectionConverters.IterableHasAsScala
 import scala.jdk.CollectionConverters.MapHasAsScala
 
 /**
-  * <h1>JMSSinkTask</h1>
-  *
-  * Kafka Connect JMS sink task. Called by framework to put records to the target sink
-  */
+ * <h1>JMSSinkTask</h1>
+ *
+ * Kafka Connect JMS sink task. Called by framework to put records to the target sink
+ */
 class JMSSinkTask extends SinkTask with StrictLogging with JarManifestProvided {
 
   var writer: Option[JMSWriter] = None
@@ -45,8 +45,8 @@ class JMSSinkTask extends SinkTask with StrictLogging with JarManifestProvided {
   private var enableProgress: Boolean = false
 
   /**
-    * Parse the configurations and setup the writer
-    */
+   * Parse the configurations and setup the writer
+   */
   override def start(props: util.Map[String, String]): Unit = {
     printAsciiHeader(manifest, "/jms-sink-ascii.txt")
 
@@ -66,8 +66,8 @@ class JMSSinkTask extends SinkTask with StrictLogging with JarManifestProvided {
   }
 
   /**
-    * Pass the SinkRecords to the writer for Writing
-    */
+   * Pass the SinkRecords to the writer for Writing
+   */
   override def put(records: util.Collection[SinkRecord]): Unit = {
     //filter out records which have null value. it will fail otherwise projecting the payload in order to be sent
     //to the JMS system
@@ -80,8 +80,8 @@ class JMSSinkTask extends SinkTask with StrictLogging with JarManifestProvided {
   }
 
   /**
-    * Clean up connections
-    */
+   * Clean up connections
+   */
   override def stop(): Unit = {
     logger.info("Stopping JMS sink.")
     writer.foreach(w => w.close())

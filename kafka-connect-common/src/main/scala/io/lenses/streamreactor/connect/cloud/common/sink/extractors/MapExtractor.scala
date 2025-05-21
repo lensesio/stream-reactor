@@ -23,8 +23,8 @@ import org.apache.kafka.connect.data.Schema
 import java.util
 
 /**
-  * Extracts values from a Java map type
-  */
+ * Extracts values from a Java map type
+ */
 object MapExtractor extends LazyLogging {
 
   private[extractors] def extractPathFromMap(

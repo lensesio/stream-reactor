@@ -22,9 +22,9 @@ import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.errors.RetriableException
 
 /**
-  * Created by andrew@datamountaineer.com on 19/05/16.
-  * kafka-connect-common
-  */
+ * Created by andrew@datamountaineer.com on 19/05/16.
+ * kafka-connect-common
+ */
 object ErrorPolicyEnum extends Enumeration {
   type ErrorPolicyEnum = Value
   val NOOP, THROW, RETRY = Value

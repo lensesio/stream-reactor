@@ -84,11 +84,11 @@ class CassandraTest extends AsyncFlatSpec with AsyncIOSpec with StreamReactorCon
     val resources = for {
       session <- Resource.fromAutoCloseable(IO(container.cluster.connect()))
       _ = // Create keyspace and table
-      executeQueries(
-        session,
-        "CREATE KEYSPACE sink WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor' : 1};",
-        "CREATE TABLE sink.orders (id int, created timeuuid, product text, qty int, price float, PRIMARY KEY (id, created)) WITH CLUSTERING ORDER BY (created asc);",
-      )
+        executeQueries(
+          session,
+          "CREATE KEYSPACE sink WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor' : 1};",
+          "CREATE TABLE sink.orders (id int, created timeuuid, product text, qty int, price float, PRIMARY KEY (id, created)) WITH CLUSTERING ORDER BY (created asc);",
+        )
       producer <- createProducer[String, Order](classOf[StringSerializer], classOf[KafkaJsonSerializer[Order]])
       _        <- createConnector(sinkConfig())
     } yield {

@@ -23,13 +23,13 @@ import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.jdk.CollectionConverters.MapHasAsScala
 
 /**
-  * Using `SELECT .. FROM .. PK .. STOREAS SortedSet` we can promote the value of one field to a Redis Sorted Set (SS)
-  *
-  * The `score` can:
-  * 1. Be explicitly defined STOREAS SortedSet (score=ts)
-  * 2. If not, try to use the field `timestamp` (if it exists)
-  * 3. If not does not exist use current time as the timestamp <system.now>
-  */
+ * Using `SELECT .. FROM .. PK .. STOREAS SortedSet` we can promote the value of one field to a Redis Sorted Set (SS)
+ *
+ * The `score` can:
+ * 1. Be explicitly defined STOREAS SortedSet (score=ts)
+ * 2. If not, try to use the field `timestamp` (if it exists)
+ * 3. If not does not exist use current time as the timestamp <system.now>
+ */
 class ConfigMultipleSortedSetsTest extends AnyWordSpec with Matchers with RedisMockSupport {
 
   // A Sorted Set will be used for every sensorID
