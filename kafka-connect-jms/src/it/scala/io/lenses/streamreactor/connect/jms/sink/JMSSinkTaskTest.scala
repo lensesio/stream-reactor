@@ -37,6 +37,8 @@ import jakarta.jms.Message
 import jakarta.jms.MessageListener
 import jakarta.jms.Session
 import jakarta.jms.TextMessage
+
+import scala.jdk.CollectionConverters.CollectionHasAsScala
 import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.language.reflectiveCalls
 import scala.reflect.io.Path
@@ -145,7 +147,7 @@ class JMSSinkTaskTest extends ItTestBase with BeforeAndAfterAll with MockitoSuga
         IteratorToSeqFn(queueJson.get("array").asInstanceOf[ArrayNode].iterator()).map {
           _.asText()
         }.toSet shouldBe Set("a", "b", "c")
-        IteratorToSeqFn(queueJson.get("map").fields()).map { t =>
+        queueJson.get("map").properties().asScala.map { t =>
           t.getKey -> t.getValue.asInstanceOf[IntNode].asInt()
         }.toMap shouldBe Map("field" -> 1)
 
@@ -170,7 +172,7 @@ class JMSSinkTaskTest extends ItTestBase with BeforeAndAfterAll with MockitoSuga
           _.asText()
         }.toSet shouldBe Set("a", "b", "c")
 
-        IteratorToSeqFn(topicJson.get("map").fields()).map { t =>
+        topicJson.get("map").properties().asScala.map { t =>
           t.getKey -> t.getValue.asInstanceOf[IntNode].asInt()
         }.toMap shouldBe Map("field" -> 1)
 

@@ -20,7 +20,7 @@ import com.fasterxml.jackson.databind.node._
 import org.apache.kafka.connect.data._
 
 import scala.annotation.tailrec
-import scala.jdk.CollectionConverters.IteratorHasAsScala
+import scala.jdk.CollectionConverters.CollectionHasAsScala
 import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.jdk.CollectionConverters.MapHasAsScala
 
@@ -37,7 +37,7 @@ object ValuesExtractor {
   def extractAllFields(node: JsonNode, ignored: Set[String]): Seq[(String, Any)] =
     node match {
       case o: ObjectNode =>
-        o.fields().asScala.filter(p => !ignored.contains(p.getKey))
+        o.properties().asScala.filter(p => !ignored.contains(p.getKey))
           .map { kvp =>
             val value = kvp.getValue match {
               case b: BooleanNode    => b.booleanValue()
