@@ -32,13 +32,13 @@ import scala.concurrent.duration.DurationInt
 import scala.concurrent.duration.FiniteDuration
 
 /**
-  * The `RecordsQueue` class manages a queue of `RenderedRecord` objects and handles the logic for
-  * enqueuing, dequeuing, and processing batches of records based on a commit policy.
-  *
-  * @param recordsQueue The mutable queue holding the `RenderedRecord` objects.
-  * @param commitContextRef A reference to the current commit context.
-  * @param commitPolicy The policy that determines when a batch of records should be committed.
-  */
+ * The `RecordsQueue` class manages a queue of `RenderedRecord` objects and handles the logic for
+ * enqueuing, dequeuing, and processing batches of records based on a commit policy.
+ *
+ * @param recordsQueue The mutable queue holding the `RenderedRecord` objects.
+ * @param commitContextRef A reference to the current commit context.
+ * @param commitPolicy The policy that determines when a batch of records should be committed.
+ */
 class RecordsQueue(
   val recordsQueue: Ref[IO, Queue[RenderedRecord]],
   commitContextRef: Ref[IO, HttpCommitContext],
@@ -49,14 +49,14 @@ class RecordsQueue(
 ) extends LazyLogging {
 
   /**
-    * Enqueues a sequence of `RenderedRecord` objects into the queue, with a maximum size limit.
-    * If the queue is full, it retries adding the remaining records within the specified timeout.
-    * If after the timeout records remain, it throws a RetriableException.
-    * Also, it discards any records for which the offset was already queued.
-    *
-    * @param records The records to be enqueued.
-    * @return An `IO` action that enqueues the records or throws a RetriableException if the queue remains full.
-    */
+   * Enqueues a sequence of `RenderedRecord` objects into the queue, with a maximum size limit.
+   * If the queue is full, it retries adding the remaining records within the specified timeout.
+   * If after the timeout records remain, it throws a RetriableException.
+   * Also, it discards any records for which the offset was already queued.
+   *
+   * @param records The records to be enqueued.
+   * @return An `IO` action that enqueues the records or throws a RetriableException if the queue remains full.
+   */
   def enqueueAll(records: NonEmptySeq[RenderedRecord]): IO[Unit] = {
 
     // Filter out records with offsets that have already been processed
@@ -79,39 +79,42 @@ class RecordsQueue(
         for {
           currentTime <- IO.realTime.map(_.toMillis)
           elapsedTime  = currentTime - startTime
-          _ <- if (elapsedTime >= offerTimeout.toMillis) {
-            IO.raiseError(new RetriableException("Enqueue timed out and records remain"))
-          } else {
-            for {
-              (recordsToAdd, recordsRemaining) <- recordsQueue.modify { queue =>
-                val queueSize        = queue.size
-                val spaceAvailable   = maxSize - queueSize
-                val recordsToAdd     = remainingRecords.take(spaceAvailable)
-                val recordsRemaining = remainingRecords.drop(spaceAvailable)
-                val newQueue         = queue.enqueueAll(recordsToAdd)
-                (newQueue, (recordsToAdd, recordsRemaining))
-              }
-              _ <- if (recordsToAdd.nonEmpty) {
-                // Update the offset map with the offsets of the records that were actually enqueued
-                offsetMapRef.update { offsetMap =>
-                  recordsToAdd.foldLeft(offsetMap) { (accOffsets, record) =>
-                    val tp     = record.topicPartitionOffset.toTopicPartition
-                    val offset = record.topicPartitionOffset.offset
-                    // Only update if the new offset is greater
-                    val updatedOffset: Offset = accOffsets.get(tp) match {
-                      case Some(existingOffset) if existingOffset.value >= offset.value => existingOffset
-                      case _                                                            => offset
-                    }
-                    accOffsets.updated(tp, updatedOffset)
-                  }
+          _ <-
+            if (elapsedTime >= offerTimeout.toMillis) {
+              IO.raiseError(new RetriableException("Enqueue timed out and records remain"))
+            } else {
+              for {
+                (recordsToAdd, recordsRemaining) <- recordsQueue.modify { queue =>
+                  val queueSize        = queue.size
+                  val spaceAvailable   = maxSize - queueSize
+                  val recordsToAdd     = remainingRecords.take(spaceAvailable)
+                  val recordsRemaining = remainingRecords.drop(spaceAvailable)
+                  val newQueue         = queue.enqueueAll(recordsToAdd)
+                  (newQueue, (recordsToAdd, recordsRemaining))
                 }
-              } else IO.unit
-              _ <- if (recordsRemaining.nonEmpty) {
-                IO.sleep(5.millis) *>
-                  attemptEnqueue(recordsRemaining, startTime)
-              } else IO.unit
-            } yield ()
-          }
+                _ <-
+                  if (recordsToAdd.nonEmpty) {
+                    // Update the offset map with the offsets of the records that were actually enqueued
+                    offsetMapRef.update { offsetMap =>
+                      recordsToAdd.foldLeft(offsetMap) { (accOffsets, record) =>
+                        val tp     = record.topicPartitionOffset.toTopicPartition
+                        val offset = record.topicPartitionOffset.offset
+                        // Only update if the new offset is greater
+                        val updatedOffset: Offset = accOffsets.get(tp) match {
+                          case Some(existingOffset) if existingOffset.value >= offset.value => existingOffset
+                          case _                                                            => offset
+                        }
+                        accOffsets.updated(tp, updatedOffset)
+                      }
+                    }
+                  } else IO.unit
+                _ <-
+                  if (recordsRemaining.nonEmpty) {
+                    IO.sleep(5.millis) *>
+                      attemptEnqueue(recordsRemaining, startTime)
+                  } else IO.unit
+              } yield ()
+            }
         } yield ()
       }
 
@@ -124,10 +127,10 @@ class RecordsQueue(
   }
 
   /**
-    * Takes a batch of records from the queue based on the commit policy.
-    *
-    * @return An `IO` action that returns a `BatchInfo` object representing the batch of records.
-    */
+   * Takes a batch of records from the queue based on the commit policy.
+   *
+   * @return An `IO` action that returns a `BatchInfo` object representing the batch of records.
+   */
   def popBatch(): IO[BatchInfo] =
     for {
       initialContext <- commitContextRef.get
@@ -142,11 +145,11 @@ class RecordsQueue(
     } yield queueState
 
   /**
-    * Dequeues a non-empty batch of `RenderedRecord` objects from the queue.
-    *
-    * @param nonEmptyBatch The batch of records to be dequeued.
-    * @return An `IO` action that dequeues the records.
-    */
+   * Dequeues a non-empty batch of `RenderedRecord` objects from the queue.
+   *
+   * @param nonEmptyBatch The batch of records to be dequeued.
+   * @return An `IO` action that dequeues the records.
+   */
   def dequeue(nonEmptyBatch: NonEmptySeq[RenderedRecord]): IO[Unit] =
     recordsQueue.access.flatMap {
       case (records, updater) =>

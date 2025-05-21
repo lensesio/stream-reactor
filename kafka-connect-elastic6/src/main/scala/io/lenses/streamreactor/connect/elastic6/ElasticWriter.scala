@@ -27,11 +27,11 @@ import scala.util.Try
 object ElasticWriter {
 
   /**
-    * Construct a JSONWriter.
-    *
-    * @param config An elasticSinkConfig to extract settings from.
-    * @return An ElasticJsonWriter to write records from Kafka to ElasticSearch.
-    */
+   * Construct a JSONWriter.
+   *
+   * @param config An elasticSinkConfig to extract settings from.
+   * @return An ElasticJsonWriter to write records from Kafka to ElasticSearch.
+   */
   def apply(config: ElasticConfig): ElasticJsonWriter = {
 
     val hostNames = config.getString(ElasticConfigConstants.HOSTS).split(",")

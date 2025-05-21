@@ -30,17 +30,18 @@ object S3ObjectKey {
       validatedNonEmptyString(s3.prefix, "s3 prefix").andThen(validateS3PrefixName),
     ).mapN((b, p) => CloudObjectKey(b, p))
 
-  /** Applies the S3 bucket naming restriction:
-    * must be between 3 (min) and 63 (max) characters long.
-    * can consist only of lowercase letters, numbers, dots (.), and hyphens (-).
-    * must begin and end with a letter or number.
-    * must not contain two adjacent periods.
-    * must not be formatted as an IP address (for example, 192.168.5.4).
-    * must not start with the prefix xn--.
-    * must not start with the prefix sthree- and the prefix sthree-configurator.
-    * must not end with the suffix -s3alias. This suffix is reserved for access point alias names. For more information, see Using a bucket-style alias for your S3 bucket access point.
-    * must not end with the suffix --ol-s3.
-    */
+  /**
+   * Applies the S3 bucket naming restriction:
+   * must be between 3 (min) and 63 (max) characters long.
+   * can consist only of lowercase letters, numbers, dots (.), and hyphens (-).
+   * must begin and end with a letter or number.
+   * must not contain two adjacent periods.
+   * must not be formatted as an IP address (for example, 192.168.5.4).
+   * must not start with the prefix xn--.
+   * must not start with the prefix sthree- and the prefix sthree-configurator.
+   * must not end with the suffix -s3alias. This suffix is reserved for access point alias names. For more information, see Using a bucket-style alias for your S3 bucket access point.
+   * must not end with the suffix --ol-s3.
+   */
   def validateS3ObjectKeyName(bucket: String): ValidatedNel[String, String] = {
     val bucketRegex = """^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$""".r
     bucket match {
@@ -66,13 +67,13 @@ object S3ObjectKey {
   }
 
   /**
-    * Validates a prefix is valid. It should not start and end with /.
-    * Allows 0-9,a-z,A-Z,!, - , _, ., *, ', ), (, and /.
-    * Does not start and end with /
-    *
-    * @param prefix
-    * @return
-    */
+   * Validates a prefix is valid. It should not start and end with /.
+   * Allows 0-9,a-z,A-Z,!, - , _, ., *, ', ), (, and /.
+   * Does not start and end with /
+   *
+   * @param prefix
+   * @return
+   */
   def validateS3PrefixName(prefix: Option[String]): ValidatedNel[String, Option[String]] =
     prefix match {
       case Some(p) =>

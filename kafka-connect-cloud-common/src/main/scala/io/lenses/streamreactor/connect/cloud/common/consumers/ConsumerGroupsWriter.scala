@@ -73,44 +73,43 @@ class ConsumerGroupsWriter(location: CloudObjectKey, uploader: Uploader, taskId:
 object ConsumerGroupsWriter extends StrictLogging {
 
   /**
-    * Expects the [[SinkRecord]] to contain the key and value as byte arrays.
-    * The key is expected to be a byte array representation of an [[OffsetKey]], and ignores GroupMetadata keys.
-    * @param record The [[SinkRecord]] to extract the offset details from.
-    * @return Either an error or the offset details.
-    */
+   * Expects the [[SinkRecord]] to contain the key and value as byte arrays.
+   * The key is expected to be a byte array representation of an [[OffsetKey]], and ignores GroupMetadata keys.
+   * @param record The [[SinkRecord]] to extract the offset details from.
+   * @return Either an error or the offset details.
+   */
   def extractOffsets(record: SinkRecord): Either[Throwable, Option[OffsetAction]] =
     Option(record.key()) match {
       case None => Right(None)
       case Some(key) =>
         for {
-          keyBytes <- validateByteArray(key,
-                                        "key",
-                                        "key.converter=org.apache.kafka.connect.converters.ByteArrayConverter",
-          )
+          keyBytes <-
+            validateByteArray(key, "key", "key.converter=org.apache.kafka.connect.converters.ByteArrayConverter")
           buffer  = ByteBuffer.wrap(keyBytes)
           version = buffer.getShort
-          result <- if (version == 0 || version == 1) {
-            for {
-              key <- OffsetKey.from(version, buffer)
-              value <- Option(record.value()) match {
-                case Some(value) =>
-                  for {
-                    valueBytes <- validateByteArray(
-                      value,
-                      "value",
-                      "value.converter=org.apache.kafka.connect.converters.ByteArrayConverter",
-                    )
-                    metadata <- OffsetAndMetadata.from(ByteBuffer.wrap(valueBytes))
-                  } yield {
-                    Some(WriteOffset(OffsetDetails(key, metadata)))
-                  }
-                case None =>
-                  Right(Some(DeleteOffset(key.key)))
-              }
-            } yield value
-          } else {
-            Right(None)
-          }
+          result <-
+            if (version == 0 || version == 1) {
+              for {
+                key <- OffsetKey.from(version, buffer)
+                value <- Option(record.value()) match {
+                  case Some(value) =>
+                    for {
+                      valueBytes <- validateByteArray(
+                        value,
+                        "value",
+                        "value.converter=org.apache.kafka.connect.converters.ByteArrayConverter",
+                      )
+                      metadata <- OffsetAndMetadata.from(ByteBuffer.wrap(valueBytes))
+                    } yield {
+                      Some(WriteOffset(OffsetDetails(key, metadata)))
+                    }
+                  case None =>
+                    Right(Some(DeleteOffset(key.key)))
+                }
+              } yield value
+            } else {
+              Right(None)
+            }
         } yield result
     }
 

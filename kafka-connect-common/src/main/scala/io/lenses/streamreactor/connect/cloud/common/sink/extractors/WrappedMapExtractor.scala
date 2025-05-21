@@ -19,8 +19,8 @@ import cats.implicits._
 import io.lenses.streamreactor.connect.cloud.common.sink.config.PartitionNamePath
 
 /**
-  * Extracts values from a Map.
-  */
+ * Extracts values from a Map.
+ */
 object WrappedMapExtractor {
 
   private[extractors] def extractPathFromMap(

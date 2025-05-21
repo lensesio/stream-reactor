@@ -32,10 +32,10 @@ import java.time.Instant
 case class AccessTokenResponse(token: String, tokenType: String, expiresIn: Option[Long]) {
 
   /**
-    * Convert the response to an access token.
-    * @param startTimestamp - The epoch time before the token request was issued. This is used to calculate the expiry time.
-    * @return
-    */
+   * Convert the response to an access token.
+   * @param startTimestamp - The epoch time before the token request was issued. This is used to calculate the expiry time.
+   * @return
+   */
   def toAccessToken(startTimestamp: Long): AccessToken = {
     val instant = expiresIn.fold(Instant.MAX)(expiration => Instant.ofEpochMilli(startTimestamp + expiration * 1000))
     AccessToken(token, tokenType, instant)

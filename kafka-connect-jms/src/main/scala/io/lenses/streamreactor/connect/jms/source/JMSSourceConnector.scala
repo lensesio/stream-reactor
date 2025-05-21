@@ -31,9 +31,9 @@ import scala.jdk.CollectionConverters.MapHasAsScala
 import scala.jdk.CollectionConverters.SeqHasAsJava
 
 /**
-  * Created by andrew@datamountaineer.com on 10/03/2017.
-  * stream-reactor
-  */
+ * Created by andrew@datamountaineer.com on 10/03/2017.
+ * stream-reactor
+ */
 class JMSSourceConnector extends SourceConnector with StrictLogging with JarManifestProvided {
   private var configProps: Map[String, String] = _
   private val configDef = JMSConfig.config

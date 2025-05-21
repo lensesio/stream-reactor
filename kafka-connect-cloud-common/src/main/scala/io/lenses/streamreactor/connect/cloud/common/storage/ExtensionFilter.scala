@@ -16,33 +16,33 @@
 package io.lenses.streamreactor.connect.cloud.common.storage
 
 /**
-  * A class used to filter files based on their extensions.
-  * It allows to include or exclude files with certain extensions.
-  *
-  * @constructor create a new ExtensionFilter with allowed and excluded extensions.
-  * @param allowedExtensions the set of extensions that are allowed.
-  * @param excludedExtensions the set of extensions that are excluded.
-  */
+ * A class used to filter files based on their extensions.
+ * It allows to include or exclude files with certain extensions.
+ *
+ * @constructor create a new ExtensionFilter with allowed and excluded extensions.
+ * @param allowedExtensions the set of extensions that are allowed.
+ * @param excludedExtensions the set of extensions that are excluded.
+ */
 class ExtensionFilter(
   val allowedExtensions:  Set[String],
   val excludedExtensions: Set[String],
 ) {
 
   /**
-    * Filters the metadata of a file based on its extension.
-    *
-    * @param metadata the metadata of the file to be filtered.
-    * @return true if the file passes the filter, false otherwise.
-    */
+   * Filters the metadata of a file based on its extension.
+   *
+   * @param metadata the metadata of the file to be filtered.
+   * @return true if the file passes the filter, false otherwise.
+   */
   def filter[MD <: FileMetadata](metadata: MD): Boolean =
     ExtensionFilter.performFilterLogic(metadata.file.toLowerCase, allowedExtensions, excludedExtensions)
 
   /**
-    * Filters a file based on its name.
-    *
-    * @param fileName the name of the file to be filtered.
-    * @return true if the file passes the filter, false otherwise.
-    */
+   * Filters a file based on its name.
+   *
+   * @param fileName the name of the file to be filtered.
+   * @return true if the file passes the filter, false otherwise.
+   */
   def filter(fileName: String): Boolean =
     ExtensionFilter.performFilterLogic(fileName.toLowerCase, allowedExtensions, excludedExtensions)
 

@@ -45,10 +45,10 @@ import scala.util.Success
 import scala.util.Try
 
 /**
-  * <h1>CassandraJsonWriter</h1>
-  * Cassandra Json writer for Kafka connect
-  * Writes a list of Kafka connect sink records to Cassandra using the JSON support.
-  */
+ * <h1>CassandraJsonWriter</h1>
+ * Cassandra Json writer for Kafka connect
+ * Writes a list of Kafka connect sink records to Cassandra using the JSON support.
+ */
 class CassandraJsonWriter(connection: CassandraConnection, settings: CassandraSinkSetting)
     extends StrictLogging
     with ErrorHandler {
@@ -68,19 +68,19 @@ class CassandraJsonWriter(connection: CassandraConnection, settings: CassandraSi
   private val deleteStructFields = settings.deleteStructFields
 
   /**
-    * Get a connection to cassandra based on the config
-    */
+   * Get a connection to cassandra based on the config
+   */
   private def getSession: Option[Session] = {
     val t = Try(connection.cluster.connect(settings.keySpace))
     handleTry[Session](t)
   }
 
   /**
-    * Cache the preparedStatements per topic rather than create them every time
-    * Each one is an insert statement aligned to topics.
-    *
-    * @return A Map of topic->(target -> preparedStatements).
-    */
+   * Cache the preparedStatements per topic rather than create them every time
+   * Each one is an insert statement aligned to topics.
+   *
+   * @return A Map of topic->(target -> preparedStatements).
+   */
   private def cachePreparedStatements =
     settings.kcqls
       .groupBy(_.getSource)
@@ -103,11 +103,11 @@ class CassandraJsonWriter(connection: CassandraConnection, settings: CassandraSi
     else None
 
   /**
-    * Build a preparedStatement for the given topic.
-    *
-    * @param table The table name to prepare the statement for.
-    * @return A prepared statement for the given topic.
-    */
+   * Build a preparedStatement for the given topic.
+   *
+   * @param table The table name to prepare the statement for.
+   * @return A prepared statement for the given topic.
+   */
   private def getPreparedStatement(table: String, ttl: Long): Option[PreparedStatement] = {
     val t: Try[PreparedStatement] = Try {
       val sb = new StringBuilder()
@@ -126,10 +126,10 @@ class CassandraJsonWriter(connection: CassandraConnection, settings: CassandraSi
   }
 
   /**
-    * Write SinkRecords to Cassandra (aSync per topic partition) in Json.
-    *
-    * @param records A list of SinkRecords from Kafka Connect to write.
-    */
+   * Write SinkRecords to Cassandra (aSync per topic partition) in Json.
+   *
+   * @param records A list of SinkRecords from Kafka Connect to write.
+   */
   def write(records: Seq[SinkRecord]): Unit =
     if (records.isEmpty) {
       logger.debug("No records received.")
@@ -147,11 +147,11 @@ class CassandraJsonWriter(connection: CassandraConnection, settings: CassandraSi
     }
 
   /**
-    * Write SinkRecords to Cassandra (aSync) in Json
-    *
-    * @param records A Map of [[TopicPartition]] -> [[SinkRecord]] from Kafka Connect to write.
-    * @return boolean indication successful write.
-    */
+   * Write SinkRecords to Cassandra (aSync) in Json
+   *
+   * @param records A Map of [[TopicPartition]] -> [[SinkRecord]] from Kafka Connect to write.
+   * @return boolean indication successful write.
+   */
   private def write(records: Map[TopicPartition, Seq[SinkRecord]]) = {
     val executor = Executors.newFixedThreadPool(settings.threadPoolSize)
     try {
@@ -250,8 +250,8 @@ class CassandraJsonWriter(connection: CassandraConnection, settings: CassandraSi
     }
 
   /**
-    * Closed down the driver session and cluster.
-    */
+   * Closed down the driver session and cluster.
+   */
   def close(): Unit = {
     logger.info("Shutting down Cassandra driver session and cluster.")
     session.close()

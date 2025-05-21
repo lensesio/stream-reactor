@@ -18,9 +18,9 @@ package com.datastax.driver.core
 import com.datastax.driver.core.ColumnDefinitions.Definition
 
 /**
-  * Created by andrew@datamountaineer.com on 21/04/16.
-  * stream-reactor
-  */
+ * Created by andrew@datamountaineer.com on 21/04/16.
+ * stream-reactor
+ */
 object TestUtils {
   def getColumnDefs: ColumnDefinitions = {
     val cols = List(

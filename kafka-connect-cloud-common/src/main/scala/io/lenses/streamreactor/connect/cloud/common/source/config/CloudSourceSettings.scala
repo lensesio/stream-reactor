@@ -67,13 +67,13 @@ trait CloudSourceSettings extends BaseSettings with CloudSourceSettingsKeys {
     )
 
   /**
-    * Retrieves the extension filter for the source.
-    *
-    * The extension filter is used to include or exclude files
-    * based on their extensions when reading from the source.
-    *
-    * @return The extension filter for the source.
-    */
+   * Retrieves the extension filter for the source.
+   *
+   * The extension filter is used to include or exclude files
+   * based on their extensions when reading from the source.
+   *
+   * @return The extension filter for the source.
+   */
   def getSourceExtensionFilter: Option[ExtensionFilter] = {
 
     val includes = extractSetFromProperty(SOURCE_EXTENSION_INCLUDES)
@@ -86,13 +86,13 @@ trait CloudSourceSettings extends BaseSettings with CloudSourceSettingsKeys {
   def getWriteWatermarkToHeaders: Boolean = getBoolean(WRITE_WATERMARK_TO_HEADERS)
 
   /**
-    * Extracts the property value from the configuration and transforms it into a set of strings.
-    *
-    * Each string in the set represents a file extension. If the extension does not start with a dot, one is added.
-    *
-    * @param propertyName The name of the property to extract.
-    * @return An Option containing a set of strings if the property exists, None otherwise.
-    */
+   * Extracts the property value from the configuration and transforms it into a set of strings.
+   *
+   * Each string in the set represents a file extension. If the extension does not start with a dot, one is added.
+   *
+   * @param propertyName The name of the property to extract.
+   * @return An Option containing a set of strings if the property exists, None otherwise.
+   */
   private def extractSetFromProperty(propertyName: String): Option[Set[String]] =
     Option(getString(propertyName)).map(_.split(",").map(_.toLowerCase).map(s =>
       if (s.startsWith(".")) s else s".$s",

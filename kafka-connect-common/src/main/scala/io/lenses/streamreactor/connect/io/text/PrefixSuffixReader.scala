@@ -21,12 +21,12 @@ import java.io.InputStreamReader
 import scala.annotation.tailrec
 
 /**
-  * Reads records from an input stream. A record is identified as the data contained between the prefix and suffix.
-  * The prefix and suffix are included in the line.
-  * @param input
-  * @param prefix
-  * @param suffix
-  */
+ * Reads records from an input stream. A record is identified as the data contained between the prefix and suffix.
+ * The prefix and suffix are included in the line.
+ * @param input
+ * @param prefix
+ * @param suffix
+ */
 class PrefixSuffixReader(input: InputStream, prefix: String, suffix: String, bufferSize: Int = 1024)
     extends LineReader {
   private val buffer     = new Array[Char](bufferSize)

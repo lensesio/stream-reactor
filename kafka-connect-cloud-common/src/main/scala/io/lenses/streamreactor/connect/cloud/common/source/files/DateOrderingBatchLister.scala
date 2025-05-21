@@ -22,8 +22,8 @@ import io.lenses.streamreactor.connect.cloud.common.storage.ListOfKeysResponse
 import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
 
 /**
-  * If an order other than UTF-8 binary order is desired, then this can only be achieved by downloading all the results from the bucket and ordering them in memory.  It is recommended to be able to use the default ordering wherever possible, but if you need to sort by file modification date then use this.
-  */
+ * If an order other than UTF-8 binary order is desired, then this can only be achieved by downloading all the results from the bucket and ordering them in memory.  It is recommended to be able to use the default ordering wherever possible, but if you need to sort by file modification date then use this.
+ */
 object DateOrderingBatchLister extends BatchLister {
   override def listBatch[SM <: FileMetadata](
     storageInterface: StorageInterface[SM],

@@ -27,18 +27,18 @@ trait HttpSinkMetricsMBean {
   def getOtherErrorsCount: Long
 
   /**
-    * Record the time taken to process a request
-    */
+   * Record the time taken to process a request
+   */
   def recordRequestTime(time: Long): Unit
 
   /**
-    * Reset the request time histogram based on a time window interval and calculate the percentiles
-    */
+   * Reset the request time histogram based on a time window interval and calculate the percentiles
+   */
   def resetRequestTime(): Unit
 
   /**
-    * Update the percentiles based on the current histogram
-    */
+   * Update the percentiles based on the current histogram
+   */
   def updatePercentiles(): Unit
 
   def increment2xxCount():         Unit

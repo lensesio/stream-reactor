@@ -22,11 +22,11 @@ import org.apache.kafka.connect.sink.SinkRecord
 import scala.jdk.CollectionConverters.ListHasAsScala
 
 /**
-  * Builds a new key from the payload fields specified
-  *
-  * @param keys The key to build
-  * @param keyDelimiter Row key delimiter
-  */
+ * Builds a new key from the payload fields specified
+ *
+ * @param keys The key to build
+ * @param keyDelimiter Row key delimiter
+ */
 case class StringStructFieldsStringKeyBuilder(keys: Seq[String], keyDelimiter: String = ".") extends StringKeyBuilder {
   private val availableSchemaTypes = Set(
     Schema.Type.BOOLEAN,
@@ -43,11 +43,11 @@ case class StringStructFieldsStringKeyBuilder(keys: Seq[String], keyDelimiter: S
   require(keys.nonEmpty, "Invalid keys provided")
 
   /**
-    * Builds a row key for a records
-    *
-    * @param record a SinkRecord to build the key for
-    * @return A row key string
-    */
+   * Builds a row key for a records
+   *
+   * @param record a SinkRecord to build the key for
+   * @return A row key string
+   */
   override def build(record: SinkRecord): String = {
     val struct = record.value().asInstanceOf[Struct]
     val schema = struct.schema

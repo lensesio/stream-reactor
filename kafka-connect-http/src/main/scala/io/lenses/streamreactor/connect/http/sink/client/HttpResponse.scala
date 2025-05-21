@@ -18,24 +18,24 @@ package io.lenses.streamreactor.connect.http.sink.client
 import io.lenses.streamreactor.common.exception.StreamReactorException
 
 /**
-  * Represents a successful HTTP response.
-  *
-  * @param statusCode the HTTP status code of the response
-  * @param responseContent the content of the response
-  */
+ * Represents a successful HTTP response.
+ *
+ * @param statusCode the HTTP status code of the response
+ * @param responseContent the content of the response
+ */
 case class HttpResponseSuccess(
   statusCode:      Int,
   responseContent: Option[String],
 )
 
 /**
-  * Represents a failed HTTP response.
-  *
-  * @param message the error message
-  * @param cause the optional cause of the failure
-  * @param statusCode the optional HTTP status code of the response
-  * @param responseContent the optional content of the response
-  */
+ * Represents a failed HTTP response.
+ *
+ * @param message the error message
+ * @param cause the optional cause of the failure
+ * @param statusCode the optional HTTP status code of the response
+ * @param responseContent the optional content of the response
+ */
 case class HttpResponseFailure(
   message:         String,
   cause:           Option[Throwable],

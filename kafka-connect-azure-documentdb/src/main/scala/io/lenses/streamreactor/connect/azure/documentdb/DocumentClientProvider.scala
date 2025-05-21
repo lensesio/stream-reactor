@@ -21,8 +21,8 @@ import com.microsoft.azure.documentdb.DocumentClient
 import org.apache.http.HttpHost
 
 /**
-  * Creates an instance of Azure DocumentClient class
-  */
+ * Creates an instance of Azure DocumentClient class
+ */
 object DocumentClientProvider {
   def get(settings: DocumentDbSinkSettings): DocumentClient = {
     val policy = ConnectionPolicy.GetDefault()

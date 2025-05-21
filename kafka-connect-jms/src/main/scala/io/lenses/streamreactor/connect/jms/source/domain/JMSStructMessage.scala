@@ -27,9 +27,9 @@ import scala.jdk.CollectionConverters.EnumerationHasAsScala
 import scala.jdk.CollectionConverters.MapHasAsJava
 
 /**
-  * Created by andrew@datamountaineer.com on 11/03/2017.
-  * stream-reactor
-  */
+ * Created by andrew@datamountaineer.com on 11/03/2017.
+ * stream-reactor
+ */
 object JMSStructMessage {
   val mapper                  = new ObjectMapper()
   val schema                  = getSchema()

@@ -32,8 +32,8 @@ import scala.collection.immutable.ListSet
 import scala.jdk.CollectionConverters.ListHasAsScala
 
 /**
-  * Holds the base configuration.
-  */
+ * Holds the base configuration.
+ */
 case class CassandraConfig() {
 
   val configDef: ConfigDef = new ConfigDef()
@@ -271,9 +271,9 @@ case class CassandraConfig() {
 }
 
 /**
-  * Holds the extra configurations for the source on top of
-  * the base.
-  */
+ * Holds the extra configurations for the source on top of
+ * the base.
+ */
 object CassandraConfigSource {
   val base: ConfigDef = CassandraConfig().configDef
   val sourceConfig: ConfigDef = base
@@ -441,9 +441,9 @@ case class CassandraConfigSource(props: Map[String, String])
     with CassandraFieldsSettings
 
 /**
-  * Holds the extra configurations for the sink on top of
-  * the base.
-  */
+ * Holds the extra configurations for the sink on top of
+ * the base.
+ */
 object CassandraConfigSink {
   val base: ConfigDef = CassandraConfig().configDef
   val sinkConfig = base

@@ -27,10 +27,10 @@ trait FileNamer {
 }
 
 /**
-  * @param offsetPaddingStrategy
-  * @param extension
-  * @param suffix Allows to add a suffix to the "file" name. It covers the scenario where two connectors from two different clusters write to the same bucket when reading from the same topic.
-  */
+ * @param offsetPaddingStrategy
+ * @param extension
+ * @param suffix Allows to add a suffix to the "file" name. It covers the scenario where two connectors from two different clusters write to the same bucket when reading from the same topic.
+ */
 class OffsetFileNamer(
   offsetPaddingStrategy: PaddingStrategy,
   extension:             String,

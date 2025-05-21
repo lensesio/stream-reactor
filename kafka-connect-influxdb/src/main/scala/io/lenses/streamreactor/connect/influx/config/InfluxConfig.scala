@@ -151,10 +151,10 @@ object InfluxConfig {
 }
 
 /**
-  * <h1>InfluxSinkConfig</h1>
-  *
-  * Holds config, extends AbstractConfig.
-  */
+ * <h1>InfluxSinkConfig</h1>
+ *
+ * Holds config, extends AbstractConfig.
+ */
 case class InfluxConfig(props: Map[String, String])
     extends BaseConfig(InfluxConfigConstants.CONNECTOR_PREFIX, InfluxConfig.config, props)
     with KcqlSettings

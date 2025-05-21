@@ -104,12 +104,12 @@ case class FixedRetryConfig(
 object FixedRetryConfig {
 
   /**
-    * Creates a fixed interval retry policy
-    *
-    * @param interval The fixed interval between retries
-    * @param maxRetry Maximum number of retry attempts
-    * @return A function that takes the current retry attempt and returns the next delay as an Option
-    */
+   * Creates a fixed interval retry policy
+   *
+   * @param interval The fixed interval between retries
+   * @param maxRetry Maximum number of retry attempts
+   * @return A function that takes the current retry attempt and returns the next delay as an Option
+   */
   def fixedInterval(interval: FiniteDuration, maxRetry: Int): Int => Option[FiniteDuration] = {
     k => if (k > maxRetry) None else Some(interval)
   }
@@ -255,10 +255,10 @@ object HttpSinkConfig {
   }
 
   /**
-    * Extracts the headers, and if Content-Type is not set, it will be added to the headers
-    * @param headers - the headers string "key1:value1;key2:value2"
-    * @return
-    */
+   * Extracts the headers, and if Content-Type is not set, it will be added to the headers
+   * @param headers - the headers string "key1:value1;key2:value2"
+   * @return
+   */
   def extractHeaders(headers: List[String]): Either[Throwable, List[(String, String)]] = {
     def parseHeader(header: String): Either[Throwable, (String, String)] =
       header.split(":", 2) match {

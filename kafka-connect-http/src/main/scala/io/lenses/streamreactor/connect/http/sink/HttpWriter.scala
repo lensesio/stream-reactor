@@ -68,11 +68,12 @@ class HttpWriter(
     e =>
       for {
         uniqueError: Option[Throwable] <- addErrorToCommitContext(e)
-        _ <- if (uniqueError.nonEmpty) {
-          IO(logger.error("Error in HttpWriter", e)) *> IO.raiseError(e)
-        } else {
-          IO(logger.error("Error in HttpWriter but not reached threshold so ignoring", e)) *> IO.unit
-        }
+        _ <-
+          if (uniqueError.nonEmpty) {
+            IO(logger.error("Error in HttpWriter", e)) *> IO.raiseError(e)
+          } else {
+            IO(logger.error("Error in HttpWriter but not reached threshold so ignoring", e)) *> IO.unit
+          }
       } yield ()
   }
 

@@ -32,29 +32,29 @@ import scala.jdk.CollectionConverters.MapHasAsScala
 import scala.jdk.CollectionConverters.SeqHasAsJava
 
 /**
-  * <h1>CassandraSourceConnector</h1>
-  * Kafka connect Cassandra Source connector
-  *
-  * Sets up CassandraSourceTask and configurations for the tasks.
-  */
+ * <h1>CassandraSourceConnector</h1>
+ * Kafka connect Cassandra Source connector
+ *
+ * Sets up CassandraSourceTask and configurations for the tasks.
+ */
 class CassandraSourceConnector extends SourceConnector with StrictLogging with JarManifestProvided {
 
   private var configProps: Option[util.Map[String, String]] = None
   private val configDef = CassandraConfigSource.sourceConfig
 
   /**
-    * Defines the sink class to use
-    *
-    * @return
-    */
+   * Defines the sink class to use
+   *
+   * @return
+   */
   override def taskClass(): Class[_ <: Task] = classOf[CassandraSourceTask]
 
   /**
-    * Set the configuration for each work and determine the split.
-    *
-    * @param maxTasks The max number of task workers be can spawn.
-    * @return a List of configuration properties per worker.
-    */
+   * Set the configuration for each work and determine the split.
+   *
+   * @param maxTasks The max number of task workers be can spawn.
+   * @return a List of configuration properties per worker.
+   */
   override def taskConfigs(maxTasks: Int): util.List[util.Map[String, String]] = {
     val raw = configProps.get.get(CassandraConfigConstants.KCQL).split(";")
 
@@ -76,10 +76,10 @@ class CassandraSourceConnector extends SourceConnector with StrictLogging with J
   }.asJava
 
   /**
-    * Start the sink and set to configuration.
-    *
-    * @param props A map of properties for the connector and worker.
-    */
+   * Start the sink and set to configuration.
+   *
+   * @param props A map of properties for the connector and worker.
+   */
   override def start(props: util.Map[String, String]): Unit =
     configProps = Some(props)
 

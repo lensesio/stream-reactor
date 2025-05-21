@@ -38,9 +38,9 @@ import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.jdk.CollectionConverters.SeqHasAsJava
 
 /**
-  * Created by andrew@datamountaineer.com on 14/04/16.
-  * stream-reactor
-  */
+ * Created by andrew@datamountaineer.com on 14/04/16.
+ * stream-reactor
+ */
 trait TestConfig extends MockitoSugar {
   val CONTACT_POINT             = "localhost"
   val CASSANDRA_PORT            = 9042
@@ -183,10 +183,10 @@ trait TestConfig extends MockitoSugar {
   ): SourceTaskContext = {
 
     /**
-      * offset holds a map of map[string, something],map[identifier, value]
-      *
-      * map(map(assign.import.table->table1) -> map("my_timeuuid"->"2013-01-01 00:05+0000")
-      */
+     * offset holds a map of map[string, something],map[identifier, value]
+     *
+     * map(map(assign.import.table->table1) -> map("my_timeuuid"->"2013-01-01 00:05+0000")
+     */
 
     //set up partition
     val partition: util.Map[String, String] = Collections.singletonMap(lookupPartitionKey, table)

@@ -16,9 +16,9 @@
 package io.lenses.streamreactor.connect.jms.config
 
 /**
-  * Created by andrew@datamountaineer.com on 31/07/2017.
-  * stream-reactor
-  */
+ * Created by andrew@datamountaineer.com on 31/07/2017.
+ * stream-reactor
+ */
 
 import io.lenses.streamreactor.common.config.base.const.TraitConfigConst._
 import io.lenses.streamreactor.common.config.base.traits.BaseSettings

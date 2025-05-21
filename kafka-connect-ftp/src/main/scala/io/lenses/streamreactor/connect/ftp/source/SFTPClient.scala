@@ -36,12 +36,12 @@ import scala.util.Success
 import scala.util.Try
 
 /**
-  * Implementation for Secure File Transfer Protocol, to allow Source a SFTP server
-  * and continue using the rest of implementation of the Connector to send to Kafka topic.
-  *
-  * This class use the [Adapter] pattern to adapt the contract of [FTPClient] invoked from the
-  * core library, to the [JsCh] implementation that we use internally.
-  */
+ * Implementation for Secure File Transfer Protocol, to allow Source a SFTP server
+ * and continue using the rest of implementation of the Connector to send to Kafka topic.
+ *
+ * This class use the [Adapter] pattern to adapt the contract of [FTPClient] invoked from the
+ * core library, to the [JsCh] implementation that we use internally.
+ */
 class SFTPClient extends FTPClient with StrictLogging {
 
   private var lastReplyCode:       Int                 = 500
@@ -56,36 +56,36 @@ class SFTPClient extends FTPClient with StrictLogging {
   private val dateFormat = DateTimeFormatter.ofPattern("EEE MMM d HH:mm:ss zzz uuuu")
 
   /**
-    * We ensure that not only the session with the server is close, but also the channel that it might be open from a previous
-    * transaction.
-    */
+   * We ensure that not only the session with the server is close, but also the channel that it might be open from a previous
+   * transaction.
+   */
   override def disconnect(): Unit = {
     maybeJschSession.foreach(session => session.disconnect())
     maybeChannelSftp.foreach(channel => channel.disconnect())
   }
 
   /**
-    * We just check the session with the SFTP server is open
-    */
+   * We just check the session with the SFTP server is open
+   */
   override def isConnected(): Boolean =
     maybeJschSession.exists(_.isConnected)
 
   /**
-    * Max Timeout in Ms to open a session with SFTP Server
-    */
+   * Max Timeout in Ms to open a session with SFTP Server
+   */
   override def setConnectTimeout(timeoutMs: Int): Unit =
     maybeConnectTimeout = Some(timeoutMs)
 
   /**
-    * Max Timeout in Ms to connect a channel with SFTP Server
-    */
+   * Max Timeout in Ms to connect a channel with SFTP Server
+   */
   override def setDataTimeout(timeoutMs: Int): Unit =
     maybeDataTimeout = Some(timeoutMs)
 
   /**
-    * Using JsCh library, the only thing we can do in this moment it's to keep the information
-    * passed to be used later in subsequent steps
-    */
+   * Using JsCh library, the only thing we can do in this moment it's to keep the information
+   * passed to be used later in subsequent steps
+   */
   override def connect(hostname: String, explicitPort: Int): Unit = {
     this.maybeHostname     = Some(hostname)
     this.maybeExplicitPort = Some(explicitPort)
@@ -93,24 +93,24 @@ class SFTPClient extends FTPClient with StrictLogging {
   }
 
   /**
-    * Using JsCh library, the only thing we can do in this moment it's to keep the information
-    * passed to be used later in subsequent steps
-    */
+   * Using JsCh library, the only thing we can do in this moment it's to keep the information
+   * passed to be used later in subsequent steps
+   */
   override def connect(hostname: String): Unit = {
     this.maybeHostname = Some(hostname)
     this.lastReplyCode = 200
   }
 
   /**
-    * Code number to keep the state of the Connector [200 => OK, 500 => ERROR]
-    */
+   * Code number to keep the state of the Connector [200 => OK, 500 => ERROR]
+   */
   override def getReplyCode(): Int = lastReplyCode
 
   /**
-    * Using username and password together with the previous info passed(hostname, explicitPort?)
-    * we're able to open an connect a session with the SFTP server, and create a Channel to
-    * be used later in subsequent steps to get folder info, or download files.
-    */
+   * Using username and password together with the previous info passed(hostname, explicitPort?)
+   * we're able to open an connect a session with the SFTP server, and create a Channel to
+   * be used later in subsequent steps to get folder info, or download files.
+   */
   override def login(username: String, password: String): Boolean = {
     getSessionAndChannel(Username(username), Password(password))
       .map {
@@ -128,15 +128,15 @@ class SFTPClient extends FTPClient with StrictLogging {
   }
 
   /**
-    * Not used in this implementation of [JsCh]
-    */
+   * Not used in this implementation of [JsCh]
+   */
   override def setFileType(fileType: Int): Boolean =
     true
 
   /**
-    * Connect to SFTP server to obtain files information (name, size, last modify)
-    * and it returns a Array[FTPFile] with all directory file info.
-    */
+   * Connect to SFTP server to obtain files information (name, size, last modify)
+   * and it returns a Array[FTPFile] with all directory file info.
+   */
   override def listFiles(pathname: String): Array[FTPFile] =
     maybeChannelSftp.fold {
       logger.error(s"SFTPClient Error no channel ready to obtain files from pathname $pathname.")
@@ -150,9 +150,9 @@ class SFTPClient extends FTPClient with StrictLogging {
     }
 
   /**
-    * Using the remote path of the file, and using [get] operator we're able to download the file and write
-    * the content into the [OutputStream].
-    */
+   * Using the remote path of the file, and using [get] operator we're able to download the file and write
+   * the content into the [OutputStream].
+   */
   override def retrieveFile(remote: String, fileBody: OutputStream): Boolean =
     maybeChannelSftp.fold {
       logger.debug(s"SFTPClient Error, channel not initiated in path $remote.")
@@ -227,8 +227,8 @@ class SFTPClient extends FTPClient with StrictLogging {
     } yield (session, channel)
 
   /**
-    * Open a channel with protocol [sftp].
-    */
+   * Open a channel with protocol [sftp].
+   */
   private val createChannel: Session => Try[ChannelSftp] = {
     session =>
       session.openChannel("sftp") match {
@@ -239,8 +239,8 @@ class SFTPClient extends FTPClient with StrictLogging {
   }
 
   /**
-    * Create and open a session in default port 22 or in a specific one using hostname, username and password
-    */
+   * Create and open a session in default port 22 or in a specific one using hostname, username and password
+   */
   private val openSession: (Username, Password) => Try[Session] = {
     (username, password) =>
       for {

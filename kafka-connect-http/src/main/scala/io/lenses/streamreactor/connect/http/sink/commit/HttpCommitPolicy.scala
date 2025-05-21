@@ -23,14 +23,14 @@ import java.time.Clock
 import java.time.Duration
 
 /**
-  * The [[BatchPolicy]] is responsible for determining when
-  * a sink partition (a single file) should be flushed (closed on disk, and moved to be visible).
-  *
-  * By default, it flushes based on configurable conditions such as number of records, file size,
-  * or time since the file was last flushed.
-  *
-  * @param conditions the conditions to evaluate for flushing the partition
-  */
+ * The [[BatchPolicy]] is responsible for determining when
+ * a sink partition (a single file) should be flushed (closed on disk, and moved to be visible).
+ *
+ * By default, it flushes based on configurable conditions such as number of records, file size,
+ * or time since the file was last flushed.
+ *
+ * @param conditions the conditions to evaluate for flushing the partition
+ */
 case class BatchPolicy(logger: Logger, conditions: BatchPolicyCondition*) {
 
   def shouldBatch(context: CommitContext): BatchResult = {

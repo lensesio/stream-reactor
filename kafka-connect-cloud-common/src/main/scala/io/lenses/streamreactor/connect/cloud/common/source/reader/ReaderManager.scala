@@ -32,8 +32,8 @@ import org.apache.kafka.connect.source.SourceRecord
 import scala.util.Try
 
 /**
-  * Given a sourceBucketOptions, manages readers for all of the files
-  */
+ * Given a sourceBucketOptions, manages readers for all of the files
+ */
 class ReaderManager(
   val root:               CloudLocation,
   val path:               CloudLocation,
@@ -108,12 +108,12 @@ class ReaderManager(
   }
 
   /**
-    * The index of -1 means no record. It's an unfortunate state introduced by the readers keeping track of the current
-    * records which is kept for backwards compatibility. If -1 then there are 0 records, and it adds 1 to the index to
-    * get the number of records read.
-    * @param currentRecordIndex the unadjusted index
-    * @return the adjusted index (for logging)
-    */
+   * The index of -1 means no record. It's an unfortunate state introduced by the readers keeping track of the current
+   * records which is kept for backwards compatibility. If -1 then there are 0 records, and it adds 1 to the index to
+   * get the number of records read.
+   * @param currentRecordIndex the unadjusted index
+   * @return the adjusted index (for logging)
+   */
   private def transposeRecordIdxForLog(currentRecordIndex: Long): Long =
     if (currentRecordIndex == -1) 0 else currentRecordIndex + 1
 

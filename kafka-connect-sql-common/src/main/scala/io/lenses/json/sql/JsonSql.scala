@@ -40,9 +40,10 @@ object JsonSql {
         .withIdentifierMaxLength(250)
 
       val withStructure: Boolean = query.trim.toLowerCase().endsWith("withstructure")
-      val sql = if (withStructure) {
-        query.trim.dropRight("withstructure".length)
-      } else query
+      val sql =
+        if (withStructure) {
+          query.trim.dropRight("withstructure".length)
+        } else query
 
       val parser = SqlParser.create(sql, config)
       val select = Try(parser.parseQuery()) match {

@@ -16,9 +16,9 @@
 package io.lenses.streamreactor.connect.cloud.common.formats.bytes
 
 /**
-  * Now that we only read/write the value for a BYTES record, this is little more than a wrapper for a byte array.
-  * @param value the record value byte array
-  */
+ * Now that we only read/write the value for a BYTES record, this is little more than a wrapper for a byte array.
+ * @param value the record value byte array
+ */
 case class BytesOutputRow(
   value: Array[Byte],
 )

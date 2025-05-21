@@ -30,10 +30,10 @@ trait CommitContext {
 }
 
 /**
-  * @param tpo              the [[TopicPartitionOffset]] of the last record written
-  * @param count            the number of records written thus far to the file
-  * @param createdTimestamp the time in milliseconds when the the file was created/accessed first time
-  */
+ * @param tpo              the [[TopicPartitionOffset]] of the last record written
+ * @param count            the number of records written thus far to the file
+ * @param createdTimestamp the time in milliseconds when the the file was created/accessed first time
+ */
 case class CloudCommitContext(
   tpo:                  TopicPartitionOffset,
   count:                Long,

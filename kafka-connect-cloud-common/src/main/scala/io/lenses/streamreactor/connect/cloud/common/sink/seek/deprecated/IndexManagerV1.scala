@@ -28,20 +28,20 @@ import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexManagerErrors
 import io.lenses.streamreactor.connect.cloud.common.storage._
 
 /**
-  * A class that implements the first version of the `IndexManager` for managing offsets
-  * in a cloud storage-backed Kafka Connect SinkTask. This implementation provides methods
-  * to seek offsets, clean up invalid indexes, and handle errors during these operations.
-  *
-  * This is provided to ensure that the sink can access previously stored versions of the
-  * indexing files.  This enables upgrading old versions of the indexing mechanism to the
-  * current version.  This functionality will be removed in the future.
-  *
-  * @param indexFilenames    An instance of `IndexFilenames` used to generate and parse index file names.
-  * @param bucketAndPrefixFn A function that maps a `TopicPartition` to an `Either` containing
-  *                          a `SinkError` or a `CloudLocation`.
-  * @param connectorTaskId   An implicit `ConnectorTaskId` representing the task's unique identifier.
-  * @param storageInterface  An implicit `StorageInterface` for interacting with cloud storage.
-  */
+ * A class that implements the first version of the `IndexManager` for managing offsets
+ * in a cloud storage-backed Kafka Connect SinkTask. This implementation provides methods
+ * to seek offsets, clean up invalid indexes, and handle errors during these operations.
+ *
+ * This is provided to ensure that the sink can access previously stored versions of the
+ * indexing files.  This enables upgrading old versions of the indexing mechanism to the
+ * current version.  This functionality will be removed in the future.
+ *
+ * @param indexFilenames    An instance of `IndexFilenames` used to generate and parse index file names.
+ * @param bucketAndPrefixFn A function that maps a `TopicPartition` to an `Either` containing
+ *                          a `SinkError` or a `CloudLocation`.
+ * @param connectorTaskId   An implicit `ConnectorTaskId` representing the task's unique identifier.
+ * @param storageInterface  An implicit `StorageInterface` for interacting with cloud storage.
+ */
 class IndexManagerV1(
   indexFilenames:    IndexFilenames,
   bucketAndPrefixFn: TopicPartition => Either[SinkError, CloudLocation],
@@ -52,14 +52,14 @@ class IndexManagerV1(
 ) extends LazyLogging {
 
   /**
-    * Seeks the filesystem to find the latest offset for a specific `TopicPartition`.
-    *
-    * This method is used during the initialization of a Kafka Connect SinkTask to find the latest offset for a specific `TopicPartition`.
-    * The result is stored in the `seekedOffsets` map for later use.
-    *
-    * @param topicPartition The `TopicPartition` for which to retrieve the offset.
-    * @return Either a `SinkError` if an error occurred during the operation, or an `Option[TopicPartitionOffset]` containing the seeked offset for the `TopicPartition`.
-    */
+   * Seeks the filesystem to find the latest offset for a specific `TopicPartition`.
+   *
+   * This method is used during the initialization of a Kafka Connect SinkTask to find the latest offset for a specific `TopicPartition`.
+   * The result is stored in the `seekedOffsets` map for later use.
+   *
+   * @param topicPartition The `TopicPartition` for which to retrieve the offset.
+   * @return Either a `SinkError` if an error occurred during the operation, or an `Option[TopicPartitionOffset]` containing the seeked offset for the `TopicPartition`.
+   */
   def seekOffsetsForTopicPartition(
     topicPartition: TopicPartition,
   ): Either[SinkError, Option[TopicPartitionOffset]] = {
@@ -88,13 +88,13 @@ class IndexManagerV1(
   }
 
   /**
-    * Cleans up invalid index files and determines the most recent valid offset for a `TopicPartition`.
-    *
-    * @param topicPartition The `TopicPartition` being processed.
-    * @param bucket         The bucket containing the index files.
-    * @param indexes        A sequence of index file names to process.
-    * @return Either a `NonFatalCloudSinkError` on failure or an `Option[TopicPartitionOffset]` containing the valid offset.
-    */
+   * Cleans up invalid index files and determines the most recent valid offset for a `TopicPartition`.
+   *
+   * @param topicPartition The `TopicPartition` being processed.
+   * @param bucket         The bucket containing the index files.
+   * @param indexes        A sequence of index file names to process.
+   * @return Either a `NonFatalCloudSinkError` on failure or an `Option[TopicPartitionOffset]` containing the valid offset.
+   */
   private def seekAndClean(
     topicPartition: TopicPartition,
     bucket:         String,
@@ -112,11 +112,11 @@ class IndexManagerV1(
   }.leftMap(e => handleSeekAndCleanErrors(e))
 
   /**
-    * Handles errors that occur during the seek and clean process.
-    *
-    * @param uploadError The `UploadError` encountered during the operation.
-    * @return A `NonFatalCloudSinkError` representing the error.
-    */
+   * Handles errors that occur during the seek and clean process.
+   *
+   * @param uploadError The `UploadError` encountered during the operation.
+   * @return A `NonFatalCloudSinkError` representing the error.
+   */
   def handleSeekAndCleanErrors(uploadError: UploadError): NonFatalCloudSinkError =
     uploadError match {
       case err: GeneralFileLoadError =>
@@ -134,12 +134,12 @@ class IndexManagerV1(
     }
 
   /**
-    * Given a bucket and a list of files, attempts to load them to establish the most recent valid index
-    *
-    * @param bucket    the configured bucket
-    * @param indexFiles      List of index files
-    * @return either a FileLoadError or an optional string containing the valid index file of the offset
-    */
+   * Given a bucket and a list of files, attempts to load them to establish the most recent valid index
+   *
+   * @param bucket    the configured bucket
+   * @param indexFiles      List of index files
+   * @return either a FileLoadError or an optional string containing the valid index file of the offset
+   */
   def scanIndexes(
     bucket:     String,
     indexFiles: Seq[String],

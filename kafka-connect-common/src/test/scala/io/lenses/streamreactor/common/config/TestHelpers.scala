@@ -19,9 +19,9 @@ import io.lenses.streamreactor.common.TestUtilsBase
 import org.apache.kafka.common.config.ConfigException
 
 /**
-  * Created by andrew@datamountaineer.com on 23/08/2017.
-  * kafka-connect-common
-  */
+ * Created by andrew@datamountaineer.com on 23/08/2017.
+ * kafka-connect-common
+ */
 class TestHelpers extends TestUtilsBase {
 
   val kcqlConstant: String = "myconnector.kcql"

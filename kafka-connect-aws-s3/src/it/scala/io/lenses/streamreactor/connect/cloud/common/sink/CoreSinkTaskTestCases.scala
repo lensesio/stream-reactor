@@ -205,10 +205,10 @@ abstract class CoreSinkTaskTestCases[
   }
 
   /**
-    * The file sizes of the 3 records above come out as 44,46,44.
-    * We're going to set the threshold to 80 - so once we've written 2 records to a file then the
-    * second file should only contain a single record.  This second file won't have been written yet.
-    */
+   * The file sizes of the 3 records above come out as 44,46,44.
+   * We're going to set the threshold to 80 - so once we've written 2 records to a file then the
+   * second file should only contain a single record.  This second file won't have been written yet.
+   */
   unitUnderTest should "flush on configured file size" in {
 
     val props =
@@ -266,9 +266,9 @@ abstract class CoreSinkTaskTestCases[
   }
 
   /**
-    * The difference in this test is that the sink is opened again, which will cause the offsets to be copied to the
-    * context
-    */
+   * The difference in this test is that the sink is opened again, which will cause the offsets to be copied to the
+   * context
+   */
   unitUnderTest should "put existing offsets to the context" in {
 
     val props = (defaultProps + (
@@ -589,10 +589,10 @@ abstract class CoreSinkTaskTestCases[
   }
 
   /**
-    * As soon as one file is eligible for writing, it will write all those from the same topic partition.  Therefore 4
-    * files are written instead of 2, as there are 2 points at which the write is triggered and the half-full files must
-    * be written as well as those reaching the threshold.
-    */
+   * As soon as one file is eligible for writing, it will write all those from the same topic partition.  Therefore 4
+   * files are written instead of 2, as there are 2 points at which the write is triggered and the half-full files must
+   * be written as well as those reaching the threshold.
+   */
   unitUnderTest should "use custom partitioning scheme and flush after two written records" in {
 
     val task = createSinkTask()
@@ -1131,8 +1131,8 @@ abstract class CoreSinkTaskTestCases[
   }
 
   /**
-    * This should write partition 1 but not partition 0
-    */
+   * This should write partition 1 but not partition 0
+   */
   unitUnderTest should "write multiple partitions independently" in {
 
     val kafkaPartitionedRecords = List(
@@ -1561,8 +1561,8 @@ abstract class CoreSinkTaskTestCases[
   )
 
   /**
-    * This should write partition 1 but not partition 0
-    */
+   * This should write partition 1 but not partition 0
+   */
   unitUnderTest should "partition by nested value fields" in {
 
     val kafkaPartitionedRecords = List(
@@ -1600,8 +1600,8 @@ abstract class CoreSinkTaskTestCases[
   }
 
   /**
-    * This should write partition 1 but not partition 0
-    */
+   * This should write partition 1 but not partition 0
+   */
   unitUnderTest should "partition by nested key fields" in {
 
     val favsSchema: Schema = SchemaBuilder.map(SchemaBuilder.string().build(), SchemaBuilder.string().build())
@@ -1695,8 +1695,8 @@ abstract class CoreSinkTaskTestCases[
   }
 
   /**
-    * This should write partition 1 but not partition 0
-    */
+   * This should write partition 1 but not partition 0
+   */
   unitUnderTest should "partition by nested header fields" in {
 
     val kafkaPartitionedRecords = List(

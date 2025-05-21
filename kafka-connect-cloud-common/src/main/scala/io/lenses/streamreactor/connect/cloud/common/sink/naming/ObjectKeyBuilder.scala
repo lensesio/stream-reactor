@@ -20,18 +20,18 @@ import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
 
 /**
-  * Creates the object key for the cloud storage
-  */
+ * Creates the object key for the cloud storage
+ */
 trait ObjectKeyBuilder {
 
   /**
-    * Builds the key
-    *
-    * @param offset                  the offset of the last record
-    * @param earliestRecordTimestamp the earliest record timestamp
-    * @param latestRecordTimestamp   the latest record timestamp
-    * @return the final file name
-    */
+   * Builds the key
+   *
+   * @param offset                  the offset of the last record
+   * @param earliestRecordTimestamp the earliest record timestamp
+   * @param latestRecordTimestamp   the latest record timestamp
+   * @return the final file name
+   */
   def build(
     offset:                  Offset,
     earliestRecordTimestamp: Long,

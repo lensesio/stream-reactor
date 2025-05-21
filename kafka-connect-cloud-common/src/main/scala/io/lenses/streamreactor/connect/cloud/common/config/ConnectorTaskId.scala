@@ -54,13 +54,15 @@ class ConnectorTaskIdCreator(val connectorPrefix: String) extends TaskIndexKey {
       maxTasks <- taskIndex(1).toIntOption.toRight(
         s"Invalid $TASK_INDEX. Expecting an integer but found:${taskIndex(1)}",
       )
-      _ <- if (maxTasks <= 0) Left(s"Invalid $TASK_INDEX. Expecting a positive integer but found:${taskIndex(1)}")
-      else Right(())
+      _ <-
+        if (maxTasks <= 0) Left(s"Invalid $TASK_INDEX. Expecting a positive integer but found:${taskIndex(1)}")
+        else Right(())
       taskNumber <- taskIndex(0).toIntOption.toRight(
         s"Invalid $TASK_INDEX. Expecting an integer but found:${taskIndex(0)}",
       )
-      _ <- if (taskNumber < 0) Left(s"Invalid $TASK_INDEX. Expecting a positive integer but found:${taskIndex(0)}")
-      else Right(())
+      _ <-
+        if (taskNumber < 0) Left(s"Invalid $TASK_INDEX. Expecting a positive integer but found:${taskIndex(0)}")
+        else Right(())
       maybeTaskName <- props.get("name").filter(_.trim.nonEmpty).toRight("Missing connector name")
     } yield ConnectorTaskId(maybeTaskName, maxTasks, taskNumber)
   }.leftMap(new IllegalArgumentException(_))

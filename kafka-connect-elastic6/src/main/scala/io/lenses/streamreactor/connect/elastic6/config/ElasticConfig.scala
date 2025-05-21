@@ -195,10 +195,10 @@ object ElasticConfig {
 }
 
 /**
-  * <h1>ElasticSinkConfig</h1>
-  *
-  * Holds config, extends AbstractConfig.
-  */
+ * <h1>ElasticSinkConfig</h1>
+ *
+ * Holds config, extends AbstractConfig.
+ */
 case class ElasticConfig(props: Map[String, String])
     extends BaseConfig(ElasticConfigConstants.CONNECTOR_PREFIX, ElasticConfig.config, props)
     with WriteTimeoutSettings

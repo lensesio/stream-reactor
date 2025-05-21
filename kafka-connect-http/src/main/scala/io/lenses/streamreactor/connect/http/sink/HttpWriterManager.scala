@@ -58,20 +58,20 @@ import scala.concurrent.duration.DurationInt
 import scala.concurrent.duration.FiniteDuration
 
 /**
-  * The `HttpWriterManager` object provides a factory method to create an instance of `HttpWriterManager`.
-  */
+ * The `HttpWriterManager` object provides a factory method to create an instance of `HttpWriterManager`.
+ */
 object HttpWriterManager extends StrictLogging {
 
   /**
-    * Creates an instance of `HttpWriterManager`.
-    *
-    * @param sinkName The name of the sink.
-    * @param config The HTTP sink configuration.
-    * @param template The template type.
-    * @param terminate A deferred value to signal termination.
-    * @param t An implicit `Temporal` instance.
-    * @return An `IO` action that creates an `HttpWriterManager`.
-    */
+   * Creates an instance of `HttpWriterManager`.
+   *
+   * @param sinkName The name of the sink.
+   * @param config The HTTP sink configuration.
+   * @param template The template type.
+   * @param terminate A deferred value to signal termination.
+   * @param t An implicit `Temporal` instance.
+   * @return An `IO` action that creates an `HttpWriterManager`.
+   */
   def apply(
     sinkName:  String,
     config:    HttpSinkConfig,
@@ -155,13 +155,13 @@ object HttpWriterManager extends StrictLogging {
   }
 
   /**
-    * Determines if the result is an error or contains a retriable status code.
-    *
-    * @param result The result to check.
-    * @param statusCodes The set of retriable status codes.
-    * @tparam F The effect type.
-    * @return `true` if the result is an error or contains a retriable status code, `false` otherwise.
-    */
+   * Determines if the result is an error or contains a retriable status code.
+   *
+   * @param result The result to check.
+   * @param statusCodes The set of retriable status codes.
+   * @tparam F The effect type.
+   * @return `true` if the result is an error or contains a retriable status code, `false` otherwise.
+   */
   def isErrorOrRetriableStatus[F[_]](result: Either[Throwable, Response[F]], statusCodes: Set[Int]): Boolean =
     result match {
       case Right(resp)                     => statusCodes(resp.status.code)
@@ -171,22 +171,22 @@ object HttpWriterManager extends StrictLogging {
 }
 
 /**
-  * The `HttpWriterManager` class manages HTTP writers and handles the logic for processing and committing records.
-  *
-  * @param sinkName The name of the sink.
-  * @param template The template type.
-  * @param httpRequestSender The HTTP request sender.
-  * @param commitPolicy The commit policy.
-  * @param close An `IO` action to close the manager.
-  * @param writersRef A reference to the map of HTTP writers.
-  * @param deferred A deferred value to signal termination.
-  * @param errorThreshold The error threshold.
-  * @param uploadSyncPeriod The upload synchronization period.
-  * @param tidyJson Whether to tidy JSON.
-  * @param errorReportingController The error reporting controller.
-  * @param successReportingController The success reporting controller.
-  * @param t An implicit `Temporal` instance.
-  */
+ * The `HttpWriterManager` class manages HTTP writers and handles the logic for processing and committing records.
+ *
+ * @param sinkName The name of the sink.
+ * @param template The template type.
+ * @param httpRequestSender The HTTP request sender.
+ * @param commitPolicy The commit policy.
+ * @param close An `IO` action to close the manager.
+ * @param writersRef A reference to the map of HTTP writers.
+ * @param deferred A deferred value to signal termination.
+ * @param errorThreshold The error threshold.
+ * @param uploadSyncPeriod The upload synchronization period.
+ * @param tidyJson Whether to tidy JSON.
+ * @param errorReportingController The error reporting controller.
+ * @param successReportingController The success reporting controller.
+ * @param t An implicit `Temporal` instance.
+ */
 class HttpWriterManager(
   sinkName:                   String,
   template:                   TemplateType,
@@ -208,10 +208,10 @@ class HttpWriterManager(
 ) extends LazyLogging {
 
   /**
-    * Creates a new HTTP writer.
-    *
-    * @return An `IO` action that creates a new `HttpWriter`.
-    */
+   * Creates a new HTTP writer.
+   *
+   * @return An `IO` action that creates a new `HttpWriter`.
+   */
   private def createNewHttpWriter(): IO[HttpWriter] =
     for {
       recordsQueueRef  <- Ref.of[IO, Queue[RenderedRecord]](Queue.empty)
@@ -237,19 +237,19 @@ class HttpWriterManager(
     )
 
   /**
-    * Closes the reporting controllers.
-    */
+   * Closes the reporting controllers.
+   */
   def closeReportingControllers(): Unit = {
     errorReportingController.close()
     successReportingController.close()
   }
 
   /**
-    * Gets or creates an HTTP writer for the given topic.
-    *
-    * @param topic The topic for which to get or create the writer.
-    * @return An `IO` action that returns the `HttpWriter`.
-    */
+   * Gets or creates an HTTP writer for the given topic.
+   *
+   * @param topic The topic for which to get or create the writer.
+   * @return An `IO` action that returns the `HttpWriter`.
+   */
   def getWriter(topic: Topic): IO[HttpWriter] =
     writersRef.access.flatMap {
       case (currentValue, updater) =>
@@ -263,12 +263,12 @@ class HttpWriterManager(
     }
 
   /**
-    * Pre-commits the current offsets.
-    * (answers the question: what have you committed?)
-    *
-    * @param currentOffsets The current offsets.
-    * @return An `IO` action that returns the pre-committed offsets.
-    */
+   * Pre-commits the current offsets.
+   * (answers the question: what have you committed?)
+   *
+   * @param currentOffsets The current offsets.
+   * @return An `IO` action that returns the pre-committed offsets.
+   */
   def preCommit(currentOffsets: Map[TopicPartition, OffsetAndMetadata]): IO[Map[TopicPartition, OffsetAndMetadata]] = {
 
     val currentOffsetsGroupedIO: IO[Map[Topic, Map[TopicPartition, OffsetAndMetadata]]] = IO
@@ -289,11 +289,11 @@ class HttpWriterManager(
   }
 
   /**
-    * Starts the `HttpWriterManager`.
-    *
-    * @param errCallback The error callback.
-    * @return An `IO` action that starts the manager.
-    */
+   * Starts the `HttpWriterManager`.
+   *
+   * @param errCallback The error callback.
+   * @return An `IO` action that starts the manager.
+   */
   def start(errCallback: Throwable => IO[Unit]): IO[Unit] = {
     import scala.concurrent.duration._
     for {
@@ -312,12 +312,12 @@ class HttpWriterManager(
   }
 
   /**
-    * Handles the result of the writer processes.
-    *
-    * @param writersResult The result of the writer processes.
-    * @param errCallback The error callback.
-    * @return An `IO` action that handles the result.
-    */
+   * Handles the result of the writer processes.
+   *
+   * @param writersResult The result of the writer processes.
+   * @param errCallback The error callback.
+   * @return An `IO` action that handles the result.
+   */
   private def handleResult(
     writersResult: List[Either[Throwable, _]],
     errCallback:   Throwable => IO[Unit],
@@ -326,20 +326,21 @@ class HttpWriterManager(
       failures <- IO(writersResult.collect {
         case Left(error: Throwable) => error
       })
-      _ <- if (failures.nonEmpty) {
-        logger.error(s"[$sinkName] Some writer processes failed: $failures")
-        failures.traverse(errCallback)
-      } else {
-        logger.debug(s"[$sinkName] All writer processes completed successfully")
-        IO.unit
-      }
+      _ <-
+        if (failures.nonEmpty) {
+          logger.error(s"[$sinkName] Some writer processes failed: $failures")
+          failures.traverse(errCallback)
+        } else {
+          logger.debug(s"[$sinkName] All writer processes completed successfully")
+          IO.unit
+        }
     } yield ()
 
   /**
-    * Processes the writers.
-    *
-    * @return An `IO` action that processes the writers.
-    */
+   * Processes the writers.
+   *
+   * @return An `IO` action that processes the writers.
+   */
   private def process(): IO[List[Either[Throwable, Unit]]] =
     for {
       // Log the start of the processing

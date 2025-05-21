@@ -246,10 +246,10 @@ class DatalakeStorageInterface(connectorTaskId: ConnectorTaskId, client: DataLak
   } yield ()
 
   /**
-    * Gets the system name for use in log messages.
-    *
-    * @return
-    */
+   * Gets the system name for use in log messages.
+   *
+   * @return
+   */
   override def system(): String = "Azure Datalake"
 
   override def mvFile(

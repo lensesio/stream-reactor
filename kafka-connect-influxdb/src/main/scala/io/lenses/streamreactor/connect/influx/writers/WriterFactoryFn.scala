@@ -19,16 +19,16 @@ import io.lenses.streamreactor.connect.influx.config.InfluxSettings
 import com.typesafe.scalalogging.StrictLogging
 
 /**
-  * Provides the logic for instantiating the appropriate InfluxDb writer
-  */
+ * Provides the logic for instantiating the appropriate InfluxDb writer
+ */
 object WriterFactoryFn extends StrictLogging {
 
   /**
-    * Creates the InfluxDb writer which corresponds to the given settings
-    *
-    * @param settings InfluxSetting for the writer
-    * @return
-    */
+   * Creates the InfluxDb writer which corresponds to the given settings
+   *
+   * @param settings InfluxSetting for the writer
+   * @return
+   */
   def apply(settings: InfluxSettings): InfluxDbWriter = new InfluxDbWriter(settings)
 
 }

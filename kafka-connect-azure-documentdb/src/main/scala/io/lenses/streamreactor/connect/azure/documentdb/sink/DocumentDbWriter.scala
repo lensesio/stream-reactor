@@ -34,10 +34,10 @@ import scala.annotation.nowarn
 import scala.util.Failure
 
 /**
-  * <h1>DocumentDbWriter</h1>
-  * Azure DocumentDb Json writer for Kafka connect
-  * Writes a list of Kafka connect sink records to Azure DocumentDb using the JSON support.
-  */
+ * <h1>DocumentDbWriter</h1>
+ * Azure DocumentDb Json writer for Kafka connect
+ * Writes a list of Kafka connect sink records to Azure DocumentDb using the JSON support.
+ */
 @nowarn
 class DocumentDbWriter(configMap: Map[String, Kcql], settings: DocumentDbSinkSettings, documentClient: DocumentClient)
     extends StrictLogging
@@ -50,21 +50,21 @@ class DocumentDbWriter(configMap: Map[String, Kcql], settings: DocumentDbSinkSet
   requestOptionsInsert.setConsistencyLevel(settings.consistency)
 
   /**
-    * Write SinkRecords to Azure Document Db.
-    *
-    * @param records A list of SinkRecords from Kafka Connect to write.
-    */
+   * Write SinkRecords to Azure Document Db.
+   *
+   * @param records A list of SinkRecords from Kafka Connect to write.
+   */
   def write(records: Seq[SinkRecord]): Unit =
     if (records.nonEmpty) {
       val _ = insert(records)
     }
 
   /**
-    * Write SinkRecords to Azure Document Db
-    *
-    * @param records A list of SinkRecords from Kafka Connect to write.
-    * @return boolean indication successful write.
-    */
+   * Write SinkRecords to Azure Document Db
+   *
+   * @param records A list of SinkRecords from Kafka Connect to write.
+   * @return boolean indication successful write.
+   */
   private def insert(records: Seq[SinkRecord]) =
     try {
       records.foreach { record =>
