@@ -38,10 +38,12 @@ jobs:
   build:
     needs:
       - validate-tag
-    uses: ./.github/workflows/build.yml
-    with:
-      version: ${{ needs.validate-tag.outputs.tag }}
-    secrets: inherit
+    steps:
+      - name: Build assembly
+        env:
+          JVM_OPTS: -Xmx3200m
+          VERSION: ${{ steps.version.outputs.version }}
+        run: sbt "project ${{ matrix.module }};set assembly / test := {}" assembly
 
   antivirus-scan-initialization:
     timeout-minutes: 15
@@ -134,14 +136,6 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
           cache: 'sbt'
-
-      - name: Uncache assembly
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            ~/**/target/libs/*.jar
-          key: assembly-${{ matrix.module }}-${{ github.run_id }}
-          fail-on-cache-miss: true
 
       - name: Generate SBOM
         uses: anchore/sbom-action@v0
