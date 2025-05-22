@@ -62,7 +62,7 @@ object Settings extends Dependencies {
   val currentYear = Year.now().getValue()
 
   object ScalacFlags {
-    val availableProcessors: String = java.lang.Runtime.getRuntime.availableProcessors.toString
+    val availableProcessors: String = Math.min(java.lang.Runtime.getRuntime.availableProcessors, 16).toString
 
     val commonOptions = Seq(
       // standard settings
