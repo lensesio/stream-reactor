@@ -93,7 +93,7 @@ object Dependencies {
     val woodstoxVersion     = "7.1.0"
     val jacksonVersion      = "2.19.1"
     val json4sVersion       = "4.0.7"
-    val mockitoScalaVersion = "1.17.45"
+    val mockitoScalaVersion = "2.0.0"
     val mockitoJavaVersion  = "5.2.0"
     val openCsvVersion      = "5.11.1"
     val jsonSmartVersion    = "2.5.2"
