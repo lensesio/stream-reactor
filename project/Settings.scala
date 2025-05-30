@@ -45,8 +45,8 @@ import scala.util.Try
 object Settings extends Dependencies {
 
   // keep the SNAPSHOT version numerically higher than the latest release.
-  val majorVersion        = "8.0"
-  val nextSnapshotVersion = "8.1"
+  val majorVersion        = "9.0"
+  val nextSnapshotVersion = "9.1"
 
   val artifactVersion: String = {
     val maybeGithubRunId = sys.env.get("github_run_id")
