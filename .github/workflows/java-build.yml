@@ -89,10 +89,24 @@ jobs:
         with:
           gradle-version: 8.6
 
+      - name: Get version
+        id: version
+        shell: bash
+        run: |
+          if [ "${{ inputs.version }}" != "" ]; then
+            echo "version=${{ inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "version=$(git describe --tags --always)" >> $GITHUB_OUTPUT
+          fi
+
       - name: Execute Gradle build fat jar
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
         run: cd 'java-connectors' && ./gradlew ${{ matrix.module }}:shadowJar
 
       - name: Execute Gradle build
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
         run: cd 'java-connectors' && ./gradlew ${{ matrix.module }}:collectArtifacts
 
       - name: Move to release folder

@@ -19,15 +19,12 @@ import cats.implicits.catsSyntaxEitherId
 import io.lenses.streamreactor.connect.cloud.common.config.DataStorageSettings
 import io.lenses.streamreactor.connect.cloud.common.formats.writer._
 import io.lenses.streamreactor.connect.cloud.common.model.Topic
-import io.lenses.streamreactor.connect.cloud.common.sink.conversion.ArraySinkData
-import io.lenses.streamreactor.connect.cloud.common.sink.conversion.ByteArraySinkData
-import io.lenses.streamreactor.connect.cloud.common.sink.conversion.MapSinkData
-import io.lenses.streamreactor.connect.cloud.common.sink.conversion.NullSinkData
-import io.lenses.streamreactor.connect.cloud.common.sink.conversion.PrimitiveSinkData
-import io.lenses.streamreactor.connect.cloud.common.sink.conversion.SinkData
-import io.lenses.streamreactor.connect.cloud.common.sink.conversion.StructSinkData
+import io.lenses.streamreactor.connect.cloud.common.sink.conversion._
 import org.apache.kafka.connect.data._
 
+import java.time.temporal.ChronoUnit
+import java.time.LocalDate
+import java.time.ZoneId
 import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.jdk.CollectionConverters.MapHasAsScala
@@ -130,7 +127,11 @@ object SchemalessEnvelopeTransformer {
       case ByteArraySinkData(array, _) => array
       case primitive: PrimitiveSinkData => primitive.value
       case _:         NullSinkData      => null
-      case other => throw new IllegalArgumentException(s"Unknown SinkData type, ${other.getClass.getSimpleName}")
+      case DateSinkData(date) =>
+        ChronoUnit.DAYS.between(LocalDate.ofEpochDay(0), LocalDate.ofInstant(date.toInstant, ZoneId.systemDefault()))
+      case TimestampSinkData(date) => date.getTime
+      case TimeSinkData(date)      => date.toInstant.toEpochMilli
+      case other                   => throw new IllegalArgumentException(s"Unknown SinkData type, ${other.getClass.getSimpleName}")
     }
 
   private def convertStruct(struct: Struct): java.util.Map[String, Any] = {
