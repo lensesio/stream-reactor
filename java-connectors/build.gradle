@@ -8,8 +8,19 @@ plugins {
 allprojects {
 
     group = "io.lenses.streamreactor"
-    version = "8.2.0-SNAPSHOT"
     description = "stream-reactor"
+
+    def majorVersion = "9.0"
+    def nextSnapshotVersion = "9.1"
+
+    def githubRunId = System.getenv("GITHUB_RUN_ID")
+    def versionEnv = System.getenv("VERSION")
+    def snapshotTag = System.getenv("SNAPSHOT_TAG")
+
+    version = (versionEnv && !versionEnv.isEmpty()) ? versionEnv :
+            (githubRunId && !githubRunId.isEmpty()) ? "${majorVersion}.${githubRunId}" :
+            (snapshotTag && !snapshotTag.isEmpty()) ? "${nextSnapshotVersion}-${snapshotTag}-SNAPSHOT" :
+            "${nextSnapshotVersion}-SNAPSHOT"
 
     apply plugin: 'java'
     apply plugin: 'java-library'
