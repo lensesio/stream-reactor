@@ -41,8 +41,8 @@ object Dependencies {
     val scalaCheckVersion              = "1.18.1"
     val javaFakerVersion               = "1.0.2"
 
-    val mockitoJunitJupiterVersion = "5.17.0"
-    val junitJupiterVersion        = "5.11.4"
+    val mockitoJunitJupiterVersion = "5.18.0"
+    val junitJupiterVersion        = "5.12.2"
     val assertjCoreVersion         = "3.27.3"
 
     val cyclopsVersion = "10.4.1"
@@ -82,18 +82,18 @@ object Dependencies {
     val calciteVersion = "1.34.0"
     val awsSdkVersion  = "2.29.52"
 
-    val azureDataLakeVersion              = "12.22.1"
+    val azureDataLakeVersion              = "12.23.0"
     val azureIdentityVersion              = "1.16.1"
     val azureCoreVersion                  = "1.55.3"
     val msal4jVersion                     = "1.20.1"
     val msal4jPersistenceExtensionVersion = "1.3.0"
     val gcpCloudVersion                   = "2.56.0"
-    val gcpCloudStorageVersion            = "2.44.1"
+    val gcpCloudStorageVersion            = "2.52.3"
 
     val woodstoxVersion     = "7.1.0"
     val jacksonVersion      = "2.19.0"
     val json4sVersion       = "4.0.7"
-    val mockitoScalaVersion = "1.17.44"
+    val mockitoScalaVersion = "1.17.45"
     val mockitoJavaVersion  = "5.2.0"
     val openCsvVersion      = "5.11"
     val jsonSmartVersion    = "2.5.2"
@@ -111,17 +111,17 @@ object Dependencies {
     val testcontainersScalaVersion = "0.41.4"
     val testcontainersVersion      = "1.20.1"
 
-    val influxVersion = "7.2.0"
+    val influxVersion = "7.3.0"
 
     val jmsApiVersion         = "3.1.0"
     val activeMqVersion       = "6.1.6"
     val protocVersion         = "3.11.4"
-    val googleProtobufVersion = "3.25.7"
+    val googleProtobufVersion = "3.25.8"
 
     val mqttVersion = "1.2.5"
 
     val commonsNetVersion      = "3.11.1"
-    val commonsCodecVersion    = "1.17.2"
+    val commonsCodecVersion    = "1.18.0"
     val commonsCompressVersion = "1.27.1"
     val commonsConfigVersion   = "2.12.0"
     val commonsIOVersion       = "2.19.0"
@@ -140,12 +140,12 @@ object Dependencies {
     val gsonVersion  = "2.13.1"
 
     val classGraphVersion    = "4.8.179"
-    val nimbusJoseJwtVersion = "9.48"
+    val nimbusJoseJwtVersion = "10.3"
     val hadoopVersion        = "3.4.1"
     //val hadoopShadedProtobufVersion = "1.2.0"
 
     val airCompressorVersion = "2.0.2"
-    val zstdVersion          = "1.5.6-10"
+    val zstdVersion          = "1.5.7-3"
 
     trait ElasticVersions {
       val elastic4sVersion, elasticSearchVersion, jnaVersion: String
