@@ -23,13 +23,13 @@ import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.jdk.CollectionConverters.MapHasAsScala
 
 /**
-  * Using `SELECT .. FROM .. PK .. STOREAS GeoAdd` we can insert a record form topic into Redis with GEOADD command
-  *
-  * The `longitudeField` and `latitudeField` can:
-  * 1. Be explicitly defined STOREAS GeoAdd (longitudeField=lng,latitudeField=lat)
-  * 2. If not, try to use the field `longitude` and `latitude` (if it exists)
-  * 3. If not does not exist record will be skipped
-  */
+ * Using `SELECT .. FROM .. PK .. STOREAS GeoAdd` we can insert a record form topic into Redis with GEOADD command
+ *
+ * The `longitudeField` and `latitudeField` can:
+ * 1. Be explicitly defined STOREAS GeoAdd (longitudeField=lng,latitudeField=lat)
+ * 2. If not, try to use the field `longitude` and `latitude` (if it exists)
+ * 3. If not does not exist record will be skipped
+ */
 
 class ConfigGeoAddTest extends AnyWordSpec with Matchers with RedisMockSupport {
 

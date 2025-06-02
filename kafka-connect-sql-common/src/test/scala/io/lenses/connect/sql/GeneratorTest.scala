@@ -25,8 +25,8 @@ import java.util.Date
 import scala.util.Random
 
 /**
-  * Created by stefan on 17/04/2017.
-  */
+ * Created by stefan on 17/04/2017.
+ */
 class GeneratorTest extends AnyWordSpec with Matchers {
   "Generator" should {
     "generate schema" in {

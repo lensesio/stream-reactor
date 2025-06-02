@@ -15,6 +15,7 @@
  */
 package io.lenses.streamreactor.connect.cloud.common.sink.writer
 
+import cats.data.NonEmptyList
 import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
 import io.confluent.connect.avro.AvroData
@@ -24,35 +25,42 @@ import io.lenses.streamreactor.connect.cloud.common.formats.writer.MessageDetail
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.schema.SchemaChangeDetector
 import io.lenses.streamreactor.connect.cloud.common.model.Offset
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
-import io.lenses.streamreactor.connect.cloud.common.model.UploadableFile
 import io.lenses.streamreactor.connect.cloud.common.sink.FatalCloudSinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.NonFatalCloudSinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.CloudCommitContext
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.CommitPolicy
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.ObjectKeyBuilder
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.CopyOperation
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.DeleteOperation
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.FileOperation
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexManager
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.PendingOperationsProcessors
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.PendingState
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.UploadOperation
 import io.lenses.streamreactor.connect.cloud.common.storage._
 import org.apache.kafka.connect.data.Schema
 
 import java.io.File
+import java.util.UUID
 import scala.math.Ordered.orderingToOrdered
 import scala.util.Try
 
 class Writer[SM <: FileMetadata](
-  topicPartition:       TopicPartition,
-  commitPolicy:         CommitPolicy,
-  writerIndexer:        WriterIndexer[SM],
-  stagingFilenameFn:    () => Either[SinkError, File],
-  objectKeyBuilder:     ObjectKeyBuilder,
-  formatWriterFn:       File => Either[SinkError, FormatWriter],
-  schemaChangeDetector: SchemaChangeDetector,
+  topicPartition:              TopicPartition,
+  commitPolicy:                CommitPolicy,
+  indexManager:                IndexManager,
+  stagingFilenameFn:           () => Either[SinkError, File],
+  objectKeyBuilder:            ObjectKeyBuilder,
+  formatWriterFn:              File => Either[SinkError, FormatWriter],
+  schemaChangeDetector:        SchemaChangeDetector,
+  pendingOperationsProcessors: PendingOperationsProcessors,
 )(
   implicit
-  connectorTaskId:  ConnectorTaskId,
-  storageInterface: StorageInterface[SM],
+  connectorTaskId: ConnectorTaskId,
 ) extends LazyLogging {
 
-  private val lastSeekedOffset: Option[Offset] = writerIndexer.getSeekedOffsetForTopicPartition(topicPartition)
+  private val lastSeekedOffset: Option[Offset] = indexManager.getSeekedOffsetForTopicPartition(topicPartition)
 
   var writeState: WriteState = NoWriter(CommitState(topicPartition, lastSeekedOffset))
 
@@ -90,11 +98,8 @@ class Writer[SM <: FileMetadata](
         val writingStateEither = for {
           file         <- stagingFilenameFn()
           formatWriter <- formatWriterFn(file)
-          writingState <- noWriter.toWriting(formatWriter,
-                                             file,
-                                             messageDetail.offset,
-                                             messageDetail.epochTimestamp,
-          ).asRight
+          writingState <-
+            noWriter.toWriting(formatWriter, file, messageDetail.offset, messageDetail.epochTimestamp).asRight
         } yield writingState
         writingStateEither.flatMap { writingState =>
           writeState = writingState
@@ -131,22 +136,24 @@ class Writer[SM <: FileMetadata](
                                    latestRecordTimestamp,
           ) =>
         for {
-          key  <- objectKeyBuilder.build(uncommittedOffset, earliestRecordTimestamp, latestRecordTimestamp)
-          path <- key.path.toRight(NonFatalCloudSinkError("No path exists within cloud location"))
-          maybeIndexFileName: Option[String] <- writerIndexer.writeIndex(topicPartition,
-                                                                         key.bucket,
-                                                                         uncommittedOffset,
-                                                                         path,
+          key         <- objectKeyBuilder.build(uncommittedOffset, earliestRecordTimestamp, latestRecordTimestamp)
+          path        <- key.path.toRight(NonFatalCloudSinkError("No path exists within cloud location"))
+          tempFileUuid = UUID.randomUUID().toString
+          tempFileName = path.prependedAll(
+            s".temp-upload/${topicPartition.topic}/${topicPartition.partition}/$tempFileUuid",
           )
-          _ <- storageInterface.uploadFile(UploadableFile(file), key.bucket, path)
-            .recover {
-              case _: NonExistingFileError => ()
-              case _: ZeroByteFileError    => ()
-            }
-            .leftMap {
-              case UploadFailedError(exception, _) => NonFatalCloudSinkError(exception.getMessage, exception.some)
-            }
-          _ <- writerIndexer.cleanIndex(topicPartition, key, maybeIndexFileName)
+          pendingOperations = NonEmptyList.of[FileOperation](
+            UploadOperation(key.bucket, file, tempFileName),
+            CopyOperation(key.bucket, tempFileName, path, "placeholder"),
+            DeleteOperation(key.bucket, tempFileName, "placeholder"),
+          )
+
+          _ <- pendingOperationsProcessors.processPendingOperations(
+            topicPartition,
+            getCommittedOffset,
+            PendingState(uncommittedOffset, pendingOperations),
+            indexManager.update,
+          )
           stateReset <- Try {
             logger.debug(s"[{}] Writer.resetState: Resetting state $writeState", connectorTaskId.show)
             writeState = uploadState.toNoWriter
@@ -191,13 +198,13 @@ class Writer[SM <: FileMetadata](
     }
 
   /**
-    * If the offsets provided by Kafka Connect have already been processed, then they must be skipped to avoid duplicate records and protect the integrity of the data files.
-    *
-    * @param currentOffset the current offset
-    * @return true if the given offset should be skipped, false otherwise
-    */
+   * If the offsets provided by Kafka Connect have already been processed, then they must be skipped to avoid duplicate records and protect the integrity of the data files.
+   *
+   * @param currentOffset the current offset
+   * @return true if the given offset should be skipped, false otherwise
+   */
   def shouldSkip(currentOffset: Offset): Boolean =
-    if (!writerIndexer.indexingEnabled()) false
+    if (!indexManager.indexingEnabled) false
     else {
 
       def largestOffset(maybeCommittedOffset: Option[Offset], uncommittedOffset: Offset): Offset = {
@@ -218,13 +225,14 @@ class Writer[SM <: FileMetadata](
           )
         }
 
-        val shouldSkip = if (latestOffset.isEmpty) {
-          false
-        } else if (latestOffset.exists(_ >= currentOffset)) {
-          true
-        } else {
-          false
-        }
+        val shouldSkip =
+          if (latestOffset.isEmpty) {
+            false
+          } else if (latestOffset.exists(_ >= currentOffset)) {
+            true
+          } else {
+            false
+          }
         logSkipOutcome(currentOffset, latestOffset, skipRecord = shouldSkip)
         shouldSkip
       }

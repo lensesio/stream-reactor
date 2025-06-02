@@ -27,9 +27,9 @@ import org.apache.kafka.connect.data._
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 
 /**
-  * Creates an envelope for the message detail. It is expected the Key and/or Value, if used to have a Connect schema attached.
-  * @param settings The settings for the data storage for the topic
-  */
+ * Creates an envelope for the message detail. It is expected the Key and/or Value, if used to have a Connect schema attached.
+ * @param settings The settings for the data storage for the topic
+ */
 case class EnvelopeWithSchemaTransformer(topic: Topic, settings: DataStorageSettings) extends Transformer {
   def transform(message: MessageDetail): Either[RuntimeException, MessageDetail] =
     if (message.topic != topic && topic != Topic.All) {
@@ -55,28 +55,28 @@ object EnvelopeWithSchemaTransformer {
     .build()
 
   /**
-    * Creates an envelope schema for the message detail. This is a schema that contains the key, value and headers and metadata.
-    * Key and Value schema is set optional to handle null data (i.e. deletes as tombstones)
-    * {{{
-    *   {
-    *     "key": ...,
-    *     "value": ...,
-    *     "headers": {
-    *       "header1": "value1",
-    *       "header2": "value2"
-    *     },
-    *     "metadata": {
-    *       "timestamp": 123456789,
-    *       "topic": "topic1",
-    *       "partition": 0,
-    *       "offset": 1
-    *
-    *     }
-    *   }
-    * }}}
-    *
-    * @return
-    */
+   * Creates an envelope schema for the message detail. This is a schema that contains the key, value and headers and metadata.
+   * Key and Value schema is set optional to handle null data (i.e. deletes as tombstones)
+   * {{{
+   *   {
+   *     "key": ...,
+   *     "value": ...,
+   *     "headers": {
+   *       "header1": "value1",
+   *       "header2": "value2"
+   *     },
+   *     "metadata": {
+   *       "timestamp": 123456789,
+   *       "topic": "topic1",
+   *       "partition": 0,
+   *       "offset": 1
+   *
+   *     }
+   *   }
+   * }}}
+   *
+   * @return
+   */
   private def envelope(message: MessageDetail, settings: DataStorageSettings): MessageDetail = {
     val schema = envelopeSchema(message, settings)
 
@@ -98,11 +98,11 @@ object EnvelopeWithSchemaTransformer {
   }
 
   /**
-    * Converts a SinkData to an optional value. This is used to handle tombstones and null key entries.
-    * Since the envelope Key and Value are optional, Connect framework does not allow setting a Struct field when the schema is optional
-    * @param value The value to convert
-    * @return The value as an optional
-    */
+   * Converts a SinkData to an optional value. This is used to handle tombstones and null key entries.
+   * Since the envelope Key and Value are optional, Connect framework does not allow setting a Struct field when the schema is optional
+   * @param value The value to convert
+   * @return The value as an optional
+   */
   def toOptionalConnectData(value: SinkData): Any =
     value match {
       case StructSinkData(value) if !value.schema().isOptional =>
@@ -172,10 +172,10 @@ object EnvelopeWithSchemaTransformer {
   }
 
   /**
-    * Converts a schema to optional if it is not already optional without creating a wrapper around it
-    * @param schema The schema to convert
-    * @return The schema as optional
-    */
+   * Converts a schema to optional if it is not already optional without creating a wrapper around it
+   * @param schema The schema to convert
+   * @return The schema as optional
+   */
   def toOptional(schema: Schema): Schema =
     if (schema.isOptional) schema
     else {

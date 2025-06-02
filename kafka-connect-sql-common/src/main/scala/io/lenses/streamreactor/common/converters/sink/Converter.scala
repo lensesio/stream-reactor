@@ -18,8 +18,8 @@ package io.lenses.streamreactor.common.converters.sink
 import org.apache.kafka.connect.sink.SinkRecord
 
 /**
-  * Provides the interface for converting a Connect sink payload (JMS, MQTT, etc) to a SinkRecord
-  */
+ * Provides the interface for converting a Connect sink payload (JMS, MQTT, etc) to a SinkRecord
+ */
 trait Converter {
   def initialize(map: Map[String, String]): Unit = {}
 

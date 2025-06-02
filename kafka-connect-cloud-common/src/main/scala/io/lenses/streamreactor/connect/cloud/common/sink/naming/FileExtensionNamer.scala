@@ -22,10 +22,10 @@ import io.lenses.streamreactor.connect.cloud.common.config.JsonFormatSelection
 object FileExtensionNamer {
 
   /**
-    * Reconciles the file extensions set in the given format & codec.
-    *
-    * @note Avro or Parquet do not change filenames when compressed; guards for JSON only.
-    */
+   * Reconciles the file extensions set in the given format & codec.
+   *
+   * @note Avro or Parquet do not change filenames when compressed; guards for JSON only.
+   */
   def fileExtension(codec: CompressionCodec, formatSelection: FormatSelection): String = {
     if (formatSelection != JsonFormatSelection)
       return formatSelection.extension

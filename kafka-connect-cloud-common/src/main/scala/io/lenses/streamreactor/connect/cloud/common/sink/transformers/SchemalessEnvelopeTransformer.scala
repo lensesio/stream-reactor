@@ -19,24 +19,21 @@ import cats.implicits.catsSyntaxEitherId
 import io.lenses.streamreactor.connect.cloud.common.config.DataStorageSettings
 import io.lenses.streamreactor.connect.cloud.common.formats.writer._
 import io.lenses.streamreactor.connect.cloud.common.model.Topic
-import io.lenses.streamreactor.connect.cloud.common.sink.conversion.ArraySinkData
-import io.lenses.streamreactor.connect.cloud.common.sink.conversion.ByteArraySinkData
-import io.lenses.streamreactor.connect.cloud.common.sink.conversion.MapSinkData
-import io.lenses.streamreactor.connect.cloud.common.sink.conversion.NullSinkData
-import io.lenses.streamreactor.connect.cloud.common.sink.conversion.PrimitiveSinkData
-import io.lenses.streamreactor.connect.cloud.common.sink.conversion.SinkData
-import io.lenses.streamreactor.connect.cloud.common.sink.conversion.StructSinkData
+import io.lenses.streamreactor.connect.cloud.common.sink.conversion._
 import org.apache.kafka.connect.data._
 
+import java.time.temporal.ChronoUnit
+import java.time.LocalDate
+import java.time.ZoneId
 import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.jdk.CollectionConverters.MapHasAsScala
 import scala.jdk.CollectionConverters.SeqHasAsJava
 
 /**
-  * Creates an envelope for the message detail. It is expected the Key and/or Value, if used to have a Connect schema attached.
-  * @param settings The settings for the data storage for the topic
-  */
+ * Creates an envelope for the message detail. It is expected the Key and/or Value, if used to have a Connect schema attached.
+ * @param settings The settings for the data storage for the topic
+ */
 case class SchemalessEnvelopeTransformer(topic: Topic, settings: DataStorageSettings) extends Transformer {
   def transform(message: MessageDetail): Either[RuntimeException, MessageDetail] =
     if (message.topic != topic && topic != Topic.All) {
@@ -56,28 +53,28 @@ case class SchemalessEnvelopeTransformer(topic: Topic, settings: DataStorageSett
 object SchemalessEnvelopeTransformer {
 
   /**
-    * Creates an envelope schema for the message detail. This is a schema that contains the key, value and headers and metadata.
-    * Key and Value schema is set optional to handle null data (i.e. deletes as tombstones)
-    * {{{
-    *   {
-    *     "key": ...,
-    *     "value": ...,
-    *     "headers": {
-    *       "header1": "value1",
-    *       "header2": "value2"
-    *     },
-    *     "metadata": {
-    *       "timestamp": 123456789,
-    *       "topic": "topic1",
-    *       "partition": 0,
-    *       "offset": 1
-    *
-    *     }
-    *   }
-    * }}}
-    *
-    * @return
-    */
+   * Creates an envelope schema for the message detail. This is a schema that contains the key, value and headers and metadata.
+   * Key and Value schema is set optional to handle null data (i.e. deletes as tombstones)
+   * {{{
+   *   {
+   *     "key": ...,
+   *     "value": ...,
+   *     "headers": {
+   *       "header1": "value1",
+   *       "header2": "value2"
+   *     },
+   *     "metadata": {
+   *       "timestamp": 123456789,
+   *       "topic": "topic1",
+   *       "partition": 0,
+   *       "offset": 1
+   *
+   *     }
+   *   }
+   * }}}
+   *
+   * @return
+   */
   private def envelope(message: MessageDetail, settings: DataStorageSettings): MessageDetail = {
     val envelope = new java.util.HashMap[String, Any]()
 
@@ -130,7 +127,11 @@ object SchemalessEnvelopeTransformer {
       case ByteArraySinkData(array, _) => array
       case primitive: PrimitiveSinkData => primitive.value
       case _:         NullSinkData      => null
-      case other => throw new IllegalArgumentException(s"Unknown SinkData type, ${other.getClass.getSimpleName}")
+      case DateSinkData(date) =>
+        ChronoUnit.DAYS.between(LocalDate.ofEpochDay(0), LocalDate.ofInstant(date.toInstant, ZoneId.systemDefault()))
+      case TimestampSinkData(date) => date.getTime
+      case TimeSinkData(date)      => date.toInstant.toEpochMilli
+      case other                   => throw new IllegalArgumentException(s"Unknown SinkData type, ${other.getClass.getSimpleName}")
     }
 
   private def convertStruct(struct: Struct): java.util.Map[String, Any] = {

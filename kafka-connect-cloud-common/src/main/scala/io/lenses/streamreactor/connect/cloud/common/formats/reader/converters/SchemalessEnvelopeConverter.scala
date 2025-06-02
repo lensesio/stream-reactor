@@ -28,37 +28,37 @@ import java.time.Instant
 import scala.annotation.nowarn
 
 /**
-  * It expects the envelope payload to be a string with the following structure:
-  *
-  * {{{
-  *  {
-  *    "key": ...
-  *    "value": ...
-  *    "headers": {
-  *    "header1": "value1",
-  *    "header2": "value2"
-  *    }
-  *    metadata: {
-  *    "timestamp": 1234567890,
-  *    "topic": "my-topic",
-  *    "partition": 0,
-  *    "offset": 1234567890
-  *    }
-  *  }
-  * }}}
-  *
-  * It will extract the key, value, headers and metadata and create a SourceRecord with the key, value and headers.
-  * Both the key and value will be set to string types.
-  * The metadata will be used to set the timestamp and target partition.
-  *
-  * The key, value, headers and metadata are expected to be optional. If they are missing it will set the value to null.
-  *
-  * @param watermarkPartition The watermark partition
-  * @param topic The target topic
-  * @param partition The target partition; only used if the envelope does not contain a partition
-  * @param location The cloud location of the object
-  * @param lastModified The last modified date of the object
-  */
+ * It expects the envelope payload to be a string with the following structure:
+ *
+ * {{{
+ *  {
+ *    "key": ...
+ *    "value": ...
+ *    "headers": {
+ *    "header1": "value1",
+ *    "header2": "value2"
+ *    }
+ *    metadata: {
+ *    "timestamp": 1234567890,
+ *    "topic": "my-topic",
+ *    "partition": 0,
+ *    "offset": 1234567890
+ *    }
+ *  }
+ * }}}
+ *
+ * It will extract the key, value, headers and metadata and create a SourceRecord with the key, value and headers.
+ * Both the key and value will be set to string types.
+ * The metadata will be used to set the timestamp and target partition.
+ *
+ * The key, value, headers and metadata are expected to be optional. If they are missing it will set the value to null.
+ *
+ * @param watermarkPartition The watermark partition
+ * @param topic The target topic
+ * @param partition The target partition; only used if the envelope does not contain a partition
+ * @param location The cloud location of the object
+ * @param lastModified The last modified date of the object
+ */
 class SchemalessEnvelopeConverter(
   watermarkPartition: java.util.Map[String, String],
   topic:              Topic,

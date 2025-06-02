@@ -20,11 +20,11 @@ import scala.io.BufferedSource
 import scala.io.Source
 
 /**
-  * Reads the lines from the input stream if the line starts with a given prefix
-  *
-  * @param input
-  * @param prefix
-  */
+ * Reads the lines from the input stream if the line starts with a given prefix
+ *
+ * @param input
+ * @param prefix
+ */
 class RegexMatchLineReader(input: InputStream, regex: String) extends LineReader {
   private val source: BufferedSource = Source.fromInputStream(input)
   private val iterator = source.getLines()

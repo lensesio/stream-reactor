@@ -86,8 +86,8 @@ class MqttSourceTask extends SourceTask with StrictLogging with JarManifestProvi
   }
 
   /**
-    * Get all the messages accumulated so far.
-    */
+   * Get all the messages accumulated so far.
+   */
   override def poll(): util.List[SourceRecord] = {
 
     val records = mqttManager.map { manager =>
@@ -103,8 +103,8 @@ class MqttSourceTask extends SourceTask with StrictLogging with JarManifestProvi
   }
 
   /**
-    * Shutdown connections
-    */
+   * Shutdown connections
+   */
   override def stop(): Unit = {
     logger.info("Stopping Mqtt source.")
     mqttManager.foreach(_.close())

@@ -1,6 +1,6 @@
 plugins {
-    id 'com.gradleup.shadow' version '8.3.5'
-    id 'com.diffplug.spotless' version "7.0.2"
+    id 'com.gradleup.shadow' version '8.3.6'
+    id 'com.diffplug.spotless' version "7.0.3"
     id 'java'
     id 'java-library'
 }
@@ -8,8 +8,19 @@ plugins {
 allprojects {
 
     group = "io.lenses.streamreactor"
-    version = "8.2.0-SNAPSHOT"
     description = "stream-reactor"
+
+    def majorVersion = "9.0"
+    def nextSnapshotVersion = "9.1"
+
+    def githubRunId = System.getenv("GITHUB_RUN_ID")
+    def versionEnv = System.getenv("VERSION")
+    def snapshotTag = System.getenv("SNAPSHOT_TAG")
+
+    version = (versionEnv && !versionEnv.isEmpty()) ? versionEnv :
+            (githubRunId && !githubRunId.isEmpty()) ? "${majorVersion}.${githubRunId}" :
+            (snapshotTag && !snapshotTag.isEmpty()) ? "${nextSnapshotVersion}-${snapshotTag}-SNAPSHOT" :
+            "${nextSnapshotVersion}-SNAPSHOT"
 
     apply plugin: 'java'
     apply plugin: 'java-library'
@@ -24,7 +35,7 @@ allprojects {
     ext {
         //DEPENDENCY VERSIONS
         lombokVersion = '1.18.32'
-        kafkaVersion = '3.7.0'
+        kafkaVersion = '3.9.1'
         logbackVersion = '1.4.14'
         jUnitVersion = '5.9.1'
         mockitoJupiterVersion = '5.10.0'
@@ -69,7 +80,7 @@ allprojects {
         testImplementation group: 'org.mockito', name: 'mockito-core', version: mockitoJupiterVersion
         testImplementation group: 'org.mockito', name: 'mockito-junit-jupiter', version: mockitoJupiterVersion
         testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter', version: jUnitVersion
-        testImplementation group: 'org.assertj', name: 'assertj-core', version: '3.26.3'
+        testImplementation group: 'org.assertj', name: 'assertj-core', version: '3.27.3'
     }
 
     test {
@@ -142,7 +153,7 @@ allprojects {
             format 'misc', {
                 target '.gitattributes', '.gitignore'
                 trimTrailingWhitespace()
-                indentWithSpaces()
+                leadingTabsToSpaces()
                 endWithNewline()
             }
             groovyGradle {
@@ -151,7 +162,7 @@ allprojects {
                 trimTrailingWhitespace()
                 removeSemicolons()
                 greclipse()
-                indentWithSpaces(4)
+                leadingTabsToSpaces(4)
             }
             java {
                 targetExclude([

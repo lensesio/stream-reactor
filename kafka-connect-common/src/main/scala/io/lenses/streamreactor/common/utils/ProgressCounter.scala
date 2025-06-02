@@ -25,9 +25,9 @@ import scala.collection.immutable.Seq
 import scala.collection.mutable
 
 /**
-  * Created by andrew@datamountaineer.com on 03/03/2017.
-  * kafka-connect-common
-  */
+ * Created by andrew@datamountaineer.com on 03/03/2017.
+ * kafka-connect-common
+ */
 case class ProgressCounter(periodMillis: Int = 60000) extends StrictLogging {
   private val startTime = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date())
   private var timestamp: Long = 0

@@ -39,15 +39,16 @@ trait KcqlWithFieldsSettings extends KcqlSettings {
       .map(r => (r.getSource, r.getIgnoredFields.asScala.map(f => f.getName).toSet))
       .toMap
 
-  /** Get all the upsert keys
-    *
-    * @param kcql
-    * @param preserveFullKeys (default false) If true, keys that
-    *                         have parents will return the full
-    *                         key (ie. "A.B.C" rather than just
-    *                         "C")
-    * @return map of topic to set of keys
-    */
+  /**
+   * Get all the upsert keys
+   *
+   * @param kcql
+   * @param preserveFullKeys (default false) If true, keys that
+   *                         have parents will return the full
+   *                         key (ie. "A.B.C" rather than just
+   *                         "C")
+   * @return map of topic to set of keys
+   */
   def getUpsertKeys(
     kcql:             Set[Kcql] = getKCQL,
     preserveFullKeys: Boolean   = false,

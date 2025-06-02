@@ -28,43 +28,43 @@ import io.lenses.streamreactor.connect.cloud.common.storage.ExtensionFilter
 import io.lenses.streamreactor.connect.cloud.common.storage.FileMetadata
 
 /**
-  * Trait representing a generic cloud configuration.
-  * This trait serves as a marker trait for cloud-specific configuration implementations.
-  */
+ * Trait representing a generic cloud configuration.
+ * This trait serves as a marker trait for cloud-specific configuration implementations.
+ */
 sealed trait CloudConfig
 
 /**
-  * Trait representing configuration for a cloud sink.
-  * Extends [[CloudConfig]].
-  */
+ * Trait representing configuration for a cloud sink.
+ * Extends [[CloudConfig]].
+ */
 trait CloudSinkConfig[CC] extends CloudConfig {
 
   /**
-    * Retrieves the connection configuration for the cloud sink.
-    *
-    * @return The connection configuration for the cloud sink.
-    */
+   * Retrieves the connection configuration for the cloud sink.
+   *
+   * @return The connection configuration for the cloud sink.
+   */
   def connectionConfig: CC
 
   /**
-    * Retrieves the bucket options for the cloud sink.
-    *
-    * @return The bucket options for the cloud sink.
-    */
+   * Retrieves the bucket options for the cloud sink.
+   *
+   * @return The bucket options for the cloud sink.
+   */
   def bucketOptions: Seq[CloudSinkBucketOptions]
 
   /**
-    * Retrieves the offset seeker options for the cloud sink.
-    *
-    * @return The offset seeker options for the cloud sink.
-    */
+   * Retrieves the offset seeker options for the cloud sink.
+   *
+   * @return The offset seeker options for the cloud sink.
+   */
   def indexOptions: Option[IndexOptions]
 
   /**
-    * Retrieves the compression codec for the cloud sink.
-    *
-    * @return The compression codec for the cloud sink.
-    */
+   * Retrieves the compression codec for the cloud sink.
+   *
+   * @return The compression codec for the cloud sink.
+   */
   def compressionCodec: CompressionCodec
 
   def connectorRetryConfig: RetryConfig
@@ -78,59 +78,60 @@ trait CloudSinkConfig[CC] extends CloudConfig {
   def skipNullValues: Boolean
 
   /**
-    *   If enabled, it will attach the latest known schema to the records sent to the sink
-    *   It's used when schema evolution is set to BACKWARDS compatible, and this avoids data flushing
-    *   when there are records with interleaved schema
-    */
+   *   If enabled, it will attach the latest known schema to the records sent to the sink
+   *   It's used when schema evolution is set to BACKWARDS compatible, and this avoids data flushing
+   *   when there are records with interleaved schema
+   */
   def latestSchemaForWriteEnabled: Boolean
 
 }
 
 /**
-  * Trait representing configuration for a cloud source.
-  * Extends [[CloudConfig]].
-  *
-  * @tparam MD The type of file metadata associated with the cloud source.
-  */
+ * Trait representing configuration for a cloud source.
+ * Extends [[CloudConfig]].
+ *
+ * @tparam MD The type of file metadata associated with the cloud source.
+ */
 trait CloudSourceConfig[MD <: FileMetadata] extends CloudConfig {
 
   /**
-    * Retrieves the bucket options for the cloud source.
-    *
-    * @return The bucket options for the cloud source.
-    */
+   * Retrieves the bucket options for the cloud source.
+   *
+   * @return The bucket options for the cloud source.
+   */
   def bucketOptions: Seq[CloudSourceBucketOptions[MD]]
 
   /**
-    * Retrieves the compression codec for the cloud source.
-    *
-    * @return The compression codec for the cloud source.
-    */
+   * Retrieves the compression codec for the cloud source.
+   *
+   * @return The compression codec for the cloud source.
+   */
   def compressionCodec: CompressionCodec
 
   /**
-    * Retrieves the partition searcher options for the cloud source.
-    *
-    * @return The partition searcher options for the cloud source.
-    */
+   * Retrieves the partition searcher options for the cloud source.
+   *
+   * @return The partition searcher options for the cloud source.
+   */
   def partitionSearcher: PartitionSearcherOptions
 
   /**
-    * Retrieves the extension filter for the cloud source, if configured.
-    *
-    * The extension filter is used to include or exclude files
-    * based on their extensions when reading from the cloud source.
-    *
-    * @return Option containing the extension filter for the cloud source.
-    */
+   * Retrieves the extension filter for the cloud source, if configured.
+   *
+   * The extension filter is used to include or exclude files
+   * based on their extensions when reading from the cloud source.
+   *
+   * @return Option containing the extension filter for the cloud source.
+   */
   def extensionFilter: Option[ExtensionFilter]
 
   /**
-    * Retrieves the empty source backoff settings for the cloud source.
-    *
-    * @return The empty source backoff settings for the cloud source.
-    */
+   * Retrieves the empty source backoff settings for the cloud source.
+   *
+   * @return The empty source backoff settings for the cloud source.
+   */
   def emptySourceBackoffSettings: EmptySourceBackoffSettings
 
   def writeWatermarkToHeaders: Boolean
+
 }

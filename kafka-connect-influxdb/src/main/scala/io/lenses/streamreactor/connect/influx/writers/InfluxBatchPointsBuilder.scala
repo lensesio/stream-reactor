@@ -36,14 +36,14 @@ import scala.util.Success
 import scala.util.Try
 
 /**
-  * Builds an InfluxDb point for the incoming SinkRecord.
-  * It handles SinkRecord payloads as :
-  *   - Kafka Connect Struct
-  *   - Java Map
-  *   - Json String
-  *
-  * @param settings - An instance of [[InfluxSettings]]
-  */
+ * Builds an InfluxDb point for the incoming SinkRecord.
+ * It handles SinkRecord payloads as :
+ *   - Kafka Connect Struct
+ *   - Java Map
+ *   - Json String
+ *
+ * @param settings - An instance of [[InfluxSettings]]
+ */
 class InfluxBatchPointsBuilder(settings: InfluxSettings, nanoClock: NanoClock) extends StrictLogging {
   private val kcqlMap: Map[String, Seq[KcqlDetails]] = settings.kcqls.groupBy(_.getSource).map {
     case (topic, kcqls) =>
@@ -128,8 +128,8 @@ class InfluxBatchPointsBuilder(settings: InfluxSettings, nanoClock: NanoClock) e
 }
 
 /**
-  * Builds a cache of fields path (fields to select, fields to ignore, tags and timestamp)
-  */
+ * Builds a cache of fields path (fields to select, fields to ignore, tags and timestamp)
+ */
 case class KcqlDetails(
   fields:         Seq[(FieldName, Path, Option[Alias])],
   ignoredFields:  Set[(FieldName, Path, Option[Alias])],

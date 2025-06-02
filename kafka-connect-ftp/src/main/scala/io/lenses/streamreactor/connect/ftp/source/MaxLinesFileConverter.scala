@@ -23,9 +23,9 @@ import java.util
 import scala.jdk.CollectionConverters.ListHasAsScala
 
 /**
-  * Writes the maximum number of found lines into a single record
-  * including the file attributes.
-  */
+ * Writes the maximum number of found lines into a single record
+ * including the file attributes.
+ */
 class MaxLinesFileConverter(props: util.Map[String, String], offsetStorageReader: OffsetStorageReader)
     extends FileConverter() {
 

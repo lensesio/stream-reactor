@@ -20,8 +20,8 @@ import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
 
 /**
-  * This is a best-efforts validator for GCP bucket names.  It won't validate DNS, ownership etc but it will allow the sink to fail fast in case an obvious error is made (eg. IP addresses used).
-  */
+ * This is a best-efforts validator for GCP bucket names.  It won't validate DNS, ownership etc but it will allow the sink to fail fast in case an obvious error is made (eg. IP addresses used).
+ */
 object GCPStorageLocationValidator extends CloudLocationValidator {
   private val ContainerNamePattern       = "^[a-z0-9][a-z0-9-\\_\\.]{1,61}[a-z0-9]$".r
   private val IPPattern                  = "^([0-9]{1,3}\\.){3}([0-9]{1,3})$".r
@@ -34,16 +34,16 @@ object GCPStorageLocationValidator extends CloudLocationValidator {
     )
 
   /**
-    * From [[https://cloud.google.com/storage/docs/buckets#naming Google Cloud Docs]]
-    * Your bucket names must meet the following requirements:
-    *
-    * <li>Bucket names can only contain lowercase letters, numeric characters, dashes (-), underscores (_), and dots (.). Spaces are not allowed. Names containing dots require verification.<li>
-    * <li>Bucket names must start and end with a number or letter.<li>
-    * <li>Bucket names must contain 3-63 characters. Names containing dots can contain up to 222 characters, but each dot-separated component can be no longer than 63 characters.<li>
-    * <li>Bucket names cannot be represented as an IP address in dotted-decimal notation (for example, 192.168.5.4).<li>
-    * <li>Bucket names cannot begin with the "goog" prefix.<li>
-    * <li>Bucket names cannot contain "google" or close misspellings, such as "g00gle".<li>
-    */
+   * From [[https://cloud.google.com/storage/docs/buckets#naming Google Cloud Docs]]
+   * Your bucket names must meet the following requirements:
+   *
+   * <li>Bucket names can only contain lowercase letters, numeric characters, dashes (-), underscores (_), and dots (.). Spaces are not allowed. Names containing dots require verification.<li>
+   * <li>Bucket names must start and end with a number or letter.<li>
+   * <li>Bucket names must contain 3-63 characters. Names containing dots can contain up to 222 characters, but each dot-separated component can be no longer than 63 characters.<li>
+   * <li>Bucket names cannot be represented as an IP address in dotted-decimal notation (for example, 192.168.5.4).<li>
+   * <li>Bucket names cannot begin with the "goog" prefix.<li>
+   * <li>Bucket names cannot contain "google" or close misspellings, such as "g00gle".<li>
+   */
   private def validateBucketName(bucketName: String): Validated[Throwable, String] =
     if (bucketName.contains("google") || bucketName.contains("g00gle") || bucketName.startsWith("goog")) {
       Validated.Invalid(

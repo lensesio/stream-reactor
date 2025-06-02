@@ -37,19 +37,19 @@ object SinkRecordConverter {
   ISO_DATE_FORMAT.setTimeZone(TimeZone.getTimeZone("UTC"))
 
   /**
-    * Creates a Azure Document Db document from a HashMap
-    *
-    * @param map
-    * @return
-    */
+   * Creates a Azure Document Db document from a HashMap
+   *
+   * @param map
+   * @return
+   */
   def fromMap(map: util.Map[String, AnyRef]): Document = new Document(Json.toJson(map))
 
   /**
-    * Creates an Azure DocumentDb document from a the Kafka Struct
-    *
-    * @param record
-    * @return
-    */
+   * Creates an Azure DocumentDb document from a the Kafka Struct
+   *
+   * @param record
+   * @return
+   */
   def fromStruct(record: SinkRecord): Document = {
     if (!record.value().isInstanceOf[Struct]) {
       throw new IllegalArgumentException(s"Expecting a Struct. ${record.value.getClass}")
@@ -178,11 +178,11 @@ object SinkRecordConverter {
   }
 
   /**
-    * Creates an Azure Document DB document from Json
-    *
-    * @param record - The instance to the json node
-    * @return An instance of a Azure Document DB document
-    */
+   * Creates an Azure Document DB document from Json
+   *
+   * @param record - The instance to the json node
+   * @return An instance of a Azure Document DB document
+   */
   def fromJson(record: JValue): Document = {
     def convert(name: String, jvalue: JValue, document: Document): Document = {
       def convertArray(array: JArray): util.ArrayList[Any] = {

@@ -49,19 +49,21 @@ object DatalakeContinuingPageIterableAdaptor {
           val entries: Seq[PathItem] = pgValue.toSeq
           val existsOnPage =
             lastFilename.map(lastFileName => entries.indexWhere(_.getName == lastFileName)).getOrElse(-1)
-          val results = if (existsOnPage > -1) {
-            // skip until we get to the one we're interested in
-            entries.splitAt(existsOnPage + 1)._2
-          } else {
-            entries
-          }
+          val results =
+            if (existsOnPage > -1) {
+              // skip until we get to the one we're interested in
+              entries.splitAt(existsOnPage + 1)._2
+            } else {
+              entries
+            }
           val soFar     = results.take(numResults)
           val exhausted = (results.size - numResults) == 0
-          val pgToken: Option[String] = if (exhausted) {
-            page.getContinuationToken.some
-          } else {
-            continuationToken
-          }
+          val pgToken: Option[String] =
+            if (exhausted) {
+              page.getContinuationToken.some
+            } else {
+              continuationToken
+            }
 
           if (soFar.size < numResults) {
             loop(pagedIter,

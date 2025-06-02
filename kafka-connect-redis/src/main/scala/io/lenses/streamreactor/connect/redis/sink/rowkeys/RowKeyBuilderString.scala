@@ -18,18 +18,18 @@ package io.lenses.streamreactor.connect.redis.sink.rowkeys
 import org.apache.kafka.connect.sink.SinkRecord
 
 /**
-  * Builds the new record key for the given connect SinkRecord.
-  */
+ * Builds the new record key for the given connect SinkRecord.
+ */
 trait StringKeyBuilder {
   def build(record: SinkRecord): String
 }
 
 /**
-  * Uses the connect record (topic, partition, offset) to set the schema
-  *
-  * @param keyDelimiter Row key delimiter
-  * @return a unique string for the message identified by: <topic>|<partition>|<offset>
-  */
+ * Uses the connect record (topic, partition, offset) to set the schema
+ *
+ * @param keyDelimiter Row key delimiter
+ * @return a unique string for the message identified by: <topic>|<partition>|<offset>
+ */
 class StringGenericRowKeyBuilder(keyDelimiter: String = "|") extends StringKeyBuilder {
 
   override def build(record: SinkRecord): String =
@@ -37,8 +37,8 @@ class StringGenericRowKeyBuilder(keyDelimiter: String = "|") extends StringKeyBu
 }
 
 /**
-  * Creates a key based on the connect SinkRecord instance key. Only connect Schema primitive types are handled
-  */
+ * Creates a key based on the connect SinkRecord instance key. Only connect Schema primitive types are handled
+ */
 class StringSinkRecordKeyBuilder extends StringKeyBuilder {
   override def build(record: SinkRecord): String = {
     val `type` = record.keySchema().`type`()

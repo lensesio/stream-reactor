@@ -15,15 +15,20 @@
  */
 package io.lenses.streamreactor.connect.cloud.common.config
 
+import java.util.UUID
 import cats.Show
 import cats.implicits.toBifunctorOps
 import io.lenses.streamreactor.common.config.base.traits.WithConnectorPrefix
 import io.lenses.streamreactor.connect.cloud.common.source.config.distribution.PartitionHasher
 
 case class ConnectorTaskId(name: String, maxTasks: Int, taskNo: Int) {
+
+  val lockUuid: String = UUID.randomUUID().toString
+
   def ownsDir(dirPath: String): Boolean =
     if (maxTasks == 1) true
     else PartitionHasher.hash(maxTasks, dirPath) == taskNo
+
 }
 
 trait TaskIndexKey extends WithConnectorPrefix {
@@ -49,13 +54,15 @@ class ConnectorTaskIdCreator(val connectorPrefix: String) extends TaskIndexKey {
       maxTasks <- taskIndex(1).toIntOption.toRight(
         s"Invalid $TASK_INDEX. Expecting an integer but found:${taskIndex(1)}",
       )
-      _ <- if (maxTasks <= 0) Left(s"Invalid $TASK_INDEX. Expecting a positive integer but found:${taskIndex(1)}")
-      else Right(())
+      _ <-
+        if (maxTasks <= 0) Left(s"Invalid $TASK_INDEX. Expecting a positive integer but found:${taskIndex(1)}")
+        else Right(())
       taskNumber <- taskIndex(0).toIntOption.toRight(
         s"Invalid $TASK_INDEX. Expecting an integer but found:${taskIndex(0)}",
       )
-      _ <- if (taskNumber < 0) Left(s"Invalid $TASK_INDEX. Expecting a positive integer but found:${taskIndex(0)}")
-      else Right(())
+      _ <-
+        if (taskNumber < 0) Left(s"Invalid $TASK_INDEX. Expecting a positive integer but found:${taskIndex(0)}")
+        else Right(())
       maybeTaskName <- props.get("name").filter(_.trim.nonEmpty).toRight("Missing connector name")
     } yield ConnectorTaskId(maybeTaskName, maxTasks, taskNumber)
   }.leftMap(new IllegalArgumentException(_))

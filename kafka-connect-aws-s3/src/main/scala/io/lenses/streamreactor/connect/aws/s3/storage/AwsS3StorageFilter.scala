@@ -19,10 +19,10 @@ import software.amazon.awssdk.services.s3.model.ObjectStorageClass
 import software.amazon.awssdk.services.s3.model.S3Object
 
 /**
-  * Avoids reading objects that are in Glacier or Deep Archive storage classes.
-  * These objects are not immediately available and require a restore operation to be performed.
-  * This filter is used to avoid reading these objects and failing the task and thus the connector
-  */
+ * Avoids reading objects that are in Glacier or Deep Archive storage classes.
+ * These objects are not immediately available and require a restore operation to be performed.
+ * This filter is used to avoid reading these objects and failing the task and thus the connector
+ */
 object AwsS3StorageFilter {
 
   private val archiveStorageClasses = Set(

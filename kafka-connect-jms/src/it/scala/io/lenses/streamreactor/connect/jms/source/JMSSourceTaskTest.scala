@@ -36,9 +36,9 @@ import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.reflect.io.Path
 
 /**
-  * Created by andrew@datamountaineer.com on 24/03/2017.
-  * stream-reactor
-  */
+ * Created by andrew@datamountaineer.com on 24/03/2017.
+ * stream-reactor
+ */
 class JMSSourceTaskTest extends ItTestBase with BeforeAndAfterAll with Eventually with MockitoSugar {
 
   override def afterAll(): Unit = {

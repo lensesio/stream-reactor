@@ -18,8 +18,8 @@ package io.lenses.streamreactor.connect.cloud.common.consumers
 import java.nio.ByteBuffer
 
 /**
-  * Mimics the Kafka core OffsetAndMetadata class.
-  */
+ * Mimics the Kafka core OffsetAndMetadata class.
+ */
 
 case class OffsetAndMetadata(
   offset:          Long,

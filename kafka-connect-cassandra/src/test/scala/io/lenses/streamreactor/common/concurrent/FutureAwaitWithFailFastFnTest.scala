@@ -27,8 +27,8 @@ import scala.util.Failure
 import scala.util.Try
 
 /**
-  * Created by stepi on 22/06/16.
-  */
+ * Created by stepi on 22/06/16.
+ */
 class FutureAwaitWithFailFastFnTest extends AnyWordSpec with Matchers with Eventually with TimeLimits {
 
   "FutureAwaitWithFailFastFn" should {

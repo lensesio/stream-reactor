@@ -31,8 +31,9 @@ import io.lenses.streamreactor.connect.cloud.common.sink.commit.CommitPolicy
 import io.lenses.streamreactor.connect.cloud.common.sink.config.PartitionField
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.KeyNamer
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.ObjectKeyBuilder
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexManager
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.PendingOperationsProcessors
 import io.lenses.streamreactor.connect.cloud.common.storage.FileMetadata
-import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.connect.data.Schema
 
@@ -44,29 +45,29 @@ import scala.util.Try
 case class MapKey(topicPartition: TopicPartition, partitionValues: immutable.Map[PartitionField, String])
 
 /**
-  * Manages the lifecycle of [[Writer]] instances.
-  *
-  * A given sink may be writing to multiple locations (partitions), and therefore
-  * it is convenient to extract this to another class.
-  *
-  * This class is not thread safe as it is not designed to be shared between concurrent
-  * sinks, since file handles cannot be safely shared without considerable overhead.
-  */
+ * Manages the lifecycle of [[Writer]] instances.
+ *
+ * A given sink may be writing to multiple locations (partitions), and therefore
+ * it is convenient to extract this to another class.
+ *
+ * This class is not thread safe as it is not designed to be shared between concurrent
+ * sinks, since file handles cannot be safely shared without considerable overhead.
+ */
 class WriterManager[SM <: FileMetadata](
-  commitPolicyFn:       TopicPartition => Either[SinkError, CommitPolicy],
-  bucketAndPrefixFn:    TopicPartition => Either[SinkError, CloudLocation],
-  keyNamerFn:           TopicPartition => Either[SinkError, KeyNamer],
-  stagingFilenameFn:    (TopicPartition, Map[PartitionField, String]) => Either[SinkError, File],
-  objKeyBuilderFn:      (TopicPartition, Map[PartitionField, String]) => ObjectKeyBuilder,
-  formatWriterFn:       (TopicPartition, File) => Either[SinkError, FormatWriter],
-  writerIndexer:        WriterIndexer[SM],
-  transformerF:         MessageDetail => Either[RuntimeException, MessageDetail],
-  schemaChangeDetector: SchemaChangeDetector,
-  skipNullValues:       Boolean,
+  commitPolicyFn:              TopicPartition => Either[SinkError, CommitPolicy],
+  bucketAndPrefixFn:           TopicPartition => Either[SinkError, CloudLocation],
+  keyNamerFn:                  TopicPartition => Either[SinkError, KeyNamer],
+  stagingFilenameFn:           (TopicPartition, Map[PartitionField, String]) => Either[SinkError, File],
+  objKeyBuilderFn:             (TopicPartition, Map[PartitionField, String]) => ObjectKeyBuilder,
+  formatWriterFn:              (TopicPartition, File) => Either[SinkError, FormatWriter],
+  indexManager:                IndexManager,
+  transformerF:                MessageDetail => Either[RuntimeException, MessageDetail],
+  schemaChangeDetector:        SchemaChangeDetector,
+  skipNullValues:              Boolean,
+  pendingOperationsProcessors: PendingOperationsProcessors,
 )(
   implicit
-  connectorTaskId:  ConnectorTaskId,
-  storageInterface: StorageInterface[SM],
+  connectorTaskId: ConnectorTaskId,
 ) extends StrictLogging {
 
   private val writers             = mutable.Map.empty[MapKey, Writer[SM]]
@@ -98,15 +99,16 @@ class WriterManager[SM <: FileMetadata](
     for {
       writer    <- writer(topicPartitionOffset.toTopicPartition, messageDetail)
       shouldSkip = writer.shouldSkip(topicPartitionOffset.offset)
-      resultIfNotSkipped <- if (!shouldSkip) {
-        transformerF(messageDetail).leftMap(ex =>
-          new FatalCloudSinkError(ex.getMessage, ex.some, topicPartitionOffset.toTopicPartition),
-        ).flatMap { transformed =>
-          writeAndCommit(topicPartitionOffset, transformed, writer)
+      resultIfNotSkipped <-
+        if (!shouldSkip) {
+          transformerF(messageDetail).leftMap(ex =>
+            new FatalCloudSinkError(ex.getMessage, ex.some, topicPartitionOffset.toTopicPartition),
+          ).flatMap { transformed =>
+            writeAndCommit(topicPartitionOffset, transformed, writer)
+          }
+        } else {
+          ().asRight
         }
-      } else {
-        ().asRight
-      }
     } yield resultIfNotSkipped
   }
 
@@ -143,9 +145,9 @@ class WriterManager[SM <: FileMetadata](
     keyNamer.processPartitionValues(messageDetail, topicPartition)
 
   /**
-    * Returns a writer that can write records for a particular topic and partition.
-    * The writer will create a file inside the given directory if there is no open writer.
-    */
+   * Returns a writer that can write records for a particular topic and partition.
+   * The writer will create a file inside the given directory if there is no open writer.
+   */
   private def writer(topicPartition: TopicPartition, messageDetail: MessageDetail): Either[SinkError, Writer[SM]] =
     for {
       bucketAndPrefix <- bucketAndPrefixFn(topicPartition)
@@ -176,11 +178,12 @@ class WriterManager[SM <: FileMetadata](
       new Writer(
         topicPartition,
         commitPolicy,
-        writerIndexer,
+        indexManager,
         () => stagingFilenameFn(topicPartition, partitionValues),
         objKeyBuilderFn(topicPartition, partitionValues),
         formatWriterFn.curried(topicPartition),
         schemaChangeDetector,
+        pendingOperationsProcessors,
       )
     }
   }
@@ -225,6 +228,6 @@ class WriterManager[SM <: FileMetadata](
       .keys
       .foreach(writers.remove)
 
-  def shouldSkipNullValues() = skipNullValues
+  def shouldSkipNullValues(): Boolean = skipNullValues
 
 }

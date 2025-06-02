@@ -22,22 +22,22 @@ import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
 import scala.collection.mutable
 
 /**
-  * A cache for tracking directories that have been created.
-  *
-  * @param storageInterface The storage interface used to create directories.
-  */
+ * A cache for tracking directories that have been created.
+ *
+ * @param storageInterface The storage interface used to create directories.
+ */
 class DirectoryCache(storageInterface: StorageInterface[_]) {
 
   // A mutable set to keep track of created directories.
   private val directoriesCreated = mutable.Set[(String, String)]()
 
   /**
-    * Ensures that a directory exists in the specified bucket and path.
-    *
-    * @param bucket The bucket in which the directory should exist.
-    * @param path The path of the directory to check or create.
-    * @return Either a FileCreateError if the directory creation failed, or Unit if the directory exists or was created successfully.
-    */
+   * Ensures that a directory exists in the specified bucket and path.
+   *
+   * @param bucket The bucket in which the directory should exist.
+   * @param path The path of the directory to check or create.
+   * @return Either a FileCreateError if the directory creation failed, or Unit if the directory exists or was created successfully.
+   */
   def ensureDirectoryExists(bucket: String, path: String): Either[FileCreateError, Unit] =
     if (directoriesCreated.contains((bucket, path))) {
       ().asRight

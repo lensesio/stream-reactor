@@ -41,11 +41,11 @@ object SinkRecordConverter extends StrictLogging {
   ISO_DATE_FORMAT.setTimeZone(TimeZone.getTimeZone("UTC"))
 
   /**
-    * Creates a Mongo document from a HashMap
-    *
-    * @param map
-    * @return
-    */
+   * Creates a Mongo document from a HashMap
+   *
+   * @param map
+   * @return
+   */
   def fromMap(map: util.Map[String, AnyRef])(implicit settings: MongoSettings): Document = {
 
     val doc = new Document(map)
@@ -56,11 +56,11 @@ object SinkRecordConverter extends StrictLogging {
   }
 
   /**
-    * Creates a Mongo document from a the Kafka Struct
-    *
-    * @param record
-    * @return
-    */
+   * Creates a Mongo document from a the Kafka Struct
+   *
+   * @param record
+   * @return
+   */
   def fromStruct(record: SinkRecord): Document = {
 
     def convertToDocument(schema: Schema, value: Any): Any = {
@@ -238,11 +238,11 @@ object SinkRecordConverter extends StrictLogging {
   }
 
   /**
-    * Creates a Mongo document from Json
-    *
-    * @param record - The instance to the json node
-    * @return An instance of a mongo document
-    */
+   * Creates a Mongo document from Json
+   *
+   * @param record - The instance to the json node
+   * @return An instance of a mongo document
+   */
   def fromJson(record: JValue)(implicit settings: MongoSettings): Document = {
     def convert(name: String, jvalue: JValue, document: Document): Document = {
       def convertArray(array: JArray): util.ArrayList[Any] = {
@@ -294,10 +294,10 @@ object SinkRecordConverter extends StrictLogging {
   }
 
   /**
-    * Convert timestamps based on settings' jsonDateTimeFields.
-    * @param doc
-    * @return Unit - the input document is modified in-place!
-    */
+   * Convert timestamps based on settings' jsonDateTimeFields.
+   * @param doc
+   * @return Unit - the input document is modified in-place!
+   */
   def convertTimestamps(doc: Document)(implicit settings: MongoSettings): Unit = {
 
     val fieldSet: Set[Seq[String]] = settings.jsonDateTimeFields
@@ -330,7 +330,10 @@ object SinkRecordConverter extends StrictLogging {
           case n: Int if n > 1 => {
             val testVal = lastDoc.get(head.get)
             testVal match {
-              case subDoc: java.util.Map[String, Object] @unchecked => // Document implements Map, HashMap is used sometimes too for subdocs
+              case subDoc: java.util.Map[
+                    String,
+                    Object,
+                  ] @unchecked => // Document implements Map, HashMap is used sometimes too for subdocs
                 convertValue(remainingParts.tail, subDoc)
               case subList: java.util.List[_] =>
                 subList.asScala.foreach {

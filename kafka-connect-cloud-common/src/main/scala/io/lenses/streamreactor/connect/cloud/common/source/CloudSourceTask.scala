@@ -71,8 +71,8 @@ abstract class CloudSourceTask[MD <: FileMetadata, C <: CloudSourceConfig[MD], C
   implicit var connectorTaskId: ConnectorTaskId = _
 
   /**
-    * Start sets up readers for every configured connection in the properties
-    */
+   * Start sets up readers for every configured connection in the properties
+   */
   override def start(props: util.Map[String, String]): Unit = {
 
     printAsciiHeader(manifest, sinkAsciiArtResource)

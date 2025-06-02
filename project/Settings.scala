@@ -45,8 +45,8 @@ import scala.util.Try
 object Settings extends Dependencies {
 
   // keep the SNAPSHOT version numerically higher than the latest release.
-  val majorVersion        = "8.0"
-  val nextSnapshotVersion = "8.1"
+  val majorVersion        = "9.0"
+  val nextSnapshotVersion = "9.1"
 
   val artifactVersion: String = {
     val maybeGithubRunId = sys.env.get("github_run_id")
@@ -176,12 +176,7 @@ object Settings extends Dependencies {
       excludeFilePatterns.exists(p.endsWith)
 
     val excludePatterns = Set(
-      "kafka-client",
-      "kafka-connect-json",
       "hadoop-yarn",
-      "org.apache.kafka",
-      "zookeeper",
-      "log4j",
       "junit",
     )
 
@@ -224,6 +219,12 @@ object Settings extends Dependencies {
             ShadeRule.rename("com.fasterxml.**" -> "lshaded.fasterxml.@1").inAll,
             ShadeRule.rename("org.apache.hadoop" -> "lshaded.apache.hadoop").inAll,
             ShadeRule.rename("org.antlr.**" -> "lshaded.antlr.@1").inAll,
+            ShadeRule.zap("org.apache.kafka.**").inAll,
+            ShadeRule.zap("org.apache.zookeeper.**").inAll,
+            ShadeRule.zap("org.apache.log4j.**").inAll,
+            ShadeRule.zap("org.apache.logging.**").inAll,
+            ShadeRule.zap("org.slf4j.**").inAll,
+            ShadeRule.zap("org.eclipse.jetty.**").inAll,
           ),
           dependencyOverrides ++= Seq(
             googleProtobuf,

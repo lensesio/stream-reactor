@@ -23,8 +23,8 @@ import java.util
 import scala.util.Try
 
 /**
-  * A Json converter built with resilience, meaning that malformed Json messages are now ignored
-  */
+ * A Json converter built with resilience, meaning that malformed Json messages are now ignored
+ */
 class JsonResilientConverter extends JsonConverter {
 
   override def configure(configs: util.Map[String, _], isKey: Boolean): Unit =

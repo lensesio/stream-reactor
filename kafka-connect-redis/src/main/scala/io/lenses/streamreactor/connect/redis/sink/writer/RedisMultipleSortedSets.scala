@@ -34,12 +34,12 @@ import scala.util.Success
 import scala.util.Try
 
 /**
-  * The PK (Primary Key) Redis `writer` stores in 1 Sorted Set / per field value of the PK
-  *
-  * KCQL syntax requires 1 Primary Key to be defined (plus) STOREAS SortedSet
-  *
-  * .. PK .. STOREAS SortedSet
-  */
+ * The PK (Primary Key) Redis `writer` stores in 1 Sorted Set / per field value of the PK
+ *
+ * KCQL syntax requires 1 Primary Key to be defined (plus) STOREAS SortedSet
+ *
+ * .. PK .. STOREAS SortedSet
+ */
 class RedisMultipleSortedSets(sinkSettings: RedisSinkSettings, jedis: Jedis)
     extends DbWriter
     with StrictLogging
@@ -77,7 +77,8 @@ class RedisMultipleSortedSets(sinkSettings: RedisSinkSettings, jedis: Jedis)
   // Insert a batch of sink records
   def insert(records: Map[String, Seq[SinkRecord]]): Unit =
     records.foreach {
-      case (topic, sinkRecords: Seq[SinkRecord]) => {
+      case (topic, sinkRecords: Seq[SinkRecord]) =>
+        {
           val topicSettings: Set[RedisKCQLSetting] = sinkSettings.kcqlSettings.filter(_.kcqlConfig.getSource == topic)
           if (topicSettings.isEmpty) {
             throw new ConnectException(s"No KCQL statement set for [$topic]")

@@ -21,9 +21,9 @@ import java.util
 import scala.jdk.CollectionConverters.SeqHasAsJava
 
 /**
-  * Created by andrew@datamountaineer.com on 31/08/2017.
-  * Default (Template) Project
-  */
+ * Created by andrew@datamountaineer.com on 31/08/2017.
+ * Default (Template) Project
+ */
 class NopSourceRecordConverter extends SourceRecordConverter {
   override def configure(props: util.Map[String, _]): Unit = {}
 

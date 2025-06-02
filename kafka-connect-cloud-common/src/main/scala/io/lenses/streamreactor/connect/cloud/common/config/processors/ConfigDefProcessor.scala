@@ -16,9 +16,9 @@
 package io.lenses.streamreactor.connect.cloud.common.config.processors
 
 /**
-  * ConfigDefProcessor provides an interface to process the configs on entry
-  * into the sink.
-  */
+ * ConfigDefProcessor provides an interface to process the configs on entry
+ * into the sink.
+ */
 trait ConfigDefProcessor {
 
   def process(input: Map[String, Any]): Either[Throwable, Map[String, Any]]

@@ -32,36 +32,36 @@ import scala.util.Failure
 import scala.util.Try
 
 /**
-  * <h1>CassandraSinkConnector</h1>
-  * Kafka connect Cassandra Sink connector
-  *
-  * Sets up CassandraSinkTask and configurations for the tasks.
-  */
+ * <h1>CassandraSinkConnector</h1>
+ * Kafka connect Cassandra Sink connector
+ *
+ * Sets up CassandraSinkTask and configurations for the tasks.
+ */
 class CassandraSinkConnector extends SinkConnector with StrictLogging with JarManifestProvided {
   private var configProps: util.Map[String, String] = _
   private val configDef = CassandraConfigSink.sinkConfig
 
   /**
-    * States which SinkTask class to use
-    */
+   * States which SinkTask class to use
+   */
   override def taskClass(): Class[_ <: Task] = classOf[CassandraSinkTask]
 
   /**
-    * Set the configuration for each work and determine the split
-    *
-    * @param maxTasks The max number of task workers be can spawn
-    * @return a List of configuration properties per worker
-    */
+   * Set the configuration for each work and determine the split
+   *
+   * @param maxTasks The max number of task workers be can spawn
+   * @return a List of configuration properties per worker
+   */
   override def taskConfigs(maxTasks: Int): util.List[util.Map[String, String]] = {
     logger.info(s"Setting task configurations for $maxTasks workers.")
     (1 to maxTasks).map(_ => configProps).toList.asJava
   }
 
   /**
-    * Start the sink and set to configuration
-    *
-    * @param props A map of properties for the connector and worker
-    */
+   * Start the sink and set to configuration
+   *
+   * @param props A map of properties for the connector and worker
+   */
   override def start(props: util.Map[String, String]): Unit = {
     //check input topics
     Helpers.checkInputTopics(CassandraConfigConstants.KCQL, props.asScala.toMap)

@@ -26,8 +26,8 @@ import org.apache.kafka.connect.data.Field
 import org.apache.kafka.connect.data.Struct
 
 /**
-  * Extracts value from a Struct type
-  */
+ * Extracts value from a Struct type
+ */
 object StructExtractor extends LazyLogging {
 
   private[extractors] def extractPathFromStruct(
@@ -59,7 +59,8 @@ object StructExtractor extends LazyLogging {
                 .fold(ExtractorError(ExtractorErrorType.MissingValue).asLeft[String])(byteVal =>
                   new String(byteVal).asRight[ExtractorError],
                 )
-            case (other, _) => logger.error("Non-primitive values not supported: " + other)
+            case (other, _) =>
+              logger.error("Non-primitive values not supported: " + other)
               ExtractorError(ExtractorErrorType.UnexpectedType).asLeft[String]
           }
 
