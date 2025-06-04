@@ -61,6 +61,9 @@ allprojects {
         maven {
             url "https://packages.confluent.io/maven/"
         }
+        maven {
+            url "https://jitpack.io"
+        }
     }
 
     dependencies {
@@ -162,13 +165,34 @@ allprojects {
                 leadingTabsToSpaces(4)
             }
             java {
-                targetExclude '**/io/lenses/kcql/antlr4/**/*.java'
+                targetExclude([
+                    '**/io/lenses/kcql/antlr4/**/*.java',
+                    '**/com/wepay/**/*.java',
+                ])
                 toggleOffOn()
                 // optional: you can specify a specific version and/or config file
                 eclipse('4.30').configFile("${rootDir}/config/Lenses_eclipse.xml")
-                licenseHeaderFile(rootProject.file("HEADER.txt"))
 
+                licenseHeaderFile(rootProject.file("HEADER.txt"))
                 // courtesy of diffplug/spotless#240
+                // https://github.com/diffplug/spotless/issues/240#issuecomment-385206606
+                custom 'noWildcardImports', {
+                    if (it.contains('.*;\n')) {
+                        throw new Error('No wildcard imports allowed')
+                    }
+                }
+                bumpThisNumberIfACustomStepChanges(1)
+            }
+
+            format 'bigQuery', {
+                // Only target files in the special directory.
+                target '**/com/wepay/**/*.java'
+                toggleOffOn()
+
+                // Provide the header file and the delimiter.
+                licenseHeaderFile(rootProject.file("HEADER_BIG_QUERY.txt"), 'package ')
+
+                // Courtesy of diffplug/spotless#240
                 // https://github.com/diffplug/spotless/issues/240#issuecomment-385206606
                 custom 'noWildcardImports', {
                     if (it.contains('.*;\n')) {
@@ -242,7 +266,8 @@ task releaseModuleList() {
         "kafka-connect-common",
         "kafka-connect-gcp-common",
         "kafka-connect-query-language",
-        "kafka-connect-sink-reporting"
+        "kafka-connect-sink-reporting",
+        "kcbq-api"
     ]
     def modulesFile = new File("gradle-modules.txt")
     modulesFile.delete()

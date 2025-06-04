@@ -47,3 +47,7 @@ bin/
 release/
 gradle-modules.txt
 gradle-test-modules.txt
+
+kcbq-connector/src/test/resources/test.properties
+kcbq-connector/test/docker/connect/properties/
+kcbq-connector/out/

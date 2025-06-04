@@ -1,0 +1,16 @@
+project(":kcbq-api") {
+
+    group = 'com.wepay.kcbq'
+    archivesBaseName = 'kcbq-api'
+
+    test {
+        maxParallelForks = 1
+    }
+    dependencies {
+        implementation project(':kafka-connect-common')
+
+        //apache kafka
+        api group: 'org.apache.kafka', name: 'connect-api', version: kafkaVersion
+        api group: 'org.apache.kafka', name: 'kafka-clients', version: kafkaVersion
+    }
+}
