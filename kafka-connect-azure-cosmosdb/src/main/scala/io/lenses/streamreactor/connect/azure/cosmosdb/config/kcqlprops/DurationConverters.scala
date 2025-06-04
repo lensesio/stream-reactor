@@ -13,12 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.lenses.streamreactor.connect.azure.cosmosdb.sink
+package io.lenses.streamreactor.connect.azure.cosmosdb.config.kcqlprops
+import scala.concurrent.duration._
+import java.time.Duration
+object DurationConverters {
 
-import org.mockito.ArgumentMatchers
-
-trait MatchingArgument {
-  def argThat[T](thunk: T => Boolean): T = ArgumentMatchers.argThat {
-    (argument: T) => thunk(argument)
+  implicit class RichFiniteDuration(val fd: FiniteDuration) extends AnyVal {
+    def asJava: Duration = Duration.ofNanos(fd.toNanos)
   }
 }

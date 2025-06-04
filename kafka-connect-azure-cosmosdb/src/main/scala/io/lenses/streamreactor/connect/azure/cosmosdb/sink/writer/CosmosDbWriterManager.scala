@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 package io.lenses.streamreactor.connect.azure.cosmosdb.sink.writer
-import cats.effect.unsafe.IORuntime
 import cats.implicits._
 import com.azure.cosmos.CosmosClient
 import com.typesafe.scalalogging.StrictLogging
 import io.lenses.kcql.Kcql
+import io.lenses.streamreactor.common.batch.BatchPolicy
 import io.lenses.streamreactor.common.errors.ErrorHandler
 import io.lenses.streamreactor.connect.azure.cosmosdb.config.CosmosDbSinkSettings
 import io.lenses.streamreactor.connect.azure.cosmosdb.sink.converter.CosmosDbBulkRecordConverter
@@ -39,13 +39,13 @@ import scala.util.Failure
 class CosmosDbWriterManager(
   sinkName:       String,
   configMap:      Map[String, Kcql],
+  batchPolicyMap: Map[String, BatchPolicy],
   settings:       CosmosDbSinkSettings,
   documentClient: CosmosClient,
 ) extends StrictLogging
     with ErrorHandler {
 
-  private val writers:         mutable.Map[Topic, CosmosDbWriter] = mutable.Map[Topic, CosmosDbWriter]()
-  implicit lazy val ioRuntime: IORuntime                          = IORuntime.global
+  private val writers: mutable.Map[Topic, CosmosDbWriter] = mutable.Map[Topic, CosmosDbWriter]()
 
   //initialize error tracker
   initialize(settings.taskRetries, settings.errorPolicy)
@@ -87,10 +87,17 @@ class CosmosDbWriterManager(
     val topicName = recordTopic.value
     val kcql =
       configMap.getOrElse(topicName, throw new ConnectException(s"[$topicName] is not handled by the configuration."))
+    val batchPolicy =
+      batchPolicyMap.getOrElse(topicName,
+                               throw new ConnectException(s"[$topicName] is not handled by the configuration."),
+      )
+
     if (settings.bulkEnabled) {
       val recordsQueue = new CosmosRecordsQueue[PendingRecord](
+        sinkName,
         settings.maxQueueSize,
         settings.maxQueueOfferTimeout,
+        batchPolicy,
       )
       val queueProcessor = new CosmosDbQueueProcessor(
         sinkName,

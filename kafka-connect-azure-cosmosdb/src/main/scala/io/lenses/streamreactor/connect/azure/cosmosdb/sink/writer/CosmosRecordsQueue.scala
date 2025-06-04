@@ -29,15 +29,18 @@ import java.util.concurrent.atomic.AtomicReference
 import scala.annotation.tailrec
 
 class CosmosRecordsQueue[B <: BatchRecord](
+  val sinkName:     String,
   val maxSize:      Int,
   val offerTimeout: FiniteDuration,
+  val batchPolicy:  BatchPolicy,
 ) extends LazyLogging {
 
   private val recordsQueue = new AtomicReference[Queue[B]](Queue.empty)
   private val offsetMap    = new AtomicReference[Map[TopicPartition, Offset]](Map.empty)
   private val commitContextRef =
-    new AtomicReference[HttpCommitContext](null) // Replace null with actual initial context
-  private val batchPolicy: BatchPolicy = null // Set appropriately
+    new AtomicReference[HttpCommitContext](
+      HttpCommitContext.default(sinkName),
+    ) // Replace null with actual initial context
 
   def enqueueAll(records: List[B]): Unit = {
     def filterDuplicates(records: List[B], offsetMap: Map[TopicPartition, Offset]): List[B] =

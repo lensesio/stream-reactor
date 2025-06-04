@@ -23,6 +23,7 @@ import com.azure.cosmos.models.CosmosItemResponse
 import io.lenses.streamreactor.connect.azure.cosmosdb.config.CosmosDbConfig
 import io.lenses.streamreactor.connect.azure.cosmosdb.config.CosmosDbConfigConstants
 import io.lenses.streamreactor.connect.azure.cosmosdb.config.CosmosDbSinkSettings
+import io.lenses.streamreactor.connect.azure.cosmosdb.sink.ResourceLoader.readResource
 import io.lenses.streamreactor.connect.azure.cosmosdb.sink.writer.CosmosDbWriterManager
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.sink.SinkRecord
@@ -51,8 +52,8 @@ class CosmosDbSinkTaskJsonTest
       val (coll1Resource: CosmosContainer, coll2Resource: CosmosContainer, documentClient: CosmosClient) =
         mockCollectionsAndDatabase
 
-      val json1 = scala.io.Source.fromFile(getClass.getResource(s"/transaction1.json").toURI.getPath).mkString
-      val json2 = scala.io.Source.fromFile(getClass.getResource(s"/transaction2.json").toURI.getPath).mkString
+      val json1 = readResource(s"/transaction1.json")
+      val json2 = readResource(s"/transaction2.json")
 
       val sinkRecord1 = new SinkRecord("topic1", 0, null, "key1", Schema.STRING_SCHEMA, json1, 1000)
       val sinkRecord2 = new SinkRecord("topic2", 0, null, "key2", Schema.STRING_SCHEMA, json2, 1000)
@@ -83,11 +84,12 @@ class CosmosDbSinkTaskJsonTest
       )
         .thenReturn(r2)
 
-      val config   = CosmosDbConfig(map)
-      val settings = CosmosDbSinkSettings(config)
-      val kcqlMap  = settings.kcql.map(c => c.getSource -> c).toMap
+      val config         = CosmosDbConfig(map)
+      val settings       = CosmosDbSinkSettings(config)
+      val kcqlMap        = settings.kcql.map(c => c.getSource -> c).toMap
+      val batchPolicyMap = settings.kcql.map(c => c.getSource -> config.commitPolicy(c)).toMap
 
-      val writer = new CosmosDbWriterManager(sinkName, kcqlMap, settings, documentClient)
+      val writer = new CosmosDbWriterManager(sinkName, kcqlMap, batchPolicyMap, settings, documentClient)
       writer.write(Seq(sinkRecord1, sinkRecord2))
 
       verify(coll1Resource)
@@ -115,8 +117,8 @@ class CosmosDbSinkTaskJsonTest
       val (coll1Resource: CosmosContainer, coll2Resource: CosmosContainer, documentClient: CosmosClient) =
         mockCollectionsAndDatabase
 
-      val json1 = scala.io.Source.fromFile(getClass.getResource(s"/transaction1.json").toURI.getPath).mkString
-      val json2 = scala.io.Source.fromFile(getClass.getResource(s"/transaction2.json").toURI.getPath).mkString
+      val json1 = readResource(s"/transaction1.json")
+      val json2 = readResource(s"/transaction2.json")
 
       val sinkRecord1 = new SinkRecord("topic1", 0, null, "key1", Schema.STRING_SCHEMA, json1, 1000)
       val sinkRecord2 = new SinkRecord("topic2", 0, null, "key2", Schema.STRING_SCHEMA, json2, 1000)
@@ -147,11 +149,12 @@ class CosmosDbSinkTaskJsonTest
       )
         .thenReturn(r2)
 
-      val config   = CosmosDbConfig(map)
-      val settings = CosmosDbSinkSettings(config)
-      val kcqlMap  = settings.kcql.map(c => c.getSource -> c).toMap
+      val config         = CosmosDbConfig(map)
+      val settings       = CosmosDbSinkSettings(config)
+      val kcqlMap        = settings.kcql.map(c => c.getSource -> c).toMap
+      val batchPolicyMap = settings.kcql.map(c => c.getSource -> config.commitPolicy(c)).toMap
 
-      val writer = new CosmosDbWriterManager(sinkName, kcqlMap, settings, documentClient)
+      val writer = new CosmosDbWriterManager(sinkName, kcqlMap, batchPolicyMap, settings, documentClient)
       writer.write(Seq(sinkRecord1, sinkRecord2))
 
       verify(coll1Resource)
@@ -179,9 +182,8 @@ class CosmosDbSinkTaskJsonTest
       val (coll1Resource: CosmosContainer, _: CosmosContainer, documentClient: CosmosClient) =
         mockCollectionsAndDatabase
 
-      val json1 = scala.io.Source.fromFile(getClass.getResource(s"/transaction1.json").toURI.getPath).mkString
-
-      val json2 = scala.io.Source.fromFile(getClass.getResource(s"/transaction2.json").toURI.getPath).mkString
+      val json1 = readResource(s"/transaction1.json")
+      val json2 = readResource(s"/transaction2.json")
 
       val sinkRecord1 = new SinkRecord("topic1", 0, null, "key1", Schema.STRING_SCHEMA, json1, 1000)
       val sinkRecord2 = new SinkRecord("topic1", 0, null, "key2", Schema.STRING_SCHEMA, json2, 1000)
@@ -214,11 +216,12 @@ class CosmosDbSinkTaskJsonTest
       )
         .thenReturn(r2)
 
-      val config   = CosmosDbConfig(map)
-      val settings = CosmosDbSinkSettings(config)
-      val kcqlMap  = settings.kcql.map(c => c.getSource -> c).toMap
+      val config         = CosmosDbConfig(map)
+      val settings       = CosmosDbSinkSettings(config)
+      val kcqlMap        = settings.kcql.map(c => c.getSource -> c).toMap
+      val batchPolicyMap = settings.kcql.map(c => c.getSource -> config.commitPolicy(c)).toMap
 
-      val writer = new CosmosDbWriterManager(sinkName, kcqlMap, settings, documentClient)
+      val writer = new CosmosDbWriterManager(sinkName, kcqlMap, batchPolicyMap, settings, documentClient)
       writer.write(Seq(sinkRecord1, sinkRecord2))
 
       verify(coll1Resource)

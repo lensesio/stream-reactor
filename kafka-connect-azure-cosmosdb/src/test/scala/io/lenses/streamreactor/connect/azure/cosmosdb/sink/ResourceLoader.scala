@@ -14,11 +14,12 @@
  * limitations under the License.
  */
 package io.lenses.streamreactor.connect.azure.cosmosdb.sink
+import scala.io.Source
+import scala.util.Using
 
-import org.mockito.ArgumentMatchers
-
-trait MatchingArgument {
-  def argThat[T](thunk: T => Boolean): T = ArgumentMatchers.argThat {
-    (argument: T) => thunk(argument)
-  }
+object ResourceLoader {
+  def readResource(path: String): String =
+    Using(Source.fromURL(getClass.getResource(path))) { source =>
+      source.mkString
+    }.getOrElse(throw new RuntimeException(s"Could not read resource at: $path"))
 }

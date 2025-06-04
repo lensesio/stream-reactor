@@ -62,7 +62,7 @@ case class Transaction(
 }
 
 object Transaction {
-  val ConnectSchema = SchemaBuilder.struct
+  val ConnectSchema: Schema = SchemaBuilder.struct
     .name("transaction")
     .field("lock_time", Schema.INT64_SCHEMA)
     .field("ver", Schema.INT32_SCHEMA)
@@ -81,18 +81,18 @@ object Transaction {
   implicit class TransactionToSourceRecordConverter(val tx: Transaction) extends AnyVal {
     def toSourceRecord(topic: String, partition: Int, key: Option[String]) =
       new SourceRecord(Option(key).map(Collections.singletonMap("Blockchain", _)).orNull,
-                       getOffset(),
+                       getOffset,
                        topic,
                        partition,
                        key.map(_ => Schema.STRING_SCHEMA).orNull,
                        key.orNull,
                        ConnectSchema,
-                       tx.toStruct(),
+                       tx.toStruct,
       )
 
-    private def getOffset() = Collections.singletonMap("position", System.currentTimeMillis())
+    private def getOffset = Collections.singletonMap("position", System.currentTimeMillis())
 
-    def toStruct(): Struct = {
+    def toStruct: Struct = {
       val struct = new Struct(ConnectSchema)
         .put("lock_time", tx.lock_time)
         .put("ver", tx.ver)
@@ -105,17 +105,17 @@ object Transaction {
         .put("relayed_by", tx.relayed_by)
 
       tx.out.headOption.foreach { _ =>
-        struct.put("out", tx.out.map(_.toStruct()).asJava)
+        struct.put("out", tx.out.map(_.toStruct).asJava)
       }
       tx.rbf.foreach(struct.put("rbf", _))
       tx.inputs.headOption.foreach { _ =>
         val inputs = new util.ArrayList[Struct]
-        tx.inputs.foreach(i => inputs.add(i.toStruct()))
+        tx.inputs.foreach(i => inputs.add(i.toStruct))
         struct.put("inputs", inputs)
       }
       tx.out.headOption.foreach { _ =>
         val outputs = new util.ArrayList[Struct]
-        tx.out.foreach(output => outputs.add(output.toStruct()))
+        tx.out.foreach(output => outputs.add(output.toStruct))
       }
 
       struct

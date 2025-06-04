@@ -17,6 +17,7 @@ package io.lenses.streamreactor.connect.azure.cosmosdb.sink.writer
 
 import com.typesafe.scalalogging.StrictLogging
 import io.lenses.kcql.Kcql
+import io.lenses.streamreactor.common.batch.BatchPolicy
 import io.lenses.streamreactor.common.errors.RetryErrorPolicy
 import io.lenses.streamreactor.connect.azure.cosmosdb.CosmosClientProvider
 import io.lenses.streamreactor.connect.azure.cosmosdb.config.CosmosDbConfig
@@ -54,6 +55,11 @@ object CosmosDbWriterFactory extends StrictLogging {
         }
         c.getSource -> c
       }.toMap
-    new CosmosDbWriterManager(sinkName, configMap, settings, client)
+    val batchPolicyMap: Map[String, BatchPolicy] = settings.kcql
+      .map {
+        c =>
+          c.getSource -> connectorConfig.commitPolicy(c)
+      }.toMap
+    new CosmosDbWriterManager(sinkName, configMap, batchPolicyMap, settings, client)
   }
 }

@@ -54,7 +54,7 @@ object CosmosDbConfigConstants {
   val ERROR_RETRY_INTERVAL_DOC     = "The time in milliseconds between retries."
   val ERROR_RETRY_INTERVAL_DEFAULT = "60000"
 
-  val NBR_OF_RETRIES_CONFIG  = s"$CONNECTOR_PREFIX.${MAX_RETRIES_PROP_SUFFIX}"
+  val NBR_OF_RETRIES_CONFIG  = s"$CONNECTOR_PREFIX.$MAX_RETRIES_PROP_SUFFIX"
   val NBR_OF_RETRIES_DOC     = "The maximum number of times to try the write again."
   val NBR_OF_RETIRES_DEFAULT = 20
 
@@ -92,7 +92,7 @@ object CosmosDbConfigConstants {
   val PROXY_HOST_DOC     = "Specifies the connection proxy details."
   val PROXY_HOST_DISPLAY = "Proxy URI"
 
-  val PROGRESS_COUNTER_ENABLED         = PROGRESS_ENABLED_CONST
+  val PROGRESS_COUNTER_ENABLED: String = PROGRESS_ENABLED_CONST
   val PROGRESS_COUNTER_ENABLED_DOC     = "Enables the output for how many records have been processed"
   val PROGRESS_COUNTER_ENABLED_DEFAULT = false
   val PROGRESS_COUNTER_ENABLED_DISPLAY = "Enable progress counter"
@@ -103,6 +103,13 @@ object CosmosDbConfigConstants {
       |The number of errors to tolerate before failing the sink.
       |""".stripMargin
   val ErrorThresholdDefault = 5
+
+  val EnableFlushCountProp: String = s"$CONNECTOR_PREFIX.flush.count.enable"
+  val EnableFlushCountDoc: String =
+    """
+      |Flush on count can be disabled by setting this property to 'false'.
+      |""".stripMargin
+  val EnableFlushCountDefault = true
 
   val UploadSyncPeriodProp: String = s"$CONNECTOR_PREFIX.upload.sync.period"
   val UploadSyncPeriodDoc: String =

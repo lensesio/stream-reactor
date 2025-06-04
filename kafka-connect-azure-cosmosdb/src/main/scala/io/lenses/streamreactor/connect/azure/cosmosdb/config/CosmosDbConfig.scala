@@ -19,7 +19,6 @@ import com.azure.cosmos.ConsistencyLevel
 import io.lenses.streamreactor.common.config.KcqlWithFieldsSettings
 import io.lenses.streamreactor.common.config.base.model.ConnectorPrefix
 import io.lenses.streamreactor.common.config.base.traits._
-import io.lenses.streamreactor.connect.azure.cosmosdb.config.kcqlprops.FlushSettings
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.Importance
 import org.apache.kafka.common.config.ConfigDef.Type
@@ -220,6 +219,17 @@ object CosmosDbConfig {
       5,
       ConfigDef.Width.LONG,
       CosmosDbConfigConstants.ErrorThresholdProp,
+    )
+    .define(
+      CosmosDbConfigConstants.EnableFlushCountProp,
+      Type.BOOLEAN,
+      false,
+      Importance.MEDIUM,
+      CosmosDbConfigConstants.EnableFlushCountDoc,
+      "Bulk",
+      6,
+      ConfigDef.Width.LONG,
+      CosmosDbConfigConstants.EnableFlushCountProp,
     )
 
   new io.lenses.streamreactor.common.config.base.KcqlSettings(new ConnectorPrefix(

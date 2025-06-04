@@ -79,7 +79,7 @@ object CosmosDbSinkSettings extends StrictLogging {
                              consistencyLevel,
                              config.getBoolean(CosmosDbConfigConstants.CREATE_DATABASE_CONFIG),
                              Option(config.getString(CosmosDbConfigConstants.PROXY_HOST_CONFIG)),
-                             config.getKeySource(),
+                             config.getKeySource,
                              retries,
                              config.getBoolean(CosmosDbConfigConstants.BULK_CONFIG),
                              config.getInt(CosmosDbConfigConstants.MaxQueueSizeProp),

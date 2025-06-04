@@ -13,58 +13,54 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.lenses.streamreactor.connect.azure.cosmosdb.config.kcqlprops
+package io.lenses.streamreactor.connect.azure.cosmosdb.config
 
+import com.typesafe.scalalogging.LazyLogging
 import io.lenses.kcql.Kcql
+import io.lenses.streamreactor.common.batch._
 import io.lenses.streamreactor.common.config.base.traits.BaseSettings
-import io.lenses.streamreactor.common.config.base.traits.WithConnectorPrefix
+import io.lenses.streamreactor.connect.azure.cosmosdb.config.CosmosDbConfigConstants.EnableFlushCountProp
+import io.lenses.streamreactor.connect.azure.cosmosdb.config.kcqlprops.DurationConverters.RichFiniteDuration
 import io.lenses.streamreactor.connect.azure.cosmosdb.config.kcqlprops.PropsKeyEnum.FlushCount
 import io.lenses.streamreactor.connect.azure.cosmosdb.config.kcqlprops.PropsKeyEnum.FlushInterval
 import io.lenses.streamreactor.connect.azure.cosmosdb.config.kcqlprops.PropsKeyEnum.FlushSize
-import io.lenses.streamreactor.connect.cloud.common.sink.commit.CommitPolicy
-import io.lenses.streamreactor.connect.cloud.common.sink.commit.CommitPolicyCondition
-import io.lenses.streamreactor.connect.cloud.common.sink.commit.Count
-import io.lenses.streamreactor.connect.cloud.common.sink.commit.FileSize
-import io.lenses.streamreactor.connect.cloud.common.sink.commit.Interval
+import io.lenses.streamreactor.connect.azure.cosmosdb.config.kcqlprops.CloudSinkProps
+import io.lenses.streamreactor.connect.azure.cosmosdb.config.kcqlprops.PropsKeyEntry
+import io.lenses.streamreactor.connect.azure.cosmosdb.config.kcqlprops.PropsKeyEnum
 import io.lenses.streamreactor.connect.config.kcqlprops.KcqlProperties
 
+import java.time.Clock
+import java.time.Duration
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.duration.FiniteDuration
 
 object FlushSettings {
 
-  val defaultFlushSize:     Long           = 500000000L
-  val defaultFlushInterval: FiniteDuration = 3600.seconds
-  val defaultFlushCount:    Long           = 50000L
-
-}
-trait FlushConfigKeys extends WithConnectorPrefix {
-  val DISABLE_FLUSH_COUNT: String = s"$connectorPrefix.disable.flush.count"
+  private val defaultFlushSize:     Long           = 500000000L
+  private val defaultFlushInterval: FiniteDuration = 3600.seconds
+  private val defaultFlushCount:    Long           = 50000L
 
 }
 
-trait FlushSettings extends BaseSettings with FlushConfigKeys {
+trait FlushSettings extends BaseSettings with LazyLogging {
 
   import FlushSettings._
 
-  private def isFlushCountDisabled: Boolean =
-    getBoolean(s"$DISABLE_FLUSH_COUNT")
-
   private def isFlushCountEnabled: Boolean =
-    !isFlushCountDisabled
+    getBoolean(EnableFlushCountProp)
 
-  def commitPolicy(kcql: Kcql): CommitPolicy = {
+  def commitPolicy(kcql: Kcql): BatchPolicy = {
     val props: KcqlProperties[PropsKeyEntry, PropsKeyEnum.type] = CloudSinkProps.fromKcql(kcql)
-    val conditions: Seq[CommitPolicyCondition] = Seq(
+    val conditions: Seq[BatchPolicyCondition] = Seq(
       FileSize(flushSize(props)),
-      Interval(flushInterval(props)),
+      Interval(flushInterval(props), Clock.systemDefaultZone()),
     ) ++
-      flushCount(props).fold(Seq.empty[CommitPolicyCondition])(c => Seq(Count(c)))
-    CommitPolicy(conditions: _*)
+      flushCount(props).fold(Seq.empty[BatchPolicyCondition])(c => Seq(Count(c)))
+    BatchPolicy(logger, conditions: _*)
   }
 
-  private def flushInterval(props: KcqlProperties[PropsKeyEntry, PropsKeyEnum.type]): FiniteDuration =
-    props.getOptionalInt(FlushInterval).filter(_ > 0).map(_.seconds).getOrElse(defaultFlushInterval)
+  private def flushInterval(props: KcqlProperties[PropsKeyEntry, PropsKeyEnum.type]): Duration =
+    props.getOptionalInt(FlushInterval).filter(_ > 0).map(_.seconds).getOrElse(defaultFlushInterval).asJava
 
   private def flushSize(props: KcqlProperties[PropsKeyEntry, PropsKeyEnum.type]): Long =
     props.getOptionalLong(FlushSize).filter(_ > 0).getOrElse(defaultFlushSize)

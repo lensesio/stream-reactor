@@ -53,7 +53,7 @@ class SinkRecordToDocumentTest
           _.mkString,
         ).getOrElse(fail("resource not found"))
         val tx     = Json.fromJson[Transaction](json)
-        val record = new SinkRecord("topic1", 0, null, null, Transaction.ConnectSchema, tx.toStruct(), 0)
+        val record = new SinkRecord("topic1", 0, null, null, Transaction.ConnectSchema, tx.toStruct, 0)
 
         val fields        = Map.empty[String, String]
         val ignoredFields = Set.empty[String]

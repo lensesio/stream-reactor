@@ -21,6 +21,7 @@ import com.azure.cosmos.CosmosContainer
 import com.azure.cosmos.implementation.Document
 import com.azure.cosmos.models.CosmosItemResponse
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.`type`.MapType
 import io.lenses.streamreactor.connect.azure.cosmosdb.config.CosmosDbConfig
 import io.lenses.streamreactor.connect.azure.cosmosdb.config.CosmosDbConfigConstants
 import io.lenses.streamreactor.connect.azure.cosmosdb.config.CosmosDbSinkSettings
@@ -29,6 +30,7 @@ import org.apache.kafka.connect.sink.SinkRecord
 import org.mockito.MockitoSugar
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+import io.lenses.streamreactor.connect.azure.cosmosdb.sink.ResourceLoader.readResource
 
 class CosmosDbSinkTaskMapTest
     extends AnyWordSpec
@@ -40,7 +42,7 @@ class CosmosDbSinkTaskMapTest
   private val sinkName   = "mySinkName"
 
   val mapper = new ObjectMapper()
-  val `type` =
+  val `type`: MapType =
     mapper.getTypeFactory.constructMapType(classOf[java.util.HashMap[String, Any]], classOf[String], classOf[Any])
 
   "CosmosDbSinkTask" should {
@@ -55,10 +57,10 @@ class CosmosDbSinkTaskMapTest
       val (coll1Resource: CosmosContainer, coll2Resource: CosmosContainer, documentClient: CosmosClient) =
         mockCollectionsAndDatabase
 
-      val json1 = scala.io.Source.fromFile(getClass.getResource(s"/transaction1.json").toURI.getPath).mkString
+      val json1 = readResource(s"/transaction1.json")
       val map1: java.util.Map[String, Any] = mapper.readValue[java.util.Map[String, Any]](json1, `type`)
 
-      val json2 = scala.io.Source.fromFile(getClass.getResource(s"/transaction2.json").toURI.getPath).mkString
+      val json2 = readResource(s"/transaction2.json")
       val map2: java.util.Map[String, Any] = mapper.readValue[java.util.Map[String, Any]](json2, `type`)
 
       val sinkRecord1 = new SinkRecord("topic1", 0, null, "key1", null, map1, 1000)
@@ -90,11 +92,12 @@ class CosmosDbSinkTaskMapTest
       )
         .thenReturn(r2)
 
-      val config   = CosmosDbConfig(map)
-      val settings = CosmosDbSinkSettings(config)
-      val kcqlMap  = settings.kcql.map(c => c.getSource -> c).toMap
+      val config         = CosmosDbConfig(map)
+      val settings       = CosmosDbSinkSettings(config)
+      val kcqlMap        = settings.kcql.map(c => c.getSource -> c).toMap
+      val batchPolicyMap = settings.kcql.map(c => c.getSource -> config.commitPolicy(c)).toMap
 
-      val writer = new CosmosDbWriterManager(sinkName, kcqlMap, settings, documentClient)
+      val writer = new CosmosDbWriterManager(sinkName, kcqlMap, batchPolicyMap, settings, documentClient)
       writer.write(Seq(sinkRecord1, sinkRecord2))
 
       verify(coll1Resource)
@@ -122,10 +125,10 @@ class CosmosDbSinkTaskMapTest
       val (coll1Resource: CosmosContainer, coll2Resource: CosmosContainer, documentClient: CosmosClient) =
         mockCollectionsAndDatabase
 
-      val json1 = scala.io.Source.fromFile(getClass.getResource(s"/transaction1.json").toURI.getPath).mkString
+      val json1 = readResource(s"/transaction1.json")
       val map1: java.util.Map[String, Any] = mapper.readValue[java.util.Map[String, Any]](json1, `type`)
 
-      val json2 = scala.io.Source.fromFile(getClass.getResource(s"/transaction2.json").toURI.getPath).mkString
+      val json2 = readResource(s"/transaction2.json")
       val map2: java.util.Map[String, Any] = mapper.readValue[java.util.Map[String, Any]](json2, `type`)
 
       val sinkRecord1 = new SinkRecord("topic1", 0, null, "key1", null, map1, 1000)
@@ -157,11 +160,12 @@ class CosmosDbSinkTaskMapTest
       )
         .thenReturn(r2)
 
-      val config   = CosmosDbConfig(map)
-      val settings = CosmosDbSinkSettings(config)
-      val kcqlMap  = settings.kcql.map(c => c.getSource -> c).toMap
+      val config         = CosmosDbConfig(map)
+      val settings       = CosmosDbSinkSettings(config)
+      val kcqlMap        = settings.kcql.map(c => c.getSource -> c).toMap
+      val batchPolicyMap = settings.kcql.map(c => c.getSource -> config.commitPolicy(c)).toMap
 
-      val writer = new CosmosDbWriterManager(sinkName, kcqlMap, settings, documentClient)
+      val writer = new CosmosDbWriterManager(sinkName, kcqlMap, batchPolicyMap, settings, documentClient)
       writer.write(Seq(sinkRecord1, sinkRecord2))
 
       verify(coll1Resource)
@@ -189,10 +193,12 @@ class CosmosDbSinkTaskMapTest
       val (coll1Resource: CosmosContainer, _: CosmosContainer, documentClient: CosmosClient) =
         mockCollectionsAndDatabase
 
-      val json1 = scala.io.Source.fromFile(getClass.getResource(s"/transaction1.json").toURI.getPath).mkString
+      val json1 = readResource("/transaction1.json")
       val map1: java.util.Map[String, Any] = mapper.readValue[java.util.Map[String, Any]](json1, `type`)
-      val json2 = scala.io.Source.fromFile(getClass.getResource(s"/transaction2.json").toURI.getPath).mkString
+
+      val json2 = ResourceLoader.readResource("/transaction2.json")
       val map2: java.util.Map[String, Any] = mapper.readValue[java.util.Map[String, Any]](json2, `type`)
+
       val sinkRecord1 = new SinkRecord("topic1", 0, null, "key1", null, map1, 1000)
       val sinkRecord2 = new SinkRecord("topic1", 0, null, "key2", null, map2, 1000)
 
@@ -226,11 +232,12 @@ class CosmosDbSinkTaskMapTest
       )
         .thenReturn(r2)
 
-      val config   = CosmosDbConfig(map)
-      val settings = CosmosDbSinkSettings(config)
-      val kcqlMap  = settings.kcql.map(c => c.getSource -> c).toMap
+      val config         = CosmosDbConfig(map)
+      val settings       = CosmosDbSinkSettings(config)
+      val kcqlMap        = settings.kcql.map(c => c.getSource -> c).toMap
+      val batchPolicyMap = settings.kcql.map(c => c.getSource -> config.commitPolicy(c)).toMap
 
-      val writer = new CosmosDbWriterManager(sinkName, kcqlMap, settings, documentClient)
+      val writer = new CosmosDbWriterManager(sinkName, kcqlMap, batchPolicyMap, settings, documentClient)
       writer.write(Seq(sinkRecord1, sinkRecord2))
 
       verify(coll1Resource)
