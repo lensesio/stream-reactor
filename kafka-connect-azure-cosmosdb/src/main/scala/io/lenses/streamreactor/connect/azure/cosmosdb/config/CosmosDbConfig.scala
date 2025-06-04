@@ -179,7 +179,7 @@ object CosmosDbConfig {
     )
     .define(
       CosmosDbConfigConstants.MaxQueueOfferTimeoutProp,
-      Type.INT,
+      Type.LONG,
       CosmosDbConfigConstants.MaxQueueOfferTimeoutDefault,
       Importance.MEDIUM,
       CosmosDbConfigConstants.MaxQueueOfferTimeoutDoc,
@@ -201,7 +201,7 @@ object CosmosDbConfig {
     )
     .define(
       CosmosDbConfigConstants.UploadSyncPeriodProp,
-      Type.INT,
+      Type.LONG,
       CosmosDbConfigConstants.UploadSyncPeriodDefault,
       Importance.MEDIUM,
       CosmosDbConfigConstants.UploadSyncPeriodDoc,

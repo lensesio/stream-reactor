@@ -80,6 +80,8 @@ object SinkRecordToDocument extends ConverterUtil {
       record,
     ) match {
       case Left(value) => throw new ConnectException("error generating id field", value)
+      case Right(null) =>
+        throw new ConnectException("id field value is null, please check your configuration")
       case Right(value: String) => value
       case Right(value: AnyRef) =>
         throw new ConnectException(s"id field value not a String, it is a ${value.getClass.getName}")

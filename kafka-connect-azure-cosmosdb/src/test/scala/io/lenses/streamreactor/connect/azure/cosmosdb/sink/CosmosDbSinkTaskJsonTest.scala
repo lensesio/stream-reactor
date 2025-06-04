@@ -54,8 +54,8 @@ class CosmosDbSinkTaskJsonTest
       val json1 = scala.io.Source.fromFile(getClass.getResource(s"/transaction1.json").toURI.getPath).mkString
       val json2 = scala.io.Source.fromFile(getClass.getResource(s"/transaction2.json").toURI.getPath).mkString
 
-      val sinkRecord1 = new SinkRecord("topic1", 0, null, null, Schema.STRING_SCHEMA, json1, 1000)
-      val sinkRecord2 = new SinkRecord("topic2", 0, null, null, Schema.STRING_SCHEMA, json2, 1000)
+      val sinkRecord1 = new SinkRecord("topic1", 0, null, "key1", Schema.STRING_SCHEMA, json1, 1000)
+      val sinkRecord2 = new SinkRecord("topic2", 0, null, "key2", Schema.STRING_SCHEMA, json2, 1000)
 
       val doc1 = new Document(json1)
       val r1   = mock[CosmosItemResponse[Document]]
@@ -118,8 +118,8 @@ class CosmosDbSinkTaskJsonTest
       val json1 = scala.io.Source.fromFile(getClass.getResource(s"/transaction1.json").toURI.getPath).mkString
       val json2 = scala.io.Source.fromFile(getClass.getResource(s"/transaction2.json").toURI.getPath).mkString
 
-      val sinkRecord1 = new SinkRecord("topic1", 0, null, null, Schema.STRING_SCHEMA, json1, 1000)
-      val sinkRecord2 = new SinkRecord("topic2", 0, null, null, Schema.STRING_SCHEMA, json2, 1000)
+      val sinkRecord1 = new SinkRecord("topic1", 0, null, "key1", Schema.STRING_SCHEMA, json1, 1000)
+      val sinkRecord2 = new SinkRecord("topic2", 0, null, "key2", Schema.STRING_SCHEMA, json2, 1000)
 
       val doc1 = new Document(json1)
       val r1   = mock[CosmosItemResponse[Document]]
@@ -183,11 +183,11 @@ class CosmosDbSinkTaskJsonTest
 
       val json2 = scala.io.Source.fromFile(getClass.getResource(s"/transaction2.json").toURI.getPath).mkString
 
-      val sinkRecord1 = new SinkRecord("topic1", 0, null, null, Schema.STRING_SCHEMA, json1, 1000)
-      val sinkRecord2 = new SinkRecord("topic1", 0, null, null, Schema.STRING_SCHEMA, json2, 1000)
+      val sinkRecord1 = new SinkRecord("topic1", 0, null, "key1", Schema.STRING_SCHEMA, json1, 1000)
+      val sinkRecord2 = new SinkRecord("topic1", 0, null, "key2", Schema.STRING_SCHEMA, json2, 1000)
 
       val doc1 = new Document(json1)
-      doc1.setId(doc1.get("time").toString)
+      doc1.setId("key1")
       val r1 = mock[CosmosItemResponse[Document]]
       when(r1.getItem).thenReturn(doc1)
 
@@ -201,7 +201,7 @@ class CosmosDbSinkTaskJsonTest
         .thenReturn(r1)
 
       val doc2 = new Document(json2)
-      doc2.setId(doc2.get("time").toString)
+      doc2.setId("key2")
       val r2 = mock[CosmosItemResponse[Document]]
       when(r2.getItem).thenReturn(doc2)
 

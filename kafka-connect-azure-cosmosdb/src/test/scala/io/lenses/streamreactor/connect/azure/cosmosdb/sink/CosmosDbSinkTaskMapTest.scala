@@ -61,8 +61,8 @@ class CosmosDbSinkTaskMapTest
       val json2 = scala.io.Source.fromFile(getClass.getResource(s"/transaction2.json").toURI.getPath).mkString
       val map2: java.util.Map[String, Any] = mapper.readValue[java.util.Map[String, Any]](json2, `type`)
 
-      val sinkRecord1 = new SinkRecord("topic1", 0, null, null, null, map1, 1000)
-      val sinkRecord2 = new SinkRecord("topic2", 0, null, null, null, map2, 1000)
+      val sinkRecord1 = new SinkRecord("topic1", 0, null, "key1", null, map1, 1000)
+      val sinkRecord2 = new SinkRecord("topic2", 0, null, "key2", null, map2, 1000)
 
       val doc1 = new Document(json1)
       val r1   = mock[CosmosItemResponse[Document]]
@@ -128,8 +128,8 @@ class CosmosDbSinkTaskMapTest
       val json2 = scala.io.Source.fromFile(getClass.getResource(s"/transaction2.json").toURI.getPath).mkString
       val map2: java.util.Map[String, Any] = mapper.readValue[java.util.Map[String, Any]](json2, `type`)
 
-      val sinkRecord1 = new SinkRecord("topic1", 0, null, null, null, map1, 1000)
-      val sinkRecord2 = new SinkRecord("topic2", 0, null, null, null, map2, 1000)
+      val sinkRecord1 = new SinkRecord("topic1", 0, null, "key1", null, map1, 1000)
+      val sinkRecord2 = new SinkRecord("topic2", 0, null, "key2", null, map2, 1000)
 
       val doc1 = new Document(json1)
       val r1   = mock[CosmosItemResponse[Document]]
@@ -193,11 +193,12 @@ class CosmosDbSinkTaskMapTest
       val map1: java.util.Map[String, Any] = mapper.readValue[java.util.Map[String, Any]](json1, `type`)
       val json2 = scala.io.Source.fromFile(getClass.getResource(s"/transaction2.json").toURI.getPath).mkString
       val map2: java.util.Map[String, Any] = mapper.readValue[java.util.Map[String, Any]](json2, `type`)
-      val sinkRecord1 = new SinkRecord("topic1", 0, null, null, null, map1, 1000)
-      val sinkRecord2 = new SinkRecord("topic1", 0, null, null, null, map2, 1000)
+      val sinkRecord1 = new SinkRecord("topic1", 0, null, "key1", null, map1, 1000)
+      val sinkRecord2 = new SinkRecord("topic1", 0, null, "key2", null, map2, 1000)
 
       val doc1 = new Document(json1)
-      doc1.setId(doc1.get("time").toString)
+      doc1.setId("key1")
+
       val r1 = mock[CosmosItemResponse[Document]]
       when(r1.getItem).thenReturn(doc1)
 
@@ -211,7 +212,8 @@ class CosmosDbSinkTaskMapTest
         .thenReturn(r1)
 
       val doc2 = new Document(json2)
-      doc2.setId(doc2.get("time").toString)
+      doc2.setId("key2")
+
       val r2 = mock[CosmosItemResponse[Document]]
       when(r2.getItem).thenReturn(doc2)
 
