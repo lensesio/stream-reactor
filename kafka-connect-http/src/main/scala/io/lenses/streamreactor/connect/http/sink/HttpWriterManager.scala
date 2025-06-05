@@ -31,7 +31,6 @@ import io.lenses.streamreactor.connect.cloud.common.model.Topic
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
 import io.lenses.streamreactor.connect.http.sink.client.HttpRequestSender
 import io.lenses.streamreactor.common.batch.BatchPolicy
-import io.lenses.streamreactor.common.batch.RecordsQueue
 import io.lenses.streamreactor.common.batch.HttpBatchPolicy
 import io.lenses.streamreactor.common.batch.HttpCommitContext
 import io.lenses.streamreactor.connect.http.sink.config.ExponentialRetryConfig
@@ -223,12 +222,12 @@ class HttpWriterManager(
       sender   = httpRequestSender,
       template = template,
       recordsQueue =
-        new RecordsQueue[RenderedRecord](recordsQueueRef,
-                                         commitContextRef,
-                                         batchPolicy,
-                                         maxQueueSize,
-                                         maxQueueOfferTimeout,
-                                         offsetsRef,
+        new RecordsQueue(recordsQueueRef,
+                         commitContextRef,
+                         batchPolicy,
+                         maxQueueSize,
+                         maxQueueOfferTimeout,
+                         offsetsRef,
         ),
       errorThreshold   = errorThreshold,
       tidyJson         = tidyJson,

@@ -13,14 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.lenses.streamreactor.common.batch
-
+package io.lenses.streamreactor.connect.http.sink
 import cats.data.NonEmptySeq
 import cats.effect.IO
 import cats.effect.Ref
-import cats.implicits.toFoldableOps
+import io.lenses.streamreactor.common.batch.HttpCommitContext
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.common.batch.RecordsQueueBatcher.takeBatch
+import io.lenses.streamreactor.common.batch.NonEmptyBatchInfo
+import io.lenses.streamreactor.common.batch.EmptyBatchInfo
+import io.lenses.streamreactor.common.batch.BatchPolicy
+
+import io.lenses.streamreactor.connect.http.sink.tpl.RenderedRecord
+import cats.implicits.toFoldableOps
+import io.lenses.streamreactor.common.batch.BatchInfo
 import io.lenses.streamreactor.connect.cloud.common.model.Offset
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
 import org.apache.kafka.connect.errors.RetriableException
@@ -37,8 +43,8 @@ import scala.concurrent.duration.FiniteDuration
  * @param commitContextRef A reference to the current commit context.
  * @param commitPolicy The policy that determines when a batch of records should be committed.
  */
-class RecordsQueue[B <: BatchRecord](
-  val recordsQueue: Ref[IO, Queue[B]],
+class RecordsQueue(
+  val recordsQueue: Ref[IO, Queue[RenderedRecord]],
   commitContextRef: Ref[IO, HttpCommitContext],
   batchPolicy:      BatchPolicy,
   maxSize:          Int,
@@ -55,10 +61,10 @@ class RecordsQueue[B <: BatchRecord](
    * @param records The records to be enqueued.
    * @return An `IO` action that enqueues the records or throws a RetriableException if the queue remains full.
    */
-  def enqueueAll(records: NonEmptySeq[B]): IO[Unit] = {
+  def enqueueAll(records: NonEmptySeq[RenderedRecord]): IO[Unit] = {
 
     // Filter out records with offsets that have already been processed
-    def filterDuplicates(records: List[B], offsetMap: Map[TopicPartition, Offset]): List[B] =
+    def filterDuplicates(records: List[RenderedRecord], offsetMap: Map[TopicPartition, Offset]): List[RenderedRecord] =
       records.filter { record =>
         val tp = record.topicPartitionOffset.toTopicPartition
         offsetMap.get(tp) match {
@@ -70,7 +76,7 @@ class RecordsQueue[B <: BatchRecord](
         }
       }
 
-    def attemptEnqueue(remainingRecords: List[B], startTime: Long): IO[Unit] =
+    def attemptEnqueue(remainingRecords: List[RenderedRecord], startTime: Long): IO[Unit] =
       if (remainingRecords.isEmpty) {
         IO.unit
       } else {
@@ -148,7 +154,7 @@ class RecordsQueue[B <: BatchRecord](
    * @param nonEmptyBatch The batch of records to be dequeued.
    * @return An `IO` action that dequeues the records.
    */
-  def dequeue(nonEmptyBatch: NonEmptySeq[B]): IO[Unit] =
+  def dequeue(nonEmptyBatch: NonEmptySeq[RenderedRecord]): IO[Unit] =
     recordsQueue.access.flatMap {
       case (records, updater) =>
         val lookup = nonEmptyBatch.toSeq.toSet

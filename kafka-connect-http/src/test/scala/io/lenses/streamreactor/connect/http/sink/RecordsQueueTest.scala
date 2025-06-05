@@ -40,7 +40,6 @@ import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
 import io.lenses.streamreactor.common.batch.BatchPolicy
 import io.lenses.streamreactor.common.batch.NonEmptyBatchInfo
 import io.lenses.streamreactor.common.batch.EmptyBatchInfo
-import io.lenses.streamreactor.common.batch.RecordsQueue
 import io.lenses.streamreactor.common.batch.BatchResult
 import io.lenses.streamreactor.common.batch.HttpCommitContext
 import io.lenses.streamreactor.connect.http.sink.tpl.RenderedRecord

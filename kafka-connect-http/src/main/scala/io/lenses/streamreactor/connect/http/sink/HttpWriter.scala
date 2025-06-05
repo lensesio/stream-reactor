@@ -24,7 +24,6 @@ import io.lenses.streamreactor.common.batch.EmptyBatchInfo
 import io.lenses.streamreactor.common.batch.HttpCommitContext
 import io.lenses.streamreactor.common.batch.NonEmptyBatchInfo
 import io.lenses.streamreactor.common.batch.OffsetMergeUtils
-import io.lenses.streamreactor.common.batch.RecordsQueue
 import io.lenses.streamreactor.common.utils.CyclopsToScalaOption.convertToCyclopsOption
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
 import io.lenses.streamreactor.connect.http.sink.client.HttpRequestSender
@@ -44,7 +43,7 @@ class HttpWriter(
   sinkName:         String,
   sender:           HttpRequestSender,
   template:         TemplateType,
-  recordsQueue:     RecordsQueue[RenderedRecord],
+  recordsQueue:     RecordsQueue,
   errorThreshold:   Int,
   tidyJson:         Boolean,
   errorReporter:    ReportingController[HttpFailureConnectorSpecificRecordData],
