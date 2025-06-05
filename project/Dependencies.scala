@@ -102,7 +102,7 @@ object Dependencies {
     val lz4Version = "1.8.0"
 
     val bouncyCastleVersion = "1.80"
-    val nettyVersion        = "4.2.1.Final"
+    val nettyVersion        = "4.2.2.Final"
 
     val cassandraDriverVersion = "3.11.5"
     val jsonPathVersion        = "2.9.0"
