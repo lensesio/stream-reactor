@@ -42,7 +42,7 @@ object Dependencies {
     val javaFakerVersion               = "1.0.2"
 
     val mockitoJunitJupiterVersion = "5.18.0"
-    val junitJupiterVersion        = "5.12.2"
+    val junitJupiterVersion        = "5.13.1"
     val assertjCoreVersion         = "3.27.3"
 
     val cyclopsVersion = "10.4.1"
