@@ -362,6 +362,7 @@ object Dependencies {
   lazy val testcontainersCassandra     = "org.testcontainers" % "cassandra"      % testcontainersVersion
   lazy val testcontainersElasticsearch = "org.testcontainers" % "elasticsearch"  % testcontainersVersion
   lazy val testcontainersMongodb       = "org.testcontainers" % "mongodb"        % testcontainersVersion
+  lazy val testcontainersCosmosDb      = "org.testcontainers" % "azure"          % testcontainersVersion
 
   lazy val influx = "com.influxdb" % "influxdb-client-java" % influxVersion
 
@@ -564,6 +565,8 @@ trait Dependencies {
     baseTestDeps ++ Seq(testContainersScala, testContainersScalaCassandra)
 
   val kafkaConnectAzureCosmosDbDeps: Seq[ModuleID] = Seq(azureBom, azureCosmosDb)
+  val kafkaConnectAzureCosmosDbTestDeps: Seq[ModuleID] =
+    baseTestDeps ++ Seq(testcontainersCosmosDb)
 
   val kafkaConnectInfluxDbDeps: Seq[ModuleID] = Seq(influx, avro4s, avro4sJson)
 

@@ -15,19 +15,22 @@
  */
 package io.lenses.streamreactor.connect.azure.cosmosdb
 
+import cats.implicits._
 import com.azure.core.http.ProxyOptions
 import com.azure.cosmos.CosmosClient
 import com.azure.cosmos.CosmosClientBuilder
 import com.azure.cosmos.GatewayConnectionConfig
 import io.lenses.streamreactor.connect.azure.cosmosdb.config.CosmosDbSinkSettings
+import org.apache.kafka.connect.errors.ConnectException
 
 import java.net.InetSocketAddress
+import scala.util.Try
 
 /**
  * Creates an instance of Azure DocumentClient class
  */
 object CosmosClientProvider {
-  def get(settings: CosmosDbSinkSettings): CosmosClient = {
+  def get(settings: CosmosDbSinkSettings): Either[ConnectException, CosmosClient] = Try {
 
     val gateway = settings.proxy.map { proxy =>
       val proxyOptions = new ProxyOptions(
@@ -45,6 +48,12 @@ object CosmosClientProvider {
       .gatewayMode(gateway)
       .consistencyLevel(settings.consistency)
       .buildClient()
+
+  }.toEither.leftMap {
+    case npe: NullPointerException =>
+      new ConnectException("Null value found in CosmosClient settings, please check your configuration.", npe)
+    case ex: IllegalArgumentException =>
+      new ConnectException(s"Exception while creating CosmosClient, ${ex.getMessage}", ex)
 
   }
 }

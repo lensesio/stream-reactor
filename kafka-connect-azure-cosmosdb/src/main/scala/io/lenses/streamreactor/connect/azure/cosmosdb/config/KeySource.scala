@@ -39,7 +39,10 @@ case object MetadataKeySource extends KeySource {
     topicPartitionOffset: TopicPartitionOffset,
     sinkRecord:           SinkRecord,
   ): Either[Throwable, AnyRef] =
-    "%s-%d-%s".format(topicPartitionOffset.topic, topicPartitionOffset.partition, topicPartitionOffset.offset).asRight
+    "%s-%d-%s".format(topicPartitionOffset.topic.value,
+                      topicPartitionOffset.partition,
+                      topicPartitionOffset.offset.value,
+    ).asRight
 }
 
 case class KeyPathKeySource(path: String) extends KeySource {

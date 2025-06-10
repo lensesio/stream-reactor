@@ -13,21 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.lenses.streamreactor.connect.azure.cosmosdb
+package io.lenses.streamreactor.connect.azure.cosmosdb.util
 
-import com.fasterxml.jackson.databind.ObjectMapper
-import org.json4s._
-import org.json4s.native.JsonMethods._
-import com.fasterxml.jackson.module.scala.DefaultScalaModule
-object Json {
-  implicit val formats: Formats = DefaultFormats
+import java.io.File
+import java.io.FileOutputStream
+import java.security.KeyStore
+import scala.util.Using
 
-  private val mapper = new ObjectMapper
-  mapper.registerModule(DefaultScalaModule)
+object TempKeyStoreWriter {
+  @throws[Exception]
+  def writeToTempFile(keyStore: KeyStore, password: Array[Char]): File = {
+    val tempFile = File.createTempFile("keystore", ".jks")
+    tempFile.deleteOnExit() // ensure cleanup on JVM exit
 
-  def fromJson[T <: Product: Manifest](json: String): T =
-    parse(json).extract[T]
-
-  def toJson[T](t: T): String =
-    mapper.writeValueAsString(t)
+    Using.resource(new FileOutputStream(tempFile)) { fos =>
+      keyStore.store(fos, password)
+    }
+    tempFile
+  }
 }

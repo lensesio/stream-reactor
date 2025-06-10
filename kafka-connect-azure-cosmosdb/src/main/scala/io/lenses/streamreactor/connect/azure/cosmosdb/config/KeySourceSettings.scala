@@ -21,13 +21,15 @@ import io.lenses.streamreactor.connect.azure.cosmosdb.config.CosmosDbConfigConst
 
 trait KeySourceSettings extends BaseSettings {
 
-  def getKeySource: KeySource = {
-    val pathConfig = getString(KEY_PATH_CONFIG)
+  def getKeySource: KeySource =
     getString(KEY_SOURCE_CONFIG).toLowerCase match {
-      case "key"       => KeyKeySource
-      case "metadata"  => MetadataKeySource
-      case "keypath"   => KeyPathKeySource(pathConfig)
-      case "valuepath" => ValuePathKeySource(pathConfig)
+      case "key"      => KeyKeySource
+      case "metadata" => MetadataKeySource
+      case "keypath" =>
+        val pathConfig = getString(KEY_PATH_CONFIG)
+        KeyPathKeySource(pathConfig)
+      case "valuepath" =>
+        val pathConfig = getString(KEY_PATH_CONFIG)
+        ValuePathKeySource(pathConfig)
     }
-  }
 }

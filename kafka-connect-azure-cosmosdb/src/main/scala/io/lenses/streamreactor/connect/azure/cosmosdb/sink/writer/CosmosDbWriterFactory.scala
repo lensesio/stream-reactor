@@ -45,7 +45,10 @@ object CosmosDbWriterFactory extends StrictLogging {
       case _ =>
     }
     logger.info(s"Initialising Document Db writer.")
-    val client = CosmosClientProvider.get(settings)
+    val client = CosmosClientProvider.get(settings) match {
+      case Right(client) => client
+      case Left(ex)      => throw ex
+    }
     val configMap: Map[String, Kcql] = settings.kcql
       .map { c =>
         Option(

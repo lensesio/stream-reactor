@@ -52,7 +52,13 @@ class CosmosDbSinkConnector private[sink] (builder: CosmosDbSinkSettings => Cosm
     with JarManifestProvided {
   private var configProps: util.Map[String, String] = _
 
-  def this() = this(CosmosClientProvider.get)
+  @throws[ConnectException]
+  def this() = this(settings =>
+    CosmosClientProvider.get(settings) match {
+      case Right(client) => client
+      case Left(ex)      => throw ex
+    },
+  )
 
   /**
    * States which SinkTask class to use

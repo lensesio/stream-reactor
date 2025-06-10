@@ -5,6 +5,7 @@ import Dependencies.`lombok`
 import Dependencies.globalExcludeDeps
 import Dependencies.gson
 import Settings.*
+import Settings.kafkaConnectAzureCosmosDbTestDeps
 import sbt.Keys.libraryDependencies
 import sbt.*
 import sbt.Project.projectToLocalProject
@@ -268,7 +269,7 @@ lazy val `azure-cosmosdb` = (project in file("kafka-connect-azure-cosmosdb"))
   )
   .configureAssembly(true)
   .configureMavenDescriptor()
-  .configureTests(baseTestDeps)
+  .configureTests(kafkaConnectAzureCosmosDbTestDeps)
   .enablePlugins(PackPlugin)
 
 lazy val cassandra = (project in file("kafka-connect-cassandra"))
