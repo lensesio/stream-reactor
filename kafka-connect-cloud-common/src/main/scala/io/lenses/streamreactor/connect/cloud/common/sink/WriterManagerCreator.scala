@@ -136,6 +136,7 @@ class WriterManagerCreator[MD <: FileMetadata, SC <: CloudSinkConfig[_]] extends
           bucketAndPrefixFn,
         ),
         pendingOperationsProcessors,
+        io.indexesDirectoryName,
       ),
     ).getOrElse(new NoIndexManager())
 
