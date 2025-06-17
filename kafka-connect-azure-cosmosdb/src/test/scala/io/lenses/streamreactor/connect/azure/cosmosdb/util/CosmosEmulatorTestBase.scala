@@ -15,6 +15,7 @@
  */
 package io.lenses.streamreactor.connect.azure.cosmosdb.util
 
+import io.lenses.streamreactor.connect.cosmos.{CosmosCertLoader, TempKeyStoreWriter}
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.funsuite.AnyFunSuiteLike
 import org.testcontainers.containers.wait.strategy.Wait
@@ -24,7 +25,7 @@ import org.testcontainers.utility.DockerImageName
 
 trait CosmosEmulatorTestBase extends AnyFunSuiteLike with BeforeAndAfterAll {
 
-  protected val network = Network.newNetwork()
+  protected val network: Network = Network.newNetwork()
   protected var cosmosEmulatorContainer: CosmosDBEmulatorContainer = _
 
   override def beforeAll(): Unit = {

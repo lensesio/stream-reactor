@@ -13,15 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.lenses.streamreactor.connect.azure.cosmosdb.util
+package io.lenses.streamreactor.connect.cosmos
 
 import com.typesafe.scalalogging.LazyLogging
 import org.testcontainers.containers.GenericContainer
 
 import java.io._
 import java.security.KeyStore
-import java.security.cert.CertificateFactory
-import java.security.cert.X509Certificate
+import java.security.cert.{CertificateFactory, X509Certificate}
 import scala.util.Try
 
 object CosmosCertLoader extends LazyLogging {

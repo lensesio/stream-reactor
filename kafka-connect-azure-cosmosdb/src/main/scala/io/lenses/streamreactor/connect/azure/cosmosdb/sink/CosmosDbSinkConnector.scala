@@ -139,28 +139,24 @@ class CosmosDbSinkConnector private[sink] (builder: CosmosDbSinkSettings => Cosm
       ) match {
         case Failure(ex) =>
           logger.warn(s"Collection [$collectionName] doesn't exist. Creating it...", ex)
-
-          Try(database.createContainer(collectionName, "partitionKeyPath", throughputProperties)) match {
-            case Failure(t) =>
-              throw new RuntimeException(s"Could not create collection [$collectionName]. ${t.getMessage}", t)
-            case _ =>
-          }
-
-          logger.warn(s"Collection [$collectionName] created")
+          createCollection(database, throughputProperties, collectionName)
 
         case Success(c) if c == null =>
           logger.warn(s"Collection:$collectionName doesn't exist. Creating it...")
-
-          Try(database.createContainer(collectionName, "partitionKeyPath", throughputProperties)) match {
-            case Failure(t) =>
-              throw new RuntimeException(s"Could not create collection [$collectionName]. ${t.getMessage}", t)
-            case _ =>
-          }
-
-          logger.warn(s"Collection [$collectionName] created")
+          createCollection(database, throughputProperties, collectionName)
         case _ =>
       }
     }
+  }
+
+  private def createCollection(database: CosmosDatabase, throughputProperties: ThroughputProperties, collectionName: String): Unit = {
+    Try(database.createContainer(collectionName, "partitionKeyPath", throughputProperties)) match {
+      case Failure(t) =>
+        throw new RuntimeException(s"Could not create collection [$collectionName]. ${t.getMessage}", t)
+      case _ =>
+    }
+
+    logger.warn(s"Collection [$collectionName] created")
   }
 
   private def readOrCreateDatabase(

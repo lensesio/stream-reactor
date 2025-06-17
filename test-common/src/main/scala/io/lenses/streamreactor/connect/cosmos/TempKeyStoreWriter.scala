@@ -13,10 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.lenses.streamreactor.connect.azure.cosmosdb.util
+package io.lenses.streamreactor.connect.cosmos
 
-import java.io.File
-import java.io.FileOutputStream
+import java.io.{File, FileOutputStream}
 import java.security.KeyStore
 import scala.util.Using
 

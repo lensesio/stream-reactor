@@ -254,6 +254,7 @@ lazy val `gcp-storage` = (project in file("kafka-connect-gcp-storage"))
 lazy val `azure-cosmosdb` = (project in file("kafka-connect-azure-cosmosdb"))
   .dependsOn(common)
   .dependsOn(`sql-common`)
+  .dependsOn(`test-common` % "test->compile")
   .settings(
     settings ++
       Seq(
@@ -270,6 +271,7 @@ lazy val `azure-cosmosdb` = (project in file("kafka-connect-azure-cosmosdb"))
   .configureAssembly(true)
   .configureMavenDescriptor()
   .configureTests(kafkaConnectAzureCosmosDbTestDeps)
+  .configureFunctionalTests(kafkaConnectAzureCosmosDbFuncTestDeps)
   .enablePlugins(PackPlugin)
 
 lazy val cassandra = (project in file("kafka-connect-cassandra"))
