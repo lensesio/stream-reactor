@@ -1,9 +1,11 @@
 package io.lenses.streamreactor.connect
 import _root_.io.confluent.kafka.serializers.KafkaJsonSerializer
 import _root_.io.lenses.streamreactor.connect.Configuration.sinkConfig
-import _root_.io.lenses.streamreactor.connect.CosmosUtils.{createCosmosClientResource, createDatabaseAndContainer}
+import _root_.io.lenses.streamreactor.connect.CosmosUtils.createCosmosClientResource
+import _root_.io.lenses.streamreactor.connect.CosmosUtils.createDatabaseAndContainer
 import _root_.io.lenses.streamreactor.connect.model.Order
-import _root_.io.lenses.streamreactor.connect.testcontainers.{CosmosContainer, SchemaRegistryContainer}
+import _root_.io.lenses.streamreactor.connect.testcontainers.CosmosContainer
+import _root_.io.lenses.streamreactor.connect.testcontainers.SchemaRegistryContainer
 import _root_.io.lenses.streamreactor.connect.testcontainers.connect.KafkaConnectClient.createConnector
 import _root_.io.lenses.streamreactor.connect.testcontainers.scalatest.StreamReactorContainerPerSuite
 import cats.effect.IO
@@ -19,7 +21,8 @@ import org.scalatest.prop.TableDrivenPropertyChecks
 import org.testcontainers.containers.CosmosDBEmulatorContainer
 
 import java.util.UUID
-import scala.jdk.CollectionConverters.{IterableHasAsScala, ListHasAsScala}
+import scala.jdk.CollectionConverters.IterableHasAsScala
+import scala.jdk.CollectionConverters.ListHasAsScala
 
 class CosmosTest
     extends AsyncFlatSpec
@@ -32,7 +35,7 @@ class CosmosTest
 
   private lazy val container: CosmosDBEmulatorContainer = CosmosContainer()
     .withNetwork(network)
-  private val databaseName = "fancystuff"
+  private val databaseName  = "fancystuff"
   private val containerName = "orders"
 
   override val schemaRegistryContainer: Option[SchemaRegistryContainer] = None
@@ -56,24 +59,25 @@ class CosmosTest
     val order = Order(1, "OP-DAX-P-20150201-95.7", 94.2, 100, UUID.randomUUID().toString)
 
     val resources = for {
-      cosmosClient    <- createCosmosClientResource(container.getEmulatorEndpoint, container.getEmulatorKey)
-      producer <- createProducer[String, Order](classOf[StringSerializer], classOf[KafkaJsonSerializer[Order]])
-      database        <- createDatabaseAndContainer(cosmosClient, databaseName, containerName, "/id")
+      cosmosClient <- createCosmosClientResource(container.getEmulatorEndpoint, container.getEmulatorKey)
+      producer     <- createProducer[String, Order](classOf[StringSerializer], classOf[KafkaJsonSerializer[Order]])
+      database     <- createDatabaseAndContainer(cosmosClient, databaseName, containerName, "/id")
       _ <- createConnector(
-        sinkConfig("aws-s3-sink",
-                   container.getEmulatorKey,
-                   container.getNetworkAliases.asScala.head,
-                   databaseName,
-                   "myfiles",
-                   topicName = "orders",
+        sinkConfig(
+          "aws-s3-sink",
+          container.getEmulatorKey,
+          container.getNetworkAliases.asScala.head,
+          databaseName,
+          "myfiles",
+          topicName = "orders",
         ),
       )
     } yield {
       (database, producer)
     }
     resources.use {
-      case ( container, producer) =>
-        var files : List[Order] = Nil
+      case (container, producer) =>
+        var files: List[Order] = Nil
 
         IO {
           // Write records to topic
@@ -86,11 +90,11 @@ class CosmosTest
           producer.flush()
 
           eventually {
-             files = container.queryItems(
-                  s"SELECT c.id FROM $databaseName AS c WHERE c.id = 'myfiles/orders/0/000000000000_0_0.json'",
+            files = container.queryItems(
+              s"SELECT c.id FROM $databaseName AS c WHERE c.id = 'myfiles/orders/0/000000000000_0_0.json'",
               new CosmosQueryRequestOptions(),
-              classOf[Order]
-              ).asScala.toList
+              classOf[Order],
+            ).asScala.toList
             logger.debug("files: {}", files)
             assert(files.size == 1)
           }
@@ -102,6 +106,5 @@ class CosmosTest
         }
     }
   }
-
 
 }

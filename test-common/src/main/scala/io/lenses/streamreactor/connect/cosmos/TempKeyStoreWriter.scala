@@ -15,7 +15,8 @@
  */
 package io.lenses.streamreactor.connect.cosmos
 
-import java.io.{File, FileOutputStream}
+import java.io.File
+import java.io.FileOutputStream
 import java.security.KeyStore
 import scala.util.Using
 

@@ -149,7 +149,11 @@ class CosmosDbSinkConnector private[sink] (builder: CosmosDbSinkSettings => Cosm
     }
   }
 
-  private def createCollection(database: CosmosDatabase, throughputProperties: ThroughputProperties, collectionName: String): Unit = {
+  private def createCollection(
+    database:             CosmosDatabase,
+    throughputProperties: ThroughputProperties,
+    collectionName:       String,
+  ): Unit = {
     Try(database.createContainer(collectionName, "partitionKeyPath", throughputProperties)) match {
       case Failure(t) =>
         throw new RuntimeException(s"Could not create collection [$collectionName]. ${t.getMessage}", t)

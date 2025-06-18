@@ -1,23 +1,26 @@
 package io.lenses.streamreactor.connect
 
-import cats.effect.{IO, Resource}
+import cats.effect.IO
+import cats.effect.Resource
 import com.azure.cosmos.models.CosmosContainerProperties
-import com.azure.cosmos.{CosmosClient, CosmosClientBuilder, CosmosContainer}
+import com.azure.cosmos.CosmosClient
+import com.azure.cosmos.CosmosClientBuilder
+import com.azure.cosmos.CosmosContainer
 import com.typesafe.scalalogging.LazyLogging
 import org.scalatest.EitherValues
 
 object CosmosUtils extends EitherValues with LazyLogging {
   def createDatabaseAndContainer(
-                                  cosmosClient: CosmosClient,
-                                  dbName: String,
-                                  containerName: String,
-                                  partitionKeyPath: String
-                                ): Resource[IO, CosmosContainer] =
+    cosmosClient:     CosmosClient,
+    dbName:           String,
+    containerName:    String,
+    partitionKeyPath: String,
+  ): Resource[IO, CosmosContainer] =
     Resource.make {
       for {
         // Delete the existing DB if it exists
         existingDb <- IO(Option(cosmosClient.getDatabase(dbName)))
-        _ = existingDb.foreach(_.delete())
+        _           = existingDb.foreach(_.delete())
 
         // Recreate the database
         _ <- IO(cosmosClient.createDatabaseIfNotExists(dbName))
@@ -25,8 +28,8 @@ object CosmosUtils extends EitherValues with LazyLogging {
 
         // Create the container
         containerProperties = new CosmosContainerProperties(containerName, partitionKeyPath)
-        _ <- IO(db.createContainerIfNotExists(containerProperties))
-        container = db.getContainer(containerName)
+        _                  <- IO(db.createContainerIfNotExists(containerProperties))
+        container           = db.getContainer(containerName)
 
       } yield container
     } { _ =>
@@ -45,6 +48,5 @@ object CosmosUtils extends EitherValues with LazyLogging {
           .buildClient(),
       ),
     )
-
 
 }

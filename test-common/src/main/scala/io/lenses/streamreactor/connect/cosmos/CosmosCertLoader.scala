@@ -20,7 +20,8 @@ import org.testcontainers.containers.GenericContainer
 
 import java.io._
 import java.security.KeyStore
-import java.security.cert.{CertificateFactory, X509Certificate}
+import java.security.cert.CertificateFactory
+import java.security.cert.X509Certificate
 import scala.util.Try
 
 object CosmosCertLoader extends LazyLogging {

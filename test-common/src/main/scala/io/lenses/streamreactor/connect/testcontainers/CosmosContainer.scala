@@ -15,8 +15,11 @@
  */
 package io.lenses.streamreactor.connect.testcontainers
 
-import io.lenses.streamreactor.connect.cosmos.{CosmosCertLoader, TempKeyStoreWriter}
-import io.lenses.streamreactor.connect.testcontainers.CosmosContainer.{defaultNetworkAlias, defaultPort, defaultTag}
+import io.lenses.streamreactor.connect.cosmos.CosmosCertLoader
+import io.lenses.streamreactor.connect.cosmos.TempKeyStoreWriter
+import io.lenses.streamreactor.connect.testcontainers.CosmosContainer.defaultNetworkAlias
+import io.lenses.streamreactor.connect.testcontainers.CosmosContainer.defaultPort
+import io.lenses.streamreactor.connect.testcontainers.CosmosContainer.defaultTag
 import org.testcontainers.containers.CosmosDBEmulatorContainer
 import org.testcontainers.containers.wait.strategy.Wait
 import org.testcontainers.utility.DockerImageName
@@ -27,9 +30,9 @@ import java.security.KeyStore
 
 class CosmosContainer(
   dockerImage:  DockerImageName,
-  dockerTag:    String           = defaultTag,
-  networkAlias: String           = defaultNetworkAlias,
-  port:         Int              = defaultPort,
+  dockerTag:    String = defaultTag,
+  networkAlias: String = defaultNetworkAlias,
+  port:         Int    = defaultPort,
 ) extends CosmosDBEmulatorContainer(dockerImage.withTag(dockerTag)) {
 
   withNetworkAliases(networkAlias)
@@ -40,9 +43,8 @@ class CosmosContainer(
 
   waitingFor(Wait.forHttps("/").allowInsecure().forStatusCode(200))
 
-
-  val trustStore: KeyStore = CosmosCertLoader.extractCertAsTrustStore(this)
-  val keyStoreFile: File = TempKeyStoreWriter.writeToTempFile(trustStore, "changeIt".toCharArray)
+  val trustStore:   KeyStore = CosmosCertLoader.extractCertAsTrustStore(this)
+  val keyStoreFile: File     = TempKeyStoreWriter.writeToTempFile(trustStore, "changeIt".toCharArray)
 
   System.setProperty("javax.net.ssl.trustStore", keyStoreFile.getPath)
   System.setProperty("javax.net.ssl.trustStorePassword", "changeIt")
