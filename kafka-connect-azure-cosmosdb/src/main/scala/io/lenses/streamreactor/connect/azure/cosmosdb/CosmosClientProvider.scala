@@ -24,6 +24,8 @@ import io.lenses.streamreactor.connect.azure.cosmosdb.config.CosmosDbSinkSetting
 import org.apache.kafka.connect.errors.ConnectException
 
 import java.net.InetSocketAddress
+import java.net.MalformedURLException
+import java.net.URI
 import scala.util.Try
 
 /**
@@ -33,13 +35,8 @@ object CosmosClientProvider {
   def get(settings: CosmosDbSinkSettings): Either[ConnectException, CosmosClient] = Try {
 
     val gateway = settings.proxy.map { proxy =>
-      val proxyOptions = new ProxyOptions(
-        ProxyOptions.Type.HTTP,
-        new InetSocketAddress(proxy, 8080),
-      )
-
       new GatewayConnectionConfig()
-        .setProxy(proxyOptions)
+        .setProxy(convertProxy(proxy))
     }.getOrElse(GatewayConnectionConfig.getDefaultConfig)
 
     new CosmosClientBuilder()
@@ -52,8 +49,31 @@ object CosmosClientProvider {
   }.toEither.leftMap {
     case npe: NullPointerException =>
       new ConnectException("Null value found in CosmosClient settings, please check your configuration.", npe)
+    case mue: MalformedURLException =>
+      new ConnectException(s"Proxy configuration incorrect, ${mue.getMessage}", mue)
     case ex: IllegalArgumentException =>
       new ConnectException(s"Exception while creating CosmosClient, ${ex.getMessage}", ex)
 
+  }
+
+  private[cosmosdb] def convertProxy(proxy: String): ProxyOptions = {
+    val url = new URI(proxy)
+    val protocol = Option(url.getScheme).map(_.toLowerCase).getOrElse(throw new MalformedURLException(
+      "Proxy protocol has not been specified",
+    ))
+    val host = url.getHost
+    val port = Option(url.getPort).filterNot(_ == -1).getOrElse(throw new MalformedURLException(
+      "Proxy port has not been specified",
+    ))
+    val proxyType = protocol match {
+      case "http"   => ProxyOptions.Type.HTTP
+      case "socks4" => ProxyOptions.Type.SOCKS4
+      case "socks5" => ProxyOptions.Type.SOCKS5
+      case _        => throw new MalformedURLException("Proxy protocol has not been specified")
+    }
+    new ProxyOptions(
+      proxyType,
+      new InetSocketAddress(host, port),
+    )
   }
 }

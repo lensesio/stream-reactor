@@ -58,7 +58,7 @@ class CosmosClientProviderTest
   // this shows that the CosmosClientProvider can handle proxy settings
   test("return CosmosClient with custom proxy configuration when valid settings and proxy") {
     val settings = mock[CosmosDbSinkSettings]
-    when(settings.proxy).thenReturn(Some(s"localhost:12345"))
+    when(settings.proxy).thenReturn(Some(s"http://localhost:12345"))
     when(settings.endpoint).thenReturn(cosmosEmulatorContainer.getEmulatorEndpoint)
     when(settings.masterKey).thenReturn("masterKey")
     when(settings.consistency).thenReturn(com.azure.cosmos.ConsistencyLevel.EVENTUAL)
@@ -87,4 +87,59 @@ class CosmosClientProviderTest
     }
   }
 
+  test("return HTTP ProxyOptions for http protocol") {
+    val proxy  = "http://proxyhost:8080"
+    val result = CosmosClientProvider.convertProxy(proxy)
+    result.getType shouldBe com.azure.core.http.ProxyOptions.Type.HTTP
+    result.getAddress.getHostName shouldBe "proxyhost"
+    result.getAddress.getPort shouldBe 8080
+  }
+
+  test("return SOCKS4 ProxyOptions for socks4 protocol") {
+    val proxy  = "socks4://proxyhost:1080"
+    val result = CosmosClientProvider.convertProxy(proxy)
+    result.getType shouldBe com.azure.core.http.ProxyOptions.Type.SOCKS4
+    result.getAddress.getHostName shouldBe "proxyhost"
+    result.getAddress.getPort shouldBe 1080
+  }
+
+  test("return SOCKS5 ProxyOptions for socks5 protocol") {
+    val proxy  = "socks5://proxyhost:1080"
+    val result = CosmosClientProvider.convertProxy(proxy)
+    result.getType shouldBe com.azure.core.http.ProxyOptions.Type.SOCKS5
+    result.getAddress.getHostName shouldBe "proxyhost"
+    result.getAddress.getPort shouldBe 1080
+  }
+
+  test("handle uppercase protocol correctly") {
+    val proxy  = "HTTP://proxyhost:8080"
+    val result = CosmosClientProvider.convertProxy(proxy)
+    result.getType shouldBe com.azure.core.http.ProxyOptions.Type.HTTP
+    result.getAddress.getHostName shouldBe "proxyhost"
+    result.getAddress.getPort shouldBe 8080
+  }
+
+  test("throw MalformedURLException for invalid proxy URL") {
+    val proxy = "invalid_proxy_url"
+    val ex = intercept[java.net.MalformedURLException] {
+      CosmosClientProvider.convertProxy(proxy)
+    }
+    ex.getMessage should startWith("Proxy protocol has not been specified")
+  }
+
+  test("throw MalformedURLException when port is missing") {
+    val proxy = "http://proxyhost"
+    val ex = intercept[java.net.MalformedURLException] {
+      CosmosClientProvider.convertProxy(proxy)
+    }
+    ex.getMessage should startWith("Proxy port has not been specified")
+  }
+
+  test("throw MalformedURLException for unsupported proxy protocol") {
+    val proxy = "ftp://proxyhost:2121"
+    val ex = intercept[java.net.MalformedURLException] {
+      CosmosClientProvider.convertProxy(proxy)
+    }
+    ex.getMessage should startWith("Proxy protocol has not been specified")
+  }
 }

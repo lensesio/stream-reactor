@@ -567,8 +567,6 @@ trait Dependencies {
   val kafkaConnectAzureCosmosDbDeps: Seq[ModuleID] = Seq(azureBom, azureCosmosDb)
   val kafkaConnectAzureCosmosDbTestDeps: Seq[ModuleID] =
     baseTestDeps ++ Seq(testcontainersCosmosDb)
-  val kafkaConnectAzureCosmosDbFuncTestDeps: Seq[ModuleID] =
-    baseTestDeps ++ Seq(testcontainersCosmosDb)
 
   val kafkaConnectInfluxDbDeps: Seq[ModuleID] = Seq(influx, avro4s, avro4sJson)
 

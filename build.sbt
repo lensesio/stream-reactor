@@ -271,7 +271,6 @@ lazy val `azure-cosmosdb` = (project in file("kafka-connect-azure-cosmosdb"))
   .configureAssembly(true)
   .configureMavenDescriptor()
   .configureTests(kafkaConnectAzureCosmosDbTestDeps)
-  .configureFunctionalTests(kafkaConnectAzureCosmosDbFuncTestDeps)
   .enablePlugins(PackPlugin)
 
 lazy val cassandra = (project in file("kafka-connect-cassandra"))
