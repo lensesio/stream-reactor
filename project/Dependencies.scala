@@ -42,13 +42,13 @@ object Dependencies {
     val javaFakerVersion               = "1.0.2"
 
     val mockitoJunitJupiterVersion = "5.18.0"
-    val junitJupiterVersion        = "5.12.2"
+    val junitJupiterVersion        = "5.13.1"
     val assertjCoreVersion         = "3.27.3"
 
     val cyclopsVersion = "10.4.1"
 
     val kafkaVersion:     String = "3.9.1"
-    val confluentVersion: String = "7.9.1"
+    val confluentVersion: String = "7.9.2"
 
     val enumeratumVersion = "1.7.5"
 
@@ -74,7 +74,7 @@ object Dependencies {
     val scalaLoggingVersion = "3.9.5"
 
     val dnsJavaVersion  = "3.6.3"
-    val wiremockVersion = "3.13.0"
+    val wiremockVersion = "3.13.1"
     val parquetVersion  = "1.15.2"
 
     val jerseyCommonVersion = "3.1.10"
@@ -83,26 +83,26 @@ object Dependencies {
     val awsSdkVersion  = "2.29.52"
 
     val azureDataLakeVersion              = "12.23.0"
-    val azureIdentityVersion              = "1.16.1"
-    val azureCoreVersion                  = "1.55.3"
-    val msal4jVersion                     = "1.20.1"
+    val azureIdentityVersion              = "1.16.2"
+    val azureCoreVersion                  = "1.55.4"
+    val msal4jVersion                     = "1.21.0"
     val msal4jPersistenceExtensionVersion = "1.3.0"
-    val gcpCloudVersion                   = "2.56.0"
+    val gcpCloudVersion                   = "2.57.2"
     val gcpCloudStorageVersion            = "2.53.1"
 
-    val woodstoxVersion     = "7.1.0"
-    val jacksonVersion      = "2.19.0"
+    val woodstoxVersion     = "7.1.1"
+    val jacksonVersion      = "2.19.1"
     val json4sVersion       = "4.0.7"
-    val mockitoScalaVersion = "1.17.45"
+    val mockitoScalaVersion = "2.0.0"
     val mockitoJavaVersion  = "5.2.0"
-    val openCsvVersion      = "5.11"
+    val openCsvVersion      = "5.11.1"
     val jsonSmartVersion    = "2.5.2"
 
     val xzVersion  = "1.10"
     val lz4Version = "1.8.0"
 
-    val bouncyCastleVersion = "1.80"
-    val nettyVersion        = "4.2.1.Final"
+    val bouncyCastleVersion = "1.81"
+    val nettyVersion        = "4.2.2.Final"
 
     val cassandraDriverVersion = "3.11.5"
     val jsonPathVersion        = "2.9.0"
@@ -127,7 +127,7 @@ object Dependencies {
     val commonsIOVersion       = "2.19.0"
     val commonsHttpVersion     = "4.5.14"
     val commonsLang3Version    = "3.17.0"
-    val jschVersion            = "2.27.0"
+    val jschVersion            = "2.27.2"
 
     val minaVersion           = "2.2.4"
     val betterFilesVersion    = "3.9.2"
@@ -431,8 +431,8 @@ trait Dependencies {
   import Versions._
 
   val loggingDeps: Seq[ModuleID] = Seq(
-    "org.apache.logging.log4j" % "log4j-api"      % "2.24.3",
-    "org.apache.logging.log4j" % "log4j-to-slf4j" % "2.24.3",
+    "org.apache.logging.log4j" % "log4j-api"      % "2.25.0",
+    "org.apache.logging.log4j" % "log4j-to-slf4j" % "2.25.0",
     log4jToSlf4j,
     jclToSlf4j,
     logback,
