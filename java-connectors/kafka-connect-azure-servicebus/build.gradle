@@ -9,6 +9,7 @@ project(':kafka-connect-azure-servicebus') {
         implementation project(':kafka-connect-common')
         implementation project(':kafka-connect-query-language')
         testImplementation(project(path: ':test-utils', configuration: 'testArtifacts'))
+        testImplementation 'io.projectreactor:reactor-test:3.6.6'
 
         // Azure Service Bus dependencies
         implementation group: 'com.azure', name: 'azure-core', version: '1.55.3'
