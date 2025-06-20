@@ -61,6 +61,7 @@ class IndexManagerV2(
   bucketAndPrefixFn:           TopicPartition => Either[SinkError, CloudLocation],
   oldIndexManager:             IndexManagerV1,
   pendingOperationsProcessors: PendingOperationsProcessors,
+  directoryFileName:           String,
 )(
   implicit
   storageInterface: StorageInterface[?],
@@ -109,7 +110,7 @@ class IndexManagerV2(
    */
   private def open(topicPartition: TopicPartition): Either[SinkError, Option[Offset]] = {
 
-    val path = generateLockFilePath(connectorTaskId, topicPartition)
+    val path = generateLockFilePath(connectorTaskId, topicPartition, directoryFileName)
     for {
       bucketAndPrefix <- bucketAndPrefixFn(topicPartition)
       open: ObjectWithETag[IndexFile] <- tryOpen(bucketAndPrefix.bucket, path) match {
@@ -218,7 +219,7 @@ class IndexManagerV2(
     pendingState:    Option[PendingState],
   ): Either[SinkError, Option[Offset]] = {
 
-    val path = generateLockFilePath(connectorTaskId, topicPartition)
+    val path = generateLockFilePath(connectorTaskId, topicPartition, directoryFileName)
     for {
       bucketAndPrefix <- bucketAndPrefixFn(topicPartition).leftMap { err =>
         logger.error(s"Failed to get bucket and prefix for $topicPartition: ${err.message()}")
@@ -275,7 +276,11 @@ object IndexManagerV2 {
    * @param topicPartition the topic partition
    * @return the lock file path as a String
    */
-  private def generateLockFilePath(connectorTaskId: ConnectorTaskId, topicPartition: TopicPartition): String =
-    s".indexes/.locks/${topicPartition.topic}/${topicPartition.partition}.lock"
+  private[seek] def generateLockFilePath(
+    connectorTaskId:   ConnectorTaskId,
+    topicPartition:    TopicPartition,
+    directoryFileName: String,
+  ): String =
+    s"$directoryFileName/.locks/${topicPartition.topic}/${topicPartition.partition}.lock"
 
 }
