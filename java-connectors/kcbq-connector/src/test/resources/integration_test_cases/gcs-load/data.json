@@ -1,0 +1,3 @@
+{"row":1,"null_prim":null,"boolean_prim":false,"int_prim":4242,"long_prim":42424242424242,"float_prim":42.42,"double_prim":42424242.42424242,"string_prim":"forty-two","bytes_prim":"\u0000\u000f\u001e\u002d\u003c\u004b\u005a\u0069\u0078"}
+{"row":2,"null_prim":{"int":5},"boolean_prim":true,"int_prim":4354,"long_prim":435443544354,"float_prim":43.54,"double_prim":435443.544354,"string_prim":"forty-three","bytes_prim":"\u0000\u000f\u001e\u002d\u003c\u004b\u005a\u0069\u0078"}
+{"row":3,"null_prim":{"int":8},"boolean_prim":false,"int_prim":1993,"long_prim":199319931993,"float_prim":19.93,"double_prim":199319.931993,"string_prim":"nineteen","bytes_prim":"\u0000\u000f\u001e\u002d\u003c\u004b\u005a\u0069\u0078"}

@@ -1,0 +1,21 @@
+{ "type": "record",
+  "name": "logicals",
+  "namespace": "com.wepay.kafka.connect.bigquery",
+  "fields":
+    [
+      { "name": "row", "type": "int" },
+      { "name": "timestamp_test",
+        "type":
+          { "type": "long",
+            "connect.name": "org.apache.kafka.connect.data.Timestamp"
+          }
+      },
+      { "name": "date_test",
+        "type":
+          {
+            "type": "int",
+            "connect.name": "org.apache.kafka.connect.data.Date"
+          }
+      }
+    ]
+}
