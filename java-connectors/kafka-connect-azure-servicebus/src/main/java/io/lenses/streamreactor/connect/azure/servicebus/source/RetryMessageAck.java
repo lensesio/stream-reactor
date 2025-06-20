@@ -42,11 +42,15 @@ public class RetryMessageAck implements MessageAck {
   }
 
   public void acknowledge(Mono<Void> mono, String msgId) {
-    mono
+    acknowledgeMono(mono, msgId)
+        .subscribe();
+  }
+
+  public Mono<Void> acknowledgeMono(Mono<Void> mono, String msgId) {
+    return mono
         .retryWhen(this.retrySpec)
         .doOnError(onError)
-        .doOnSuccess(v -> onSuccess.accept(msgId))
-        .subscribe();
+        .doOnSuccess(v -> onSuccess.accept(msgId));
   }
 
   public static Consumer<String> logSuccess() {
