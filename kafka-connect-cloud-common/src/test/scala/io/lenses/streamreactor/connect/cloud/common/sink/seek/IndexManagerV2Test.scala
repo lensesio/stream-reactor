@@ -30,10 +30,12 @@ import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.deprecated.IndexManagerV1
 import io.lenses.streamreactor.connect.cloud.common.storage.FileNotFoundError
 import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
+import org.mockito.ArgumentCaptor
 import org.mockito.ArgumentMatchers
-import org.mockito.ArgumentMatchers.anyString
 import org.mockito.ArgumentMatchersSugar
 import org.mockito.MockitoSugar
+import org.mockito.ArgumentMatchers.anyString
+import org.scalatest.Assertion
 import org.scalatest.BeforeAndAfter
 import org.scalatest.EitherValues
 import org.scalatest.funsuite.AnyFunSuiteLike
@@ -56,6 +58,7 @@ class IndexManagerV2Test
   private val oldIndexManager             = mock[IndexManagerV1]
   private val bucketAndPrefixFn           = mock[TopicPartition => Either[SinkError, CloudLocation]]
   private val pendingOperationsProcessors = mock[PendingOperationsProcessors]
+  private val indexesDirectoryName        = ".indexes2"
 
   private var indexManagerV2: IndexManagerV2 = _
 
@@ -64,6 +67,7 @@ class IndexManagerV2Test
       bucketAndPrefixFn,
       oldIndexManager,
       pendingOperationsProcessors,
+      indexesDirectoryName,
     )(storageInterface, connectorTaskId)
 
     reset(storageInterface, connectorTaskId, oldIndexManager, bucketAndPrefixFn, pendingOperationsProcessors)
@@ -177,6 +181,62 @@ class IndexManagerV2Test
     val result = indexManagerV2.getSeekedOffsetForTopicPartition(topicPartition)
 
     result shouldBe None
+  }
+
+  test("IndexManagerV2 uses directoryFileName parameter in lock file path") {
+    val (storageInterface, oldIndexManager, pendingProcessors, bucketAndPrefixFn, directoryFileName, topicPartition) =
+      setupMocksForLockFilePathTest()
+
+    val indexManager = new IndexManagerV2(
+      bucketAndPrefixFn,
+      oldIndexManager,
+      pendingProcessors,
+      directoryFileName,
+    )(storageInterface, ConnectorTaskId("connector", 1, 0))
+
+    indexManager.open(Set(topicPartition))
+    verifyLockFilePathUsed(storageInterface, directoryFileName, topicPartition)
+  }
+
+  private def setupMocksForLockFilePathTest() = {
+    val storageInterface  = mock[StorageInterface[_]]
+    val oldIndexManager   = mock[IndexManagerV1]
+    val pendingProcessors = mock[PendingOperationsProcessors]
+    val directoryFileName = "custom-index-dir"
+    val topicPartition    = Topic("my-topic").withPartition(2)
+    val bucketAndPrefixFn: TopicPartition => Either[SinkError, CloudLocation] =
+      _ => Right(CloudLocation("bucket", None))
+
+    when(storageInterface.getBlobAsObject[IndexFile](anyString(), anyString())(any[Decoder[IndexFile]]))
+      .thenReturn(Left(FileNotFoundError(new Exception("Not found"), "somepath")))
+    when(oldIndexManager.seekOffsetsForTopicPartition(any[TopicPartition])).thenReturn(None.asRight)
+    when(storageInterface.writeBlobToFile(anyString(), anyString(), any[ObjectWithETag[IndexFile]])(
+      any[Encoder[IndexFile]],
+    ))
+      .thenReturn(Right(ObjectWithETag(IndexFile("owner", None, None), "etag")))
+
+    (storageInterface, oldIndexManager, pendingProcessors, bucketAndPrefixFn, directoryFileName, topicPartition)
+  }
+
+  private def verifyLockFilePathUsed(
+    storageInterface:  StorageInterface[_],
+    directoryFileName: String,
+    topicPartition:    TopicPartition,
+  ): Assertion = {
+    val pathCaptor = ArgumentCaptor.forClass(classOf[String])
+    verify(storageInterface).getBlobAsObject[IndexFile](anyString(), pathCaptor.capture())(any[Decoder[IndexFile]])
+    val usedPath = pathCaptor.getValue
+    usedPath should be(s"$directoryFileName/.locks/${topicPartition.topic}/${topicPartition.partition}.lock")
+  }
+
+  test("generateLockFilePath uses the provided directoryFileName") {
+    val connectorTaskId   = ConnectorTaskId("my-connector", 1, 0)
+    val topicPartition    = Topic("my-topic").withPartition(5)
+    val directoryFileName = "my-index-dir"
+
+    val lockFilePath = IndexManagerV2.generateLockFilePath(connectorTaskId, topicPartition, directoryFileName)
+
+    lockFilePath should be(s"$directoryFileName/.locks/Topic(my-topic)/5.lock")
   }
 
 }
