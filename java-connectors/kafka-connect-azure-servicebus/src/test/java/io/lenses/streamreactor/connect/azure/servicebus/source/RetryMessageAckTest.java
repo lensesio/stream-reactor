@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2024 Lenses.io Ltd
+ * Copyright 2017-2025 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,63 +17,64 @@ package io.lenses.streamreactor.connect.azure.servicebus.source;
 
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
 import reactor.util.retry.RetryBackoffSpec;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class RetryMessageAckTest {
 
   @Test
   void callsTheCompleteMethodOnSuccessfulMono() {
-    // given
-    CountDownLatch successLatch = new CountDownLatch(1);
+    AtomicReference<String> successMsgId = new AtomicReference<>();
     AtomicReference<Throwable> serviceBusReceiverError = new AtomicReference<>();
     final RetryMessageAck retryMessageAck =
         new RetryMessageAck(RetryBackoffSpec.backoff(
-            3, Duration.ofMillis(100)), v -> {
-              successLatch.countDown();
-            }, serviceBusReceiverError::set);
+            3, Duration.ofMillis(100)),
+            successMsgId::set,
+            serviceBusReceiverError::set);
 
     Mono<Void> successfulMono = Mono.empty();
-    retryMessageAck.acknowledge(successfulMono, "msgId");
-    try {
-      successLatch.await(1, TimeUnit.SECONDS);
-    } catch (InterruptedException e) {
-      throw new RuntimeException(e);
-    }
-    assertEquals(0, successLatch.getCount());
+
+    StepVerifier.create(retryMessageAck.acknowledgeMono(successfulMono, "msgId"))
+        .verifyComplete();
+
+    assertEquals("msgId", successMsgId.get(), "onSuccess should be called with the message ID on success");
+    assertNull(serviceBusReceiverError.get(), "onError should not be called on success");
   }
 
   @Test
   void callsTheErrorMethodOnFailedMono() {
-    CountDownLatch successLatch = new CountDownLatch(1);
+    AtomicReference<String> successMsgId = new AtomicReference<>();
     AtomicReference<Throwable> serviceBusReceiverError = new AtomicReference<>();
     final RetryMessageAck retryMessageAck =
         new RetryMessageAck(RetryBackoffSpec.backoff(
-            3, Duration.ofMillis(100)), v -> {
-              System.out.println("Success");
-              successLatch.countDown();
-            }, serviceBusReceiverError::set);
+            3, Duration.ofMillis(10)),
+            successMsgId::set,
+            serviceBusReceiverError::set);
 
     Mono<Void> failedMono = Mono.error(new RuntimeException("Failed"));
-    retryMessageAck.acknowledge(failedMono, "msgId");
-    try {
-      successLatch.await(1, TimeUnit.SECONDS);
-    } catch (InterruptedException e) {
-      throw new RuntimeException(e);
-    }
-    assertEquals(1, successLatch.getCount());
 
-    Throwable throwable = serviceBusReceiverError.get();
-    assertNotNull(throwable);
-    assertEquals("reactor.core.Exceptions$RetryExhaustedException", throwable.getClass().getName());
-    assertTrue(throwable.getMessage().contains("Retries exhausted: 3/3"));
+    StepVerifier.create(retryMessageAck.acknowledgeMono(failedMono, "msgId"))
+        .expectErrorSatisfies(throwable -> {
+          assertEquals("reactor.core.Exceptions$RetryExhaustedException", throwable.getClass().getName(),
+              "Exception should be RetryExhaustedException after retries");
+          assertTrue(throwable.getMessage().contains("Retries exhausted: 3/3"),
+              "Exception message should indicate retries exhausted");
+        })
+        .verify();
+
+    assertNull(successMsgId.get(), "onSuccess should not be called on error");
+    assertNotNull(serviceBusReceiverError.get(), "onError should be called on error");
+    assertEquals("reactor.core.Exceptions$RetryExhaustedException", serviceBusReceiverError.get().getClass().getName(),
+        "onError should receive RetryExhaustedException");
+    assertTrue(serviceBusReceiverError.get().getMessage().contains("Retries exhausted: 3/3"),
+        "onError exception message should indicate retries exhausted");
   }
-
 }
