@@ -87,48 +87,58 @@ class CosmosDbWriterManager(
     val topicName = recordTopic.value
     val kcql =
       configMap.getOrElse(topicName, throw new ConnectException(s"[$topicName] is not handled by the configuration."))
+
+    if (settings.bulkEnabled) {
+      logger.info(s"Creating bulk writer for topic $topicName")
+      createBulkWriter(topicName, kcql)
+
+    } else {
+      logger.info(s"Creating single writer for topic $topicName")
+      createSingleWriter(kcql)
+    }
+  }
+
+  private def createSingleWriter(kcql: Kcql) =
+    new CosmosDbSingleWriter(
+      kcql,
+      settings,
+      documentClient,
+    )
+
+  private def createBulkWriter(topicName: String, kcql: Kcql) = {
     val batchPolicy =
       batchPolicyMap.getOrElse(topicName,
                                throw new ConnectException(s"[$topicName] is not handled by the configuration."),
       )
+    val recordsQueue = new CosmosRecordsQueue[PendingRecord](
+      sinkName,
+      settings.maxQueueSize,
+      settings.maxQueueOfferTimeout,
+      batchPolicy,
+    )
+    val queueProcessor = new CosmosDbQueueProcessor(
+      sinkName,
+      settings.errorThreshold,
+      settings.executorThreads,
+      settings.delay,
+      recordsQueue,
+      documentClient,
+      settings,
+      kcql,
+    )
 
-    if (settings.bulkEnabled) {
-      val recordsQueue = new CosmosRecordsQueue[PendingRecord](
-        sinkName,
-        settings.maxQueueSize,
-        settings.maxQueueOfferTimeout,
-        batchPolicy,
-      )
-      val queueProcessor = new CosmosDbQueueProcessor(
-        sinkName,
-        settings.errorThreshold,
-        settings.executorThreads,
-        settings.delay,
-        recordsQueue,
-        documentClient,
-        settings,
-        kcql,
-      )
-
-      new CosmosDbBulkWriter(
-        config              = kcql,
-        recordsQueue        = recordsQueue,
-        bulkRecordConverter = new CosmosDbBulkRecordConverter(settings),
-        queueProcessor      = queueProcessor,
-      )
-
-    } else {
-      new CosmosDbSingleWriter(
-        kcql,
-        settings,
-        documentClient,
-      )
-    }
+    new CosmosDbBulkWriter(
+      config              = kcql,
+      recordsQueue        = recordsQueue,
+      bulkRecordConverter = new CosmosDbBulkRecordConverter(settings),
+      queueProcessor      = queueProcessor,
+    )
   }
 
   def close(): Unit = {
     logger.info("Shutting down Document DB writer.")
     documentClient.close()
+    writers.values.foreach(_.close())
   }
 
   def preCommit(

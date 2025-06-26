@@ -93,7 +93,7 @@ class CosmosDbSinkTask extends SinkTask with StrictLogging with JarManifestProvi
 
   override def flush(map: util.Map[KafkaTopicPartition, OffsetAndMetadata]): Unit = {}
 
-  override def version: String = manifest.getVersion()
+  override def version(): String = manifest.getVersion
 
   override def preCommit(
     currentOffsets: util.Map[KafkaTopicPartition, OffsetAndMetadata],

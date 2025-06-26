@@ -40,16 +40,14 @@ class CosmosRecordsQueue[B <: BatchRecord](
   private val commitContextRef =
     new AtomicReference[HttpCommitContext](
       HttpCommitContext.default(sinkName),
-    ) // Replace null with actual initial context
+    )
 
   def enqueueAll(records: List[B]): Unit = {
     def filterDuplicates(records: List[B], offsetMap: Map[TopicPartition, Offset]): List[B] =
       records.filter { record =>
         val tp = record.topicPartitionOffset.toTopicPartition
-        offsetMap.get(tp) match {
-          case Some(lastOffset) if record.topicPartitionOffset.offset.value <= lastOffset.value => false
-          case _                                                                                => true
-        }
+        offsetMap.get(tp)
+          .forall(record.topicPartitionOffset.offset.value > _.value)
       }
 
     @tailrec
@@ -72,12 +70,9 @@ class CosmosRecordsQueue[B <: BatchRecord](
         if (recordsToAdd.nonEmpty) {
           val currentOffsets = offsetMap.get()
           val updatedOffsets = recordsToAdd.foldLeft(currentOffsets) { (accOffsets, record) =>
-            val tp     = record.topicPartitionOffset.toTopicPartition
-            val offset = record.topicPartitionOffset.offset
-            val updatedOffset = accOffsets.get(tp) match {
-              case Some(existingOffset) if existingOffset.value >= offset.value => existingOffset
-              case _                                                            => offset
-            }
+            val tp            = record.topicPartitionOffset.toTopicPartition
+            val offset        = record.topicPartitionOffset.offset
+            val updatedOffset = accOffsets.get(tp).filter(_.value >= offset.value).getOrElse(offset)
             accOffsets.updated(tp, updatedOffset)
           }
           offsetMap.set(updatedOffsets)

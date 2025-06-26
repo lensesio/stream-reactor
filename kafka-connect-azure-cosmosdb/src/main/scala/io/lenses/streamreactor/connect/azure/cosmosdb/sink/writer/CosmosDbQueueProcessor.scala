@@ -151,4 +151,7 @@ class CosmosDbQueueProcessor(
 
   }
 
+  def close(): Unit =
+    executorService.shutdown()
+
 }

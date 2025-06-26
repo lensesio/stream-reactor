@@ -82,4 +82,6 @@ class CosmosDbSingleWriter(
     throw new ConnectException("Not implemented for a single writer - no need for offset management")
 
   override def unrecoverableError(): Option[Throwable] = Option.empty
+
+  override def close(): Unit = ()
 }

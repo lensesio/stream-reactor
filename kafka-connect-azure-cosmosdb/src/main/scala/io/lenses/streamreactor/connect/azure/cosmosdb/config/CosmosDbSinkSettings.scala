@@ -69,30 +69,30 @@ object CosmosDbSinkSettings extends StrictLogging {
     val ignoreFields     = config.getIgnoreFieldsMap()
     val consistencyLevel = config.getConsistencyLevel.get
 
-    new CosmosDbSinkSettings(endpoint,
-                             masterKey,
-                             database,
-                             kcql.toSeq,
-                             fieldsMap,
-                             ignoreFields,
-                             errorPolicy,
-                             consistencyLevel,
-                             config.getBoolean(CosmosDbConfigConstants.CREATE_DATABASE_CONFIG),
-                             Option(config.getString(CosmosDbConfigConstants.PROXY_HOST_CONFIG)),
-                             config.getKeySource,
-                             retries,
-                             config.getBoolean(CosmosDbConfigConstants.BULK_CONFIG),
-                             config.getInt(CosmosDbConfigConstants.MaxQueueSizeProp),
-                             FiniteDuration(
+    new CosmosDbSinkSettings(endpoint       = endpoint,
+                             masterKey      = masterKey,
+                             database       = database,
+                             kcql           = kcql.toSeq,
+                             fields         = fieldsMap,
+                             ignoredField   = ignoreFields,
+                             errorPolicy    = errorPolicy,
+                             consistency    = consistencyLevel,
+                             createDatabase = config.getBoolean(CosmosDbConfigConstants.CREATE_DATABASE_CONFIG),
+                             proxy          = Option(config.getString(CosmosDbConfigConstants.PROXY_HOST_CONFIG)),
+                             keySource      = config.getKeySource,
+                             taskRetries    = retries,
+                             bulkEnabled    = config.getBoolean(CosmosDbConfigConstants.BULK_CONFIG),
+                             maxQueueSize   = config.getInt(CosmosDbConfigConstants.MaxQueueSizeProp),
+                             maxQueueOfferTimeout = FiniteDuration(
                                config.getLong(CosmosDbConfigConstants.MaxQueueOfferTimeoutProp),
                                scala.concurrent.duration.MILLISECONDS,
                              ),
-                             config.getInt(CosmosDbConfigConstants.ExecutorThreadsProp),
-                             FiniteDuration(
+                             executorThreads = config.getInt(CosmosDbConfigConstants.ExecutorThreadsProp),
+                             delay = FiniteDuration(
                                config.getLong(CosmosDbConfigConstants.UploadSyncPeriodProp),
                                scala.concurrent.duration.MILLISECONDS,
                              ),
-                             config.getInt(CosmosDbConfigConstants.ErrorThresholdProp),
+                             errorThreshold = config.getInt(CosmosDbConfigConstants.ErrorThresholdProp),
     )
   }
 }

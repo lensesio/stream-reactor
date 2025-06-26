@@ -45,4 +45,7 @@ class CosmosDbBulkWriter(
   ): Map[TopicPartition, OffsetAndMetadata] = queueProcessor.preCommit(offsetAndMetadatas)
 
   override def unrecoverableError(): Option[Throwable] = queueProcessor.unrecoverableError()
+
+  override def close(): Unit =
+    queueProcessor.close()
 }

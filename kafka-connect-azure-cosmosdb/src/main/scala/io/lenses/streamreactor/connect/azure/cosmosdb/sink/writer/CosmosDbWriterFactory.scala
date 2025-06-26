@@ -36,12 +36,12 @@ object CosmosDbWriterFactory extends StrictLogging {
     settings:        CosmosDbSinkSettings,
   ): CosmosDbWriterManager = {
 
-    val sinkName = connectorConfig.props.get("name").getOrElse(UUID.randomUUID().toString)
+    val sinkName = connectorConfig.props.getOrElse("name", UUID.randomUUID().toString)
 
     //if error policy is retry set retry interval
     settings.errorPolicy match {
       case RetryErrorPolicy() =>
-        context.timeout(connectorConfig.getLong(CosmosDbConfigConstants.ERROR_RETRY_INTERVAL_CONFIG))
+        context.timeout(connectorConfig.getInt(CosmosDbConfigConstants.ERROR_RETRY_INTERVAL_CONFIG).toLong)
       case _ =>
     }
     logger.info(s"Initialising Document Db writer.")

@@ -24,4 +24,6 @@ trait CosmosDbWriter {
   def preCommit(offsetAndMetadatas: Map[TopicPartition, OffsetAndMetadata]): Map[TopicPartition, OffsetAndMetadata]
 
   def unrecoverableError(): Option[Throwable]
+
+  def close(): Unit
 }
