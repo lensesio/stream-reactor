@@ -19,7 +19,7 @@ import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.connect.sink.SinkRecord
 
 trait CosmosDbWriter {
-  def insert(records: Seq[SinkRecord]): Either[Throwable, Unit]
+  def insert(records: Iterable[SinkRecord]): Either[Throwable, Unit]
 
   def preCommit(offsetAndMetadatas: Map[TopicPartition, OffsetAndMetadata]): Map[TopicPartition, OffsetAndMetadata]
 

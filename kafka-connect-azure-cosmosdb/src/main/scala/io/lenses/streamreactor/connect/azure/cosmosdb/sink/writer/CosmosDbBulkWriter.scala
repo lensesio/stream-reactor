@@ -33,7 +33,7 @@ class CosmosDbBulkWriter(
     with StrictLogging {
 
   // adds records to the queue.  Returns immediately - processing occurs asynchronously.
-  def insert(newRecords: Seq[SinkRecord]): Either[Throwable, Unit] =
+  def insert(newRecords: Iterable[SinkRecord]): Either[Throwable, Unit] =
     for {
       _      <- unrecoverableError().toLeft[Unit](())
       insert <- Try(recordsQueue.enqueueAll(newRecords.map(bulkRecordConverter.convert(config, _)).toList)).toEither

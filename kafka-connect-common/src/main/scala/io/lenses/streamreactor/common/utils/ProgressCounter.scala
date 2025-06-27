@@ -21,7 +21,6 @@ import java.util.Date
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.connector.ConnectRecord
 
-import scala.collection.immutable.Seq
 import scala.collection.mutable
 
 /**
@@ -33,7 +32,7 @@ case class ProgressCounter(periodMillis: Int = 60000) extends StrictLogging {
   private var timestamp: Long = 0
   private val counter = mutable.Map.empty[String, Long]
 
-  def update[T <: ConnectRecord[T]](records: Seq[ConnectRecord[T]]): Unit = {
+  def update[T <: ConnectRecord[T]](records: Iterable[ConnectRecord[T]]): Unit = {
     val newTimestamp = System.currentTimeMillis()
 
     records.foreach(r => counter.put(r.topic(), counter.getOrElse(r.topic(), 0L) + 1L))

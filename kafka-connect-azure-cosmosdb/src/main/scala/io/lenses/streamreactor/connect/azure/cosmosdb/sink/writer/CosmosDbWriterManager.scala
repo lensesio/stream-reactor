@@ -55,7 +55,7 @@ class CosmosDbWriterManager(
    *
    * @param records A list of SinkRecords from Kafka Connect to write.
    */
-  def write(records: Seq[SinkRecord]): Unit =
+  def write(records: Iterable[SinkRecord]): Unit =
     if (records.nonEmpty) {
       val _ = insert(records)
     }
@@ -66,7 +66,7 @@ class CosmosDbWriterManager(
    * @param records A list of SinkRecords from Kafka Connect to write.
    * @return boolean indication successful write.
    */
-  private def insert(records: Seq[SinkRecord]): Unit =
+  private def insert(records: Iterable[SinkRecord]): Unit =
     records
       .groupBy(sinkRecord => new Topic(sinkRecord.topic()))
       .toList

@@ -77,7 +77,7 @@ class CosmosDbSinkTask extends SinkTask with StrictLogging with JarManifestProvi
    */
   override def put(records: util.Collection[SinkRecord]): Unit = {
     require(writerManager.nonEmpty, "Writer is not set!")
-    val seq = records.asScala.toVector
+    val seq = records.asScala
     writerManager.foreach(w => w.write(seq))
 
     if (enableProgress) {

@@ -45,7 +45,7 @@ class CosmosDbSingleWriter(
    * @param records A list of SinkRecords from Kafka Connect to write.
    * @return boolean indication successful write.
    */
-  def insert(records: Seq[SinkRecord]): Either[Throwable, Unit] =
+  def insert(records: Iterable[SinkRecord]): Either[Throwable, Unit] =
     Try {
       records.foreach { record =>
         val document =
