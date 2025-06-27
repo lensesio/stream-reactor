@@ -178,7 +178,7 @@ class CosmosDbSinkConnector private[sink] (builder: CosmosDbSinkSettings => Cosm
         logger.warn(s"Couldn't read the database [${settings.database}]", e)
         if (settings.createDatabase) {
           logger.info(s"Database [${settings.database}] does not exists. Creating it...")
-          Try(CreateDatabaseFn(settings.database)) match {
+          CreateDatabaseFn(settings.database) match {
             case Failure(t) =>
               throw new IllegalStateException(s"Could not create database [${settings.database}]. ${t.getMessage}", t)
             case Success(db) =>
@@ -192,7 +192,7 @@ class CosmosDbSinkConnector private[sink] (builder: CosmosDbSinkSettings => Cosm
         if (d == null) {
           if (settings.createDatabase) {
             logger.info(s"Database ${settings.database} does not exist. Creating it...")
-            Try(CreateDatabaseFn(settings.database)) match {
+            CreateDatabaseFn(settings.database) match {
               case Failure(t) =>
                 throw new IllegalStateException(s"Could not create database [${settings.database}]. ${t.getMessage}", t)
               case Success(db) =>

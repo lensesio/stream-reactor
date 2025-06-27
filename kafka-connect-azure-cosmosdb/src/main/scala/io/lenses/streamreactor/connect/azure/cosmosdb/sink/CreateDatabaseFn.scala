@@ -15,20 +15,15 @@
  */
 package io.lenses.streamreactor.connect.azure.cosmosdb.sink
 
-import cats.implicits._
 import com.azure.cosmos.CosmosClient
 import com.azure.cosmos.CosmosDatabase
 
 import scala.util.Try
 
 object CreateDatabaseFn {
-  def apply(databaseName: String)(implicit cosmosClient: CosmosClient): CosmosDatabase = {
+  def apply(databaseName: String)(implicit cosmosClient: CosmosClient): Try[CosmosDatabase] =
     for {
       _ <- Try(cosmosClient.createDatabase(databaseName, null))
       b <- Try(cosmosClient.getDatabase(databaseName))
     } yield b
-  }
-    .toEither
-    .leftMap(ex => throw new RuntimeException(s"Could not create database [$databaseName]. ${ex.getMessage}", ex))
-    .merge
 }
