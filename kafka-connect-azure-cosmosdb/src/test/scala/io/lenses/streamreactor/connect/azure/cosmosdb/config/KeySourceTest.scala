@@ -18,7 +18,6 @@ package io.lenses.streamreactor.connect.azure.cosmosdb.config
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 import org.apache.kafka.connect.sink.SinkRecord
-import io.lenses.streamreactor.connect.cloud.common.model.Topic
 import org.apache.kafka.connect.data.SchemaBuilder
 import org.apache.kafka.connect.data.Struct
 import org.mockito.MockitoSugar
@@ -29,15 +28,17 @@ class KeySourceTest extends AnyFunSuite with Matchers with MockitoSugar {
     val sinkRecord = mock[SinkRecord]
     when(sinkRecord.key()).thenReturn("key-value")
 
-    val result = KeyKeySource.generateId(Topic("topic").withPartition(0).atOffset(0), sinkRecord)
+    val result = KeyKeySource.generateId(sinkRecord)
     result shouldEqual Right("key-value")
   }
 
   test("MetadataKeySource generates ID from topic, partition, and offset") {
-    val topicPartitionOffset = Topic("topic").withPartition(1).atOffset(42)
-    val sinkRecord           = mock[SinkRecord]
+    val sinkRecord = mock[SinkRecord]
+    when(sinkRecord.topic()).thenReturn("topic")
+    when(sinkRecord.kafkaPartition()).thenReturn(1)
+    when(sinkRecord.kafkaOffset()).thenReturn(42)
 
-    val result = MetadataKeySource.generateId(topicPartitionOffset, sinkRecord)
+    val result = MetadataKeySource.generateId(sinkRecord)
     result shouldEqual Right("topic-1-42")
   }
 
@@ -54,7 +55,7 @@ class KeySourceTest extends AnyFunSuite with Matchers with MockitoSugar {
     when(sinkRecord.key()).thenReturn(struct)
     when(sinkRecord.keySchema()).thenReturn(structSchema)
 
-    val result = KeyPathKeySource("keypath").generateId(Topic("topic").withPartition(0).atOffset(0), sinkRecord)
+    val result = KeyPathKeySource("keypath").generateId(sinkRecord)
     result shouldEqual Right("key-path-id")
   }
 
@@ -71,7 +72,7 @@ class KeySourceTest extends AnyFunSuite with Matchers with MockitoSugar {
     when(sinkRecord.value()).thenReturn(struct)
     when(sinkRecord.valueSchema()).thenReturn(structSchema)
 
-    val result = ValuePathKeySource("valuepath").generateId(Topic("topic").withPartition(0).atOffset(0), sinkRecord)
+    val result = ValuePathKeySource("valuepath").generateId(sinkRecord)
     result shouldEqual Right("value-path-id")
   }
 

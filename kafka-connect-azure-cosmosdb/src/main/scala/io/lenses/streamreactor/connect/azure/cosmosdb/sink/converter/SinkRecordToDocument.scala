@@ -19,7 +19,6 @@ import com.azure.cosmos.implementation.Document
 import io.lenses.streamreactor.common.schemas.ConverterUtil
 import io.lenses.streamreactor.connect.azure.cosmosdb.config.KeySource
 import io.lenses.streamreactor.connect.azure.cosmosdb.converters.SinkRecordConverter
-import io.lenses.streamreactor.connect.cloud.common.model.Topic
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkRecord
@@ -73,12 +72,7 @@ object SinkRecordToDocument extends ConverterUtil {
   }
 
   private def generateDocumentId(record: SinkRecord, idGenerator: KeySource) =
-    idGenerator.generateId(
-      Topic(record.topic())
-        .withPartition(record.kafkaPartition())
-        .atOffset(record.kafkaOffset()),
-      record,
-    ) match {
+    idGenerator.generateId(record) match {
       case Left(value) => throw new ConnectException("error generating id field", value)
       case Right(null) =>
         throw new ConnectException("id field value is null, please check your configuration")

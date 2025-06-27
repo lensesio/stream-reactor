@@ -15,46 +15,30 @@
  */
 package io.lenses.streamreactor.connect.azure.cosmosdb.config
 
-import io.lenses.streamreactor.connect.cloud.common.model.TopicPartitionOffset
+import cats.implicits._
 import io.lenses.streamreactor.connect.cloud.common.sink.extractors.KafkaConnectExtractor
 import org.apache.kafka.connect.sink.SinkRecord
-import cats.implicits._
 
 trait KeySource {
-  def generateId(
-    topicPartitionOffset: TopicPartitionOffset,
-    sinkRecord:           SinkRecord,
-  ): Either[Throwable, AnyRef]
+  def generateId(sinkRecord: SinkRecord): Either[Throwable, AnyRef]
 }
 
 case object KeyKeySource extends KeySource {
-  override def generateId(
-    topicPartitionOffset: TopicPartitionOffset,
-    sinkRecord:           SinkRecord,
-  ): Either[Throwable, AnyRef] = KafkaConnectExtractor.extractFromKey(sinkRecord, Option.empty)
+  override def generateId(sinkRecord: SinkRecord): Either[Throwable, AnyRef] =
+    KafkaConnectExtractor.extractFromKey(sinkRecord, Option.empty)
 }
 
 case object MetadataKeySource extends KeySource {
-  override def generateId(
-    topicPartitionOffset: TopicPartitionOffset,
-    sinkRecord:           SinkRecord,
-  ): Either[Throwable, AnyRef] =
-    "%s-%d-%s".format(topicPartitionOffset.topic.value,
-                      topicPartitionOffset.partition,
-                      topicPartitionOffset.offset.value,
-    ).asRight
+  override def generateId(sinkRecord: SinkRecord): Either[Throwable, AnyRef] =
+    "%s-%d-%s".format(sinkRecord.topic(), sinkRecord.kafkaPartition(), sinkRecord.kafkaOffset()).asRight
 }
 
 case class KeyPathKeySource(path: String) extends KeySource {
-  override def generateId(
-    topicPartitionOffset: TopicPartitionOffset,
-    sinkRecord:           SinkRecord,
-  ): Either[Throwable, AnyRef] = KafkaConnectExtractor.extractFromKey(sinkRecord, path.some)
+  override def generateId(sinkRecord: SinkRecord): Either[Throwable, AnyRef] =
+    KafkaConnectExtractor.extractFromKey(sinkRecord, path.some)
 }
 
 case class ValuePathKeySource(path: String) extends KeySource {
-  override def generateId(
-    topicPartitionOffset: TopicPartitionOffset,
-    sinkRecord:           SinkRecord,
-  ): Either[Throwable, AnyRef] = KafkaConnectExtractor.extractFromValue(sinkRecord, path.some)
+  override def generateId(sinkRecord: SinkRecord): Either[Throwable, AnyRef] =
+    KafkaConnectExtractor.extractFromValue(sinkRecord, path.some)
 }

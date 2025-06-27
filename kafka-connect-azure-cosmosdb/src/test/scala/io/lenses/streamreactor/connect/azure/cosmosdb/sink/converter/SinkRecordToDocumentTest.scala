@@ -21,7 +21,6 @@ import io.lenses.streamreactor.common.schemas.ConverterUtil
 import io.lenses.streamreactor.connect.azure.cosmosdb.Json
 import io.lenses.streamreactor.connect.azure.cosmosdb.config.KeySource
 import io.lenses.streamreactor.connect.azure.cosmosdb.sink.Transaction
-import io.lenses.streamreactor.connect.cloud.common.model.TopicPartitionOffset
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.sink.SinkRecord
 import org.mockito.ArgumentMatchersSugar
@@ -41,10 +40,7 @@ class SinkRecordToDocumentTest
     with ArgumentMatchersSugar {
   private val testId = "myTestId"
   private val idGenerator: KeySource = mock[KeySource]
-  when(idGenerator.generateId(
-    any[TopicPartitionOffset],
-    any[SinkRecord],
-  )).thenReturn(testId.asRight)
+  when(idGenerator.generateId(any[SinkRecord])).thenReturn(testId.asRight)
 
   "SinkRecordToDocument" should {
     "convert Kafka Struct to a Azure Document Db Document" in {
