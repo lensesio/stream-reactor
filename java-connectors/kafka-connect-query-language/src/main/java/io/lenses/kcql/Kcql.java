@@ -443,11 +443,6 @@ public class Kcql {
       }
 
       @Override
-      public void exitUpdate_into(ConnectorParser.Update_intoContext ctx) {
-        kcql.writeMode = WriteModeEnum.UPDATE;
-      }
-
-      @Override
       public void exitAutocreate(ConnectorParser.AutocreateContext ctx) {
         kcql.autoCreate = true;
       }

@@ -15,6 +15,7 @@
  */
 package io.lenses.streamreactor.connect.azure.cosmosdb.sink
 
+import com.azure.cosmos.CosmosClient
 import com.typesafe.scalalogging.StrictLogging
 import io.lenses.streamreactor.common.config.Helpers
 import io.lenses.streamreactor.common.utils.EitherOps._
@@ -104,7 +105,7 @@ class CosmosDbSinkConnector extends SinkConnector with StrictLogging with JarMan
 
   }
 
-  protected def createCosmosClient(settings: CosmosDbSinkSettings) =
+  protected def createCosmosClient(settings: CosmosDbSinkSettings): CosmosClient =
     CosmosClientProvider.get(settings).unpackOrThrow
 
   override def stop(): Unit = {}

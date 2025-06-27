@@ -10,10 +10,6 @@ UPSERT
    : 'upsert' | 'UPSERT'
    ;
 
-UPDATE
-   : 'update' | 'UPDATE'
-   ;
-
 INTO
    : 'into' | 'INTO'
    ;

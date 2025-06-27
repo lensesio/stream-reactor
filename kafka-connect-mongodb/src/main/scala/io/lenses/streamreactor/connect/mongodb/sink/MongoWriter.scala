@@ -138,7 +138,6 @@ class MongoWriter(settings: MongoSettings, mongoClient: MongoClient)
                   MongoWriter.ReplaceOptions.upsert(true),
                 )
 
-              case WriteModeEnum.UPDATE => throw new IllegalStateException("Update not available")
             }
           }.grouped(batchSize)
             .foreach { batch =>

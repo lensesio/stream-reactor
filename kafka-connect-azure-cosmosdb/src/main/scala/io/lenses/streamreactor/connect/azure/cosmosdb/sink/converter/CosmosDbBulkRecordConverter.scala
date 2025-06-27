@@ -72,10 +72,6 @@ class CosmosDbBulkRecordConverter(
           new PartitionKey(document.getId),
           requestOptionsInsert,
         )
-
-      case WriteModeEnum.UPDATE =>
-        // TODO: What behaviour?  Currently this was producing a matcher error
-        throw new NotImplementedError("this behaviour hasn't been implemented yet")
     }
 
 }

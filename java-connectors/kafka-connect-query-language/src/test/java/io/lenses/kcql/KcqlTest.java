@@ -742,14 +742,6 @@ class KcqlTest {
   }
 
   @Test
-  void handleUpdate() {
-    String syntax = "update into mytopic select a, b, c from topic";
-
-    Kcql kcql = Kcql.parse(syntax);
-    assertEquals(WriteModeEnum.UPDATE, kcql.getWriteMode());
-  }
-
-  @Test
   void handleKeys() {
     String syntax = "insert into target select _key.a, _key.p.c, value_field, _header.h FROM topic";
 
