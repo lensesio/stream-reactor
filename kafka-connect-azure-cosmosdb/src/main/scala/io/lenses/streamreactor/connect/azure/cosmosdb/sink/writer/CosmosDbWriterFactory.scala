@@ -25,6 +25,7 @@ import io.lenses.streamreactor.connect.azure.cosmosdb.config.CosmosDbConfigConst
 import io.lenses.streamreactor.connect.azure.cosmosdb.config.CosmosDbSinkSettings
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkTaskContext
+import io.lenses.streamreactor.common.utils.EitherOps._
 
 import java.util.UUID
 
@@ -45,10 +46,7 @@ object CosmosDbWriterFactory extends StrictLogging {
       case _ =>
     }
     logger.info(s"Initialising Document Db writer.")
-    val client = CosmosClientProvider.get(settings) match {
-      case Right(client) => client
-      case Left(ex)      => throw ex
-    }
+    val client = CosmosClientProvider.get(settings).unpackOrThrow
     val configMap: Map[String, Kcql] = settings.kcql
       .map { c =>
         Option(

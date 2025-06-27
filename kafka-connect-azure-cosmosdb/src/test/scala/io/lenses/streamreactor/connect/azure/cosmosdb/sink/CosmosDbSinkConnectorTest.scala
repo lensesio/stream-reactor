@@ -20,6 +20,7 @@ import com.azure.cosmos.CosmosContainer
 import com.azure.cosmos.CosmosDatabase
 import com.azure.cosmos.models.CosmosContainerResponse
 import io.lenses.streamreactor.connect.azure.cosmosdb.config.CosmosDbConfigConstants
+import io.lenses.streamreactor.connect.azure.cosmosdb.config.CosmosDbSinkSettings
 //import org.mockito.ArgumentMatchers.any
 import org.mockito.ArgumentMatchers.{ eq => mockEq }
 import org.mockito.MockitoSugar
@@ -31,6 +32,11 @@ import scala.jdk.CollectionConverters.MapHasAsJava
 
 class CosmosDbSinkConnectorTest extends AnyWordSpec with Matchers with MockitoSugar with CosmosDbTestUtils {
   private val connection = "https://accountName.documents.azure.com:443/"
+
+  // Test subclass to inject mock CosmosClient
+  class TestableCosmosDbSinkConnector(mockClient: CosmosClient) extends CosmosDbSinkConnector {
+    override protected def createCosmosClient(settings: CosmosDbSinkSettings): CosmosClient = mockClient
+  }
 
   "CosmosDbSinkConnector" should {
     "return one task config when one route is provided" in {
@@ -52,7 +58,7 @@ class CosmosDbSinkConnectorTest extends AnyWordSpec with Matchers with MockitoSu
       when(documentClient.getDatabase(mockEq("database1")))
         .thenReturn(dbResource)
 
-      val connector = new CosmosDbSinkConnector(_ => documentClient)
+      val connector = new TestableCosmosDbSinkConnector(documentClient)
       connector.start(map.asJava)
       connector.taskConfigs(3).asScala.length shouldBe 1
     }
@@ -84,7 +90,7 @@ class CosmosDbSinkConnectorTest extends AnyWordSpec with Matchers with MockitoSu
       when(documentClient.getDatabase(mockEq("database1")))
         .thenReturn(dbResource)
 
-      val connector = new CosmosDbSinkConnector(_ => documentClient)
+      val connector = new TestableCosmosDbSinkConnector(documentClient)
 
       connector.start(map.asJava)
       connector.taskConfigs(1).asScala.length shouldBe 1
@@ -123,7 +129,7 @@ class CosmosDbSinkConnectorTest extends AnyWordSpec with Matchers with MockitoSu
       when(documentClient.getDatabase(mockEq("database1")))
         .thenReturn(dbResource)
 
-      val connector = new CosmosDbSinkConnector(_ => documentClient)
+      val connector = new TestableCosmosDbSinkConnector(documentClient)
 
       connector.start(map.asJava)
       val tasksConfigs = connector.taskConfigs(2).asScala
@@ -167,7 +173,7 @@ class CosmosDbSinkConnectorTest extends AnyWordSpec with Matchers with MockitoSu
       when(documentClient.getDatabase(mockEq("database1")))
         .thenReturn(dbResource)
 
-      val connector = new CosmosDbSinkConnector(_ => documentClient)
+      val connector = new TestableCosmosDbSinkConnector(documentClient)
 
       connector.start(map.asJava)
       val tasksConfigs = connector.taskConfigs(3).asScala
@@ -216,7 +222,7 @@ class CosmosDbSinkConnectorTest extends AnyWordSpec with Matchers with MockitoSu
       when(documentClient.getDatabase(mockEq("database1")))
         .thenReturn(dbResource)
 
-      val connector = new CosmosDbSinkConnector(_ => documentClient)
+      val connector = new TestableCosmosDbSinkConnector(documentClient)
 
       connector.start(map.asJava)
       val tasksConfigs = connector.taskConfigs(2).asScala

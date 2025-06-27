@@ -86,4 +86,5 @@ object CosmosClientProvider {
         }
       } yield new ProxyOptions(proxyType, new InetSocketAddress(host, port))
     }
+
 }

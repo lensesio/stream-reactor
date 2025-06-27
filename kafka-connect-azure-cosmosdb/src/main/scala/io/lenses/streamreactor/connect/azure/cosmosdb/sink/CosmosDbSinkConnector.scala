@@ -16,8 +16,6 @@
 package io.lenses.streamreactor.connect.azure.cosmosdb.sink
 
 import com.azure.cosmos.CosmosClient
-import com.azure.cosmos.CosmosDatabase
-import com.azure.cosmos.models.ThroughputProperties
 import com.typesafe.scalalogging.StrictLogging
 import io.lenses.streamreactor.common.config.Helpers
 import io.lenses.streamreactor.common.utils.JarManifestProvided
@@ -26,10 +24,10 @@ import io.lenses.streamreactor.connect.azure.cosmosdb.config.CosmosDbConfig
 import io.lenses.streamreactor.connect.azure.cosmosdb.config.CosmosDbConfigConstants
 import io.lenses.streamreactor.connect.azure.cosmosdb.config.CosmosDbSinkSettings
 import org.apache.kafka.common.config.ConfigDef
-import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkConnector
+import io.lenses.streamreactor.common.utils.EitherOps._
 
 import java.util
 import scala.collection.mutable
@@ -39,6 +37,7 @@ import scala.jdk.CollectionConverters.SeqHasAsJava
 import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
+import io.lenses.streamreactor.connect.azure.cosmosdb.sink.CosmosDbDatabaseUtils
 
 /**
  * <h1>CosmosDbSinkConnector</h1>
@@ -46,19 +45,8 @@ import scala.util.Try
  *
  * Sets up CosmosDbSinkTask and configurations for the tasks.
  */
-class CosmosDbSinkConnector private[sink] (builder: CosmosDbSinkSettings => CosmosClient)
-    extends SinkConnector
-    with StrictLogging
-    with JarManifestProvided {
+class CosmosDbSinkConnector extends SinkConnector with StrictLogging with JarManifestProvided {
   private var configProps: util.Map[String, String] = _
-
-  @throws[ConnectException]
-  def this() = this(settings =>
-    CosmosClientProvider.get(settings) match {
-      case Right(client) => client
-      case Left(ex)      => throw ex
-    },
-  )
 
   /**
    * States which SinkTask class to use
@@ -109,11 +97,14 @@ class CosmosDbSinkConnector private[sink] (builder: CosmosDbSinkSettings => Cosm
 
     val settings = CosmosDbSinkSettings(config)
 
+    // Cosmos DB setup logic (ensure DB and collections exist)
     var documentClient: CosmosClient = null
     try {
-      documentClient = builder(settings)
-      val database = readOrCreateDatabase(settings)(documentClient)
-      readOrCreateCollections(database, settings)
+      documentClient = createCosmosClient(settings)
+      val database = CosmosDbDatabaseUtils.readOrCreateDatabase(settings)(documentClient)
+        .unpackOrThrow(ex => new ConnectException(s"Failed to read or create database: ${ex.getMessage}", ex))
+      CosmosDbDatabaseUtils.readOrCreateCollections(database, settings)
+        .unpackOrThrow(ex => new ConnectException(s"Failed to read or create collections: ${ex.getMessage}", ex))
     } finally {
       if (null != documentClient) {
         documentClient.close()
@@ -121,89 +112,11 @@ class CosmosDbSinkConnector private[sink] (builder: CosmosDbSinkSettings => Cosm
     }
   }
 
+  // Allow test subclasses to override client creation
+  protected def createCosmosClient(settings: CosmosDbSinkSettings): CosmosClient =
+    CosmosClientProvider.get(settings).unpackOrThrow
+
   override def stop(): Unit = {}
 
   override def config(): ConfigDef = CosmosDbConfig.config
-
-  private def readOrCreateCollections(
-    database: CosmosDatabase,
-    settings: CosmosDbSinkSettings,
-  ): Unit = {
-    //check all collection exists and if not create them
-    val throughputProperties = ThroughputProperties.createManualThroughput(400)
-    settings.kcql.map(_.getTarget).foreach { collectionName =>
-      Try(
-        database
-          .getContainer(collectionName)
-          .read(),
-      ) match {
-        case Failure(ex) =>
-          logger.warn(s"Collection [$collectionName] doesn't exist. Creating it...", ex)
-          createCollection(database, throughputProperties, collectionName)
-
-        case Success(c) if c == null =>
-          logger.warn(s"Collection:$collectionName doesn't exist. Creating it...")
-          createCollection(database, throughputProperties, collectionName)
-        case _ =>
-      }
-    }
-  }
-
-  private def createCollection(
-    database:             CosmosDatabase,
-    throughputProperties: ThroughputProperties,
-    collectionName:       String,
-  ): Unit = {
-    Try(database.createContainer(collectionName, "partitionKeyPath", throughputProperties)) match {
-      case Failure(t) =>
-        throw new RuntimeException(s"Could not create collection [$collectionName]. ${t.getMessage}", t)
-      case _ =>
-    }
-
-    logger.warn(s"Collection [$collectionName] created")
-  }
-
-  private def readOrCreateDatabase(
-    settings: CosmosDbSinkSettings,
-  )(
-    implicit
-    documentClient: CosmosClient,
-  ): CosmosDatabase = {
-    //check database exists
-    logger.info(s"Checking ${settings.database} exists...")
-    Try {
-      documentClient.getDatabase(settings.database)
-    } match {
-      case Failure(e) =>
-        logger.warn(s"Couldn't read the database [${settings.database}]", e)
-        if (settings.createDatabase) {
-          logger.info(s"Database [${settings.database}] does not exists. Creating it...")
-          CreateDatabaseFn(settings.database) match {
-            case Failure(t) =>
-              throw new IllegalStateException(s"Could not create database [${settings.database}]. ${t.getMessage}", t)
-            case Success(db) =>
-              logger.info(s"Database [${settings.database}] created")
-              db
-          }
-        } else {
-          throw new RuntimeException(s"Could not find database [${settings.database}]", e)
-        }
-      case Success(d) =>
-        if (d == null) {
-          if (settings.createDatabase) {
-            logger.info(s"Database ${settings.database} does not exist. Creating it...")
-            CreateDatabaseFn(settings.database) match {
-              case Failure(t) =>
-                throw new IllegalStateException(s"Could not create database [${settings.database}]. ${t.getMessage}", t)
-              case Success(db) =>
-                logger.info(s"Database ${settings.database} created")
-                db
-            }
-          } else throw new ConfigException(s"Could not find database [${settings.database}]")
-        } else {
-          logger.info(s"Database [${settings.database}] already exists...")
-          d
-        }
-    }
-  }
 }
