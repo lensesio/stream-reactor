@@ -57,7 +57,7 @@ class CosmosDbWriterManager(
    */
   def write(records: Iterable[SinkRecord]): Unit =
     if (records.nonEmpty) {
-      val _ = insert(records)
+      insert(records)
     }
 
   /**
