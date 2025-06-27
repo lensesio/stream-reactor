@@ -32,48 +32,58 @@ import scala.util.Try
  * Creates an instance of Azure DocumentClient class
  */
 object CosmosClientProvider {
-  def get(settings: CosmosDbSinkSettings): Either[ConnectException, CosmosClient] = Try {
+  def get(settings: CosmosDbSinkSettings): Either[ConnectException, CosmosClient] =
+    for {
+      gateway <- configureGateway(settings)
+      client  <- createCosmosClient(settings, gateway)
+    } yield client
 
-    val gateway = settings.proxy.map { proxy =>
-      new GatewayConnectionConfig()
-        .setProxy(convertProxy(proxy))
-    }.getOrElse(GatewayConnectionConfig.getDefaultConfig)
-
-    new CosmosClientBuilder()
-      .endpoint(settings.endpoint)
-      .key(settings.masterKey)
-      .gatewayMode(gateway)
-      .consistencyLevel(settings.consistency)
-      .buildClient()
-
-  }.toEither.leftMap {
-    case npe: NullPointerException =>
-      new ConnectException("Null value found in CosmosClient settings, please check your configuration.", npe)
-    case mue: MalformedURLException =>
-      new ConnectException(s"Proxy configuration incorrect, ${mue.getMessage}", mue)
-    case ex: IllegalArgumentException =>
-      new ConnectException(s"Exception while creating CosmosClient, ${ex.getMessage}", ex)
-
+  private def configureGateway(settings: CosmosDbSinkSettings): Either[ConnectException, GatewayConnectionConfig] = {
+    val gatewayConfig = GatewayConnectionConfig.getDefaultConfig
+    settings.proxy
+      .map(convertProxy)
+      .fold(gatewayConfig.asRight[ConnectException]) {
+        case Left(mue)    => new ConnectException(s"Proxy configuration incorrect, ${mue.getMessage}", mue).asLeft
+        case Right(proxy) => gatewayConfig.setProxy(proxy).asRight
+      }
   }
 
-  private[cosmosdb] def convertProxy(proxy: String): ProxyOptions = {
-    val url = new URI(proxy)
-    val protocol = Option(url.getScheme).map(_.toLowerCase).getOrElse(throw new MalformedURLException(
-      "Proxy protocol has not been specified",
-    ))
-    val host = url.getHost
-    val port = Option(url.getPort).filterNot(_ == -1).getOrElse(throw new MalformedURLException(
-      "Proxy port has not been specified",
-    ))
-    val proxyType = protocol match {
-      case "http"   => ProxyOptions.Type.HTTP
-      case "socks4" => ProxyOptions.Type.SOCKS4
-      case "socks5" => ProxyOptions.Type.SOCKS5
-      case _        => throw new MalformedURLException("Proxy protocol has not been specified")
-    }
-    new ProxyOptions(
-      proxyType,
-      new InetSocketAddress(host, port),
+  private def createCosmosClient(
+    settings: CosmosDbSinkSettings,
+    gateway:  GatewayConnectionConfig,
+  ): Either[ConnectException, CosmosClient] =
+    Try(
+      new CosmosClientBuilder()
+        .endpoint(settings.endpoint)
+        .key(settings.masterKey)
+        .gatewayMode(gateway)
+        .consistencyLevel(settings.consistency)
+        .buildClient(),
     )
-  }
+      .toEither
+      .leftMap {
+        case npe: NullPointerException =>
+          new ConnectException("Null value found in CosmosClient settings, please check your configuration.", npe)
+        case ex: IllegalArgumentException =>
+          new ConnectException(s"Exception while creating CosmosClient, ${ex.getMessage}", ex)
+      }
+
+  private[cosmosdb] def convertProxy(proxy: String): Either[MalformedURLException, ProxyOptions] =
+    Try(new URI(proxy)).toEither.left.map(_ => new MalformedURLException("Invalid proxy URI")).flatMap { url =>
+      val protocolOpt = Option(url.getScheme).map(_.toLowerCase)
+      val hostOpt     = Option(url.getHost)
+      val portOpt     = Option(url.getPort).filter(_ != -1)
+
+      for {
+        protocol <- protocolOpt.toRight(new MalformedURLException("Proxy protocol has not been specified"))
+        host     <- hostOpt.toRight(new MalformedURLException("Proxy host has not been specified"))
+        port     <- portOpt.toRight(new MalformedURLException("Proxy port has not been specified"))
+        proxyType <- protocol match {
+          case "http"   => Right(ProxyOptions.Type.HTTP)
+          case "socks4" => Right(ProxyOptions.Type.SOCKS4)
+          case "socks5" => Right(ProxyOptions.Type.SOCKS5)
+          case _        => Left(new MalformedURLException("Unsupported proxy protocol specified"))
+        }
+      } yield new ProxyOptions(proxyType, new InetSocketAddress(host, port))
+    }
 }
