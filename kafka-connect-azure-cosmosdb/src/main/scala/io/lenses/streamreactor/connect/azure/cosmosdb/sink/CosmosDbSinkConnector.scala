@@ -17,6 +17,7 @@ package io.lenses.streamreactor.connect.azure.cosmosdb.sink
 
 import com.typesafe.scalalogging.StrictLogging
 import io.lenses.streamreactor.common.config.Helpers
+import io.lenses.streamreactor.common.utils.EitherOps._
 import io.lenses.streamreactor.common.utils.JarManifestProvided
 import io.lenses.streamreactor.connect.azure.cosmosdb.CosmosClientProvider
 import io.lenses.streamreactor.connect.azure.cosmosdb.config.CosmosDbConfig
@@ -26,18 +27,14 @@ import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkConnector
-import io.lenses.streamreactor.common.utils.EitherOps._
 
 import java.util
 import scala.collection.mutable
 import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.jdk.CollectionConverters.MapHasAsScala
 import scala.jdk.CollectionConverters.SeqHasAsJava
-import scala.util.Failure
-import scala.util.Success
 import scala.util.Try
 import scala.util.Using
-import io.lenses.streamreactor.connect.azure.cosmosdb.sink.CosmosDbDatabaseUtils
 
 /**
  * <h1>CosmosDbSinkConnector</h1>
@@ -85,15 +82,15 @@ class CosmosDbSinkConnector extends SinkConnector with StrictLogging with JarMan
    * @param props A map of properties for the connector and worker
    */
   override def start(props: util.Map[String, String]): Unit = {
-    val config = Try(CosmosDbConfig(props.asScala.toMap)) match {
-      case Failure(f) =>
-        throw new ConnectException(s"Couldn't start Azure CosmosDb sink due to configuration error: ${f.getMessage}", f)
-      case Success(c) => c
-    }
+    val config = Try(CosmosDbConfig(props.asScala.toMap)).toEither
+      .unpackOrThrow(ex =>
+        new ConnectException(s"Couldn't start Azure CosmosDb sink due to configuration error: ${ex.getMessage}", ex),
+      )
     configProps = props
 
     //check input topics
-    Helpers.checkInputTopics(CosmosDbConfigConstants.KCQL_CONFIG, props.asScala.toMap)
+    Helpers.checkInputTopicsEither(CosmosDbConfigConstants.KCQL_CONFIG, props.asScala.toMap)
+      .unpackOrThrow
 
     val settings = CosmosDbSinkSettings(config)
 
