@@ -15,7 +15,6 @@
  */
 package io.lenses.streamreactor.connect.azure.cosmosdb.sink
 
-import com.azure.cosmos.CosmosClient
 import com.typesafe.scalalogging.StrictLogging
 import io.lenses.streamreactor.common.config.Helpers
 import io.lenses.streamreactor.common.utils.JarManifestProvided
@@ -37,6 +36,7 @@ import scala.jdk.CollectionConverters.SeqHasAsJava
 import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
+import scala.util.Using
 import io.lenses.streamreactor.connect.azure.cosmosdb.sink.CosmosDbDatabaseUtils
 
 /**
@@ -98,22 +98,16 @@ class CosmosDbSinkConnector extends SinkConnector with StrictLogging with JarMan
     val settings = CosmosDbSinkSettings(config)
 
     // Cosmos DB setup logic (ensure DB and collections exist)
-    var documentClient: CosmosClient = null
-    try {
-      documentClient = createCosmosClient(settings)
-      val database = CosmosDbDatabaseUtils.readOrCreateDatabase(settings)(documentClient)
+    Using.resource(createCosmosClient(settings)) { cosmosClient =>
+      val database = CosmosDbDatabaseUtils.readOrCreateDatabase(settings)(cosmosClient)
         .unpackOrThrow(ex => new ConnectException(s"Failed to read or create database: ${ex.getMessage}", ex))
       CosmosDbDatabaseUtils.readOrCreateCollections(database, settings)
         .unpackOrThrow(ex => new ConnectException(s"Failed to read or create collections: ${ex.getMessage}", ex))
-    } finally {
-      if (null != documentClient) {
-        documentClient.close()
-      }
     }
+
   }
 
-  // Allow test subclasses to override client creation
-  protected def createCosmosClient(settings: CosmosDbSinkSettings): CosmosClient =
+  protected def createCosmosClient(settings: CosmosDbSinkSettings) =
     CosmosClientProvider.get(settings).unpackOrThrow
 
   override def stop(): Unit = {}
