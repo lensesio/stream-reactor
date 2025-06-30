@@ -19,33 +19,30 @@ import io.lenses.streamreactor.common.errors.ThrowErrorPolicy
 import org.apache.kafka.common.config.ConfigException
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+import org.scalatest.EitherValues
 
-class CosmosDbSinkSettingsTest extends AnyWordSpec with Matchers {
+class CosmosDbSinkSettingsTest extends AnyWordSpec with Matchers with EitherValues {
   private val connection = "https://accountName.documents.azure.com:443/"
 
   "CosmosDbSinkSettings" should {
-    "throw an exception if master key is missing" in {
+    "return a Left(exception) if master key is missing" in {
       val map = Map(
         CosmosDbConfigConstants.DATABASE_CONFIG   -> "dbs/database1",
         CosmosDbConfigConstants.CONNECTION_CONFIG -> connection,
         CosmosDbConfigConstants.KCQL_CONFIG       -> "INSERT INTO collection1 SELECT * FROM topic1",
       )
 
-      intercept[ConfigException] {
-        CosmosDbConfig(map)
-      }
+      CosmosDbConfig(map).left.value shouldBe a[ConfigException]
     }
 
-    "throw an exception if connection is missing" in {
+    "return a Left(exception) if connection is missing" in {
       val map = Map(
         CosmosDbConfigConstants.DATABASE_CONFIG   -> "dbs/database1",
         CosmosDbConfigConstants.MASTER_KEY_CONFIG -> "secret",
         CosmosDbConfigConstants.KCQL_CONFIG       -> "INSERT INTO collection1 SELECT * FROM topic1",
       )
 
-      intercept[ConfigException] {
-        CosmosDbConfig(map)
-      }
+      CosmosDbConfig(map).left.value shouldBe a[ConfigException]
     }
 
     "handle two topics" in {
@@ -57,13 +54,16 @@ class CosmosDbSinkSettingsTest extends AnyWordSpec with Matchers {
         CosmosDbConfigConstants.KCQL_CONFIG       -> "INSERT INTO collection1 SELECT * FROM topic1;INSERT INTO coll2 SELECT a as F1, b as F2 FROM topic2",
       )
 
-      val config   = CosmosDbConfig(map)
-      val settings = CosmosDbSinkSettings(config)
-      settings.database shouldBe "dbs/database1"
-      settings.endpoint shouldBe connection
-      settings.kcql.size shouldBe 2
-      settings.errorPolicy shouldBe ThrowErrorPolicy()
-      settings.ignoredField shouldBe Map("topic1" -> Set.empty, "topic2" -> Set.empty)
+      for {
+        config   <- CosmosDbConfig(map)
+        settings <- CosmosDbSinkSettings(config)
+      } yield {
+        settings.database shouldBe "dbs/database1"
+        settings.endpoint shouldBe connection
+        settings.kcql.size shouldBe 2
+        settings.errorPolicy shouldBe ThrowErrorPolicy()
+        settings.ignoredField shouldBe Map("topic1" -> Set.empty, "topic2" -> Set.empty)
+      }
     }
 
     "handle ingore fields" in {
@@ -74,13 +74,16 @@ class CosmosDbSinkSettingsTest extends AnyWordSpec with Matchers {
         CosmosDbConfigConstants.KCQL_CONFIG       -> "INSERT INTO collection1 SELECT * FROM topic1 IGNORE a,b,c",
       )
 
-      val config   = CosmosDbConfig(map)
-      val settings = CosmosDbSinkSettings(config)
-      settings.database shouldBe "db/database1"
-      settings.endpoint shouldBe connection
-      settings.kcql.size shouldBe 1
-      settings.errorPolicy shouldBe ThrowErrorPolicy()
-      settings.ignoredField shouldBe Map("topic1" -> Set("a", "b", "c"))
+      for {
+        config   <- CosmosDbConfig(map)
+        settings <- CosmosDbSinkSettings(config)
+      } yield {
+        settings.database shouldBe "db/database1"
+        settings.endpoint shouldBe connection
+        settings.kcql.size shouldBe 1
+        settings.errorPolicy shouldBe ThrowErrorPolicy()
+        settings.ignoredField shouldBe Map("topic1" -> Set("a", "b", "c"))
+      }
     }
 
     "handle primary key fields" in {
@@ -91,14 +94,17 @@ class CosmosDbSinkSettingsTest extends AnyWordSpec with Matchers {
         CosmosDbConfigConstants.KCQL_CONFIG       -> "INSERT INTO collection1 SELECT * FROM topic1 PK a,b",
       )
 
-      val config   = CosmosDbConfig(map)
-      val settings = CosmosDbSinkSettings(config)
-      settings.kcql.size shouldBe 1
-      settings.errorPolicy shouldBe ThrowErrorPolicy()
-      settings.ignoredField shouldBe Map("topic1" -> Set.empty)
+      for {
+        config   <- CosmosDbConfig(map)
+        settings <- CosmosDbSinkSettings(config)
+      } yield {
+        settings.kcql.size shouldBe 1
+        settings.errorPolicy shouldBe ThrowErrorPolicy()
+        settings.ignoredField shouldBe Map("topic1" -> Set.empty)
+      }
     }
 
-    "throw an exception if the consistency level is invalid" in {
+    "return a Left(exception) if the consistency level is invalid" in {
       val map = Map(
         CosmosDbConfigConstants.DATABASE_CONFIG    -> "dbs/database1",
         CosmosDbConfigConstants.CONNECTION_CONFIG  -> connection,
@@ -107,13 +113,15 @@ class CosmosDbSinkSettingsTest extends AnyWordSpec with Matchers {
         CosmosDbConfigConstants.KCQL_CONFIG        -> "INSERT INTO collection1 SELECT * FROM topic1 PK a,b",
       )
 
-      val config = CosmosDbConfig(map)
-      intercept[ConfigException] {
-        CosmosDbSinkSettings(config)
-      }
+      {
+        for {
+          config   <- CosmosDbConfig(map)
+          settings <- CosmosDbSinkSettings(config)
+        } yield settings
+      }.left.value shouldBe a[ConfigException]
     }
 
-    "throw an exception if the kcql is not valid" in {
+    "return a Left(exception) if the kcql is not valid" in {
       val map = Map(
         CosmosDbConfigConstants.DATABASE_CONFIG   -> "database1",
         CosmosDbConfigConstants.CONNECTION_CONFIG -> connection,
@@ -121,13 +129,19 @@ class CosmosDbSinkSettingsTest extends AnyWordSpec with Matchers {
         CosmosDbConfigConstants.KCQL_CONFIG       -> "INSERT INTO  SELECT * FROM topic1",
       )
 
-      val config = CosmosDbConfig(map)
-      intercept[IllegalArgumentException] {
-        CosmosDbSinkSettings(config)
-      }
+      {
+        for {
+          config   <- CosmosDbConfig(map)
+          settings <- CosmosDbSinkSettings(config)
+        } yield {
+          settings
+
+        }
+      }.left.value shouldBe a[IllegalArgumentException]
+
     }
 
-    "throw an exception if the database is an empty string" in {
+    "return a Left(exception) if the database is an empty string" in {
       val map = Map(
         CosmosDbConfigConstants.DATABASE_CONFIG   -> "",
         CosmosDbConfigConstants.CONNECTION_CONFIG -> connection,
@@ -135,10 +149,12 @@ class CosmosDbSinkSettingsTest extends AnyWordSpec with Matchers {
         CosmosDbConfigConstants.KCQL_CONFIG       -> "INSERT INTO collection1 SELECT * FROM topic1",
       )
 
-      val config = CosmosDbConfig(map)
-      intercept[ConfigException] {
-        CosmosDbSinkSettings(config)
-      }
+      {
+        for {
+          config   <- CosmosDbConfig(map)
+          settings <- CosmosDbSinkSettings(config)
+        } yield settings
+      }.left.value shouldBe a[IllegalArgumentException]
     }
   }
 }

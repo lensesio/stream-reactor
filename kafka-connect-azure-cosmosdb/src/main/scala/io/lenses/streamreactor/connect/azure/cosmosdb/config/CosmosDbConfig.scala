@@ -22,8 +22,18 @@ import io.lenses.streamreactor.common.config.base.traits._
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.Importance
 import org.apache.kafka.common.config.ConfigDef.Type
+import org.apache.kafka.common.config.ConfigException
+
+import scala.util.Try
 
 object CosmosDbConfig {
+
+  def apply(props: Map[String, String]): Either[ConfigException, CosmosDbConfig] =
+    Try(new CosmosDbConfig(props)).toEither.left.map {
+      case e: ConfigException => e
+      case e => new ConfigException(e.getMessage, e)
+    }
+
   val config: ConfigDef = new ConfigDef()
     .define(
       CosmosDbConfigConstants.CONNECTION_CONFIG,
@@ -237,7 +247,7 @@ object CosmosDbConfig {
   )).withSettings(config)
 }
 
-case class CosmosDbConfig(props: Map[String, String])
+class CosmosDbConfig(props: Map[String, String])
     extends BaseConfig(CosmosDbConfigConstants.CONNECTOR_PREFIX, CosmosDbConfig.config, props)
     with KcqlWithFieldsSettings
     with FlushSettings
@@ -245,4 +255,9 @@ case class CosmosDbConfig(props: Map[String, String])
     with NumberRetriesSettings
     with ErrorPolicySettings
     with ConsistencyLevelSettings[ConsistencyLevel]
-    with KeySourceSettings
+    with KeySourceSettings {
+
+  def getConnectorName: String = props.getOrElse("name", "Unknown-CosmosDB-Sink")
+
+  override def getDatabase: String = getString(CosmosDbConfigConstants.DATABASE_CONFIG)
+}

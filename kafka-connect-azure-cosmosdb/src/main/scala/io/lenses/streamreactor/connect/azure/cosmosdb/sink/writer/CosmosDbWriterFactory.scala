@@ -19,48 +19,42 @@ import com.typesafe.scalalogging.StrictLogging
 import io.lenses.kcql.Kcql
 import io.lenses.streamreactor.common.batch.BatchPolicy
 import io.lenses.streamreactor.common.errors.RetryErrorPolicy
-import io.lenses.streamreactor.connect.azure.cosmosdb.CosmosClientProvider
-import io.lenses.streamreactor.connect.azure.cosmosdb.config.CosmosDbConfig
-import io.lenses.streamreactor.connect.azure.cosmosdb.config.CosmosDbConfigConstants
 import io.lenses.streamreactor.connect.azure.cosmosdb.config.CosmosDbSinkSettings
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkTaskContext
-import io.lenses.streamreactor.common.utils.EitherOps._
-
-import java.util.UUID
+import com.azure.cosmos.CosmosClient
 
 //Factory to build
 object CosmosDbWriterFactory extends StrictLogging {
   def apply(
-    connectorConfig: CosmosDbConfig,
-    context:         SinkTaskContext,
-    settings:        CosmosDbSinkSettings,
+    configMap:      Map[String, Kcql],
+    settings:       CosmosDbSinkSettings,
+    context:        SinkTaskContext,
+    documentClient: CosmosClient,
   ): CosmosDbWriterManager = {
 
-    val sinkName = connectorConfig.props.getOrElse("name", UUID.randomUUID().toString)
+    val sinkName = settings.sinkName
 
     //if error policy is retry set retry interval
     settings.errorPolicy match {
       case RetryErrorPolicy() =>
-        context.timeout(connectorConfig.getInt(CosmosDbConfigConstants.ERROR_RETRY_INTERVAL_CONFIG).toLong)
+        context.timeout(settings.taskRetryInterval)
       case _ =>
     }
     logger.info(s"Initialising Document Db writer.")
-    val client = CosmosClientProvider.get(settings).unpackOrThrow
-    val configMap: Map[String, Kcql] = settings.kcql
-      .map { c =>
+    configMap.foreach {
+      case (_, c) =>
         Option(
-          client.getDatabase(settings.database).getContainer(c.getTarget),
+          documentClient.getDatabase(settings.database).getContainer(c.getTarget),
         ).getOrElse {
           throw new ConnectException(s"Collection [${c.getTarget}] not found!")
         }
-        c.getSource -> c
-      }.toMap
+    }
     val batchPolicyMap: Map[String, BatchPolicy] = settings.kcql
       .map {
         c =>
-          c.getSource -> connectorConfig.commitPolicy(c)
+          c.getSource -> settings.commitPolicy(c)
       }.toMap
-    new CosmosDbWriterManager(sinkName, configMap, batchPolicyMap, settings, client)
+    new CosmosDbWriterManager(sinkName, configMap, batchPolicyMap, settings, documentClient)
   }
 }

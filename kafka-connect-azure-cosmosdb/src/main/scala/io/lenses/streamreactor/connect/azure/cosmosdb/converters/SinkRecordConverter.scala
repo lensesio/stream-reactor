@@ -31,7 +31,7 @@ import java.util.TimeZone
 import scala.annotation.tailrec
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 
-object SinkRecordConverter {
+private[converters] object SinkRecordConverter {
   private val ISO_DATE_FORMAT: SimpleDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
   private val TIME_FORMAT:     SimpleDateFormat = new SimpleDateFormat("HH:mm:ss.SSSZ")
 
@@ -130,11 +130,15 @@ object SinkRecordConverter {
       .getOrElse(map.entrySet().asScala.headOption.forall(_.getKey.isInstanceOf[String]))
 
     if (objectMode) {
-
+      // FIX: Previously, the code set the entire map as a field with the map's string representation as the key.
+      // Now, for string-keyed maps, we set each key/value as a field in the resulting Document.
       val obj: Document = new Document()
       buildContentForMapSource(schema, map) {
-        case (_, value) =>
-          obj.set(map.toString, value, CosmosItemSerializer.DEFAULT_SERIALIZER)
+        case (key: String, value) =>
+          obj.set(key, value, CosmosItemSerializer.DEFAULT_SERIALIZER)
+        case (key, value) =>
+          // Defensive: if key is not a string, fallback to string representation
+          obj.set(key.toString, value, CosmosItemSerializer.DEFAULT_SERIALIZER)
       }
       obj
     } else {

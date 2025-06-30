@@ -20,8 +20,9 @@ import io.lenses.kcql.Kcql
 import io.lenses.streamreactor.common.errors.ErrorPolicy
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.ConfigException
-
+import io.lenses.streamreactor.common.batch.BatchPolicy
 import scala.concurrent.duration.FiniteDuration
+import scala.util.Try
 
 case class CosmosDbSinkSettings(
   endpoint:             String,
@@ -36,63 +37,71 @@ case class CosmosDbSinkSettings(
   proxy:                Option[String],
   keySource:            KeySource,
   taskRetries:          Int = CosmosDbConfigConstants.NBR_OF_RETIRES_DEFAULT,
+  taskRetryInterval:    Long,
   bulkEnabled:          Boolean,
   maxQueueSize:         Int,
   maxQueueOfferTimeout: FiniteDuration,
   executorThreads:      Int,
   delay:                FiniteDuration,
   errorThreshold:       Int,
-) {}
+  commitPolicy:         Kcql => BatchPolicy,
+  sinkName:             String,
+)
 
 object CosmosDbSinkSettings extends StrictLogging {
 
-  def apply(config: CosmosDbConfig): CosmosDbSinkSettings = {
-    val endpoint = config.getString(CosmosDbConfigConstants.CONNECTION_CONFIG)
-    require(endpoint.nonEmpty, s"Invalid endpoint provided. [${CosmosDbConfigConstants.CONNECTION_CONFIG_DOC}]")
-
-    val masterKey = Option(config.getPassword(CosmosDbConfigConstants.MASTER_KEY_CONFIG))
-      .map(_.value())
-      .getOrElse(throw new ConfigException(s"Missing [${CosmosDbConfigConstants.MASTER_KEY_CONFIG}]"))
-    if (masterKey.trim.isEmpty)
-      throw new ConfigException(s"Invalid [${CosmosDbConfigConstants.MASTER_KEY_CONFIG}]")
-
-    val database = config.getDatabase
-
-    if (database.isEmpty) {
-      throw new ConfigException(s"Missing [${CosmosDbConfigConstants.DATABASE_CONFIG}]")
-    }
-
-    val kcql             = config.getKCQL
-    val errorPolicy      = config.getErrorPolicy
-    val retries          = config.getNumberRetries
-    val fieldsMap        = config.getFieldsMap()
-    val ignoreFields     = config.getIgnoreFieldsMap()
-    val consistencyLevel = config.getConsistencyLevel.get
-
-    new CosmosDbSinkSettings(endpoint       = endpoint,
-                             masterKey      = masterKey,
-                             database       = database,
-                             kcql           = kcql.toSeq,
-                             fields         = fieldsMap,
-                             ignoredField   = ignoreFields,
-                             errorPolicy    = errorPolicy,
-                             consistency    = consistencyLevel,
-                             createDatabase = config.getBoolean(CosmosDbConfigConstants.CREATE_DATABASE_CONFIG),
-                             proxy          = Option(config.getString(CosmosDbConfigConstants.PROXY_HOST_CONFIG)),
-                             keySource      = config.getKeySource,
-                             taskRetries    = retries,
-                             bulkEnabled    = config.getBoolean(CosmosDbConfigConstants.BULK_CONFIG),
-                             maxQueueSize   = config.getInt(CosmosDbConfigConstants.MaxQueueSizeProp),
-                             maxQueueOfferTimeout = FiniteDuration(
-                               config.getLong(CosmosDbConfigConstants.MaxQueueOfferTimeoutProp),
-                               scala.concurrent.duration.MILLISECONDS,
-                             ),
-                             executorThreads = config.getInt(CosmosDbConfigConstants.ExecutorThreadsProp),
-                             delay = FiniteDuration(
-                               config.getLong(CosmosDbConfigConstants.UploadSyncPeriodProp),
-                               scala.concurrent.duration.MILLISECONDS,
-                             ),
-                             errorThreshold = config.getInt(CosmosDbConfigConstants.ErrorThresholdProp),
+  def apply(config: CosmosDbConfig): Either[Throwable, CosmosDbSinkSettings] =
+    for {
+      endpoint <- Try(config.getString(CosmosDbConfigConstants.CONNECTION_CONFIG)).toEither
+      _ <-
+        if (endpoint.nonEmpty)
+          Right(())
+        else
+          Left(new ConfigException(s"Invalid endpoint provided. [${CosmosDbConfigConstants.CONNECTION_CONFIG_DOC}]"))
+      masterKey <- Option(config.getPassword(CosmosDbConfigConstants.MASTER_KEY_CONFIG))
+        .map(_.value())
+        .toRight(new ConfigException(s"Missing [${CosmosDbConfigConstants.MASTER_KEY_CONFIG}]"))
+      _ <-
+        if (masterKey.trim.nonEmpty) Right(())
+        else Left(new ConfigException(s"Invalid [${CosmosDbConfigConstants.MASTER_KEY_CONFIG}]"))
+      database <- Try(config.getDatabase).toEither
+      _ <-
+        if (database.nonEmpty) Right(())
+        else Left(new IllegalArgumentException(s"Missing [${CosmosDbConfigConstants.DATABASE_CONFIG}]"))
+      kcql        <- Try(config.getKCQL).toEither
+      errorPolicy  = config.getErrorPolicy
+      retries      = config.getNumberRetries
+      fieldsMap    = config.getFieldsMap()
+      ignoreFields = config.getIgnoreFieldsMap()
+      consistencyLevel <- Try(config.getConsistencyLevel).toEither
+        .flatMap(_.toRight(new ConfigException("Missing consistency level")))
+    } yield new CosmosDbSinkSettings(
+      endpoint          = endpoint,
+      masterKey         = masterKey,
+      database          = database,
+      kcql              = kcql.toSeq,
+      fields            = fieldsMap,
+      ignoredField      = ignoreFields,
+      errorPolicy       = errorPolicy,
+      consistency       = consistencyLevel,
+      createDatabase    = config.getBoolean(CosmosDbConfigConstants.CREATE_DATABASE_CONFIG),
+      proxy             = Option(config.getString(CosmosDbConfigConstants.PROXY_HOST_CONFIG)),
+      keySource         = config.getKeySource,
+      taskRetries       = retries,
+      taskRetryInterval = config.getInt(CosmosDbConfigConstants.ERROR_RETRY_INTERVAL_CONFIG).toLong,
+      bulkEnabled       = config.getBoolean(CosmosDbConfigConstants.BULK_CONFIG),
+      maxQueueSize      = config.getInt(CosmosDbConfigConstants.MaxQueueSizeProp),
+      maxQueueOfferTimeout = FiniteDuration(
+        config.getLong(CosmosDbConfigConstants.MaxQueueOfferTimeoutProp),
+        scala.concurrent.duration.MILLISECONDS,
+      ),
+      executorThreads = config.getInt(CosmosDbConfigConstants.ExecutorThreadsProp),
+      delay = FiniteDuration(
+        config.getLong(CosmosDbConfigConstants.UploadSyncPeriodProp),
+        scala.concurrent.duration.MILLISECONDS,
+      ),
+      errorThreshold = config.getInt(CosmosDbConfigConstants.ErrorThresholdProp),
+      commitPolicy   = config.commitPolicy,
+      sinkName       = config.getConnectorName,
     )
-  }
 }

@@ -27,7 +27,7 @@ import org.mockito.ArgumentMatchersSugar
 import org.mockito.MockitoSugar
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-
+import org.scalatest.EitherValues
 import scala.annotation.nowarn
 import scala.util.Using
 
@@ -37,7 +37,8 @@ class SinkRecordToDocumentTest
     with Matchers
     with ConverterUtil
     with MockitoSugar
-    with ArgumentMatchersSugar {
+    with ArgumentMatchersSugar
+    with EitherValues {
   private val testId = "myTestId"
   private val idGenerator: KeySource = mock[KeySource]
   when(idGenerator.generateId(any[SinkRecord])).thenReturn(testId.asRight)
@@ -57,7 +58,7 @@ class SinkRecordToDocumentTest
         val expected      = new Document(json).setId(testId)
 
         //comparing string representation; we have more specific types given the schema
-        document.toString shouldBe expected.toString
+        document.value.toString shouldBe expected.toString
       }
     }
 
@@ -75,7 +76,7 @@ class SinkRecordToDocumentTest
         val expected      = new Document(json).setId(testId)
 
         //comparing string representation; we have more specific types given the schema
-        document.toString shouldBe expected.toString
+        document.value.toString shouldBe expected.toString
       }
     }
 
@@ -93,7 +94,7 @@ class SinkRecordToDocumentTest
         val expected      = new Document(json).setId(testId)
 
         //comparing string representation; we have more specific types given the schema
-        document.toString shouldBe expected.toString
+        document.value.toString shouldBe expected.toString
       }
     }
   }

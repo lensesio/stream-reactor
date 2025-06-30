@@ -18,8 +18,9 @@ package io.lenses.streamreactor.connect.azure.cosmosdb.config
 import org.apache.kafka.common.config.ConfigException
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
+import org.scalatest.EitherValues
 
-class CosmosDbConfigTest extends AnyFunSuite with Matchers {
+class CosmosDbConfigTest extends AnyFunSuite with Matchers with EitherValues {
 
   test("validate required connection configuration is present") {
     val props = Map(
@@ -29,7 +30,7 @@ class CosmosDbConfigTest extends AnyFunSuite with Matchers {
       "connect.cosmosdb.db"         -> "exampleDatabase",
       "connect.cosmosdb.kcql"       -> "INSERT INTO target SELECT * FROM source",
     )
-    val config = CosmosDbConfig(props)
+    val config = CosmosDbConfig(props).value
     config.getDatabase shouldEqual "exampleDatabase"
   }
 
@@ -41,7 +42,7 @@ class CosmosDbConfigTest extends AnyFunSuite with Matchers {
       "connect.cosmosdb.db"         -> "exampleDatabase",
       "connect.cosmosdb.kcql"       -> "INSERT INTO target SELECT * FROM source",
     )
-    val config = CosmosDbConfig(props)
+    val config = CosmosDbConfig(props).value
     config.getBoolean("connect.cosmosdb.db.create") shouldEqual CosmosDbConfigConstants.CREATE_DATABASE_DEFAULT
     config.getString("connect.cosmosdb.consistency.level") shouldEqual CosmosDbConfigConstants.CONSISTENCY_DEFAULT
     config.getBoolean("connect.cosmosdb.bulk.enabled") shouldEqual CosmosDbConfigConstants.BULK_DEFAULT
@@ -54,7 +55,7 @@ class CosmosDbConfigTest extends AnyFunSuite with Matchers {
       "connect.cosmosdb.db"         -> "exampleDatabase",
       "connect.cosmosdb.kcql"       -> "INSERT INTO target SELECT * FROM source",
     )
-    a[ConfigException] should be thrownBy CosmosDbConfig(props)
+    CosmosDbConfig(props).left.value shouldBe a[ConfigException]
   }
 
   test("validate custom consistency level configuration") {
@@ -66,7 +67,7 @@ class CosmosDbConfigTest extends AnyFunSuite with Matchers {
       "connect.cosmosdb.consistency.level" -> "Eventual",
       "connect.cosmosdb.kcql"              -> "INSERT INTO target SELECT * FROM source",
     )
-    val config = CosmosDbConfig(props)
+    val config = CosmosDbConfig(props).value
     config.getString("connect.cosmosdb.consistency.level") shouldEqual "Eventual"
   }
 
@@ -79,7 +80,7 @@ class CosmosDbConfigTest extends AnyFunSuite with Matchers {
       "connect.cosmosdb.bulk.enabled" -> "true",
       "connect.cosmosdb.kcql"         -> "INSERT INTO target SELECT * FROM source",
     )
-    val config = CosmosDbConfig(props)
+    val config = CosmosDbConfig(props).value
     config.getBoolean("connect.cosmosdb.bulk.enabled") shouldEqual true
   }
 }

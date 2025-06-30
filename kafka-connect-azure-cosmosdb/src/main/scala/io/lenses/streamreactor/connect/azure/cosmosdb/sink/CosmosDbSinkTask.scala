@@ -15,7 +15,7 @@
  */
 package io.lenses.streamreactor.connect.azure.cosmosdb.sink
 import io.lenses.streamreactor.connect.azure.cosmosdb.sink.OffsetJavaScalaConverter._
-
+import io.lenses.streamreactor.common.utils.EitherOps._
 import io.lenses.streamreactor.common.util.AsciiArtPrinter.printAsciiHeader
 import io.lenses.streamreactor.common.utils.JarManifestProvided
 import io.lenses.streamreactor.common.utils.ProgressCounter
@@ -23,20 +23,17 @@ import io.lenses.streamreactor.connect.azure.cosmosdb.config.CosmosDbConfig
 import io.lenses.streamreactor.connect.azure.cosmosdb.config.CosmosDbConfigConstants
 import io.lenses.streamreactor.connect.azure.cosmosdb.config.CosmosDbSinkSettings
 import com.typesafe.scalalogging.StrictLogging
+import io.lenses.streamreactor.connect.azure.cosmosdb.CosmosClientProvider
 import io.lenses.streamreactor.connect.azure.cosmosdb.sink.writer.CosmosDbWriterFactory
 import io.lenses.streamreactor.connect.azure.cosmosdb.sink.writer.CosmosDbWriterManager
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.{ TopicPartition => KafkaTopicPartition }
-import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkRecord
 import org.apache.kafka.connect.sink.SinkTask
 
 import java.util
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 import scala.jdk.CollectionConverters.MapHasAsScala
-import scala.util.Failure
-import scala.util.Success
-import scala.util.Try
 
 /**
  * <h1>DocumentSinkTask</h1>
@@ -57,19 +54,25 @@ class CosmosDbSinkTask extends SinkTask with StrictLogging with JarManifestProvi
   override def start(props: util.Map[String, String]): Unit = {
     val config = if (context.configs().isEmpty) props else context.configs()
 
-    val taskConfig = Try(CosmosDbConfig(config.asScala.toMap)) match {
-      case Failure(f) =>
-        throw new ConnectException("Couldn't start Azure Document DB Sink due to configuration error.", f)
-      case Success(s) => s
-    }
+    val settingsEither: Either[Throwable, CosmosDbSinkSettings] = for {
+      taskConfig <- CosmosDbConfig(config.asScala.toMap)
+      settings   <- CosmosDbSinkSettings(taskConfig)
+    } yield settings
 
-    implicit val settings: CosmosDbSinkSettings = CosmosDbSinkSettings(taskConfig)
+    implicit val settings: CosmosDbSinkSettings = settingsEither.unpackOrThrow
     enableBulk = settings.bulkEnabled
 
     printAsciiHeader(manifest, "/cosmosdb-sink-ascii.txt")
 
-    writerManager  = Some(CosmosDbWriterFactory(taskConfig, context, settings))
-    enableProgress = taskConfig.getBoolean(CosmosDbConfigConstants.PROGRESS_COUNTER_ENABLED)
+    writerManager = Some(
+      CosmosDbWriterFactory(settings.kcql.map(k => k.getSource -> k).toMap,
+                            settings,
+                            context,
+                            CosmosClientProvider.get(settings).unpackOrThrow,
+      ),
+    )
+    enableProgress =
+      config.asScala.get(CosmosDbConfigConstants.PROGRESS_COUNTER_ENABLED).map(_.toBoolean).getOrElse(false)
   }
 
   /**

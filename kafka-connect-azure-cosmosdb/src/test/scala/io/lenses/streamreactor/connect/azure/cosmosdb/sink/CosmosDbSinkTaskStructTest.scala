@@ -30,13 +30,15 @@ import org.apache.kafka.connect.sink.SinkRecord
 import org.mockito.MockitoSugar
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+import org.scalatest.EitherValues
 
 class CosmosDbSinkTaskStructTest
     extends AnyWordSpec
     with Matchers
     with MockitoSugar
     with MatchingArgument
-    with CosmosDbTestUtils {
+    with CosmosDbTestUtils
+    with EitherValues {
   private val connection = "https://accountName.documents.azure.com:443/"
   private val sinkName   = "mySinkName"
 
@@ -85,10 +87,14 @@ class CosmosDbSinkTaskStructTest
       )
         .thenReturn(r2)
 
-      val config         = CosmosDbConfig(map)
-      val settings       = CosmosDbSinkSettings(config)
+      val settings = {
+        for {
+          config <- CosmosDbConfig(map)
+          setts  <- CosmosDbSinkSettings(config)
+        } yield setts
+      }.value
       val kcqlMap        = settings.kcql.map(c => c.getSource -> c).toMap
-      val batchPolicyMap = settings.kcql.map(c => c.getSource -> config.commitPolicy(c)).toMap
+      val batchPolicyMap = settings.kcql.map(c => c.getSource -> settings.commitPolicy(c)).toMap
 
       val writer = new CosmosDbWriterManager(sinkName, kcqlMap, batchPolicyMap, settings, documentClient)
       writer.write(Seq(sinkRecord1, sinkRecord2))
@@ -149,10 +155,14 @@ class CosmosDbSinkTaskStructTest
       )
         .thenReturn(r2)
 
-      val config         = CosmosDbConfig(map)
-      val settings       = CosmosDbSinkSettings(config)
+      val settings = {
+        for {
+          config <- CosmosDbConfig(map)
+          setts  <- CosmosDbSinkSettings(config)
+        } yield setts
+      }.value
       val kcqlMap        = settings.kcql.map(c => c.getSource -> c).toMap
-      val batchPolicyMap = settings.kcql.map(c => c.getSource -> config.commitPolicy(c)).toMap
+      val batchPolicyMap = settings.kcql.map(c => c.getSource -> settings.commitPolicy(c)).toMap
 
       val writer = new CosmosDbWriterManager(sinkName, kcqlMap, batchPolicyMap, settings, documentClient)
       writer.write(Seq(sinkRecord1, sinkRecord2))
@@ -217,10 +227,15 @@ class CosmosDbSinkTaskStructTest
       )
         .thenReturn(r2)
 
-      val config         = CosmosDbConfig(map)
-      val settings       = CosmosDbSinkSettings(config)
+      val settings = {
+        for {
+          config <- CosmosDbConfig(map)
+          setts  <- CosmosDbSinkSettings(config)
+        } yield setts
+      }.value
+
       val kcqlMap        = settings.kcql.map(c => c.getSource -> c).toMap
-      val batchPolicyMap = settings.kcql.map(c => c.getSource -> config.commitPolicy(c)).toMap
+      val batchPolicyMap = settings.kcql.map(c => c.getSource -> settings.commitPolicy(c)).toMap
 
       val writer = new CosmosDbWriterManager(sinkName, kcqlMap, batchPolicyMap, settings, documentClient)
       writer.write(Seq(sinkRecord1, sinkRecord2))

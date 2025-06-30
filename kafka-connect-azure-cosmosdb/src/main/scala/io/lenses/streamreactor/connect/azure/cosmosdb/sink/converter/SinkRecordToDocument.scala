@@ -15,16 +15,18 @@
  */
 package io.lenses.streamreactor.connect.azure.cosmosdb.sink.converter
 
+import cats.implicits.toBifunctorOps
 import com.azure.cosmos.implementation.Document
 import io.lenses.streamreactor.common.schemas.ConverterUtil
 import io.lenses.streamreactor.connect.azure.cosmosdb.config.KeySource
-import io.lenses.streamreactor.connect.azure.cosmosdb.converters.SinkRecordConverter
+import io.lenses.streamreactor.connect.azure.cosmosdb.converters.SinkRecordConverterEither
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkRecord
 
 import java.util
 import scala.annotation.nowarn
+import scala.util.Try
 
 @nowarn
 object SinkRecordToDocument extends ConverterUtil {
@@ -33,51 +35,68 @@ object SinkRecordToDocument extends ConverterUtil {
     fields:        Map[String, String],
     ignoredFields: Set[String],
     idGenerator:   KeySource,
-  ): Document = {
+  ): Either[Throwable, Document] =
+    for {
+      document <- getDocument(record, fields, ignoredFields)
+      withId   <- generateDocumentId(record, idGenerator).map(document.setId)
+    } yield withId
 
-    val document = Option(record.valueSchema()).map(_.`type`()) match {
+  private def getDocument(
+    record:        SinkRecord,
+    fields:        Map[String, String],
+    ignoredFields: Set[String],
+  ): Either[Throwable, Document] =
+    Option(record.valueSchema()).map(_.`type`()) match {
       case Some(Schema.Type.STRING) => convertStringToDocument(record, fields, ignoredFields)
       case Some(Schema.Type.STRUCT) => convertStructToDocument(record, fields, ignoredFields)
-      case Some(other)              => throw new ConnectException(s"[$other] schema is not supported")
+      case Some(other)              => Left(new ConnectException(s"[$other] schema is not supported"))
       case None =>
         record.value() match {
           case _: util.Map[_, _] => convertMapToDocument(record, fields, ignoredFields)
           case _: String         => convertStringToDocument(record, fields, ignoredFields)
-          case _ => throw new ConnectException("For schemaless record only String and Map types are supported")
+          case _ => Left(new ConnectException("For schemaless record only String and Map types are supported"))
         }
     }
-    document.setId(generateDocumentId(record, idGenerator))
 
-  }
+  private def convertStringToDocument(
+    record:        SinkRecord,
+    fields:        Map[String, String],
+    ignoredFields: Set[String],
+  ): Either[Throwable, Document] =
+    for {
+      conversionResult <- convertFromStringAsJson(record, fields, ignoredFields)
+        .leftMap(s => new ConnectException(s))
+      document <- SinkRecordConverterEither.fromJson(conversionResult.converted)
 
-  private def convertStringToDocument(record: SinkRecord, fields: Map[String, String], ignoredFields: Set[String]) = {
-    val extracted =
-      convertFromStringAsJson(record, fields, ignoredFields)
-    extracted match {
-      case Right(r) =>
-        SinkRecordConverter.fromJson(r.converted)
-      case Left(l) => throw new ConnectException(l)
-    }
-  }
+    } yield document
 
-  private def convertMapToDocument(record: SinkRecord, fields: Map[String, String], ignoredFields: Set[String]) = {
-    val extracted =
-      convertSchemalessJson(record, fields, ignoredFields)
-    SinkRecordConverter.fromMap(extracted.asInstanceOf[util.Map[String, AnyRef]])
-  }
+  private def convertMapToDocument(
+    record:        SinkRecord,
+    fields:        Map[String, String],
+    ignoredFields: Set[String],
+  ): Either[Throwable, Document] =
+    for {
+      map      <- Try(convertSchemalessJson(record, fields, ignoredFields).asInstanceOf[util.Map[String, AnyRef]]).toEither
+      document <- SinkRecordConverterEither.fromMap(map)
+    } yield document
 
-  private def convertStructToDocument(record: SinkRecord, fields: Map[String, String], ignoredFields: Set[String]) = {
-    val extracted = convert(record, fields, ignoredFields)
-    SinkRecordConverter.fromStruct(extracted)
-  }
+  private def convertStructToDocument(
+    record:        SinkRecord,
+    fields:        Map[String, String],
+    ignoredFields: Set[String],
+  ): Either[Throwable, Document] =
+    SinkRecordConverterEither.fromStruct(convert(record, fields, ignoredFields))
 
-  private def generateDocumentId(record: SinkRecord, idGenerator: KeySource) =
+  private def generateDocumentId(record: SinkRecord, idGenerator: KeySource): Either[Throwable, String] =
     idGenerator.generateId(record) match {
-      case Left(value) => throw new ConnectException("error generating id field", value)
-      case Right(null) =>
-        throw new ConnectException("id field value is null, please check your configuration")
-      case Right(value: String) => value
-      case Right(value: AnyRef) =>
-        throw new ConnectException(s"id field value not a String, it is a ${value.getClass.getName}")
+      case Left(t) => Left(t)
+      case Right(anyref) =>
+        anyref match {
+          case null =>
+            Left(new ConnectException("id field value is null, please check your configuration"))
+          case value: String => Right(value)
+          case value: AnyRef =>
+            Left(new ConnectException(s"id field value not a String, it is a ${value.getClass.getName}"))
+        }
     }
 }

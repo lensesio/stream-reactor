@@ -34,7 +34,6 @@ import scala.collection.mutable
 import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.jdk.CollectionConverters.MapHasAsScala
 import scala.jdk.CollectionConverters.SeqHasAsJava
-import scala.util.Try
 import scala.util.Using
 
 /**
@@ -83,7 +82,7 @@ class CosmosDbSinkConnector extends SinkConnector with StrictLogging with JarMan
    * @param props A map of properties for the connector and worker
    */
   override def start(props: util.Map[String, String]): Unit = {
-    val config = Try(CosmosDbConfig(props.asScala.toMap)).toEither
+    val config = CosmosDbConfig(props.asScala.toMap)
       .unpackOrThrow(ex =>
         new ConnectException(s"Couldn't start Azure CosmosDb sink due to configuration error: ${ex.getMessage}", ex),
       )
@@ -93,7 +92,7 @@ class CosmosDbSinkConnector extends SinkConnector with StrictLogging with JarMan
     Helpers.checkInputTopicsEither(CosmosDbConfigConstants.KCQL_CONFIG, props.asScala.toMap)
       .unpackOrThrow
 
-    val settings = CosmosDbSinkSettings(config)
+    val settings = CosmosDbSinkSettings(config).unpackOrThrow
 
     // Cosmos DB setup logic (ensure DB and collections exist)
     Using.resource(createCosmosClient(settings)) { cosmosClient =>

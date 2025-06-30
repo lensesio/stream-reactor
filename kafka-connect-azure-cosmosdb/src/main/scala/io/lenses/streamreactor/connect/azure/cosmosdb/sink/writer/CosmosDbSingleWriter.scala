@@ -55,19 +55,21 @@ class CosmosDbSingleWriter(
             settings.ignoredField(record.topic()),
             settings.keySource,
           )
+        document.left.foreach(e => logger.error(s"Error converting record to document: $e"))
+        document.foreach { doc =>
+          config.getWriteMode match {
+            case WriteModeEnum.INSERT =>
+              documentClient.getDatabase(settings.database).getContainer(config.getTarget).createItem(
+                doc,
+                requestOptionsInsert,
+              )
 
-        config.getWriteMode match {
-          case WriteModeEnum.INSERT =>
-            documentClient.getDatabase(settings.database).getContainer(config.getTarget).createItem(
-              document,
-              requestOptionsInsert,
-            )
-
-          case WriteModeEnum.UPSERT =>
-            documentClient.getDatabase(settings.database).getContainer(config.getTarget).upsertItem(
-              document,
-              requestOptionsInsert,
-            )
+            case WriteModeEnum.UPSERT =>
+              documentClient.getDatabase(settings.database).getContainer(config.getTarget).upsertItem(
+                doc,
+                requestOptionsInsert,
+              )
+          }
         }
       }
     }.toEither

@@ -33,12 +33,18 @@ class CosmosDbBulkWriter(
     with StrictLogging {
 
   // adds records to the queue.  Returns immediately - processing occurs asynchronously.
-  def insert(newRecords: Iterable[SinkRecord]): Either[Throwable, Unit] =
+  def insert(newRecords: Iterable[SinkRecord]): Either[Throwable, Unit] = {
+    val (errors, pendingRecords) =
+      newRecords.map(bulkRecordConverter.convert(config, _)).toList.partitionMap(identity)
+    if (errors.nonEmpty) {
+      logger.error(s"Failed to convert ${errors.size} records to cosmos db documents", errors.mkString("\n"))
+    }
     for {
       _      <- unrecoverableError().toLeft[Unit](())
-      insert <- Try(recordsQueue.enqueueAll(newRecords.map(bulkRecordConverter.convert(config, _)).toList)).toEither
+      insert <- Try(recordsQueue.enqueueAll(pendingRecords)).toEither
 
     } yield insert
+  }
 
   override def preCommit(
     offsetAndMetadatas: Map[TopicPartition, OffsetAndMetadata],

@@ -34,19 +34,19 @@ class CosmosDbBulkRecordConverter(
   private val requestOptionsInsert: CosmosItemRequestOptions = new CosmosItemRequestOptions()
     .setConsistencyLevel(settings.consistency)
 
-  def convert(kcql: Kcql, sinkRecord: SinkRecord): PendingRecord = {
-    val doc    = sinkRecordToDocument(sinkRecord)
-    val itemOp = documentToItemOperation(kcql, doc)
-    PendingRecord(
+  def convert(kcql: Kcql, sinkRecord: SinkRecord): Either[Throwable, PendingRecord] =
+    for {
+      doc    <- sinkRecordToDocument(sinkRecord)
+      itemOp <- documentToItemOperation(kcql, doc)
+    } yield PendingRecord(
       Topic(sinkRecord.topic()).withPartition(sinkRecord.kafkaPartition()).atOffset(sinkRecord.kafkaOffset()),
       doc,
       itemOp,
     )
-  }
 
   private def sinkRecordToDocument(
     sinkRecord: SinkRecord,
-  ): Document =
+  ): Either[Throwable, Document] =
     SinkRecordToDocument(
       sinkRecord,
       settings.fields(sinkRecord.topic()),
@@ -57,21 +57,23 @@ class CosmosDbBulkRecordConverter(
   private def documentToItemOperation(
     config:   Kcql,
     document: Document,
-  ): CosmosItemOperation =
-    config.getWriteMode match {
-      case WriteModeEnum.INSERT =>
-        CosmosBulkOperations.getCreateItemOperation(
-          document,
-          new PartitionKey(document.getId),
-          requestOptionsInsert,
-        )
+  ): Either[Throwable, CosmosItemOperation] =
+    Right(
+      config.getWriteMode match {
+        case WriteModeEnum.INSERT =>
+          CosmosBulkOperations.getCreateItemOperation(
+            document,
+            new PartitionKey(document.getId),
+            requestOptionsInsert,
+          )
 
-      case WriteModeEnum.UPSERT =>
-        CosmosBulkOperations.getUpsertItemOperation(
-          document,
-          new PartitionKey(document.getId),
-          requestOptionsInsert,
-        )
-    }
+        case WriteModeEnum.UPSERT =>
+          CosmosBulkOperations.getUpsertItemOperation(
+            document,
+            new PartitionKey(document.getId),
+            requestOptionsInsert,
+          )
+      },
+    )
 
 }
