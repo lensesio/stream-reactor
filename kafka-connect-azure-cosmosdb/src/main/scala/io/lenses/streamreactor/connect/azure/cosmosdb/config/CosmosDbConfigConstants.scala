@@ -139,4 +139,12 @@ object CosmosDbConfigConstants {
       |""".stripMargin
   val MaxQueueOfferTimeoutDefault = 120000
 
+  // The default value of 400 RU/s is chosen because it is the minimum manual throughput allowed by Azure Cosmos DB for a new container.
+  // This value is cost-effective for development, testing, and many production workloads, and is the industry standard default recommended by Microsoft.
+  // See: https://learn.microsoft.com/en-us/azure/cosmos-db/provisioned-throughput
+  val COLLECTION_THROUGHPUT_CONFIG = s"$CONNECTOR_PREFIX.collection.throughput"
+  val COLLECTION_THROUGHPUT_DOC =
+    "The manual throughput to provision for new Cosmos DB collections (RU/s). The default is 400 RU/s, which is the minimum allowed by Azure Cosmos DB and is cost-effective for most workloads. See: https://learn.microsoft.com/en-us/azure/cosmos-db/provisioned-throughput"
+  val COLLECTION_THROUGHPUT_DEFAULT = 400
+
 }

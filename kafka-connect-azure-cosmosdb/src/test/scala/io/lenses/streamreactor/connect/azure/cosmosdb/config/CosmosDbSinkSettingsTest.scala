@@ -156,5 +156,34 @@ class CosmosDbSinkSettingsTest extends AnyWordSpec with Matchers with EitherValu
         } yield settings
       }.left.value shouldBe a[IllegalArgumentException]
     }
+
+    "handle collection throughput property" in {
+      val map = Map(
+        CosmosDbConfigConstants.DATABASE_CONFIG              -> "dbs/database1",
+        CosmosDbConfigConstants.CONNECTION_CONFIG            -> connection,
+        CosmosDbConfigConstants.MASTER_KEY_CONFIG            -> "secret",
+        CosmosDbConfigConstants.KCQL_CONFIG                  -> "INSERT INTO collection1 SELECT * FROM topic1",
+        CosmosDbConfigConstants.COLLECTION_THROUGHPUT_CONFIG -> "1234",
+      )
+      for {
+        config   <- CosmosDbConfig(map)
+        settings <- CosmosDbSinkSettings(config)
+      } yield {
+        settings.collectionThroughput shouldBe 1234
+      }
+
+      val mapDefault = Map(
+        CosmosDbConfigConstants.DATABASE_CONFIG   -> "dbs/database1",
+        CosmosDbConfigConstants.CONNECTION_CONFIG -> connection,
+        CosmosDbConfigConstants.MASTER_KEY_CONFIG -> "secret",
+        CosmosDbConfigConstants.KCQL_CONFIG       -> "INSERT INTO collection1 SELECT * FROM topic1",
+      )
+      for {
+        config   <- CosmosDbConfig(mapDefault)
+        settings <- CosmosDbSinkSettings(config)
+      } yield {
+        settings.collectionThroughput shouldBe CosmosDbConfigConstants.COLLECTION_THROUGHPUT_DEFAULT
+      }
+    }
   }
 }

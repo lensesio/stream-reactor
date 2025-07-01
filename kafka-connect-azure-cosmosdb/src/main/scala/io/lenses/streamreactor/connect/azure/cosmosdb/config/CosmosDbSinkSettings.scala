@@ -46,6 +46,7 @@ case class CosmosDbSinkSettings(
   errorThreshold:       Int,
   commitPolicy:         Kcql => BatchPolicy,
   sinkName:             String,
+  collectionThroughput: Int,
 )
 
 object CosmosDbSinkSettings extends StrictLogging {
@@ -100,8 +101,9 @@ object CosmosDbSinkSettings extends StrictLogging {
         config.getLong(CosmosDbConfigConstants.UploadSyncPeriodProp),
         scala.concurrent.duration.MILLISECONDS,
       ),
-      errorThreshold = config.getInt(CosmosDbConfigConstants.ErrorThresholdProp),
-      commitPolicy   = config.commitPolicy,
-      sinkName       = config.getConnectorName,
+      errorThreshold       = config.getInt(CosmosDbConfigConstants.ErrorThresholdProp),
+      commitPolicy         = config.commitPolicy,
+      sinkName             = config.getConnectorName,
+      collectionThroughput = config.getInt(CosmosDbConfigConstants.COLLECTION_THROUGHPUT_CONFIG),
     )
 }

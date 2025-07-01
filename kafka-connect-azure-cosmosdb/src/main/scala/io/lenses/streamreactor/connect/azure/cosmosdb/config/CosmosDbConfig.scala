@@ -198,6 +198,17 @@ object CosmosDbConfig {
       CosmosDbConfigConstants.MaxQueueOfferTimeoutProp,
     )
     .define(
+      CosmosDbConfigConstants.COLLECTION_THROUGHPUT_CONFIG,
+      Type.INT,
+      CosmosDbConfigConstants.COLLECTION_THROUGHPUT_DEFAULT,
+      Importance.MEDIUM,
+      CosmosDbConfigConstants.COLLECTION_THROUGHPUT_DOC,
+      "Collection",
+      1,
+      ConfigDef.Width.MEDIUM,
+      CosmosDbConfigConstants.COLLECTION_THROUGHPUT_CONFIG,
+    )
+    .define(
       CosmosDbConfigConstants.ExecutorThreadsProp,
       Type.INT,
       CosmosDbConfigConstants.ExecutorThreadsDefault,

@@ -37,7 +37,10 @@ object CosmosDbDatabaseUtils extends StrictLogging {
           ex
         } match {
           case Right(_) => Right(())
-          case Left(_)  => createCollection(database, ThroughputProperties.createManualThroughput(400), collectionName)
+          case Left(_) => createCollection(database,
+                                           ThroughputProperties.createManualThroughput(settings.collectionThroughput),
+                                           collectionName,
+            )
         }
       } yield ()
     }

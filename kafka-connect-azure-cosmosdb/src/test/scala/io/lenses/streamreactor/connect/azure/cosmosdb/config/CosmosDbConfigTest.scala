@@ -83,4 +83,29 @@ class CosmosDbConfigTest extends AnyFunSuite with Matchers with EitherValues {
     val config = CosmosDbConfig(props).value
     config.getBoolean("connect.cosmosdb.bulk.enabled") shouldEqual true
   }
+
+  test("validate collection throughput configuration and default") {
+    val propsWithOverride = Map(
+      "connect.cosmosdb.endpoint"              -> "https://example.documents.azure.com:443/",
+      "connect.cosmosdb.connection"            -> "AccountEndpoint=https://example.documents.azure.com:443/;AccountKey=exampleKey;",
+      "connect.cosmosdb.master.key"            -> "exampleMasterKey",
+      "connect.cosmosdb.db"                    -> "exampleDatabase",
+      "connect.cosmosdb.kcql"                  -> "INSERT INTO target SELECT * FROM source",
+      "connect.cosmosdb.collection.throughput" -> "1234",
+    )
+    val configWithOverride = CosmosDbConfig(propsWithOverride).value
+    configWithOverride.getInt("connect.cosmosdb.collection.throughput") shouldEqual 1234
+
+    val propsDefault = Map(
+      "connect.cosmosdb.endpoint"   -> "https://example.documents.azure.com:443/",
+      "connect.cosmosdb.connection" -> "AccountEndpoint=https://example.documents.azure.com:443/;AccountKey=exampleKey;",
+      "connect.cosmosdb.master.key" -> "exampleMasterKey",
+      "connect.cosmosdb.db"         -> "exampleDatabase",
+      "connect.cosmosdb.kcql"       -> "INSERT INTO target SELECT * FROM source",
+    )
+    val configDefault = CosmosDbConfig(propsDefault).value
+    configDefault.getInt(
+      "connect.cosmosdb.collection.throughput",
+    ) shouldEqual CosmosDbConfigConstants.COLLECTION_THROUGHPUT_DEFAULT
+  }
 }
