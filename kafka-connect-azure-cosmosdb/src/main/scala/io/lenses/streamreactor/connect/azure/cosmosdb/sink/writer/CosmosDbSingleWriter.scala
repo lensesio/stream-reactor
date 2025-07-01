@@ -55,7 +55,7 @@ class CosmosDbSingleWriter(
             settings.ignoredField(record.topic()),
             settings.keySource,
           )
-        document.left.foreach(e => logger.error(s"Error converting record to document: $e"))
+        document.left.foreach(e => logger.error(s"Error converting record to document: ${e.getMessage}", e))
         document.foreach { doc =>
           config.getWriteMode match {
             case WriteModeEnum.INSERT =>

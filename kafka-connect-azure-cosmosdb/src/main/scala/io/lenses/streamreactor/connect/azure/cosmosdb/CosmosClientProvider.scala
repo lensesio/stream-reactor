@@ -69,7 +69,7 @@ object CosmosClientProvider {
       }
 
   private[cosmosdb] def convertProxy(proxy: String): Either[MalformedURLException, ProxyOptions] =
-    Try(new URI(proxy)).toEither.left.map(_ => new MalformedURLException("Invalid proxy URI")).flatMap { url =>
+    Try(new URI(proxy)).toEither.leftMap(_ => new MalformedURLException("Invalid proxy URI")).flatMap { url =>
       val protocolOpt = Option(url.getScheme).map(_.toLowerCase)
       val hostOpt     = Option(url.getHost)
       val portOpt     = Option(url.getPort).filter(_ != -1)

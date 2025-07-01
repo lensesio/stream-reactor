@@ -15,6 +15,7 @@
  */
 package io.lenses.streamreactor.connect.azure.cosmosdb.config
 
+import cats.implicits.toBifunctorOps
 import com.azure.cosmos.ConsistencyLevel
 import io.lenses.streamreactor.common.config.KcqlWithFieldsSettings
 import io.lenses.streamreactor.common.config.base.model.ConnectorPrefix
@@ -29,7 +30,7 @@ import scala.util.Try
 object CosmosDbConfig {
 
   def apply(props: Map[String, String]): Either[ConfigException, CosmosDbConfig] =
-    Try(new CosmosDbConfig(props)).toEither.left.map {
+    Try(new CosmosDbConfig(props)).toEither.leftMap {
       case e: ConfigException => e
       case e => new ConfigException(e.getMessage, e)
     }

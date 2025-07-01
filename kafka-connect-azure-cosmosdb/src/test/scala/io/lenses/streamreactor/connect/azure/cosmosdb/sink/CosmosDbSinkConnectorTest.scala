@@ -15,12 +15,14 @@
  */
 package io.lenses.streamreactor.connect.azure.cosmosdb.sink
 
+import cats.implicits.catsSyntaxEitherId
 import com.azure.cosmos.CosmosClient
 import com.azure.cosmos.CosmosContainer
 import com.azure.cosmos.CosmosDatabase
 import com.azure.cosmos.models.CosmosContainerResponse
 import io.lenses.streamreactor.connect.azure.cosmosdb.config.CosmosDbConfigConstants
 import io.lenses.streamreactor.connect.azure.cosmosdb.config.CosmosDbSinkSettings
+import org.apache.kafka.connect.errors.ConnectException
 //import org.mockito.ArgumentMatchers.any
 import org.mockito.ArgumentMatchers.{ eq => mockEq }
 import org.mockito.MockitoSugar
@@ -35,7 +37,8 @@ class CosmosDbSinkConnectorTest extends AnyWordSpec with Matchers with MockitoSu
 
   // Test subclass to inject mock CosmosClient
   class TestableCosmosDbSinkConnector(mockClient: CosmosClient) extends CosmosDbSinkConnector {
-    override protected def createCosmosClient(settings: CosmosDbSinkSettings): CosmosClient = mockClient
+    override protected def createCosmosClient(settings: CosmosDbSinkSettings): Either[ConnectException, CosmosClient] =
+      mockClient.asRight
   }
 
   "CosmosDbSinkConnector" should {

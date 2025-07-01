@@ -24,8 +24,10 @@ import org.mockito.MockitoSugar
 import org.mockito.ArgumentMatchers._
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.EitherValues
+import org.scalatest.matchers.should.Matchers
+import io.lenses.streamreactor.connect.azure.cosmosdb.sink.CosmosDbDatabaseUtils._
 
-class CosmosDbDatabaseUtilsTest extends AnyFunSuite with MockitoSugar with EitherValues {
+class CosmosDbDatabaseUtilsTest extends AnyFunSuite with MockitoSugar with EitherValues with Matchers {
 
   test("readOrCreateDatabase should call getDatabase and handle creation logic") {
     val client   = mock[CosmosClient]
@@ -35,8 +37,8 @@ class CosmosDbDatabaseUtilsTest extends AnyFunSuite with MockitoSugar with Eithe
     when(settings.createDatabase).thenReturn(true)
     when(client.getDatabase("testdb")).thenReturn(db)
 
-    val result = CosmosDbDatabaseUtils.readOrCreateDatabase(settings)(client)
-    assert(result.value eq db)
+    val result = readOrCreateDatabase(settings)(client)
+    result.value should be theSameInstanceAs db
     verify(client).getDatabase("testdb")
     // Note: Full database creation logic is tested in integration or CreateDatabaseFn tests
   }
@@ -49,8 +51,8 @@ class CosmosDbDatabaseUtilsTest extends AnyFunSuite with MockitoSugar with Eithe
     when(settings.createDatabase).thenReturn(false)
     when(client.getDatabase("testdb")).thenReturn(db)
 
-    val result = CosmosDbDatabaseUtils.readOrCreateDatabase(settings)(client)
-    assert(result.value eq db)
+    val result = readOrCreateDatabase(settings)(client)
+    result.value should be theSameInstanceAs db
     verify(client).getDatabase("testdb")
   }
 
@@ -67,14 +69,40 @@ class CosmosDbDatabaseUtilsTest extends AnyFunSuite with MockitoSugar with Eithe
     when(db.getContainer(anyString()).read()).thenThrow(new RuntimeException("not found"))
     when(db.createContainer(anyString(), anyString(), any[ThroughputProperties]())).thenReturn(null)
 
-    CosmosDbDatabaseUtils.readOrCreateCollections(db, settings)
+    readOrCreateCollections(db, settings)
     verify(db, atLeastOnce).createContainer(anyString(), anyString(), any[ThroughputProperties]())
   }
 
   test("createCollection should call createContainer with correct args") {
     val db         = mock[CosmosDatabase]
     val throughput = mock[ThroughputProperties]
-    CosmosDbDatabaseUtils.createCollection(db, throughput, "coll1")
+    createCollection(db, throughput, "coll1")
     verify(db).createContainer("coll1", "partitionKeyPath", throughput)
+  }
+
+  // --- Migrated from CreateDatabaseFnTest ---
+
+  test("createDatabase returns created database when cosmosClient creates database") {
+    val mockClient   = mock[CosmosClient]
+    val mockDatabase = mock[CosmosDatabase]
+    when(mockClient.createDatabase("db", null)).thenReturn(null)
+    when(mockClient.getDatabase("db")).thenReturn(mockDatabase)
+    val result = createDatabase("db", mockClient)
+    result.value should be theSameInstanceAs mockDatabase
+  }
+
+  test("createDatabase returns failure when cosmosClient.createDatabase throws") {
+    val mockClient = mock[CosmosClient]
+    when(mockClient.createDatabase("db", null)).thenThrow(new RuntimeException("creation error"))
+    val result = createDatabase("db", mockClient)
+    result.left.value.getMessage should include("creation error")
+  }
+
+  test("createDatabase returns failure when cosmosClient.getDatabase throws") {
+    val mockClient = mock[CosmosClient]
+    when(mockClient.createDatabase("db", null)).thenReturn(null)
+    when(mockClient.getDatabase("db")).thenThrow(new RuntimeException("get error"))
+    val result = createDatabase("db", mockClient)
+    result.left.value.getMessage should include("get error")
   }
 }

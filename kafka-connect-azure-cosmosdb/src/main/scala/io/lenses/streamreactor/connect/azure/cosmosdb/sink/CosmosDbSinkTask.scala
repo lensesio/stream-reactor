@@ -52,25 +52,33 @@ class CosmosDbSinkTask extends SinkTask with StrictLogging with JarManifestProvi
    * Parse the configurations and setup the writerManager
    */
   override def start(props: util.Map[String, String]): Unit = {
+    logger.info("Starting Azure CosmosDb sink task initialization. Parsing task configuration.")
     val config = if (context.configs().isEmpty) props else context.configs()
 
-    val settingsEither: Either[Throwable, CosmosDbSinkSettings] = for {
-      taskConfig <- CosmosDbConfig(config.asScala.toMap)
-      settings   <- CosmosDbSinkSettings(taskConfig)
-    } yield settings
+    val setup = for {
+      taskConfig   <- CosmosDbConfig(config.asScala.toMap)
+      _             = logger.info("Task configuration parsed successfully. Creating CosmosDbSinkSettings.")
+      settings     <- CosmosDbSinkSettings(taskConfig)
+      _             = logger.info(s"CosmosDbSinkSettings created: $settings. Creating Cosmos DB client.")
+      cosmosClient <- CosmosClientProvider.get(settings)
+      _             = logger.info("Cosmos DB client created. Creating writer manager.")
+      writerMgr <- Right(
+        CosmosDbWriterFactory(
+          settings.kcql.map(k => k.getSource -> k).toMap,
+          settings,
+          context,
+          cosmosClient,
+        ),
+      )
+      _ = logger.info("Writer manager created.")
+    } yield (settings, writerMgr)
 
-    implicit val settings: CosmosDbSinkSettings = settingsEither.unpackOrThrow
+    val (settings, writerMgr) = setup.unpackOrThrow
     enableBulk = settings.bulkEnabled
 
     printAsciiHeader(manifest, "/cosmosdb-sink-ascii.txt")
 
-    writerManager = Some(
-      CosmosDbWriterFactory(settings.kcql.map(k => k.getSource -> k).toMap,
-                            settings,
-                            context,
-                            CosmosClientProvider.get(settings).unpackOrThrow,
-      ),
-    )
+    writerManager = Some(writerMgr)
     enableProgress =
       config.asScala.get(CosmosDbConfigConstants.PROGRESS_COUNTER_ENABLED).map(_.toBoolean).getOrElse(false)
   }

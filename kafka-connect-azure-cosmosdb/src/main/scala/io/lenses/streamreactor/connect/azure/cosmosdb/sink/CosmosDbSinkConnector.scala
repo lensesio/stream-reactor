@@ -15,6 +15,7 @@
  */
 package io.lenses.streamreactor.connect.azure.cosmosdb.sink
 
+import cats.implicits.toBifunctorOps
 import com.azure.cosmos.CosmosClient
 import com.typesafe.scalalogging.StrictLogging
 import io.lenses.streamreactor.common.config.Helpers
@@ -34,7 +35,7 @@ import scala.collection.mutable
 import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.jdk.CollectionConverters.MapHasAsScala
 import scala.jdk.CollectionConverters.SeqHasAsJava
-import scala.util.Using
+import io.lenses.streamreactor.connect.azure.cosmosdb.sink.CosmosDbDatabaseUtils._
 
 /**
  * <h1>CosmosDbSinkConnector</h1>
@@ -82,30 +83,37 @@ class CosmosDbSinkConnector extends SinkConnector with StrictLogging with JarMan
    * @param props A map of properties for the connector and worker
    */
   override def start(props: util.Map[String, String]): Unit = {
-    val config = CosmosDbConfig(props.asScala.toMap)
-      .unpackOrThrow(ex =>
+    logger.info("Starting Azure CosmosDb sink connector initialization. Parsing connector configuration.")
+
+    val setup = for {
+      config <- CosmosDbConfig(props.asScala.toMap).leftMap(ex =>
         new ConnectException(s"Couldn't start Azure CosmosDb sink due to configuration error: ${ex.getMessage}", ex),
       )
-    configProps = props
-
-    //check input topics
-    Helpers.checkInputTopicsEither(CosmosDbConfigConstants.KCQL_CONFIG, props.asScala.toMap)
-      .unpackOrThrow
-
-    val settings = CosmosDbSinkSettings(config).unpackOrThrow
-
-    // Cosmos DB setup logic (ensure DB and collections exist)
-    Using.resource(createCosmosClient(settings)) { cosmosClient =>
-      val database = CosmosDbDatabaseUtils.readOrCreateDatabase(settings)(cosmosClient)
-        .unpackOrThrow(ex => new ConnectException(s"Failed to read or create database: ${ex.getMessage}", ex))
-      CosmosDbDatabaseUtils.readOrCreateCollections(database, settings)
-        .unpackOrThrow(ex => new ConnectException(s"Failed to read or create collections: ${ex.getMessage}", ex))
-    }
-
+      _ = {
+        logger.info("Connector configuration parsed successfully. Checking input topics from KCQL configuration.")
+        configProps = props
+      }
+      _            <- Helpers.checkInputTopicsEither(CosmosDbConfigConstants.KCQL_CONFIG, props.asScala.toMap)
+      _             = logger.info("Input topics check passed. Creating CosmosDbSinkSettings from configuration.")
+      settings     <- CosmosDbSinkSettings(config)
+      _             = logger.info(s"CosmosDbSinkSettings created: $settings. Creating Cosmos DB client.")
+      cosmosClient <- createCosmosClient(settings)
+      _             = logger.info("Cosmos DB client created. Reading or creating database.")
+      database <- readOrCreateDatabase(settings)(cosmosClient).leftMap(ex =>
+        new ConnectException(s"Failed to read or create database: ${ex.getMessage}", ex),
+      )
+      _ = logger.info("Database ready. Reading or creating collections.")
+      _ <- readOrCreateCollections(database, settings).leftMap(ex =>
+        new ConnectException(s"Failed to read or create collections: ${ex.getMessage}", ex),
+      )
+      _ = logger.info("Collections ready.")
+    } yield ()
+    setup.unpackOrThrow
+    logger.info("Azure CosmosDb sink connector initialization complete.")
   }
 
-  protected def createCosmosClient(settings: CosmosDbSinkSettings): CosmosClient =
-    CosmosClientProvider.get(settings).unpackOrThrow
+  protected def createCosmosClient(settings: CosmosDbSinkSettings): Either[ConnectException, CosmosClient] =
+    CosmosClientProvider.get(settings)
 
   override def stop(): Unit = {}
 

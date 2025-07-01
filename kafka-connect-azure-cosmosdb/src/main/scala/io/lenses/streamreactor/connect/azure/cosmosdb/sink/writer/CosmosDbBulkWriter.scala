@@ -37,7 +37,7 @@ class CosmosDbBulkWriter(
     val (errors, pendingRecords) =
       newRecords.map(bulkRecordConverter.convert(config, _)).toList.partitionMap(identity)
     if (errors.nonEmpty) {
-      logger.error(s"Failed to convert ${errors.size} records to cosmos db documents", errors.mkString("\n"))
+      errors.foreach(e => logger.error("Failed to convert record to cosmos db document", e))
     }
     for {
       _      <- unrecoverableError().toLeft[Unit](())
