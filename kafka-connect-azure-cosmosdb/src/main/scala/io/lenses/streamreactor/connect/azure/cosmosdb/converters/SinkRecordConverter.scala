@@ -31,6 +31,11 @@ import java.util.TimeZone
 import scala.annotation.tailrec
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 
+/**
+ * Utility for converting Kafka Connect data (Struct, Map, Array, etc.) into Azure Cosmos DB Document objects.
+ * Handles all supported Connect schema types, including logical types (Date, Time, Timestamp, Decimal).
+ * Provides conversion from Struct, Map, and JSON to Document, with robust error handling.
+ */
 private[converters] object SinkRecordConverter {
   private val ISO_DATE_FORMAT: SimpleDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
   private val TIME_FORMAT:     SimpleDateFormat = new SimpleDateFormat("HH:mm:ss.SSSZ")
@@ -38,27 +43,39 @@ private[converters] object SinkRecordConverter {
   ISO_DATE_FORMAT.setTimeZone(TimeZone.getTimeZone("UTC"))
 
   /**
-   * Creates a Azure Document Db document from a HashMap
+   * Converts a Java Map to a Cosmos DB Document by serializing it as JSON.
    *
-   * @param map
-   * @return
+   * @param map The Java Map to convert.
+   * @return    The resulting Document.
    */
   def fromMap(map: util.Map[String, AnyRef]): Document = new Document(Json.toJson(map))
 
   /**
-   * Creates an Azure CosmosDb document from a the Kafka Struct
+   * Converts a Kafka SinkRecord with a Struct value to a Cosmos DB Document.
+   * Throws if the value is not a Struct or if the schema does not match.
    *
-   * @param record
-   * @return
+   * @param record The SinkRecord to convert.
+   * @return       The resulting Document.
+   * @throws IllegalArgumentException if the value is not a Struct.
+   * @throws DataException if the schema does not match or required fields are missing.
    */
   def fromStruct(record: SinkRecord): Document = {
     if (!record.value().isInstanceOf[Struct]) {
       throw new IllegalArgumentException(s"Expecting a Struct. ${record.value.getClass}")
     }
-    //we let it fail in case of a non struct(shouldn't be the case)
+    // We let it fail in case of a non struct (shouldn't be the case)
     convertToDocument(record.valueSchema(), record.value()).asInstanceOf[Document]
   }
 
+  /**
+   * Recursively converts a Connect value (with schema) to a Java object suitable for Cosmos DB.
+   * Handles all supported Connect schema types, including logical types and nested structures.
+   *
+   * @param schema The Connect schema.
+   * @param value  The value to convert.
+   * @return       The converted value (Document, List, primitive, etc.).
+   * @throws DataException if the value does not match the schema or is missing required fields.
+   */
   @tailrec
   private def convertToDocument(schema: Schema, value: Any): Any =
     Option(value) match {
@@ -70,7 +87,6 @@ private[converters] object SinkRecordConverter {
           else
             throw new DataException("Conversion error: null value for field that is required and has no default value")
         }
-
       case Some(_) =>
         try {
           val schemaType = Option(schema).map(_.`type`())
@@ -104,6 +120,14 @@ private[converters] object SinkRecordConverter {
         }
     }
 
+  /**
+   * Handles conversion of BYTES schema type, including Decimal logical type.
+   *
+   * @param schema The Connect schema.
+   * @param value  The value to convert.
+   * @return       The converted value (BigDecimal or Array[Byte]).
+   * @throws DataException if the value is not a valid bytes type.
+   */
   private def handleBytes(schema: Schema, value: Any) =
     if (Decimal.LOGICAL_NAME == schema.name) value.asInstanceOf[BigDecimal]
     else
@@ -112,6 +136,14 @@ private[converters] object SinkRecordConverter {
         case buffer:    ByteBuffer  => buffer.array
         case _ => throw new DataException(s"Invalid type for bytes type [${value.getClass}]")
       }
+
+  /**
+   * Handles conversion of ARRAY schema type.
+   *
+   * @param schema The Connect schema.
+   * @param value  The value to convert (should be a Java Collection).
+   * @return       A Java ArrayList of converted elements.
+   */
   private def handleArray(schema: Schema, value: Any) = {
     val valueSchema = Option(schema).map(_.valueSchema()).orNull
     val list        = new util.ArrayList[Any]
@@ -122,6 +154,14 @@ private[converters] object SinkRecordConverter {
       }
     list
   }
+
+  /**
+   * Handles conversion of MAP schema type. String-keyed maps become Documents, others become ArrayLists of key-value pairs.
+   *
+   * @param schema The Connect schema.
+   * @param value  The value to convert (should be a Java Map).
+   * @return       A Document or ArrayList, depending on key type.
+   */
   private def handleMap(schema: Schema, value: Any) = {
     val map = value.asInstanceOf[util.Map[_, _]]
     // If true, using string keys and JSON object; if false, using non-string keys and Array-encoding
@@ -154,18 +194,30 @@ private[converters] object SinkRecordConverter {
     }
   }
 
+  /**
+   * Helper to iterate over map entries and apply a function to each key/value pair, converting them as needed.
+   */
   private def buildContentForMapSource(schema: Schema, map: util.Map[_, _])(fn: (Any, Any) => Unit): Unit =
     for (entry <- map.entrySet.asScala) {
       val keySchema   = Option(schema).map(_.keySchema()).orNull
       val valueSchema = Option(schema).map(_.valueSchema).orNull
 
       val mapKey = convertToDocument(keySchema, entry.getKey)
-      //don't add null
+      // Don't add null
       Option(convertToDocument(valueSchema, entry.getValue))
         .foreach { mapValue =>
           fn(mapKey, mapValue)
         }
     }
+
+  /**
+   * Handles conversion of STRUCT schema type to a Document, recursively converting all fields.
+   *
+   * @param schema The Struct schema.
+   * @param value  The Struct value.
+   * @return       The resulting Document.
+   * @throws DataException if the schema does not match or required fields are missing.
+   */
   private def handleStruct(schema: Schema, value: Any) = {
     val struct = value.asInstanceOf[Struct]
     if (struct.schema != schema) throw new DataException("Mismatching schema.")
@@ -174,8 +226,6 @@ private[converters] object SinkRecordConverter {
       .foldLeft(new Document) { (document, field) =>
         Option(convertToDocument(field.schema, struct.get(field)))
           .foreach {
-            //case bd: BigDecimal => document.append(field.name, bd.toDouble)
-            //case bi: BigInt => document.append(field.name(), bi.toLong)
             v => document.set(field.name, v, CosmosItemSerializer.DEFAULT_SERIALIZER)
           }
         document
@@ -183,10 +233,11 @@ private[converters] object SinkRecordConverter {
   }
 
   /**
-   * Creates an Azure Document DB document from Json
+   * Converts a JSON JValue to a Cosmos DB Document.
    *
-   * @param record - The instance to the json node
-   * @return An instance of a Azure Document DB document
+   * @param record The JSON JValue.
+   * @return       The resulting Document.
+   * @throws IllegalArgumentException if the input is not a valid JSON object.
    */
   def fromJson(record: JValue): Document = {
     def convert(name: String, jvalue: JValue, document: Document): Document = {

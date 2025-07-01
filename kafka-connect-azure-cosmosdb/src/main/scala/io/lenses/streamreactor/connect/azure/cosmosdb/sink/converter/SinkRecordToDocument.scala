@@ -28,8 +28,23 @@ import java.util
 import scala.annotation.nowarn
 import scala.util.Try
 
+/**
+ * Utility for converting Kafka SinkRecords into Azure Cosmos DB Document objects.
+ * Handles different value types (Struct, String, Map) and applies field projections, ignored fields, and ID generation.
+ * All conversion methods return Either[Throwable, Document] to robustly handle errors from underlying libraries.
+ */
 @nowarn
 object SinkRecordToDocument extends ConverterUtil {
+
+  /**
+   * Converts a SinkRecord into a Cosmos DB Document, applying field projections, ignored fields, and generating the document ID.
+   *
+   * @param record        The Kafka SinkRecord to convert.
+   * @param fields        Map of field projections (Kafka field -> Document field).
+   * @param ignoredFields Set of field names to ignore in the output document.
+   * @param idGenerator   Strategy for generating the document ID.
+   * @return              Either a Throwable (on error) or the resulting Document.
+   */
   def apply(
     record:        SinkRecord,
     fields:        Map[String, String],
@@ -41,6 +56,14 @@ object SinkRecordToDocument extends ConverterUtil {
       withId   <- generateDocumentId(record, idGenerator).map(document.setId)
     } yield withId
 
+  /**
+   * Determines the appropriate conversion method based on the SinkRecord's schema or value type.
+   *
+   * @param record        The Kafka SinkRecord.
+   * @param fields        Field projections.
+   * @param ignoredFields Fields to ignore.
+   * @return              Either a Throwable or the converted Document.
+   */
   private def getDocument(
     record:        SinkRecord,
     fields:        Map[String, String],
@@ -58,6 +81,14 @@ object SinkRecordToDocument extends ConverterUtil {
         }
     }
 
+  /**
+   * Converts a SinkRecord with a String value (typically JSON) to a Document, applying projections and ignored fields.
+   *
+   * @param record        The SinkRecord.
+   * @param fields        Field projections.
+   * @param ignoredFields Fields to ignore.
+   * @return              Either a Throwable or the converted Document.
+   */
   private def convertStringToDocument(
     record:        SinkRecord,
     fields:        Map[String, String],
@@ -67,9 +98,16 @@ object SinkRecordToDocument extends ConverterUtil {
       conversionResult <- convertFromStringAsJson(record, fields, ignoredFields)
         .leftMap(s => new ConnectException(s))
       document <- SinkRecordConverterEither.fromJson(conversionResult.converted)
-
     } yield document
 
+  /**
+   * Converts a schemaless SinkRecord with a Map value to a Document, applying projections and ignored fields.
+   *
+   * @param record        The SinkRecord.
+   * @param fields        Field projections.
+   * @param ignoredFields Fields to ignore.
+   * @return              Either a Throwable or the converted Document.
+   */
   private def convertMapToDocument(
     record:        SinkRecord,
     fields:        Map[String, String],
@@ -80,6 +118,14 @@ object SinkRecordToDocument extends ConverterUtil {
       document <- SinkRecordConverterEither.fromMap(map)
     } yield document
 
+  /**
+   * Converts a SinkRecord with a Struct value to a Document, applying projections and ignored fields.
+   *
+   * @param record        The SinkRecord.
+   * @param fields        Field projections.
+   * @param ignoredFields Fields to ignore.
+   * @return              Either a Throwable or the converted Document.
+   */
   private def convertStructToDocument(
     record:        SinkRecord,
     fields:        Map[String, String],
@@ -87,6 +133,13 @@ object SinkRecordToDocument extends ConverterUtil {
   ): Either[Throwable, Document] =
     SinkRecordConverterEither.fromStruct(convert(record, fields, ignoredFields))
 
+  /**
+   * Generates the document ID using the provided KeySource strategy.
+   *
+   * @param record      The SinkRecord.
+   * @param idGenerator The KeySource strategy.
+   * @return            Either a Throwable or the generated ID string.
+   */
   private def generateDocumentId(record: SinkRecord, idGenerator: KeySource): Either[Throwable, String] =
     idGenerator.generateId(record) match {
       case Left(t) => Left(t)

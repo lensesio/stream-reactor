@@ -22,13 +22,35 @@ import org.json4s.JValue
 import java.util
 import scala.util.Try
 
+/**
+ * Thin Either-based wrapper for SinkRecordConverter, converting thrown exceptions into Left[Throwable].
+ * Provides safe conversion from Map, Struct, or JSON to Cosmos DB Document, capturing any thrown errors.
+ */
 object SinkRecordConverterEither {
 
+  /**
+   * Converts a Java Map to a Cosmos DB Document, capturing any thrown errors as Left.
+   *
+   * @param map The Java Map to convert.
+   * @return    Either a Throwable or the resulting Document.
+   */
   def fromMap(map: util.Map[String, AnyRef]): Either[Throwable, Document] =
     Try(SinkRecordConverter.fromMap(map)).toEither
 
+  /**
+   * Converts a SinkRecord with a Struct value to a Cosmos DB Document, capturing any thrown errors as Left.
+   *
+   * @param record The SinkRecord to convert.
+   * @return       Either a Throwable or the resulting Document.
+   */
   def fromStruct(record: SinkRecord): Either[Throwable, Document] = Try(SinkRecordConverter.fromStruct(record)).toEither
 
+  /**
+   * Converts a JSON JValue to a Cosmos DB Document, capturing any thrown errors as Left.
+   *
+   * @param record The JSON JValue to convert.
+   * @return       Either a Throwable or the resulting Document.
+   */
   def fromJson(record: JValue): Either[Throwable, Document] = Try(SinkRecordConverter.fromJson(record)).toEither
 
 }
