@@ -21,12 +21,10 @@ import com.azure.cosmos.implementation.Document
 import com.azure.cosmos.models.CosmosBulkOperationResponse
 import com.azure.cosmos.models.CosmosItemOperation
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.kcql.Kcql
 import io.lenses.streamreactor.common.batch.OffsetMergeUtils.updateCommitContextPostCommit
 import io.lenses.streamreactor.common.batch.EmptyBatchInfo
 import io.lenses.streamreactor.common.batch.HttpCommitContext
 import io.lenses.streamreactor.common.batch.NonEmptyBatchInfo
-import io.lenses.streamreactor.connect.azure.cosmosdb.config.CosmosDbSinkSettings
 import io.lenses.streamreactor.connect.cloud.common.model.Offset
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
@@ -44,8 +42,8 @@ class CosmosDbQueueProcessor(
   delay:           FiniteDuration,
   recordsQueue:    CosmosRecordsQueue[PendingRecord],
   documentClient:  CosmosClient,
-  settings:        CosmosDbSinkSettings,
-  config:          Kcql,
+  database:        String,
+  target:          String,
 ) extends Runnable
     with LazyLogging {
 
@@ -127,8 +125,8 @@ class CosmosDbQueueProcessor(
       .toSeq
       .asJava
 
-    documentClient.getDatabase(settings.database)
-      .getContainer(config.getTarget)
+    documentClient.getDatabase(database)
+      .getContainer(target)
       .executeBulkOperations(bulkOps)
       .asScala
       .toList

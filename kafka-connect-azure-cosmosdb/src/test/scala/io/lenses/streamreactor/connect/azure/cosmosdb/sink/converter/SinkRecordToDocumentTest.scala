@@ -26,14 +26,14 @@ import org.apache.kafka.connect.sink.SinkRecord
 import org.mockito.ArgumentMatchersSugar
 import org.mockito.MockitoSugar
 import org.scalatest.matchers.should.Matchers
-import org.scalatest.wordspec.AnyWordSpec
+import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.EitherValues
 import scala.annotation.nowarn
 import scala.util.Using
 
 @nowarn
 class SinkRecordToDocumentTest
-    extends AnyWordSpec
+    extends AnyFunSuite
     with Matchers
     with ConverterUtil
     with MockitoSugar
@@ -43,59 +43,102 @@ class SinkRecordToDocumentTest
   private val idGenerator: KeySource = mock[KeySource]
   when(idGenerator.generateId(any[SinkRecord])).thenReturn(testId.asRight)
 
-  "SinkRecordToDocument" should {
-    "convert Kafka Struct to a Azure Document Db Document" in {
-      for (i <- 1 to 4) {
-        val json = Using(scala.io.Source.fromFile(getClass.getResource(s"/transaction$i.json").toURI.getPath))(
-          _.mkString,
-        ).getOrElse(fail("resource not found"))
-        val tx     = Json.fromJson[Transaction](json)
-        val record = new SinkRecord("topic1", 0, null, null, Transaction.ConnectSchema, tx.toStruct, 0)
+  test("convert Kafka Struct to a Azure Document Db Document") {
+    for (i <- 1 to 4) {
+      val json = Using(scala.io.Source.fromFile(getClass.getResource(s"/transaction$i.json").toURI.getPath))(
+        _.mkString,
+      ).getOrElse(fail("resource not found"))
+      val tx     = Json.fromJson[Transaction](json)
+      val record = new SinkRecord("topic1", 0, null, null, Transaction.ConnectSchema, tx.toStruct, 0)
 
-        val fields        = Map.empty[String, String]
-        val ignoredFields = Set.empty[String]
-        val document      = SinkRecordToDocument(record, fields, ignoredFields, idGenerator)
-        val expected      = new Document(json).setId(testId)
+      val fields        = Map.empty[String, String]
+      val ignoredFields = Set.empty[String]
+      val document      = SinkRecordToDocument(record, fields, ignoredFields, idGenerator)
+      val expected      = new Document(json).setId(testId)
 
-        //comparing string representation; we have more specific types given the schema
-        document.value.toString shouldBe expected.toString
-      }
+      //comparing string representation; we have more specific types given the schema
+      document.value.toString shouldBe expected.toString
     }
+  }
 
-    "convert String Schema + Json payload to a Azure Document DB Document" in {
-      for (i <- 1 to 4) {
-        val json = Using(scala.io.Source.fromFile(getClass.getResource(s"/transaction$i.json").toURI.getPath))(
-          _.mkString,
-        ).getOrElse(fail("resource not found"))
+  test("convert String Schema + Json payload to a Azure Document DB Document") {
+    for (i <- 1 to 4) {
+      val json = Using(scala.io.Source.fromFile(getClass.getResource(s"/transaction$i.json").toURI.getPath))(
+        _.mkString,
+      ).getOrElse(fail("resource not found"))
 
-        val record = new SinkRecord("topic1", 0, null, null, Schema.STRING_SCHEMA, json, 0)
+      val record = new SinkRecord("topic1", 0, null, null, Schema.STRING_SCHEMA, json, 0)
 
-        val fields        = Map.empty[String, String]
-        val ignoredFields = Set.empty[String]
-        val document      = SinkRecordToDocument(record, fields, ignoredFields, idGenerator)
-        val expected      = new Document(json).setId(testId)
+      val fields        = Map.empty[String, String]
+      val ignoredFields = Set.empty[String]
+      val document      = SinkRecordToDocument(record, fields, ignoredFields, idGenerator)
+      val expected      = new Document(json).setId(testId)
 
-        //comparing string representation; we have more specific types given the schema
-        document.value.toString shouldBe expected.toString
-      }
+      //comparing string representation; we have more specific types given the schema
+      document.value.toString shouldBe expected.toString
     }
+  }
 
-    "convert Schemaless + Json payload to a Azure Document DB Document" in {
-      for (i <- 1 to 4) {
-        val json = Using(scala.io.Source.fromFile(getClass.getResource(s"/transaction$i.json").toURI.getPath))(
-          _.mkString,
-        ).getOrElse(fail("resource not found"))
+  test("convert Schemaless + Json payload to a Azure Document DB Document") {
+    for (i <- 1 to 4) {
+      val json = Using(scala.io.Source.fromFile(getClass.getResource(s"/transaction$i.json").toURI.getPath))(
+        _.mkString,
+      ).getOrElse(fail("resource not found"))
 
-        val record = new SinkRecord("topic1", 0, null, null, Schema.STRING_SCHEMA, json, 0)
+      val record = new SinkRecord("topic1", 0, null, null, Schema.STRING_SCHEMA, json, 0)
 
-        val fields        = Map.empty[String, String]
-        val ignoredFields = Set.empty[String]
-        val document      = SinkRecordToDocument(record, fields, ignoredFields, idGenerator)
-        val expected      = new Document(json).setId(testId)
+      val fields        = Map.empty[String, String]
+      val ignoredFields = Set.empty[String]
+      val document      = SinkRecordToDocument(record, fields, ignoredFields, idGenerator)
+      val expected      = new Document(json).setId(testId)
 
-        //comparing string representation; we have more specific types given the schema
-        document.value.toString shouldBe expected.toString
-      }
+      //comparing string representation; we have more specific types given the schema
+      document.value.toString shouldBe expected.toString
     }
+  }
+
+  test("return error when schema is Array") {
+    import org.apache.kafka.connect.data.SchemaBuilder
+    val arraySchema = SchemaBuilder.array(Schema.STRING_SCHEMA).build()
+    val arrayValue = java.util.Arrays.asList("one", "two", "three")
+    val record = new SinkRecord("topic1", 0, null, null, arraySchema, arrayValue, 0)
+    val fields = Map.empty[String, String]
+    val ignoredFields = Set.empty[String]
+    val result = SinkRecordToDocument(record, fields, ignoredFields, idGenerator)
+    result.left.value shouldBe a [org.apache.kafka.connect.errors.ConnectException]
+    result.left.value.getMessage should include ("[ARRAY] schema is not supported")
+  }
+
+  test("return error when value is a collection and schema is null") {
+    val collectionValue = java.util.Arrays.asList("one", "two", "three")
+    val record = new SinkRecord("topic1", 0, null, null, null, collectionValue, 0)
+    val fields = Map.empty[String, String]
+    val ignoredFields = Set.empty[String]
+    val result = SinkRecordToDocument(record, fields, ignoredFields, idGenerator)
+    result.left.value shouldBe a [org.apache.kafka.connect.errors.ConnectException]
+    result.left.value.getMessage should include ("For schemaless record only String and Map types are supported")
+  }
+
+  test("return error when schema is Map") {
+    import org.apache.kafka.connect.data.SchemaBuilder
+    val mapSchema = SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.STRING_SCHEMA).build()
+    val mapValue = java.util.Collections.singletonMap("key", "value")
+    val record = new SinkRecord("topic1", 0, null, null, mapSchema, mapValue, 0)
+    val fields = Map.empty[String, String]
+    val ignoredFields = Set.empty[String]
+    val result = SinkRecordToDocument(record, fields, ignoredFields, idGenerator)
+    result.left.value shouldBe a [org.apache.kafka.connect.errors.ConnectException]
+    result.left.value.getMessage should include ("[MAP] schema is not supported")
+  }
+
+  test("convert schemaless Map value to Document") {
+    val mapValue = new java.util.HashMap[String, AnyRef]()
+    mapValue.put("key", "value")
+    val record = new SinkRecord("topic1", 0, null, null, null, mapValue, 0)
+    val fields = Map.empty[String, String]
+    val ignoredFields = Set.empty[String]
+    val result = SinkRecordToDocument(record, fields, ignoredFields, idGenerator)
+    result.isRight shouldBe true
+    result.value.get("key") shouldBe "value"
   }
 }

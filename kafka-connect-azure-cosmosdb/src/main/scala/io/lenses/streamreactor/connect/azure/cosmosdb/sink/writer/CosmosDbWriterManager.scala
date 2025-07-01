@@ -16,12 +16,12 @@
 package io.lenses.streamreactor.connect.azure.cosmosdb.sink.writer
 import cats.implicits._
 import com.azure.cosmos.CosmosClient
+import com.azure.cosmos.implementation.Document
 import com.typesafe.scalalogging.StrictLogging
 import io.lenses.kcql.Kcql
 import io.lenses.streamreactor.common.batch.BatchPolicy
 import io.lenses.streamreactor.common.errors.ErrorHandler
 import io.lenses.streamreactor.connect.azure.cosmosdb.config.CosmosDbSinkSettings
-import io.lenses.streamreactor.connect.azure.cosmosdb.sink.converter.CosmosDbBulkRecordConverter
 import io.lenses.streamreactor.connect.cloud.common.model.Topic
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
@@ -37,15 +37,16 @@ import scala.util.Failure
  * Writes a list of Kafka connect sink records to Azure CosmosDb using the JSON support.
  */
 class CosmosDbWriterManager(
-  sinkName:       String,
-  configMap:      Map[String, Kcql],
-  batchPolicyMap: Map[String, BatchPolicy],
-  settings:       CosmosDbSinkSettings,
-  documentClient: CosmosClient,
+  sinkName:            String,
+  configMap:           Map[String, Kcql],
+  batchPolicyMap:      Map[String, BatchPolicy],
+  settings:            CosmosDbSinkSettings,
+  documentClient:      CosmosClient,
+  fnConvertToDocument: (SinkRecord, Map[String, String], Set[String]) => Either[Throwable, Document],
 ) extends StrictLogging
     with ErrorHandler {
 
-  private val writers: mutable.Map[Topic, CosmosDbWriter] = mutable.Map[Topic, CosmosDbWriter]()
+  private[cosmosdb] val writers: mutable.Map[Topic, CosmosDbWriter] = mutable.Map.empty
 
   //initialize error tracker
   initialize(settings.taskRetries, settings.errorPolicy)
@@ -71,9 +72,18 @@ class CosmosDbWriterManager(
       .groupBy(sinkRecord => new Topic(sinkRecord.topic()))
       .toList
       .traverse {
-        case (partition, records) =>
-          val writer = writers.getOrElseUpdate(partition, createWriter(partition))
-          writer.insert(records)
+        case (partition, records) => {
+            writers.get(partition) match {
+              case Some(value) => value.asRight
+              case None =>
+                for {
+                  newWriter <- createWriter(partition)
+                  _          = writers.update(partition, newWriter)
+                } yield {
+                  newWriter
+                }
+            }
+          }.map(_.insert(records))
       } match {
       case Left(exception) =>
         logger.error(s"There was an error inserting the records [${exception.getMessage}]", exception)
@@ -83,56 +93,38 @@ class CosmosDbWriterManager(
         ()
     }
 
-  private def createWriter(recordTopic: Topic): CosmosDbWriter = {
+  private[cosmosdb] def createWriter(recordTopic: Topic): Either[ConnectException, CosmosDbWriter] = {
     val topicName = recordTopic.value
-    val kcql =
-      configMap.getOrElse(topicName, throw new ConnectException(s"[$topicName] is not handled by the configuration."))
-
-    if (settings.bulkEnabled) {
-      logger.info(s"Creating bulk writer for topic $topicName")
-      createBulkWriter(topicName, kcql)
-
-    } else {
-      logger.info(s"Creating single writer for topic $topicName")
-      createSingleWriter(kcql)
-    }
-  }
-
-  private def createSingleWriter(kcql: Kcql) =
-    new CosmosDbSingleWriter(
-      kcql,
-      settings,
-      documentClient,
-    )
-
-  private def createBulkWriter(topicName: String, kcql: Kcql) = {
-    val batchPolicy =
-      batchPolicyMap.getOrElse(topicName,
-                               throw new ConnectException(s"[$topicName] is not handled by the configuration."),
-      )
-    val recordsQueue = new CosmosRecordsQueue[PendingRecord](
-      sinkName,
-      settings.maxQueueSize,
-      settings.maxQueueOfferTimeout,
-      batchPolicy,
-    )
-    val queueProcessor = new CosmosDbQueueProcessor(
-      sinkName,
-      settings.errorThreshold,
-      settings.executorThreads,
-      settings.delay,
-      recordsQueue,
-      documentClient,
-      settings,
-      kcql,
-    )
-
-    new CosmosDbBulkWriter(
-      config              = kcql,
-      recordsQueue        = recordsQueue,
-      bulkRecordConverter = new CosmosDbBulkRecordConverter(settings),
-      queueProcessor      = queueProcessor,
-    )
+    val newWriter = for {
+      kcql <-
+        configMap.get(topicName).toRight(new ConnectException(s"[$topicName] is not handled by the configuration."))
+      writer <-
+        if (settings.bulkEnabled) {
+          for {
+            _ <- logger.info(s"Creating bulk writer for topic $topicName").asRight
+            bulkWriter <- CosmosDbBulkWriter(
+              sinkName,
+              topicName,
+              kcql,
+              batchPolicyMap,
+              settings,
+              documentClient,
+              fnConvertToDocument,
+            )
+          } yield bulkWriter
+        } else {
+          for {
+            _ <- logger.info(s"Creating single writer for topic $topicName").asRight
+            singleWriter = new CosmosDbSingleWriter(
+              kcql,
+              settings,
+              documentClient,
+              fnConvertToDocument,
+            )
+          } yield singleWriter
+        }
+    } yield writer
+    newWriter
   }
 
   def close(): Unit = {

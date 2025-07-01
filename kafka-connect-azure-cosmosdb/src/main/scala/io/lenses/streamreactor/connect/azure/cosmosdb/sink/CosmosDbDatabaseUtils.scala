@@ -30,7 +30,9 @@ object CosmosDbDatabaseUtils extends StrictLogging {
     settings: CosmosDbSinkSettings,
   ): Either[Throwable, Unit] = {
     val collectionNames = settings.kcql.map(_.getTarget)
-    logger.info(s"Preparing to read or create collections in database [${database.getId}]: ${collectionNames.mkString(", ")}")
+    logger.info(
+      s"Preparing to read or create collections in database [${database.getId}]: ${collectionNames.mkString(", ")}",
+    )
     collectionNames.toList.traverse_ { collectionName =>
       logger.info(s"Checking existence of collection [$collectionName] in database [${database.getId}]")
       val result = Try(database.getContainer(collectionName).read()).toEither.leftMap { ex =>
@@ -41,11 +43,13 @@ object CosmosDbDatabaseUtils extends StrictLogging {
           logger.info(s"Collection [$collectionName] already exists in database [${database.getId}]")
           Right(())
         case Left(_) =>
-          logger.info(s"Creating collection [$collectionName] in database [${database.getId}] with throughput [${settings.collectionThroughput} RU/s]")
+          logger.info(
+            s"Creating collection [$collectionName] in database [${database.getId}] with throughput [${settings.collectionThroughput} RU/s]",
+          )
           createCollection(database,
-                          ThroughputProperties.createManualThroughput(settings.collectionThroughput),
-                          collectionName,
-            )
+                           ThroughputProperties.createManualThroughput(settings.collectionThroughput),
+                           collectionName,
+          )
       }
       logger.info(s"Finished processing collection [$collectionName] in database [${database.getId}]")
       result
@@ -57,13 +61,18 @@ object CosmosDbDatabaseUtils extends StrictLogging {
     throughput:     ThroughputProperties,
     collectionName: String,
   ): Either[Throwable, Unit] = {
-    logger.info(s"Attempting to create collection [$collectionName] in database [${database.getId}] with throughput [${throughput.getManualThroughput}] RU/s")
+    logger.info(
+      s"Attempting to create collection [$collectionName] in database [${database.getId}] with throughput [${throughput.getManualThroughput}] RU/s",
+    )
     val result = Try(database.createContainer(collectionName, "partitionKeyPath", throughput)).toEither
       .leftMap(t => new RuntimeException(s"Could not create collection [$collectionName]. ${t.getMessage}", t))
       .map(_ => ())
     result match {
       case Right(_) => logger.info(s"Successfully created collection [$collectionName] in database [${database.getId}]")
-      case Left(e)  => logger.error(s"Failed to create collection [$collectionName] in database [${database.getId}]: ${e.getMessage}", e)
+      case Left(e) => logger.error(
+          s"Failed to create collection [$collectionName] in database [${database.getId}]: ${e.getMessage}",
+          e,
+        )
     }
     result
   }
@@ -90,7 +99,7 @@ object CosmosDbDatabaseUtils extends StrictLogging {
     }
     result match {
       case Right(_) => logger.info(s"Database [${settings.database}] is ready.")
-      case Left(e) => logger.error(s"Failed to read or create database [${settings.database}]: ${e.getMessage}", e)
+      case Left(e)  => logger.error(s"Failed to read or create database [${settings.database}]: ${e.getMessage}", e)
     }
     result
   }
@@ -106,7 +115,7 @@ object CosmosDbDatabaseUtils extends StrictLogging {
     } yield db
     result match {
       case Right(_) => logger.info(s"Successfully created database [$databaseName]")
-      case Left(e) => logger.error(s"Failed to create database [$databaseName]: ${e.getMessage}", e)
+      case Left(e)  => logger.error(s"Failed to create database [$databaseName]: ${e.getMessage}", e)
     }
     result
   }

@@ -96,7 +96,19 @@ class CosmosDbSinkTaskJsonTest
       val kcqlMap        = settings.kcql.map(c => c.getSource -> c).toMap
       val batchPolicyMap = settings.kcql.map(c => c.getSource -> settings.commitPolicy(c)).toMap
 
-      val writer = new CosmosDbWriterManager(sinkName, kcqlMap, batchPolicyMap, settings, documentClient)
+      val writer = new CosmosDbWriterManager(
+        sinkName,
+        kcqlMap,
+        batchPolicyMap,
+        settings,
+        documentClient,
+        (record, _, _) =>
+          record.key() match {
+            case "key1" => Right(doc1)
+            case "key2" => Right(doc2)
+            case _      => Right(new com.azure.cosmos.implementation.Document(""))
+          },
+      )
       writer.write(Seq(sinkRecord1, sinkRecord2))
 
       verify(coll1Resource)
@@ -166,7 +178,19 @@ class CosmosDbSinkTaskJsonTest
       val kcqlMap        = settings.kcql.map(c => c.getSource -> c).toMap
       val batchPolicyMap = settings.kcql.map(c => c.getSource -> settings.commitPolicy(c)).toMap
 
-      val writer = new CosmosDbWriterManager(sinkName, kcqlMap, batchPolicyMap, settings, documentClient)
+      val writer = new CosmosDbWriterManager(
+        sinkName,
+        kcqlMap,
+        batchPolicyMap,
+        settings,
+        documentClient,
+        (record, _, _) =>
+          record.key() match {
+            case "key1" => Right(doc1)
+            case "key2" => Right(doc2)
+            case _      => Right(new com.azure.cosmos.implementation.Document(""))
+          },
+      )
       writer.write(Seq(sinkRecord1, sinkRecord2))
 
       verify(coll1Resource)
@@ -237,7 +261,19 @@ class CosmosDbSinkTaskJsonTest
       val kcqlMap        = settings.kcql.map(c => c.getSource -> c).toMap
       val batchPolicyMap = settings.kcql.map(c => c.getSource -> settings.commitPolicy(c)).toMap
 
-      val writer = new CosmosDbWriterManager(sinkName, kcqlMap, batchPolicyMap, settings, documentClient)
+      val writer = new CosmosDbWriterManager(
+        sinkName,
+        kcqlMap,
+        batchPolicyMap,
+        settings,
+        documentClient,
+        (record, _, _) =>
+          record.key() match {
+            case "key1" => Right(doc1)
+            case "key2" => Right(doc2)
+            case _      => Right(new com.azure.cosmos.implementation.Document(""))
+          },
+      )
       writer.write(Seq(sinkRecord1, sinkRecord2))
 
       verify(coll1Resource)

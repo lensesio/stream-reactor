@@ -24,7 +24,7 @@ import io.lenses.streamreactor.connect.azure.cosmosdb.config.CosmosDbConfigConst
 import io.lenses.streamreactor.connect.azure.cosmosdb.config.CosmosDbSinkSettings
 import com.typesafe.scalalogging.StrictLogging
 import io.lenses.streamreactor.connect.azure.cosmosdb.CosmosClientProvider
-import io.lenses.streamreactor.connect.azure.cosmosdb.sink.writer.CosmosDbWriterFactory
+import io.lenses.streamreactor.connect.azure.cosmosdb.sink.writer.CosmosDbWriterManagerFactory
 import io.lenses.streamreactor.connect.azure.cosmosdb.sink.writer.CosmosDbWriterManager
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.{ TopicPartition => KafkaTopicPartition }
@@ -62,14 +62,15 @@ class CosmosDbSinkTask extends SinkTask with StrictLogging with JarManifestProvi
       _             = logger.info(s"CosmosDbSinkSettings created: $settings. Creating Cosmos DB client.")
       cosmosClient <- CosmosClientProvider.get(settings)
       _             = logger.info("Cosmos DB client created. Creating writer manager.")
-      writerMgr <- Right(
-        CosmosDbWriterFactory(
-          settings.kcql.map(k => k.getSource -> k).toMap,
-          settings,
-          context,
-          cosmosClient,
-        ),
-      )
+      writerMgr <- CosmosDbWriterManagerFactory(
+        settings.kcql.map(k => k.getSource -> k).toMap,
+        settings,
+        context,
+        cosmosClient,
+      ).left.map { err =>
+        logger.error("Failed to create CosmosDbWriterManager", err)
+        err
+      }
       _ = logger.info("Writer manager created.")
     } yield (settings, writerMgr)
 

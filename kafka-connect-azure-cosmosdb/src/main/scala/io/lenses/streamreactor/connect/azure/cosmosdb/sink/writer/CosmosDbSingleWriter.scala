@@ -21,18 +21,18 @@ import com.typesafe.scalalogging.StrictLogging
 import io.lenses.kcql.Kcql
 import io.lenses.kcql.WriteModeEnum
 import io.lenses.streamreactor.connect.azure.cosmosdb.config.CosmosDbSinkSettings
-import io.lenses.streamreactor.connect.azure.cosmosdb.sink.converter.SinkRecordToDocument
-import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
-import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkRecord
+import com.azure.cosmos.implementation.Document
+import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
 
 import scala.util.Try
 
 class CosmosDbSingleWriter(
-  config:         Kcql,
-  settings:       CosmosDbSinkSettings,
-  documentClient: CosmosClient,
+  config:              Kcql,
+  settings:            CosmosDbSinkSettings,
+  documentClient:      CosmosClient,
+  fnConvertToDocument: (SinkRecord, Map[String, String], Set[String]) => Either[Throwable, Document],
 ) extends CosmosDbWriter
     with StrictLogging {
 
@@ -49,11 +49,10 @@ class CosmosDbSingleWriter(
     Try {
       records.foreach { record =>
         val document =
-          SinkRecordToDocument(
+          fnConvertToDocument(
             record,
             settings.fields(record.topic()),
             settings.ignoredField(record.topic()),
-            settings.keySource,
           )
         document.left.foreach(e => logger.error(s"Error converting record to document: ${e.getMessage}", e))
         document.foreach { doc =>
@@ -76,8 +75,10 @@ class CosmosDbSingleWriter(
 
   override def preCommit(
     offsetAndMetadatas: Map[TopicPartition, OffsetAndMetadata],
-  ): Map[TopicPartition, OffsetAndMetadata] =
-    throw new ConnectException("Not implemented for a single writer - no need for offset management")
+  ): Map[TopicPartition, OffsetAndMetadata] = {
+    logger.warn("preCommit not implemented for a single writer - no need for offset management")
+    offsetAndMetadatas
+  }
 
   override def unrecoverableError(): Option[Throwable] = Option.empty
 
