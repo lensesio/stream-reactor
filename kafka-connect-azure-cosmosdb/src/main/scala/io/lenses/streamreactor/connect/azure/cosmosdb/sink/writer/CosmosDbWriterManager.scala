@@ -67,31 +67,47 @@ class CosmosDbWriterManager(
    * @param records A list of SinkRecords from Kafka Connect to write.
    * @return boolean indication successful write.
    */
-  private def insert(records: Iterable[SinkRecord]): Unit =
-    records
+  private def insert(records: Iterable[SinkRecord]): Unit = {
+    val results = records
       .groupBy(sinkRecord => new Topic(sinkRecord.topic()))
       .toList
-      .traverse {
-        case (partition, records) => {
-            writers.get(partition) match {
-              case Some(value) => value.asRight
-              case None =>
-                for {
-                  newWriter <- createWriter(partition)
-                  _          = writers.update(partition, newWriter)
-                } yield {
-                  newWriter
-                }
-            }
-          }.map(_.insert(records))
-      } match {
-      case Left(exception) =>
-        logger.error(s"There was an error inserting the records [${exception.getMessage}]", exception)
-        handleTry(Failure(exception)).getOrElse(())
+      .map {
+        case (partition, records) =>
+          writers.get(partition) match {
+            case Some(writer) =>
+              try {
+                writer.insert(records)
+                Right(())
+              } catch {
+                case ex: Throwable => Left((partition, ex))
+              }
+            case None =>
+              createWriter(partition) match {
+                case Right(newWriter) =>
+                  writers.update(partition, newWriter)
+                  try {
+                    newWriter.insert(records)
+                    Right(())
+                  } catch {
+                    case ex: Throwable => Left((partition, ex))
+                  }
+                case Left(err) =>
+                  Left((partition, err))
+              }
+          }
+      }
 
-      case Right(_) =>
-        ()
+    val errors = results.collect { case Left((partition, ex)) => (partition, ex) }
+
+    if (errors.nonEmpty) {
+      errors.foreach { case (partition, ex) =>
+        logger.error(s"There was an error inserting records for topic [$partition]: ${ex.getMessage}", ex)
+      }
+      // Optionally, aggregate all exceptions into one, or handle as needed
+      // For now, just handle the first error (to preserve previous behavior)
+      handleTry(Failure(errors.head._2)).getOrElse(())
     }
+  }
 
   private[cosmosdb] def createWriter(recordTopic: Topic): Either[ConnectException, CosmosDbWriter] = {
     val topicName = recordTopic.value

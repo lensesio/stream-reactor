@@ -50,8 +50,8 @@ class CosmosDbQueueProcessor(
   private val executorService = Executors.newScheduledThreadPool(executorThreads)
   executorService.scheduleWithFixedDelay(this, delay.toMillis, delay.toMillis, TimeUnit.MILLISECONDS)
 
-  private val commitContextRef      = new AtomicReference[HttpCommitContext](HttpCommitContext.default(sinkName))
-  private val unrecoverableErrorRef = new AtomicReference[Option[Throwable]](Option.empty)
+  private[writer] val commitContextRef      = new AtomicReference[HttpCommitContext](HttpCommitContext.default(sinkName))
+  private[writer] val unrecoverableErrorRef = new AtomicReference[Option[Throwable]](Option.empty)
   def unrecoverableError(): Option[Throwable] = unrecoverableErrorRef.get()
 
   override def run(): Unit =
@@ -59,26 +59,28 @@ class CosmosDbQueueProcessor(
       process()
     } catch {
       case e: Throwable =>
-        addErrorToCommitContext(e) match {
+        val unrecoverable = addErrorToCommitContext(e)
+        unrecoverable match {
           case Some(e) =>
             logger.error("Error in HttpWriter", e)
-            unrecoverableErrorRef.set(addErrorToCommitContext(e))
+            unrecoverableErrorRef.set(unrecoverable)
             throw e
           case None =>
             logger.error("Error in HttpWriter but not reached threshold so ignoring", e)
         }
     }
 
-  private def process(): Unit = {
-    val batchInfo = recordsQueue.popBatch()
+  private[writer] def process(): Unit = {
+    val batchInfo = recordsQueue.peekBatch()
     batchInfo match {
       case EmptyBatchInfo(totalQueueSize) =>
         logger.debug(s"[$sinkName] No batch yet, queue size: $totalQueueSize")
       case nonEmptyBatchInfo: NonEmptyBatchInfo[_] =>
+        val batchInfo = nonEmptyBatchInfo.asInstanceOf[NonEmptyBatchInfo[PendingRecord]]
         processBatch(
-          nonEmptyBatchInfo.asInstanceOf[NonEmptyBatchInfo[PendingRecord]],
-          nonEmptyBatchInfo.batch.asInstanceOf[NonEmptySeq[PendingRecord]],
-          nonEmptyBatchInfo.queueSize,
+          batchInfo,
+          batchInfo.batch,
+          batchInfo.queueSize,
         )
     }
   }
@@ -98,21 +100,29 @@ class CosmosDbQueueProcessor(
     resetErrorsInCommitContext()
   }
 
-  private def addErrorToCommitContext(e: Throwable): Option[Throwable] = {
-    commitContextRef.getAndUpdate {
-      commitContext => commitContext.addError(e)
-    }
+  /**
+   * Adds the given error to the commit context for tracking.
+   * If the number of errors for any partition exceeds the error threshold,
+   * returns the first error for that partition (to be treated as unrecoverable).
+   * Otherwise, returns None.
+   *
+   * Note: Although getAndUpdate returns the previous value, we must check the updated
+   * commit context (after the error is added) to see if the threshold is exceeded.
+   * This is why we use commitContextRef.get() after updating, not the value returned by getAndUpdate.
+   *
+   * @param e the error to add
+   * @return Some(error) if the error threshold is exceeded for any partition, otherwise None
+   */
+  private[writer] def addErrorToCommitContext(e: Throwable): Option[Throwable] = {
+    commitContextRef.getAndUpdate(_.addError(e))
+    // We must check the updated context (with the error added)
     commitContextRef.get().errors
       .maxByOption { case (_, errSeq) => errSeq.size }
-      .filter {
-        case (_, errSeq) => errSeq.size > errorThreshold
-      }
-      .flatMap {
-        case (_, errSeq) => errSeq.headOption
-      }
+      .filter { case (_, errSeq) => errSeq.size > errorThreshold }
+      .flatMap { case (_, errSeq) => errSeq.headOption }
   }
 
-  private def resetErrorsInCommitContext(): Unit = {
+  private[writer] def resetErrorsInCommitContext(): Unit = {
     commitContextRef.getAndUpdate {
       commitContext => commitContext.resetErrors
     }

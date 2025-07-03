@@ -99,45 +99,45 @@ class SinkRecordToDocumentTest
 
   test("return error when schema is Array") {
     import org.apache.kafka.connect.data.SchemaBuilder
-    val arraySchema = SchemaBuilder.array(Schema.STRING_SCHEMA).build()
-    val arrayValue = java.util.Arrays.asList("one", "two", "three")
-    val record = new SinkRecord("topic1", 0, null, null, arraySchema, arrayValue, 0)
-    val fields = Map.empty[String, String]
+    val arraySchema   = SchemaBuilder.array(Schema.STRING_SCHEMA).build()
+    val arrayValue    = java.util.Arrays.asList("one", "two", "three")
+    val record        = new SinkRecord("topic1", 0, null, null, arraySchema, arrayValue, 0)
+    val fields        = Map.empty[String, String]
     val ignoredFields = Set.empty[String]
-    val result = SinkRecordToDocument(record, fields, ignoredFields, idGenerator)
-    result.left.value shouldBe a [org.apache.kafka.connect.errors.ConnectException]
-    result.left.value.getMessage should include ("[ARRAY] schema is not supported")
+    val result        = SinkRecordToDocument(record, fields, ignoredFields, idGenerator)
+    result.left.value shouldBe a[org.apache.kafka.connect.errors.ConnectException]
+    result.left.value.getMessage should include("[ARRAY] schema is not supported")
   }
 
   test("return error when value is a collection and schema is null") {
     val collectionValue = java.util.Arrays.asList("one", "two", "three")
-    val record = new SinkRecord("topic1", 0, null, null, null, collectionValue, 0)
-    val fields = Map.empty[String, String]
-    val ignoredFields = Set.empty[String]
-    val result = SinkRecordToDocument(record, fields, ignoredFields, idGenerator)
-    result.left.value shouldBe a [org.apache.kafka.connect.errors.ConnectException]
-    result.left.value.getMessage should include ("For schemaless record only String and Map types are supported")
+    val record          = new SinkRecord("topic1", 0, null, null, null, collectionValue, 0)
+    val fields          = Map.empty[String, String]
+    val ignoredFields   = Set.empty[String]
+    val result          = SinkRecordToDocument(record, fields, ignoredFields, idGenerator)
+    result.left.value shouldBe a[org.apache.kafka.connect.errors.ConnectException]
+    result.left.value.getMessage should include("For schemaless record only String and Map types are supported")
   }
 
   test("return error when schema is Map") {
     import org.apache.kafka.connect.data.SchemaBuilder
-    val mapSchema = SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.STRING_SCHEMA).build()
-    val mapValue = java.util.Collections.singletonMap("key", "value")
-    val record = new SinkRecord("topic1", 0, null, null, mapSchema, mapValue, 0)
-    val fields = Map.empty[String, String]
+    val mapSchema     = SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.STRING_SCHEMA).build()
+    val mapValue      = java.util.Collections.singletonMap("key", "value")
+    val record        = new SinkRecord("topic1", 0, null, null, mapSchema, mapValue, 0)
+    val fields        = Map.empty[String, String]
     val ignoredFields = Set.empty[String]
-    val result = SinkRecordToDocument(record, fields, ignoredFields, idGenerator)
-    result.left.value shouldBe a [org.apache.kafka.connect.errors.ConnectException]
-    result.left.value.getMessage should include ("[MAP] schema is not supported")
+    val result        = SinkRecordToDocument(record, fields, ignoredFields, idGenerator)
+    result.left.value shouldBe a[org.apache.kafka.connect.errors.ConnectException]
+    result.left.value.getMessage should include("[MAP] schema is not supported")
   }
 
   test("convert schemaless Map value to Document") {
     val mapValue = new java.util.HashMap[String, AnyRef]()
     mapValue.put("key", "value")
-    val record = new SinkRecord("topic1", 0, null, null, null, mapValue, 0)
-    val fields = Map.empty[String, String]
+    val record        = new SinkRecord("topic1", 0, null, null, null, mapValue, 0)
+    val fields        = Map.empty[String, String]
     val ignoredFields = Set.empty[String]
-    val result = SinkRecordToDocument(record, fields, ignoredFields, idGenerator)
+    val result        = SinkRecordToDocument(record, fields, ignoredFields, idGenerator)
     result.isRight shouldBe true
     result.value.get("key") shouldBe "value"
   }

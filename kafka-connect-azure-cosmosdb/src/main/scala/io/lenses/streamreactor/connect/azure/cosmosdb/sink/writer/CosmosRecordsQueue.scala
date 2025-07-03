@@ -51,7 +51,7 @@ class CosmosRecordsQueue[B <: BatchRecord](
       }
 
     @tailrec
-    def attemptEnqueue(remainingRecords: List[B], startTime: Long): Unit = {
+    def attemptEnqueueCAS(remainingRecords: List[B], startTime: Long): Unit = {
       if (remainingRecords.isEmpty) return
 
       val currentTime = System.currentTimeMillis()
@@ -59,38 +59,42 @@ class CosmosRecordsQueue[B <: BatchRecord](
       if (elapsedTime >= offerTimeout.toMillis) {
         throw new RetriableException("Enqueue timed out and records remain")
       } else {
-        val queue            = recordsQueue.get()
-        val queueSize        = queue.size
+        val oldQueue         = recordsQueue.get()
+        val queueSize        = oldQueue.size
         val spaceAvailable   = maxSize - queueSize
         val recordsToAdd     = remainingRecords.take(spaceAvailable)
         val recordsRemaining = remainingRecords.drop(spaceAvailable)
-        val newQueue         = queue.enqueueAll(recordsToAdd)
-        recordsQueue.set(newQueue)
+        val newQueue         = oldQueue.enqueueAll(recordsToAdd)
 
-        if (recordsToAdd.nonEmpty) {
-          val currentOffsets = offsetMap.get()
-          val updatedOffsets = recordsToAdd.foldLeft(currentOffsets) { (accOffsets, record) =>
-            val tp            = record.topicPartitionOffset.toTopicPartition
-            val offset        = record.topicPartitionOffset.offset
-            val updatedOffset = accOffsets.get(tp).filter(_.value >= offset.value).getOrElse(offset)
-            accOffsets.updated(tp, updatedOffset)
+        if (recordsQueue.compareAndSet(oldQueue, newQueue)) {
+          // Atomically update offsetMap for the added records
+          if (recordsToAdd.nonEmpty) {
+            offsetMap.getAndUpdate { currentOffsets =>
+              recordsToAdd.foldLeft(currentOffsets) { (accOffsets, record) =>
+                val tp            = record.topicPartitionOffset.toTopicPartition
+                val offset        = record.topicPartitionOffset.offset
+                val updatedOffset = accOffsets.get(tp).filter(_.value >= offset.value).getOrElse(offset)
+                accOffsets.updated(tp, updatedOffset)
+              }
+            }
           }
-          offsetMap.set(updatedOffsets)
-        }
-
-        if (recordsRemaining.nonEmpty) {
-          Thread.sleep(5)
-          attemptEnqueue(recordsRemaining, startTime)
+          if (recordsRemaining.nonEmpty) {
+            Thread.sleep(5)
+            attemptEnqueueCAS(recordsRemaining, startTime)
+          }
+        } else {
+          // CAS failed, retry with latest queue
+          attemptEnqueueCAS(remainingRecords, startTime)
         }
       }
     }
 
     val uniqueRecords = filterDuplicates(records, offsetMap.get())
     val startTime     = System.currentTimeMillis()
-    attemptEnqueue(uniqueRecords, startTime)
+    attemptEnqueueCAS(uniqueRecords, startTime)
   }
 
-  def popBatch(): BatchInfo = {
+  def peekBatch(): BatchInfo = {
     val initialContext = commitContextRef.get()
     val queue          = recordsQueue.get()
     val queueState     = takeBatch(batchPolicy, initialContext, queue)
@@ -103,11 +107,15 @@ class CosmosRecordsQueue[B <: BatchRecord](
     queueState
   }
 
-  def dequeue(nonEmptyBatch: List[B]): Unit = {
-    val queue    = recordsQueue.get()
+  @tailrec
+  final def dequeue(nonEmptyBatch: List[B]): Unit = {
     val lookup   = nonEmptyBatch.toSet
-    val newQueue = queue.dropWhile(lookup.contains)
-    recordsQueue.set(newQueue)
-    logger.debug("Queue before: {}, after: {}", queue, newQueue)
+    val oldQueue = recordsQueue.get()
+    val newQueue = oldQueue.dropWhile(lookup.contains)
+    if (!recordsQueue.compareAndSet(oldQueue, newQueue)) {
+      dequeue(nonEmptyBatch) // retry if concurrent update
+    } else {
+      logger.debug("Queue before: {}, after: {}", oldQueue, newQueue)
+    }
   }
 }

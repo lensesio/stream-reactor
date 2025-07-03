@@ -13,29 +13,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.lenses.streamreactor.connect.azure.cosmosdb.sink
+package io.lenses.streamreactor.connect.azure.cosmosdb.sink.writer
 
 import com.azure.cosmos.CosmosClient
+import com.azure.cosmos.implementation.Document
 import io.lenses.kcql.Kcql
 import io.lenses.kcql.WriteModeEnum
 import io.lenses.streamreactor.common.batch.BatchPolicy
+import io.lenses.streamreactor.common.errors.ErrorPolicy
 import io.lenses.streamreactor.connect.azure.cosmosdb.config.CosmosDbSinkSettings
-import io.lenses.streamreactor.connect.azure.cosmosdb.sink.writer.CosmosDbBulkWriter
-import io.lenses.streamreactor.connect.azure.cosmosdb.sink.writer.CosmosDbWriter
-import io.lenses.streamreactor.connect.azure.cosmosdb.sink.writer.CosmosDbWriterManager
-import org.apache.kafka.connect.sink.SinkRecord
-import org.mockito.Answers
-import org.mockito.MockitoSugar
-import org.scalatest.funsuite.AnyFunSuite
-import org.scalatest.matchers.should.Matchers
-import org.scalatest.OptionValues
+import io.lenses.streamreactor.connect.azure.cosmosdb.config.KeyKeySource
 import io.lenses.streamreactor.connect.cloud.common.model.Topic
 import org.apache.kafka.connect.errors.ConnectException
-import org.scalatest.EitherValues._
+import org.apache.kafka.connect.sink.SinkRecord
 import org.mockito.ArgumentMatchers.any
-import com.azure.cosmos.implementation.Document
-import io.lenses.streamreactor.common.errors.ErrorPolicy
-import io.lenses.streamreactor.connect.azure.cosmosdb.config.KeyKeySource
+import org.mockito.Answers
+import org.mockito.MockitoSugar
+import org.scalatest.EitherValues._
+import org.scalatest.OptionValues
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
 class CosmosDbWriterManagerTest extends AnyFunSuite with Matchers with MockitoSugar with OptionValues {
 

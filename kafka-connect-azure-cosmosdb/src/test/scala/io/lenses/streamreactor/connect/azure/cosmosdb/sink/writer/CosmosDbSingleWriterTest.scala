@@ -13,12 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.lenses.streamreactor.connect.azure.cosmosdb.sink
+package io.lenses.streamreactor.connect.azure.cosmosdb.sink.writer
 
 import com.azure.cosmos.CosmosClient
 import com.azure.cosmos.implementation.Document
 import com.azure.cosmos.models.CosmosItemRequestOptions
-import io.lenses.streamreactor.connect.azure.cosmosdb.sink.writer.CosmosDbSingleWriter
+import io.lenses.kcql.Kcql
+import io.lenses.kcql.WriteModeEnum
+import io.lenses.streamreactor.connect.azure.cosmosdb.config.CosmosDbSinkSettings
+import io.lenses.streamreactor.connect.azure.cosmosdb.sink.CosmosDbTestUtils
+import org.apache.kafka.connect.sink.SinkRecord
 import org.mockito.Answers
 import org.mockito.ArgumentMatchersSugar
 import org.mockito.Mockito
@@ -26,10 +30,6 @@ import org.mockito.MockitoSugar
 import org.scalatest.EitherValues
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
-import io.lenses.streamreactor.connect.azure.cosmosdb.config.CosmosDbSinkSettings
-import io.lenses.kcql.Kcql
-import io.lenses.kcql.WriteModeEnum
-import org.apache.kafka.connect.sink.SinkRecord
 
 class CosmosDbSingleWriterTest
     extends AnyFunSuite

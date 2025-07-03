@@ -13,24 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.lenses.streamreactor.connect.azure.cosmosdb.sink
+package io.lenses.streamreactor.connect.azure.cosmosdb.sink.writer
 
 import com.azure.cosmos.CosmosClient
-import com.azure.cosmos.CosmosDatabase
 import com.azure.cosmos.CosmosContainer
+import com.azure.cosmos.CosmosDatabase
 import io.lenses.kcql.Kcql
 import io.lenses.streamreactor.common.batch.BatchPolicy
 import io.lenses.streamreactor.common.batch.HttpBatchPolicy
+import io.lenses.streamreactor.common.errors.ErrorPolicy
 import io.lenses.streamreactor.connect.azure.cosmosdb.config.CosmosDbSinkSettings
 import org.apache.kafka.connect.errors.ConnectException
 import org.mockito.ArgumentMatchersSugar
 import org.mockito.MockitoSugar
+import org.scalatest.EitherValues
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
-import io.lenses.streamreactor.connect.azure.cosmosdb.sink.writer.CosmosDbWriterManagerFactory
-import io.lenses.streamreactor.connect.azure.cosmosdb.sink.writer.CosmosDbWriterManager
-import org.scalatest.EitherValues
-import io.lenses.streamreactor.common.errors.ErrorPolicy
 
 class CosmosDbWriterManagerFactoryTest
     extends AnyFunSuite
