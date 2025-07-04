@@ -30,6 +30,8 @@ import org.apache.kafka.connect.sink.SinkRecord
 
 import scala.collection.mutable
 import scala.util.Failure
+import scala.util.Success
+import scala.util.Try
 
 /**
  * <h1>CosmosDbWriter</h1>
@@ -72,27 +74,17 @@ class CosmosDbWriterManager(
       .groupBy(sinkRecord => new Topic(sinkRecord.topic()))
       .toList
       .map {
-        case (partition, records) =>
-          writers.get(partition) match {
+        case (topic, records) =>
+          writers.get(topic) match {
             case Some(writer) =>
-              try {
-                writer.insert(records)
-                Right(())
-              } catch {
-                case ex: Throwable => Left((partition, ex))
-              }
+              insertToWriter(topic, records, writer)
             case None =>
-              createWriter(partition) match {
+              createWriter(topic) match {
                 case Right(newWriter) =>
-                  writers.update(partition, newWriter)
-                  try {
-                    newWriter.insert(records)
-                    Right(())
-                  } catch {
-                    case ex: Throwable => Left((partition, ex))
-                  }
+                  writers.update(topic, newWriter)
+                  insertToWriter(topic, records, newWriter)
                 case Left(err) =>
-                  Left((partition, err))
+                  Left((topic, err))
               }
           }
       }
@@ -103,11 +95,28 @@ class CosmosDbWriterManager(
       errors.foreach { case (partition, ex) =>
         logger.error(s"There was an error inserting records for topic [$partition]: ${ex.getMessage}", ex)
       }
-      // Optionally, aggregate all exceptions into one, or handle as needed
+      // Agregate all exceptions into one, or handle as needed
       // For now, just handle the first error (to preserve previous behavior)
       handleTry(Failure(errors.head._2)).getOrElse(())
+    } else {
+      handleTry(Success(Some(())))
     }
+    ()
   }
+
+  /**
+   * Attempts to insert records into the specified writer for a given topic.
+   *
+   * @param topic   The topic associated with the records being inserted.
+   * @param records The iterable collection of SinkRecords to be inserted.
+   * @param writer  The CosmosDbWriter responsible for handling the insertion.
+   * @return        Either a tuple containing the topic and an exception if an error occurs,
+   *                or a successful unit result if the insertion is completed without issues.
+   */
+  private def insertToWriter(topic: Topic, records: Iterable[SinkRecord], writer: CosmosDbWriter) =
+    Try(writer.insert(records))
+      .toEither
+      .leftMap(ex => (topic, ex))
 
   private[cosmosdb] def createWriter(recordTopic: Topic): Either[ConnectException, CosmosDbWriter] = {
     val topicName = recordTopic.value
