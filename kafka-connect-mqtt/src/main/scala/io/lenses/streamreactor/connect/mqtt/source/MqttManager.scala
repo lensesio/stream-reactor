@@ -62,7 +62,15 @@ class MqttManager(
 
   private def createMqttClient(): MqttClient = {
     val servers = settings.connection.split(',').map(_.trim).filter(_.nonEmpty)
-    new MqttClient(servers.head, settings.clientId, new MemoryPersistence())
+    
+    if (servers.length == 1) {
+      // Single server configuration
+      new MqttClient(servers.head, settings.clientId, new MemoryPersistence())
+    } else {
+      // Multiple servers configuration - use server URIs for failover
+      val serverURIs = servers.mkString(",")
+      new MqttClient(serverURIs, settings.clientId, new MemoryPersistence())
+    }
   }
 
   private def compareTopic(actualTopic: String, subscribedTopic: String): Boolean =
