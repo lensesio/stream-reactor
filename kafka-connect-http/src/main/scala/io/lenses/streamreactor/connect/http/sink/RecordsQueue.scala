@@ -17,12 +17,16 @@ package io.lenses.streamreactor.connect.http.sink
 import cats.data.NonEmptySeq
 import cats.effect.IO
 import cats.effect.Ref
+import io.lenses.streamreactor.common.batch.HttpCommitContext
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.http.sink.RecordsQueueBatcher.takeBatch
-import io.lenses.streamreactor.connect.http.sink.commit.BatchPolicy
-import io.lenses.streamreactor.connect.http.sink.commit.HttpCommitContext
+import io.lenses.streamreactor.common.batch.RecordsQueueBatcher.takeBatch
+import io.lenses.streamreactor.common.batch.NonEmptyBatchInfo
+import io.lenses.streamreactor.common.batch.EmptyBatchInfo
+import io.lenses.streamreactor.common.batch.BatchPolicy
+
 import io.lenses.streamreactor.connect.http.sink.tpl.RenderedRecord
 import cats.implicits.toFoldableOps
+import io.lenses.streamreactor.common.batch.BatchInfo
 import io.lenses.streamreactor.connect.cloud.common.model.Offset
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
 import org.apache.kafka.connect.errors.RetriableException

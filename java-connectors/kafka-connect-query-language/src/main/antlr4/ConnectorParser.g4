@@ -23,16 +23,12 @@ upsert_into
    : UPSERT into
    ;
 
-update_into
-   : UPDATE into
-   ;
-
 upsert_pk_into
    : ( UPSERT pk FIELD into)
    ;
 
 write_mode
-   : insert_into | upsert_into | upsert_pk_into | update_into
+   : insert_into | upsert_into | upsert_pk_into
    ;
 
 insert_from_clause

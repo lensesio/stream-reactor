@@ -17,6 +17,5 @@ package io.lenses.kcql;
 
 public enum WriteModeEnum {
   INSERT,
-  UPSERT,
-  UPDATE;
+  UPSERT
 }

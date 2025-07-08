@@ -18,7 +18,8 @@ package io.lenses.streamreactor.connect.http.sink
 import io.lenses.streamreactor.connect.cloud.common.model.Offset
 import io.lenses.streamreactor.connect.cloud.common.model.Topic
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
-import io.lenses.streamreactor.connect.http.sink.commit.HttpCommitContext
+import io.lenses.streamreactor.common.batch.HttpCommitContext
+import io.lenses.streamreactor.common.batch.OffsetMergeUtils
 import io.lenses.streamreactor.connect.http.sink.tpl.RenderedRecord
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers._

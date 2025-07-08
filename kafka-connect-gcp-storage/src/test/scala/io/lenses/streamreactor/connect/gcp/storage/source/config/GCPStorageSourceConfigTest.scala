@@ -51,7 +51,7 @@ class GCPStorageSourceConfigTest extends AnyFunSuite with EitherValues with Opti
     assertEitherException(
       result,
       classOf[IllegalArgumentException].getName,
-      "Invalid syntax.failed to parse at line 1 due to mismatched input 'flibble' expecting {INSERT, UPSERT, UPDATE, SELECT}",
+      "Invalid syntax.failed to parse at line 1 due to mismatched input 'flibble' expecting {INSERT, UPSERT, SELECT}",
     )
   }
 

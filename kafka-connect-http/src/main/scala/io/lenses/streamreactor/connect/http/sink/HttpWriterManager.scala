@@ -30,9 +30,9 @@ import io.lenses.streamreactor.connect.cloud.common.model.Offset
 import io.lenses.streamreactor.connect.cloud.common.model.Topic
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
 import io.lenses.streamreactor.connect.http.sink.client.HttpRequestSender
-import io.lenses.streamreactor.connect.http.sink.commit.BatchPolicy
-import io.lenses.streamreactor.connect.http.sink.commit.HttpBatchPolicy
-import io.lenses.streamreactor.connect.http.sink.commit.HttpCommitContext
+import io.lenses.streamreactor.common.batch.BatchPolicy
+import io.lenses.streamreactor.common.batch.HttpBatchPolicy
+import io.lenses.streamreactor.common.batch.HttpCommitContext
 import io.lenses.streamreactor.connect.http.sink.config.ExponentialRetryConfig
 import io.lenses.streamreactor.connect.http.sink.config.FixedRetryConfig
 import io.lenses.streamreactor.connect.http.sink.config.HttpSinkConfig

@@ -19,13 +19,16 @@ import cats.data.NonEmptySeq
 import cats.effect.IO
 import cats.effect.Ref
 import com.typesafe.scalalogging.LazyLogging
+import io.lenses.streamreactor.common.batch.OffsetMergeUtils.updateCommitContextPostCommit
+import io.lenses.streamreactor.common.batch.EmptyBatchInfo
+import io.lenses.streamreactor.common.batch.HttpCommitContext
+import io.lenses.streamreactor.common.batch.NonEmptyBatchInfo
+import io.lenses.streamreactor.common.batch.OffsetMergeUtils
 import io.lenses.streamreactor.common.utils.CyclopsToScalaOption.convertToCyclopsOption
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
-import io.lenses.streamreactor.connect.http.sink.OffsetMergeUtils.updateCommitContextPostCommit
 import io.lenses.streamreactor.connect.http.sink.client.HttpRequestSender
 import io.lenses.streamreactor.connect.http.sink.client.HttpResponseFailure
 import io.lenses.streamreactor.connect.http.sink.client.HttpResponseSuccess
-import io.lenses.streamreactor.connect.http.sink.commit.HttpCommitContext
 import io.lenses.streamreactor.connect.http.sink.reporter.model.HttpFailureConnectorSpecificRecordData
 import io.lenses.streamreactor.connect.http.sink.reporter.model.HttpSuccessConnectorSpecificRecordData
 import io.lenses.streamreactor.connect.http.sink.tpl.ProcessedTemplate
@@ -60,8 +63,12 @@ class HttpWriter(
       _ <- batchInfo match {
         case EmptyBatchInfo(totalQueueSize) =>
           IO(logger.debug(s"[$sinkName] No batch yet, queue size: $totalQueueSize"))
-        case nonEmptyBatchInfo @ NonEmptyBatchInfo(batch, _, totalQueueSize) =>
-          processBatch(nonEmptyBatchInfo, batch, totalQueueSize)
+        case nonEmptyBatchInfo: NonEmptyBatchInfo[_] =>
+          processBatch(
+            nonEmptyBatchInfo.asInstanceOf[NonEmptyBatchInfo[RenderedRecord]],
+            nonEmptyBatchInfo.batch.asInstanceOf[NonEmptySeq[RenderedRecord]],
+            nonEmptyBatchInfo.queueSize,
+          )
       }
     } yield ()
   }.handleErrorWith {
@@ -78,7 +85,7 @@ class HttpWriter(
   }
 
   private def processBatch(
-    nonEmptyBatchInfo: NonEmptyBatchInfo,
+    nonEmptyBatchInfo: NonEmptyBatchInfo[RenderedRecord],
     batch:             NonEmptySeq[RenderedRecord],
     totalQueueSize:    Int,
   ): IO[Unit] =

@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 package io.lenses.streamreactor.common.config
-
+import io.lenses.streamreactor.common.utils.EitherOps._
 import io.lenses.kcql.Kcql
-import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.ConfigException
+import com.typesafe.scalalogging.StrictLogging
 
 /**
  * Created by andrew@datamountaineer.com on 13/05/16.
@@ -26,32 +26,34 @@ import org.apache.kafka.common.config.ConfigException
 
 object Helpers extends StrictLogging {
 
-  def checkInputTopics(kcqlConstant: String, props: Map[String, String]): Boolean = {
-    val topics = props("topics").split(",").map(t => t.trim).toSet
-    val raw    = props(kcqlConstant)
-    if (raw.isEmpty) {
-      throw new ConfigException(s"Missing $kcqlConstant")
-    }
-    val kcql    = raw.split(";").map(r => Kcql.parse(r)).toSet
-    val sources = kcql.map(k => k.getSource)
-    val res     = topics.subsetOf(sources)
+  def checkInputTopics(kcqlConstant: String, props: Map[String, String]): Boolean =
+    checkInputTopicsEither(kcqlConstant, props).unpackOrThrow
 
-    if (!res) {
-      val missing = topics.diff(sources)
-      throw new ConfigException(
-        s"Mandatory `topics` configuration contains topics not set in $kcqlConstant: ${missing}, kcql contains $sources",
+  def checkInputTopicsEither(kcqlConstant: String, props: Map[String, String]): Either[ConfigException, Boolean] =
+    for {
+      topics <- props.get("topics")
+        .map(_.split(",").map(_.trim).toSet)
+        .toRight(new ConfigException("Missing `topics` configuration"))
+      raw <- props.get(kcqlConstant)
+        .filter(_.nonEmpty)
+        .toRight(new ConfigException(s"Missing $kcqlConstant"))
+      kcql    = raw.split(";").map(Kcql.parse).toSet
+      sources = kcql.map(_.getSource)
+
+      _ <- Either.cond(
+        topics.subsetOf(sources),
+        (),
+        new ConfigException(
+          s"Mandatory `topics` configuration contains topics not set in $kcqlConstant: ${topics.diff(sources)}, kcql contains $sources",
+        ),
       )
-    }
 
-    val res1 = sources.subsetOf(topics)
-
-    if (!res1) {
-      val missing = topics.diff(sources)
-      throw new ConfigException(
-        s"$kcqlConstant configuration contains topics not set in mandatory `topic` configuration: ${missing}, kcql contains $sources",
+      _ <- Either.cond(
+        sources.subsetOf(topics),
+        (),
+        new ConfigException(
+          s"$kcqlConstant configuration contains topics not set in mandatory `topic` configuration: ${sources.diff(topics)}, kcql contains $sources",
+        ),
       )
-    }
-
-    true
-  }
+    } yield true
 }
