@@ -109,7 +109,7 @@ object Dependencies {
 
     val azureSdkVersion            = "1.2.31"
     val azureCosmosDbVersion       = "4.66.0"
-    val testcontainersScalaVersion = "0.41.4"
+    val testcontainersScalaVersion = "0.41.8"
     val testcontainersVersion      = "1.20.1"
 
     val influxVersion = "7.3.0"
