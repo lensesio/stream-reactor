@@ -107,7 +107,7 @@ object Dependencies {
     val cassandraDriverVersion = "3.11.5"
     val jsonPathVersion        = "2.9.0"
 
-    val azureSdkVersion            = "1.2.31"
+    val azureSdkVersion            = "1.2.36"
     val azureCosmosDbVersion       = "4.66.0"
     val testcontainersScalaVersion = "0.41.4"
     val testcontainersVersion      = "1.20.1"
