@@ -730,6 +730,36 @@ abstract class CoreSinkTaskTestCases[
 
   }
 
+  unitUnderTest should "write tombstone to bytes format" in {
+
+    val stream = classOf[BytesFormatWriter].getResourceAsStream("/streamreactor-logo.png")
+    val bytes: Array[Byte] = IOUtils.toByteArray(stream)
+
+    val textRecords = List(
+      new SinkRecord(TopicName, 1, null, null, null, bytes, 0, 6, TimestampType.CREATE_TIME),
+      new SinkRecord(TopicName, 2, null, null, null, null, 0, 7, TimestampType.CREATE_TIME),
+      new SinkRecord(TopicName, 3, null, null, null, null, 0, 7, TimestampType.CREATE_TIME),
+      new SinkRecord(TopicName, 4, null, null, null, null, 0, 7, TimestampType.CREATE_TIME),
+    )
+    val task = createSinkTask()
+
+    val props = (defaultProps ++ Map(
+      s"$prefix.kcql"             -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `BYTES` PROPERTIES('${FlushCount.entryName}'=1)",
+      s"$prefix.skip.null.values" -> "true",
+    )).asJava
+
+    task.start(props)
+    task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
+    task.put(textRecords.asJava)
+    task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
+    task.stop()
+
+    listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(1)
+
+    remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/000000000000_6_6.bytes") should be(bytes)
+
+  }
+
   unitUnderTest should "prompt user of defaults for bytes format to specify a flush count" in {
 
     val task = createSinkTask()

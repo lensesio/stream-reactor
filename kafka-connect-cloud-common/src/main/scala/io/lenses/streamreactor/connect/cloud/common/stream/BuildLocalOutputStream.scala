@@ -30,19 +30,20 @@ class BuildLocalOutputStream(outputStream: BufferedOutputStream, topicPartition:
 
   private var pointer = 0
 
-  override def write(bytes: Array[Byte], startOffset: Int, numberOfBytes: Int): Unit = {
+  override def write(bytes: Array[Byte], startOffset: Int, numberOfBytes: Int): Unit =
+    if (bytes == null || bytes.isEmpty) {
+      ()
+    } else {
+      val endOffset = startOffset + numberOfBytes
+      require(
+        validateRange(startOffset, bytes.length) &&
+          numberOfBytes > 0 &&
+          validateRange(endOffset, bytes.length),
+      )
 
-    require(bytes != null && bytes.nonEmpty, "Bytes must be provided")
-    val endOffset = startOffset + numberOfBytes
-    require(
-      validateRange(startOffset, bytes.length) &&
-        numberOfBytes > 0 &&
-        validateRange(endOffset, bytes.length),
-    )
-
-    outputStream.write(bytes.slice(startOffset, endOffset))
-    pointer += endOffset - startOffset
-  }
+      outputStream.write(bytes.slice(startOffset, endOffset))
+      pointer += endOffset - startOffset
+    }
 
   override def write(b: Int): Unit = {
     outputStream.write(b)

@@ -56,6 +56,28 @@ class BuildLocalOutputStreamTest extends AnyFlatSpec with Matchers with Using wi
 
   }
 
+  "write" should "not fail when writing nulls" in new TestContext() {
+    val bytesToUpload: Array[Byte] = null
+    target.write(bytesToUpload, 0, 0)
+
+    target.complete()
+
+    readFileContents should be("")
+
+    target.getPointer should be(0)
+  }
+
+  "write" should "not fail when writing empty byte array" in new TestContext() {
+    val bytesToUpload: Array[Byte] = Array()
+    target.write(bytesToUpload, 0, 0)
+
+    target.complete()
+
+    readFileContents should be("")
+
+    target.getPointer should be(0)
+  }
+
   private def readFileContents =
     using(Source.fromFile(testFile)) {
       _.getLines().mkString
