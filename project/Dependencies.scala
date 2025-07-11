@@ -127,7 +127,7 @@ object Dependencies {
     val commonsConfigVersion   = "2.12.0"
     val commonsIOVersion       = "2.19.0"
     val commonsHttpVersion     = "4.5.14"
-    val commonsLang3Version    = "3.17.0"
+    val commonsLang3Version    = "3.18.0"
     val jschVersion            = "2.27.2"
 
     val minaVersion           = "2.2.4"
