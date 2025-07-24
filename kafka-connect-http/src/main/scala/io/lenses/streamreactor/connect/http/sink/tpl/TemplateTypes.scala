@@ -25,13 +25,18 @@ import io.lenses.streamreactor.connect.http.sink.tpl.renderer.RecordRenderer
 import io.lenses.streamreactor.connect.http.sink.tpl.substitutions.SubstitutionError
 import org.apache.kafka.connect.sink.SinkRecord
 
+case class Headers(
+  headerTemplates:    Seq[(String, String)],
+  copyMessageHeaders: Boolean,
+)
+
 object RawTemplate {
   private val innerTemplatePattern = """\{\{#message}}([\s\S]*?)\{\{/message}}""".r
 
   def apply(
     endpoint:           String,
     content:            String,
-    headers:            Seq[(String, String)],
+    headers:            Headers,
     nullPayloadHandler: NullPayloadHandler,
   ): TemplateType =
     innerTemplatePattern.findFirstMatchIn(content) match {
@@ -46,7 +51,7 @@ object RawTemplate {
 
 trait TemplateType {
   def endpoint: String
-  def headers:  Seq[(String, String)]
+  def headers:  Headers
 
   def renderRecords(record: NonEmptySeq[SinkRecord]): Either[SubstitutionError, NonEmptySeq[RenderedRecord]]
 
@@ -57,7 +62,7 @@ trait TemplateType {
 case class SimpleTemplate(
   endpoint:           String,
   content:            String,
-  headers:            Seq[(String, String)],
+  headers:            Headers,
   nullPayloadHandler: NullPayloadHandler,
 ) extends TemplateType
     with LazyLogging {
@@ -83,7 +88,7 @@ case class TemplateWithInnerLoop(
   prefixContent:      String,
   suffixContent:      String,
   innerTemplate:      String,
-  headers:            Seq[(String, String)],
+  headers:            Headers,
   nullPayloadHandler: NullPayloadHandler,
 ) extends TemplateType
     with LazyLogging {

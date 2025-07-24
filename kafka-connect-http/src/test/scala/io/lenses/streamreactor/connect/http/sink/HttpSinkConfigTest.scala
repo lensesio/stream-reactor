@@ -27,6 +27,7 @@ import org.apache.kafka.common.config.ConfigException
 import org.scalatest.EitherValues
 import org.scalatest.funsuite.AnyFunSuiteLike
 import org.scalatest.matchers.should.Matchers
+import io.lenses.streamreactor.connect.http.sink.tpl.Headers
 class HttpSinkConfigTest extends AnyFunSuiteLike with Matchers with EitherValues {
 
   val ERROR_REPORTING_ENABLED_PROP   = "connect.reporting.error.config.enabled";
@@ -51,8 +52,10 @@ class HttpSinkConfigTest extends AnyFunSuiteLike with Matchers with EitherValues
       "<note>\n<to>Dave</to>\n<from>Jason</from>\n<body>Hooray for Kafka Connect!</body>\n</note>",
     )
     httpSinkConfig.authentication should be(NoAuthentication)
-    httpSinkConfig.headers should be(List(
-      ("Content-Type", "application/json"),
+    httpSinkConfig.headers should be(Headers(List(
+                                               ("Content-Type", "application/json"),
+                                             ),
+                                             false,
     ))
     httpSinkConfig.ssl should be(new StoresInfo(cysome(DEFAULT_SSL_PROTOCOL_TLS), cynone(), cynone()))
     httpSinkConfig.batch should be(BatchConfig(Some(1), None, None))
@@ -117,8 +120,10 @@ class HttpSinkConfigTest extends AnyFunSuiteLike with Matchers with EitherValues
       "<note>\n<to>Dave</to>\n<from>Jason</from>\n<body>Hooray for Kafka Connect!</body>\n</note>",
     )
     httpSinkConfig.authentication should be(NoAuthentication)
-    httpSinkConfig.headers should be(List(
-      ("Content-Type", "application/json"),
+    httpSinkConfig.headers should be(Headers(List(
+                                               ("Content-Type", "application/json"),
+                                             ),
+                                             false,
     ))
     httpSinkConfig.ssl should be(new StoresInfo(cysome(DEFAULT_SSL_PROTOCOL_TLS), cynone(), cynone()))
     httpSinkConfig.batch should be(BatchConfig(Some(1), None, None))
@@ -157,8 +162,10 @@ class HttpSinkConfigTest extends AnyFunSuiteLike with Matchers with EitherValues
       "<note>\n<to>Dave</to>\n<from>Jason</from>\n<body>Hooray for Kafka Connect!</body>\n</note>",
     )
     httpSinkConfig.authentication should be(BasicAuthentication("user", "pass"))
-    httpSinkConfig.headers should be(List(
-      ("Content-Type", "application/json"),
+    httpSinkConfig.headers should be(Headers(List(
+                                               ("Content-Type", "application/json"),
+                                             ),
+                                             false,
     ))
     httpSinkConfig.ssl should be(new StoresInfo(cysome(DEFAULT_SSL_PROTOCOL_TLS), cynone(), cynone()))
     httpSinkConfig.batch should be(BatchConfig(Some(1), None, None))

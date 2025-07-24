@@ -24,6 +24,7 @@ import org.mockito.MockitoSugar.when
 import org.scalatest.EitherValues
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
+import io.lenses.streamreactor.connect.http.sink.tpl.Headers
 
 class RawTemplateTest extends AnyFunSuite with Matchers with EitherValues with LazyLogging {
 
@@ -32,9 +33,11 @@ class RawTemplateTest extends AnyFunSuite with Matchers with EitherValues with L
     val template = RawTemplate(
       endpoint = "Endpoint: {{key}}",
       content  = "Content: {{value}}",
-      headers = Seq(
-        ("HeaderKey1", "HeaderValue1"),
-        ("HeaderKey2", "HeaderValue2"),
+      headers = Headers(Seq(
+                          ("HeaderKey1", "HeaderValue1"),
+                          ("HeaderKey2", "HeaderValue2"),
+                        ),
+                        copyMessageHeaders = false,
       ),
       nullPayloadHandler = ErrorNullPayloadHandler,
     )
@@ -57,9 +60,12 @@ class RawTemplateTest extends AnyFunSuite with Matchers with EitherValues with L
     val template = RawTemplate(
       endpoint = "Endpoint: {{key}}",
       content  = "Content: {{value}}",
-      headers = Seq(
-        ("HeaderKey1-{{topic}}", "HeaderValue1-{{topic}}"),
-        ("HeaderKey2-{{partition}}", "HeaderValue2-{{partition}}"),
+      headers = Headers(
+        Seq(
+          ("HeaderKey1-{{topic}}", "HeaderValue1-{{topic}}"),
+          ("HeaderKey2-{{partition}}", "HeaderValue2-{{partition}}"),
+        ),
+        copyMessageHeaders = false,
       ),
       nullPayloadHandler = ErrorNullPayloadHandler,
     )

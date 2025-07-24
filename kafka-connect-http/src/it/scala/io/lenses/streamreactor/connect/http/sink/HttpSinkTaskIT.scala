@@ -21,6 +21,7 @@ import org.scalatest.concurrent.Eventually
 import org.scalatest.funsuite.AsyncFunSuite
 import org.scalatest.time.Minute
 import org.scalatest.time.Span
+import org.apache.kafka.connect.header.ConnectHeaders
 
 import java.util.UUID
 import scala.jdk.CollectionConverters.MapHasAsJava
@@ -236,6 +237,87 @@ class HttpSinkTaskIT extends AsyncFunSuite with AsyncIOSpec with Eventually {
               }.asJava,
             )
           }
+        }
+      }
+    }
+  }
+
+  test("custom HTTP headers from config are sent in request") {
+    val path = "/custom/headers"
+    (for {
+      server <- wireMockServer
+      config: Map[String, String] = Map(
+        HttpSinkConfigDef.HttpMethodProp         -> HttpMethod.Post.toString,
+        HttpSinkConfigDef.HttpEndpointProp       -> s"http://$Host:${server.port()}$path",
+        HttpSinkConfigDef.HttpRequestContentProp -> "irrelevant",
+        // Use comma-separated string for Type.LIST
+        HttpSinkConfigDef.HttpRequestHeadersProp -> "X-Test-Header:TestValue,X-Another-Header:AnotherValue",
+        HttpSinkConfigDef.AuthenticationTypeProp -> noAuthentication,
+        HttpSinkConfigDef.BatchCountProp         -> "1",
+        ERROR_REPORTING_ENABLED_PROP             -> "false",
+        SUCCESS_REPORTING_ENABLED_PROP           -> "false",
+      )
+      _         = server.stubFor(httpPost(urlEqualTo(path)).willReturn(aResponse().withStatus(200)))
+      sinkTask <- sinkTaskUsingProps(config)
+      _ = sinkTask.put(
+        List(new SinkRecord("myTopic", 0, null, null, SampleData.EmployeesSchema, SampleData.Employees.head, 0L)).asJava,
+      )
+    } yield server).use { server =>
+      IO.delay {
+        eventually {
+          server.verify(
+            exactly(1),
+            postRequestedFor(urlEqualTo(path))
+              .withHeader("X-Test-Header", containing("TestValue"))
+              .withHeader("X-Another-Header", containing("AnotherValue")),
+          )
+        }
+      }
+    }
+  }
+
+  test("Kafka message headers are copied to HTTP request when enabled") {
+    val path = "/copy/message/headers"
+    (for {
+      server <- wireMockServer
+      config: Map[String, String] = Map(
+        HttpSinkConfigDef.HttpMethodProp         -> HttpMethod.Post.toString,
+        HttpSinkConfigDef.HttpEndpointProp       -> s"http://$Host:${server.port()}$path",
+        HttpSinkConfigDef.HttpRequestContentProp -> "irrelevant",
+        HttpSinkConfigDef.CopyMessageHeadersProp -> "true",
+        HttpSinkConfigDef.AuthenticationTypeProp -> noAuthentication,
+        HttpSinkConfigDef.BatchCountProp         -> "1",
+        ERROR_REPORTING_ENABLED_PROP             -> "false",
+        SUCCESS_REPORTING_ENABLED_PROP           -> "false",
+      )
+      _ = server.stubFor(httpPost(urlEqualTo(path)).willReturn(aResponse().withStatus(200)))
+      // Create SinkRecord with Kafka headers
+      connectHeaders = new ConnectHeaders()
+      _              = connectHeaders.add("kafka-header-1", "header-value-1", null)
+      _              = connectHeaders.add("kafka-header-2", "header-value-2", null)
+      record = new SinkRecord(
+        "myTopic",
+        0,
+        null,
+        null,
+        SampleData.EmployeesSchema,
+        SampleData.Employees.head,
+        0L,
+        null,
+        null,
+        connectHeaders,
+      )
+      sinkTask <- sinkTaskUsingProps(config)
+      _         = sinkTask.put(List(record).asJava)
+    } yield server).use { server =>
+      IO.delay {
+        eventually {
+          server.verify(
+            exactly(1),
+            postRequestedFor(urlEqualTo(path))
+              .withHeader("kafka-header-1", containing("header-value-1"))
+              .withHeader("kafka-header-2", containing("header-value-2")),
+          )
         }
       }
     }

@@ -25,6 +25,9 @@ import io.lenses.streamreactor.connect.http.sink.tpl.substitutions.SubstitutionE
 import io.lenses.streamreactor.connect.http.sink.tpl.RenderedRecord
 import io.lenses.streamreactor.connect.http.sink.tpl.substitutions.SubstitutionType
 import org.apache.kafka.connect.sink.SinkRecord
+import io.lenses.streamreactor.connect.http.sink.tpl.Headers
+import scala.jdk.CollectionConverters._
+import io.lenses.streamreactor.connect.http.sink.tpl.substitutions.HeaderValueConverter
 
 object RecordRenderer {
 
@@ -34,7 +37,7 @@ object RecordRenderer {
     data:               NonEmptySeq[SinkRecord],
     endpointTpl:        String,
     contentTpl:         String,
-    headers:            Seq[(String, String)],
+    headers:            Headers,
     nullPayloadHandler: NullPayloadHandler,
   ): Either[SubstitutionError, NonEmptySeq[RenderedRecord]] =
     data.map(renderRecord(_, endpointTpl, contentTpl, headers, nullPayloadHandler)).sequence
@@ -42,7 +45,7 @@ object RecordRenderer {
     sinkRecord:         SinkRecord,
     endpointTpl:        String,
     contentTpl:         String,
-    headers:            Seq[(String, String)],
+    headers:            Headers,
     nullPayloadHandler: NullPayloadHandler,
   ): Either[SubstitutionError, RenderedRecord] = {
     val topicPartitionOffset: TopicPartitionOffset =
@@ -68,11 +71,44 @@ object RecordRenderer {
         } yield k -> v
     }
 
-  private def renderHeaders(
+  private def renderTemplateHeaders(
     sinkRecord:         SinkRecord,
-    headers:            Seq[(String, String)],
+    headers:            Headers,
     nullPayloadHandler: NullPayloadHandler,
   ): Either[SubstitutionError, Seq[(String, String)]] =
-    headers.map(h => renderHeader(sinkRecord, h, nullPayloadHandler)).sequence
+    headers.headerTemplates.map(h => renderHeader(sinkRecord, h, nullPayloadHandler)).sequence
+
+  private def extractMessageHeaders(
+    sinkRecord:         SinkRecord,
+    copyMessageHeaders: Boolean,
+  ): Seq[(String, String)] =
+    if (copyMessageHeaders && Option(sinkRecord.headers()).isDefined)
+      sinkRecord.headers().iterator().asScala.flatMap { h =>
+        (Option(h.value()), Option(h.schema())) match {
+          case (Some(value), Some(schema)) =>
+            Some(h.key() -> HeaderValueConverter.headerValueToString(value, schema))
+          case (Some(value), None) =>
+            Some(h.key() -> value.toString)
+          case _ => None
+        }
+      }.toSeq
+    else Seq.empty
+
+  private def combineHeaders(
+    templateHeaders: Seq[(String, String)],
+    messageHeaders:  Seq[(String, String)],
+  ): Seq[(String, String)] =
+    // Message headers first, then template headers, so template headers take precedence
+    (messageHeaders ++ templateHeaders).toMap.toSeq
+
+  private def renderHeaders(
+    sinkRecord:         SinkRecord,
+    headers:            Headers,
+    nullPayloadHandler: NullPayloadHandler,
+  ): Either[SubstitutionError, Seq[(String, String)]] =
+    for {
+      templateHeaders <- renderTemplateHeaders(sinkRecord, headers, nullPayloadHandler)
+      messageHeaders   = extractMessageHeaders(sinkRecord, headers.copyMessageHeaders)
+    } yield combineHeaders(templateHeaders, messageHeaders)
 
 }

@@ -181,6 +181,13 @@ object HttpSinkConfigDef {
       |""".stripMargin
   val MaxQueueOfferTimeoutDefault = 120000
 
+  val CopyMessageHeadersProp: String = "connect.http.copy.message.headers"
+  val CopyMessageHeadersDoc: String =
+    """
+      |Whether to copy Kafka message headers into the HTTP request. Default is false.
+      |""".stripMargin
+  val CopyMessageHeadersDefault = false
+
   val config: ConfigDef = {
     val configDef = new ConfigDef()
       .withClientSslSupport()
@@ -342,6 +349,13 @@ object HttpSinkConfigDef {
         MaxQueueOfferTimeoutDefault,
         Importance.HIGH,
         MaxQueueOfferTimeoutDoc,
+      )
+      .define(
+        CopyMessageHeadersProp,
+        Type.BOOLEAN,
+        CopyMessageHeadersDefault,
+        Importance.HIGH,
+        CopyMessageHeadersDoc,
       )
     ReporterConfig.withErrorRecordReportingSupport(configDef)
     ReporterConfig.withSuccessRecordReportingSupport(configDef)

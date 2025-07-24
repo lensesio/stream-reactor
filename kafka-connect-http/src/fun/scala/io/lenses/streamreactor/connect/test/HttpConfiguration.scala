@@ -29,6 +29,7 @@ trait HttpConfiguration extends LazyLogging {
     errorReportingTopic:   String,
     successReportingTopic: String,
     bootstrapServers:      String,
+    copyMessageHeaders:    Boolean = false,
   ): ConnectorConfiguration = {
     val configMap: Map[String, ConfigValue[_]] = converters.view.mapValues(new ConfigValue[String](_)).toMap ++
       Map(
@@ -51,6 +52,7 @@ trait HttpConfiguration extends LazyLogging {
         SUCCESS_REPORTING_TOPIC_PROP             -> ConfigValue(successReportingTopic),
         SUCCESS_REPORTING_BOOTSTRAP_SERVERS_PROP -> ConfigValue(bootstrapServers),
         HttpSinkConfigDef.RetriesMaxRetriesProp  -> ConfigValue(0),
+        HttpSinkConfigDef.CopyMessageHeadersProp -> ConfigValue(copyMessageHeaders),
       )
     debugLogConnectorConfig(configMap)
     ConnectorConfiguration(

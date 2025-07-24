@@ -45,6 +45,7 @@ import java.time.Duration
 import scala.concurrent.duration.FiniteDuration
 import scala.jdk.CollectionConverters._
 import scala.util.Try
+import io.lenses.streamreactor.connect.http.sink.tpl.Headers
 
 case class BatchConfig(
   batchCount:   Option[Long],
@@ -152,7 +153,7 @@ case class HttpSinkConfig(
   endpoint:                   String,
   content:                    String,
   authentication:             Authentication,
-  headers:                    List[(String, String)],
+  headers:                    Headers,
   ssl:                        StoresInfo,
   batch:                      BatchConfig,
   nullPayloadHandler:         NullPayloadHandler,
@@ -178,9 +179,11 @@ object HttpSinkConfig {
             e,
           ),
         )
-      endpoint <- extractEndpoint(connectConfig.getString(HttpSinkConfigDef.HttpEndpointProp))
-      content   = connectConfig.getString(HttpSinkConfigDef.HttpRequestContentProp)
-      headers  <- extractHeaders(connectConfig.getList(HttpSinkConfigDef.HttpRequestHeadersProp).asScala.toList)
+      endpoint          <- extractEndpoint(connectConfig.getString(HttpSinkConfigDef.HttpEndpointProp))
+      content            = connectConfig.getString(HttpSinkConfigDef.HttpRequestContentProp)
+      headerTemplates   <- extractHeaders(connectConfig.getList(HttpSinkConfigDef.HttpRequestHeadersProp).asScala.toList)
+      copyMessageHeaders = connectConfig.getBoolean(HttpSinkConfigDef.CopyMessageHeadersProp)
+      headers            = Headers(headerTemplates, copyMessageHeaders)
       auth <- Authentication.from(
         connectConfig,
         AuthenticationKeys(BasicAuthenticationUsernameProp, BasicAuthenticationPasswordProp, AuthenticationTypeProp),

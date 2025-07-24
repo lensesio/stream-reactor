@@ -22,6 +22,7 @@ import io.lenses.streamreactor.connect.http.sink.config.CustomNullPayloadHandler
 import io.lenses.streamreactor.connect.http.sink.config.EmptyStringNullPayloadHandler
 import io.lenses.streamreactor.connect.http.sink.config.ErrorNullPayloadHandler
 import io.lenses.streamreactor.connect.http.sink.config.NullLiteralNullPayloadHandler
+import io.lenses.streamreactor.connect.http.sink.tpl.Headers
 import io.lenses.streamreactor.connect.http.sink.tpl.RawTemplate
 import io.lenses.streamreactor.connect.http.sink.tpl.substitutions.SubstitutionError
 import io.lenses.streamreactor.connect.http.sink.tpl.substitutions.SubstitutionType
@@ -46,9 +47,9 @@ class TemplateRendererTest extends AnyFunSuiteLike with Matchers with EitherValu
     val records = NonEmptySeq.of(record1, record2, record3)
 
     val processedTemplate = RawTemplate(
-      endpoint = "http://www.example.com",
-      content  = "{\"data\":[{{#message}}{{value}},{{/message}}]}",
-      Seq(),
+      endpoint           = "http://www.example.com",
+      content            = "{\"data\":[{{#message}}{{value}},{{/message}}]}",
+      headers            = Headers(Seq.empty, copyMessageHeaders = false),
       nullPayloadHandler = ErrorNullPayloadHandler,
     )
 
@@ -60,6 +61,98 @@ class TemplateRendererTest extends AnyFunSuiteLike with Matchers with EitherValu
         """{"data":["m1","m2","m3"]}""".stripMargin,
       ),
     )
+  }
+
+  test("renderRecords should render header templates correctly") {
+    val record = new SinkRecord("myTopic", 0, null, null, null, null, 9)
+    val headers = Headers(Seq(
+                            ("X-Topic-{{topic}}", "Value-{{topic}}"),
+                            ("X-Static", "StaticValue"),
+                          ),
+                          copyMessageHeaders = false,
+    )
+    val processedTemplate = RawTemplate(
+      endpoint           = "http://www.example.com",
+      content            = "irrelevant",
+      headers            = headers,
+      nullPayloadHandler = ErrorNullPayloadHandler,
+    )
+    val rendered        = processedTemplate.renderRecords(NonEmptySeq.of(record))
+    val renderedHeaders = rendered.value.head.headersRendered
+    renderedHeaders should contain("X-Topic-myTopic" -> "Value-myTopic")
+    renderedHeaders should contain("X-Static" -> "StaticValue")
+  }
+
+  test("renderRecords should include Kafka message headers when copyMessageHeaders is true") {
+    import org.apache.kafka.connect.header.ConnectHeaders
+    val connectHeaders = new ConnectHeaders()
+    connectHeaders.add("kafka-header-1", "value1", null)
+    connectHeaders.add("kafka-header-2", "value2", null)
+    val record = new SinkRecord(
+      "myTopic",
+      0,
+      null,
+      null,
+      null,
+      null,
+      9,
+      null,
+      null,
+      connectHeaders,
+    )
+    val headers = Headers(Seq(
+                            ("X-Static", "StaticValue"),
+                          ),
+                          copyMessageHeaders = true,
+    )
+    val processedTemplate = RawTemplate(
+      endpoint           = "http://www.example.com",
+      content            = "irrelevant",
+      headers            = headers,
+      nullPayloadHandler = ErrorNullPayloadHandler,
+    )
+    val rendered        = processedTemplate.renderRecords(NonEmptySeq.of(record))
+    val renderedHeaders = rendered.value.head.headersRendered
+    renderedHeaders should contain("X-Static" -> "StaticValue")
+    renderedHeaders should contain("kafka-header-1" -> "value1")
+    renderedHeaders should contain("kafka-header-2" -> "value2")
+  }
+
+  test("template header takes precedence over Kafka message header with same key") {
+    import org.apache.kafka.connect.header.ConnectHeaders
+    val connectHeaders = new ConnectHeaders()
+    connectHeaders.add("X-Conflict", "message-value", null)
+    val record = new SinkRecord(
+      "myTopic",
+      0,
+      null,
+      null,
+      null,
+      null,
+      9,
+      null,
+      null,
+      connectHeaders,
+    )
+    val headers = Headers(Seq(
+                            ("X-Conflict", "template-value"),
+                            ("X-Other", "template-other"),
+                          ),
+                          copyMessageHeaders = true,
+    )
+    val processedTemplate = RawTemplate(
+      endpoint           = "http://www.example.com",
+      content            = "irrelevant",
+      headers            = headers,
+      nullPayloadHandler = ErrorNullPayloadHandler,
+    )
+    val rendered        = processedTemplate.renderRecords(NonEmptySeq.of(record))
+    val renderedHeaders = rendered.value.head.headersRendered.toMap
+    renderedHeaders("X-Conflict") shouldBe "template-value"
+    renderedHeaders("X-Other") shouldBe "template-other"
+    // The message header should not overwrite the template header
+    renderedHeaders.keySet should contain("X-Conflict")
+    renderedHeaders.keySet should contain("X-Other")
   }
 
   private def normalized(s: String): String =

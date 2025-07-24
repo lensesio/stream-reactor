@@ -24,6 +24,7 @@ import org.apache.kafka.connect.sink.SinkRecord
 import org.scalatest.EitherValues
 import org.scalatest.funsuite.AnyFunSuiteLike
 import org.scalatest.matchers.should.Matchers
+import io.lenses.streamreactor.connect.http.sink.tpl.Headers
 
 class TemplateTest extends AnyFunSuiteLike with Matchers with EitherValues {
 
@@ -67,7 +68,7 @@ class TemplateTest extends AnyFunSuiteLike with Matchers with EitherValues {
           |  <order>{{value.orderNo}}</order>
           |  <groupDomain>{{value.groupDomain}}</groupDomain>
           |</xml>""".stripMargin,
-      Seq(),
+      headers            = Headers(Seq.empty, copyMessageHeaders = false),
       nullPayloadHandler = ErrorNullPayloadHandler,
     )
 
@@ -112,9 +113,9 @@ class TemplateTest extends AnyFunSuiteLike with Matchers with EitherValues {
     val records = NonEmptySeq.of(record1, record2)
 
     val processedTemplate = RawTemplate(
-      endpoint = "http://{{value.groupDomain}}.example.com/{{value.orderNo}}/{{value.employeeId}}/{{topic}}",
-      content  = multiTemplate,
-      Seq(),
+      endpoint           = "http://{{value.groupDomain}}.example.com/{{value.orderNo}}/{{value.employeeId}}/{{topic}}",
+      content            = multiTemplate,
+      headers            = Headers(Seq.empty, copyMessageHeaders = false),
       nullPayloadHandler = ErrorNullPayloadHandler,
     )
 
@@ -172,9 +173,9 @@ class TemplateTest extends AnyFunSuiteLike with Matchers with EitherValues {
     val records = NonEmptySeq.of(record1, record2)
 
     val processedTemplate = RawTemplate(
-      endpoint = "http://{{value.groupDomain}}.example.com/{{value.orderNo}}/{{value.employeeId}}/{{topic}}",
-      content  = normalized(multiTemplate),
-      Seq(),
+      endpoint           = "http://{{value.groupDomain}}.example.com/{{value.orderNo}}/{{value.employeeId}}/{{topic}}",
+      content            = normalized(multiTemplate),
+      headers            = Headers(Seq.empty, copyMessageHeaders = false),
       nullPayloadHandler = ErrorNullPayloadHandler,
     )
 

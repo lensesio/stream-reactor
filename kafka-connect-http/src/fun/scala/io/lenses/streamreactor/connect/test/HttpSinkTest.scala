@@ -18,7 +18,6 @@ import org.apache.avro.generic.GenericRecord
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.apache.kafka.clients.producer.KafkaProducer
-import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.common.serialization.StringSerializer
 import org.scalatest.funsuite.AsyncFunSuiteLike
 import org.scalatest.matchers.should.Matchers
@@ -31,12 +30,11 @@ import org.scalatest.time.Span
 import java.time.Duration
 import java.time.temporal.ChronoUnit
 import java.util.UUID
-import java.util.concurrent.TimeUnit
 import scala.collection.mutable
-import scala.concurrent.Future
 import scala.jdk.CollectionConverters.IteratorHasAsScala
 import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.jdk.CollectionConverters.SeqHasAsJava
+import org.apache.kafka.common.header.internals.RecordHeaders
 
 class HttpSinkTest
     extends AsyncFunSuiteLike
@@ -105,7 +103,7 @@ class HttpSinkTest
 
     setUpWiremockResponse()
 
-    val records = (1 to 5).map(i => s"Record number $i")
+    val records = (1 to 5).map(i => (s"Record number $i", None))
     sendRecordsWithProducer(
       stringProducer,
       stringConverters,
@@ -116,9 +114,10 @@ class HttpSinkTest
       false,
       5,
       0,
+      false,
       records: _*,
     ).asserting {
-      case (requests, successReporterRecords, failureReporterRecords) =>
+      case (requests: List[LoggedRequest], successReporterRecords, failureReporterRecords) =>
         requests.size should be(5)
         requests.map(_.getBody).map(new String(_)).toSet should contain only "My Static Content Template"
         requests.map(_.getMethod).toSet should be(Set(RequestMethod.POST))
@@ -149,11 +148,12 @@ class HttpSinkTest
       false,
       1,
       2,
-      "Record number 1", // fails
-      "Record number 2", // fails
-      "Record number 3", // succeeds
+      false,
+      ("Record number 1", None), // fails
+      ("Record number 2", None), // fails
+      ("Record number 3", None), // succeeds
     ).asserting {
-      case (requests, successReporterRecords, failureReporterRecords) =>
+      case (requests: List[LoggedRequest], successReporterRecords, failureReporterRecords) =>
         requests.size should be(3)
         requests.map(_.getBody).map(new String(_)).toSet should contain only "My Static Content Template"
         requests.map(_.getMethod).toSet should be(Set(RequestMethod.POST))
@@ -187,7 +187,8 @@ class HttpSinkTest
                             false,
                             1,
                             0,
-                            "{{value}}",
+                            false,
+                            ("{{value}}", None),
     ).asserting {
       case (requests, _, _) =>
         requests.size should be(1)
@@ -211,9 +212,10 @@ class HttpSinkTest
       false,
       1,
       0,
-      Order(1, "myOrder product", 1.3d, 10),
+      false,
+      (Order(1, "myOrder product", 1.3d, 10), None),
     ).asserting {
-      case (requests, _, _) =>
+      case (requests: List[LoggedRequest], _, _) =>
         requests.size should be(1)
         val firstRequest = requests.head
         firstRequest.getMethod should be(RequestMethod.POST)
@@ -235,9 +237,10 @@ class HttpSinkTest
       false,
       1,
       0,
-      Order(1, "myOrder product", 1.3d, 10),
+      false,
+      (Order(1, "myOrder product", 1.3d, 10), None),
     ).asserting {
-      case (requests, _, _) =>
+      case (requests: List[LoggedRequest], _, _) =>
         requests.size should be(1)
         val firstRequest = requests.head
         firstRequest.getMethod should be(RequestMethod.POST)
@@ -261,10 +264,11 @@ class HttpSinkTest
       true,
       1,
       0,
-      Order(1, "myOrder product", 1.3d, 10),
-      Order(2, "another product", 1.4d, 109),
+      false,
+      (Order(1, "myOrder product", 1.3d, 10), None),
+      (Order(2, "another product", 1.4d, 109), None),
     ).asserting {
-      case (requests, _, _) =>
+      case (requests: List[LoggedRequest], _, _) =>
         logger.info("Requests size: {}", requests.size)
         requests.size should be(1)
         val firstRequest = requests.head
@@ -292,13 +296,42 @@ class HttpSinkTest
       false,
       1,
       0,
-      order,
+      false,
+      (order, None),
     ).asserting {
-      case (requests, _, _) =>
+      case (requests: List[LoggedRequest], _, _) =>
         requests.size should be(1)
         val firstRequest = requests.head
         firstRequest.getMethod should be(RequestMethod.POST)
         new String(firstRequest.getBody) should be("product: myOrder product")
+    }
+  }
+
+  test("Kafka message string header is copied to HTTP request when copyMessageHeaders is enabled (smoke test)") {
+    setUpWiremockResponse()
+
+    val headerKey   = "string-header"
+    val headerValue = "string-value"
+    val headers     = new RecordHeaders()
+    headers.add(headerKey, headerValue.getBytes)
+
+    sendRecordsWithProducer(
+      stringProducer.asInstanceOf[Resource[IO, KafkaProducer[String, Object]]],
+      stringConverters,
+      randomTestId,
+      topic,
+      "irrelevant",
+      BatchSizeSingleRecord,
+      false,
+      1,
+      0,
+      true,
+      ("string-value", Some(headers)),
+    ).asserting {
+      case (requests: List[LoggedRequest], _, _) =>
+        requests.size should be(1)
+        val req = requests.head
+        req.getHeader(headerKey) should be(headerValue)
     }
   }
 
@@ -355,16 +388,17 @@ class HttpSinkTest
   def getBootstrapServers: String = s"PLAINTEXT://kafka:9092"
 
   private def sendRecordsWithProducer[K, V](
-    producer:          Resource[IO, KafkaProducer[K, V]],
-    converters:        Map[String, String],
-    randomTestId:      String,
-    topic:             String,
-    contentTemplate:   String,
-    batchSize:         Int,
-    jsonTidy:          Boolean,
-    expectedSuccesses: Int,
-    expectedFailures:  Int,
-    record:            V*,
+    producer:           Resource[IO, KafkaProducer[K, V]],
+    converters:         Map[String, String],
+    randomTestId:       String,
+    topic:              String,
+    contentTemplate:    String,
+    batchSize:          Int,
+    jsonTidy:           Boolean,
+    expectedSuccesses:  Int,
+    expectedFailures:   Int,
+    copyMessageHeaders: Boolean,
+    records:            (V, Option[RecordHeaders])*,
   ): IO[(
     List[LoggedRequest],
     Seq[ConsumerRecord[String, String]],
@@ -386,16 +420,18 @@ class HttpSinkTest
         failureTopicName,
         successTopicName,
         getBootstrapServers,
+        copyMessageHeaders,
       )
     } yield {
 
-      record.map(
-        sendRecord[K, V](topic, producer, _)
-          .handleError { error =>
-            logger.error("Error encountered sending record via producer", error)
-            fail("Error encountered sending record via producer")
-          },
-      ).sequence.map { _ =>
+      records.map {
+        case (value, headers) =>
+          sendRecord[K, V](topic, producer, value, headers)
+            .handleError { error =>
+              logger.error("Error encountered sending record via producer", error)
+              fail("Error encountered sending record via producer")
+            }
+      }.sequence.map { _ =>
         var successes = mutable.Seq[ConsumerRecord[String, String]]()
         var failures  = mutable.Seq[ConsumerRecord[String, String]]()
         eventually(timeout(Span(10, Seconds)), interval(Span(500, Millis))) {
@@ -421,13 +457,27 @@ class HttpSinkTest
     seqOfRecords
   }
 
-  private def sendRecord[K, V](topic: String, producer: KafkaProducer[K, V], record: V): IO[Unit] =
-    for {
-      producerRecord <- IO.pure(new ProducerRecord[K, V](topic, record))
-      scalaFuture     = IO(Future(producer.send(producerRecord).get(10, TimeUnit.SECONDS)))
-      _              <- IO.fromFuture(scalaFuture)
-      _              <- IO(producer.flush())
-    } yield ()
+  private def sendRecord[K, V](
+    topic:    String,
+    producer: KafkaProducer[K, V],
+    value:    V,
+    headers:  Option[RecordHeaders],
+  ): IO[Unit] =
+    IO {
+      headers match {
+        case Some(h) => {
+          producer.send(new org.apache.kafka.clients.producer.ProducerRecord[K, V](topic,
+                                                                                   null: Integer,
+                                                                                   null.asInstanceOf[K],
+                                                                                   value,
+                                                                                   h,
+          )).get(); ()
+        }
+        case None => {
+          producer.send(new org.apache.kafka.clients.producer.ProducerRecord[K, V](topic, value)).get(); ()
+        }
+      }
+    }
 
   def createConnectorResource(
     randomTestId:          String,
@@ -439,6 +489,7 @@ class HttpSinkTest
     errorReportingTopic:   String,
     successReportingTopic: String,
     bootstrapServers:      String,
+    copyMessageHeaders:    Boolean,
   ): Resource[IO, String] =
     createConnector(
       sinkConfig(
@@ -454,6 +505,7 @@ class HttpSinkTest
         errorReportingTopic,
         successReportingTopic,
         bootstrapServers,
+        copyMessageHeaders,
       ),
     )
 
