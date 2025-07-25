@@ -1,0 +1,4 @@
+
+┌─ CASSANDRA 4 SINK ─┐
+│   by Lenses.io     │
+└────────────────────┘

@@ -392,8 +392,9 @@ object Settings extends Dependencies {
   ) {
 
     protected def configure(
-      requiresFork: Boolean,
-      testDeps:     Seq[ModuleID],
+      requiresFork:           Boolean,
+      testDeps:               Seq[ModuleID],
+      parallelExecutionValue: Boolean = true,
     ): Project =
       project
         .configs(config)
@@ -408,6 +409,7 @@ object Settings extends Dependencies {
               )
 
             defaultSettings ++ Seq(
+              parallelExecution := parallelExecutionValue,
               fork := requiresFork,
               testFrameworks := Seq(sbt.TestFrameworks.ScalaTest),
               classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat,
@@ -430,8 +432,8 @@ object Settings extends Dependencies {
   implicit final class IntegrationTestConfigurator(project: Project)
       extends TestConfigurator(project, IntegrationTest) {
 
-    def configureIntegrationTests(testDeps: Seq[ModuleID]): Project =
-      configure(requiresFork = false, testDeps)
+    def configureIntegrationTests(testDeps: Seq[ModuleID], parallelExecution: Boolean = true): Project =
+      configure(requiresFork = false, testDeps, parallelExecution)
   }
 
   implicit final class FunctionalTestConfigurator(project: Project) extends TestConfigurator(project, FunctionalTest) {

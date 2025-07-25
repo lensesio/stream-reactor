@@ -62,7 +62,13 @@ column_name
    ;
 
 column
-   : FIELD ( DOT FIELD )* (DOT ASTERISK)? | STRING
+   : ( (FIELD | TOPICNAME) ( DOT (FIELD | TOPICNAME) )* (DOT ASTERISK)? )
+   | STRING
+   | function_call
+   ;
+
+function_call
+   : (FIELD | TOPICNAME) LEFT_PARAN (column_list)? RIGHT_PARAN
    ;
 
 partition_column

@@ -148,7 +148,8 @@ public class Kcql {
     if (field == null) {
       throw new IllegalArgumentException(MSG_ILLEGAL_FIELD_ALIAS);
     }
-    if (fieldExists(field)) {
+    boolean isFunction = (field.getName().contains("(") && field.getName().contains(")"));
+    if (fieldExists(field) && !isFunction) {
       throw new IllegalArgumentException(String.format("Field %s has already been defined", field.getName()));
     }
     fields.add(field);
@@ -272,7 +273,7 @@ public class Kcql {
           int charPositionInLine,
           String msg,
           RecognitionException e) {
-        throw new IllegalStateException("failed to parse at line " + line + " due to " + msg, e);
+        throw new IllegalStateException("failed to parse at line " + line + " due to. SQL:" + syntax + " " + msg, e);
       }
     });
 
@@ -291,10 +292,26 @@ public class Kcql {
         kcql.subscription = unescape(ctx.getText());
       }
 
+      private String trim(String source, char delimiter) {
+        if (source == null || source.isEmpty()) {
+          return source;
+        }
+        if (source.charAt(0) == delimiter) {
+          source = source.substring(1);
+        }
+        if (source.charAt(source.length() - 1) == delimiter) {
+          source = source.substring(0, source.length() - 1);
+        }
+        return source;
+      }
+
       @Override
       public void exitColumn(ConnectorParser.ColumnContext ctx) {
         for (TerminalNode tn : ctx.FIELD()) {
-          nestedFieldsBuffer.add(tn.getText());
+          nestedFieldsBuffer.add(trim(tn.getText(), '`'));
+        }
+        for (TerminalNode tn : ctx.TOPICNAME()) {
+          nestedFieldsBuffer.add(trim(tn.getText(), '`'));
         }
         if (ctx.ASTERISK() != null) {
           nestedFieldsBuffer.add("*");
@@ -344,6 +361,9 @@ public class Kcql {
         }
 
         List<String> parentFields = null;
+        if (nestedFieldsBuffer.size() == 0) {
+          return;
+        }
         String name = nestedFieldsBuffer.get(nestedFieldsBuffer.size() - 1);
         nestedFieldsBuffer.remove(nestedFieldsBuffer.size() - 1);
 
@@ -363,7 +383,8 @@ public class Kcql {
         } else {
           List<String> cleanedParent = null;
 
-          if (field.toString().startsWith("_key.")) {
+          final String fieldValue = field.toString();
+          if (fieldValue.startsWith("_key.") || fieldValue.equals("_key")) {
             trimParentField(nestedFieldsBuffer);
             if (!nestedFieldsBuffer.isEmpty()) {
               cleanedParent = nestedFieldsBuffer;
@@ -641,7 +662,7 @@ public class Kcql {
     try {
       parser.stat();
     } catch (Throwable ex) {
-      throw new IllegalArgumentException("Invalid syntax." + ex.getMessage(), ex);
+      throw new IllegalArgumentException("Invalid syntax. SQL:" + syntax + " . Error message:" + ex.getMessage(), ex);
     }
 
     final HashSet<String> cols = new HashSet<>();

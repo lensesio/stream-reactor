@@ -6,7 +6,7 @@ project(":kafka-connect-query-language") {
     }
 
     ext {
-        antlrVersion = "4.13.1"
+        antlrVersion = "4.7.1"
     }
 
     repositories {
@@ -39,6 +39,12 @@ project(":kafka-connect-query-language") {
     task sourcesJar(type: Jar) {
         archiveClassifier = 'sources'
         from sourceSets.main.allSource
+
+        inputs.files(sourceSets.main.allSource)
+
+        dependsOn generateGrammarSource
+
+        mustRunAfter generateGrammarSource
     }
 
     task javadocJar(type: Jar) {

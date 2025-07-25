@@ -60,7 +60,7 @@ object Dependencies {
     val catsEffectVersion     = "3.6.1"
     val `cats-effect-testing` = "1.6.0"
 
-    val antlr4Version: String = "4.13.2"
+    val antlr4Version: String = "4.7.1"
 
     val circeVersion              = "0.15.0-M1"
     val circeGenericExtrasVersion = "0.14.4"
@@ -104,8 +104,12 @@ object Dependencies {
     val bouncyCastleVersion = "1.81"
     val nettyVersion        = "4.2.2.Final"
 
-    val cassandraDriverVersion = "3.11.5"
-    val jsonPathVersion        = "2.9.0"
+    val cassandraDriverVersion         = "3.11.5"
+    val cassandraDriverVersion4        = "4.19.0"
+    val messagingConnectorsCoreVersion = "1.0.15"
+    val dsBulkVersion                  = "1.10.0"
+    val guavaVersion                   = "25.1-jre"
+    val jsonPathVersion                = "2.9.0"
 
     val azureSdkVersion            = "1.2.31"
     val azureCosmosDbVersion       = "4.66.0"
@@ -224,6 +228,7 @@ object Dependencies {
     .excludeAll(ExclusionRule(organization = "com.fasterxml.jackson.core"))
     .excludeAll(ExclusionRule(organization = "com.fasterxml.jackson"))
     .excludeAll(ExclusionRule(organization = "com.fasterxml.jackson.databind"))
+    .excludeAll(ExclusionRule(organization = "org.antlr"))
 
   val confluentAvroConverter: ModuleID =
     confluentExcludes("io.confluent" % "kafka-connect-avro-converter" % confluentVersion)
@@ -333,7 +338,29 @@ object Dependencies {
   lazy val openCsv = "com.opencsv" % "opencsv" % openCsvVersion
 
   lazy val cassandraDriver = "com.datastax.cassandra" % "cassandra-driver-core" % cassandraDriverVersion
-  lazy val jsonPath        = "com.jayway.jsonpath"    % "json-path"             % jsonPathVersion
+
+  val dsMessagingConnectorsCore =
+    "com.datastax.oss" % "messaging-connectors-commons-core" % messagingConnectorsCoreVersion
+  val dsbulkCodecsApi  = "com.datastax.oss" % "dsbulk-codecs-api"  % dsBulkVersion
+  val dsbulkCodecsText = "com.datastax.oss" % "dsbulk-codecs-text" % dsBulkVersion
+  val dsbulkCodecsJdk  = "com.datastax.oss" % "dsbulk-codecs-jdk"  % dsBulkVersion
+  val dsbulkSampler    = "com.datastax.oss" % "dsbulk-sampler"     % dsBulkVersion
+  val dsbulkTest       = "com.datastax.oss" % "dsbulk-tests"       % dsBulkVersion
+
+  val cassandraDriverCore = "org.apache.cassandra" % "java-driver-core" % cassandraDriverVersion4 excludeAll (
+    ExclusionRule(
+      organization = "com.github.spotbugs",
+      name         = "spotbugs-annotations",
+    ),
+    /* ExclusionRule(organization = "com.github.stephenc.jcip", name = "jcip-annotations"),
+    ExclusionRule(organization = "org.javatuples", name           = "javatuples"),
+    ExclusionRule(organization = "org.apache.tinkerpop"),
+    ExclusionRule(organization = "org.reactivestreams", name      = "reactive-streams")*/
+  )
+
+  val cassandraDriverShadedGuava = "org.apache.cassandra" % "java-driver-guava-shaded" % cassandraDriverVersion4
+
+  lazy val jsonPath = "com.jayway.jsonpath" % "json-path" % jsonPathVersion
 
   lazy val nettyCommon       = "io.netty" % "netty-common"                 % nettyVersion
   lazy val nettyHandler      = "io.netty" % "netty-handler"                % nettyVersion
@@ -561,12 +588,27 @@ trait Dependencies {
     nettyTransport,
   )
 
+  val kafkaConnectCassandraSinkDeps: Seq[ModuleID] = Seq(
+    dsMessagingConnectorsCore,
+    dsbulkCodecsApi,
+    dsbulkCodecsText,
+    dsbulkCodecsJdk,
+    dsbulkSampler,
+    cassandraDriverCore,
+    cassandraDriverShadedGuava,
+  )
+
   val kafkaConnectCassandraTestDeps: Seq[ModuleID] =
     baseTestDeps ++ Seq(testContainersScala, testContainersScalaCassandra)
 
   val kafkaConnectAzureCosmosDbDeps: Seq[ModuleID] = Seq(azureBom, azureCosmosDb)
   val kafkaConnectAzureCosmosDbTestDeps: Seq[ModuleID] =
     baseTestDeps ++ Seq(testcontainersCosmosDb)
+  val kafkaConnectCassandraSinkTestDeps: Seq[ModuleID] = baseTestDeps ++ Seq(
+    testContainersScala,
+    testcontainersCassandra,
+    dsbulkTest,
+  )
 
   val kafkaConnectInfluxDbDeps: Seq[ModuleID] = Seq(influx, avro4s, avro4sJson)
 

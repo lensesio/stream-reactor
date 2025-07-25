@@ -29,6 +29,7 @@ lazy val subProjects: Seq[Project] = Seq(
   `azure-cosmosdb`,
   `azure-datalake`,
   cassandra,
+  `cassandra-sink`,
   elastic6,
   elastic7,
   ftp,
@@ -298,6 +299,32 @@ lazy val cassandra = (project in file("kafka-connect-cassandra"))
   .configureFunctionalTests()
   .enablePlugins(PackPlugin)
 
+lazy val `cassandra-sink` = (project in file("kafka-connect-cassandra-sink"))
+  .dependsOn(common)
+  .dependsOn(`sql-common`)
+  .settings(
+    settings ++
+      Seq(
+        name := "kafka-connect-cassandra-sink",
+        description := "A Cassandra Sink Connector for Kafka Connect",
+        libraryDependencies ++= (baseDeps ++ kafkaConnectCassandraSinkDeps),
+        publish / skip := true,
+        FunctionalTest / baseDirectory := (LocalRootProject / baseDirectory).value,
+        packExcludeJars := Seq(
+          "scala-.*\\.jar",
+          "zookeeper-.*\\.jar",
+        ),
+      ),
+    Antlr4 / antlr4Version := "4.7.1",
+  )
+  .configureAssembly(true)
+  .configureMavenDescriptor()
+  .configureTests(kafkaConnectCassandraSinkTestDeps)
+  .configureIntegrationTests(kafkaConnectCassandraSinkTestDeps, parallelExecution = false)
+  .configureIntegrationTests(kafkaConnectCassandraSinkTestDeps, parallelExecution = false)
+  .configureFunctionalTests()
+  .enablePlugins(PackPlugin)
+
 lazy val elastic6 = (project in file("kafka-connect-elastic6"))
   .dependsOn(common)
   .dependsOn(`sql-common`)
@@ -362,6 +389,7 @@ lazy val http = (project in file("kafka-connect-http"))
           "scala-.*\\.jar",
           "zookeeper-.*\\.jar",
         ),
+        Compile / PB.protocExecutable := file(Process("which protoc").!!.trim),
       ),
   )
   .configureAssembly(false)
@@ -411,6 +439,7 @@ lazy val jms = (project in file("kafka-connect-jms"))
         Compile / PB.targets := Seq(
           PB.gens.java(Versions.googleProtobufVersion) -> (Test / sourceManaged).value,
         ),
+        Compile / PB.protocExecutable := file(Process("which protoc").!!.trim),
       ),
   )
   .configureAssembly(true)
@@ -536,7 +565,7 @@ gradleSpotlessApply := {
   // Specify the desired working directory for the external process
   val targetDirectory = baseDirectory.value / "java-connectors"
 
-  // Execute './gradle spotlessApply' in the specified directory
+  // Execute './gradlew spotlessApply' in the specified directory
   val exitCode = Process("./gradlew spotlessApply", targetDirectory).!
 
   if (exitCode != 0) {

@@ -28,6 +28,15 @@ import org.junit.jupiter.api.Test;
 
 class KcqlNestedFieldTest {
 
+  /*@Test
+  void ha() {
+    String sql =
+        //"INSERT INTO abc SELECT `now()` as loaded, `_key.'bigint field'` as 'bigint col', `_key.'boolean-field'` as 'boolean-col', `_value.'INT FIELD'` as 'INT COL', `_value.'TEXT.FIELD'` as 'TEXT.COL' FROM abc";
+        "INSERT INTO myns.types SELECT _value.bigint as bigintcol, `now()` as loaded_at, `now()` as loaded_att FROM mytopic PROPERTIES()";
+    Kcql kcql = Kcql.parse(sql);
+    System.out.println(kcql);
+  }
+  */
   @Test
   void parseNestedField() {
     String topic = "TOPIC_A";
