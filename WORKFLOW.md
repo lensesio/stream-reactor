@@ -42,7 +42,7 @@ Because the project is divided into multiple modules, the first step of the Gith
 ```yaml
 jobs:
   initiate:
-    timeout-minutes: 5
+    timeout-minutes: 10
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.read-mods.outputs.matrix }}
@@ -75,7 +75,7 @@ jobs:
     needs:
       - initiate
       - scalafmt
-    timeout-minutes: 5
+    timeout-minutes: 10
     runs-on: ubuntu-latest
     strategy:
       matrix:

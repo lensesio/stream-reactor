@@ -13,7 +13,7 @@ on:
         value: ${{ jobs.initiate.outputs.publish_matrix }}
 jobs:
   initiate:
-    timeout-minutes: 5
+    timeout-minutes: 10
     #runs-on: ubuntu-latest
     runs-on: ubuntu-22.04
     outputs:
@@ -52,7 +52,7 @@ jobs:
           find $HOME/.sbt                              -name "*.lock"               -delete || true
 
   scalafmt:
-    timeout-minutes: 5
+    timeout-minutes: 10
     #runs-on: ubuntu-latest
     runs-on: ubuntu-22.04
     steps:
@@ -78,7 +78,7 @@ jobs:
     needs:
       - initiate
       - scalafmt
-    timeout-minutes: 5
+    timeout-minutes: 10
     #runs-on: ubuntu-latest
     runs-on: ubuntu-22.04
     strategy:

@@ -22,15 +22,20 @@ import io.lenses.streamreactor.common.utils.JarManifestProvided
 import io.lenses.streamreactor.connect.cassandra.adapters.RecordAdapter
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
+import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkTaskContext
 
+import java.util.concurrent.atomic.AtomicReference
 import scala.collection.mutable
+
+class CassandraProcessorException(message: String, cause: Throwable) extends ConnectException(message, cause)
 
 class CassandraProcessor(
   appName:        String,
   errorMode:      IgnoredErrorMode,
   failureOffsets: mutable.Map[TopicPartition, OffsetAndMetadata],
   context:        SinkTaskContext,
+  errors:         AtomicReference[List[CassandraProcessorException]],
 ) extends AbstractSinkTask
     with JarManifestProvided
     with StrictLogging {
@@ -66,17 +71,15 @@ class CassandraProcessor(
       }
     }
     failCounter.run()
-    if (isDriverFailure) {
-      logger.error(
-        s"Failed to process record topic:${sinkRecord.topic()}  partition:${sinkRecord.kafkaPartition()} offset:${sinkRecord.kafkaOffset()} with cql statement: $cql",
-        e,
-      )
-    } else {
-      logger.error(
-        s"Failed to process record topic:${sinkRecord.topic()}  partition:${sinkRecord.kafkaPartition()} offset:${sinkRecord.kafkaOffset()} ",
-        e,
-      )
-    }
+    val errorDesc =
+      if (isDriverFailure) {
+        s"Failed to process record topic:${sinkRecord.topic()}  partition:${sinkRecord.kafkaPartition()} offset:${sinkRecord.kafkaOffset()} with cql statement: $cql"
+      } else {
+        s"Failed to process record topic:${sinkRecord.topic()}  partition:${sinkRecord.kafkaPartition()} offset:${sinkRecord.kafkaOffset()} "
+      }
+    logger.error(errorDesc, e)
+    errors.updateAndGet(current => new CassandraProcessorException(errorDesc, e) :: current)
+    ()
   }
 
   override def applicationName(): String = appName

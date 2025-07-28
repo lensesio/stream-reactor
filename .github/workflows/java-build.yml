@@ -17,7 +17,7 @@ on:
 jobs:
 
   initiate-java-modules:
-    timeout-minutes: 5
+    timeout-minutes: 10
     runs-on: ubuntu-latest
     outputs:
       java_matrix: ${{ steps.java-mods.outputs.java-matrix }}

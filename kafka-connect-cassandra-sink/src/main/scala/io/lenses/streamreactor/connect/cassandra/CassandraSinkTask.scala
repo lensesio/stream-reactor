@@ -29,6 +29,7 @@ import org.apache.kafka.connect.sink.SinkRecord
 import org.apache.kafka.connect.sink.SinkTask
 
 import java.util
+import java.util.concurrent.atomic.AtomicReference
 import scala.collection.concurrent.TrieMap
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 import scala.jdk.CollectionConverters.MapHasAsJava
@@ -45,8 +46,9 @@ import scala.util.Try
  */
 class CassandraSinkTask extends SinkTask with StrictLogging with JarManifestProvided {
   private val progressCounter = new ProgressCounter
-  private var cassandraProcessor: Option[CassandraProcessor] = None
-  private var sinkSettings:       Option[CassandraSettings]  = None
+  private var cassandraProcessor: Option[CassandraProcessor]                         = None
+  private var sinkSettings:       Option[CassandraSettings]                          = None
+  private val errors:             AtomicReference[List[CassandraProcessorException]] = new AtomicReference(List.empty)
 
   override def start(props: util.Map[String, String]): Unit = {
     printAsciiHeader(manifest, "/cass-sink-ascii.txt")
@@ -65,6 +67,7 @@ class CassandraSinkTask extends SinkTask with StrictLogging with JarManifestProv
                                                settings.ignoredError,
                                                new TrieMap[TopicPartition, OffsetAndMetadata](),
                                                context,
+                                               errors,
         )
         try {
           processor.start(getOSSCassandraSinkConfig(settings).asJava)
@@ -93,6 +96,14 @@ class CassandraSinkTask extends SinkTask with StrictLogging with JarManifestProv
    * Pass the SinkRecords to the writer for Writing
    */
   override def put(records: util.Collection[SinkRecord]): Unit = {
+    logger.debug(s"[$connectorName]Putting records to Cassandra sink: " + records.size())
+    //if errors are present aggregate them and throw an exception
+    val errorList = errors.getAndSet(List.empty)
+    if (errorList.nonEmpty) {
+      val errorMessage = errorList.map(_.getMessage).mkString("\n")
+      logger.error(s"[$connectorName]Errors occurred during processing: $errorMessage")
+      throw new ConnectException(s"Errors occurred during processing: $errorMessage")
+    }
     val seq = records.asScala.toVector
     sinkSettings.filter(_.enableProgress).foreach(_ => progressCounter.update(seq))
     cassandraProcessor.foreach { processor =>
