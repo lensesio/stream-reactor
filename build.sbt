@@ -315,7 +315,7 @@ lazy val `cassandra-sink` = (project in file("kafka-connect-cassandra-sink"))
           "zookeeper-.*\\.jar",
         ),
       ),
-    Antlr4 / antlr4Version := "4.7.1",
+    Antlr4 / antlr4Version := "4.7.2",
   )
   .configureAssembly(true)
   .configureMavenDescriptor()
