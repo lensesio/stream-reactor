@@ -88,7 +88,7 @@ object Dependencies {
     val msal4jVersion                     = "1.21.0"
     val msal4jPersistenceExtensionVersion = "1.3.0"
     val gcpCloudVersion                   = "2.57.2"
-    val gcpCloudStorageVersion            = "2.53.1"
+    val gcpCloudStorageVersion            = "2.53.3"
 
     val woodstoxVersion     = "7.1.1"
     val jacksonVersion      = "2.19.1"
