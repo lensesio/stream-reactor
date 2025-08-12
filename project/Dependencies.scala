@@ -77,7 +77,7 @@ object Dependencies {
     val wiremockVersion = "3.13.1"
     val parquetVersion  = "1.15.2"
 
-    val jerseyCommonVersion = "3.1.10"
+    val jerseyCommonVersion = "3.1.11"
 
     val calciteVersion = "1.34.0"
     val awsSdkVersion  = "2.29.52"
