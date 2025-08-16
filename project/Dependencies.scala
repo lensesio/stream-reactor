@@ -121,7 +121,7 @@ object Dependencies {
     val jmsApiVersion         = "3.1.0"
     val activeMqVersion       = "6.1.6"
     val protocVersion         = "3.11.4"
-    val googleProtobufVersion = "3.25.8"
+    val googleProtobufVersion = "4.32.0"
 
     val mqttVersion = "1.2.5"
 
