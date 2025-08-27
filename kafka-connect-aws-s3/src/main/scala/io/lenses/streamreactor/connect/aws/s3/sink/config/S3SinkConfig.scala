@@ -57,6 +57,10 @@ object S3SinkConfig extends PropsToConfigConverter[S3SinkConfig] {
       logMetrics                      = s3ConfigDefBuilder.getBoolean(LOG_METRICS_CONFIG)
       schemaChangeDetector            = s3ConfigDefBuilder.schemaChangeDetector()
       latestSchemaOptimizationEnabled = s3ConfigDefBuilder.getEnableLatestSchemaOptimization()
+      guardEnable                     = s3ConfigDefBuilder.getGuardEnable
+      guardBootstrap                  = s3ConfigDefBuilder.getGuardBootstrapServersOpt
+      guardTopic                      = s3ConfigDefBuilder.getGuardHeartbeatTopic
+      guardMs                         = s3ConfigDefBuilder.getGuardHeartbeatMs
     } yield S3SinkConfig(
       S3ConnectionConfig(s3ConfigDefBuilder.getParsedValues),
       sinkBucketOptions,
@@ -69,6 +73,10 @@ object S3SinkConfig extends PropsToConfigConverter[S3SinkConfig] {
       schemaChangeDetector        = schemaChangeDetector,
       skipNullValues              = s3ConfigDefBuilder.skipNullValues(),
       latestSchemaForWriteEnabled = latestSchemaOptimizationEnabled,
+      guardEnable,
+      guardBootstrap,
+      guardTopic,
+      guardMs,
     )
 
 }
@@ -85,4 +93,8 @@ case class S3SinkConfig(
   schemaChangeDetector:        SchemaChangeDetector,
   skipNullValues:              Boolean,
   latestSchemaForWriteEnabled: Boolean,
+  guardEnable:                 Boolean,
+  guardBootstrapServers:       Option[String],
+  guardHeartbeatTopic:         String,
+  guardHeartbeatMs:            Long,
 ) extends CloudSinkConfig[S3ConnectionConfig]

@@ -102,6 +102,9 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
     }
   }
 
+  protected final def getContextProps: Map[String, String] =
+    Option(context).flatMap(c => Option(c.configs())).map(_.asScala.toMap).getOrElse(Map.empty[String, String])
+
   private def rollback(topicPartitions: Set[TopicPartition]): Unit =
     topicPartitions.foreach(writerManager.cleanUp)
 
@@ -142,10 +145,11 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
         }
     }
 
-  override def put(records: util.Collection[SinkRecord]): Unit =
+  override def put(records: util.Collection[SinkRecord]): Unit = {
     Metrics.withTimer {
       handleTry {
         Try {
+          if (!records.isEmpty) preWriteHeartbeat(records)
 
           logger.debug(
             s"[${connectorTaskId.show}] put records=${records.size()} stats=${buildLogForRecords(records.asScala)
@@ -208,12 +212,16 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
           }
         }
       }
-      ()
     } { e =>
       if (logMetrics) {
         logger.info(s"[${connectorTaskId.show}] put records=${records.size()} took $e ms")
       }
+      ()
     }
+    ()
+  }
+
+  protected def preWriteHeartbeat(records: util.Collection[SinkRecord]): Unit = ()
 
   override def preCommit(
     currentOffsets: util.Map[KafkaTopicPartition, OffsetAndMetadata],

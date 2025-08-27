@@ -53,6 +53,10 @@ object DatalakeSinkConfig extends PropsToConfigConverter[DatalakeSinkConfig] {
       logMetrics              = s3ConfigDefBuilder.getBoolean(LOG_METRICS_CONFIG)
       schemaChangeDetector    = s3ConfigDefBuilder.schemaChangeDetector()
       useLatestSchemaForWrite = s3ConfigDefBuilder.getEnableLatestSchemaOptimization()
+      guardEnable             = s3ConfigDefBuilder.getGuardEnable
+      guardBootstrap          = s3ConfigDefBuilder.getGuardBootstrapServersOpt
+      guardTopic              = s3ConfigDefBuilder.getGuardHeartbeatTopic
+      guardMs                 = s3ConfigDefBuilder.getGuardHeartbeatMs
     } yield DatalakeSinkConfig(
       AzureConnectionConfig(s3ConfigDefBuilder.getParsedValues, authMode),
       sinkBucketOptions,
@@ -64,6 +68,10 @@ object DatalakeSinkConfig extends PropsToConfigConverter[DatalakeSinkConfig] {
       schemaChangeDetector,
       skipNullValues              = s3ConfigDefBuilder.skipNullValues(),
       latestSchemaForWriteEnabled = useLatestSchemaForWrite,
+      guardEnable,
+      guardBootstrap,
+      guardTopic,
+      guardMs,
     )
 
 }
@@ -79,4 +87,8 @@ case class DatalakeSinkConfig(
   schemaChangeDetector:        SchemaChangeDetector,
   skipNullValues:              Boolean,
   latestSchemaForWriteEnabled: Boolean                     = false,
+  guardEnable:                 Boolean,
+  guardBootstrapServers:       Option[String],
+  guardHeartbeatTopic:         String,
+  guardHeartbeatMs:            Long,
 ) extends CloudSinkConfig[AzureConnectionConfig]

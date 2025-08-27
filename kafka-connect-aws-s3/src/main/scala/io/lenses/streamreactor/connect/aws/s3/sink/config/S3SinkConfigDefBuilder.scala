@@ -19,12 +19,14 @@ import io.lenses.streamreactor.common.config.base.traits._
 import io.lenses.streamreactor.connect.aws.s3.config.DeleteModeSettings
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings
 import io.lenses.streamreactor.connect.cloud.common.sink.config.CloudSinkConfigDefBuilder
+import io.lenses.streamreactor.connect.cloud.common.sink.config.GuardSettings
 
 import scala.jdk.CollectionConverters.MapHasAsScala
 
 case class S3SinkConfigDefBuilder(props: Map[String, AnyRef])
     extends BaseConfig(S3ConfigSettings.CONNECTOR_PREFIX, S3SinkConfigDef.config, props)
     with CloudSinkConfigDefBuilder
+    with GuardSettings
     with ErrorPolicySettings
     with RetryConfigSettings
     with DeleteModeSettings {

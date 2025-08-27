@@ -21,6 +21,10 @@ import io.lenses.streamreactor.connect.aws.s3.config.processors.kcql.Deprecation
 import io.lenses.streamreactor.connect.cloud.common.config.CloudConfigDef
 import io.lenses.streamreactor.connect.cloud.common.config.IndexConfigKeys
 import io.lenses.streamreactor.connect.cloud.common.sink.config._
+import io.lenses.streamreactor.connect.cloud.common.sink.config.GuardConfigKeys
+import io.lenses.streamreactor.connect.cloud.common.sink.config.FlushConfigKeys
+import io.lenses.streamreactor.connect.cloud.common.sink.config.LocalStagingAreaConfigKeys
+import io.lenses.streamreactor.connect.cloud.common.sink.config.SchemaChangeConfigKeys
 import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.PaddingStrategyConfigKeys
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.Importance
@@ -34,7 +38,8 @@ object S3SinkConfigDef
     with IndexConfigKeys
     with SchemaChangeConfigKeys
     with SkipNullConfigKeys
-    with EnableLatestSchemaOptimizationConfigKeys {
+    with EnableLatestSchemaOptimizationConfigKeys
+    with GuardConfigKeys {
 
   override def connectorPrefix: String = CONNECTOR_PREFIX
 
@@ -54,6 +59,7 @@ object S3SinkConfigDef
     withSchemaChangeConfig(configDef)
     withSkipNullConfig(configDef)
     withEnableLatestSchemaOptimizationConfig(configDef)
+    addGuardSettingsToConfigDef(configDef)
   }
 
 }

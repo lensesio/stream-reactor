@@ -15,18 +15,17 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.sink
 
-import io.lenses.streamreactor.common.util.EitherUtils
-import io.lenses.streamreactor.common.util.JarManifest
+import io.lenses.streamreactor.common.util.{EitherUtils, JarManifest}
 import io.lenses.streamreactor.connect.aws.s3.auth.AwsS3ClientCreator
-import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings
-import io.lenses.streamreactor.connect.aws.s3.config.S3ConnectionConfig
+import io.lenses.streamreactor.connect.aws.s3.config.{S3ConfigSettings, S3ConnectionConfig}
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3LocationValidator
 import io.lenses.streamreactor.connect.aws.s3.sink.config.S3SinkConfig
-import io.lenses.streamreactor.connect.aws.s3.storage.AwsS3StorageInterface
-import io.lenses.streamreactor.connect.aws.s3.storage.S3FileMetadata
+import io.lenses.streamreactor.connect.aws.s3.storage.{AwsS3StorageInterface, S3FileMetadata}
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
+import io.lenses.streamreactor.connect.cloud.common.guard.KafkaGuardSupport
 import io.lenses.streamreactor.connect.cloud.common.sink.CloudSinkTask
-import io.lenses.streamreactor.connect.cloud.common.sink.WriterManagerCreator
+import io.lenses.streamreactor.connect.cloud.common.sink.config.GuardConfigKeys
+import org.apache.kafka.common.TopicPartition
 import software.amazon.awssdk.services.s3.S3Client
 
 object S3SinkTask {}
@@ -41,9 +40,11 @@ class S3SinkTask
       S3ConfigSettings.CONNECTOR_PREFIX,
       "/aws-s3-sink-ascii.txt",
       EitherUtils.unpackOrThrow(JarManifest.produceFromClass(S3SinkTask.getClass)),
-    ) {
+    )
+    with KafkaGuardSupport {
 
-  val writerManagerCreator = new WriterManagerCreator[S3FileMetadata, S3SinkConfig]()
+  override def guardConfigKeys: GuardConfigKeys =
+    new GuardConfigKeys { override def connectorPrefix: String = S3ConfigSettings.CONNECTOR_PREFIX }
 
   override def createStorageInterface(
     connectorTaskId: ConnectorTaskId,
@@ -64,4 +65,21 @@ class S3SinkTask
     props:           Map[String, String],
   ): Either[Throwable, S3SinkConfig] = S3SinkConfig.fromProps(connectorTaskId, props)(S3LocationValidator)
 
+  override def open(partitions: java.util.Collection[TopicPartition]): Unit = {
+    super.open(partitions)
+    onOpenGuard(partitions)
+  }
+
+  override def close(partitions: java.util.Collection[TopicPartition]): Unit =
+    try { onCloseGuard(partitions) }
+    finally super.close(partitions)
+
+  override def stop(): Unit =
+    try { onStopGuard() }
+    finally super.stop()
+
+  override protected def preWriteHeartbeat(
+    records: java.util.Collection[org.apache.kafka.connect.sink.SinkRecord],
+  ): Unit =
+    preWriteHeartbeatGuard()
 }
