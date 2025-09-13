@@ -85,7 +85,7 @@ object Dependencies {
     val azureDataLakeVersion              = "12.23.0"
     val azureIdentityVersion              = "1.16.2"
     val azureCoreVersion                  = "1.55.4"
-    val msal4jVersion                     = "1.21.0"
+    val msal4jVersion                     = "1.23.1"
     val msal4jPersistenceExtensionVersion = "1.3.0"
     val gcpCloudVersion                   = "2.57.2"
     val gcpCloudStorageVersion            = "2.53.1"
