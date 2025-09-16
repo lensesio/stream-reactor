@@ -128,6 +128,9 @@ class IndexManagerV2(
               _,
             )) =>
           // file exists
+          //store the eTag otherwise processPendingOperations which ends up calling update will fail
+          // because the eTag is missing for the topic partition
+          topicPartitionToETags.put(topicPartition, objectWithetag.eTag)
           for {
             newCommittedOffset <- pendingOperationsProcessors.processPendingOperations(
               topicPartition,
