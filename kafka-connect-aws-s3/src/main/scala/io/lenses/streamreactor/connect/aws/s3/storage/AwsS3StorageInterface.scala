@@ -257,7 +257,6 @@ class AwsS3StorageInterface(
       DeleteObjectRequest
         .builder()
         .bucket(bucket)
-        .versionId("")
         .key(file)
         .ifMatch(eTag)
         .build(),
