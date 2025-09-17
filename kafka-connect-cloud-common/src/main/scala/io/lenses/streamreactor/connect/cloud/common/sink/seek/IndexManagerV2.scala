@@ -284,6 +284,6 @@ object IndexManagerV2 {
     topicPartition:    TopicPartition,
     directoryFileName: String,
   ): String =
-    s"$directoryFileName/.locks/${topicPartition.topic}/${topicPartition.partition}.lock"
+    s"$directoryFileName/${connectorTaskId.name}/.locks/${topicPartition.topic}/${topicPartition.partition}.lock"
 
 }

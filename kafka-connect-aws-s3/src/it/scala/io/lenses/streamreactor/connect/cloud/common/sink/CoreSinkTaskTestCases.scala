@@ -1153,7 +1153,7 @@ abstract class CoreSinkTaskTestCases[
     // the results do contain the index.  The sink always looks for the index at the root of the bucket when offset synching.
     // The source excludes the index files.
     fileList should contain allOf (
-      ".indexes/.locks/Topic(myTopic)/1.lock",
+      ".indexes/s3SinkTaskBuildLocalTest/.locks/Topic(myTopic)/1.lock",
       "region=8/name=sam/myTopic(000000000001_000000000000).json",
       "region=5/name=laura/myTopic(000000000001_000000000001).json",
       "region=5/name=tom/myTopic(000000000001_000000000002).json"

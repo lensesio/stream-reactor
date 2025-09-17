@@ -196,7 +196,7 @@ class IndexManagerV2Test
     )(storageInterface, ConnectorTaskId("connector", 1, 0))
 
     indexManager.open(Set(topicPartition))
-    verifyLockFilePathUsed(storageInterface, directoryFileName, topicPartition)
+    verifyLockFilePathUsed(storageInterface, directoryFileName, topicPartition, "connector")
   }
 
   private def setupMocksForLockFilePathTest() = {
@@ -223,11 +223,14 @@ class IndexManagerV2Test
     storageInterface:  StorageInterface[_],
     directoryFileName: String,
     topicPartition:    TopicPartition,
+    connectorName:     String,
   ): Assertion = {
     val pathCaptor = ArgumentCaptor.forClass(classOf[String])
     verify(storageInterface).getBlobAsObject[IndexFile](anyString(), pathCaptor.capture())(any[Decoder[IndexFile]])
     val usedPath = pathCaptor.getValue
-    usedPath should be(s"$directoryFileName/.locks/${topicPartition.topic}/${topicPartition.partition}.lock")
+    usedPath should be(
+      s"$directoryFileName/${connectorName}/.locks/${topicPartition.topic}/${topicPartition.partition}.lock",
+    )
   }
 
   test("generateLockFilePath uses the provided directoryFileName") {
@@ -237,7 +240,7 @@ class IndexManagerV2Test
 
     val lockFilePath = IndexManagerV2.generateLockFilePath(connectorTaskId, topicPartition, directoryFileName)
 
-    lockFilePath should be(s"$directoryFileName/.locks/Topic(my-topic)/5.lock")
+    lockFilePath should be(s"$directoryFileName/my-connector/.locks/Topic(my-topic)/5.lock")
   }
 
   test("open should successfully process pending operations without race condition") {
