@@ -31,6 +31,9 @@ import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.deprecated.IndexManagerV1
 import io.lenses.streamreactor.connect.cloud.common.storage.FileNotFoundError
 import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
+import io.lenses.streamreactor.connect.cloud.common.sink.FatalCloudSinkError
+import io.lenses.streamreactor.connect.cloud.common.storage.PathError
+import io.lenses.streamreactor.connect.cloud.common.storage.FileMoveError
 import org.mockito.ArgumentCaptor
 import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchersSugar
@@ -92,6 +95,7 @@ class IndexManagerV2Test
 
   private def runOpenForOffset(topicPartitions: Set[TopicPartition], bucketAndPrefix: CloudLocation) = {
     when(bucketAndPrefixFn(any[TopicPartition])).thenReturn(Right(bucketAndPrefix))
+    when(storageInterface.pathExists(anyString(), anyString())).thenReturn(Right(false))
     when(storageInterface.getBlobAsObject[IndexFile](anyString(), anyString())(ArgumentMatchers.eq(indexFileDecoder)))
       .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(100)), None), "etag")))
 
@@ -111,6 +115,7 @@ class IndexManagerV2Test
   private def runOpen(topicPartition: TopicPartition, bucketAndPrefix: CloudLocation, path: String) = {
     when(oldIndexManager.seekOffsetsForTopicPartition(topicPartition)).thenReturn(Option.empty.asRight)
     when(bucketAndPrefixFn(topicPartition)).thenReturn(Right(bucketAndPrefix))
+    when(storageInterface.pathExists(anyString(), anyString())).thenReturn(Right(false))
     when(storageInterface.getBlobAsObject[IndexFile](anyString(), anyString())(ArgumentMatchers.eq(indexFileDecoder)))
       .thenReturn(Left(FileNotFoundError(new Exception("Not found"), path)))
     when(
@@ -208,6 +213,7 @@ class IndexManagerV2Test
     val bucketAndPrefixFn: TopicPartition => Either[SinkError, CloudLocation] =
       _ => Right(CloudLocation("bucket", None))
 
+    when(storageInterface.pathExists(anyString(), anyString())).thenReturn(Right(false))
     when(storageInterface.getBlobAsObject[IndexFile](anyString(), anyString())(any[Decoder[IndexFile]]))
       .thenReturn(Left(FileNotFoundError(new Exception("Not found"), "somepath")))
     when(oldIndexManager.seekOffsetsForTopicPartition(any[TopicPartition])).thenReturn(None.asRight)
@@ -247,57 +253,65 @@ class IndexManagerV2Test
     // This test verifies that the race condition bug has been fixed. Previously, pending operations
     // were processed before the eTag was stored in topicPartitionToETags map, causing the update()
     // method to fail with "Index not found" error. Now it should work correctly.
-    
-    val topicPartition = Topic("my-topic").withPartition(0)
+
+    val topicPartition  = Topic("my-topic").withPartition(0)
     val bucketAndPrefix = CloudLocation("my-bucket", "prefix".some)
-    
+
     // Create pending operations similar to the bug report
     val pendingOperations = NonEmptyList.of(
       CopyOperation(
         bucket = "my-bucket",
-        source = ".temp-upload/Topic(my-topic)/0/b25f433f-d790-4ba1-b6d6-871f07c7a211kafka/topics/497de2d9f0370cd3/my-topic/0/000000000773_1756721073301_1756810548919.avro",
+        source =
+          ".temp-upload/Topic(my-topic)/0/b25f433f-d790-4ba1-b6d6-871f07c7a211kafka/topics/497de2d9f0370cd3/my-topic/0/000000000773_1756721073301_1756810548919.avro",
         destination = "kafka/topics/497de2d9f0370cd3/my-topic/0/000000000773_1756721073301_1756810548919.avro",
-        eTag = "\"004ef63902cbd9da30709e77c0132bf6\""
+        eTag        = "\"004ef63902cbd9da30709e77c0132bf6\"",
       ),
       DeleteOperation(
         bucket = "my-bucket",
-        source = ".temp-upload/Topic(my-topic)/0/b25f433f-d790-4ba1-b6d6-871f07c7a211kafka/topics/497de2d9f0370cd3/my-topic/0/000000000773_1756721073301_1756810548919.avro",
-        eTag = "\"004ef63902cbd9da30709e77c0132bf6\""
-      )
+        source =
+          ".temp-upload/Topic(my-topic)/0/b25f433f-d790-4ba1-b6d6-871f07c7a211kafka/topics/497de2d9f0370cd3/my-topic/0/000000000773_1756721073301_1756810548919.avro",
+        eTag = "\"004ef63902cbd9da30709e77c0132bf6\"",
+      ),
     )
-    
+
     val pendingState = PendingState(
-      pendingOffset = Offset(773),
-      pendingOperations = pendingOperations
+      pendingOffset     = Offset(773),
+      pendingOperations = pendingOperations,
     )
-    
+
     val indexFile = IndexFile(
-      owner = "bbee8a19-639b-4a5d-9f6f-b344f9bb00c0",
+      owner           = "bbee8a19-639b-4a5d-9f6f-b344f9bb00c0",
       committedOffset = Some(Offset(733)),
-      pendingState = Some(pendingState)
+      pendingState    = Some(pendingState),
     )
-    
+
     val objectWithETag = ObjectWithETag(indexFile, "original-etag")
-    
+
     // Setup mocks
     when(bucketAndPrefixFn(topicPartition)).thenReturn(Right(bucketAndPrefix))
+    // Mock pathExists to return false for old path (no migration needed)
+    when(storageInterface.pathExists(anyString(), anyString())).thenReturn(Right(false))
     when(storageInterface.getBlobAsObject[IndexFile](anyString(), anyString())(ArgumentMatchers.eq(indexFileDecoder)))
       .thenReturn(Right(objectWithETag))
-    
+
     // Mock the storage interface methods that will be called during pending operations processing
     when(storageInterface.mvFile(anyString(), anyString(), anyString(), anyString(), any[Option[String]]))
       .thenReturn(Right(()))
     when(storageInterface.deleteFile(anyString(), anyString(), anyString()))
       .thenReturn(Right(()))
-    
+
     // Mock writeBlobToFile to simulate successful index file updates during pending operations processing
-    when(storageInterface.writeBlobToFile[IndexFile](anyString(), anyString(), any[ObjectWithETag[IndexFile]])(
-      ArgumentMatchers.eq(indexFileEncoder)
-    )).thenReturn(Right(ObjectWithETag(indexFile.copy(pendingState = None, committedOffset = Some(Offset(773))), "updated-etag")))
-    
+    when(
+      storageInterface.writeBlobToFile[IndexFile](anyString(), anyString(), any[ObjectWithETag[IndexFile]])(
+        ArgumentMatchers.eq(indexFileEncoder),
+      ),
+    ).thenReturn(Right(ObjectWithETag(indexFile.copy(pendingState = None, committedOffset = Some(Offset(773))),
+                                      "updated-etag",
+    )))
+
     // Create a real PendingOperationsProcessors instance to test the actual flow
     val realPendingOperationsProcessors = new PendingOperationsProcessors(storageInterface)
-    
+
     // Create a new IndexManagerV2 with the real pending operations processor
     val realIndexManagerV2 = new IndexManagerV2(
       bucketAndPrefixFn,
@@ -305,32 +319,175 @@ class IndexManagerV2Test
       realPendingOperationsProcessors,
       indexesDirectoryName,
     )(storageInterface, connectorTaskId)
-    
+
     // The open method should now succeed and process pending operations correctly
     // The fix ensures that:
     // 1. Index file is loaded with pending operations
     // 2. eTag is stored in topicPartitionToETags map before processing pending operations
-    // 3. processPendingOperations is called which calls update() 
+    // 3. processPendingOperations is called which calls update()
     // 4. update() can successfully get eTag from topicPartitionToETags map
     // 5. Pending operations are processed successfully
     val result = realIndexManagerV2.open(Set(topicPartition))
-    
+
     // Verify the operation succeeds
     result.isRight shouldBe true
     result.value shouldBe Map(topicPartition -> Some(Offset(773)))
-    
+
     // Verify that the storage interface was called to load the index file
     verify(storageInterface).getBlobAsObject[IndexFile](anyString(), anyString())(ArgumentMatchers.eq(indexFileDecoder))
-    
+
     // Verify that pending operations were processed (copy and delete operations)
     verify(storageInterface).mvFile(anyString(), anyString(), anyString(), anyString(), any[Option[String]])
     verify(storageInterface).deleteFile(anyString(), anyString(), anyString())
-    
+
     // Verify that the index file was updated after processing pending operations
     // Note: writeBlobToFile may be called multiple times during pending operations processing
-    verify(storageInterface, times(2)).writeBlobToFile[IndexFile](anyString(), anyString(), any[ObjectWithETag[IndexFile]])(
-      ArgumentMatchers.eq(indexFileEncoder)
+    verify(storageInterface, times(2)).writeBlobToFile[IndexFile](anyString(),
+                                                                  anyString(),
+                                                                  any[ObjectWithETag[IndexFile]],
+    )(
+      ArgumentMatchers.eq(indexFileEncoder),
     )
   }
 
+  test("migrateOldPathIfExists should move old path to new path when old path exists") {
+    val topicPartition  = Topic("test-topic").withPartition(0)
+    val bucketAndPrefix = CloudLocation("test-bucket", "test-prefix".some)
+    val oldPath         = ".indexes2/.locks/Topic(test-topic)/0.lock"
+    val newPath         = ".indexes2/connector-name/.locks/Topic(test-topic)/0.lock"
+
+    // Mock bucketAndPrefixFn to return the CloudLocation
+    when(bucketAndPrefixFn(topicPartition)).thenReturn(Right(bucketAndPrefix))
+
+    // Mock pathExists to return true (old path exists)
+    when(storageInterface.pathExists("test-bucket", oldPath)).thenReturn(Right(true))
+
+    // Mock mvFile to return success - use flexible matchers to handle path variations
+    when(storageInterface.mvFile(anyString(), anyString(), anyString(), anyString(), ArgumentMatchers.eq(None)))
+      .thenReturn(Right(()))
+
+    // Mock the rest of the open flow
+    when(storageInterface.getBlobAsObject[IndexFile](anyString(), anyString())(ArgumentMatchers.eq(indexFileDecoder)))
+      .thenReturn(Left(FileNotFoundError(new Exception("Not found"), newPath)))
+    when(oldIndexManager.seekOffsetsForTopicPartition(topicPartition)).thenReturn(Option.empty.asRight)
+    when(
+      storageInterface.writeBlobToFile[IndexFile](anyString(), anyString(), any[ObjectWithETag[IndexFile]])(
+        ArgumentMatchers.eq(indexFileEncoder),
+      ),
+    )
+      .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", None, None), "etag")))
+
+    val result = indexManagerV2.open(Set(topicPartition))
+
+    result shouldBe Right(Map(topicPartition -> None))
+
+    // Verify that pathExists was called with the old path
+    verify(storageInterface).pathExists("test-bucket", oldPath)
+
+    // Verify that mvFile was called to move from old path to new path
+    verify(storageInterface).mvFile(anyString(), anyString(), anyString(), anyString(), ArgumentMatchers.eq(None))
+  }
+
+  test("migrateOldPathIfExists should do nothing when old path does not exist") {
+    val topicPartition  = Topic("test-topic").withPartition(0)
+    val bucketAndPrefix = CloudLocation("test-bucket", "test-prefix".some)
+    val oldPath         = ".indexes2/.locks/Topic(test-topic)/0.lock"
+    val newPath         = ".indexes2/connector-name/.locks/Topic(test-topic)/0.lock"
+
+    // Mock bucketAndPrefixFn to return the CloudLocation
+    when(bucketAndPrefixFn(topicPartition)).thenReturn(Right(bucketAndPrefix))
+
+    // Mock pathExists to return false (old path does not exist)
+    when(storageInterface.pathExists("test-bucket", oldPath)).thenReturn(Right(false))
+
+    // Mock the rest of the open flow
+    when(storageInterface.getBlobAsObject[IndexFile](anyString(), anyString())(ArgumentMatchers.eq(indexFileDecoder)))
+      .thenReturn(Left(FileNotFoundError(new Exception("Not found"), newPath)))
+    when(oldIndexManager.seekOffsetsForTopicPartition(topicPartition)).thenReturn(Option.empty.asRight)
+    when(
+      storageInterface.writeBlobToFile[IndexFile](anyString(), anyString(), any[ObjectWithETag[IndexFile]])(
+        ArgumentMatchers.eq(indexFileEncoder),
+      ),
+    )
+      .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", None, None), "etag")))
+
+    val result = indexManagerV2.open(Set(topicPartition))
+
+    result shouldBe Right(Map(topicPartition -> None))
+
+    // Verify that pathExists was called with the old path
+    verify(storageInterface).pathExists("test-bucket", oldPath)
+
+    // Verify that mvFile was NOT called since old path doesn't exist
+    verify(storageInterface, never).mvFile(anyString(),
+                                           anyString(),
+                                           anyString(),
+                                           anyString(),
+                                           ArgumentMatchers.eq(None),
+    )
+  }
+
+  test("migrateOldPathIfExists should propagate error when pathExists returns an error") {
+    val topicPartition  = Topic("test-topic").withPartition(0)
+    val bucketAndPrefix = CloudLocation("test-bucket", "test-prefix".some)
+    val oldPath         = ".indexes2/.locks/Topic(test-topic)/0.lock"
+    val pathError       = PathError(new RuntimeException("Storage error"), oldPath)
+
+    // Mock bucketAndPrefixFn to return the CloudLocation
+    when(bucketAndPrefixFn(topicPartition)).thenReturn(Right(bucketAndPrefix))
+
+    // Mock pathExists to return an error
+    when(storageInterface.pathExists("test-bucket", oldPath)).thenReturn(Left(pathError))
+
+    val result = indexManagerV2.open(Set(topicPartition))
+
+    result.isLeft shouldBe true
+    result.left.getOrElse(throw new RuntimeException("Expected Left but got Right")) shouldBe a[FatalCloudSinkError]
+    result.left.getOrElse(throw new RuntimeException("Expected Left but got Right")).asInstanceOf[
+      FatalCloudSinkError,
+    ].message shouldBe "error loading file (.indexes2/.locks/Topic(test-topic)/0.lock) Storage error"
+
+    // Verify that pathExists was called with the old path
+    verify(storageInterface).pathExists("test-bucket", oldPath)
+
+    // Verify that mvFile was NOT called since pathExists failed
+    verify(storageInterface, never).mvFile(anyString(),
+                                           anyString(),
+                                           anyString(),
+                                           anyString(),
+                                           ArgumentMatchers.eq(None),
+    )
+  }
+
+  test("migrateOldPathIfExists should propagate error when mvFile returns an error") {
+    val topicPartition  = Topic("test-topic").withPartition(0)
+    val bucketAndPrefix = CloudLocation("test-bucket", "test-prefix".some)
+    val oldPath         = ".indexes2/.locks/Topic(test-topic)/0.lock"
+    val newPath         = ".indexes2/connector-name/.locks/Topic(test-topic)/0.lock"
+    val moveError       = FileMoveError(new RuntimeException("Move error"), oldPath, newPath)
+
+    // Mock bucketAndPrefixFn to return the CloudLocation
+    when(bucketAndPrefixFn(topicPartition)).thenReturn(Right(bucketAndPrefix))
+
+    // Mock pathExists to return true (old path exists)
+    when(storageInterface.pathExists("test-bucket", oldPath)).thenReturn(Right(true))
+
+    // Mock mvFile to return an error - use anyString() to match any path
+    when(storageInterface.mvFile(anyString(), anyString(), anyString(), anyString(), ArgumentMatchers.eq(None)))
+      .thenReturn(Left(moveError))
+
+    val result = indexManagerV2.open(Set(topicPartition))
+
+    result.isLeft shouldBe true
+    result.left.getOrElse(throw new RuntimeException("Expected Left but got Right")) shouldBe a[FatalCloudSinkError]
+    result.left.getOrElse(throw new RuntimeException("Expected Left but got Right")).asInstanceOf[
+      FatalCloudSinkError,
+    ].message shouldBe "error moving file from (.indexes2/.locks/Topic(test-topic)/0.lock) to (.indexes2/connector-name/.locks/Topic(test-topic)/0.lock) Move error"
+
+    // Verify that pathExists was called with the old path
+    verify(storageInterface).pathExists("test-bucket", oldPath)
+
+    // Verify that mvFile was called and failed
+    verify(storageInterface).mvFile(anyString(), anyString(), anyString(), anyString(), ArgumentMatchers.eq(None))
+  }
 }

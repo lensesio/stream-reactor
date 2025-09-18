@@ -26,7 +26,7 @@ import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.sink.FatalCloudSinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
-import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexManagerV2.generateLockFilePath
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexManagerV2._
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.deprecated.IndexManagerV1
 import io.lenses.streamreactor.connect.cloud.common.storage.FileLoadError
 import io.lenses.streamreactor.connect.cloud.common.storage.FileNotFoundError
@@ -110,9 +110,12 @@ class IndexManagerV2(
    */
   private def open(topicPartition: TopicPartition): Either[SinkError, Option[Offset]] = {
 
-    val path = generateLockFilePath(connectorTaskId, topicPartition, directoryFileName)
+    val maybeOldPath = generateLockFilePathMigration(connectorTaskId, topicPartition, directoryFileName)
+    val path         = generateLockFilePath(connectorTaskId, topicPartition, directoryFileName)
     for {
       bucketAndPrefix <- bucketAndPrefixFn(topicPartition)
+      //move maybeOldPath to path if exists
+      _ <- migrateOldPathIfExists(bucketAndPrefix, maybeOldPath, path, topicPartition)
       open: ObjectWithETag[IndexFile] <- tryOpen(bucketAndPrefix.bucket, path) match {
 
         case Left(FileNotFoundError(_, _)) =>
@@ -152,6 +155,38 @@ class IndexManagerV2(
     } yield updateDataReturnOffset(topicPartition, open)
 
   }
+
+  private def migrateOldPathIfExists(
+    bucketAndPrefix: CloudLocation,
+    maybeOldPath:    String,
+    path:            String,
+    topicPartition:  TopicPartition,
+  ): Either[FatalCloudSinkError, Unit] =
+    storageInterface.pathExists(bucketAndPrefix.bucket, maybeOldPath) match {
+      case Left(error) =>
+        //old path does not exist, nothing to do
+        val fatalError = new FatalCloudSinkError(error.message(), error.toExceptionOption, topicPartition)
+        logger.error(
+          s"Failed to check existence of old index file for $topicPartition at $maybeOldPath: ${fatalError.message}",
+        )
+        fatalError.asLeft
+      case Right(false) =>
+        //old path does not exist, nothing to do
+        ().asRight
+      case Right(true) =>
+        //old path exists, move to new path
+        storageInterface.mvFile(bucketAndPrefix.bucket, maybeOldPath, bucketAndPrefix.bucket, path, None) match {
+          case Left(err) =>
+            val error = new FatalCloudSinkError(err.message(), err.toExceptionOption, topicPartition)
+            logger.error(
+              s"Failed to move old index file for $topicPartition from $maybeOldPath to $path: ${error.message}",
+            )
+            error.asLeft
+          case Right(_) =>
+            logger.info(s"Migrated old index file for $topicPartition from $maybeOldPath to $path")
+            ().asRight
+        }
+    }
 
   /**
    * Updates internal maps with the latest offset and eTag for a topic partition.
@@ -285,5 +320,17 @@ object IndexManagerV2 {
     directoryFileName: String,
   ): String =
     s"$directoryFileName/${connectorTaskId.name}/.locks/${topicPartition.topic}/${topicPartition.partition}.lock"
+
+  /**
+   * It is used to migrate 9.0.0 to 10.0.0 regression where connector name is not used in the path
+   * allowing scenarios where connectors reading from the same topic overlaps and corrupts state.
+   * It is done to avoid manual migration, and used in the open method of IndexManagerV2 only.
+   */
+  private def generateLockFilePathMigration(
+    connectorTaskId:   ConnectorTaskId,
+    topicPartition:    TopicPartition,
+    directoryFileName: String,
+  ): String =
+    s"$directoryFileName/.locks/${topicPartition.topic}/${topicPartition.partition}.lock"
 
 }
