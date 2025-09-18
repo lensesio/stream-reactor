@@ -258,7 +258,6 @@ class AwsS3StorageInterface(
         .builder()
         .bucket(bucket)
         .key(file)
-        .ifMatch(eTag)
         .build(),
     )
   } match {
@@ -445,7 +444,6 @@ class AwsS3StorageInterface(
             copyObjectRequest.build(),
           )
           val deleteObjectRequest = DeleteObjectRequest.builder().bucket(oldBucket).key(oldPath)
-          maybeEtag.foreach(deleteObjectRequest.ifMatch)
           s3Client.deleteObject(deleteObjectRequest.build())
         }.toEither.leftMap(FileMoveError(_, oldPath, newPath)).void
     }
