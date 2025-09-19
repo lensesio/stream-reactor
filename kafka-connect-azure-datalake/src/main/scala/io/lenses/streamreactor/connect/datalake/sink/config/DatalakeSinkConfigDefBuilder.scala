@@ -17,6 +17,7 @@ package io.lenses.streamreactor.connect.datalake.sink.config
 
 import io.lenses.streamreactor.common.config.base.traits._
 import io.lenses.streamreactor.connect.cloud.common.sink.config.CloudSinkConfigDefBuilder
+import io.lenses.streamreactor.connect.cloud.common.sink.config.GuardSettings
 import io.lenses.streamreactor.connect.datalake.config.AuthModeSettings
 import io.lenses.streamreactor.connect.datalake.config.AzureConfigSettings
 
@@ -25,6 +26,7 @@ import scala.jdk.CollectionConverters.MapHasAsScala
 case class DatalakeSinkConfigDefBuilder(props: Map[String, AnyRef])
     extends BaseConfig(AzureConfigSettings.CONNECTOR_PREFIX, DatalakeSinkConfigDef.config, props)
     with CloudSinkConfigDefBuilder
+    with GuardSettings
     with ErrorPolicySettings
     with RetryConfigSettings
     with AuthModeSettings {
