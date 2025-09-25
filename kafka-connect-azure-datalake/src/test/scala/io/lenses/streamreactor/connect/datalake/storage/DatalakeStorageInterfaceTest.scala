@@ -424,7 +424,7 @@ class DatalakeStorageInterfaceTest
       byteArrayOutputStream: ByteArrayOutputStream =>
         byteArrayOutputStream.write(expectedContent.getBytes)
         byteArrayOutputStream.flush()
-        
+
         new FileReadResponse(
           new FileReadAsyncResponse(
             new HttpRequest(HttpMethod.GET, "https://test-url"), 
@@ -436,7 +436,6 @@ class DatalakeStorageInterfaceTest
         )
     }
     val result = storageInterface.getBlobAsStringAndEtag(bucket, path)
-    println(result)
 
     result.value should be((expectedEtag, expectedContent))
   }
