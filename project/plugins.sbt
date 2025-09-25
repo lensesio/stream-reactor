@@ -9,7 +9,7 @@ addSbtPlugin("org.xerial.sbt" % "sbt-pack" % "0.20")
 
 addCompilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1")
 
-addSbtPlugin("com.github.sbt" % "sbt-license-report" % "1.7.0")
+addSbtPlugin("com.github.sbt" % "sbt-license-report" % "1.9.0")
 
 //addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.13.2")
 
