@@ -165,7 +165,7 @@ object Dependencies {
     object Elastic7Versions extends ElasticVersions {
       override val elastic4sVersion:     String = "7.17.4"
       override val elasticSearchVersion: String = "7.17.28"
-      override val jnaVersion:           String = "5.17.0"
+      override val jnaVersion:           String = "5.18.1"
     }
 
   }
