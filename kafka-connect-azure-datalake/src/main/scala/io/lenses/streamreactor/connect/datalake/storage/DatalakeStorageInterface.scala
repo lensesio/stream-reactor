@@ -337,7 +337,7 @@ class DatalakeStorageInterface(connectorTaskId: ConnectorTaskId, client: DataLak
             null,
             null,
             null,
-            true,
+            false,
             null,
             Context.NONE,
           )

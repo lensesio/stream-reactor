@@ -17,6 +17,9 @@ package io.lenses.streamreactor.connect.datalake.storage
 
 import cats.implicits.catsSyntaxOptionId
 import cats.implicits.none
+import com.azure.core.http.HttpHeaders
+import com.azure.core.http.HttpMethod
+import com.azure.core.http.HttpRequest
 import com.azure.core.http.rest.Response
 import com.azure.core.http.HttpResponse
 import com.azure.core.http.HttpHeaders
@@ -26,6 +29,8 @@ import reactor.core.publisher.Mono
 import reactor.core.publisher.Flux
 import java.nio.ByteBuffer
 import java.nio.charset.Charset
+import com.azure.core.util.Context
+import com.azure.core.util.FluxUtil
 import com.azure.storage.common.ParallelTransferOptions
 import com.azure.storage.file.datalake.DataLakeFileClient
 import com.azure.storage.file.datalake.DataLakeDirectoryClient
@@ -34,6 +39,11 @@ import com.azure.storage.file.datalake.DataLakeServiceClient
 import com.azure.storage.file.datalake.models.DataLakeRequestConditions
 import com.azure.storage.file.datalake.models.PathHttpHeaders
 import com.azure.storage.file.datalake.models.DataLakeStorageException
+import com.azure.storage.file.datalake.models.DownloadRetryOptions
+import com.azure.storage.file.datalake.models.FileRange
+import com.azure.storage.file.datalake.models.FileReadAsyncResponse
+import com.azure.storage.file.datalake.models.FileReadHeaders
+import com.azure.storage.file.datalake.models.FileReadResponse
 import com.azure.storage.file.datalake.models.ListPathsOptions
 import com.azure.storage.file.datalake.models.PathInfo
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
@@ -488,6 +498,44 @@ class DatalakeStorageInterfaceTest
     val result = storageInterface.getBlobAsString(bucket, path)
 
     result.left.value should be(a[GeneralFileLoadError])
+  }
+
+  "getBlobAsStringAndEtag" should "return the etag and the blob content as a string when successful" in {
+    val bucket = "test-bucket"
+    val path   = "test-path"
+
+    val expectedEtag = "etag"
+    val expectedContent = "Kwisatz Haderach"
+    when(
+      client.getFileSystemClient(bucket)
+        .getFileClient(path)
+        .readWithResponse(
+          any[ByteArrayOutputStream], 
+          any[FileRange], 
+          any[DownloadRetryOptions], 
+          any[DataLakeRequestConditions], 
+          any[Boolean], 
+          any[Duration], 
+          any[Context]
+        )
+    ).thenAnswer {
+      byteArrayOutputStream: ByteArrayOutputStream =>
+        byteArrayOutputStream.write(expectedContent.getBytes)
+        byteArrayOutputStream.flush()
+
+        new FileReadResponse(
+          new FileReadAsyncResponse(
+            new HttpRequest(HttpMethod.GET, "https://test-url"), 
+            200, 
+            new HttpHeaders(), 
+            FluxUtil.toFluxByteBuffer(new ByteArrayInputStream("".getBytes())), 
+            new FileReadHeaders().setETag(expectedEtag)
+          )
+        )
+    }
+    val result = storageInterface.getBlobAsStringAndEtag(bucket, path)
+
+    result.value should be((expectedEtag, expectedContent))
   }
 
   "writeStringToFile" should "upload the data string to the specified path when successful" in {
