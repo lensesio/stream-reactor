@@ -310,15 +310,15 @@ class DatalakeStorageInterfaceTest
   "uploadFile" should "create parent directory and retry on PathNotFound" in {
     val testFile = createTestFile
 
-    val eTag       = "myEtag"
-    val pathInfo   = mock[PathInfo]
+    val eTag     = "myEtag"
+    val pathInfo = mock[PathInfo]
     when(pathInfo.getETag).thenReturn(eTag)
-    val resp       = mock[Response[PathInfo]]
+    val resp = mock[Response[PathInfo]]
     when(resp.getValue).thenReturn(pathInfo)
 
-    val fileClient        = mock[DataLakeFileClient]
-    val fileSystemClient  = mock[DataLakeFileSystemClient]
-    val directoryClient   = mock[DataLakeDirectoryClient]
+    val fileClient       = mock[DataLakeFileClient]
+    val fileSystemClient = mock[DataLakeFileSystemClient]
+    val directoryClient  = mock[DataLakeDirectoryClient]
 
     val bucket = "test-bucket"
     val path   = "a/b/test-path"
@@ -338,7 +338,8 @@ class DatalakeStorageInterfaceTest
         isNull,
       ),
     ).thenAnswer { _: InvocationOnMock =>
-      if (uploadInvocationCount.getAndIncrement() == 0) throw new DataLakeStorageException("PathNotFound", mockHttpResponse(404), null)
+      if (uploadInvocationCount.getAndIncrement() == 0)
+        throw new DataLakeStorageException("PathNotFound", mockHttpResponse(404), null)
       else resp
     }
 
@@ -421,18 +422,17 @@ class DatalakeStorageInterfaceTest
   }
 
   private final class TestHttpResponse(req: HttpRequest, status: Int) extends HttpResponse(req) {
-    override def getStatusCode: Int = status
-    override def getHeaders: HttpHeaders = new HttpHeaders()
+    override def getStatusCode: Int         = status
+    override def getHeaders:    HttpHeaders = new HttpHeaders()
     override def getHeaderValue(name: String): String = null
     override def getBodyAsByteArray: Mono[Array[Byte]] = Mono.just(Array.emptyByteArray)
-    override def getBody: Flux[ByteBuffer] = Flux.empty()
+    override def getBody:            Flux[ByteBuffer]  = Flux.empty()
     override def getBodyAsString(charset: Charset): Mono[String] = Mono.just("")
     override def getBodyAsString(): Mono[String] = Mono.just("")
   }
 
-  private def mockHttpResponse(status: Int): HttpResponse = {
+  private def mockHttpResponse(status: Int): HttpResponse =
     new TestHttpResponse(new HttpRequest(HttpMethod.PUT, "https://example.com"), status)
-  }
 
   "listKeysRecursive" should "return a list of keys when successful" in {
     val bucket = "test-bucket"
@@ -504,20 +504,20 @@ class DatalakeStorageInterfaceTest
     val bucket = "test-bucket"
     val path   = "test-path"
 
-    val expectedEtag = "etag"
+    val expectedEtag    = "etag"
     val expectedContent = "Kwisatz Haderach"
     when(
       client.getFileSystemClient(bucket)
         .getFileClient(path)
         .readWithResponse(
-          any[ByteArrayOutputStream], 
-          any[FileRange], 
-          any[DownloadRetryOptions], 
-          any[DataLakeRequestConditions], 
-          any[Boolean], 
-          any[Duration], 
-          any[Context]
-        )
+          any[ByteArrayOutputStream],
+          any[FileRange],
+          any[DownloadRetryOptions],
+          any[DataLakeRequestConditions],
+          any[Boolean],
+          any[Duration],
+          any[Context],
+        ),
     ).thenAnswer {
       byteArrayOutputStream: ByteArrayOutputStream =>
         byteArrayOutputStream.write(expectedContent.getBytes)
@@ -525,12 +525,12 @@ class DatalakeStorageInterfaceTest
 
         new FileReadResponse(
           new FileReadAsyncResponse(
-            new HttpRequest(HttpMethod.GET, "https://test-url"), 
-            200, 
-            new HttpHeaders(), 
-            FluxUtil.toFluxByteBuffer(new ByteArrayInputStream("".getBytes())), 
-            new FileReadHeaders().setETag(expectedEtag)
-          )
+            new HttpRequest(HttpMethod.GET, "https://test-url"),
+            200,
+            new HttpHeaders(),
+            FluxUtil.toFluxByteBuffer(new ByteArrayInputStream("".getBytes())),
+            new FileReadHeaders().setETag(expectedEtag),
+          ),
         )
     }
     val result = storageInterface.getBlobAsStringAndEtag(bucket, path)

@@ -295,7 +295,9 @@ class DatalakeStorageInterface(connectorTaskId: ConnectorTaskId, client: DataLak
     tryRenamePath() match {
       case Right(_) => Right(())
       case Left(dse: DataLakeStorageException)
-          if dse.getStatusCode == 404 || Option(dse.getMessage).exists(_.contains("RenameDestinationParentPathNotFound")) =>
+          if dse.getStatusCode == 404 || Option(dse.getMessage).exists(
+            _.contains("RenameDestinationParentPathNotFound"),
+          ) =>
         parentDirectory(newPath) match {
           case Some(dir) =>
             createDirectoryIfNotExists(newBucket, dir) match {
@@ -409,7 +411,9 @@ class DatalakeStorageInterface(connectorTaskId: ConnectorTaskId, client: DataLak
 
     tryWriteBlob() match {
       case Right(eTag) =>
-        logger.debug(s"[${connectorTaskId.show}] Completed upload from data string ($content) to datalake $bucket:$path")
+        logger.debug(
+          s"[${connectorTaskId.show}] Completed upload from data string ($content) to datalake $bucket:$path",
+        )
         Right(new ObjectWithETag[O](objectProtection.wrappedObject, eTag))
       case Left(dse: DataLakeStorageException)
           if dse.getStatusCode == 404 || Option(dse.getMessage).exists(_.contains("PathNotFound")) =>
@@ -417,7 +421,9 @@ class DatalakeStorageInterface(connectorTaskId: ConnectorTaskId, client: DataLak
           case Some(dir) =>
             createDirectoryIfNotExists(bucket, dir) match {
               case Left(err) => Left(FileCreateError(err.exception, content))
-              case Right(_)  => tryWriteBlob().leftMap(ex => FileCreateError(ex, content)).map(et => new ObjectWithETag[O](objectProtection.wrappedObject, et))
+              case Right(_) => tryWriteBlob().leftMap(ex => FileCreateError(ex, content)).map(et =>
+                  new ObjectWithETag[O](objectProtection.wrappedObject, et),
+                )
             }
           case None => Left(FileCreateError(dse, content))
         }
