@@ -21,13 +21,20 @@ import com.azure.core.http.HttpHeaders
 import com.azure.core.http.HttpMethod
 import com.azure.core.http.HttpRequest
 import com.azure.core.http.rest.Response
+import com.azure.core.http.HttpResponse
+import reactor.core.publisher.Mono
+import reactor.core.publisher.Flux
+import java.nio.ByteBuffer
+import java.nio.charset.Charset
 import com.azure.core.util.Context
 import com.azure.core.util.FluxUtil
 import com.azure.storage.common.ParallelTransferOptions
 import com.azure.storage.file.datalake.DataLakeFileClient
+import com.azure.storage.file.datalake.DataLakeDirectoryClient
 import com.azure.storage.file.datalake.DataLakeFileSystemClient
 import com.azure.storage.file.datalake.DataLakeServiceClient
 import com.azure.storage.file.datalake.models.DataLakeRequestConditions
+import com.azure.storage.file.datalake.models.PathHttpHeaders
 import com.azure.storage.file.datalake.models.DataLakeStorageException
 import com.azure.storage.file.datalake.models.DownloadRetryOptions
 import com.azure.storage.file.datalake.models.FileRange
@@ -58,6 +65,7 @@ import org.mockito.ArgumentMatchers.anyString
 import org.mockito.ArgumentMatchersSugar
 import org.mockito.InOrder
 import org.mockito.MockitoSugar
+import org.mockito.invocation.InvocationOnMock
 import org.scalatest.BeforeAndAfter
 import org.scalatest.EitherValues
 import org.scalatest.OptionValues
@@ -296,6 +304,80 @@ class DatalakeStorageInterfaceTest
     result.left.value should be(a[UploadFailedError])
   }
 
+  "uploadFile" should "create parent directory and retry on PathNotFound" in {
+    val testFile = createTestFile
+
+    val eTag     = "myEtag"
+    val pathInfo = mock[PathInfo]
+    when(pathInfo.getETag).thenReturn(eTag)
+    val resp = mock[Response[PathInfo]]
+    when(resp.getValue).thenReturn(pathInfo)
+
+    val fileClient       = mock[DataLakeFileClient]
+    val fileSystemClient = mock[DataLakeFileSystemClient]
+    val directoryClient  = mock[DataLakeDirectoryClient]
+
+    val bucket = "test-bucket"
+    val path   = "a/b/test-path"
+
+    when(client.getFileSystemClient(bucket)).thenReturn(fileSystemClient)
+    when(fileSystemClient.createFile(path, true)).thenReturn(fileClient)
+    // First attempt throws 404/PathNotFound, second returns success
+    val uploadInvocationCount = new java.util.concurrent.atomic.AtomicInteger(0)
+    when(
+      fileClient.uploadFromFileWithResponse(
+        anyString(),
+        any[ParallelTransferOptions],
+        isNull[PathHttpHeaders],
+        isNull,
+        any[DataLakeRequestConditions],
+        isNull,
+        isNull,
+      ),
+    ).thenAnswer { _: InvocationOnMock =>
+      if (uploadInvocationCount.getAndIncrement() == 0)
+        throw new DataLakeStorageException("PathNotFound", mockHttpResponse(404), null)
+      else resp
+    }
+
+    // Ensure parent creation is possible
+    when(fileSystemClient.getDirectoryClient(anyString())).thenReturn(directoryClient)
+    when(directoryClient.createIfNotExists()).thenReturn(pathInfo)
+
+    val result = storageInterface.uploadFile(UploadableFile(testFile), bucket, path)
+
+    result should be(Right(eTag))
+  }
+
+  "mvFile" should "ensure parent and retry rename when parent missing" in {
+    val oldBucket = "oldBucket"
+    val oldPath   = "old/a.txt"
+    val newBucket = "newBucket"
+    val newPath   = "a/b/new.txt"
+
+    val fileClient       = mock[DataLakeFileClient]
+    val fileSystemClient = mock[DataLakeFileSystemClient]
+    val directoryClient  = mock[DataLakeDirectoryClient]
+    val response         = mock[Response[DataLakeFileClient]]
+
+    when(client.getFileSystemClient(oldBucket).getFileClient(oldPath)).thenReturn(fileClient)
+    val renameInvocationCount = new java.util.concurrent.atomic.AtomicInteger(0)
+    when(fileClient.renameWithResponse(eqTo(newBucket), eqTo(newPath), any, any, any, any))
+      .thenAnswer { _: InvocationOnMock =>
+        if (renameInvocationCount.getAndIncrement() == 0)
+          throw new DataLakeStorageException("RenameDestinationParentPathNotFound", mockHttpResponse(404), null)
+        else response
+      }
+
+    // Parent creation under newBucket
+    when(client.getFileSystemClient(newBucket)).thenReturn(fileSystemClient)
+    when(fileSystemClient.getDirectoryClient(anyString())).thenReturn(directoryClient)
+    when(directoryClient.createIfNotExists()).thenReturn(mock[PathInfo])
+
+    val res = storageInterface.mvFile(oldBucket, oldPath, newBucket, newPath, none)
+    res should be(Right(()))
+  }
+
   "pathExists" should "return Right(true) if the path exists" in {
     val bucket = "test-bucket"
     val path   = "existing-path"
@@ -335,6 +417,19 @@ class DatalakeStorageInterfaceTest
     Files.writeString(source.toPath, "real file content", StandardOpenOption.WRITE)
     source
   }
+
+  private final class TestHttpResponse(req: HttpRequest, status: Int) extends HttpResponse(req) {
+    override def getStatusCode: Int         = status
+    override def getHeaders:    HttpHeaders = new HttpHeaders()
+    override def getHeaderValue(name: String): String = null
+    override def getBodyAsByteArray: Mono[Array[Byte]] = Mono.just(Array.emptyByteArray)
+    override def getBody:            Flux[ByteBuffer]  = Flux.empty()
+    override def getBodyAsString(charset: Charset): Mono[String] = Mono.just("")
+    override def getBodyAsString(): Mono[String] = Mono.just("")
+  }
+
+  private def mockHttpResponse(status: Int): HttpResponse =
+    new TestHttpResponse(new HttpRequest(HttpMethod.PUT, "https://example.com"), status)
 
   "listKeysRecursive" should "return a list of keys when successful" in {
     val bucket = "test-bucket"
@@ -406,20 +501,20 @@ class DatalakeStorageInterfaceTest
     val bucket = "test-bucket"
     val path   = "test-path"
 
-    val expectedEtag = "etag"
+    val expectedEtag    = "etag"
     val expectedContent = "Kwisatz Haderach"
     when(
       client.getFileSystemClient(bucket)
         .getFileClient(path)
         .readWithResponse(
-          any[ByteArrayOutputStream], 
-          any[FileRange], 
-          any[DownloadRetryOptions], 
-          any[DataLakeRequestConditions], 
-          any[Boolean], 
-          any[Duration], 
-          any[Context]
-        )
+          any[ByteArrayOutputStream],
+          any[FileRange],
+          any[DownloadRetryOptions],
+          any[DataLakeRequestConditions],
+          any[Boolean],
+          any[Duration],
+          any[Context],
+        ),
     ).thenAnswer {
       byteArrayOutputStream: ByteArrayOutputStream =>
         byteArrayOutputStream.write(expectedContent.getBytes)
@@ -427,12 +522,12 @@ class DatalakeStorageInterfaceTest
 
         new FileReadResponse(
           new FileReadAsyncResponse(
-            new HttpRequest(HttpMethod.GET, "https://test-url"), 
-            200, 
-            new HttpHeaders(), 
-            FluxUtil.toFluxByteBuffer(new ByteArrayInputStream("".getBytes())), 
-            new FileReadHeaders().setETag(expectedEtag)
-          )
+            new HttpRequest(HttpMethod.GET, "https://test-url"),
+            200,
+            new HttpHeaders(),
+            FluxUtil.toFluxByteBuffer(new ByteArrayInputStream("".getBytes())),
+            new FileReadHeaders().setETag(expectedEtag),
+          ),
         )
     }
     val result = storageInterface.getBlobAsStringAndEtag(bucket, path)
@@ -554,7 +649,7 @@ class DatalakeStorageInterfaceTest
     val fileClient = mock[DataLakeFileClient]
     when(client.getFileSystemClient(oldBucket).getFileClient(oldPath)).thenReturn(fileClient)
     when(fileClient.renameWithResponse(eqTo(newBucket), eqTo(newPath), any, any, any, any)).thenThrow(
-      new DataLakeStorageException("Rename failed", null, null),
+      new DataLakeStorageException("Rename failed", mockHttpResponse(500), null),
     )
 
     val result = storageInterface.mvFile(oldBucket, oldPath, newBucket, newPath, none)
@@ -572,7 +667,7 @@ class DatalakeStorageInterfaceTest
 
     when(client.getFileSystemClient(oldBucket).getFileClient(oldPath)).thenThrow(new DataLakeStorageException(
       "File not found",
-      null,
+      mockHttpResponse(404),
       null,
     ))
 

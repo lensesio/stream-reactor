@@ -52,6 +52,11 @@ class DatalakeStorageInterface(connectorTaskId: ConnectorTaskId, client: DataLak
     extends StorageInterface[DatalakeFileMetadata]
     with LazyLogging {
 
+  private def parentDirectory(path: String): Option[String] = {
+    val idx = path.lastIndexOf('/')
+    if (idx > 0) Some(path.substring(0, idx)) else None
+  }
+
   override def list(
     bucket:        String,
     prefix:        Option[String],
@@ -172,37 +177,51 @@ class DatalakeStorageInterface(connectorTaskId: ConnectorTaskId, client: DataLak
 
   override def uploadFile(source: UploadableFile, bucket: String, path: String): Either[UploadError, String] = {
     logger.debug(s"[{}] Uploading file from local {} to Data Lake {}:{}", connectorTaskId.show, source, bucket, path)
+    def tryUploadFile(filePath: String, localFilePath: String): Either[Throwable, String] = Try {
+      val createFileClient: DataLakeFileClient = createFile(bucket, filePath)
+      val response = createFileClient.uploadFromFileWithResponse(
+        localFilePath,
+        new ParallelTransferOptions(),
+        null,                            // PathHttpHeaders
+        null,                            // Metadata
+        new DataLakeRequestConditions(), // RequestConditions to avoid overwriting
+        null,                            // Timeout
+        null,                            // Context
+      )
+      response.getValue.getETag
+    }.toEither
+
     for {
       file <- source.validate.toEither
-      eTag <- Try {
-        val createFileClient: DataLakeFileClient = createFile(bucket, path)
-        val response = createFileClient.uploadFromFileWithResponse(
-          file.getPath,
-          new ParallelTransferOptions(),
-          null,                            // PathHttpHeaders
-          null,                            // Metadata
-          new DataLakeRequestConditions(), // RequestConditions to avoid overwriting
-          null,                            // Timeout
-          null,                            // Context
-        )
-        logger.debug(s"[{}] Completed upload from local {} to Data Lake {}:{}",
-                     connectorTaskId.show,
-                     source,
-                     bucket,
-                     path,
-        )
-        response.getValue.getETag
-      }
-        .toEither.leftMap { ex =>
+      eTag <- tryUploadFile(path, file.getPath) match {
+        case Right(tag) =>
+          logger.debug(s"[{}] Completed upload from local {} to Data Lake {}:{}",
+                       connectorTaskId.show,
+                       source,
+                       bucket,
+                       path,
+          )
+          Right(tag)
+        case Left(dse: DataLakeStorageException)
+            if dse.getStatusCode == 404 || Option(dse.getMessage).exists(_.contains("PathNotFound")) =>
+          parentDirectory(path) match {
+            case Some(dir) =>
+              createDirectoryIfNotExists(bucket, dir) match {
+                case Left(err) => Left(UploadFailedError(err.exception, file))
+                case Right(_)  => tryUploadFile(path, file.getPath).leftMap(th => UploadFailedError(th, file))
+              }
+            case None => Left(UploadFailedError(dse, file))
+          }
+        case Left(other) =>
           logger.error(s"[{}] Failed upload from local {} to Data Lake {}:{}",
                        connectorTaskId.show,
                        source,
                        bucket,
                        path,
-                       ex,
+                       other,
           )
-          UploadFailedError(ex, file)
-        }
+          Left(UploadFailedError(other, file))
+      }
     } yield eTag
 
   }
@@ -260,7 +279,7 @@ class DatalakeStorageInterface(connectorTaskId: ConnectorTaskId, client: DataLak
     maybeEtag: Option[String],
   ): Either[FileMoveError, Unit] = {
     val conditions = maybeEtag.map(new DataLakeRequestConditions().setIfMatch(_))
-    Try(
+    def tryRenamePath(): Either[Throwable, Unit] = Try {
       client.getFileSystemClient(oldBucket).getFileClient(oldPath)
         .renameWithResponse(
           newBucket,
@@ -269,13 +288,47 @@ class DatalakeStorageInterface(connectorTaskId: ConnectorTaskId, client: DataLak
           null,
           null,
           Context.NONE,
-        ),
-    ).toEither.leftMap(
-      FileMoveError(_, oldPath, newPath),
-    ).void
+        )
+      ()
+    }.toEither
+
+    tryRenamePath() match {
+      case Right(_) => Right(())
+      case Left(dse: DataLakeStorageException)
+          if dse.getStatusCode == 404 || Option(dse.getMessage).exists(
+            _.contains("RenameDestinationParentPathNotFound"),
+          ) =>
+        parentDirectory(newPath) match {
+          case Some(dir) =>
+            createDirectoryIfNotExists(newBucket, dir) match {
+              case Left(err) => Left(FileMoveError(err.exception, oldPath, newPath))
+              case Right(_)  => tryRenamePath().leftMap(th => FileMoveError(th, oldPath, newPath))
+            }
+          case None => Left(FileMoveError(dse, oldPath, newPath))
+        }
+      case Left(other) => Left(FileMoveError(other, oldPath, newPath))
+    }
   }
 
-  override def createDirectoryIfNotExists(bucket: String, path: String): Either[FileCreateError, Unit] = ().asRight
+  override def createDirectoryIfNotExists(bucket: String, path: String): Either[FileCreateError, Unit] = {
+    // Create the directory path recursively
+    val normalizedPath = Option(path).map(_.trim.stripPrefix("/").stripSuffix("/")).getOrElse("")
+    if (normalizedPath.isEmpty) {
+      ().asRight
+    } else {
+      Try {
+        val fsClient = client.getFileSystemClient(bucket)
+        val segments = normalizedPath.split('/').toList.filter(_.nonEmpty)
+        var current  = ""
+        segments.foreach { segment =>
+          current = if (current.isEmpty) segment else s"$current/$segment"
+          val dirClient = fsClient.getDirectoryClient(current)
+          dirClient.createIfNotExists()
+          ()
+        }
+      }.toEither.leftMap(e => FileCreateError(e, normalizedPath)).void
+    }
+  }
 
   override def getBlobAsStringAndEtag(bucket: String, path: String): Either[FileLoadError, (String, String)] =
     Try {
@@ -333,41 +386,48 @@ class DatalakeStorageInterface(connectorTaskId: ConnectorTaskId, client: DataLak
       case _                            => requestConditions
     }
 
-    for {
-      resp <- Try {
-        val createFileClient: DataLakeFileClient = createFile(bucket, path)
-        val bytes = content.getBytes
-        Using.resource(new ByteArrayInputStream(bytes)) {
-          bais =>
-            createFileClient.append(bais, 0, bytes.length.toLong)
-        }
-        val position              = bytes.length.toLong
-        val pathHttpHeaders       = new PathHttpHeaders()
-        val retainUncommittedData = true
-        val close                 = false // or true, if you want to finalize the file
-        val context               = Context.NONE
+    def tryWriteBlob(): Either[Throwable, String] = Try {
+      val createFileClient: DataLakeFileClient = createFile(bucket, path)
+      val bytes = content.getBytes
+      Using.resource(new ByteArrayInputStream(bytes)) { bais =>
+        createFileClient.append(bais, 0, bytes.length.toLong)
+      }
+      val position              = bytes.length.toLong
+      val pathHttpHeaders       = new PathHttpHeaders()
+      val retainUncommittedData = true
+      val close                 = false // or true, if you want to finalize the file
+      val context               = Context.NONE
+      val response = createFileClient.flushWithResponse(
+        position,
+        retainUncommittedData,
+        close,
+        pathHttpHeaders,
+        protection,
+        null,
+        context,
+      )
+      response.getValue.getETag
+    }.toEither
 
-        val response = createFileClient.flushWithResponse(
-          position,
-          retainUncommittedData,
-          close,
-          pathHttpHeaders,
-          protection, // Correctly passed as DataLakeRequestConditions
-          null,       // Timeout duration remains optional
-          context,    // Context remains unchanged
-        )
-
+    tryWriteBlob() match {
+      case Right(eTag) =>
         logger.debug(
           s"[${connectorTaskId.show}] Completed upload from data string ($content) to datalake $bucket:$path",
         )
-        response
-      }.toEither.leftMap {
-        ex =>
-          logger.error(s"[{connectorTaskId.show}] Failed upload from data string ($content) to datalake $bucket:$path",
-                       ex,
-          )
-          FileCreateError(ex, content)
-      }
-    } yield new ObjectWithETag[O](objectProtection.wrappedObject, resp.getValue.getETag)
+        Right(new ObjectWithETag[O](objectProtection.wrappedObject, eTag))
+      case Left(dse: DataLakeStorageException)
+          if dse.getStatusCode == 404 || Option(dse.getMessage).exists(_.contains("PathNotFound")) =>
+        parentDirectory(path) match {
+          case Some(dir) =>
+            createDirectoryIfNotExists(bucket, dir) match {
+              case Left(err) => Left(FileCreateError(err.exception, content))
+              case Right(_) => tryWriteBlob().leftMap(ex => FileCreateError(ex, content)).map(et =>
+                  new ObjectWithETag[O](objectProtection.wrappedObject, et),
+                )
+            }
+          case None => Left(FileCreateError(dse, content))
+        }
+      case Left(other) => Left(FileCreateError(other, content))
+    }
   }
 }
