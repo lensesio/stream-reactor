@@ -22,9 +22,6 @@ import com.azure.core.http.HttpMethod
 import com.azure.core.http.HttpRequest
 import com.azure.core.http.rest.Response
 import com.azure.core.http.HttpResponse
-import com.azure.core.http.HttpHeaders
-import com.azure.core.http.HttpRequest
-import com.azure.core.http.HttpMethod
 import reactor.core.publisher.Mono
 import reactor.core.publisher.Flux
 import java.nio.ByteBuffer
