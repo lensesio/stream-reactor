@@ -92,7 +92,7 @@ object Dependencies {
 
     val woodstoxVersion     = "7.1.1"
     val jacksonVersion      = "2.19.1"
-    val json4sVersion       = "4.0.7"
+    val json4sVersion       = "4.1.0"
     val mockitoScalaVersion = "2.0.0"
     val mockitoJavaVersion  = "5.2.0"
     val openCsvVersion      = "5.11.1"
@@ -321,8 +321,8 @@ object Dependencies {
   lazy val gcpCloudHttp    = "com.google.cloud" % "google-cloud-core-http" % gcpCloudVersion
   lazy val gcpStorageSdk   = "com.google.cloud" % "google-cloud-storage"   % gcpCloudStorageVersion
 
-  lazy val json4sNative  = "org.json4s" %% "json4s-native"  % json4sVersion
-  lazy val json4sJackson = "org.json4s" %% "json4s-jackson" % json4sVersion
+  lazy val json4sNative  = "io.github.json4s" %% "json4s-native"  % json4sVersion
+  lazy val json4sJackson = "io.github.json4s" %% "json4s-jackson" % json4sVersion
   val jacksonCore: ModuleID = "com.fasterxml.jackson.core" % "jackson-core" % jacksonVersion
   val jacksonDatabind: ModuleID =
     "com.fasterxml.jackson.core" % "jackson-databind" % jacksonVersion
