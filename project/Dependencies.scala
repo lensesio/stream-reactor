@@ -109,7 +109,7 @@ object Dependencies {
     val messagingConnectorsCoreVersion = "1.0.15"
     val dsBulkVersion                  = "1.10.0"
     val guavaVersion                   = "25.1-jre"
-    val jsonPathVersion                = "2.9.0"
+    val jsonPathVersion                = "2.10.0"
 
     val azureSdkVersion            = "1.2.31"
     val azureCosmosDbVersion       = "4.66.0"
