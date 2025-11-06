@@ -40,7 +40,6 @@ import org.apache.kafka.connect.data.Schema
 import java.io.File
 import scala.collection.immutable
 import scala.collection.mutable
-import scala.util.Try
 
 case class MapKey(topicPartition: TopicPartition, partitionValues: immutable.Map[PartitionField, String])
 
@@ -192,32 +191,36 @@ class WriterManager[SM <: FileMetadata](
     currentOffsets: immutable.Map[TopicPartition, OffsetAndMetadata],
   ): immutable.Map[TopicPartition, OffsetAndMetadata] =
     currentOffsets
-      .map {
-        case (tp, offAndMeta) => (tp, getOffsetAndMeta(tp, offAndMeta))
-      }
-      .collect {
-        case (k, v) if v.nonEmpty => (k, v.get)
+      .flatMap { case (tp, offAndMeta) =>
+        getOffsetAndMeta(tp, offAndMeta).map(tp -> _)
       }
 
   private def writerForTopicPartitionWithMaxOffset(topicPartition: TopicPartition): Option[Writer[SM]] =
-    Try(
-      writers.collect {
+    // Collect writers for the topic-partition that have a committed offset, convert to Seq and
+    // pick the writer with the highest committed offset value using maxByOption (Scala 2.13)
+    writers
+      .collect {
         case (key, writer) if key.topicPartition == topicPartition && writer.getCommittedOffset.nonEmpty => writer
       }
-        .maxBy(_.getCommittedOffset),
-    ).toOption
+      .toSeq
+      .maxByOption(_.getCommittedOffset.get.value)
 
-  private def getOffsetAndMeta(topicPartition: TopicPartition, offsetAndMetadata: OffsetAndMetadata) =
+  private def getOffsetAndMeta(
+    topicPartition:    TopicPartition,
+    offsetAndMetadata: OffsetAndMetadata,
+  ): Option[OffsetAndMetadata] =
+    // Compose Options functionally: find the writer with max offset, then build the new OffsetAndMetadata
     for {
-      writer <- writerForTopicPartitionWithMaxOffset(topicPartition)
-      offsetAndMeta <- Try {
-        new OffsetAndMetadata(
-          writer.getCommittedOffset.get.value,
-          offsetAndMetadata.leaderEpoch(),
-          offsetAndMetadata.metadata(),
-        )
-      }.toOption
-    } yield offsetAndMeta
+      writer    <- writerForTopicPartitionWithMaxOffset(topicPartition)
+      committed <- writer.getCommittedOffset
+    } yield new OffsetAndMetadata(
+      // kafka last offset for a partition is the last committed + 1
+      // Therefore the connector should report last committed + 1 or it will lead to a constant lag og 1
+      // which might confuse the users.
+      committed.value + 1,
+      offsetAndMetadata.leaderEpoch(),
+      offsetAndMetadata.metadata(),
+    )
 
   def cleanUp(topicPartition: TopicPartition): Unit =
     writers
