@@ -2,7 +2,7 @@
 //addDependencyTreePlugin
 
 addSbtPlugin("org.scalameta"     % "sbt-scalafmt"  % "2.5.4")
-addSbtPlugin("org.scoverage"     % "sbt-scoverage" % "2.3.1")
+addSbtPlugin("org.scoverage"     % "sbt-scoverage" % "2.4.1")
 addSbtPlugin("de.heikoseeberger" % "sbt-header"    % "5.10.0")
 
 addSbtPlugin("org.xerial.sbt" % "sbt-pack" % "0.20")
