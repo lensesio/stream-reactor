@@ -19,7 +19,7 @@ import com.typesafe.scalalogging.LazyLogging
 
 object KafkaVersions extends LazyLogging {
 
-  private val FallbackConfluentVersion = "7.3.1"
+  private val FallbackConfluentVersion = "8.0.2"
 
   val ConfluentVersion: String = {
     val (vers, from) = sys.env.get("CONFLUENT_VERSION") match {

@@ -35,11 +35,9 @@ lazy val subProjects: Seq[Project] = Seq(
   ftp,
   `gcp-storage`,
   http,
-  influxdb,
   jms,
   mongodb,
   mqtt,
-  redis,
 )
 
 lazy val subProjectsRefs: Seq[ProjectReference] = subProjects.map(projectToLocalProject)
@@ -399,27 +397,6 @@ lazy val http = (project in file("kafka-connect-http"))
   .configureFunctionalTests()
   .enablePlugins(PackPlugin, ProtocPlugin)
 
-lazy val influxdb = (project in file("kafka-connect-influxdb"))
-  .dependsOn(common)
-  .dependsOn(`sql-common`)
-  .settings(
-    settings ++
-      Seq(
-        name := "kafka-connect-influxdb",
-        description := "Kafka Connect compatible connectors to move data between Kafka and popular data stores",
-        libraryDependencies ++= baseDeps ++ kafkaConnectInfluxDbDeps,
-        publish / skip := true,
-        packExcludeJars := Seq(
-          "scala-.*\\.jar",
-          "zookeeper-.*\\.jar",
-        ),
-      ),
-  )
-  .configureAssembly(true)
-  .configureMavenDescriptor()
-  .configureTests(baseTestDeps)
-  .enablePlugins(PackPlugin)
-
 lazy val jms = (project in file("kafka-connect-jms"))
   .dependsOn(common)
   .dependsOn(`sql-common`)
@@ -439,7 +416,7 @@ lazy val jms = (project in file("kafka-connect-jms"))
         Compile / PB.targets := Seq(
           PB.gens.java(Versions.googleProtobufVersion) -> (Test / sourceManaged).value,
         ),
-        Compile / PB.protocExecutable := file(Process("which protoc").!!.trim),
+        Compile / PB.protocVersion := Versions.googleProtobufVersion,
       ),
   )
   .configureAssembly(true)
@@ -517,31 +494,6 @@ lazy val mongodb = (project in file("kafka-connect-mongodb"))
   .configureMavenDescriptor()
   .configureTests(baseTestDeps)
   .configureIntegrationTests(kafkaConnectMongoDbTestDeps)
-  .configureFunctionalTests()
-  .enablePlugins(PackPlugin)
-
-lazy val redis = (project in file("kafka-connect-redis"))
-  .dependsOn(common)
-  .dependsOn(`sql-common`)
-  .dependsOn(`test-common` % "fun->compile")
-  .settings(
-    settings ++
-      Seq(
-        name := "kafka-connect-redis",
-        description := "Kafka Connect compatible connectors to move data between Kafka and popular data stores",
-        libraryDependencies ++= baseDeps ++ kafkaConnectRedisDeps,
-        publish / skip := true,
-        FunctionalTest / baseDirectory := (LocalRootProject / baseDirectory).value,
-        packExcludeJars := Seq(
-          "scala-.*\\.jar",
-          "zookeeper-.*\\.jar",
-        ),
-      ),
-  )
-  .configureAssembly(true)
-  .configureMavenDescriptor()
-  .configureTests(baseTestDeps ++ Seq(gson))
-  .configureIntegrationTests(kafkaConnectRedisTestDeps)
   .configureFunctionalTests()
   .enablePlugins(PackPlugin)
 
