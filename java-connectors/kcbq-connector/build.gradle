@@ -11,7 +11,7 @@ project(":kcbq-connector") {
         googleAuthVersion = '0.21.1'
         googleCloudVersion = '2.10.9'
         googleCloudStorageVersion = '1.113.4'
-        googleProtobufVersion = '3.25.5'
+
         jacksonVersion = '2.16.2'
         kafkaVersion = '2.6.3'
         kafkaScalaVersion = '2.12'

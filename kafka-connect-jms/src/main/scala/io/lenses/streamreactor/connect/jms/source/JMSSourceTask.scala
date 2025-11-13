@@ -24,6 +24,7 @@ import io.lenses.streamreactor.connect.jms.config.JMSConfigConstants
 import io.lenses.streamreactor.connect.jms.config.JMSSettings
 import io.lenses.streamreactor.connect.jms.source.readers.JMSReader
 import jakarta.jms.Message
+import org.apache.kafka.clients.producer.RecordMetadata
 import org.apache.kafka.connect.source.SourceRecord
 import org.apache.kafka.connect.source.SourceTask
 
@@ -124,7 +125,7 @@ class JMSSourceTask extends SourceTask with StrictLogging with JarManifestProvid
       val _ = recordsToCommit.remove(record)
     }
 
-  override def commitRecord(record: SourceRecord): Unit = {
+  override def commitRecord(record: SourceRecord, metadata: RecordMetadata): Unit = {
     Option(recordsToCommit.remove(record)).foreach {
       case MessageAndTimestamp(msg, _) =>
         Try(msg.acknowledge())

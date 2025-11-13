@@ -66,6 +66,7 @@ trait StreamReactorContainerPerSuite extends BeforeAndAfterAll with Eventually w
       .withNetwork(network)
       .withNetworkAliases("kafka")
       .withLogConsumer(new Slf4jLogConsumer(logger.underlying))
+      .withKraft()
 
   lazy val kafkaConnectContainer: KafkaConnectContainer = {
     KafkaConnectContainer(
