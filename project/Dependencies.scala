@@ -105,7 +105,7 @@ object Dependencies {
     val nettyVersion        = "4.2.2.Final"
 
     val cassandraDriverVersion         = "3.11.5"
-    val cassandraDriverVersion4        = "4.19.0"
+    val cassandraDriverVersion4        = "4.19.2"
     val messagingConnectorsCoreVersion = "1.0.15"
     val dsBulkVersion                  = "1.10.0"
     val guavaVersion                   = "25.1-jre"
