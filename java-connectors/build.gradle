@@ -28,18 +28,19 @@ allprojects {
     apply plugin: 'com.diffplug.spotless'
 
     java {
-        setSourceCompatibility(JavaVersion.VERSION_11)
-        setTargetCompatibility(JavaVersion.VERSION_11)
+        // Use Java 17 to match Kafka 4.1.0+ artifacts which require JVM 17
+        setSourceCompatibility(JavaVersion.VERSION_17)
+        setTargetCompatibility(JavaVersion.VERSION_17)
     }
 
     ext {
         //DEPENDENCY VERSIONS
         lombokVersion = '1.18.32'
-        kafkaVersion = '3.9.1'
+        kafkaVersion = '4.1.0'
         logbackVersion = '1.4.14'
         jUnitVersion = '5.9.1'
         mockitoJupiterVersion = '5.10.0'
-        apacheToConfluentVersionAxis = ["2.8.1": "6.2.2", "3.3.0": "7.3.1"]
+        apacheToConfluentVersionAxis = ["4.0.0": "8.0.2", "4.1.0": "8.1.0"]
         caffeineVersion = '3.1.8'
         cyclopsVersion = '10.4.1'
         bouncyCastleVersion = "1.78.1"

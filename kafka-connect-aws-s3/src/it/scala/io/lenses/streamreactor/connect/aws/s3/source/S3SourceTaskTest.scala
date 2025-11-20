@@ -16,6 +16,10 @@ import io.lenses.streamreactor.connect.cloud.common.config.FormatOptions
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
 import io.lenses.streamreactor.connect.cloud.common.source.config.CloudSourceSettingsKeys
+import org.apache.kafka.common.MetricName
+import org.apache.kafka.common.metrics.MetricValueProvider
+import org.apache.kafka.common.metrics.PluginMetrics
+import org.apache.kafka.common.metrics.Sensor
 import org.apache.kafka.connect.source.SourceTaskContext
 import org.apache.kafka.connect.storage.OffsetStorageReader
 import org.scalatest.BeforeAndAfter
@@ -29,6 +33,11 @@ import org.scalatest.time.SpanSugar.convertIntToGrainOfTime
 import java.util
 import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.jdk.CollectionConverters.MapHasAsJava
+import org.apache.kafka.common.metrics.Metrics
+import org.apache.kafka.common.metrics.MetricConfig
+import org.apache.kafka.common.utils.Time
+import org.apache.kafka.common.metrics.Sensor.RecordingLevel
+
 object S3SourceTaskTest {
 
   val formats = Table(
@@ -214,6 +223,33 @@ class S3SourceTaskTest
         val task = new S3SourceTask()
 
         val context = new SourceTaskContext {
+          override def pluginMetrics(): PluginMetrics = new PluginMetrics {
+            private val metricConfig    = new MetricConfig()
+            private val metricsRegistry = new Metrics(metricConfig, Time.SYSTEM)
+            private val parents: Array[Sensor] = Array.empty
+            override def metricName(
+              name:        String,
+              description: String,
+              tags:        util.LinkedHashMap[String, String],
+            ): MetricName =
+              new MetricName(name, "s3-source-task-metrics", description, tags)
+
+            override def addMetric(metricName: MetricName, metricValueProvider: MetricValueProvider[_]): Unit = {}
+
+            override def removeMetric(metricName: MetricName): Unit = {}
+
+            override def addSensor(name: String): Sensor =
+              metricsRegistry.sensor(
+                name,
+                metricConfig,
+                Long.MaxValue,
+                RecordingLevel.INFO,
+                parents: _*,
+              )
+
+            override def removeSensor(name: String): Unit =
+              metricsRegistry.removeSensor(name)
+          }
           override def configs(): util.Map[String, String] = Map.empty[String, String].asJava
 
           override def offsetStorageReader(): OffsetStorageReader = new OffsetStorageReader {
