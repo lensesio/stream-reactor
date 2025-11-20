@@ -98,7 +98,7 @@ object Dependencies {
     val openCsvVersion      = "5.11.1"
     val jsonSmartVersion    = "2.5.2"
 
-    val xzVersion  = "1.10"
+    val xzVersion  = "1.11"
     val lz4Version = "1.8.0"
 
     val bouncyCastleVersion = "1.81"
