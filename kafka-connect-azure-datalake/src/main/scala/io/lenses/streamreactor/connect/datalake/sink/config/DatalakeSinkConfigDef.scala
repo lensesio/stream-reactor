@@ -28,6 +28,7 @@ import io.lenses.streamreactor.connect.datalake.config._
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.Importance
 import org.apache.kafka.common.config.ConfigDef.Type
+import io.lenses.streamreactor.connect.cloud.common.sink.config.GuardConfigKeys
 
 object DatalakeSinkConfigDef
     extends CommonConfigDef
@@ -37,7 +38,8 @@ object DatalakeSinkConfigDef
     with IndexConfigKeys
     with SchemaChangeConfigKeys
     with SkipNullConfigKeys
-    with EnableLatestSchemaOptimizationConfigKeys {
+    with EnableLatestSchemaOptimizationConfigKeys
+    with GuardConfigKeys {
 
   override def connectorPrefix: String = CONNECTOR_PREFIX
 
@@ -67,6 +69,7 @@ object DatalakeSinkConfigDef
     withSchemaChangeConfig(configDef)
     withSkipNullConfig(configDef)
     withEnableLatestSchemaOptimizationConfig(configDef)
+    addGuardSettingsToConfigDef(configDef)
   }
 
 }

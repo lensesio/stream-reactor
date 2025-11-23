@@ -55,6 +55,10 @@ object GCPStorageSinkConfig extends PropsToConfigConverter[GCPStorageSinkConfig]
       logMetrics              = gcpConfigDefBuilder.getBoolean(LOG_METRICS_CONFIG)
       schemaChangeDetector    = gcpConfigDefBuilder.schemaChangeDetector()
       useLatestSchemaForWrite = gcpConfigDefBuilder.getEnableLatestSchemaOptimization()
+      guardEnable             = gcpConfigDefBuilder.getGuardEnable
+      guardBootstrap          = gcpConfigDefBuilder.getGuardBootstrapServersOpt
+      guardTopic              = gcpConfigDefBuilder.getGuardHeartbeatTopic
+      guardMs                 = gcpConfigDefBuilder.getGuardHeartbeatMs
     } yield GCPStorageSinkConfig(
       gcpConnectionSettings,
       sinkBucketOptions,
@@ -67,6 +71,10 @@ object GCPStorageSinkConfig extends PropsToConfigConverter[GCPStorageSinkConfig]
       schemaChangeDetector        = schemaChangeDetector,
       skipNullValues              = gcpConfigDefBuilder.skipNullValues(),
       latestSchemaForWriteEnabled = useLatestSchemaForWrite,
+      guardEnable                 = guardEnable,
+      guardBootstrapServers       = guardBootstrap,
+      guardHeartbeatTopic         = guardTopic,
+      guardHeartbeatMs            = guardMs,
     )
   }
 
@@ -84,4 +92,8 @@ case class GCPStorageSinkConfig(
   schemaChangeDetector:        SchemaChangeDetector,
   skipNullValues:              Boolean,
   latestSchemaForWriteEnabled: Boolean,
+  guardEnable:                 Boolean,
+  guardBootstrapServers:       Option[String],
+  guardHeartbeatTopic:         String,
+  guardHeartbeatMs:            Long,
 ) extends CloudSinkConfig[GCPConnectionConfig]
