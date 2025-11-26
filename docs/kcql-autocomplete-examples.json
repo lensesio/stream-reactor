@@ -31,6 +31,16 @@
           "name": "Mask PII before landing",
           "kcql": "INSERT INTO compliance-bucket:year/month SELECT customerId, email, cardNumber FROM payments_topic PARTITIONBY _key STOREAS `PARQUET` PROPERTIES('flush.count'=500,'flush.interval'=30)",
           "description": "Pair this with the Lenses MaskField SMT (e.g. transforms=maskCard; transforms.maskCard.type=io.lenses.kafka.connect.smt.MaskField$Value; transforms.maskCard.fields=_value.cardNumber) so KCQL routes only scrubbed payloads to S3. See https://docs.lenses.io/latest/connectors/single-message-transforms#maskfield."
+        },
+        {
+          "name": "Immediate archive move",
+          "kcql": "INSERT INTO raw-ingest:staging SELECT * FROM audit_topic STOREAS `JSON` PROPERTIES('flush.count'=1,'post.process.action'='MOVE','post.process.action.bucket'='s3://company-archive','post.process.action.prefix'='audit/')",
+          "description": "Uploads JSON envelopes to a staging prefix and then uses the built-in post-process MOVE action to relocate the object into a long-term archive bucket once commits succeed."
+        },
+        {
+          "name": "Glue-friendly CSV headers",
+          "kcql": "INSERT INTO curated-bucket:glue/dt=YYYY/MM/dd SELECT order_id AS id, struct_field.name AS customer_name, total FROM orders_topic STOREAS `CSV_WITHHEADERS` PARTITIONBY _value.country PROPERTIES('flush.size'=268435456,'partition.include.keys'=false)",
+          "description": "Projects and renames fields so the emitted CSV includes headers compatible with AWS Glue crawlers, while partitioning by a value-derived country field."
         }
       ]
     },
@@ -83,6 +93,37 @@
           "name": "Flatten arrays before CSV",
           "kcql": "INSERT INTO gcp-data:flattened SELECT * FROM arrays_topic PARTITIONBY _topic STOREAS `CSV` PROPERTIES('flush.count'=200)",
           "description": "Combine with the Lenses Flatten SMT (transforms=flattenPayload; transforms.flattenPayload.type=io.lenses.kafka.connect.smt.Flatten$Value; transforms.flattenPayload.delimiter='.') so nested values become flat columns before the connector serializes them to CSV."
+        },
+        {
+          "name": "Archive after copy",
+          "kcql": "INSERT INTO gcs-raw:landing SELECT * FROM raw_topic STOREAS `BYTES` PROPERTIES('flush.count'=10,'post.process.action'='COPY','post.process.action.bucket'='gs://coldline-archive','post.process.action.prefix'='raw/')",
+          "description": "Keeps a working copy in the landing bucket but also copies each object into a Coldline archive using the post-process COPY action."
+        },
+        {
+          "name": "Envelope AVRO snapshots",
+          "kcql": "INSERT INTO gcs-snapshots:topic=${_topic}/dt=YYYY-MM-dd SELECT * FROM `*` STOREAS `AVRO` PROPERTIES('store.envelope'=true,'store.envelope.fields.metadata'=true,'flush.interval'=120)",
+          "description": "Creates AVRO snapshots for every topic under a templated prefix, retaining Kafka metadata in the envelope so downstream tools can replay offsets."
+        }
+      ]
+    },
+    {
+      "id": "azure-datalake-sink",
+      "label": "Azure Data Lake Sink",
+      "examples": [
+        {
+          "name": "Parquet landing with auto folders",
+          "kcql": "INSERT INTO adls://lakehouse@datalake.dfs.core.windows.net/events/year=YYYY/month=MM/day=dd SELECT eventId, payload FROM events_topic PARTITIONBY _topic STOREAS `PARQUET` PROPERTIES('flush.count'=1000,'flush.interval'=60)",
+          "description": "Writes Parquet files into hierarchical time-based folders inside ADLS Gen2, keeping per-topic partitions."
+        },
+        {
+          "name": "JSON plus envelope metadata",
+          "kcql": "INSERT INTO adls://lakehouse@datalake.dfs.core.windows.net/audit SELECT * FROM audit_topic STOREAS `JSON` PROPERTIES('store.envelope'=true,'store.envelope.fields.metadata'=true,'store.envelope.fields.headers'=true,'flush.count'=100)",
+          "description": "Persists full Kafka envelopes so compliance teams can inspect headers and metadata directly in ADLS."
+        },
+        {
+          "name": "BYTES landing with post-delete",
+          "kcql": "INSERT INTO adls://lakehouse@datalake.dfs.core.windows.net/binary SELECT * FROM bytes_topic STOREAS `BYTES` PROPERTIES('flush.count'=1,'post.process.action'='DELETE')",
+          "description": "Streams opaque payloads into ADLS and deletes the local staging artefact immediately after the ADLS write succeeds."
         }
       ]
     },
