@@ -26,6 +26,11 @@
           "name": "Header-partitioned CSV",
           "kcql": "INSERT INTO metrics-bucket:dt=yyyy/MM/dd SELECT * FROM metrics_topic PARTITIONBY _header.region,_header.service STOREAS `CSV` PROPERTIES('flush.count'=100,'padding.length.partition'='12','padding.length.offset'='12')",
           "description": "Generates CSV files grouped by header values and pads partition/offset metadata for sortable filenames."
+        },
+        {
+          "name": "Mask PII before landing",
+          "kcql": "INSERT INTO compliance-bucket:year/month SELECT customerId, email, cardNumber FROM payments_topic PARTITIONBY _key STOREAS `PARQUET` PROPERTIES('flush.count'=500,'flush.interval'=30)",
+          "description": "Pair this with the Lenses MaskField SMT (e.g. transforms=maskCard; transforms.maskCard.type=io.lenses.kafka.connect.smt.MaskField$Value; transforms.maskCard.fields=_value.cardNumber) so KCQL routes only scrubbed payloads to S3. See https://docs.lenses.io/latest/connectors/single-message-transforms#maskfield."
         }
       ]
     },
@@ -47,6 +52,11 @@
           "name": "Regex-filtered text",
           "kcql": "INSERT INTO alerts_topic SELECT * FROM logs-bucket:/alerts STOREAS `TEXT` LIMIT 250 PROPERTIES('read.text.regex'='.*ERROR.*','read.text.trim'='true')",
           "description": "Streams plain-text log lines but only forwards entries matching the regex filter."
+        },
+        {
+          "name": "Flatten XML with SMT",
+          "kcql": "INSERT INTO enriched_topic SELECT * FROM xml-bucket:/events STOREAS `TEXT` LIMIT 200",
+          "description": "Use KCQL to pull raw XML, then apply the Lenses XmlToJson SMT (transforms=xml2json; transforms.xml2json.type=io.lenses.kafka.connect.smt.XmlToJson$Value) so the emitted Kafka records are already flattened JSON before other SMTs or consumers touch them."
         }
       ]
     },
@@ -68,6 +78,11 @@
           "name": "Value-only byte stream",
           "kcql": "INSERT INTO gcp-data:raw/bytestream SELECT * FROM raw_topic STOREAS `BYTES_VALUEONLY` PROPERTIES('flush.count'=1)",
           "description": "Writes just the Kafka value as bytes into GCS; BYTES_VALUEONLY enforces a flush.count of 1."
+        },
+        {
+          "name": "Flatten arrays before CSV",
+          "kcql": "INSERT INTO gcp-data:flattened SELECT * FROM arrays_topic PARTITIONBY _topic STOREAS `CSV` PROPERTIES('flush.count'=200)",
+          "description": "Combine with the Lenses Flatten SMT (transforms=flattenPayload; transforms.flattenPayload.type=io.lenses.kafka.connect.smt.Flatten$Value; transforms.flattenPayload.delimiter='.') so nested values become flat columns before the connector serializes them to CSV."
         }
       ]
     },
