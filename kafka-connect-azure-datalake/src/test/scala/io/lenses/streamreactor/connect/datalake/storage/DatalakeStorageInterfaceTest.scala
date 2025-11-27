@@ -535,7 +535,7 @@ class DatalakeStorageInterfaceTest
     }
     val result = storageInterface.getBlobAsStringAndEtag(bucket, path)
 
-    result.value should be((expectedEtag, expectedContent))
+    result.value should be((expectedContent, expectedEtag))
   }
 
   "writeStringToFile" should "upload the data string to the specified path when successful" in {
