@@ -6,6 +6,7 @@
     {
       "id": "aws-s3-sink",
       "label": "AWS S3 Sink",
+      "connectorClass": "io.lenses.streamreactor.connect.aws.s3.sink.S3SinkConnector",
       "examples": [
         {
           "name": "Partitioned Parquet landing zone",
@@ -47,6 +48,7 @@
     {
       "id": "aws-s3-source",
       "label": "AWS S3 Source",
+      "connectorClass": "io.lenses.streamreactor.connect.aws.s3.source.S3SourceConnector",
       "examples": [
         {
           "name": "Avro export replay",
@@ -73,6 +75,7 @@
     {
       "id": "gcp-storage-sink",
       "label": "GCP Storage Sink",
+      "connectorClass": "io.lenses.streamreactor.connect.gcp.storage.sink.GCPStorageSinkConnector",
       "examples": [
         {
           "name": "JSON landing zone",
@@ -109,6 +112,7 @@
     {
       "id": "azure-datalake-sink",
       "label": "Azure Data Lake Sink",
+      "connectorClass": "io.lenses.streamreactor.connect.datalake.sink.DatalakeSinkConnector",
       "examples": [
         {
           "name": "Parquet landing with auto folders",
@@ -130,6 +134,7 @@
     {
       "id": "azure-cosmosdb-sink",
       "label": "Azure Cosmos DB Sink",
+      "connectorClass": "io.lenses.streamreactor.connect.azure.cosmosdb.sink.CosmosDbSinkConnector",
       "examples": [
         {
           "name": "Auto-create collection",
@@ -156,6 +161,7 @@
     {
       "id": "cassandra-sink",
       "label": "Cassandra Sink",
+      "connectorClass": "io.lenses.streamreactor.connect.cassandra.sink.CassandraSinkConnector",
       "examples": [
         {
           "name": "Hot data with TTL",
@@ -177,6 +183,7 @@
     {
       "id": "cassandra-source",
       "label": "Cassandra Source",
+      "connectorClass": "io.lenses.streamreactor.connect.cassandra.source.CassandraSourceConnector",
       "examples": [
         {
           "name": "Timestamp increments",
@@ -203,6 +210,7 @@
     {
       "id": "elastic-sink",
       "label": "Elasticsearch 6/7 Sink",
+      "connectorClass": "io.lenses.streamreactor.connect.elastic7.ElasticSinkConnector",
       "examples": [
         {
           "name": "Auto-create daily index",
@@ -224,6 +232,7 @@
     {
       "id": "mongodb-sink",
       "label": "MongoDB Sink",
+      "connectorClass": "io.lenses.streamreactor.connect.mongodb.sink.MongoSinkConnector",
       "examples": [
         {
           "name": "Simple collection copy",
@@ -245,6 +254,7 @@
     {
       "id": "mqtt-source",
       "label": "MQTT Source",
+      "connectorClass": "io.lenses.streamreactor.connect.mqtt.source.MqttSourceConnector",
       "examples": [
         {
           "name": "Wildcard Avro converter",
@@ -266,6 +276,7 @@
     {
       "id": "mqtt-sink",
       "label": "MQTT Sink",
+      "connectorClass": "io.lenses.streamreactor.connect.mqtt.sink.MqttSinkConnector",
       "examples": [
         {
           "name": "Static destination",
@@ -287,6 +298,7 @@
     {
       "id": "jms-source",
       "label": "JMS Source",
+      "connectorClass": "io.lenses.streamreactor.connect.jms.source.JMSSourceConnector",
       "examples": [
         {
           "name": "Queue to Kafka",
@@ -308,6 +320,7 @@
     {
       "id": "jms-sink",
       "label": "JMS Sink",
+      "connectorClass": "io.lenses.streamreactor.connect.jms.sink.JMSSinkConnector",
       "examples": [
         {
           "name": "Proto converter",
@@ -329,6 +342,7 @@
     {
       "id": "azure-servicebus-source",
       "label": "Azure Service Bus Source",
+      "connectorClass": "io.lenses.streamreactor.connect.azure.servicebus.source.AzureServiceBusSourceConnector",
       "examples": [
         {
           "name": "Queue to Kafka",
@@ -345,6 +359,7 @@
     {
       "id": "azure-servicebus-sink",
       "label": "Azure Service Bus Sink",
+      "connectorClass": "io.lenses.streamreactor.connect.azure.servicebus.sink.AzureServiceBusSinkConnector",
       "examples": [
         {
           "name": "Queue sink with batching",
@@ -361,6 +376,7 @@
     {
       "id": "azure-eventhubs-source",
       "label": "Azure Event Hubs Source",
+      "connectorClass": "io.lenses.streamreactor.connect.azure.eventhubs.source.AzureEventHubsSourceConnector",
       "examples": [
         {
           "name": "Notifications mirror",
@@ -377,6 +393,7 @@
     {
       "id": "gcp-pubsub-source",
       "label": "GCP Pub/Sub Source",
+      "connectorClass": "io.lenses.streamreactor.connect.gcp.pubsub.source.GCPPubSubSourceConnector",
       "examples": [
         {
           "name": "Fully qualified subscription",
