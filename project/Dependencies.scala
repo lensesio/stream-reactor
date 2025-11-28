@@ -99,7 +99,7 @@ object Dependencies {
     val jsonSmartVersion    = "2.5.2"
 
     val xzVersion  = "1.10"
-    val lz4Version = "1.8.0"
+    val lz4Version = "1.8.1"
 
     val bouncyCastleVersion = "1.81"
     val nettyVersion        = "4.2.2.Final"
