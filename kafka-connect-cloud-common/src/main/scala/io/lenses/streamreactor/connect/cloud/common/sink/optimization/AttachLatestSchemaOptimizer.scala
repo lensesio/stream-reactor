@@ -15,6 +15,7 @@
  */
 package io.lenses.streamreactor.connect.cloud.common.sink.optimization
 
+import AttachLatestSchemaOptimizer.ConfluentAvroUnionSchemaName
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.Struct
@@ -181,34 +182,62 @@ class AttachLatestSchemaOptimizer extends StrictLogging {
         else
           throw new DataException(s"Cannot adapt null value to required schema '${targetSchema.name()}'")
       } { value =>
-        targetSchema.`type`() match {
-          case Schema.Type.STRUCT =>
+        // Check for union type conversions first
+        val targetIsUnion   = isUnionSchema(targetSchema)
+        val originalIsUnion = isUnionSchema(originalSchema)
+
+        (targetIsUnion, originalIsUnion) match {
+          case (true, false) =>
+            // Simple type -> Union promotion (e.g., enum -> [enum, string])
+            promoteToUnion(value, originalSchema, targetSchema)
+
+          case (false, true) =>
+            // Union -> Simple type extraction (e.g., [enum, string] -> enum)
             value match {
-              case s: Struct => adaptStruct(s, originalSchema, targetSchema)
+              case s: Struct => extractFromUnion(s, originalSchema, targetSchema)
               case other =>
-                throw new DataException(s"Expected Struct for schema '${targetSchema.name()}', found ${other.getClass}")
+                throw new DataException(
+                  s"Expected Struct for union schema '${originalSchema.name()}', found ${other.getClass}",
+                )
             }
-          case Schema.Type.ARRAY =>
-            if (originalSchema.`type`() != Schema.Type.ARRAY)
-              throw new DataException(
-                s"Schema mismatch: Expected ARRAY but original schema is ${originalSchema.`type`()}",
-              )
-            value match {
-              case l: java.util.List[_] => adaptArray(l, originalSchema, targetSchema)
-              case other =>
-                throw new DataException(s"Expected List for schema '${targetSchema.name()}', found ${other.getClass}")
+
+          case _ =>
+            // Standard type handling (no union conversion)
+            targetSchema.`type`() match {
+              case Schema.Type.STRUCT =>
+                value match {
+                  case s: Struct => adaptStruct(s, originalSchema, targetSchema)
+                  case other =>
+                    throw new DataException(
+                      s"Expected Struct for schema '${targetSchema.name()}', found ${other.getClass}",
+                    )
+                }
+              case Schema.Type.ARRAY =>
+                if (originalSchema.`type`() != Schema.Type.ARRAY)
+                  throw new DataException(
+                    s"Schema mismatch: Expected ARRAY but original schema is ${originalSchema.`type`()}",
+                  )
+                value match {
+                  case l: java.util.List[_] => adaptArray(l, originalSchema, targetSchema)
+                  case other =>
+                    throw new DataException(
+                      s"Expected List for schema '${targetSchema.name()}', found ${other.getClass}",
+                    )
+                }
+              case Schema.Type.MAP =>
+                if (originalSchema.`type`() != Schema.Type.MAP)
+                  throw new DataException(
+                    s"Schema mismatch: Expected MAP but original schema is ${originalSchema.`type`()}",
+                  )
+                value match {
+                  case m: java.util.Map[_, _] => adaptMap(m, originalSchema, targetSchema)
+                  case other =>
+                    throw new DataException(
+                      s"Expected Map for schema '${targetSchema.name()}', found ${other.getClass}",
+                    )
+                }
+              case _ => value
             }
-          case Schema.Type.MAP =>
-            if (originalSchema.`type`() != Schema.Type.MAP)
-              throw new DataException(
-                s"Schema mismatch: Expected MAP but original schema is ${originalSchema.`type`()}",
-              )
-            value match {
-              case m: java.util.Map[_, _] => adaptMap(m, originalSchema, targetSchema)
-              case other =>
-                throw new DataException(s"Expected Map for schema '${targetSchema.name()}', found ${other.getClass}")
-            }
-          case _ => value
         }
       }
     }
@@ -322,4 +351,123 @@ class AttachLatestSchemaOptimizer extends StrictLogging {
       }
     }
 
+  /**
+   * Detects if a schema represents an Avro union type.
+   * Confluent's AvroConverter represents non-null Avro unions as STRUCTs
+   * with the schema name "io.confluent.connect.avro.Union".
+   */
+  private def isUnionSchema(schema: Schema): Boolean =
+    schema.`type`() == Schema.Type.STRUCT &&
+      schema.name() != null &&
+      schema.name() == ConfluentAvroUnionSchemaName
+
+  /**
+   * Promotes a simple value to a union struct by finding the matching branch.
+   * For example, promotes an enum string "PENDING" to a union struct with the
+   * enum branch populated and other branches set to null.
+   *
+   * @param value The original simple value (e.g., String for an enum)
+   * @param originalSchema The schema of the original value
+   * @param targetUnionSchema The target union schema (must be a union STRUCT)
+   * @return A Struct representing the union with the appropriate branch populated
+   */
+  private def promoteToUnion(value: Any, originalSchema: Schema, targetUnionSchema: Schema): Struct = {
+    val unionStruct = new Struct(targetUnionSchema)
+
+    // Find the matching branch in the union by comparing schema names or types
+    // Priority: name matches take precedence over type matches to correctly handle
+    // cases like [string, enum] where enum (STRING type with name) should match
+    // the enum branch, not the plain string branch
+    val fields = targetUnionSchema.fields().asScala
+
+    // First, try to find a field with matching schema name (for named types like enums)
+    val nameMatchingField = Option(originalSchema.name()).flatMap { origName =>
+      fields.find { field =>
+        Option(field.schema().name()).contains(origName)
+      }
+    }
+
+    // Fall back to type matching only if no name match exists
+    val matchingField = nameMatchingField.orElse {
+      fields.find { field =>
+        field.schema().`type`() == originalSchema.`type`()
+      }
+    }
+
+    matchingField match {
+      case Some(field) =>
+        // Recursively adapt the value to the target branch schema
+        val adaptedValue = adaptValue(value, originalSchema, field.schema())
+        // Set the matching branch to the adapted value, all other branches are null by default
+        targetUnionSchema.fields().asScala.foreach { f =>
+          if (f.name() == field.name()) {
+            unionStruct.put(f, adaptedValue)
+          } else {
+            unionStruct.put(f, null)
+          }
+        }
+        unionStruct
+      case None =>
+        throw new DataException(
+          s"Cannot promote value to union: No matching branch found for schema '${originalSchema.name()}' " +
+            s"(type: ${originalSchema.`type`()}) in union schema '${targetUnionSchema.name()}'",
+        )
+    }
+  }
+
+  /**
+   * Extracts the active value from a union struct.
+   * A union struct has one non-null field (the active branch) and other fields set to null.
+   *
+   * @param unionStruct The union struct to extract from
+   * @param unionSchema The schema of the union struct
+   * @param targetSchema The target simple schema to extract to
+   * @return The extracted value from the active branch
+   */
+  private def extractFromUnion(unionStruct: Struct, unionSchema: Schema, targetSchema: Schema): Any = {
+    // Find the non-null field (active branch)
+    val activeField = unionSchema.fields().asScala.find { field =>
+      unionStruct.get(field) != null
+    }
+
+    activeField match {
+      case Some(field) =>
+        val value       = unionStruct.get(field)
+        val fieldSchema = field.schema()
+
+        // Verify the extracted value is compatible with target schema
+        val isCompatible = {
+          val nameMatch =
+            Option(targetSchema.name()).exists(targetName => Option(fieldSchema.name()).contains(targetName))
+          val typeMatch = fieldSchema.`type`() == targetSchema.`type`()
+          nameMatch || typeMatch
+        }
+
+        if (isCompatible) {
+          // Recursively adapt the value to the target schema
+          adaptValue(value, fieldSchema, targetSchema)
+        } else {
+          throw new DataException(
+            s"Cannot extract from union: Active branch '${field.name()}' (type: ${fieldSchema.`type`()}) " +
+              s"is not compatible with target schema '${targetSchema.name()}' (type: ${targetSchema.`type`()})",
+          )
+        }
+      case None =>
+        // All fields are null - return null if target allows it
+        if (targetSchema.isOptional || targetSchema.defaultValue() != null) {
+          targetSchema.defaultValue()
+        } else {
+          throw new DataException(
+            s"Cannot extract from union: All branches are null but target schema '${targetSchema.name()}' is required",
+          )
+        }
+    }
+  }
+
+}
+
+object AttachLatestSchemaOptimizer {
+
+  /** Schema name used by Confluent's AvroConverter for union types */
+  private[optimization] val ConfluentAvroUnionSchemaName = "io.confluent.connect.avro.Union"
 }
