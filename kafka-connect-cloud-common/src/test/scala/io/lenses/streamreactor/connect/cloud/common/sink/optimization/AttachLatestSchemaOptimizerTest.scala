@@ -705,4 +705,101 @@ class AttachLatestSchemaOptimizerTest extends AnyFlatSpec with Matchers with Bef
     adaptedOrder2.get("orderId") shouldBe "order-456"
     adaptedOrder2.get("status") shouldBe "PROCESSING"
   }
+
+  /**
+   * Test verifying that name matches take priority over type matches when promoting to union.
+   *
+   * This is a regression test for a bug where promoteToUnion would incorrectly select
+   * the first type-matching branch instead of the name-matching branch. For example,
+   * when the union is [string, enum], promoting an enum (STRING type with name) would
+   * incorrectly match the plain string branch because it appeared first and had a matching type.
+   *
+   * The fix ensures name matches are searched across ALL fields first, then falls back
+   * to type matches only if no name match exists.
+   */
+  it should "prioritize name match over type match when promoting enum to union [string, enum]" in {
+    // Schema V1: Avro enum is represented as STRING in Kafka Connect with a name
+    val enumSchema = SchemaBuilder
+      .string()
+      .name("com.example.OrderStatus")
+      .parameter("io.confluent.connect.avro.Enum", "com.example.OrderStatus")
+      .parameter("io.confluent.connect.avro.Enum.PENDING", "PENDING")
+      .parameter("io.confluent.connect.avro.Enum.SHIPPED", "SHIPPED")
+      .build()
+
+    val orderSchemaV1 = SchemaBuilder
+      .struct()
+      .name("com.example.Order")
+      .version(1)
+      .field("orderId", Schema.STRING_SCHEMA)
+      .field("status", enumSchema)
+      .build()
+
+    // Schema V2: Union where STRING branch appears BEFORE enum branch
+    // This order is critical for testing the bug fix!
+    val unionEnumBranchSchema = SchemaBuilder
+      .string()
+      .name("com.example.OrderStatus")
+      .optional()
+      .parameter("io.confluent.connect.avro.Enum", "com.example.OrderStatus")
+      .parameter("io.confluent.connect.avro.Enum.PENDING", "PENDING")
+      .parameter("io.confluent.connect.avro.Enum.SHIPPED", "SHIPPED")
+      .build()
+
+    val unionSchema = SchemaBuilder
+      .struct()
+      .name("io.confluent.connect.avro.Union")
+      .field("string", Schema.OPTIONAL_STRING_SCHEMA) // STRING branch FIRST (type matches enum)
+      .field("com.example.OrderStatus", unionEnumBranchSchema) // Enum branch SECOND (name matches)
+      .build()
+
+    val orderSchemaV2 = SchemaBuilder
+      .struct()
+      .name("com.example.Order")
+      .version(2)
+      .field("orderId", Schema.STRING_SCHEMA)
+      .field("status", unionSchema)
+      .build()
+
+    // Create record with V1 schema (enum value)
+    val orderV1 = new Struct(orderSchemaV1)
+    orderV1.put("orderId", "order-123")
+    orderV1.put("status", "PENDING")
+
+    // Create record with V2 schema (union with enum branch populated)
+    val statusUnionV2 = new Struct(unionSchema)
+    statusUnionV2.put("string", null)
+    statusUnionV2.put("com.example.OrderStatus", "SHIPPED")
+
+    val orderV2 = new Struct(orderSchemaV2)
+    orderV2.put("orderId", "order-456")
+    orderV2.put("status", statusUnionV2)
+
+    val record1 = createSinkRecord("orders", 0, 0, null, null, orderSchemaV1, orderV1)
+    val record2 = createSinkRecord("orders", 0, 1, null, null, orderSchemaV2, orderV2)
+
+    val result = optimizer.update(List(record1, record2))
+
+    result.size shouldBe 2
+
+    // Verify record 1 was adapted to V2 schema
+    result(0).valueSchema() shouldBe orderSchemaV2
+    val adaptedOrder1 = result(0).value().asInstanceOf[Struct]
+    adaptedOrder1.get("orderId") shouldBe "order-123"
+
+    // CRITICAL: The enum value should be in the ENUM branch (name match),
+    // NOT the string branch (type match). Before the fix, this would fail
+    // because the string branch appeared first and had matching type (STRING).
+    val adaptedStatus1 = adaptedOrder1.get("status").asInstanceOf[Struct]
+    adaptedStatus1.get("com.example.OrderStatus") shouldBe "PENDING"
+    adaptedStatus1.get("string") shouldBe null
+
+    // Record 2 should remain unchanged
+    result(1).valueSchema() shouldBe orderSchemaV2
+    val adaptedOrder2 = result(1).value().asInstanceOf[Struct]
+    adaptedOrder2.get("orderId") shouldBe "order-456"
+    val adaptedStatus2 = adaptedOrder2.get("status").asInstanceOf[Struct]
+    adaptedStatus2.get("com.example.OrderStatus") shouldBe "SHIPPED"
+    adaptedStatus2.get("string") shouldBe null
+  }
 }

@@ -375,13 +375,23 @@ class AttachLatestSchemaOptimizer extends StrictLogging {
     val unionStruct = new Struct(targetUnionSchema)
 
     // Find the matching branch in the union by comparing schema names or types
-    val matchingField = targetUnionSchema.fields().asScala.find { field =>
-      val fieldSchema = field.schema()
-      // Match by schema name first (for named types like enums)
-      val nameMatch = Option(originalSchema.name()).exists(origName => Option(fieldSchema.name()).contains(origName))
-      // Or match by type compatibility
-      val typeMatch = fieldSchema.`type`() == originalSchema.`type`()
-      nameMatch || typeMatch
+    // Priority: name matches take precedence over type matches to correctly handle
+    // cases like [string, enum] where enum (STRING type with name) should match
+    // the enum branch, not the plain string branch
+    val fields = targetUnionSchema.fields().asScala
+
+    // First, try to find a field with matching schema name (for named types like enums)
+    val nameMatchingField = Option(originalSchema.name()).flatMap { origName =>
+      fields.find { field =>
+        Option(field.schema().name()).contains(origName)
+      }
+    }
+
+    // Fall back to type matching only if no name match exists
+    val matchingField = nameMatchingField.orElse {
+      fields.find { field =>
+        field.schema().`type`() == originalSchema.`type`()
+      }
     }
 
     matchingField match {
