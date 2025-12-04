@@ -479,4 +479,230 @@ class AttachLatestSchemaOptimizerTest extends AnyFlatSpec with Matchers with Bef
     result(1).keySchema() shouldBe keySchemaV2
     result(1).valueSchema() shouldBe null
   }
+
+  /**
+   * Test verifying enum to union schema evolution is supported.
+   *
+   * This test simulates the following Avro schema evolution:
+   *
+   * Schema V1 (Avro):
+   * {{{
+   * {
+   *   "type": "record",
+   *   "name": "Order",
+   *   "namespace": "com.example",
+   *   "fields": [
+   *     { "name": "orderId", "type": "string" },
+   *     {
+   *       "name": "status",
+   *       "type": {
+   *         "type": "enum",
+   *         "name": "OrderStatus",
+   *         "symbols": ["PENDING", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED"]
+   *       }
+   *     }
+   *   ]
+   * }
+   * }}}
+   *
+   * Schema V2 (Avro) - backward compatible evolution adding string to union:
+   * {{{
+   * {
+   *   "type": "record",
+   *   "name": "Order",
+   *   "namespace": "com.example",
+   *   "fields": [
+   *     { "name": "orderId", "type": "string" },
+   *     {
+   *       "name": "status",
+   *       "type": [
+   *         {
+   *           "type": "enum",
+   *           "name": "OrderStatus",
+   *           "symbols": ["PENDING", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED"]
+   *         },
+   *         "string"
+   *       ]
+   *     }
+   *   ]
+   * }
+   * }}}
+   *
+   * In Kafka Connect:
+   * - Avro enum -> STRING schema with name "com.example.OrderStatus"
+   * - Avro union [enum, string] -> STRUCT with name "io.confluent.connect.avro.Union"
+   *
+   * The optimizer promotes the enum value to a union struct with the matching branch populated.
+   */
+  it should "successfully adapt enum field to union field (enum -> [enum, string] evolution)" in {
+    // Schema V1: Avro enum is represented as STRING in Kafka Connect
+    val enumSchema = SchemaBuilder
+      .string()
+      .name("com.example.OrderStatus")
+      .parameter("io.confluent.connect.avro.Enum", "com.example.OrderStatus")
+      .parameter("io.confluent.connect.avro.Enum.PENDING", "PENDING")
+      .parameter("io.confluent.connect.avro.Enum.PROCESSING", "PROCESSING")
+      .parameter("io.confluent.connect.avro.Enum.SHIPPED", "SHIPPED")
+      .parameter("io.confluent.connect.avro.Enum.DELIVERED", "DELIVERED")
+      .parameter("io.confluent.connect.avro.Enum.CANCELLED", "CANCELLED")
+      .build()
+
+    val orderSchemaV1 = SchemaBuilder
+      .struct()
+      .name("com.example.Order")
+      .version(1)
+      .field("orderId", Schema.STRING_SCHEMA)
+      .field("status", enumSchema)
+      .build()
+
+    // Schema V2: Avro union [enum, string] is represented as STRUCT in Kafka Connect
+    val unionEnumBranchSchema = SchemaBuilder
+      .string()
+      .name("com.example.OrderStatus")
+      .optional()
+      .parameter("io.confluent.connect.avro.Enum", "com.example.OrderStatus")
+      .parameter("io.confluent.connect.avro.Enum.PENDING", "PENDING")
+      .parameter("io.confluent.connect.avro.Enum.PROCESSING", "PROCESSING")
+      .parameter("io.confluent.connect.avro.Enum.SHIPPED", "SHIPPED")
+      .parameter("io.confluent.connect.avro.Enum.DELIVERED", "DELIVERED")
+      .parameter("io.confluent.connect.avro.Enum.CANCELLED", "CANCELLED")
+      .build()
+
+    val unionSchema = SchemaBuilder
+      .struct()
+      .name("io.confluent.connect.avro.Union")
+      .field("com.example.OrderStatus", unionEnumBranchSchema) // enum branch
+      .field("string", Schema.OPTIONAL_STRING_SCHEMA)          // string branch
+      .build()
+
+    val orderSchemaV2 = SchemaBuilder
+      .struct()
+      .name("com.example.Order")
+      .version(2)
+      .field("orderId", Schema.STRING_SCHEMA)
+      .field("status", unionSchema)
+      .build()
+
+    // Create record with V1 schema (enum value as string)
+    val orderV1 = new Struct(orderSchemaV1)
+    orderV1.put("orderId", "order-123")
+    orderV1.put("status", "PENDING") // Enum value stored as string
+
+    // Create record with V2 schema (union type as struct)
+    val statusUnionV2 = new Struct(unionSchema)
+    statusUnionV2.put("com.example.OrderStatus", "PROCESSING") // Using enum branch
+    statusUnionV2.put("string", null)
+
+    val orderV2 = new Struct(orderSchemaV2)
+    orderV2.put("orderId", "order-456")
+    orderV2.put("status", statusUnionV2)
+
+    val record1 = createSinkRecord("orders", 0, 0, null, null, orderSchemaV1, orderV1)
+    val record2 = createSinkRecord("orders", 0, 1, null, null, orderSchemaV2, orderV2)
+
+    // The optimizer should successfully adapt record 1 to use V2 schema:
+    // 1. Record 2 has schema V2 (version 2), so V2 becomes the "latest" schema
+    // 2. Optimizer adapts record 1 (V1) to use V2
+    // 3. For the "status" field: promotes STRING ("PENDING") to union STRUCT
+    val result: List[SinkRecord] = optimizer.update(List(record1, record2))
+
+    result.size shouldBe 2
+
+    // Verify record 1 was adapted to V2 schema
+    result(0).valueSchema() shouldBe orderSchemaV2
+    val adaptedOrder1 = result(0).value().asInstanceOf[Struct]
+    adaptedOrder1.get("orderId") shouldBe "order-123"
+
+    // The status field should now be a union struct with enum branch populated
+    val adaptedStatus1 = adaptedOrder1.get("status").asInstanceOf[Struct]
+    adaptedStatus1.get("com.example.OrderStatus") shouldBe "PENDING"
+    adaptedStatus1.get("string") shouldBe null
+
+    // Record 2 should remain unchanged
+    result(1).valueSchema() shouldBe orderSchemaV2
+    val adaptedOrder2 = result(1).value().asInstanceOf[Struct]
+    adaptedOrder2.get("orderId") shouldBe "order-456"
+    val adaptedStatus2 = adaptedOrder2.get("status").asInstanceOf[Struct]
+    adaptedStatus2.get("com.example.OrderStatus") shouldBe "PROCESSING"
+    adaptedStatus2.get("string") shouldBe null
+  }
+
+  /**
+   * Test verifying union to enum schema adaptation (extracting from union).
+   *
+   * This tests the reverse case where a newer schema has a simpler type
+   * than an older schema (union -> enum).
+   */
+  it should "successfully adapt union field to enum field ([enum, string] -> enum extraction)" in {
+    // Schema V1: union [enum, string] represented as STRUCT
+    val unionEnumBranchSchema = SchemaBuilder
+      .string()
+      .name("com.example.OrderStatus")
+      .optional()
+      .parameter("io.confluent.connect.avro.Enum", "com.example.OrderStatus")
+      .build()
+
+    val unionSchema = SchemaBuilder
+      .struct()
+      .name("io.confluent.connect.avro.Union")
+      .field("com.example.OrderStatus", unionEnumBranchSchema)
+      .field("string", Schema.OPTIONAL_STRING_SCHEMA)
+      .build()
+
+    val orderSchemaV1 = SchemaBuilder
+      .struct()
+      .name("com.example.Order")
+      .version(1)
+      .field("orderId", Schema.STRING_SCHEMA)
+      .field("status", unionSchema)
+      .build()
+
+    // Schema V2: simple enum (higher version - becomes the target)
+    val enumSchema = SchemaBuilder
+      .string()
+      .name("com.example.OrderStatus")
+      .parameter("io.confluent.connect.avro.Enum", "com.example.OrderStatus")
+      .build()
+
+    val orderSchemaV2 = SchemaBuilder
+      .struct()
+      .name("com.example.Order")
+      .version(2)
+      .field("orderId", Schema.STRING_SCHEMA)
+      .field("status", enumSchema)
+      .build()
+
+    // Create record with V1 schema (union type)
+    val statusUnionV1 = new Struct(unionSchema)
+    statusUnionV1.put("com.example.OrderStatus", "PENDING")
+    statusUnionV1.put("string", null)
+
+    val orderV1 = new Struct(orderSchemaV1)
+    orderV1.put("orderId", "order-123")
+    orderV1.put("status", statusUnionV1)
+
+    // Create record with V2 schema (simple enum)
+    val orderV2 = new Struct(orderSchemaV2)
+    orderV2.put("orderId", "order-456")
+    orderV2.put("status", "PROCESSING")
+
+    val record1 = createSinkRecord("orders", 0, 0, null, null, orderSchemaV1, orderV1)
+    val record2 = createSinkRecord("orders", 0, 1, null, null, orderSchemaV2, orderV2)
+
+    val result = optimizer.update(List(record1, record2))
+
+    result.size shouldBe 2
+
+    // Verify record 1 was adapted to V2 schema with extracted enum value
+    result(0).valueSchema() shouldBe orderSchemaV2
+    val adaptedOrder1 = result(0).value().asInstanceOf[Struct]
+    adaptedOrder1.get("orderId") shouldBe "order-123"
+    adaptedOrder1.get("status") shouldBe "PENDING" // Extracted from union
+
+    // Record 2 should remain unchanged
+    result(1).valueSchema() shouldBe orderSchemaV2
+    val adaptedOrder2 = result(1).value().asInstanceOf[Struct]
+    adaptedOrder2.get("orderId") shouldBe "order-456"
+    adaptedOrder2.get("status") shouldBe "PROCESSING"
+  }
 }
