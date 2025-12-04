@@ -802,4 +802,209 @@ class AttachLatestSchemaOptimizerTest extends AnyFlatSpec with Matchers with Bef
     adaptedStatus2.get("com.example.OrderStatus") shouldBe "SHIPPED"
     adaptedStatus2.get("string") shouldBe null
   }
+
+  /**
+   * Test verifying that nested structs inside unions are recursively adapted.
+   *
+   * This is a regression test for a bug where promoteToUnion and extractFromUnion
+   * would place/return values directly without calling adaptValue recursively.
+   * This works for primitives but fails for complex types like nested structs
+   * that need schema evolution.
+   *
+   * Scenario:
+   * - Schema V1: field "data" is a simple struct with fields (name, value)
+   * - Schema V2: field "data" is a union [struct, null] where struct has evolved (name, value, extra)
+   *
+   * When promoting the V1 struct to the V2 union, the inner struct should be
+   * adapted from the V1 schema to the V2 struct schema (adding the new "extra" field).
+   */
+  it should "recursively adapt nested struct when promoting to union" in {
+    // Schema V1: data is a simple struct
+    val nestedStructSchemaV1 = SchemaBuilder
+      .struct()
+      .name("com.example.Data")
+      .version(1)
+      .field("name", Schema.STRING_SCHEMA)
+      .field("value", Schema.INT32_SCHEMA)
+      .build()
+
+    val containerSchemaV1 = SchemaBuilder
+      .struct()
+      .name("com.example.Container")
+      .version(1)
+      .field("id", Schema.STRING_SCHEMA)
+      .field("data", nestedStructSchemaV1)
+      .build()
+
+    // Schema V2: data is a union [struct, null] where struct has an additional field
+    val nestedStructSchemaV2 = SchemaBuilder
+      .struct()
+      .name("com.example.Data")
+      .version(2)
+      .optional()
+      .field("name", Schema.STRING_SCHEMA)
+      .field("value", Schema.INT32_SCHEMA)
+      .field("extra", Schema.OPTIONAL_STRING_SCHEMA) // New field in V2
+      .build()
+
+    val unionSchema = SchemaBuilder
+      .struct()
+      .name("io.confluent.connect.avro.Union")
+      .field("com.example.Data", nestedStructSchemaV2) // struct branch
+      .field("null", Schema.OPTIONAL_STRING_SCHEMA)    // null branch (simplified)
+      .build()
+
+    val containerSchemaV2 = SchemaBuilder
+      .struct()
+      .name("com.example.Container")
+      .version(2)
+      .field("id", Schema.STRING_SCHEMA)
+      .field("data", unionSchema)
+      .build()
+
+    // Create record with V1 schema
+    val nestedDataV1 = new Struct(nestedStructSchemaV1)
+    nestedDataV1.put("name", "test-name")
+    nestedDataV1.put("value", 42)
+
+    val containerV1 = new Struct(containerSchemaV1)
+    containerV1.put("id", "container-1")
+    containerV1.put("data", nestedDataV1)
+
+    // Create record with V2 schema
+    val nestedDataV2 = new Struct(nestedStructSchemaV2)
+    nestedDataV2.put("name", "test-name-2")
+    nestedDataV2.put("value", 100)
+    nestedDataV2.put("extra", "extra-value")
+
+    val dataUnionV2 = new Struct(unionSchema)
+    dataUnionV2.put("com.example.Data", nestedDataV2)
+    dataUnionV2.put("null", null)
+
+    val containerV2 = new Struct(containerSchemaV2)
+    containerV2.put("id", "container-2")
+    containerV2.put("data", dataUnionV2)
+
+    val record1 = createSinkRecord("containers", 0, 0, null, null, containerSchemaV1, containerV1)
+    val record2 = createSinkRecord("containers", 0, 1, null, null, containerSchemaV2, containerV2)
+
+    val result = optimizer.update(List(record1, record2))
+
+    result.size shouldBe 2
+
+    // Verify record 1 was adapted to V2 schema
+    result(0).valueSchema() shouldBe containerSchemaV2
+    val adaptedContainer1 = result(0).value().asInstanceOf[Struct]
+    adaptedContainer1.get("id") shouldBe "container-1"
+
+    // The data field should now be a union struct
+    val adaptedDataUnion = adaptedContainer1.get("data").asInstanceOf[Struct]
+
+    // The nested struct should have been adapted to V2 schema with the new field
+    val adaptedNestedData = adaptedDataUnion.get("com.example.Data").asInstanceOf[Struct]
+    adaptedNestedData.schema() shouldBe nestedStructSchemaV2
+    adaptedNestedData.get("name") shouldBe "test-name"
+    adaptedNestedData.get("value") shouldBe 42
+    adaptedNestedData.get("extra") shouldBe null // New field should be null
+
+    // null branch should be null
+    adaptedDataUnion.get("null") shouldBe null
+  }
+
+  /**
+   * Test verifying that nested structs inside unions are recursively adapted when extracting.
+   *
+   * Scenario:
+   * - Schema V1: field "data" is a union [struct, null] with struct having (name, value)
+   * - Schema V2: field "data" is a simple struct with evolved schema (name, value, extra)
+   *
+   * When extracting from the V1 union to the V2 simple struct, the inner struct
+   * should be adapted from the V1 struct schema to the V2 struct schema.
+   */
+  it should "recursively adapt nested struct when extracting from union" in {
+    // Schema V1: data is a union [struct, null]
+    val nestedStructSchemaV1 = SchemaBuilder
+      .struct()
+      .name("com.example.Data")
+      .version(1)
+      .optional()
+      .field("name", Schema.STRING_SCHEMA)
+      .field("value", Schema.INT32_SCHEMA)
+      .build()
+
+    val unionSchema = SchemaBuilder
+      .struct()
+      .name("io.confluent.connect.avro.Union")
+      .field("com.example.Data", nestedStructSchemaV1)
+      .field("null", Schema.OPTIONAL_STRING_SCHEMA)
+      .build()
+
+    val containerSchemaV1 = SchemaBuilder
+      .struct()
+      .name("com.example.Container")
+      .version(1)
+      .field("id", Schema.STRING_SCHEMA)
+      .field("data", unionSchema)
+      .build()
+
+    // Schema V2: data is a simple struct with an additional field
+    val nestedStructSchemaV2 = SchemaBuilder
+      .struct()
+      .name("com.example.Data")
+      .version(2)
+      .field("name", Schema.STRING_SCHEMA)
+      .field("value", Schema.INT32_SCHEMA)
+      .field("extra", Schema.OPTIONAL_STRING_SCHEMA) // New field in V2
+      .build()
+
+    val containerSchemaV2 = SchemaBuilder
+      .struct()
+      .name("com.example.Container")
+      .version(2)
+      .field("id", Schema.STRING_SCHEMA)
+      .field("data", nestedStructSchemaV2)
+      .build()
+
+    // Create record with V1 schema (union with struct)
+    val nestedDataV1 = new Struct(nestedStructSchemaV1)
+    nestedDataV1.put("name", "test-name")
+    nestedDataV1.put("value", 42)
+
+    val dataUnionV1 = new Struct(unionSchema)
+    dataUnionV1.put("com.example.Data", nestedDataV1)
+    dataUnionV1.put("null", null)
+
+    val containerV1 = new Struct(containerSchemaV1)
+    containerV1.put("id", "container-1")
+    containerV1.put("data", dataUnionV1)
+
+    // Create record with V2 schema (simple struct)
+    val nestedDataV2 = new Struct(nestedStructSchemaV2)
+    nestedDataV2.put("name", "test-name-2")
+    nestedDataV2.put("value", 100)
+    nestedDataV2.put("extra", "extra-value")
+
+    val containerV2 = new Struct(containerSchemaV2)
+    containerV2.put("id", "container-2")
+    containerV2.put("data", nestedDataV2)
+
+    val record1 = createSinkRecord("containers", 0, 0, null, null, containerSchemaV1, containerV1)
+    val record2 = createSinkRecord("containers", 0, 1, null, null, containerSchemaV2, containerV2)
+
+    val result = optimizer.update(List(record1, record2))
+
+    result.size shouldBe 2
+
+    // Verify record 1 was adapted to V2 schema
+    result(0).valueSchema() shouldBe containerSchemaV2
+    val adaptedContainer1 = result(0).value().asInstanceOf[Struct]
+    adaptedContainer1.get("id") shouldBe "container-1"
+
+    // The data field should have been extracted from the union and adapted to V2 schema
+    val adaptedData = adaptedContainer1.get("data").asInstanceOf[Struct]
+    adaptedData.schema() shouldBe nestedStructSchemaV2
+    adaptedData.get("name") shouldBe "test-name"
+    adaptedData.get("value") shouldBe 42
+    adaptedData.get("extra") shouldBe null // New field should be null
+  }
 }

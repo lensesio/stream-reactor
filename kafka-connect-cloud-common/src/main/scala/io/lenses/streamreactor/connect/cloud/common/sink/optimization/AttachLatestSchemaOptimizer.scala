@@ -396,10 +396,12 @@ class AttachLatestSchemaOptimizer extends StrictLogging {
 
     matchingField match {
       case Some(field) =>
-        // Set the matching branch to the value, all other branches are null by default
+        // Recursively adapt the value to the target branch schema
+        val adaptedValue = adaptValue(value, originalSchema, field.schema())
+        // Set the matching branch to the adapted value, all other branches are null by default
         targetUnionSchema.fields().asScala.foreach { f =>
           if (f.name() == field.name()) {
-            unionStruct.put(f, value)
+            unionStruct.put(f, adaptedValue)
           } else {
             unionStruct.put(f, null)
           }
@@ -442,7 +444,8 @@ class AttachLatestSchemaOptimizer extends StrictLogging {
         }
 
         if (isCompatible) {
-          value
+          // Recursively adapt the value to the target schema
+          adaptValue(value, fieldSchema, targetSchema)
         } else {
           throw new DataException(
             s"Cannot extract from union: Active branch '${field.name()}' (type: ${fieldSchema.`type`()}) " +
