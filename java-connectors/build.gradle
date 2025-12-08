@@ -124,7 +124,7 @@ allprojects {
         configurations = [
             project.configurations.compileClasspath
         ]
-        archiveFileName = "${project.name}-${artifactVersion}-all.jar"
+        archiveFileName = "${project.name}-${artifactVersion}.jar"
         zip64 true
 
         mergeServiceFiles {
@@ -209,7 +209,7 @@ allprojects {
     task fatJar(dependsOn: [test, jar, shadowJar])
 
     task collectFatJar(type: Copy, dependsOn: [fatJar]) {
-        from("${buildDir}/libs").include("kafka-connect-*-all.jar")
+        from("${buildDir}/libs").include("kafka-connect-*.jar")
                 .exclude("*-common-*").into(libsDir)
     }
 
