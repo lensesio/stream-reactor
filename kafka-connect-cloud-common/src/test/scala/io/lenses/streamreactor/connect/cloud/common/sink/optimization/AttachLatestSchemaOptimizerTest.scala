@@ -479,4 +479,532 @@ class AttachLatestSchemaOptimizerTest extends AnyFlatSpec with Matchers with Bef
     result(1).keySchema() shouldBe keySchemaV2
     result(1).valueSchema() shouldBe null
   }
+
+  /**
+   * Test verifying enum to union schema evolution is supported.
+   *
+   * This test simulates the following Avro schema evolution:
+   *
+   * Schema V1 (Avro):
+   * {{{
+   * {
+   *   "type": "record",
+   *   "name": "Order",
+   *   "namespace": "com.example",
+   *   "fields": [
+   *     { "name": "orderId", "type": "string" },
+   *     {
+   *       "name": "status",
+   *       "type": {
+   *         "type": "enum",
+   *         "name": "OrderStatus",
+   *         "symbols": ["PENDING", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED"]
+   *       }
+   *     }
+   *   ]
+   * }
+   * }}}
+   *
+   * Schema V2 (Avro) - backward compatible evolution adding string to union:
+   * {{{
+   * {
+   *   "type": "record",
+   *   "name": "Order",
+   *   "namespace": "com.example",
+   *   "fields": [
+   *     { "name": "orderId", "type": "string" },
+   *     {
+   *       "name": "status",
+   *       "type": [
+   *         {
+   *           "type": "enum",
+   *           "name": "OrderStatus",
+   *           "symbols": ["PENDING", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED"]
+   *         },
+   *         "string"
+   *       ]
+   *     }
+   *   ]
+   * }
+   * }}}
+   *
+   * In Kafka Connect:
+   * - Avro enum -> STRING schema with name "com.example.OrderStatus"
+   * - Avro union [enum, string] -> STRUCT with name "io.confluent.connect.avro.Union"
+   *
+   * The optimizer promotes the enum value to a union struct with the matching branch populated.
+   */
+  it should "successfully adapt enum field to union field (enum -> [enum, string] evolution)" in {
+    // Schema V1: Avro enum is represented as STRING in Kafka Connect
+    val enumSchema = SchemaBuilder
+      .string()
+      .name("com.example.OrderStatus")
+      .parameter("io.confluent.connect.avro.Enum", "com.example.OrderStatus")
+      .parameter("io.confluent.connect.avro.Enum.PENDING", "PENDING")
+      .parameter("io.confluent.connect.avro.Enum.PROCESSING", "PROCESSING")
+      .parameter("io.confluent.connect.avro.Enum.SHIPPED", "SHIPPED")
+      .parameter("io.confluent.connect.avro.Enum.DELIVERED", "DELIVERED")
+      .parameter("io.confluent.connect.avro.Enum.CANCELLED", "CANCELLED")
+      .build()
+
+    val orderSchemaV1 = SchemaBuilder
+      .struct()
+      .name("com.example.Order")
+      .version(1)
+      .field("orderId", Schema.STRING_SCHEMA)
+      .field("status", enumSchema)
+      .build()
+
+    // Schema V2: Avro union [enum, string] is represented as STRUCT in Kafka Connect
+    val unionEnumBranchSchema = SchemaBuilder
+      .string()
+      .name("com.example.OrderStatus")
+      .optional()
+      .parameter("io.confluent.connect.avro.Enum", "com.example.OrderStatus")
+      .parameter("io.confluent.connect.avro.Enum.PENDING", "PENDING")
+      .parameter("io.confluent.connect.avro.Enum.PROCESSING", "PROCESSING")
+      .parameter("io.confluent.connect.avro.Enum.SHIPPED", "SHIPPED")
+      .parameter("io.confluent.connect.avro.Enum.DELIVERED", "DELIVERED")
+      .parameter("io.confluent.connect.avro.Enum.CANCELLED", "CANCELLED")
+      .build()
+
+    val unionSchema = SchemaBuilder
+      .struct()
+      .name("io.confluent.connect.avro.Union")
+      .field("com.example.OrderStatus", unionEnumBranchSchema) // enum branch
+      .field("string", Schema.OPTIONAL_STRING_SCHEMA)          // string branch
+      .build()
+
+    val orderSchemaV2 = SchemaBuilder
+      .struct()
+      .name("com.example.Order")
+      .version(2)
+      .field("orderId", Schema.STRING_SCHEMA)
+      .field("status", unionSchema)
+      .build()
+
+    // Create record with V1 schema (enum value as string)
+    val orderV1 = new Struct(orderSchemaV1)
+    orderV1.put("orderId", "order-123")
+    orderV1.put("status", "PENDING") // Enum value stored as string
+
+    // Create record with V2 schema (union type as struct)
+    val statusUnionV2 = new Struct(unionSchema)
+    statusUnionV2.put("com.example.OrderStatus", "PROCESSING") // Using enum branch
+    statusUnionV2.put("string", null)
+
+    val orderV2 = new Struct(orderSchemaV2)
+    orderV2.put("orderId", "order-456")
+    orderV2.put("status", statusUnionV2)
+
+    val record1 = createSinkRecord("orders", 0, 0, null, null, orderSchemaV1, orderV1)
+    val record2 = createSinkRecord("orders", 0, 1, null, null, orderSchemaV2, orderV2)
+
+    // The optimizer should successfully adapt record 1 to use V2 schema:
+    // 1. Record 2 has schema V2 (version 2), so V2 becomes the "latest" schema
+    // 2. Optimizer adapts record 1 (V1) to use V2
+    // 3. For the "status" field: promotes STRING ("PENDING") to union STRUCT
+    val result: List[SinkRecord] = optimizer.update(List(record1, record2))
+
+    result.size shouldBe 2
+
+    // Verify record 1 was adapted to V2 schema
+    result(0).valueSchema() shouldBe orderSchemaV2
+    val adaptedOrder1 = result(0).value().asInstanceOf[Struct]
+    adaptedOrder1.get("orderId") shouldBe "order-123"
+
+    // The status field should now be a union struct with enum branch populated
+    val adaptedStatus1 = adaptedOrder1.get("status").asInstanceOf[Struct]
+    adaptedStatus1.get("com.example.OrderStatus") shouldBe "PENDING"
+    adaptedStatus1.get("string") shouldBe null
+
+    // Record 2 should remain unchanged
+    result(1).valueSchema() shouldBe orderSchemaV2
+    val adaptedOrder2 = result(1).value().asInstanceOf[Struct]
+    adaptedOrder2.get("orderId") shouldBe "order-456"
+    val adaptedStatus2 = adaptedOrder2.get("status").asInstanceOf[Struct]
+    adaptedStatus2.get("com.example.OrderStatus") shouldBe "PROCESSING"
+    adaptedStatus2.get("string") shouldBe null
+  }
+
+  /**
+   * Test verifying union to enum schema adaptation (extracting from union).
+   *
+   * This tests the reverse case where a newer schema has a simpler type
+   * than an older schema (union -> enum).
+   */
+  it should "successfully adapt union field to enum field ([enum, string] -> enum extraction)" in {
+    // Schema V1: union [enum, string] represented as STRUCT
+    val unionEnumBranchSchema = SchemaBuilder
+      .string()
+      .name("com.example.OrderStatus")
+      .optional()
+      .parameter("io.confluent.connect.avro.Enum", "com.example.OrderStatus")
+      .build()
+
+    val unionSchema = SchemaBuilder
+      .struct()
+      .name("io.confluent.connect.avro.Union")
+      .field("com.example.OrderStatus", unionEnumBranchSchema)
+      .field("string", Schema.OPTIONAL_STRING_SCHEMA)
+      .build()
+
+    val orderSchemaV1 = SchemaBuilder
+      .struct()
+      .name("com.example.Order")
+      .version(1)
+      .field("orderId", Schema.STRING_SCHEMA)
+      .field("status", unionSchema)
+      .build()
+
+    // Schema V2: simple enum (higher version - becomes the target)
+    val enumSchema = SchemaBuilder
+      .string()
+      .name("com.example.OrderStatus")
+      .parameter("io.confluent.connect.avro.Enum", "com.example.OrderStatus")
+      .build()
+
+    val orderSchemaV2 = SchemaBuilder
+      .struct()
+      .name("com.example.Order")
+      .version(2)
+      .field("orderId", Schema.STRING_SCHEMA)
+      .field("status", enumSchema)
+      .build()
+
+    // Create record with V1 schema (union type)
+    val statusUnionV1 = new Struct(unionSchema)
+    statusUnionV1.put("com.example.OrderStatus", "PENDING")
+    statusUnionV1.put("string", null)
+
+    val orderV1 = new Struct(orderSchemaV1)
+    orderV1.put("orderId", "order-123")
+    orderV1.put("status", statusUnionV1)
+
+    // Create record with V2 schema (simple enum)
+    val orderV2 = new Struct(orderSchemaV2)
+    orderV2.put("orderId", "order-456")
+    orderV2.put("status", "PROCESSING")
+
+    val record1 = createSinkRecord("orders", 0, 0, null, null, orderSchemaV1, orderV1)
+    val record2 = createSinkRecord("orders", 0, 1, null, null, orderSchemaV2, orderV2)
+
+    val result = optimizer.update(List(record1, record2))
+
+    result.size shouldBe 2
+
+    // Verify record 1 was adapted to V2 schema with extracted enum value
+    result(0).valueSchema() shouldBe orderSchemaV2
+    val adaptedOrder1 = result(0).value().asInstanceOf[Struct]
+    adaptedOrder1.get("orderId") shouldBe "order-123"
+    adaptedOrder1.get("status") shouldBe "PENDING" // Extracted from union
+
+    // Record 2 should remain unchanged
+    result(1).valueSchema() shouldBe orderSchemaV2
+    val adaptedOrder2 = result(1).value().asInstanceOf[Struct]
+    adaptedOrder2.get("orderId") shouldBe "order-456"
+    adaptedOrder2.get("status") shouldBe "PROCESSING"
+  }
+
+  /**
+   * Test verifying that name matches take priority over type matches when promoting to union.
+   *
+   * This is a regression test for a bug where promoteToUnion would incorrectly select
+   * the first type-matching branch instead of the name-matching branch. For example,
+   * when the union is [string, enum], promoting an enum (STRING type with name) would
+   * incorrectly match the plain string branch because it appeared first and had a matching type.
+   *
+   * The fix ensures name matches are searched across ALL fields first, then falls back
+   * to type matches only if no name match exists.
+   */
+  it should "prioritize name match over type match when promoting enum to union [string, enum]" in {
+    // Schema V1: Avro enum is represented as STRING in Kafka Connect with a name
+    val enumSchema = SchemaBuilder
+      .string()
+      .name("com.example.OrderStatus")
+      .parameter("io.confluent.connect.avro.Enum", "com.example.OrderStatus")
+      .parameter("io.confluent.connect.avro.Enum.PENDING", "PENDING")
+      .parameter("io.confluent.connect.avro.Enum.SHIPPED", "SHIPPED")
+      .build()
+
+    val orderSchemaV1 = SchemaBuilder
+      .struct()
+      .name("com.example.Order")
+      .version(1)
+      .field("orderId", Schema.STRING_SCHEMA)
+      .field("status", enumSchema)
+      .build()
+
+    // Schema V2: Union where STRING branch appears BEFORE enum branch
+    // This order is critical for testing the bug fix!
+    val unionEnumBranchSchema = SchemaBuilder
+      .string()
+      .name("com.example.OrderStatus")
+      .optional()
+      .parameter("io.confluent.connect.avro.Enum", "com.example.OrderStatus")
+      .parameter("io.confluent.connect.avro.Enum.PENDING", "PENDING")
+      .parameter("io.confluent.connect.avro.Enum.SHIPPED", "SHIPPED")
+      .build()
+
+    val unionSchema = SchemaBuilder
+      .struct()
+      .name("io.confluent.connect.avro.Union")
+      .field("string", Schema.OPTIONAL_STRING_SCHEMA) // STRING branch FIRST (type matches enum)
+      .field("com.example.OrderStatus", unionEnumBranchSchema) // Enum branch SECOND (name matches)
+      .build()
+
+    val orderSchemaV2 = SchemaBuilder
+      .struct()
+      .name("com.example.Order")
+      .version(2)
+      .field("orderId", Schema.STRING_SCHEMA)
+      .field("status", unionSchema)
+      .build()
+
+    // Create record with V1 schema (enum value)
+    val orderV1 = new Struct(orderSchemaV1)
+    orderV1.put("orderId", "order-123")
+    orderV1.put("status", "PENDING")
+
+    // Create record with V2 schema (union with enum branch populated)
+    val statusUnionV2 = new Struct(unionSchema)
+    statusUnionV2.put("string", null)
+    statusUnionV2.put("com.example.OrderStatus", "SHIPPED")
+
+    val orderV2 = new Struct(orderSchemaV2)
+    orderV2.put("orderId", "order-456")
+    orderV2.put("status", statusUnionV2)
+
+    val record1 = createSinkRecord("orders", 0, 0, null, null, orderSchemaV1, orderV1)
+    val record2 = createSinkRecord("orders", 0, 1, null, null, orderSchemaV2, orderV2)
+
+    val result = optimizer.update(List(record1, record2))
+
+    result.size shouldBe 2
+
+    // Verify record 1 was adapted to V2 schema
+    result(0).valueSchema() shouldBe orderSchemaV2
+    val adaptedOrder1 = result(0).value().asInstanceOf[Struct]
+    adaptedOrder1.get("orderId") shouldBe "order-123"
+
+    // CRITICAL: The enum value should be in the ENUM branch (name match),
+    // NOT the string branch (type match). Before the fix, this would fail
+    // because the string branch appeared first and had matching type (STRING).
+    val adaptedStatus1 = adaptedOrder1.get("status").asInstanceOf[Struct]
+    adaptedStatus1.get("com.example.OrderStatus") shouldBe "PENDING"
+    adaptedStatus1.get("string") shouldBe null
+
+    // Record 2 should remain unchanged
+    result(1).valueSchema() shouldBe orderSchemaV2
+    val adaptedOrder2 = result(1).value().asInstanceOf[Struct]
+    adaptedOrder2.get("orderId") shouldBe "order-456"
+    val adaptedStatus2 = adaptedOrder2.get("status").asInstanceOf[Struct]
+    adaptedStatus2.get("com.example.OrderStatus") shouldBe "SHIPPED"
+    adaptedStatus2.get("string") shouldBe null
+  }
+
+  /**
+   * Test verifying that nested structs inside unions are recursively adapted.
+   *
+   * This is a regression test for a bug where promoteToUnion and extractFromUnion
+   * would place/return values directly without calling adaptValue recursively.
+   * This works for primitives but fails for complex types like nested structs
+   * that need schema evolution.
+   *
+   * Scenario:
+   * - Schema V1: field "data" is a simple struct with fields (name, value)
+   * - Schema V2: field "data" is a union [struct, null] where struct has evolved (name, value, extra)
+   *
+   * When promoting the V1 struct to the V2 union, the inner struct should be
+   * adapted from the V1 schema to the V2 struct schema (adding the new "extra" field).
+   */
+  it should "recursively adapt nested struct when promoting to union" in {
+    // Schema V1: data is a simple struct
+    val nestedStructSchemaV1 = SchemaBuilder
+      .struct()
+      .name("com.example.Data")
+      .version(1)
+      .field("name", Schema.STRING_SCHEMA)
+      .field("value", Schema.INT32_SCHEMA)
+      .build()
+
+    val containerSchemaV1 = SchemaBuilder
+      .struct()
+      .name("com.example.Container")
+      .version(1)
+      .field("id", Schema.STRING_SCHEMA)
+      .field("data", nestedStructSchemaV1)
+      .build()
+
+    // Schema V2: data is a union [struct, null] where struct has an additional field
+    val nestedStructSchemaV2 = SchemaBuilder
+      .struct()
+      .name("com.example.Data")
+      .version(2)
+      .optional()
+      .field("name", Schema.STRING_SCHEMA)
+      .field("value", Schema.INT32_SCHEMA)
+      .field("extra", Schema.OPTIONAL_STRING_SCHEMA) // New field in V2
+      .build()
+
+    val unionSchema = SchemaBuilder
+      .struct()
+      .name("io.confluent.connect.avro.Union")
+      .field("com.example.Data", nestedStructSchemaV2) // struct branch
+      .field("null", Schema.OPTIONAL_STRING_SCHEMA)    // null branch (simplified)
+      .build()
+
+    val containerSchemaV2 = SchemaBuilder
+      .struct()
+      .name("com.example.Container")
+      .version(2)
+      .field("id", Schema.STRING_SCHEMA)
+      .field("data", unionSchema)
+      .build()
+
+    // Create record with V1 schema
+    val nestedDataV1 = new Struct(nestedStructSchemaV1)
+    nestedDataV1.put("name", "test-name")
+    nestedDataV1.put("value", 42)
+
+    val containerV1 = new Struct(containerSchemaV1)
+    containerV1.put("id", "container-1")
+    containerV1.put("data", nestedDataV1)
+
+    // Create record with V2 schema
+    val nestedDataV2 = new Struct(nestedStructSchemaV2)
+    nestedDataV2.put("name", "test-name-2")
+    nestedDataV2.put("value", 100)
+    nestedDataV2.put("extra", "extra-value")
+
+    val dataUnionV2 = new Struct(unionSchema)
+    dataUnionV2.put("com.example.Data", nestedDataV2)
+    dataUnionV2.put("null", null)
+
+    val containerV2 = new Struct(containerSchemaV2)
+    containerV2.put("id", "container-2")
+    containerV2.put("data", dataUnionV2)
+
+    val record1 = createSinkRecord("containers", 0, 0, null, null, containerSchemaV1, containerV1)
+    val record2 = createSinkRecord("containers", 0, 1, null, null, containerSchemaV2, containerV2)
+
+    val result = optimizer.update(List(record1, record2))
+
+    result.size shouldBe 2
+
+    // Verify record 1 was adapted to V2 schema
+    result(0).valueSchema() shouldBe containerSchemaV2
+    val adaptedContainer1 = result(0).value().asInstanceOf[Struct]
+    adaptedContainer1.get("id") shouldBe "container-1"
+
+    // The data field should now be a union struct
+    val adaptedDataUnion = adaptedContainer1.get("data").asInstanceOf[Struct]
+
+    // The nested struct should have been adapted to V2 schema with the new field
+    val adaptedNestedData = adaptedDataUnion.get("com.example.Data").asInstanceOf[Struct]
+    adaptedNestedData.schema() shouldBe nestedStructSchemaV2
+    adaptedNestedData.get("name") shouldBe "test-name"
+    adaptedNestedData.get("value") shouldBe 42
+    adaptedNestedData.get("extra") shouldBe null // New field should be null
+
+    // null branch should be null
+    adaptedDataUnion.get("null") shouldBe null
+  }
+
+  /**
+   * Test verifying that nested structs inside unions are recursively adapted when extracting.
+   *
+   * Scenario:
+   * - Schema V1: field "data" is a union [struct, null] with struct having (name, value)
+   * - Schema V2: field "data" is a simple struct with evolved schema (name, value, extra)
+   *
+   * When extracting from the V1 union to the V2 simple struct, the inner struct
+   * should be adapted from the V1 struct schema to the V2 struct schema.
+   */
+  it should "recursively adapt nested struct when extracting from union" in {
+    // Schema V1: data is a union [struct, null]
+    val nestedStructSchemaV1 = SchemaBuilder
+      .struct()
+      .name("com.example.Data")
+      .version(1)
+      .optional()
+      .field("name", Schema.STRING_SCHEMA)
+      .field("value", Schema.INT32_SCHEMA)
+      .build()
+
+    val unionSchema = SchemaBuilder
+      .struct()
+      .name("io.confluent.connect.avro.Union")
+      .field("com.example.Data", nestedStructSchemaV1)
+      .field("null", Schema.OPTIONAL_STRING_SCHEMA)
+      .build()
+
+    val containerSchemaV1 = SchemaBuilder
+      .struct()
+      .name("com.example.Container")
+      .version(1)
+      .field("id", Schema.STRING_SCHEMA)
+      .field("data", unionSchema)
+      .build()
+
+    // Schema V2: data is a simple struct with an additional field
+    val nestedStructSchemaV2 = SchemaBuilder
+      .struct()
+      .name("com.example.Data")
+      .version(2)
+      .field("name", Schema.STRING_SCHEMA)
+      .field("value", Schema.INT32_SCHEMA)
+      .field("extra", Schema.OPTIONAL_STRING_SCHEMA) // New field in V2
+      .build()
+
+    val containerSchemaV2 = SchemaBuilder
+      .struct()
+      .name("com.example.Container")
+      .version(2)
+      .field("id", Schema.STRING_SCHEMA)
+      .field("data", nestedStructSchemaV2)
+      .build()
+
+    // Create record with V1 schema (union with struct)
+    val nestedDataV1 = new Struct(nestedStructSchemaV1)
+    nestedDataV1.put("name", "test-name")
+    nestedDataV1.put("value", 42)
+
+    val dataUnionV1 = new Struct(unionSchema)
+    dataUnionV1.put("com.example.Data", nestedDataV1)
+    dataUnionV1.put("null", null)
+
+    val containerV1 = new Struct(containerSchemaV1)
+    containerV1.put("id", "container-1")
+    containerV1.put("data", dataUnionV1)
+
+    // Create record with V2 schema (simple struct)
+    val nestedDataV2 = new Struct(nestedStructSchemaV2)
+    nestedDataV2.put("name", "test-name-2")
+    nestedDataV2.put("value", 100)
+    nestedDataV2.put("extra", "extra-value")
+
+    val containerV2 = new Struct(containerSchemaV2)
+    containerV2.put("id", "container-2")
+    containerV2.put("data", nestedDataV2)
+
+    val record1 = createSinkRecord("containers", 0, 0, null, null, containerSchemaV1, containerV1)
+    val record2 = createSinkRecord("containers", 0, 1, null, null, containerSchemaV2, containerV2)
+
+    val result = optimizer.update(List(record1, record2))
+
+    result.size shouldBe 2
+
+    // Verify record 1 was adapted to V2 schema
+    result(0).valueSchema() shouldBe containerSchemaV2
+    val adaptedContainer1 = result(0).value().asInstanceOf[Struct]
+    adaptedContainer1.get("id") shouldBe "container-1"
+
+    // The data field should have been extracted from the union and adapted to V2 schema
+    val adaptedData = adaptedContainer1.get("data").asInstanceOf[Struct]
+    adaptedData.schema() shouldBe nestedStructSchemaV2
+    adaptedData.get("name") shouldBe "test-name"
+    adaptedData.get("value") shouldBe 42
+    adaptedData.get("extra") shouldBe null // New field should be null
+  }
 }
