@@ -343,7 +343,7 @@ class DatalakeStorageInterface(connectorTaskId: ConnectorTaskId, client: DataLak
             null,
             Context.NONE,
           )
-          (resp.getDeserializedHeaders.getETag, new String(baos.toByteArray))
+          (new String(baos.toByteArray), resp.getDeserializedHeaders.getETag)
       }
     }.toEither.leftMap {
       case ex: DataLakeStorageException if ex.getStatusCode == 404 =>
