@@ -325,7 +325,6 @@ class DatalakeStorageInterface(connectorTaskId: ConnectorTaskId, client: DataLak
         val fsClient  = client.getFileSystemClient(bucket)
         val dirClient = fsClient.getDirectoryClient(normalizedPath)
         dirClient.createIfNotExists()
-        ()
       }.toEither.leftMap(e => FileCreateError(e, normalizedPath)).void
     }
   }
