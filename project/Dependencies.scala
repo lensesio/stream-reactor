@@ -461,8 +461,8 @@ trait Dependencies {
   import Versions._
 
   val loggingDeps: Seq[ModuleID] = Seq(
-    "org.apache.logging.log4j" % "log4j-api"      % "2.25.0",
-    "org.apache.logging.log4j" % "log4j-to-slf4j" % "2.25.0",
+    "org.apache.logging.log4j" % "log4j-api"      % "2.25.3",
+    "org.apache.logging.log4j" % "log4j-to-slf4j" % "2.25.3",
     log4jToSlf4j,
     jclToSlf4j,
     logback,
