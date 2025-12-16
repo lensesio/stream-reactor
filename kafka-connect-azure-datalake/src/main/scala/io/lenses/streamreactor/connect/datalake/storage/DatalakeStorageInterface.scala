@@ -175,6 +175,9 @@ class DatalakeStorageInterface(connectorTaskId: ConnectorTaskId, client: DataLak
   private def createFile(bucket: String, path: String): DataLakeFileClient =
     client.getFileSystemClient(bucket).createFile(path, true)
 
+  private def createFileIfNotExists(bucket: String, path: String): DataLakeFileClient =
+    client.getFileSystemClient(bucket).createFileIfNotExists(path)
+
   override def uploadFile(source: UploadableFile, bucket: String, path: String): Either[UploadError, String] = {
     logger.debug(s"[{}] Uploading file from local {} to Data Lake {}:{}", connectorTaskId.show, source, bucket, path)
     def tryUploadFile(filePath: String, localFilePath: String): Either[Throwable, String] = Try {
@@ -381,13 +384,13 @@ class DatalakeStorageInterface(connectorTaskId: ConnectorTaskId, client: DataLak
     val content           = objectProtection.wrappedObject.asJson.noSpaces
     val requestConditions = new DataLakeRequestConditions()
     val protection: DataLakeRequestConditions = objectProtection match {
-      case NoOverwriteExistingObject(_) => requestConditions.setIfNoneMatch("*")
+      case NoOverwriteExistingObject(_) => requestConditions
       case ObjectWithETag(_, eTag)      => requestConditions.setIfMatch(eTag)
       case _                            => requestConditions
     }
 
     def tryWriteBlob(): Either[Throwable, String] = Try {
-      val createFileClient: DataLakeFileClient = createFile(bucket, path)
+      val createFileClient: DataLakeFileClient = createFileIfNotExists(bucket, path)
       val bytes = content.getBytes
       Using.resource(new ByteArrayInputStream(bytes)) { bais =>
         createFileClient.append(bais, 0, bytes.length.toLong)

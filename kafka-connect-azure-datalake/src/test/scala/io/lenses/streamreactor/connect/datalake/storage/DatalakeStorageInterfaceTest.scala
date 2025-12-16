@@ -46,6 +46,9 @@ import com.azure.storage.file.datalake.models.PathInfo
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.model.UploadableFile
 import io.lenses.streamreactor.connect.cloud.common.model.UploadableString
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexFile
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.NoOverwriteExistingObject
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.ObjectWithETag
 import io.lenses.streamreactor.connect.cloud.common.storage.EmptyContentsStringError
 import io.lenses.streamreactor.connect.cloud.common.storage.FileCreateError
 import io.lenses.streamreactor.connect.cloud.common.storage.FileDeleteError
@@ -675,6 +678,26 @@ class DatalakeStorageInterfaceTest
 
     result.isLeft should be(true)
     result.left.value should be(a[FileMoveError])
+  }
+
+  "writeBlobToFile" should "write the data to the specified path when successful" in {
+    val idx = IndexFile("test-owner", Option.empty, Option.empty) // equivalent to "{\"owner\":\"test-owner\",\"committedOffset\":null,\"pendingState\":null}"
+
+    val bucket = "test-bucket"
+    val path   = "test-path"
+    val objectProtection = NoOverwriteExistingObject(idx)
+
+    var readFromIS: Option[String] = Option.empty
+    when(
+      client.getFileSystemClient(bucket).createFileIfNotExists(path).append(any[ByteArrayInputStream], anyLong, anyLong),
+    ).thenAnswer {
+      (inputStream: ByteArrayInputStream, _: Long, _: Long) =>
+        readFromIS = new String(inputStream.readAllBytes()).some
+        ()
+    }
+
+    storageInterface.writeBlobToFile(bucket, path, objectProtection) should be(Right(new ObjectWithETag(objectProtection.wrappedObject, null)))
+    readFromIS.value should be("{\"owner\":\"test-owner\",\"committedOffset\":null,\"pendingState\":null}")
   }
 
 }
