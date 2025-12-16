@@ -749,7 +749,7 @@ class AttachLatestSchemaOptimizerTest extends AnyFlatSpec with Matchers with Bef
     val unionSchema = SchemaBuilder
       .struct()
       .name("io.confluent.connect.avro.Union")
-      .field("string", Schema.OPTIONAL_STRING_SCHEMA) // STRING branch FIRST (type matches enum)
+      .field("string", Schema.OPTIONAL_STRING_SCHEMA)          // STRING branch FIRST (type matches enum)
       .field("com.example.OrderStatus", unionEnumBranchSchema) // Enum branch SECOND (name matches)
       .build()
 

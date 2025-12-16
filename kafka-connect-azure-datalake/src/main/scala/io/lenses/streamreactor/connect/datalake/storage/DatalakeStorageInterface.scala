@@ -429,8 +429,8 @@ class DatalakeStorageInterface(connectorTaskId: ConnectorTaskId, client: DataLak
         true,  // retainUncommittedData
         false, // close
         new PathHttpHeaders(),
-        null,  // No conditions needed - create already verified
-        null,  // timeout
+        null, // No conditions needed - create already verified
+        null, // timeout
         Context.NONE,
       )
       response.getValue.getETag

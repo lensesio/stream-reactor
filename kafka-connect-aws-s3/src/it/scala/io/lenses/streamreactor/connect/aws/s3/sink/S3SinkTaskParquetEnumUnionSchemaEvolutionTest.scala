@@ -36,16 +36,16 @@ import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.jdk.CollectionConverters.SeqHasAsJava
 
 /**
-  * Integration test for Parquet format with schema evolution from enum to union of [enum, string].
-  *
-  * This test verifies that the AttachLatestSchemaOptimizer correctly handles the transition
-  * from a simple enum field to a union field containing both the enum and a string type,
-  * which is a common backward-compatible schema evolution pattern in Avro.
-  *
-  * In Kafka Connect's representation:
-  * - Avro enum -> STRING schema with name and enum parameters
-  * - Avro union [enum, string] -> STRUCT with name "io.confluent.connect.avro.Union"
-  */
+ * Integration test for Parquet format with schema evolution from enum to union of [enum, string].
+ *
+ * This test verifies that the AttachLatestSchemaOptimizer correctly handles the transition
+ * from a simple enum field to a union field containing both the enum and a string type,
+ * which is a common backward-compatible schema evolution pattern in Avro.
+ *
+ * In Kafka Connect's representation:
+ * - Avro enum -> STRING schema with name and enum parameters
+ * - Avro union [enum, string] -> STRUCT with name "io.confluent.connect.avro.Union"
+ */
 class S3SinkTaskParquetEnumUnionSchemaEvolutionTest
     extends AnyFlatSpec
     with Matchers
@@ -88,7 +88,7 @@ class S3SinkTaskParquetEnumUnionSchemaEvolutionTest
     val props = (
       defaultProps ++
         Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS PARQUET PROPERTIES('${FlushCount.entryName}'=4)",
+          "connect.s3.kcql"                               -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS PARQUET PROPERTIES('${FlushCount.entryName}'=4)",
           "connect.s3.latest.schema.optimization.enabled" -> "true",
         )
     ).asJava
@@ -227,4 +227,3 @@ class S3SinkTaskParquetEnumUnionSchemaEvolutionTest
     rec4.get("status").toString should be("CUSTOM_HOLD")
   }
 }
-
