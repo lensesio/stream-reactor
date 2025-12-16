@@ -99,15 +99,15 @@ jobs:
             echo "version=$(git describe --tags --always)" >> $GITHUB_OUTPUT
           fi
 
-      - name: Execute Gradle build fat jar
-        env:
-          VERSION: ${{ steps.version.outputs.version }}
-        run: cd 'java-connectors' && ./gradlew ${{ matrix.module }}:shadowJar
-
       - name: Execute Gradle build
         env:
           VERSION: ${{ steps.version.outputs.version }}
         run: cd 'java-connectors' && ./gradlew ${{ matrix.module }}:collectArtifacts
+
+      - name: Execute Gradle build fat jar
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: cd 'java-connectors' && ./gradlew ${{ matrix.module }}:shadowJar
 
       - name: Move to release folder
         shell: bash
