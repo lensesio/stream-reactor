@@ -699,7 +699,7 @@ class DatalakeStorageInterfaceTest
     when(client.getFileSystemClient(bucket)).thenReturn(fileSystemClient)
     // NoOverwriteExistingObject should use overwrite=false
     when(fileSystemClient.createFile(path, false)).thenReturn(fileClient)
-    when(fileClient.append(any[ByteArrayInputStream], anyLong, anyLong)).thenReturn(())
+    doAnswer((_: InvocationOnMock) => ()).when(fileClient).append(any[ByteArrayInputStream], anyLong, anyLong)
 
     val flushResponse = mock[Response[PathInfo]]
     when(flushResponse.getValue).thenReturn(pathInfo)
@@ -780,7 +780,7 @@ class DatalakeStorageInterfaceTest
       ),
     ).thenReturn(createResponse)
 
-    when(fileClient.append(any[ByteArrayInputStream], anyLong, anyLong)).thenReturn(())
+    doAnswer((_: InvocationOnMock) => ()).when(fileClient).append(any[ByteArrayInputStream], anyLong, anyLong)
 
     val flushResponse = mock[Response[PathInfo]]
     when(flushResponse.getValue).thenReturn(pathInfo)
@@ -870,7 +870,7 @@ class DatalakeStorageInterfaceTest
       else fileClient
     }
 
-    when(fileClient.append(any[ByteArrayInputStream], anyLong, anyLong)).thenReturn(())
+    doAnswer((_: InvocationOnMock) => ()).when(fileClient).append(any[ByteArrayInputStream], anyLong, anyLong)
 
     val flushResponse = mock[Response[PathInfo]]
     when(flushResponse.getValue).thenReturn(pathInfo)
