@@ -27,6 +27,7 @@ object S3ConfigSettings {
   val AUTH_MODE:                   String = s"$CONNECTOR_PREFIX.aws.auth.mode"
   val CUSTOM_ENDPOINT:             String = s"$CONNECTOR_PREFIX.custom.endpoint"
   val ENABLE_VIRTUAL_HOST_BUCKETS: String = s"$CONNECTOR_PREFIX.vhost.bucket"
+  val PATH_STYLE_ACCESS:           String = s"$CONNECTOR_PREFIX.path.style.access"
 
   val HTTP_ERROR_RETRY_INTERVAL = s"$CONNECTOR_PREFIX.http.$RETRY_INTERVAL_PROP_SUFFIX"
   val HTTP_ERROR_RETRY_INTERVAL_DOC =

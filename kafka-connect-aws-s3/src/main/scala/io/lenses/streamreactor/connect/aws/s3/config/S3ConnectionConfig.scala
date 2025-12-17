@@ -51,6 +51,7 @@ object S3ConnectionConfig {
     ),
     getString(props, CUSTOM_ENDPOINT),
     getBoolean(props, ENABLE_VIRTUAL_HOST_BUCKETS).getOrElse(false),
+    getBoolean(props, PATH_STYLE_ACCESS),
     RetryConfig.builder.retryLimit(getInt(props, HTTP_NBR_OF_RETRIES).getOrElse(HTTP_NBR_OF_RETIRES_DEFAULT))
       .retryIntervalMillis(getLong(props, HTTP_ERROR_RETRY_INTERVAL).getOrElse(HTTP_ERROR_RETRY_INTERVAL_DEFAULT))
       .build(),
@@ -78,8 +79,9 @@ case class S3ConnectionConfig(
   accessKey:                Option[String],
   secretKey:                Option[String],
   authMode:                 AuthMode,
-  customEndpoint:           Option[String] = None,
-  enableVirtualHostBuckets: Boolean        = false,
+  customEndpoint:           Option[String]  = None,
+  enableVirtualHostBuckets: Boolean         = false,
+  pathStyleAccess:          Option[Boolean] = None,
   httpRetryConfig: RetryConfig =
     RetryConfig.builder.retryIntervalMillis(HTTP_ERROR_RETRY_INTERVAL_DEFAULT).retryLimit(HTTP_NBR_OF_RETIRES_DEFAULT).build(),
   timeouts:             HttpTimeoutConfig            = HttpTimeoutConfig(None, None),
