@@ -311,21 +311,20 @@ class DatalakeStorageInterface(connectorTaskId: ConnectorTaskId, client: DataLak
   }
 
   override def createDirectoryIfNotExists(bucket: String, path: String): Either[FileCreateError, Unit] = {
-    // Create the directory path recursively
+    // Create only the final directory path, not intermediate segments.
+    // Azure Data Lake Gen2 with Hierarchical Namespace (HNS) enabled will auto-create
+    // parent directories when creating a nested directory.
+    //
+    // Note: Creating intermediate directory markers can cause issues where the marker
+    // is interpreted as an empty file, conflicting with file operations.
     val normalizedPath = Option(path).map(_.trim.stripPrefix("/").stripSuffix("/")).getOrElse("")
     if (normalizedPath.isEmpty) {
       ().asRight
     } else {
       Try {
-        val fsClient = client.getFileSystemClient(bucket)
-        val segments = normalizedPath.split('/').toList.filter(_.nonEmpty)
-        var current  = ""
-        segments.foreach { segment =>
-          current = if (current.isEmpty) segment else s"$current/$segment"
-          val dirClient = fsClient.getDirectoryClient(current)
-          dirClient.createIfNotExists()
-          ()
-        }
+        val fsClient  = client.getFileSystemClient(bucket)
+        val dirClient = fsClient.getDirectoryClient(normalizedPath)
+        dirClient.createIfNotExists()
       }.toEither.leftMap(e => FileCreateError(e, normalizedPath)).void
     }
   }
@@ -378,33 +377,61 @@ class DatalakeStorageInterface(connectorTaskId: ConnectorTaskId, client: DataLak
       s"[${connectorTaskId.show}] Uploading file from json object ({${objectProtection.wrappedObject}}) to datalake $bucket:$path",
     )
 
-    val content           = objectProtection.wrappedObject.asJson.noSpaces
-    val requestConditions = new DataLakeRequestConditions()
-    val protection: DataLakeRequestConditions = objectProtection match {
-      case NoOverwriteExistingObject(_) => requestConditions.setIfNoneMatch("*")
-      case ObjectWithETag(_, eTag)      => requestConditions.setIfMatch(eTag)
-      case _                            => requestConditions
-    }
+    val content = objectProtection.wrappedObject.asJson.noSpaces
+
+    // Determine create conditions based on protection type:
+    // - NoOverwriteExistingObject: use createFile with overwrite=false (fails if file exists with 409)
+    // - ObjectWithETag: use createFileWithResponse with If-Match condition (fails if eTag doesn't match with 412)
+    // - Other: use createFile with overwrite=true (always succeeds)
+    //
+    // The If-Match condition MUST be applied to the CREATE operation, not flush.
+    // This is because createFile overwrites the file and assigns a new eTag.
+    // If we applied If-Match to flush, it would always fail since the eTag changed after create.
 
     def tryWriteBlob(): Either[Throwable, String] = Try {
-      val createFileClient: DataLakeFileClient = createFile(bucket, path)
-      val bytes = content.getBytes
+      val fsClient = client.getFileSystemClient(bucket)
+      val bytes    = content.getBytes
+
+      // Create file with appropriate conditions
+      val createFileClient: DataLakeFileClient = objectProtection match {
+        case NoOverwriteExistingObject(_) =>
+          // overwrite=false: fails with 409 if file exists
+          fsClient.createFile(path, false)
+
+        case ObjectWithETag(_, eTag) =>
+          // Apply If-Match condition on CREATE to verify we're updating the expected version
+          // This provides optimistic concurrency control during rebalance scenarios
+          val createConditions = new DataLakeRequestConditions().setIfMatch(eTag)
+          fsClient.createFileWithResponse(
+            path,
+            null, // permissions
+            null, // umask
+            null, // headers
+            null, // metadata
+            createConditions,
+            null, // timeout
+            Context.NONE,
+          ).getValue
+
+        case _ =>
+          // No protection: overwrite=true
+          fsClient.createFile(path, true)
+      }
+
+      // Append data
       Using.resource(new ByteArrayInputStream(bytes)) { bais =>
         createFileClient.append(bais, 0, bytes.length.toLong)
       }
-      val position              = bytes.length.toLong
-      val pathHttpHeaders       = new PathHttpHeaders()
-      val retainUncommittedData = true
-      val close                 = false // or true, if you want to finalize the file
-      val context               = Context.NONE
+
+      // Flush without conditions (the create operation already verified ownership)
       val response = createFileClient.flushWithResponse(
-        position,
-        retainUncommittedData,
-        close,
-        pathHttpHeaders,
-        protection,
-        null,
-        context,
+        bytes.length.toLong,
+        true,  // retainUncommittedData
+        false, // close
+        new PathHttpHeaders(),
+        null, // No conditions needed - create already verified
+        null, // timeout
+        Context.NONE,
       )
       response.getValue.getETag
     }.toEither
@@ -415,8 +442,10 @@ class DatalakeStorageInterface(connectorTaskId: ConnectorTaskId, client: DataLak
           s"[${connectorTaskId.show}] Completed upload from data string ($content) to datalake $bucket:$path",
         )
         Right(new ObjectWithETag[O](objectProtection.wrappedObject, eTag))
+
       case Left(dse: DataLakeStorageException)
           if dse.getStatusCode == 404 || Option(dse.getMessage).exists(_.contains("PathNotFound")) =>
+        // Parent directory doesn't exist - create it and retry
         parentDirectory(path) match {
           case Some(dir) =>
             createDirectoryIfNotExists(bucket, dir) match {
@@ -427,6 +456,22 @@ class DatalakeStorageInterface(connectorTaskId: ConnectorTaskId, client: DataLak
             }
           case None => Left(FileCreateError(dse, content))
         }
+
+      case Left(dse: DataLakeStorageException) if dse.getStatusCode == 409 =>
+        // 409 Conflict: file already exists (NoOverwriteExistingObject case)
+        logger.warn(
+          s"[${connectorTaskId.show}] File already exists at $bucket:$path (409 Conflict), cannot create with NoOverwriteExistingObject protection",
+        )
+        Left(FileCreateError(dse, content))
+
+      case Left(dse: DataLakeStorageException) if dse.getStatusCode == 412 =>
+        // 412 Precondition Failed: eTag doesn't match (ObjectWithETag case)
+        // This means another task/process modified the file - concurrent write detected
+        logger.warn(
+          s"[${connectorTaskId.show}] ETag mismatch at $bucket:$path (412 Precondition Failed), file was modified by another process",
+        )
+        Left(FileCreateError(dse, content))
+
       case Left(other) => Left(FileCreateError(other, content))
     }
   }
