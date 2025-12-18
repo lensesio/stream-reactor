@@ -20,11 +20,23 @@ import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.PaddingS
 
 trait FileNamer {
   def fileName(
-    topicPartitionOffset:    TopicPartitionOffset,
-    earliestRecordTimestamp: Long,
-    latestRecordTimestamp:   Long,
+    fileNamerParams: FileNamerParams
   ): String
 }
+trait FileNamerFactory {
+  def createFileNamer(fileNameConfig: FileNamerConfig): FileNamer
+}
+final case class FileNamerConfig(
+  partitionPaddingStrategy: PaddingStrategy,
+  offsetPaddingStrategy:    PaddingStrategy,
+  extension:                String,
+  suffix:                   Option[String],
+)
+final case class FileNamerParams(
+  topicPartitionOffset:    TopicPartitionOffset,
+  earliestRecordTimestamp: Long,
+  latestRecordTimestamp:   Long,
+)
 
 /**
  * @param offsetPaddingStrategy
@@ -32,33 +44,24 @@ trait FileNamer {
  * @param suffix Allows to add a suffix to the "file" name. It covers the scenario where two connectors from two different clusters write to the same bucket when reading from the same topic.
  */
 class OffsetFileNamer(
-  offsetPaddingStrategy: PaddingStrategy,
-  extension:             String,
-  suffix:                Option[String],
+  fileNameConfig: FileNamerConfig,
 ) extends FileNamer {
   def fileName(
-    topicPartitionOffset:    TopicPartitionOffset,
-    earliestRecordTimestamp: Long,
-    latestRecordTimestamp:   Long,
+    fileNamerParams: FileNamerParams
   ): String =
-    s"${offsetPaddingStrategy.padString(
-      topicPartitionOffset.offset.value.toString,
-    )}_${earliestRecordTimestamp}_$latestRecordTimestamp${suffix.getOrElse("")}.$extension"
+    s"${fileNameConfig.offsetPaddingStrategy.padString(
+      fileNamerParams.topicPartitionOffset.offset.value.toString,
+    )}_${fileNamerParams.earliestRecordTimestamp}_${fileNamerParams.latestRecordTimestamp}${fileNameConfig.suffix.getOrElse("")}.${fileNameConfig.extension}"
 }
 
 class TopicPartitionOffsetFileNamer(
-  partitionPaddingStrategy: PaddingStrategy,
-  offsetPaddingStrategy:    PaddingStrategy,
-  extension:                String,
-  suffix:                   Option[String],
+ fileNameConfig: FileNamerConfig,
 ) extends FileNamer {
   def fileName(
-    topicPartitionOffset:    TopicPartitionOffset,
-    earliestRecordTimestamp: Long,
-    latestRecordTimestamp:   Long,
+    fileNamerParams: FileNamerParams
   ): String =
-    s"${topicPartitionOffset.topic.value}(${partitionPaddingStrategy.padString(
-      topicPartitionOffset.partition.toString,
-    )}_${offsetPaddingStrategy.padString(topicPartitionOffset.offset.value.toString)})${suffix.getOrElse("")}.$extension"
+    s"${fileNamerParams.topicPartitionOffset.topic.value}(${fileNameConfig.partitionPaddingStrategy.padString(
+      fileNamerParams.topicPartitionOffset.partition.toString,
+    )}_${fileNameConfig.offsetPaddingStrategy.padString(fileNamerParams.topicPartitionOffset.offset.value.toString)})${fileNameConfig.suffix.getOrElse("")}.${fileNameConfig.extension}"
 
 }
