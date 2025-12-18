@@ -25,29 +25,30 @@ class FileNamerTest extends AnyFunSuite with Matchers {
   private val paddingStrategy      = LeftPad.toPaddingStrategy(5, '0')
   private val topicPartitionOffset = Topic("topic").withPartition(9).atOffset(81)
 
+  val config = FileNamerConfig(
+    partitionPaddingStrategy = paddingStrategy,
+    offsetPaddingStrategy    = paddingStrategy,
+    extension                = extension,
+    suffix                   = None,
+  )
   test("OffsetFileNamer.fileName should generate the correct file name") {
 
-    new OffsetFileNamer(paddingStrategy, extension, None).fileName(topicPartitionOffset,
-                                                                   1L,
-                                                                   9L,
+    new OffsetFileNamer(config)
+      .fileName(FileNamerParams(topicPartitionOffset, 1L, 9L)
     ) shouldEqual "00081_1_9.avro"
-    new OffsetFileNamer(paddingStrategy, extension, Some("my-suffix")).fileName(topicPartitionOffset,
-                                                                                1L,
-                                                                                9L,
+    new OffsetFileNamer(config.copy(suffix = Some("my-suffix")))
+      .fileName(FileNamerParams(topicPartitionOffset, 1L, 9L)
     ) shouldEqual "00081_1_9my-suffix.avro"
   }
 
   test("TopicPartitionOffsetFileNamer.fileName should generate the correct file name") {
 
-    new TopicPartitionOffsetFileNamer(paddingStrategy, paddingStrategy, extension, None).fileName(topicPartitionOffset,
-                                                                                                  0L,
-                                                                                                  0L,
+    new TopicPartitionOffsetFileNamer(config)
+      .fileName(FileNamerParams(topicPartitionOffset,0L, 0L)
     ) shouldEqual "topic(00009_00081).avro"
 
-    new TopicPartitionOffsetFileNamer(paddingStrategy, paddingStrategy, extension, Some("mine")).fileName(
-      topicPartitionOffset,
-      0L,
-      0L,
+    new TopicPartitionOffsetFileNamer(config.copy(suffix = Some("mine")))
+      .fileName(FileNamerParams(topicPartitionOffset, 0L, 0L)
     ) shouldEqual "topic(00009_00081)mine.avro"
   }
 }

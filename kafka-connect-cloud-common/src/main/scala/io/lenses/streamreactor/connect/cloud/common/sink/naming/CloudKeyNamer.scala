@@ -118,12 +118,18 @@ class CloudKeyNamer(
     partitionValues:         Map[PartitionField, String],
     earliestRecordTimestamp: Long,
     latestRecordTimestamp:   Long,
-  ): Either[FatalCloudSinkError, CloudLocation] =
+  ): Either[FatalCloudSinkError, CloudLocation] = {
+    val params = FileNamerParams(
+      topicPartitionOffset,
+      earliestRecordTimestamp,
+      latestRecordTimestamp,
+    )
     Try(
       bucketAndPrefix.withPath(
-        s"${prefix(bucketAndPrefix)}${buildPartitionPrefix(partitionValues)}/${fileNamer.fileName(topicPartitionOffset, earliestRecordTimestamp, latestRecordTimestamp)}",
+        s"${prefix(bucketAndPrefix)}${buildPartitionPrefix(partitionValues)}/${fileNamer.fileName(params)}",
       ),
     ).toEither.left.map(ex => FatalCloudSinkError(ex.getMessage, topicPartitionOffset.toTopicPartition))
+  }
 
   override def processPartitionValues(
     messageDetail:  MessageDetail,

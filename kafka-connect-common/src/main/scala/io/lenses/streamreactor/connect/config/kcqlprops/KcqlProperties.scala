@@ -20,6 +20,7 @@ import cats.implicits.catsSyntaxOptionId
 import enumeratum._
 import org.apache.kafka.common.config.ConfigException
 
+import scala.reflect.{ClassTag, classTag}
 import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
@@ -135,5 +136,21 @@ case class KcqlProperties[U <: EnumEntry, T <: Enum[U]](
         case _                 => Option.empty[String]
       }
     } yield value
+
+  def getCustomValue[V: ClassTag](className: U, paramName:U): Option[V] = {
+    getString(className)
+      .map { clsName =>
+        val cls = Class.forName(clsName).asSubclass(classTag[V].runtimeClass)
+        val param = getString(paramName)
+
+        param .map { p =>
+          val constructor = cls.getConstructor(classOf[String])
+          constructor.newInstance(p).asInstanceOf[V]
+        }.getOrElse {
+          val constructor = cls.getConstructor()
+          constructor.newInstance().asInstanceOf[V]
+        }
+      }
+    }
 
 }

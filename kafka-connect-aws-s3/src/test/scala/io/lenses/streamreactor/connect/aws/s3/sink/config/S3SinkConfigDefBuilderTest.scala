@@ -98,7 +98,7 @@ class S3SinkConfigDefBuilderTest extends AnyFlatSpec with MockitoSugar with Matc
     )
 
     config.CloudSinkBucketOptions(connectorTaskId, S3SinkConfigDefBuilder(props)).value.map(_.dataStorage) should be(
-      List(DataStorageSettings(true, true, true, false, false)),
+      List(DataStorageSettings(envelope = true, key = true, value = true, metadata = false, headers = false, customNamerFactory = None)),
     )
 
   }
@@ -122,7 +122,9 @@ class S3SinkConfigDefBuilderTest extends AnyFlatSpec with MockitoSugar with Matc
     )
 
     config.CloudSinkBucketOptions(connectorTaskId, S3SinkConfigDefBuilder(props)).value.map(_.dataStorage) should be(
-      List(DataStorageSettings(true, true, true, false, false), DataStorageSettings(true, true, true, false, true)),
+      List(
+        DataStorageSettings(envelope = true, key = true, value = true, metadata = false, headers = false, None),
+        DataStorageSettings(envelope = true, key = true, value = true, metadata = false, headers = true, None)),
     )
 
   }
@@ -194,7 +196,7 @@ class S3SinkConfigDefBuilderTest extends AnyFlatSpec with MockitoSugar with Matc
     )
 
     config.CloudSinkBucketOptions(connectorTaskId, S3SinkConfigDefBuilder(props)).value.map(_.dataStorage) should be(
-      List(DataStorageSettings(envelope = true, key = true, value = true, metadata = false, headers = false)),
+      List(DataStorageSettings(envelope = true, key = true, value = true, metadata = false, headers = false, customNamerFactory = None)),
     )
   }
 
@@ -204,7 +206,7 @@ class S3SinkConfigDefBuilderTest extends AnyFlatSpec with MockitoSugar with Matc
     )
 
     config.CloudSinkBucketOptions(connectorTaskId, S3SinkConfigDefBuilder(props)).value.map(_.dataStorage) should be(
-      List(DataStorageSettings(envelope = true, key = true, value = true, metadata = false, headers = false)),
+      List(DataStorageSettings(envelope = true, key = true, value = true, metadata = false, headers = false, customNamerFactory = None)),
     )
   }
 
@@ -214,7 +216,7 @@ class S3SinkConfigDefBuilderTest extends AnyFlatSpec with MockitoSugar with Matc
     )
 
     config.CloudSinkBucketOptions(connectorTaskId, S3SinkConfigDefBuilder(props)).value.map(_.dataStorage) should be(
-      List(DataStorageSettings(envelope = true, key = true, value = true, metadata = true, headers = true)),
+      List(DataStorageSettings(envelope = true, key = true, value = true, metadata = true, headers = true, customNamerFactory = None)),
     )
   }
 
