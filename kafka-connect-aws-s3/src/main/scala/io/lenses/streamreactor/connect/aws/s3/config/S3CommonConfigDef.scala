@@ -79,7 +79,14 @@ trait S3CommonConfigDef
         Type.BOOLEAN,
         false,
         Importance.LOW,
-        "Enable virtual host buckets",
+        "Enable virtual host buckets (deprecated, use connect.s3.path.style.access instead)",
+      )
+      .define(
+        PATH_STYLE_ACCESS,
+        Type.BOOLEAN,
+        null,
+        Importance.LOW,
+        "Use path-style access for S3 requests (endpoint/bucket/key). Set to true for S3-compatible storage like MinIO. Takes priority over connect.s3.vhost.bucket if set.",
       )
       .define(
         HTTP_NBR_OF_RETRIES,
