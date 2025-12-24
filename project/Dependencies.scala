@@ -50,7 +50,7 @@ object Dependencies {
     val kafkaVersion:     String = "4.1.0"
     val confluentVersion: String = "8.1.0"
 
-    val enumeratumVersion = "1.7.5"
+    val enumeratumVersion = "1.9.2"
 
     val http4sVersion    = "1.0.0-M32"
     val http4sJdkVersion = "1.0.0-M1"
