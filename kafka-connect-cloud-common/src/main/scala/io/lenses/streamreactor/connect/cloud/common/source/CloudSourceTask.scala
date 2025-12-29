@@ -48,6 +48,7 @@ import org.apache.kafka.connect.source.SourceTask
 
 import java.util
 import java.util.Collections
+import scala.concurrent.duration._
 import scala.jdk.CollectionConverters._
 abstract class CloudSourceTask[MD <: FileMetadata, C <: CloudSourceConfig[MD], CT](
   sinkAsciiArtResource: String,
@@ -169,13 +170,16 @@ abstract class CloudSourceTask[MD <: FileMetadata, C <: CloudSourceConfig[MD], C
 
       // Late arrival touch task runs only on task 0 to avoid duplicate API calls
       val lateArrivalTouchLoop: Option[IO[Unit]] =
-        if (connectorTaskId.taskNo == 0 && config.bucketOptions.exists(_.processLateArrivalInterval.isDefined)) {
-          Some(LateArrivalTouchTask.run(connectorTaskId,
-                                        storageInterface,
-                                        config.bucketOptions,
-                                        contextOffsetFn,
-                                        cancelledRef,
-          ))
+        if (connectorTaskId.taskNo == 0 && config.bucketOptions.exists(_.processLateArrival)) {
+          Some(
+            LateArrivalTouchTask.run(connectorTaskId,
+                                     storageInterface,
+                                     config.bucketOptions,
+                                     config.lateArrivalInterval.seconds,
+                                     contextOffsetFn,
+                                     cancelledRef,
+            ),
+          )
         } else {
           None
         }

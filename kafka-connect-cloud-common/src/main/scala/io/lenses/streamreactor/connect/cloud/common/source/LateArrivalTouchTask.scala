@@ -47,6 +47,7 @@ object LateArrivalTouchTask extends LazyLogging {
    * @param connectorTaskId  The task identifier for logging
    * @param storageInterface The storage interface to interact with cloud storage
    * @param bucketOptions    The bucket options containing late arrival configuration
+   * @param interval         The interval between touch operations
    * @param contextOffsetFn  Function to read the current watermark from Kafka Connect offsets
    * @param cancelledRef     Reference to check if the task should stop
    * @return An IO action that runs the touch task loop
@@ -55,27 +56,28 @@ object LateArrivalTouchTask extends LazyLogging {
     connectorTaskId:  ConnectorTaskId,
     storageInterface: StorageInterface[M],
     bucketOptions:    Seq[CloudSourceBucketOptions[M]],
+    interval:         FiniteDuration,
     contextOffsetFn:  CloudLocation => Option[CloudLocation],
     cancelledRef:     Ref[IO, Boolean],
   ): IO[Unit] = {
-    // Find bucket options with late arrival processing enabled and get their intervals
-    val lateArrivalConfigs = bucketOptions.flatMap { opt =>
-      opt.processLateArrivalInterval.map(interval => (opt.sourceBucketAndPrefix, interval))
-    }
+    // Find bucket options with late arrival processing enabled
+    val lateArrivalLocations = bucketOptions.filter(_.processLateArrival).map(_.sourceBucketAndPrefix)
 
-    if (lateArrivalConfigs.isEmpty) {
+    if (lateArrivalLocations.isEmpty) {
       IO.delay(logger.info(s"[${connectorTaskId.show}] No bucket options with late arrival processing enabled."))
     } else {
-      // Use the minimum interval among all configured buckets
-      val minInterval = lateArrivalConfigs.map(_._2).min.seconds
-
       IO.delay(
         logger.info(
-          s"[${connectorTaskId.show}] Starting late arrival touch task with interval ${minInterval.toSeconds}s for ${lateArrivalConfigs.size} bucket(s).",
+          s"[${connectorTaskId.show}] Starting late arrival touch task with interval ${interval.toSeconds}s for ${lateArrivalLocations.size} bucket(s).",
         ),
       ) >>
-        PollLoop.run(minInterval, cancelledRef) { () =>
-          touchFilesForAllBuckets(connectorTaskId, storageInterface, lateArrivalConfigs, contextOffsetFn, cancelledRef)
+        PollLoop.run(interval, cancelledRef) { () =>
+          touchFilesForAllBuckets(connectorTaskId,
+                                  storageInterface,
+                                  lateArrivalLocations,
+                                  contextOffsetFn,
+                                  cancelledRef,
+          )
             .handleErrorWith { err =>
               IO.delay(
                 logger.error(
@@ -93,17 +95,16 @@ object LateArrivalTouchTask extends LazyLogging {
    * Checks cancelledRef between each bucket to allow early exit.
    */
   private def touchFilesForAllBuckets[M <: FileMetadata](
-    connectorTaskId:    ConnectorTaskId,
-    storageInterface:   StorageInterface[M],
-    lateArrivalConfigs: Seq[(CloudLocation, Int)],
-    contextOffsetFn:    CloudLocation => Option[CloudLocation],
-    cancelledRef:       Ref[IO, Boolean],
+    connectorTaskId:      ConnectorTaskId,
+    storageInterface:     StorageInterface[M],
+    lateArrivalLocations: Seq[CloudLocation],
+    contextOffsetFn:      CloudLocation => Option[CloudLocation],
+    cancelledRef:         Ref[IO, Boolean],
   ): IO[Unit] =
-    lateArrivalConfigs.traverse_ {
-      case (sourceLocation, _) =>
-        checkCancelledAndRun(cancelledRef) {
-          touchFilesForBucket(connectorTaskId, storageInterface, sourceLocation, contextOffsetFn, cancelledRef)
-        }
+    lateArrivalLocations.traverse_ { sourceLocation =>
+      checkCancelledAndRun(cancelledRef) {
+        touchFilesForBucket(connectorTaskId, storageInterface, sourceLocation, contextOffsetFn, cancelledRef)
+      }
     }
 
   /**

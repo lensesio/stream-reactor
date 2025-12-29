@@ -57,6 +57,7 @@ class LateArrivalTouchTaskTest extends AnyFlatSpec with Matchers with MockitoSug
       connectorTaskId,
       storageInterface,
       bucketOptions,
+      1.second,
       contextOffsetFn,
       cancelledRef,
     )
@@ -103,13 +104,14 @@ class LateArrivalTouchTaskTest extends AnyFlatSpec with Matchers with MockitoSug
       }
 
     val bucketOptions = Seq(
-      createMockBucketOptions(sourceLocation, Some(1)), // 1 second interval for testing
+      createMockBucketOptions(sourceLocation, processLateArrival = true),
     )
 
     val result = LateArrivalTouchTask.run(
       connectorTaskId,
       storageInterface,
       bucketOptions,
+      1.second, // 1 second interval for testing
       contextOffsetFn,
       cancelledRef,
     )
@@ -135,13 +137,14 @@ class LateArrivalTouchTaskTest extends AnyFlatSpec with Matchers with MockitoSug
     }
 
     val bucketOptions = Seq(
-      createMockBucketOptions(sourceLocation, Some(1)),
+      createMockBucketOptions(sourceLocation, processLateArrival = true),
     )
 
     val result = LateArrivalTouchTask.run(
       connectorTaskId,
       storageInterface,
       bucketOptions,
+      1.second,
       contextOffsetFn,
       cancelledRef,
     )
@@ -185,13 +188,14 @@ class LateArrivalTouchTaskTest extends AnyFlatSpec with Matchers with MockitoSug
       }
 
     val bucketOptions = Seq(
-      createMockBucketOptions(sourceLocation, Some(1)),
+      createMockBucketOptions(sourceLocation, processLateArrival = true),
     )
 
     val result = LateArrivalTouchTask.run(
       connectorTaskId,
       storageInterface,
       bucketOptions,
+      1.second,
       contextOffsetFn,
       cancelledRef,
     )
@@ -236,13 +240,14 @@ class LateArrivalTouchTaskTest extends AnyFlatSpec with Matchers with MockitoSug
       }
 
     val bucketOptions = Seq(
-      createMockBucketOptions(sourceLocation, Some(1)),
+      createMockBucketOptions(sourceLocation, processLateArrival = true),
     )
 
     val result = LateArrivalTouchTask.run(
       connectorTaskId,
       storageInterface,
       bucketOptions,
+      1.second,
       contextOffsetFn,
       cancelledRef,
     )
@@ -255,19 +260,19 @@ class LateArrivalTouchTaskTest extends AnyFlatSpec with Matchers with MockitoSug
   }
 
   private def createMockBucketOptions(
-    sourceLocation:             CloudLocation,
-    processLateArrivalInterval: Option[Int],
+    sourceLocation:     CloudLocation,
+    processLateArrival: Boolean,
   ): CloudSourceBucketOptions[TestFileMetadata] =
     CloudSourceBucketOptions[TestFileMetadata](
-      sourceBucketAndPrefix      = sourceLocation,
-      targetTopic                = "test-topic",
-      format                     = mock[io.lenses.streamreactor.connect.cloud.common.config.FormatSelection],
-      recordsLimit               = 1000,
-      filesLimit                 = 100,
-      partitionExtractor         = None,
-      orderingType               = mock[io.lenses.streamreactor.connect.cloud.common.source.config.OrderingType],
-      hasEnvelope                = false,
-      postProcessAction          = None,
-      processLateArrivalInterval = processLateArrivalInterval,
+      sourceBucketAndPrefix = sourceLocation,
+      targetTopic           = "test-topic",
+      format                = mock[io.lenses.streamreactor.connect.cloud.common.config.FormatSelection],
+      recordsLimit          = 1000,
+      filesLimit            = 100,
+      partitionExtractor    = None,
+      orderingType          = mock[io.lenses.streamreactor.connect.cloud.common.source.config.OrderingType],
+      hasEnvelope           = false,
+      postProcessAction     = None,
+      processLateArrival    = processLateArrival,
     )
 }

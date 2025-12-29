@@ -58,6 +58,7 @@ object S3SourceConfig extends PropsToConfigConverter[S3SourceConfig] {
       s3ConfigDefBuilder.getSourceExtensionFilter,
       backoff,
       s3ConfigDefBuilder.getWriteWatermarkToHeaders,
+      s3ConfigDefBuilder.getLateArrivalInterval,
     )
 
   }
@@ -73,4 +74,5 @@ case class S3SourceConfig(
   extensionFilter:            Option[ExtensionFilter],
   emptySourceBackoffSettings: EmptySourceBackoffSettings,
   writeWatermarkToHeaders:    Boolean,
+  lateArrivalInterval:        Int,
 ) extends CloudSourceConfig[S3FileMetadata]

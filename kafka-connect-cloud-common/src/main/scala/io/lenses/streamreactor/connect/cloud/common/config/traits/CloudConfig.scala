@@ -134,4 +134,12 @@ trait CloudSourceConfig[MD <: FileMetadata] extends CloudConfig {
 
   def writeWatermarkToHeaders: Boolean
 
+  /**
+   * Retrieves the late arrival interval in seconds for the cloud source.
+   * This is used by the LateArrivalTouchTask to determine how often to check for late-arriving files.
+   *
+   * @return The late arrival interval in seconds.
+   */
+  def lateArrivalInterval: Int
+
 }

@@ -33,5 +33,6 @@ object S3SourceConfigDef extends S3CommonConfigDef with CloudSourceSettingsKeys 
     addSourceFilteringSettings(settings)
     addSourceEmptyResultsBackoffSettings(settings)
     addSourceWatermarkSettings(settings)
+    addSourceLateArrivalSettings(settings)
   }
 }

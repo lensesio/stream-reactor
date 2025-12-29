@@ -62,6 +62,7 @@ object GCPStorageSourceConfig extends PropsToConfigConverter[GCPStorageSourceCon
       gcpConfigDefBuilder.getSourceExtensionFilter,
       backoff,
       gcpConfigDefBuilder.getWriteWatermarkToHeaders,
+      gcpConfigDefBuilder.getLateArrivalInterval,
     )
 
   }
@@ -76,4 +77,5 @@ case class GCPStorageSourceConfig(
   extensionFilter:            Option[ExtensionFilter],
   emptySourceBackoffSettings: EmptySourceBackoffSettings,
   writeWatermarkToHeaders:    Boolean,
+  lateArrivalInterval:        Int,
 ) extends CloudSourceConfig[GCPStorageFileMetadata]

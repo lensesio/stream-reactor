@@ -41,7 +41,6 @@ object CloudSourcePropsSchema {
     PostProcessActionPrefix                      -> StringPropsSchema,
     PostProcessActionRetain                      -> BooleanPropsSchema,
     PostProcessActionWatermarkProcessLateArrival -> BooleanPropsSchema,
-    ProcessLateArrivalInterval                   -> IntPropsSchema,
   )
 
   val schema = KcqlPropsSchema(PropsKeyEnum, keys)
