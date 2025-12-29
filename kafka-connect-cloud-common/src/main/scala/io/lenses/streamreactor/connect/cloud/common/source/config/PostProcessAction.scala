@@ -24,6 +24,7 @@ import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnu
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.PostProcessActionBucket
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.PostProcessActionPrefix
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.PostProcessActionRetain
+import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.PostProcessActionWatermarkProcessLateArrival
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.source.config.kcqlprops.PostProcessActionEntry
 import io.lenses.streamreactor.connect.cloud.common.source.config.kcqlprops.PostProcessActionEnum
@@ -93,14 +94,21 @@ object PostProcessAction {
             retainDirs: Boolean <- kcqlProperties.getBooleanOrDefault(PostProcessActionRetain, default = false)
           } yield new DeletePostProcessAction(retainDirs)
 
-        case Move => {
-            for {
-              destBucket <- kcqlProperties.getString(PostProcessActionBucket)
-              destPrefix <- kcqlProperties.getString(PostProcessActionPrefix)
-              retainDirs <- kcqlProperties.getBooleanOrDefault(PostProcessActionRetain, default = false).toOption
-            } yield MovePostProcessAction(retainDirs, prefix, dropEndSlash(destBucket), dropEndSlash(destPrefix))
-          }
-            .toRight(new IllegalArgumentException("A bucket and a path must be specified for moving files to."))
+        case Move =>
+          for {
+            destBucket <- kcqlProperties.getString(PostProcessActionBucket)
+              .toRight(new IllegalArgumentException("A bucket must be specified for moving files to."))
+            destPrefix <- kcqlProperties.getString(PostProcessActionPrefix)
+              .toRight(new IllegalArgumentException("A path prefix must be specified for moving files to."))
+            retainDirs <- kcqlProperties.getBooleanOrDefault(PostProcessActionRetain, default = false)
+            processLateArrival <-
+              kcqlProperties.getBooleanOrDefault(PostProcessActionWatermarkProcessLateArrival, default = false)
+          } yield MovePostProcessAction(retainDirs,
+                                        prefix,
+                                        dropEndSlash(destBucket),
+                                        dropEndSlash(destPrefix),
+                                        processLateArrival,
+          )
       }
       .sequence
 
@@ -125,10 +133,11 @@ class DeletePostProcessAction(retainDirs: Boolean) extends PostProcessAction wit
 }
 
 case class MovePostProcessAction(
-  retainDirs:     Boolean,
-  originalPrefix: Option[String],
-  newBucket:      String,
-  newPrefix:      String,
+  retainDirs:         Boolean,
+  originalPrefix:     Option[String],
+  newBucket:          String,
+  newPrefix:          String,
+  processLateArrival: Boolean,
 ) extends PostProcessAction
     with StrictLogging {
 

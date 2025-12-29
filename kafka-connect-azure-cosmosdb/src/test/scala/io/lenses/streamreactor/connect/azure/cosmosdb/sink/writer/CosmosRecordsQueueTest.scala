@@ -35,8 +35,8 @@ import java.util.concurrent.Executors
 
 class CosmosRecordsQueueTest extends AnyFunSuite with Matchers with MockitoSugar {
 
-  def dummyRecord(offset: Long = 1L): PendingRecord = {
-    val tpo = Topic("topic").withPartition(0).atOffset(offset)
+  def dummyRecord(offset: Long = 1L, partition: Int = 0): PendingRecord = {
+    val tpo = Topic("topic").withPartition(partition).atOffset(offset)
     val doc = mock[Document]
     val op  = mock[CosmosItemOperation]
     PendingRecord(tpo, doc, op)
@@ -172,7 +172,7 @@ class CosmosRecordsQueueTest extends AnyFunSuite with Matchers with MockitoSugar
     val numRecords = 100
     val numThreads = 8
     val q          = queue(maxSize = numRecords, batchPolicy = makeBatchPolicy(1))
-    val records    = (1L to numRecords.toLong).map(dummyRecord).toList
+    val records    = (1L to numRecords.toLong).map(offset => dummyRecord(offset)).toList
     q.enqueueAll(records)
 
     val dequeuedOffsets = java.util.concurrent.ConcurrentHashMap.newKeySet[Long]()
@@ -211,11 +211,10 @@ class CosmosRecordsQueueTest extends AnyFunSuite with Matchers with MockitoSugar
     val totalRecords     = numThreads * recordsPerThread
     val q                = queue(maxSize = totalRecords, batchPolicy = makeBatchPolicy(totalRecords.toLong))
 
-    // Each thread enqueues a disjoint set of records
+    // Each thread enqueues records on a different partition to avoid offsetMap filtering conflicts
+    // (offsetMap filters records with offsets <= highest seen for the same partition)
     val allRecords: Seq[List[PendingRecord]] = (0 until numThreads).map { tIdx =>
-      val start = tIdx * recordsPerThread + 1L
-      val end   = start + recordsPerThread - 1
-      (start to end).map(dummyRecord).toList
+      (1L to recordsPerThread.toLong).map(offset => dummyRecord(offset, partition = tIdx)).toList
     }
 
     implicit val ec = ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(numThreads))
@@ -233,9 +232,15 @@ class CosmosRecordsQueueTest extends AnyFunSuite with Matchers with MockitoSugar
         case NonEmptyBatchInfo(batch, _, _) => batch.toSeq.toList.asInstanceOf[List[PendingRecord]]
         case EmptyBatchInfo(_)              => List.empty[PendingRecord]
       }
-      val offsetsInQueue  = batch.map(_.topicPartitionOffset.offset.value).toSet
-      val expectedOffsets = (1L to totalRecords.toLong).toSet
-      offsetsInQueue shouldBe expectedOffsets
+      // Verify we have all records - each partition has offsets 1-50
+      batch.size shouldBe totalRecords
+      // Group by partition and verify each partition has the expected offsets
+      val byPartition = batch.groupBy(_.topicPartitionOffset.toTopicPartition.partition)
+      byPartition.size shouldBe numThreads
+      byPartition.values.foreach { partitionRecords =>
+        val offsets = partitionRecords.map(_.topicPartitionOffset.offset.value).toSet
+        offsets shouldBe (1L to recordsPerThread.toLong).toSet
+      }
     } finally {
       ec.shutdown()
     }

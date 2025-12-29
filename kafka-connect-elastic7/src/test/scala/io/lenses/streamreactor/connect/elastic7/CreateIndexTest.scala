@@ -23,9 +23,11 @@ import org.apache.kafka.connect.data.SchemaBuilder
 import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.header.ConnectHeaders
 import org.apache.kafka.connect.sink.SinkRecord
-import org.joda.time.DateTime
-import org.joda.time.DateTimeZone
 import org.scalatest.EitherValues
+
+import java.time.LocalDateTime
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
 import org.scalatest.funsuite.AnyFunSuiteLike
 import org.scalatest.matchers.should.Matchers
 
@@ -38,7 +40,7 @@ class CreateIndexTest extends AnyFunSuiteLike with Matchers with EitherValues {
   test("getIndexNameForAutoCreate should create an index name with suffix when suffix is set") {
     val kcql = Kcql.parse("INSERT INTO index_name SELECT * FROM topicA WITHINDEXSUFFIX=_suffix_{YYYY-MM-dd}")
 
-    val formattedDateTime = new DateTime(DateTimeZone.UTC).toString("YYYY-MM-dd")
+    val formattedDateTime = LocalDateTime.now(ZoneOffset.UTC).format(DateTimeFormatter.ofPattern("YYYY-MM-dd"))
     CreateIndex.getIndexNameForAutoCreate(kcql).value shouldBe s"index_name_suffix_$formattedDateTime"
   }
 

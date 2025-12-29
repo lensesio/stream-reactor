@@ -50,6 +50,12 @@ object CloudSourceBucketOptions {
 
           postProcessAction <- PostProcessAction(source.prefix, sourceProps)
 
+          // Late arrival processing only applies when Move post-process action is configured with processLateArrival=true
+          processLateArrival = postProcessAction match {
+            case Some(move: MovePostProcessAction) => move.processLateArrival
+            case _ => false
+          }
+
         } yield CloudSourceBucketOptions[M](
           source,
           kcql.getTarget,
@@ -60,6 +66,7 @@ object CloudSourceBucketOptions {
           orderingType       = config.extractOrderingType,
           hasEnvelope        = hasEnvelope.getOrElse(false),
           postProcessAction  = postProcessAction,
+          processLateArrival = processLateArrival,
         )
     }.toSeq.traverse(identity)
 
@@ -75,6 +82,7 @@ case class CloudSourceBucketOptions[M <: FileMetadata](
   orderingType:          OrderingType,
   hasEnvelope:           Boolean,
   postProcessAction:     Option[PostProcessAction],
+  processLateArrival:    Boolean,
 ) {
   def createBatchListerFn(
     storageInterface: StorageInterface[M],

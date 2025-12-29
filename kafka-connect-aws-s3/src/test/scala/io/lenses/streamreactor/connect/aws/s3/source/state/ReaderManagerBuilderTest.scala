@@ -65,6 +65,7 @@ class ReaderManagerBuilderTest extends AsyncFlatSpec with AsyncIOSpec with Match
                                                        OrderingType.LastModified,
                                                        false,
                                                        Option.empty,
+                                                       false,
     )
     val taskId       = ConnectorTaskId("test", 3, 1)
     val pathLocation = root.withPath(path)
@@ -111,6 +112,7 @@ class ReaderManagerBuilderTest extends AsyncFlatSpec with AsyncIOSpec with Match
                                                        OrderingType.LastModified,
                                                        false,
                                                        Option.empty,
+                                                       false,
     )
     val taskId       = ConnectorTaskId("test", 3, 1)
     val pathLocation = root.withPath(path)

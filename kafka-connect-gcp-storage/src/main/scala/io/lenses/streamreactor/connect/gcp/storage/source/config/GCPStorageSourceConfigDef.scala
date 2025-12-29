@@ -34,6 +34,7 @@ object GCPStorageSourceConfigDef extends CommonConfigDef with CloudSourceSetting
     addSourceFilteringSettings(settings)
     addSourceEmptyResultsBackoffSettings(settings)
     addSourceWatermarkSettings(settings)
+    addSourceLateArrivalSettings(settings)
   }
 }
 

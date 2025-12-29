@@ -118,4 +118,14 @@ trait StorageInterface[SM <: FileMetadata] extends ResultProcessors {
    * @return Either a FileCreateError if the directory creation failed, or Unit if the directory was created successfully or already exists.
    */
   def createDirectoryIfNotExists(bucket: String, path: String): Either[FileCreateError, Unit]
+
+  /**
+   * Updates the lastModified timestamp of a file by copying it to itself.
+   * This is used to "touch" late-arrival files so they appear after the watermark.
+   *
+   * @param bucket The name of the bucket where the file is located.
+   * @param path The path of the file to touch.
+   * @return Either a FileTouchError if the operation failed, or Unit if successful.
+   */
+  def touchFile(bucket: String, path: String): Either[FileTouchError, Unit]
 }

@@ -51,6 +51,7 @@ class DateOrderingBatchListerTest
     Option[ListResponse[String, TestFileMetadata]],
   ] =
     DateOrderingBatchLister.listBatch[TestFileMetadata](storageInterface, bucket, prefix.some, NumResults)
+
   private val instBase: Instant = Instant.now
   private def instant(no: Int): Instant = {
     require(no <= 100)
@@ -164,6 +165,7 @@ class DateOrderingBatchListerTest
       allFiles(29),
     ))
   }
+
   private def mockStorageInterface(storageInterfaceResponse: ListOfMetadataResponse[TestFileMetadata]) =
     when(
       storageInterface.listFileMetaRecursive(

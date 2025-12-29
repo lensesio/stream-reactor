@@ -222,6 +222,24 @@ trait CloudSourceSettingsKeys extends WithConnectorPrefix {
       SOURCE_EMPTY_RESULTS_BACKOFF_MULTIPLIER,
     )
 
+  val SOURCE_LATE_ARRIVAL_INTERVAL: String = s"$connectorPrefix.source.late.arrival.interval"
+  private val SOURCE_LATE_ARRIVAL_INTERVAL_DOC: String =
+    "Interval in seconds between late arrival file touch operations. Only applies when post.process.action.watermark.process.late.arrival is enabled. Defaults to 300 seconds (5 minutes). Must be greater than 0."
+  val SOURCE_LATE_ARRIVAL_INTERVAL_DEFAULT: Int = 300
+
+  def addSourceLateArrivalSettings(configDef: ConfigDef): ConfigDef =
+    configDef.define(
+      SOURCE_LATE_ARRIVAL_INTERVAL,
+      Type.INT,
+      SOURCE_LATE_ARRIVAL_INTERVAL_DEFAULT,
+      Importance.LOW,
+      SOURCE_LATE_ARRIVAL_INTERVAL_DOC,
+      "Source",
+      10,
+      ConfigDef.Width.MEDIUM,
+      SOURCE_LATE_ARRIVAL_INTERVAL,
+    )
+
   def addSourcePartitionExtractorSettings(configDef: ConfigDef): ConfigDef = configDef.define(
     SOURCE_PARTITION_EXTRACTOR_TYPE,
     Type.STRING,

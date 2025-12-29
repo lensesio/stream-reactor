@@ -475,4 +475,27 @@ class DatalakeStorageInterface(connectorTaskId: ConnectorTaskId, client: DataLak
       case Left(other) => Left(FileCreateError(other, content))
     }
   }
+
+  /**
+   * Updates the lastModified timestamp of a file by updating its metadata.
+   * In Azure Datalake Gen2, setting metadata updates the lastModified timestamp.
+   * Preserves existing metadata by merging with the new "touched" timestamp.
+   *
+   * @param bucket The name of the filesystem (container).
+   * @param path The path of the file to touch.
+   * @return Either a FileTouchError if the operation failed, or Unit if successful.
+   */
+  override def touchFile(bucket: String, path: String): Either[FileTouchError, Unit] =
+    Try {
+      val fileClient = client.getFileSystemClient(bucket).getFileClient(path)
+      // Retrieve existing metadata to preserve it (setMetadata replaces all metadata)
+      // Note: getMetadata can return null when no user-defined metadata exists
+      val existingMetadata = fileClient.getProperties.getMetadata
+      val metadata = Option(existingMetadata)
+        .map(m => new java.util.HashMap[String, String](m))
+        .getOrElse(new java.util.HashMap[String, String]())
+      metadata.put("touched", java.time.Instant.now().toString)
+      fileClient.setMetadata(metadata)
+      logger.debug(s"[${connectorTaskId.show}] Touched file $bucket/$path to update lastModified timestamp")
+    }.toEither.leftMap(ex => FileTouchError(ex, path)).void
 }
