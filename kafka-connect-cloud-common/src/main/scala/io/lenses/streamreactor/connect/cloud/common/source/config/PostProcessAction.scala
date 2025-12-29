@@ -94,22 +94,21 @@ object PostProcessAction {
             retainDirs: Boolean <- kcqlProperties.getBooleanOrDefault(PostProcessActionRetain, default = false)
           } yield new DeletePostProcessAction(retainDirs)
 
-        case Move => {
-            for {
-              destBucket <- kcqlProperties.getString(PostProcessActionBucket)
-              destPrefix <- kcqlProperties.getString(PostProcessActionPrefix)
-              retainDirs <- kcqlProperties.getBooleanOrDefault(PostProcessActionRetain, default = false).toOption
-              processLateArrival <- kcqlProperties.getBooleanOrDefault(PostProcessActionWatermarkProcessLateArrival,
-                                                                       default = false,
-              ).toOption
-            } yield MovePostProcessAction(retainDirs,
-                                          prefix,
-                                          dropEndSlash(destBucket),
-                                          dropEndSlash(destPrefix),
-                                          processLateArrival,
-            )
-          }
-            .toRight(new IllegalArgumentException("A bucket and a path must be specified for moving files to."))
+        case Move =>
+          for {
+            destBucket <- kcqlProperties.getString(PostProcessActionBucket)
+              .toRight(new IllegalArgumentException("A bucket must be specified for moving files to."))
+            destPrefix <- kcqlProperties.getString(PostProcessActionPrefix)
+              .toRight(new IllegalArgumentException("A path prefix must be specified for moving files to."))
+            retainDirs <- kcqlProperties.getBooleanOrDefault(PostProcessActionRetain, default = false)
+            processLateArrival <-
+              kcqlProperties.getBooleanOrDefault(PostProcessActionWatermarkProcessLateArrival, default = false)
+          } yield MovePostProcessAction(retainDirs,
+                                        prefix,
+                                        dropEndSlash(destBucket),
+                                        dropEndSlash(destPrefix),
+                                        processLateArrival,
+          )
       }
       .sequence
 
