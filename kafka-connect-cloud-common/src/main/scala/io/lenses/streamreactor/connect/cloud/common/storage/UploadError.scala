@@ -94,3 +94,9 @@ case class FileListError(exception: Throwable, bucket: String, path: Option[Stri
   override def toExceptionOption: Option[Throwable] = exception.some
 
 }
+
+case class FileTouchError(exception: Throwable, fileName: String) extends UploadError {
+  override def message() = s"error touching file ($fileName) ${exception.getMessage}"
+
+  override def toExceptionOption: Option[Throwable] = exception.some
+}

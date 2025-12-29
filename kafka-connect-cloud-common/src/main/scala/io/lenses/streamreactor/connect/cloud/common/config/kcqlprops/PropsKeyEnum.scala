@@ -70,6 +70,11 @@ object PropsKeyEnum extends Enum[PropsKeyEntry] {
 
   case object PostProcessActionRetain extends PropsKeyEntry("post.process.action.retain.dirs")
 
+  case object PostProcessActionWatermarkProcessLateArrival
+      extends PropsKeyEntry("post.process.action.watermark.process.late.arrival")
+
+  case object ProcessLateArrivalInterval extends PropsKeyEntry("process.late.arrival.interval")
+
   case object KeySuffix extends PropsKeyEntry("key.suffix")
 
 }

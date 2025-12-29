@@ -26,20 +26,22 @@ import scala.jdk.CollectionConverters.MapHasAsScala
 object CloudSourcePropsSchema {
 
   private[source] val keys = Map[PropsKeyEntry, PropsSchema](
-    ReadTextMode            -> EnumPropsSchema(ReadTextModeEnum),
-    ReadRegex               -> StringPropsSchema,
-    ReadStartTag            -> StringPropsSchema,
-    ReadEndTag              -> StringPropsSchema,
-    ReadStartLine           -> StringPropsSchema,
-    ReadEndLine             -> StringPropsSchema,
-    ReadLastEndLineMissing  -> BooleanPropsSchema,
-    BufferSize              -> IntPropsSchema,
-    ReadTrimLine            -> BooleanPropsSchema,
-    StoreEnvelope           -> BooleanPropsSchema,
-    PostProcessAction       -> EnumPropsSchema(PostProcessActionEnum),
-    PostProcessActionBucket -> StringPropsSchema,
-    PostProcessActionPrefix -> StringPropsSchema,
-    PostProcessActionRetain -> BooleanPropsSchema,
+    ReadTextMode                                 -> EnumPropsSchema(ReadTextModeEnum),
+    ReadRegex                                    -> StringPropsSchema,
+    ReadStartTag                                 -> StringPropsSchema,
+    ReadEndTag                                   -> StringPropsSchema,
+    ReadStartLine                                -> StringPropsSchema,
+    ReadEndLine                                  -> StringPropsSchema,
+    ReadLastEndLineMissing                       -> BooleanPropsSchema,
+    BufferSize                                   -> IntPropsSchema,
+    ReadTrimLine                                 -> BooleanPropsSchema,
+    StoreEnvelope                                -> BooleanPropsSchema,
+    PostProcessAction                            -> EnumPropsSchema(PostProcessActionEnum),
+    PostProcessActionBucket                      -> StringPropsSchema,
+    PostProcessActionPrefix                      -> StringPropsSchema,
+    PostProcessActionRetain                      -> BooleanPropsSchema,
+    PostProcessActionWatermarkProcessLateArrival -> BooleanPropsSchema,
+    ProcessLateArrivalInterval                   -> IntPropsSchema,
   )
 
   val schema = KcqlPropsSchema(PropsKeyEnum, keys)

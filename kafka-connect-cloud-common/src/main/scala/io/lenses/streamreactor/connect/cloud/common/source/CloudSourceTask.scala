@@ -19,7 +19,7 @@ import cats.effect.unsafe.implicits.global
 import cats.effect.FiberIO
 import cats.effect.IO
 import cats.effect.Ref
-import cats.implicits.catsSyntaxOptionId
+import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.common.config.base.traits.WithConnectorPrefix
 import io.lenses.streamreactor.common.util.AsciiArtPrinter.printAsciiHeader
@@ -37,6 +37,7 @@ import io.lenses.streamreactor.connect.cloud.common.source.reader.ReaderManager
 import io.lenses.streamreactor.connect.cloud.common.source.reader.ReaderManagerState
 import io.lenses.streamreactor.connect.cloud.common.source.state.CloudSourceTaskState
 import io.lenses.streamreactor.connect.cloud.common.source.state.ReaderManagerBuilder
+import io.lenses.streamreactor.connect.cloud.common.source.LateArrivalTouchTask
 import io.lenses.streamreactor.connect.cloud.common.storage.DirectoryLister
 import io.lenses.streamreactor.connect.cloud.common.storage.FileMetadata
 import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
@@ -68,6 +69,10 @@ abstract class CloudSourceTask[MD <: FileMetadata, C <: CloudSourceConfig[MD], C
 
   private var partitionDiscoveryLoop: Option[FiberIO[Unit]] = None
 
+  // Fiber is managed via shared cancelledRef - assigned and reset but not explicitly joined
+  @scala.annotation.nowarn("msg=is never used")
+  private var lateArrivalTouchLoop: Option[FiberIO[Unit]] = None
+
   implicit var connectorTaskId: ConnectorTaskId = _
 
   /**
@@ -83,12 +88,14 @@ abstract class CloudSourceTask[MD <: FileMetadata, C <: CloudSourceConfig[MD], C
       Option(context).flatMap(c => Option(c.configs()).map(_.asScala.toMap)).getOrElse(Map.empty)
     val mergedProperties: Map[String, String] = MapUtils.mergeProps(contextProperties, props.asScala.toMap)
     (for {
-      result <- make(validator, connectorPrefix, mergedProperties, contextOffsetFn)
-      fiber  <- result.partitionDiscoveryLoop.start
+      result                <- make(validator, connectorPrefix, mergedProperties, contextOffsetFn)
+      partitionFiber        <- result.partitionDiscoveryLoop.start
+      maybeLateArrivalFiber <- result.lateArrivalTouchLoop.traverse(_.start)
     } yield {
       cloudSourceTaskState   = result.some
       cancelledRef           = result.cancelledRef.some
-      partitionDiscoveryLoop = fiber.some
+      partitionDiscoveryLoop = partitionFiber.some
+      lateArrivalTouchLoop   = maybeLateArrivalFiber
     }).unsafeRunSync()
   }
 
@@ -116,6 +123,7 @@ abstract class CloudSourceTask[MD <: FileMetadata, C <: CloudSourceConfig[MD], C
     } yield ()).unsafeRunSync()
     cancelledRef           = None
     partitionDiscoveryLoop = None
+    lateArrivalTouchLoop   = None
     cloudSourceTaskState   = None
   }
 
@@ -158,10 +166,25 @@ abstract class CloudSourceTask[MD <: FileMetadata, C <: CloudSourceConfig[MD], C
                                                           readerManagerState,
                                                           cancelledRef,
       )
+
+      // Late arrival touch task runs only on task 0 to avoid duplicate API calls
+      val lateArrivalTouchLoop: Option[IO[Unit]] =
+        if (connectorTaskId.taskNo == 0 && config.bucketOptions.exists(_.processLateArrivalInterval.isDefined)) {
+          Some(LateArrivalTouchTask.run(connectorTaskId,
+                                        storageInterface,
+                                        config.bucketOptions,
+                                        contextOffsetFn,
+                                        cancelledRef,
+          ))
+        } else {
+          None
+        }
+
       CloudSourceTaskState(
         readerManagerState.get.map(_.readerManagers.map(rm => rm.path.toKey -> rm).toMap),
         cancelledRef,
         partitionDiscoveryLoop,
+        lateArrivalTouchLoop,
       )
     }
 

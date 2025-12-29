@@ -20,6 +20,7 @@ import io.lenses.kcql.Kcql
 import io.lenses.streamreactor.connect.cloud.common.config.FormatSelection
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
+import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.ProcessLateArrivalInterval
 import io.lenses.streamreactor.connect.cloud.common.source.config.kcqlprops.CloudSourceProps
 import io.lenses.streamreactor.connect.cloud.common.source.config.kcqlprops.CloudSourcePropsSchema
 import io.lenses.streamreactor.connect.cloud.common.storage.FileListError
@@ -28,8 +29,9 @@ import io.lenses.streamreactor.connect.cloud.common.storage.ListOfKeysResponse
 import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
 
 object CloudSourceBucketOptions {
-  private val DEFAULT_RECORDS_LIMIT = 10000
-  private val DEFAULT_FILES_LIMIT   = 1000
+  private val DEFAULT_RECORDS_LIMIT             = 10000
+  private val DEFAULT_FILES_LIMIT               = 1000
+  private val DEFAULT_LATE_ARRIVAL_INTERVAL_SEC = 300
 
   def apply[M <: FileMetadata](
     config:             CloudSourceConfigDefBuilder,
@@ -50,31 +52,42 @@ object CloudSourceBucketOptions {
 
           postProcessAction <- PostProcessAction(source.prefix, sourceProps)
 
+          // Late arrival processing only applies when Move post-process action is configured with processLateArrival=true
+          processLateArrivalIntervalSec = postProcessAction match {
+            case Some(move: MovePostProcessAction) if move.processLateArrival =>
+              Some(sourceProps.getOptionalInt(ProcessLateArrivalInterval).filter(_ > 0).getOrElse(
+                DEFAULT_LATE_ARRIVAL_INTERVAL_SEC,
+              ))
+            case _ => None
+          }
+
         } yield CloudSourceBucketOptions[M](
           source,
           kcql.getTarget,
-          format             = format,
-          recordsLimit       = if (kcql.getLimit < 1) DEFAULT_RECORDS_LIMIT else kcql.getLimit,
-          filesLimit         = if (kcql.getBatchSize < 1) DEFAULT_FILES_LIMIT else kcql.getBatchSize,
-          partitionExtractor = partitionExtractor,
-          orderingType       = config.extractOrderingType,
-          hasEnvelope        = hasEnvelope.getOrElse(false),
-          postProcessAction  = postProcessAction,
+          format                     = format,
+          recordsLimit               = if (kcql.getLimit < 1) DEFAULT_RECORDS_LIMIT else kcql.getLimit,
+          filesLimit                 = if (kcql.getBatchSize < 1) DEFAULT_FILES_LIMIT else kcql.getBatchSize,
+          partitionExtractor         = partitionExtractor,
+          orderingType               = config.extractOrderingType,
+          hasEnvelope                = hasEnvelope.getOrElse(false),
+          postProcessAction          = postProcessAction,
+          processLateArrivalInterval = processLateArrivalIntervalSec,
         )
     }.toSeq.traverse(identity)
 
 }
 
 case class CloudSourceBucketOptions[M <: FileMetadata](
-  sourceBucketAndPrefix: CloudLocation,
-  targetTopic:           String,
-  format:                FormatSelection,
-  recordsLimit:          Int,
-  filesLimit:            Int,
-  partitionExtractor:    Option[PartitionExtractor],
-  orderingType:          OrderingType,
-  hasEnvelope:           Boolean,
-  postProcessAction:     Option[PostProcessAction],
+  sourceBucketAndPrefix:      CloudLocation,
+  targetTopic:                String,
+  format:                     FormatSelection,
+  recordsLimit:               Int,
+  filesLimit:                 Int,
+  partitionExtractor:         Option[PartitionExtractor],
+  orderingType:               OrderingType,
+  hasEnvelope:                Boolean,
+  postProcessAction:          Option[PostProcessAction],
+  processLateArrivalInterval: Option[Int],
 ) {
   def createBatchListerFn(
     storageInterface: StorageInterface[M],

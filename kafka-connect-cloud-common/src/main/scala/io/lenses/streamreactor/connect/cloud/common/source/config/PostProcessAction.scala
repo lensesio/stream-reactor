@@ -24,6 +24,7 @@ import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnu
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.PostProcessActionBucket
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.PostProcessActionPrefix
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.PostProcessActionRetain
+import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.PostProcessActionWatermarkProcessLateArrival
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.source.config.kcqlprops.PostProcessActionEntry
 import io.lenses.streamreactor.connect.cloud.common.source.config.kcqlprops.PostProcessActionEnum
@@ -98,7 +99,15 @@ object PostProcessAction {
               destBucket <- kcqlProperties.getString(PostProcessActionBucket)
               destPrefix <- kcqlProperties.getString(PostProcessActionPrefix)
               retainDirs <- kcqlProperties.getBooleanOrDefault(PostProcessActionRetain, default = false).toOption
-            } yield MovePostProcessAction(retainDirs, prefix, dropEndSlash(destBucket), dropEndSlash(destPrefix))
+              processLateArrival <- kcqlProperties.getBooleanOrDefault(PostProcessActionWatermarkProcessLateArrival,
+                                                                       default = false,
+              ).toOption
+            } yield MovePostProcessAction(retainDirs,
+                                          prefix,
+                                          dropEndSlash(destBucket),
+                                          dropEndSlash(destPrefix),
+                                          processLateArrival,
+            )
           }
             .toRight(new IllegalArgumentException("A bucket and a path must be specified for moving files to."))
       }
@@ -125,10 +134,11 @@ class DeletePostProcessAction(retainDirs: Boolean) extends PostProcessAction wit
 }
 
 case class MovePostProcessAction(
-  retainDirs:     Boolean,
-  originalPrefix: Option[String],
-  newBucket:      String,
-  newPrefix:      String,
+  retainDirs:         Boolean,
+  originalPrefix:     Option[String],
+  newBucket:          String,
+  newPrefix:          String,
+  processLateArrival: Boolean,
 ) extends PostProcessAction
     with StrictLogging {
 

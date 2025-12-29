@@ -21,6 +21,7 @@ import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnu
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.PostProcessActionBucket
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.PostProcessActionPrefix
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.PostProcessActionRetain
+import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.PostProcessActionWatermarkProcessLateArrival
 import io.lenses.streamreactor.connect.cloud.common.source.config.kcqlprops.PostProcessActionEntry
 import io.lenses.streamreactor.connect.cloud.common.source.config.kcqlprops.PostProcessActionEnum
 import io.lenses.streamreactor.connect.cloud.common.source.config.kcqlprops.PostProcessActionEnum.Delete
@@ -58,6 +59,9 @@ class PostProcessActionTest extends AnyFlatSpec with Matchers with EitherValues 
     )
       .thenReturn(Some(Move))
     when(kcqlProperties.getBooleanOrDefault(PostProcessActionRetain, default = false)).thenReturn(true.asRight)
+    when(kcqlProperties.getBooleanOrDefault(PostProcessActionWatermarkProcessLateArrival, default = false)).thenReturn(
+      false.asRight,
+    )
     when(kcqlProperties.getString(PostProcessActionPrefix)).thenReturn(Some("some/prefix"))
     when(kcqlProperties.getString(PostProcessActionBucket)).thenReturn(Some("myNewBucket"))
 
@@ -66,6 +70,31 @@ class PostProcessActionTest extends AnyFlatSpec with Matchers with EitherValues 
     result.value.value shouldBe a[MovePostProcessAction]
     result.value.value.asInstanceOf[MovePostProcessAction].newPrefix shouldBe "some/prefix"
     result.value.value.asInstanceOf[MovePostProcessAction].newBucket shouldBe "myNewBucket"
+    result.value.value.asInstanceOf[MovePostProcessAction].processLateArrival shouldBe false
+  }
+
+  it should "return MovePostProcessAction with processLateArrival=true when specified" in {
+    val kcqlProperties = mock[KcqlProperties[PropsKeyEntry, PropsKeyEnum.type]]
+    when(
+      kcqlProperties.getEnumValue[PostProcessActionEntry, PostProcessActionEnum.type](PostProcessActionEnum,
+                                                                                      PropsKeyEnum.PostProcessAction,
+      ),
+    )
+      .thenReturn(Some(Move))
+    when(kcqlProperties.getBooleanOrDefault(PostProcessActionRetain, default = false)).thenReturn(false.asRight)
+    when(kcqlProperties.getBooleanOrDefault(PostProcessActionWatermarkProcessLateArrival, default = false)).thenReturn(
+      true.asRight,
+    )
+    when(kcqlProperties.getString(PostProcessActionPrefix)).thenReturn(Some("archive/prefix"))
+    when(kcqlProperties.getString(PostProcessActionBucket)).thenReturn(Some("archiveBucket"))
+
+    val result = PostProcessAction(Option.empty, kcqlProperties)
+
+    result.value.value shouldBe a[MovePostProcessAction]
+    val moveAction = result.value.value.asInstanceOf[MovePostProcessAction]
+    moveAction.processLateArrival shouldBe true
+    moveAction.newPrefix shouldBe "archive/prefix"
+    moveAction.newBucket shouldBe "archiveBucket"
   }
 
   it should "return an error when Move is specified but no prefix is provided" in {
@@ -125,6 +154,9 @@ class PostProcessActionTest extends AnyFlatSpec with Matchers with EitherValues 
     )
       .thenReturn(Some(Move))
     when(kcqlProperties.getBooleanOrDefault(PostProcessActionRetain, default = false)).thenReturn(true.asRight)
+    when(kcqlProperties.getBooleanOrDefault(PostProcessActionWatermarkProcessLateArrival, default = false)).thenReturn(
+      false.asRight,
+    )
     when(kcqlProperties.getString(PostProcessActionPrefix)).thenReturn(Some("some/prefix/"))
     when(kcqlProperties.getString(PostProcessActionBucket)).thenReturn(Some("myNewBucket/"))
 

@@ -51,6 +51,7 @@ import io.lenses.streamreactor.connect.cloud.common.storage.PathError
 import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
 import io.lenses.streamreactor.connect.cloud.common.storage.UploadError
 import io.lenses.streamreactor.connect.cloud.common.storage.UploadFailedError
+import io.lenses.streamreactor.connect.cloud.common.storage.FileTouchError
 
 import java.io.InputStream
 import java.nio.channels.Channels
@@ -454,5 +455,25 @@ class GCPStorageStorageInterface(
       _ => ()
     }
   }
+
+  /**
+   * Updates the lastModified timestamp of a file by copying it to itself.
+   * Uses the GCS copy (rewrite) operation to update the timestamp.
+   *
+   * @param bucket The name of the GCS bucket.
+   * @param path The path of the file to touch.
+   * @return Either a FileTouchError if the operation failed, or Unit if successful.
+   */
+  override def touchFile(bucket: String, path: String): Either[FileTouchError, Unit] =
+    Try {
+      val blobId = BlobId.of(bucket, path)
+      storage.copy(
+        Storage.CopyRequest.newBuilder()
+          .setSource(blobId)
+          .setTarget(blobId)
+          .build(),
+      )
+      logger.debug(s"[${connectorTaskId.show}] Touched file $bucket/$path to update lastModified timestamp")
+    }.toEither.leftMap(ex => FileTouchError(ex, path)).void
 
 }

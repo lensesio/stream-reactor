@@ -29,6 +29,7 @@ case class CloudSourceTaskState(
   latestReaderManagers:   IO[Map[CloudLocationKey, ReaderManager]],
   cancelledRef:           Ref[IO, Boolean],
   partitionDiscoveryLoop: IO[Unit],
+  lateArrivalTouchLoop:   Option[IO[Unit]],
 ) extends LazyLogging {
   def close(): IO[Unit] =
     latestReaderManagers
