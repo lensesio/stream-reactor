@@ -106,7 +106,13 @@ class GCPStorageGCPStorageSinkConfigDefBuilderTest
     CloudSinkBucketOptions(connectorTaskId, GCPStorageSinkConfigDefBuilder(props)) match {
       case Left(value) => fail(value.toString)
       case Right(value) =>
-        value.map(_.dataStorage) should be(List(DataStorageSettings(true, true, true, false, false)))
+        value.map(_.dataStorage) should be(List(DataStorageSettings(envelope           = true,
+                                                                    key                = true,
+                                                                    value              = true,
+                                                                    metadata           = false,
+                                                                    headers            = false,
+                                                                    customNamerFactory = None,
+        )))
     }
   }
 
@@ -133,8 +139,20 @@ class GCPStorageGCPStorageSinkConfigDefBuilderTest
       case Right(value) =>
         value.map(_.dataStorage) should be(
           List(
-            DataStorageSettings(envelope = true, key = true, value = true, metadata = false, headers = false),
-            DataStorageSettings(envelope = true, key = true, value = true, metadata = false, headers = true),
+            DataStorageSettings(envelope           = true,
+                                key                = true,
+                                value              = true,
+                                metadata           = false,
+                                headers            = false,
+                                customNamerFactory = None,
+            ),
+            DataStorageSettings(envelope           = true,
+                                key                = true,
+                                value              = true,
+                                metadata           = false,
+                                headers            = true,
+                                customNamerFactory = None,
+            ),
           ),
         )
     }
@@ -216,11 +234,12 @@ class GCPStorageGCPStorageSinkConfigDefBuilderTest
     CloudSinkBucketOptions(connectorTaskId, GCPStorageSinkConfigDefBuilder(props)) match {
       case Left(value) => fail(value.toString)
       case Right(value) =>
-        value.map(_.dataStorage) should be(List(DataStorageSettings(envelope = true,
-                                                                    key      = true,
-                                                                    value    = true,
-                                                                    metadata = false,
-                                                                    headers  = false,
+        value.map(_.dataStorage) should be(List(DataStorageSettings(envelope           = true,
+                                                                    key                = true,
+                                                                    value              = true,
+                                                                    metadata           = false,
+                                                                    headers            = false,
+                                                                    customNamerFactory = None,
         )))
     }
   }
@@ -233,11 +252,12 @@ class GCPStorageGCPStorageSinkConfigDefBuilderTest
     CloudSinkBucketOptions(connectorTaskId, GCPStorageSinkConfigDefBuilder(props)) match {
       case Left(value) => fail(value.toString)
       case Right(value) =>
-        value.map(_.dataStorage) should be(List(DataStorageSettings(envelope = true,
-                                                                    key      = true,
-                                                                    value    = true,
-                                                                    metadata = false,
-                                                                    headers  = false,
+        value.map(_.dataStorage) should be(List(DataStorageSettings(envelope           = true,
+                                                                    key                = true,
+                                                                    value              = true,
+                                                                    metadata           = false,
+                                                                    headers            = false,
+                                                                    customNamerFactory = None,
         )))
     }
   }

@@ -53,6 +53,7 @@ import io.lenses.streamreactor.connect.cloud.common.sink.conversion.SinkData
 import io.lenses.streamreactor.connect.cloud.common.sink.conversion.StructSinkData
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.CloudKeyNamer
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.FileNamer
+import io.lenses.streamreactor.connect.cloud.common.sink.naming.FileNamerConfig
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.OffsetFileNamer
 import io.lenses.streamreactor.connect.cloud.common.utils.SampleData.UsersSchemaDecimal
 import org.apache.avro.generic.GenericRecord
@@ -117,11 +118,18 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
   )
 
   "avro sink" should "write 2 records to avro format in s3" in {
-    val sink = writerManagerCreator.from(avroConfig(new OffsetFileNamer(
-      identity[String],
-      AvroFormatSelection.extension,
-      None,
-    )))._2
+    val sink = writerManagerCreator.from(
+      avroConfig(
+        new OffsetFileNamer(
+          FileNamerConfig(
+            partitionPaddingStrategy = NoOpPaddingStrategy,
+            offsetPaddingStrategy    = NoOpPaddingStrategy,
+            extension                = AvroFormatSelection.extension,
+            suffix                   = None,
+          ),
+        ),
+      ),
+    )._2
     firstUsers.zipWithIndex.foreach {
       case (struct: Struct, index: Int) =>
         val writeRes = sink.write(
@@ -154,11 +162,18 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
   }
 
   "avro sink" should "write 2 records to avro format in s3 and add a suffix to the key generated" in {
-    val sink = writerManagerCreator.from(avroConfig(new OffsetFileNamer(
-      identity[String],
-      AvroFormatSelection.extension,
-      Some("-my-suffix"),
-    )))._2
+    val sink = writerManagerCreator.from(
+      avroConfig(
+        new OffsetFileNamer(
+          FileNamerConfig(
+            partitionPaddingStrategy = NoOpPaddingStrategy,
+            offsetPaddingStrategy    = NoOpPaddingStrategy,
+            extension                = AvroFormatSelection.extension,
+            suffix                   = Some("-my-suffix"),
+          ),
+        ),
+      ),
+    )._2
     firstUsers.zipWithIndex.foreach {
       case (struct: Struct, index: Int) =>
         val writeRes = sink.write(
@@ -191,11 +206,18 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
   }
 
   "avro sink" should "write multiple files and keeping the earliest timestamp" in {
-    val sink = writerManagerCreator.from(avroConfig(new OffsetFileNamer(
-      identity[String],
-      AvroFormatSelection.extension,
-      None,
-    )))._2
+    val sink = writerManagerCreator.from(
+      avroConfig(
+        new OffsetFileNamer(
+          FileNamerConfig(
+            partitionPaddingStrategy = NoOpPaddingStrategy,
+            offsetPaddingStrategy    = NoOpPaddingStrategy,
+            extension                = AvroFormatSelection.extension,
+            suffix                   = None,
+          ),
+        ),
+      ),
+    )._2
     firstUsers.zip(List(0 -> 100, 1 -> 99, 2 -> 101, 3 -> 102)).foreach {
       case (struct: Struct, (index: Int, timestamp: Int)) =>
         val writeRes = sink.write(
@@ -227,11 +249,18 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
   }
 
   "avro sink" should "write BigDecimal" in {
-    val sink = writerManagerCreator.from(avroConfig(new OffsetFileNamer(
-      identity[String],
-      AvroFormatSelection.extension,
-      None,
-    )))._2
+    val sink = writerManagerCreator.from(
+      avroConfig(
+        new OffsetFileNamer(
+          FileNamerConfig(
+            partitionPaddingStrategy = NoOpPaddingStrategy,
+            offsetPaddingStrategy    = NoOpPaddingStrategy,
+            extension                = AvroFormatSelection.extension,
+            suffix                   = None,
+          ),
+        ),
+      ),
+    )._2
     val usersWithDecimal1 =
       new Struct(UsersSchemaDecimal)
         .put("name", "sam")
@@ -307,11 +336,18 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
       new Struct(secondSchema).put("name", "coco").put("designation", null).put("salary", 395.44),
     )
 
-    val sink = writerManagerCreator.from(avroConfig(new OffsetFileNamer(
-      identity[String],
-      AvroFormatSelection.extension,
-      None,
-    )))._2
+    val sink = writerManagerCreator.from(
+      avroConfig(
+        new OffsetFileNamer(
+          FileNamerConfig(
+            partitionPaddingStrategy = NoOpPaddingStrategy,
+            offsetPaddingStrategy    = NoOpPaddingStrategy,
+            extension                = AvroFormatSelection.extension,
+            suffix                   = None,
+          ),
+        ),
+      ),
+    )._2
     firstUsers.concat(usersWithNewSchema).zipWithIndex.foreach {
       case (user, index) =>
         sink.write(

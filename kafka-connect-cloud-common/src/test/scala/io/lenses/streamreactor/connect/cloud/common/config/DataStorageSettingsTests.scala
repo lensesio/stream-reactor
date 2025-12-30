@@ -41,11 +41,12 @@ class DataStorageSettingsTests extends AnyFunSuite with Matchers with EitherValu
     val properties      = Map(DataStorageSettings.StoreEnvelopeKey -> "true")
     val storageSettings = DataStorageSettings.from(toKcqlProps(properties))
     storageSettings shouldBe Right(DataStorageSettings(
-      envelope = true,
-      key      = true,
-      value    = true,
-      metadata = true,
-      headers  = true,
+      envelope           = true,
+      key                = true,
+      value              = true,
+      metadata           = true,
+      headers            = true,
+      customNamerFactory = None,
     ))
   }
 
@@ -82,11 +83,12 @@ class DataStorageSettingsTests extends AnyFunSuite with Matchers with EitherValu
     )
     val storageSettings = DataStorageSettings.from(toKcqlProps(properties))
     storageSettings shouldBe Right(DataStorageSettings(
-      envelope = true,
-      key      = true,
-      value    = false,
-      metadata = false,
-      headers  = false,
+      envelope           = true,
+      key                = true,
+      value              = false,
+      metadata           = false,
+      headers            = false,
+      customNamerFactory = None,
     ))
   }
 
@@ -100,11 +102,12 @@ class DataStorageSettingsTests extends AnyFunSuite with Matchers with EitherValu
     )
     val storageSettings = DataStorageSettings.from(toKcqlProps(properties))
     storageSettings shouldBe Right(DataStorageSettings(
-      envelope = true,
-      key      = false,
-      value    = false,
-      metadata = true,
-      headers  = false,
+      envelope           = true,
+      key                = false,
+      value              = false,
+      metadata           = true,
+      headers            = false,
+      customNamerFactory = None,
     ))
   }
   test("headers enabled") {
@@ -117,11 +120,12 @@ class DataStorageSettingsTests extends AnyFunSuite with Matchers with EitherValu
     )
     val storageSettings = DataStorageSettings.from(toKcqlProps(properties))
     storageSettings shouldBe Right(DataStorageSettings(
-      envelope = true,
-      key      = false,
-      value    = false,
-      metadata = false,
-      headers  = true,
+      envelope           = true,
+      key                = false,
+      value              = false,
+      metadata           = false,
+      headers            = true,
+      customNamerFactory = None,
     ))
   }
   test("all enabled") {
@@ -134,11 +138,12 @@ class DataStorageSettingsTests extends AnyFunSuite with Matchers with EitherValu
     )
     val storageSettings = DataStorageSettings.from(toKcqlProps(properties))
     storageSettings shouldBe Right(DataStorageSettings(
-      envelope = true,
-      key      = true,
-      value    = true,
-      metadata = true,
-      headers  = true,
+      envelope           = true,
+      key                = true,
+      value              = true,
+      metadata           = true,
+      headers            = true,
+      customNamerFactory = None,
     ))
   }
   test("invalid envelope value") {
@@ -182,4 +187,16 @@ class DataStorageSettingsTests extends AnyFunSuite with Matchers with EitherValu
 
   private def assertOnError(actual: Either[ConfigException, DataStorageSettings], msg: String): Assertion =
     actual.left.value.getMessage shouldBe msg
+
+  test("custom file namer is honoured even when envelope is disabled") {
+    val className  = "io.lenses.streamreactor.connect.cloud.common.sink.naming.TestFileNamerFactory"
+    val properties = Map(DataStorageSettings.StoreFileNamer -> className)
+    val result     = DataStorageSettings.from(toKcqlProps(properties))
+    val storageSettings =
+      result.getOrElse(fail("DataStorageSettings.from should not fail when configuring a valid custom file namer"))
+
+    storageSettings.envelope shouldBe false
+    storageSettings.customNamerFactory shouldBe defined
+    storageSettings.customNamerFactory.get.getClass.getName shouldBe className
+  }
 }

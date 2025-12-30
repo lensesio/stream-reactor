@@ -36,6 +36,8 @@ object SinkPropsSchema {
     StoreEnvelopeHeaders  -> BooleanPropsSchema,
     StoreEnvelopeValue    -> BooleanPropsSchema,
     StoreEnvelopeMetadata -> BooleanPropsSchema,
+    StoreFileNamer        -> StringPropsSchema,
+    StoreFileNamerParam   -> StringPropsSchema,
     FlushCount            -> LongPropsSchema,
     FlushSize             -> LongPropsSchema,
     FlushInterval         -> IntPropsSchema,

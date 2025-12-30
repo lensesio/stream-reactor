@@ -21,6 +21,7 @@ import cats.implicits.catsSyntaxTuple2Semigroupal
 import cats.implicits.catsSyntaxValidatedId
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEntry
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum
+import io.lenses.streamreactor.connect.cloud.common.sink.naming.FileNamerFactory
 import io.lenses.streamreactor.connect.config.kcqlprops.KcqlProperties
 import org.apache.kafka.common.config.ConfigException
 
@@ -34,23 +35,26 @@ import org.apache.kafka.common.config.ConfigException
  * @param headers - If enabled it stores the headers of the Kafka message
  */
 case class DataStorageSettings(
-  envelope: Boolean,
-  key:      Boolean,
-  value:    Boolean,
-  metadata: Boolean,
-  headers:  Boolean,
+  envelope:           Boolean,
+  key:                Boolean,
+  value:              Boolean,
+  metadata:           Boolean,
+  headers:            Boolean,
+  customNamerFactory: Option[FileNamerFactory],
 ) {
   def hasEnvelope: Boolean = envelope
 }
 
 object DataStorageSettings {
 
-  val StoreEnvelopeKey  = "store.envelope"
-  private val KeyPrefix = "store.envelope.fields"
-  val StoreKeyKey       = s"$KeyPrefix.key"
-  val StoreHeadersKey   = s"$KeyPrefix.headers"
-  val StoreValueKey     = s"$KeyPrefix.value"
-  val StoreMetadataKey  = s"$KeyPrefix.metadata"
+  val StoreEnvelopeKey    = "store.envelope"
+  val StoreFileNamer      = "store.file.namer"
+  val StoreFileNamerParam = "store.file.namer.param"
+  private val KeyPrefix   = "store.envelope.fields"
+  val StoreKeyKey         = s"$KeyPrefix.key"
+  val StoreHeadersKey     = s"$KeyPrefix.headers"
+  val StoreValueKey       = s"$KeyPrefix.value"
+  val StoreMetadataKey    = s"$KeyPrefix.metadata"
   val AllEnvelopeFields: Seq[String] = List(
     PropsKeyEnum.StoreEnvelopeKey,
     PropsKeyEnum.StoreEnvelopeValue,
@@ -61,16 +65,23 @@ object DataStorageSettings {
   private val DefaultFieldsValue   = true
 
   val Default: DataStorageSettings = DataStorageSettings(
-    envelope = DefaultEnvelopeValue,
-    key      = DefaultFieldsValue,
-    value    = DefaultFieldsValue,
-    metadata = DefaultFieldsValue,
-    headers  = DefaultFieldsValue,
+    envelope           = DefaultEnvelopeValue,
+    key                = DefaultFieldsValue,
+    value              = DefaultFieldsValue,
+    metadata           = DefaultFieldsValue,
+    headers            = DefaultFieldsValue,
+    customNamerFactory = None,
   )
 
   def disabled: DataStorageSettings = Default
   def enabled: DataStorageSettings =
-    DataStorageSettings(envelope = true, key = true, value = true, metadata = true, headers = true)
+    DataStorageSettings(envelope           = true,
+                        key                = true,
+                        value              = true,
+                        metadata           = true,
+                        headers            = true,
+                        customNamerFactory = None,
+    )
 
   def from(properties: KcqlProperties[PropsKeyEntry, PropsKeyEnum.type]): Either[ConfigException, DataStorageSettings] =
     for {
@@ -79,19 +90,21 @@ object DataStorageSettings {
       metadata <- properties.getBooleanOrDefault(PropsKeyEnum.StoreEnvelopeMetadata, DefaultFieldsValue)
       headers  <- properties.getBooleanOrDefault(PropsKeyEnum.StoreEnvelopeHeaders, DefaultFieldsValue)
       value    <- properties.getBooleanOrDefault(PropsKeyEnum.StoreEnvelopeValue, DefaultFieldsValue)
+      customNamerFactory <-
+        properties.getCustomValue[FileNamerFactory](PropsKeyEnum.StoreFileNamer, PropsKeyEnum.StoreFileNamerParam)
       result <-
         if (!envelope) {
-          //if no envelope default
-          Default.asRight[ConfigException]
+          // If envelope is disabled, still honour any custom file namer configuration
+          Default.copy(customNamerFactory = customNamerFactory).asRight[ConfigException]
         } else {
           val setting = DataStorageSettings(
-            envelope = envelope,
-            key      = key,
-            value    = value,
-            metadata = metadata,
-            headers  = headers,
+            envelope           = envelope,
+            key                = key,
+            value              = value,
+            metadata           = metadata,
+            headers            = headers,
+            customNamerFactory = customNamerFactory,
           )
-
           (
             validateEnvelopeIsTrueAndAtLeastOneField(setting),
             validateEnvelopeIsTrueAndAllFieldsSpecified(envelope, properties),

@@ -37,6 +37,8 @@ import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.PaddingS
 import io.lenses.streamreactor.connect.cloud.common.sink.naming._
 import org.apache.kafka.common.config.ConfigException
 
+import scala.util.Try
+
 object CloudSinkBucketOptions extends LazyLogging {
 
   val WithFlushErrorMessage = s"""
@@ -113,21 +115,26 @@ object CloudSinkBucketOptions extends LazyLogging {
     partitionSelection: PartitionSelection,
     paddingService:     PaddingService,
     suffix:             Option[String],
-  ): Either[Throwable, FileNamer] =
-    if (partitionSelection.isCustom) {
-      new TopicPartitionOffsetFileNamer(
-        paddingService.padderFor("partition"),
-        paddingService.padderFor("offset"),
-        fileExtension,
-        suffix,
-      ).asRight
-    } else {
-      new OffsetFileNamer(
-        paddingService.padderFor("offset"),
-        fileExtension,
-        suffix,
-      ).asRight
-    }
+  ): Either[Throwable, FileNamer] = {
+    val config = FileNamerConfig(
+      partitionPaddingStrategy = paddingService.padderFor("partition"),
+      offsetPaddingStrategy    = paddingService.padderFor("offset"),
+      extension                = fileExtension,
+      suffix                   = suffix,
+    )
+    Try {
+      storageSettings.customNamerFactory match {
+        case Some(factory) =>
+          factory.createFileNamer(config)
+        case None =>
+          if (partitionSelection.isCustom) {
+            new TopicPartitionOffsetFileNamer(config)
+          } else {
+            new OffsetFileNamer(config)
+          }
+      }
+    }.toEither
+  }
 
   private def validateWithFlush(kcql: Kcql): Either[Throwable, Unit] = {
     val sql = kcql.getQuery.toUpperCase()
