@@ -53,6 +53,7 @@ import io.lenses.streamreactor.connect.cloud.common.sink.conversion.NullSinkData
 import io.lenses.streamreactor.connect.cloud.common.sink.conversion.SinkData
 import io.lenses.streamreactor.connect.cloud.common.sink.conversion.StructSinkData
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.CloudKeyNamer
+import io.lenses.streamreactor.connect.cloud.common.sink.naming.FileNamerConfig
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.OffsetFileNamer
 import io.lenses.streamreactor.connect.cloud.common.utils.ITSampleSchemaAndData.firstUsers
 import io.lenses.streamreactor.connect.cloud.common.utils.ITSampleSchemaAndData.users
@@ -94,9 +95,12 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
             JsonFormatSelection,
             defaultPartitionSelection(Values),
             new OffsetFileNamer(
-              identity[String],
-              JsonFormatSelection.extension,
-              None,
+              FileNamerConfig(
+                partitionPaddingStrategy = NoOpPaddingStrategy,
+                offsetPaddingStrategy    = NoOpPaddingStrategy,
+                extension                = JsonFormatSelection.extension,
+                suffix                   = None,
+              ),
             ),
             new PaddingService(Map[String, PaddingStrategy](
               "partition" -> NoOpPaddingStrategy,
@@ -164,9 +168,12 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
             AvroFormatSelection,
             defaultPartitionSelection(Values),
             new OffsetFileNamer(
-              identity[String],
-              JsonFormatSelection.extension,
-              None,
+              FileNamerConfig(
+                partitionPaddingStrategy = NoOpPaddingStrategy,
+                offsetPaddingStrategy    = NoOpPaddingStrategy,
+                extension                = JsonFormatSelection.extension,
+                suffix                   = None,
+              ),
             ),
             new PaddingService(Map[String, PaddingStrategy](
               "partition" -> NoOpPaddingStrategy,
@@ -236,9 +243,12 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
             AvroFormatSelection,
             defaultPartitionSelection(Values),
             new OffsetFileNamer(
-              identity[String],
-              JsonFormatSelection.extension,
-              None,
+              FileNamerConfig(
+                partitionPaddingStrategy = NoOpPaddingStrategy,
+                offsetPaddingStrategy    = NoOpPaddingStrategy,
+                extension                = JsonFormatSelection.extension,
+                suffix                   = None,
+              ),
             ),
             new PaddingService(Map[String, PaddingStrategy](
               "partition" -> NoOpPaddingStrategy,
@@ -315,9 +325,12 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
             AvroFormatSelection,
             defaultPartitionSelection(Values),
             new OffsetFileNamer(
-              identity[String],
-              JsonFormatSelection.extension,
-              None,
+              FileNamerConfig(
+                partitionPaddingStrategy = NoOpPaddingStrategy,
+                offsetPaddingStrategy    = NoOpPaddingStrategy,
+                extension                = JsonFormatSelection.extension,
+                suffix                   = None,
+              ),
             ),
             new PaddingService(Map[String, PaddingStrategy](
               "partition" -> NoOpPaddingStrategy,
