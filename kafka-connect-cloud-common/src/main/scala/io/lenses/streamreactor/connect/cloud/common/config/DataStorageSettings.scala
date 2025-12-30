@@ -90,27 +90,25 @@ object DataStorageSettings {
       metadata <- properties.getBooleanOrDefault(PropsKeyEnum.StoreEnvelopeMetadata, DefaultFieldsValue)
       headers  <- properties.getBooleanOrDefault(PropsKeyEnum.StoreEnvelopeHeaders, DefaultFieldsValue)
       value    <- properties.getBooleanOrDefault(PropsKeyEnum.StoreEnvelopeValue, DefaultFieldsValue)
+      customNamerFactory <-
+        properties.getCustomValue[FileNamerFactory](PropsKeyEnum.StoreFileNamer, PropsKeyEnum.StoreFileNamerParam)
       result <-
         if (!envelope) {
-          //if no envelope default
-          Default.asRight[ConfigException]
+          // If envelope is disabled, still honour any custom file namer configuration
+          Default.copy(customNamerFactory = customNamerFactory).asRight[ConfigException]
         } else {
-          for {
-            customNamerFactory <-
-              properties.getCustomValue[FileNamerFactory](PropsKeyEnum.StoreFileNamer, PropsKeyEnum.StoreFileNamerParam)
-            setting = DataStorageSettings(
-              envelope           = envelope,
-              key                = key,
-              value              = value,
-              metadata           = metadata,
-              headers            = headers,
-              customNamerFactory = customNamerFactory,
-            )
-            validated <- (
-              validateEnvelopeIsTrueAndAtLeastOneField(setting),
-              validateEnvelopeIsTrueAndAllFieldsSpecified(envelope, properties),
-            ).mapN((_, _) => setting).leftMap(errors => new ConfigException(errors.toList.mkString(", "))).toEither
-          } yield validated
+          val setting = DataStorageSettings(
+            envelope           = envelope,
+            key                = key,
+            value              = value,
+            metadata           = metadata,
+            headers            = headers,
+            customNamerFactory = customNamerFactory,
+          )
+          (
+            validateEnvelopeIsTrueAndAtLeastOneField(setting),
+            validateEnvelopeIsTrueAndAllFieldsSpecified(envelope, properties),
+          ).mapN((_, _) => setting).leftMap(errors => new ConfigException(errors.toList.mkString(", "))).toEither
         }
     } yield result
 

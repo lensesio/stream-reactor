@@ -187,4 +187,16 @@ class DataStorageSettingsTests extends AnyFunSuite with Matchers with EitherValu
 
   private def assertOnError(actual: Either[ConfigException, DataStorageSettings], msg: String): Assertion =
     actual.left.value.getMessage shouldBe msg
+
+  test("custom file namer is honoured even when envelope is disabled") {
+    val className  = "io.lenses.streamreactor.connect.cloud.common.sink.naming.TestFileNamerFactory"
+    val properties = Map(DataStorageSettings.StoreFileNamer -> className)
+    val result     = DataStorageSettings.from(toKcqlProps(properties))
+    val storageSettings =
+      result.getOrElse(fail("DataStorageSettings.from should not fail when configuring a valid custom file namer"))
+
+    storageSettings.envelope shouldBe false
+    storageSettings.customNamerFactory shouldBe defined
+    storageSettings.customNamerFactory.get.getClass.getName shouldBe className
+  }
 }
