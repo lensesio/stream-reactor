@@ -20,7 +20,7 @@ import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.PaddingS
 
 trait FileNamer {
   def fileName(
-    fileNamerParams: FileNamerParams
+    fileNamerParams: FileNamerParams,
   ): String
 }
 trait FileNamerFactory {
@@ -47,7 +47,7 @@ class OffsetFileNamer(
   fileNameConfig: FileNamerConfig,
 ) extends FileNamer {
   def fileName(
-    fileNamerParams: FileNamerParams
+    fileNamerParams: FileNamerParams,
   ): String =
     s"${fileNameConfig.offsetPaddingStrategy.padString(
       fileNamerParams.topicPartitionOffset.offset.value.toString,
@@ -55,13 +55,15 @@ class OffsetFileNamer(
 }
 
 class TopicPartitionOffsetFileNamer(
- fileNameConfig: FileNamerConfig,
+  fileNameConfig: FileNamerConfig,
 ) extends FileNamer {
   def fileName(
-    fileNamerParams: FileNamerParams
+    fileNamerParams: FileNamerParams,
   ): String =
     s"${fileNamerParams.topicPartitionOffset.topic.value}(${fileNameConfig.partitionPaddingStrategy.padString(
       fileNamerParams.topicPartitionOffset.partition.toString,
-    )}_${fileNameConfig.offsetPaddingStrategy.padString(fileNamerParams.topicPartitionOffset.offset.value.toString)})${fileNameConfig.suffix.getOrElse("")}.${fileNameConfig.extension}"
+    )}_${fileNameConfig.offsetPaddingStrategy.padString(
+      fileNamerParams.topicPartitionOffset.offset.value.toString,
+    )})${fileNameConfig.suffix.getOrElse("")}.${fileNameConfig.extension}"
 
 }

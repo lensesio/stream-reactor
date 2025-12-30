@@ -20,7 +20,8 @@ import cats.implicits.catsSyntaxOptionId
 import enumeratum._
 import org.apache.kafka.common.config.ConfigException
 
-import scala.reflect.{ClassTag, classTag}
+import scala.reflect.ClassTag
+import scala.reflect.classTag
 import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
@@ -137,20 +138,29 @@ case class KcqlProperties[U <: EnumEntry, T <: Enum[U]](
       }
     } yield value
 
-  def getCustomValue[V: ClassTag](className: U, paramName:U): Option[V] = {
-    getString(className)
-      .map { clsName =>
-        val cls = Class.forName(clsName).asSubclass(classTag[V].runtimeClass)
-        val param = getString(paramName)
+  def getCustomValue[V: ClassTag](className: U, paramName: U): Either[ConfigException, Option[V]] =
+    getString(className) match {
+      case None => Option.empty[V].asRight
+      case Some(clsName) =>
+        Try {
+          val cls   = Class.forName(clsName).asSubclass(classTag[V].runtimeClass)
+          val param = getString(paramName)
 
-        param .map { p =>
-          val constructor = cls.getConstructor(classOf[String])
-          constructor.newInstance(p).asInstanceOf[V]
-        }.getOrElse {
-          val constructor = cls.getConstructor()
-          constructor.newInstance().asInstanceOf[V]
+          param.map { p =>
+            val constructor = cls.getConstructor(classOf[String])
+            constructor.newInstance(p).asInstanceOf[V]
+          }.getOrElse {
+            val constructor = cls.getConstructor()
+            constructor.newInstance().asInstanceOf[V]
+          }
+        } match {
+          case Success(instance) => Some(instance).asRight
+          case Failure(ex) =>
+            new ConfigException(
+              s"Failed to instantiate class '$clsName' for ${className.entryName}: ${ex.getMessage}",
+              ex,
+            ).asLeft
         }
-      }
     }
 
 }

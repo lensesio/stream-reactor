@@ -26,7 +26,10 @@ import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.config.PartitionDisplay.Values
 import io.lenses.streamreactor.connect.cloud.common.sink.config.PartitionSelection.defaultPartitionSelection
 import io.lenses.streamreactor.connect.cloud.common.sink.config._
-import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.{LeftPadPaddingStrategy, NoOpPaddingStrategy, PaddingService, PaddingStrategy}
+import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.LeftPadPaddingStrategy
+import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.NoOpPaddingStrategy
+import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.PaddingService
+import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.PaddingStrategy
 import io.lenses.streamreactor.connect.cloud.common.sink.conversion.NullSinkData
 import io.lenses.streamreactor.connect.cloud.common.sink.conversion.StringSinkData
 import io.lenses.streamreactor.connect.cloud.common.utils.SampleData
@@ -72,7 +75,8 @@ class CloudKeyNamerTest extends AnyFunSuite with Matchers with OptionValues with
         partitionPaddingStrategy = NoOpPaddingStrategy,
         offsetPaddingStrategy    = paddingStrategy,
         extension                = JsonFormatSelection.extension,
-        suffix                   = None))
+        suffix                   = None,
+      ))
 
     val keyNamer = CloudKeyNamer(formatSelection, partitionSelection, fileNamer, paddingService)
     val either: Either[SinkError, Map[PartitionField, String]] = keyNamer.processPartitionValues(
@@ -144,7 +148,11 @@ class CloudKeyNamerTest extends AnyFunSuite with Matchers with OptionValues with
 
   test("should generate the correct final S3 location for TopicPartitionOffsetFileNamer format") {
     val fileNamer: FileNamer =
-      new TopicPartitionOffsetFileNamer(FileNamerConfig(paddingStrategy, paddingStrategy, JsonFormatSelection.extension, None))
+      new TopicPartitionOffsetFileNamer(FileNamerConfig(paddingStrategy,
+                                                        paddingStrategy,
+                                                        JsonFormatSelection.extension,
+                                                        None,
+      ))
     val s3KeyNamer = CloudKeyNamer(formatSelection, partitionSelection, fileNamer, paddingService)
 
     val result = s3KeyNamer.value(bucketAndPrefix, topicPartition, partitionValues, 101L, 1000L)
@@ -155,7 +163,11 @@ class CloudKeyNamerTest extends AnyFunSuite with Matchers with OptionValues with
   test("should generate the correct final S3 location for TopicPartitionOffsetFileNamer format including prefix") {
     val prefix = "-my-suffix"
     val fileNamer: FileNamer =
-      new TopicPartitionOffsetFileNamer(FileNamerConfig(paddingStrategy, paddingStrategy, JsonFormatSelection.extension, Some(prefix)))
+      new TopicPartitionOffsetFileNamer(FileNamerConfig(paddingStrategy,
+                                                        paddingStrategy,
+                                                        JsonFormatSelection.extension,
+                                                        Some(prefix),
+      ))
     val s3KeyNamer = CloudKeyNamer(formatSelection, partitionSelection, fileNamer, paddingService)
 
     val result = s3KeyNamer.value(bucketAndPrefix, topicPartition, partitionValues, 101L, 1000L)

@@ -118,9 +118,9 @@ object CloudSinkBucketOptions extends LazyLogging {
   ): Either[Throwable, FileNamer] = {
     val config = FileNamerConfig(
       partitionPaddingStrategy = paddingService.padderFor("partition"),
-      offsetPaddingStrategy = paddingService.padderFor("offset"),
-      extension = fileExtension,
-      suffix = suffix,
+      offsetPaddingStrategy    = paddingService.padderFor("offset"),
+      extension                = fileExtension,
+      suffix                   = suffix,
     )
     Try {
       storageSettings.customNamerFactory match {

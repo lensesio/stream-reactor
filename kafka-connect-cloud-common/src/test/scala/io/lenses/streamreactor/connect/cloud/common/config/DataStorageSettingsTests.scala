@@ -46,7 +46,7 @@ class DataStorageSettingsTests extends AnyFunSuite with Matchers with EitherValu
       value              = true,
       metadata           = true,
       headers            = true,
-      customNamerFactory = None
+      customNamerFactory = None,
     ))
   }
 
@@ -88,7 +88,7 @@ class DataStorageSettingsTests extends AnyFunSuite with Matchers with EitherValu
       value              = false,
       metadata           = false,
       headers            = false,
-      customNamerFactory = None
+      customNamerFactory = None,
     ))
   }
 
@@ -102,11 +102,11 @@ class DataStorageSettingsTests extends AnyFunSuite with Matchers with EitherValu
     )
     val storageSettings = DataStorageSettings.from(toKcqlProps(properties))
     storageSettings shouldBe Right(DataStorageSettings(
-      envelope = true,
-      key      = false,
-      value    = false,
-      metadata = true,
-      headers  = false,
+      envelope           = true,
+      key                = false,
+      value              = false,
+      metadata           = true,
+      headers            = false,
       customNamerFactory = None,
     ))
   }
@@ -143,7 +143,7 @@ class DataStorageSettingsTests extends AnyFunSuite with Matchers with EitherValu
       value              = true,
       metadata           = true,
       headers            = true,
-      customNamerFactory = None
+      customNamerFactory = None,
     ))
   }
   test("invalid envelope value") {

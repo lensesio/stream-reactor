@@ -35,26 +35,26 @@ import org.apache.kafka.common.config.ConfigException
  * @param headers - If enabled it stores the headers of the Kafka message
  */
 case class DataStorageSettings(
-  envelope:            Boolean,
-  key:                 Boolean,
-  value:               Boolean,
-  metadata:            Boolean,
-  headers:             Boolean,
-  customNamerFactory:  Option[FileNamerFactory],
+  envelope:           Boolean,
+  key:                Boolean,
+  value:              Boolean,
+  metadata:           Boolean,
+  headers:            Boolean,
+  customNamerFactory: Option[FileNamerFactory],
 ) {
   def hasEnvelope: Boolean = envelope
 }
 
 object DataStorageSettings {
 
-  val StoreEnvelopeKey     = "store.envelope"
-  val StoreFileNamer       = "store.file.namer"
-  val StoreFileNamerParam  = "store.file.namer.param"
-  private val KeyPrefix    = "store.envelope.fields"
-  val StoreKeyKey          = s"$KeyPrefix.key"
-  val StoreHeadersKey      = s"$KeyPrefix.headers"
-  val StoreValueKey        = s"$KeyPrefix.value"
-  val StoreMetadataKey     = s"$KeyPrefix.metadata"
+  val StoreEnvelopeKey    = "store.envelope"
+  val StoreFileNamer      = "store.file.namer"
+  val StoreFileNamerParam = "store.file.namer.param"
+  private val KeyPrefix   = "store.envelope.fields"
+  val StoreKeyKey         = s"$KeyPrefix.key"
+  val StoreHeadersKey     = s"$KeyPrefix.headers"
+  val StoreValueKey       = s"$KeyPrefix.value"
+  val StoreMetadataKey    = s"$KeyPrefix.metadata"
   val AllEnvelopeFields: Seq[String] = List(
     PropsKeyEnum.StoreEnvelopeKey,
     PropsKeyEnum.StoreEnvelopeValue,
@@ -75,7 +75,13 @@ object DataStorageSettings {
 
   def disabled: DataStorageSettings = Default
   def enabled: DataStorageSettings =
-    DataStorageSettings(envelope = true, key = true, value = true, metadata = true, headers = true, customNamerFactory = None)
+    DataStorageSettings(envelope           = true,
+                        key                = true,
+                        value              = true,
+                        metadata           = true,
+                        headers            = true,
+                        customNamerFactory = None,
+    )
 
   def from(properties: KcqlProperties[PropsKeyEntry, PropsKeyEnum.type]): Either[ConfigException, DataStorageSettings] =
     for {
@@ -89,20 +95,22 @@ object DataStorageSettings {
           //if no envelope default
           Default.asRight[ConfigException]
         } else {
-          val customNamerFactory:Option[FileNamerFactory] =properties.getCustomValue(PropsKeyEnum.StoreFileNamer, PropsKeyEnum.StoreFileNamerParam)
-          val setting = DataStorageSettings(
-            envelope           = envelope,
-            key                = key,
-            value              = value,
-            metadata           = metadata,
-            headers            = headers,
-            customNamerFactory = customNamerFactory
-          )
-
-          (
-            validateEnvelopeIsTrueAndAtLeastOneField(setting),
-            validateEnvelopeIsTrueAndAllFieldsSpecified(envelope, properties),
-          ).mapN((_, _) => setting).leftMap(errors => new ConfigException(errors.toList.mkString(", "))).toEither
+          for {
+            customNamerFactory <-
+              properties.getCustomValue[FileNamerFactory](PropsKeyEnum.StoreFileNamer, PropsKeyEnum.StoreFileNamerParam)
+            setting = DataStorageSettings(
+              envelope           = envelope,
+              key                = key,
+              value              = value,
+              metadata           = metadata,
+              headers            = headers,
+              customNamerFactory = customNamerFactory,
+            )
+            validated <- (
+              validateEnvelopeIsTrueAndAtLeastOneField(setting),
+              validateEnvelopeIsTrueAndAllFieldsSpecified(envelope, properties),
+            ).mapN((_, _) => setting).leftMap(errors => new ConfigException(errors.toList.mkString(", "))).toEither
+          } yield validated
         }
     } yield result
 
