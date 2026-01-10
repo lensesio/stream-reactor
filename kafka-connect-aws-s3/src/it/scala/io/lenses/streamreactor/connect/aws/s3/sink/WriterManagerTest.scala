@@ -23,7 +23,8 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 import java.io.File
-import scala.concurrent.duration.DurationInt
+import scala.concurrent.ExecutionContext
+import scala.concurrent.duration.{Duration, DurationInt}
 
 class WriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest with MockitoSugar {
   private implicit val cloudLocationValidator: CloudLocationValidator = S3LocationValidator
@@ -43,9 +44,11 @@ class WriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyContainerT
       formatWriterFn    = (_, _) => mock[FormatWriter].asRight,
       indexManager      = mock[IndexManager],
       _.asRight,
-      schemaChangeDetector        = schemaChangeDetector,
-      skipNullValues              = false,
-      pendingOperationsProcessors = mock[PendingOperationsProcessors],
+      schemaChangeDetector          = schemaChangeDetector,
+      skipNullValues                = false,
+      pendingOperationsProcessors   = mock[PendingOperationsProcessors],
+      commitManagerExecutionContext = ExecutionContext.global,
+      commitManagerTimeout          = Duration.Inf,
     )
 
     val result = wm.preCommit(Map(topicPartition -> new OffsetAndMetadata(999)))

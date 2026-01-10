@@ -19,23 +19,32 @@ import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
-import io.lenses.streamreactor.connect.cloud.common.sink.BatchCloudSinkError
-import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
+import io.lenses.streamreactor.connect.cloud.common.sink.{BatchCloudSinkError, FatalCloudSinkError, SinkError}
 import io.lenses.streamreactor.connect.cloud.common.storage.FileMetadata
+
+import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.concurrent.duration.Duration
+import scala.util.Try
 
 /**
  * Manages the commit operations for writers.
  *
  * @param fnGetWriters Function to retrieve the current map of writers.
  * @param connectorTaskId Implicit task ID for logging purposes.
+ * @param executionContext Execution context for asynchronous operations.
+ * @param uploadDurationTimeout Duration to wait for upload operations to complete.
  * @tparam SM Type parameter for file metadata.
  */
 class WriterCommitManager[SM <: FileMetadata](
   fnGetWriters: () => Map[MapKey, Writer[SM]],
+  executionContext: ExecutionContext,
+  private val uploadDurationTimeout: Duration,
 )(
   implicit
   connectorTaskId: ConnectorTaskId,
 ) extends LazyLogging {
+  implicit private val uploadExecutionContext: ExecutionContext = executionContext
+
 
   /**
    * Commits writers that have pending uploads.
@@ -100,11 +109,23 @@ class WriterCommitManager[SM <: FileMetadata](
     }
 
     logger.debug(s"[{}] Received call to WriterCommitManager.commitWritersWithFilter (filter)", connectorTaskId.show)
-    val writerCommitErrors = allWritersToCommit
-      .view.mapValues(_.commit)
-      .collect {
-        case (_, Left(err)) => err
-      }.toSet
+
+    val writerFutures = Future
+      .sequence(allWritersToCommit
+        .values
+        .map(_.startCommit))
+
+    val writerCommitErrors =
+      Try {
+        Await.result(writerFutures, uploadDurationTimeout)
+      }.fold(
+        ex => Set[SinkError](FatalCloudSinkError("Timed out waiting for writer commits", Some(ex), affectedTopicPartitions.head)),
+        results =>
+          results
+            .collect {
+              case Left(err) => err
+            }.toSet
+      )
 
     Either.cond(
       writerCommitErrors.isEmpty,
