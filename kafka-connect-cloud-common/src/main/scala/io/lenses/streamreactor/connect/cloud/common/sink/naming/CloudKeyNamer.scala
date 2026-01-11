@@ -20,6 +20,7 @@ import cats.implicits.catsSyntaxOptionId
 import cats.implicits.toTraverseOps
 import io.lenses.streamreactor.connect.cloud.common.config.FormatSelection
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.MessageDetail
+import io.lenses.streamreactor.connect.cloud.common.model.Offset
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartitionOffset
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
@@ -118,11 +119,15 @@ class CloudKeyNamer(
     partitionValues:         Map[PartitionField, String],
     earliestRecordTimestamp: Long,
     latestRecordTimestamp:   Long,
+    firstOffset:             Offset,
+    recordCount:             Long,
   ): Either[FatalCloudSinkError, CloudLocation] = {
     val params = FileNamerParams(
-      topicPartitionOffset,
-      earliestRecordTimestamp,
-      latestRecordTimestamp,
+      topicPartitionOffset = topicPartitionOffset,
+      earliestRecordTimestamp = earliestRecordTimestamp,
+      latestRecordTimestamp = latestRecordTimestamp,
+      firstOffset = firstOffset,
+      recordCount = recordCount,
     )
     Try(
       bucketAndPrefix.withPath(

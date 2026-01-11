@@ -55,6 +55,7 @@ class Writer[SM <: FileMetadata](
   formatWriterFn:              File => Either[SinkError, FormatWriter],
   schemaChangeDetector:        SchemaChangeDetector,
   pendingOperationsProcessors: PendingOperationsProcessors,
+  val firstOffset:             Offset,
 )(
   implicit
   connectorTaskId: ConnectorTaskId,
@@ -136,7 +137,12 @@ class Writer[SM <: FileMetadata](
                                    latestRecordTimestamp,
           ) =>
         for {
-          key         <- objectKeyBuilder.build(uncommittedOffset, earliestRecordTimestamp, latestRecordTimestamp)
+          key         <- objectKeyBuilder.build(
+            firstOffset             = firstOffset,
+            lastOffset              = uncommittedOffset,
+            recordCount             = commitState.recordCount,
+            earliestRecordTimestamp = earliestRecordTimestamp,
+            latestRecordTimestamp   = latestRecordTimestamp)
           path        <- key.path.toRight(NonFatalCloudSinkError("No path exists within cloud location"))
           tempFileUuid = UUID.randomUUID().toString
           tempFileName = path.prependedAll(

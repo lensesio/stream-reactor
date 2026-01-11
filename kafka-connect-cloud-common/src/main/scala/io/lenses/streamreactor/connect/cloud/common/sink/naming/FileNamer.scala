@@ -15,6 +15,7 @@
  */
 package io.lenses.streamreactor.connect.cloud.common.sink.naming
 
+import io.lenses.streamreactor.connect.cloud.common.model.Offset
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartitionOffset
 import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.PaddingStrategy
 
@@ -36,6 +37,8 @@ final case class FileNamerParams(
   topicPartitionOffset:    TopicPartitionOffset,
   earliestRecordTimestamp: Long,
   latestRecordTimestamp:   Long,
+  firstOffset:             Offset,
+  recordCount:             Long,
 )
 
 /**

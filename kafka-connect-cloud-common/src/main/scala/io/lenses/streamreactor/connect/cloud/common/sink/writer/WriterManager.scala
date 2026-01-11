@@ -21,6 +21,7 @@ import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.FormatWriter
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.MessageDetail
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.schema.SchemaChangeDetector
+import io.lenses.streamreactor.connect.cloud.common.model.Offset
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartitionOffset
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
@@ -157,7 +158,7 @@ class WriterManager[SM <: FileMetadata](
       writer <- maybeWriter match {
         case Some(w) => w.asRight
         case None =>
-          createWriter(bucketAndPrefix, topicPartition, partitionValues)
+          createWriter(bucketAndPrefix, topicPartition, partitionValues, messageDetail.offset)
             .map { w =>
               writers.put(key, w)
               w
@@ -169,6 +170,7 @@ class WriterManager[SM <: FileMetadata](
     bucketAndPrefix: CloudLocation,
     topicPartition:  TopicPartition,
     partitionValues: Map[PartitionField, String],
+    firstOffset:     Offset,
   ): Either[SinkError, Writer[SM]] = {
     logger.debug(s"[${connectorTaskId.show}] Creating new writer for bucketAndPrefix:$bucketAndPrefix")
     for {
@@ -183,6 +185,7 @@ class WriterManager[SM <: FileMetadata](
         formatWriterFn.curried(topicPartition),
         schemaChangeDetector,
         pendingOperationsProcessors,
+        firstOffset,
       )
     }
   }
