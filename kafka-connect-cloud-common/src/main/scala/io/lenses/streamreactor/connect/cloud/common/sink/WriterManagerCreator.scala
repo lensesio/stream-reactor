@@ -92,17 +92,19 @@ class WriterManagerCreator[MD <: FileMetadata, SC <: CloudSinkConfig[_]] extends
       TopicPartition,
       immutable.Map[PartitionField, String],
     ) => ObjectKeyBuilder = (topicPartition, partitionValues) =>
-      (offset: Offset, earliestRecordTimestamp: Long, latestRecordTimestamp: Long) => {
+      (firstOffset: Offset, lastOffset: Offset, recordCount: Long, earliestRecordTimestamp: Long, latestRecordTimestamp: Long) => {
         bucketOptsForTopic(config, topicPartition.topic) match {
           case Some(bucketOptions) =>
             for {
               keyNamer <- keyNamerBuilderFn(topicPartition)
               finalFilename <- keyNamer.value(
                 bucketOptions.bucketAndPrefix,
-                topicPartition.withOffset(offset),
+                topicPartition.withOffset(lastOffset),
                 partitionValues,
                 earliestRecordTimestamp,
                 latestRecordTimestamp,
+                firstOffset,
+                recordCount,
               )
             } yield finalFilename
           case None => fatalErrorTopicNotConfigured(topicPartition).asLeft

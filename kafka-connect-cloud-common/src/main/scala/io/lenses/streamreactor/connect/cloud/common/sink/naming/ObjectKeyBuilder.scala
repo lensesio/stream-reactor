@@ -27,13 +27,17 @@ trait ObjectKeyBuilder {
   /**
    * Builds the key
    *
-   * @param offset                  the offset of the last record
+   * @param firstOffset             the offset of the first record
+   * @param lastOffset              the offset of the last record
+   * @param recordCount             the number of records
    * @param earliestRecordTimestamp the earliest record timestamp
    * @param latestRecordTimestamp   the latest record timestamp
    * @return the final file name
    */
   def build(
-    offset:                  Offset,
+    firstOffset:             Offset,
+    lastOffset:              Offset,
+    recordCount:             Long,
     earliestRecordTimestamp: Long,
     latestRecordTimestamp:   Long,
   ): Either[SinkError, CloudLocation]
