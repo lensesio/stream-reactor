@@ -138,15 +138,21 @@ class Writer[SM <: FileMetadata](
         for {
           key         <- objectKeyBuilder.build(uncommittedOffset, earliestRecordTimestamp, latestRecordTimestamp)
           path        <- key.path.toRight(NonFatalCloudSinkError("No path exists within cloud location"))
-          tempFileUuid = UUID.randomUUID().toString
-          tempFileName = path.prependedAll(
-            s".temp-upload/${topicPartition.topic}/${topicPartition.partition}/$tempFileUuid",
-          )
-          pendingOperations = NonEmptyList.of[FileOperation](
-            UploadOperation(key.bucket, file, tempFileName),
-            CopyOperation(key.bucket, tempFileName, path, "placeholder"),
-            DeleteOperation(key.bucket, tempFileName, "placeholder"),
-          )
+          pendingOperations = if (indexManager.indexingEnabled) {
+            val tempFileUuid = UUID.randomUUID().toString
+            val tempFileName = path.prependedAll(
+              s".temp-upload/${topicPartition.topic}/${topicPartition.partition}/$tempFileUuid",
+            )
+
+            NonEmptyList.of[FileOperation](
+              UploadOperation(key.bucket, file, tempFileName),
+              CopyOperation(key.bucket, tempFileName, path, "placeholder"),
+              DeleteOperation(key.bucket, tempFileName, "placeholder"),
+            )
+          } else
+            NonEmptyList.of[FileOperation](
+              UploadOperation(key.bucket, file, path)
+            )
 
           _ <- pendingOperationsProcessors.processPendingOperations(
             topicPartition,
