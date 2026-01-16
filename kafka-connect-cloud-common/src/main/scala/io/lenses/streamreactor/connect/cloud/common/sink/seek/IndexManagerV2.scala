@@ -33,11 +33,11 @@ import io.lenses.streamreactor.connect.cloud.common.storage.FileNotFoundError
 import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
 import io.lenses.streamreactor.connect.cloud.common.storage.UploadError
 
-import scala.collection.mutable
+import scala.collection.concurrent
 
 /**
  * A class that implements the `IndexManager` trait to manage indexing operations
- * for a cloud sink. This implementation uses a mutable map to track seeked offsets
+ * for a cloud sink. This implementation uses a concurrent map to track seeked offsets
  * and eTags for index files, enabling efficient handling of file operations.
  *
  * Pending operations are processed using the `PendingOperationsProcessors` class,
@@ -72,12 +72,12 @@ class IndexManagerV2(
   // A unique identifier for the lock owner, derived from the connector task ID.
   private val lockOwner = connectorTaskId.lockUuid
 
-  // A mutable map that stores the latest offset for each TopicPartition that was seeked during the initialization of the Kafka Connect SinkTask.
+  // A concurrent map that stores the latest offset for each TopicPartition that was seeked during the initialization of the Kafka Connect SinkTask.
   // The key is the TopicPartition and the value is the corresponding Offset.
-  private val seekedOffsets = mutable.Map.empty[TopicPartition, Offset]
+  private val seekedOffsets = concurrent.TrieMap.empty[TopicPartition, Offset]
 
-  // A mutable map that tracks the latest eTags for index files, enabling detection of changes to the files for appropriate handling.
-  private val topicPartitionToETags = mutable.Map.empty[TopicPartition, String]
+  // A concurrent map that tracks the latest eTags for index files, enabling detection of changes to the files for appropriate handling.
+  private val topicPartitionToETags = concurrent.TrieMap.empty[TopicPartition, String]
 
   /**
    * Opens a set of topic partitions for writing. If an index file is not found,

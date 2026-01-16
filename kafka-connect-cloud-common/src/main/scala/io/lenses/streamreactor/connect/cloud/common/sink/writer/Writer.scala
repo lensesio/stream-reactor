@@ -43,6 +43,7 @@ import org.apache.kafka.connect.data.Schema
 
 import java.io.File
 import java.util.UUID
+import scala.concurrent.{ExecutionContext, Future}
 import scala.math.Ordered.orderingToOrdered
 import scala.util.Try
 
@@ -111,6 +112,8 @@ class Writer[SM <: FileMetadata](
         NonFatalCloudSinkError("Attempting Write in Uploading State").asLeft
     }
   }
+  def startCommit(implicit executionContext: ExecutionContext): Future[Either[SinkError, Unit]] =
+    Future(commit)(executionContext)
 
   def commit: Either[SinkError, Unit] = {
 

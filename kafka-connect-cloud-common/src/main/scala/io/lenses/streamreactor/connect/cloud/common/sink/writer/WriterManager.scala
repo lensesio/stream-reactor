@@ -40,6 +40,8 @@ import org.apache.kafka.connect.data.Schema
 import java.io.File
 import scala.collection.immutable
 import scala.collection.mutable
+import scala.concurrent.ExecutionContext
+import scala.concurrent.duration.Duration
 
 case class MapKey(topicPartition: TopicPartition, partitionValues: immutable.Map[PartitionField, String])
 
@@ -53,24 +55,26 @@ case class MapKey(topicPartition: TopicPartition, partitionValues: immutable.Map
  * sinks, since file handles cannot be safely shared without considerable overhead.
  */
 class WriterManager[SM <: FileMetadata](
-  commitPolicyFn:              TopicPartition => Either[SinkError, CommitPolicy],
-  bucketAndPrefixFn:           TopicPartition => Either[SinkError, CloudLocation],
-  keyNamerFn:                  TopicPartition => Either[SinkError, KeyNamer],
-  stagingFilenameFn:           (TopicPartition, Map[PartitionField, String]) => Either[SinkError, File],
-  objKeyBuilderFn:             (TopicPartition, Map[PartitionField, String]) => ObjectKeyBuilder,
-  formatWriterFn:              (TopicPartition, File) => Either[SinkError, FormatWriter],
-  indexManager:                IndexManager,
-  transformerF:                MessageDetail => Either[RuntimeException, MessageDetail],
-  schemaChangeDetector:        SchemaChangeDetector,
-  skipNullValues:              Boolean,
-  pendingOperationsProcessors: PendingOperationsProcessors,
+  commitPolicyFn:                TopicPartition => Either[SinkError, CommitPolicy],
+  bucketAndPrefixFn:             TopicPartition => Either[SinkError, CloudLocation],
+  keyNamerFn:                    TopicPartition => Either[SinkError, KeyNamer],
+  stagingFilenameFn:             (TopicPartition, Map[PartitionField, String]) => Either[SinkError, File],
+  objKeyBuilderFn:               (TopicPartition, Map[PartitionField, String]) => ObjectKeyBuilder,
+  formatWriterFn:                (TopicPartition, File) => Either[SinkError, FormatWriter],
+  indexManager:                  IndexManager,
+  transformerF:                  MessageDetail => Either[RuntimeException, MessageDetail],
+  schemaChangeDetector:          SchemaChangeDetector,
+  skipNullValues:                Boolean,
+  pendingOperationsProcessors:   PendingOperationsProcessors,
+  commitManagerExecutionContext: ExecutionContext,
+  commitManagerTimeout:          Duration,
 )(
   implicit
   connectorTaskId: ConnectorTaskId,
 ) extends StrictLogging {
 
   private val writers             = mutable.Map.empty[MapKey, Writer[SM]]
-  private val writerCommitManager = new WriterCommitManager[SM](() => writers.toMap)
+  private val writerCommitManager = new WriterCommitManager[SM](() => writers.toMap, commitManagerExecutionContext, commitManagerTimeout)
 
   def recommitPending(): Either[SinkError, Unit] = {
     logger.debug(s"[{}] Retry Pending", connectorTaskId.show)
