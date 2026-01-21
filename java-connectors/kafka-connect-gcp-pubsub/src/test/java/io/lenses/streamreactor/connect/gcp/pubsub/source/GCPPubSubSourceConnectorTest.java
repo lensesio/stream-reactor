@@ -15,6 +15,7 @@
  */
 package io.lenses.streamreactor.connect.gcp.pubsub.source;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Map;
@@ -23,12 +24,11 @@ import org.apache.kafka.common.config.ConfigException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import io.lenses.streamreactor.connect.gcp.pubsub.source.config.PubSubSourceConfig;
 import lombok.val;
 
 class GCPPubSubSourceConnectorTest {
 
-  private PubSubSourceConfig pubSubSourceConfig;
+  private static final String KCQL_KEY = "connect.pubsub.kcql";
 
   private GCPPubSubSourceConnector target;
 
@@ -55,5 +55,56 @@ class GCPPubSubSourceConnectorTest {
         .isInstanceOf(ConfigException.class)
         .hasMessage("Missing required configuration \"connect.pubsub.kcql\" which has no default value.");
 
+  }
+
+  @Test
+  void taskConfigsReplicatesPropsToAllTasks() {
+    val kcql = "insert into kafka-topic select * from subscription";
+    val props = Map.of(KCQL_KEY, kcql);
+
+    target.start(props);
+    val taskConfigs = target.taskConfigs(3);
+
+    assertThat(taskConfigs).hasSize(3);
+    for (val taskConfig : taskConfigs) {
+      assertThat(taskConfig.get(KCQL_KEY)).isEqualTo(kcql);
+    }
+  }
+
+  @Test
+  void taskConfigsReplicatesAllKcqlStatementsToAllTasks() {
+    val kcql = "insert into topic1 select * from sub1;insert into topic2 select * from sub2";
+    val props = Map.of(KCQL_KEY, kcql);
+
+    target.start(props);
+    val taskConfigs = target.taskConfigs(3);
+
+    assertThat(taskConfigs).hasSize(3);
+    for (val taskConfig : taskConfigs) {
+      assertThat(taskConfig.get(KCQL_KEY)).isEqualTo(kcql);
+    }
+  }
+
+  @Test
+  void taskConfigsWithSingleTaskReturnsOneConfig() {
+    val kcql = "insert into kafka-topic select * from subscription";
+    val props = Map.of(KCQL_KEY, kcql);
+
+    target.start(props);
+    val taskConfigs = target.taskConfigs(1);
+
+    assertThat(taskConfigs).hasSize(1);
+    assertThat(taskConfigs.get(0).get(KCQL_KEY)).isEqualTo(kcql);
+  }
+
+  @Test
+  void taskConfigsWithZeroTasksReturnsEmptyList() {
+    val kcql = "insert into kafka-topic select * from subscription";
+    val props = Map.of(KCQL_KEY, kcql);
+
+    target.start(props);
+    val taskConfigs = target.taskConfigs(0);
+
+    assertThat(taskConfigs).isEmpty();
   }
 }
