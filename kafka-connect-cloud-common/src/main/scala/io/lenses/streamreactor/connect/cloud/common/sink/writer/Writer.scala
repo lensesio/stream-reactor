@@ -136,23 +136,24 @@ class Writer[SM <: FileMetadata](
                                    latestRecordTimestamp,
           ) =>
         for {
-          key         <- objectKeyBuilder.build(uncommittedOffset, earliestRecordTimestamp, latestRecordTimestamp)
-          path        <- key.path.toRight(NonFatalCloudSinkError("No path exists within cloud location"))
-          pendingOperations = if (indexManager.indexingEnabled) {
-            val tempFileUuid = UUID.randomUUID().toString
-            val tempFileName = path.prependedAll(
-              s".temp-upload/${topicPartition.topic}/${topicPartition.partition}/$tempFileUuid",
-            )
+          key  <- objectKeyBuilder.build(uncommittedOffset, earliestRecordTimestamp, latestRecordTimestamp)
+          path <- key.path.toRight(NonFatalCloudSinkError("No path exists within cloud location"))
+          pendingOperations =
+            if (indexManager.indexingEnabled) {
+              val tempFileUuid = UUID.randomUUID().toString
+              val tempFileName = path.prependedAll(
+                s".temp-upload/${topicPartition.topic}/${topicPartition.partition}/$tempFileUuid",
+              )
 
-            NonEmptyList.of[FileOperation](
-              UploadOperation(key.bucket, file, tempFileName),
-              CopyOperation(key.bucket, tempFileName, path, "placeholder"),
-              DeleteOperation(key.bucket, tempFileName, "placeholder"),
-            )
-          } else
-            NonEmptyList.of[FileOperation](
-              UploadOperation(key.bucket, file, path)
-            )
+              NonEmptyList.of[FileOperation](
+                UploadOperation(key.bucket, file, tempFileName),
+                CopyOperation(key.bucket, tempFileName, path, "placeholder"),
+                DeleteOperation(key.bucket, tempFileName, "placeholder"),
+              )
+            } else
+              NonEmptyList.of[FileOperation](
+                UploadOperation(key.bucket, file, path),
+              )
 
           _ <- pendingOperationsProcessors.processPendingOperations(
             topicPartition,
