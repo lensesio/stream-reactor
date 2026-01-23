@@ -43,6 +43,7 @@ class AwsS3StorageInterfaceTest
     val s3Client         = mock[S3Client]
     val storageInterface = new AwsS3StorageInterface(mock[ConnectorTaskId], s3Client, batchDelete = false, None)
 
+    when(s3Client.headObject(any[HeadObjectRequest])).thenAnswer(HeadObjectResponse.builder().build())
     when(s3Client.copyObject(any[CopyObjectRequest])).thenAnswer(CopyObjectResponse.builder().build())
     when(s3Client.deleteObject(any[DeleteObjectRequest])).thenAnswer(DeleteObjectResponse.builder().build())
 
