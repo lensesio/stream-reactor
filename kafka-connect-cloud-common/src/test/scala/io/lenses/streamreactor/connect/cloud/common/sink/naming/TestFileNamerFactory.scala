@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2025 Lenses.io Ltd
+ * Copyright 2017-2026 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,5 +24,3 @@ class TestFileNamerFactory extends FileNamerFactory {
     new OffsetFileNamer(fileNameConfig)
 
 }
-
-
