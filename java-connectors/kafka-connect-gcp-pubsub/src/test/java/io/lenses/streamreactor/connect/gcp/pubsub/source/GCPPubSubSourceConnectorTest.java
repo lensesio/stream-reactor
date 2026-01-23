@@ -107,4 +107,25 @@ class GCPPubSubSourceConnectorTest {
 
     assertThat(taskConfigs).isEmpty();
   }
+
+  @Test
+  void startWithDuplicateSubscriptionThrowsConfigException() {
+    // Two KCQL statements referencing the same subscription (source)
+    val kcql = "insert into topic1 select * from same-subscription;insert into topic2 select * from same-subscription";
+    val props = Map.of(KCQL_KEY, kcql);
+
+    assertThatThrownBy(() -> target.start(props))
+        .isInstanceOf(ConfigException.class)
+        .hasMessageContaining("Each GCP Pub/Sub subscription can only be mapped to one Kafka topic")
+        .hasMessageContaining("same-subscription");
+  }
+
+  @Test
+  void startWithDistinctSubscriptionsDoesNotThrowException() {
+    // Two KCQL statements with different subscriptions should be valid
+    val kcql = "insert into topic1 select * from subscription1;insert into topic2 select * from subscription2";
+    val props = Map.of(KCQL_KEY, kcql);
+
+    target.start(props);
+  }
 }
