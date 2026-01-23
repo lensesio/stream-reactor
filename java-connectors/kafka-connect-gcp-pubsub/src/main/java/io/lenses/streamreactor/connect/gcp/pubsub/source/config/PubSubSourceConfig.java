@@ -66,18 +66,20 @@ public class PubSubSourceConfig {
    * @return Either containing an error or the validated KCQL list
    */
   private Either<ConfigException, List<Kcql>> validateDistinctSubscriptions(List<Kcql> kcqls) {
-    List<String> duplicates = kcqls.stream()
-        .map(Kcql::getSource)
-        .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()))
-        .entrySet().stream()
-        .filter(entry -> entry.getValue() > 1)
-        .map(Map.Entry::getKey)
-        .collect(Collectors.toList());
+    List<String> duplicates =
+        kcqls.stream()
+            .map(Kcql::getSource)
+            .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()))
+            .entrySet().stream()
+            .filter(entry -> entry.getValue() > 1)
+            .map(Map.Entry::getKey)
+            .collect(Collectors.toList());
 
     if (!duplicates.isEmpty()) {
-      String errorMessage = duplicates.stream()
-          .map(sub -> String.format("Subscription '%s' is referenced multiple times", sub))
-          .collect(Collectors.joining("; "));
+      String errorMessage =
+          duplicates.stream()
+              .map(sub -> String.format("Subscription '%s' is referenced multiple times", sub))
+              .collect(Collectors.joining("; "));
       return Either.left(new ConfigException(
           "Each GCP Pub/Sub subscription can only be mapped to one Kafka topic. " + errorMessage));
     }
