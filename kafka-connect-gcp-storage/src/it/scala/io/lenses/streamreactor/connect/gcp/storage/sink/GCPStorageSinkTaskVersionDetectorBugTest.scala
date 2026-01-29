@@ -98,7 +98,7 @@ class GCPStorageSinkTaskVersionDetectorBugTest
 
     // Configure with VERSION schema change detector (no optimization)
     val props = (defaultProps ++ Map(
-      s"$prefix.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `PARQUET` PROPERTIES('${FlushCount.entryName}'=10)",
+      s"$prefix.kcql"                   -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `PARQUET` PROPERTIES('${FlushCount.entryName}'=10)",
       s"$prefix.schema.change.detector" -> "version",
     )).asJava
 
@@ -116,7 +116,16 @@ class GCPStorageSinkTaskVersionDetectorBugTest
     // Missing fields (extraField) will be null
     val sinkRecordsV2 = v2Records.zipWithIndex.map {
       case (struct, i) =>
-        new SinkRecord(TopicName, 1, null, null, schemaV2, struct, (i + 2).toLong, (i + 2).toLong, TimestampType.CREATE_TIME)
+        new SinkRecord(TopicName,
+                       1,
+                       null,
+                       null,
+                       schemaV2,
+                       struct,
+                       (i + 2).toLong,
+                       (i + 2).toLong,
+                       TimestampType.CREATE_TIME,
+        )
     }
 
     // With the fix, this should NOT throw exception - v2 records are converted using v3 schema
@@ -173,7 +182,7 @@ class GCPStorageSinkTaskVersionDetectorBugTest
 
     // Configure with schema optimization enabled - this adapts v2 records to v3
     val props = (defaultProps ++ Map(
-      s"$prefix.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `PARQUET` PROPERTIES('${FlushCount.entryName}'=4,'padding.length.partition'='12','padding.length.offset'='12')",
+      s"$prefix.kcql"                               -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `PARQUET` PROPERTIES('${FlushCount.entryName}'=4,'padding.length.partition'='12','padding.length.offset'='12')",
       s"$prefix.latest.schema.optimization.enabled" -> "true",
     )).asJava
 
@@ -190,7 +199,16 @@ class GCPStorageSinkTaskVersionDetectorBugTest
     // Send v2 records after - with optimization enabled, these are adapted to v3
     val sinkRecordsV2 = v2Records.zipWithIndex.map {
       case (struct, i) =>
-        new SinkRecord(TopicName, 1, null, null, schemaV2, struct, (i + 2).toLong, (i + 2).toLong, TimestampType.CREATE_TIME)
+        new SinkRecord(TopicName,
+                       1,
+                       null,
+                       null,
+                       schemaV2,
+                       struct,
+                       (i + 2).toLong,
+                       (i + 2).toLong,
+                       TimestampType.CREATE_TIME,
+        )
     }
 
     // This should NOT throw exception - v2 records are adapted to v3 schema
@@ -249,8 +267,8 @@ class GCPStorageSinkTaskVersionDetectorBugTest
 
     // Configure with BOTH version detector AND schema optimization
     val props = (defaultProps ++ Map(
-      s"$prefix.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `PARQUET` PROPERTIES('${FlushCount.entryName}'=4,'padding.length.partition'='12','padding.length.offset'='12')",
-      s"$prefix.schema.change.detector" -> "version",
+      s"$prefix.kcql"                               -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `PARQUET` PROPERTIES('${FlushCount.entryName}'=4,'padding.length.partition'='12','padding.length.offset'='12')",
+      s"$prefix.schema.change.detector"             -> "version",
       s"$prefix.latest.schema.optimization.enabled" -> "true",
     )).asJava
 
@@ -269,7 +287,16 @@ class GCPStorageSinkTaskVersionDetectorBugTest
     // All records merged into same file
     val sinkRecordsV2 = v2Records.zipWithIndex.map {
       case (struct, i) =>
-        new SinkRecord(TopicName, 1, null, null, schemaV2, struct, (i + 2).toLong, (i + 2).toLong, TimestampType.CREATE_TIME)
+        new SinkRecord(TopicName,
+                       1,
+                       null,
+                       null,
+                       schemaV2,
+                       struct,
+                       (i + 2).toLong,
+                       (i + 2).toLong,
+                       TimestampType.CREATE_TIME,
+        )
     }
 
     // This should NOT throw exception - v2 records are adapted to v3 before version check
@@ -329,8 +356,8 @@ class GCPStorageSinkTaskVersionDetectorBugTest
 
     // Configure with BOTH compatibility detector AND schema optimization
     val props = (defaultProps ++ Map(
-      s"$prefix.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `PARQUET` PROPERTIES('${FlushCount.entryName}'=4,'padding.length.partition'='12','padding.length.offset'='12')",
-      s"$prefix.schema.change.detector" -> "compatibility",
+      s"$prefix.kcql"                               -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `PARQUET` PROPERTIES('${FlushCount.entryName}'=4,'padding.length.partition'='12','padding.length.offset'='12')",
+      s"$prefix.schema.change.detector"             -> "compatibility",
       s"$prefix.latest.schema.optimization.enabled" -> "true",
     )).asJava
 
@@ -349,7 +376,16 @@ class GCPStorageSinkTaskVersionDetectorBugTest
     // All records merged into same file
     val sinkRecordsV2 = v2Records.zipWithIndex.map {
       case (struct, i) =>
-        new SinkRecord(TopicName, 1, null, null, schemaV2, struct, (i + 2).toLong, (i + 2).toLong, TimestampType.CREATE_TIME)
+        new SinkRecord(TopicName,
+                       1,
+                       null,
+                       null,
+                       schemaV2,
+                       struct,
+                       (i + 2).toLong,
+                       (i + 2).toLong,
+                       TimestampType.CREATE_TIME,
+        )
     }
 
     // This should NOT throw exception - v2 records are adapted to v3 before compatibility check
@@ -365,4 +401,3 @@ class GCPStorageSinkTaskVersionDetectorBugTest
   }
 
 }
-

@@ -144,7 +144,10 @@ class S3SinkTaskParquetSchemaOptimizationTest
 
     // Record 4: V3 schema (introduces address)
     val address4 = new Struct(addressSchema).put("street", "123 Main St").put("city", "Seattle").put("zipCode", "98101")
-    val struct4  = new Struct(schemaV3).put("name", "Diana").put("age", 28).put("email", "diana@example.com").put("address", address4)
+    val struct4 =
+      new Struct(schemaV3).put("name", "Diana").put("age", 28).put("email", "diana@example.com").put("address",
+                                                                                                     address4,
+      )
 
     // Record 5: V2 schema again (should be adapted to latest V3)
     val struct5 = new Struct(schemaV2).put("name", "Eve").put("age", 32).put("email", "eve@example.com")
@@ -194,7 +197,7 @@ class S3SinkTaskParquetSchemaOptimizationTest
     rec3.get("address") should be(null)
 
     // Record 4: V3 (full schema)
-    val rec4     = genericRecords(3)
+    val rec4        = genericRecords(3)
     val address4Rec = rec4.get("address").asInstanceOf[GenericRecord]
     rec4.get("name").toString should be("Diana")
     rec4.get("age") should be(28)
@@ -273,7 +276,10 @@ class S3SinkTaskParquetSchemaOptimizationTest
     val struct1 = new Struct(orderSchemaV1).put("orderId", "ORD-001").put("amount", 100.50).put("metadata", meta1)
 
     // Record 2: V2 schema (introduces offset and timestamp in metadata)
-    val meta2   = new Struct(metadataSchemaV2).put("topic", TopicName).put("partition", 1).put("offset", 2L).put("timestamp", 20002L)
+    val meta2 =
+      new Struct(metadataSchemaV2).put("topic", TopicName).put("partition", 1).put("offset", 2L).put("timestamp",
+                                                                                                     20002L,
+      )
     val struct2 = new Struct(orderSchemaV2).put("orderId", "ORD-002").put("amount", 250.75).put("metadata", meta2)
 
     // Record 3: V1 schema again (should be adapted to V2)
@@ -281,7 +287,10 @@ class S3SinkTaskParquetSchemaOptimizationTest
     val struct3 = new Struct(orderSchemaV1).put("orderId", "ORD-003").put("amount", 75.00).put("metadata", meta3)
 
     // Record 4: V2 schema
-    val meta4   = new Struct(metadataSchemaV2).put("topic", TopicName).put("partition", 1).put("offset", 4L).put("timestamp", 20004L)
+    val meta4 =
+      new Struct(metadataSchemaV2).put("topic", TopicName).put("partition", 1).put("offset", 4L).put("timestamp",
+                                                                                                     20004L,
+      )
     val struct4 = new Struct(orderSchemaV2).put("orderId", "ORD-004").put("amount", 500.00).put("metadata", meta4)
 
     val record1 = toSinkRecord(struct1, TopicName, 1, 1L, 20001L)
@@ -301,7 +310,7 @@ class S3SinkTaskParquetSchemaOptimizationTest
     genericRecords.size should be(4)
 
     // Record 1: V1 -> V2 (metadata.offset and metadata.timestamp should be null)
-    val rec1      = genericRecords.head
+    val rec1     = genericRecords.head
     val metaRec1 = rec1.get("metadata").asInstanceOf[GenericRecord]
     rec1.get("orderId").toString should be("ORD-001")
     rec1.get("amount") should be(100.50)
@@ -311,7 +320,7 @@ class S3SinkTaskParquetSchemaOptimizationTest
     metaRec1.get("timestamp") should be(null)
 
     // Record 2: V2 (full metadata)
-    val rec2      = genericRecords(1)
+    val rec2     = genericRecords(1)
     val metaRec2 = rec2.get("metadata").asInstanceOf[GenericRecord]
     rec2.get("orderId").toString should be("ORD-002")
     rec2.get("amount") should be(250.75)
@@ -321,7 +330,7 @@ class S3SinkTaskParquetSchemaOptimizationTest
     metaRec2.get("timestamp") should be(20002L)
 
     // Record 3: V1 -> V2
-    val rec3      = genericRecords(2)
+    val rec3     = genericRecords(2)
     val metaRec3 = rec3.get("metadata").asInstanceOf[GenericRecord]
     rec3.get("orderId").toString should be("ORD-003")
     rec3.get("amount") should be(75.00)
@@ -331,7 +340,7 @@ class S3SinkTaskParquetSchemaOptimizationTest
     metaRec3.get("timestamp") should be(null)
 
     // Record 4: V2
-    val rec4      = genericRecords(3)
+    val rec4     = genericRecords(3)
     val metaRec4 = rec4.get("metadata").asInstanceOf[GenericRecord]
     rec4.get("orderId").toString should be("ORD-004")
     rec4.get("amount") should be(500.00)
@@ -342,4 +351,3 @@ class S3SinkTaskParquetSchemaOptimizationTest
   }
 
 }
-

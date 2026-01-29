@@ -225,7 +225,7 @@ class S3SinkTaskParquetV3ThenV2SchemaOptimizationTest
     val props = (
       defaultProps ++
         Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS PARQUET PROPERTIES('padding.length.partition'='12','padding.length.offset'='12','${FlushCount.entryName}'=10)",
+          "connect.s3.kcql"                               -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS PARQUET PROPERTIES('padding.length.partition'='12','padding.length.offset'='12','${FlushCount.entryName}'=10)",
           "connect.s3.latest.schema.optimization.enabled" -> "true",
         )
     ).asJava
@@ -299,7 +299,7 @@ class S3SinkTaskParquetV3ThenV2SchemaOptimizationTest
     val props = (
       defaultProps ++
         Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS PARQUET PROPERTIES('padding.length.partition'='12','padding.length.offset'='12','${FlushCount.entryName}'=8)",
+          "connect.s3.kcql"                               -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS PARQUET PROPERTIES('padding.length.partition'='12','padding.length.offset'='12','${FlushCount.entryName}'=8)",
           "connect.s3.latest.schema.optimization.enabled" -> "true",
         )
     ).asJava
@@ -364,7 +364,7 @@ class S3SinkTaskParquetV3ThenV2SchemaOptimizationTest
     val props = (
       defaultProps ++
         Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS PARQUET PROPERTIES('padding.length.partition'='12','padding.length.offset'='12','${FlushCount.entryName}'=6)",
+          "connect.s3.kcql"                               -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS PARQUET PROPERTIES('padding.length.partition'='12','padding.length.offset'='12','${FlushCount.entryName}'=6)",
           "connect.s3.latest.schema.optimization.enabled" -> "true",
         )
     ).asJava
