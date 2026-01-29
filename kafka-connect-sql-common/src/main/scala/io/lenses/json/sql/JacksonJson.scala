@@ -15,7 +15,7 @@
  */
 package io.lenses.json.sql
 
-import com.fasterxml.jackson.annotation.JsonInclude.Include
+import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.databind.json.JsonMapper
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.JsonNode
@@ -27,8 +27,7 @@ object JacksonJson {
     .addModule(DefaultScalaModule)
     .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
     .configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false)
-    .serializationInclusion(Include.NON_NULL)
-    .serializationInclusion(Include.NON_EMPTY)
+    .defaultPropertyInclusion(JsonInclude.Value.construct(JsonInclude.Include.NON_EMPTY, JsonInclude.Include.NON_EMPTY))
     .build()
 
   def toJson[T](value: T): String = mapper.writeValueAsString(value)
