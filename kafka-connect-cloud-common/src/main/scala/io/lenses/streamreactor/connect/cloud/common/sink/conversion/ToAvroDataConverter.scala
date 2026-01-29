@@ -97,7 +97,9 @@ object ToAvroDataConverter {
         val convertedValue = convertFieldValue(value, avroField.schema())
         record.put(fieldName, convertedValue)
       } else if (avroField.hasDefaultValue) {
-        record.put(fieldName, avroField.defaultVal())
+        // Use GenericData.get().getDefaultValue() instead of avroField.defaultVal()
+        // because defaultVal() returns a JsonNode, not the actual typed value
+        record.put(fieldName, GenericData.get().getDefaultValue(avroField))
       }
     // If field doesn't exist and has no default, leave it null (for optional fields)
     }
