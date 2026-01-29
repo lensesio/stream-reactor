@@ -42,20 +42,20 @@ import java.io.FileOutputStream
 import scala.jdk.CollectionConverters._
 
 /**
-  * Tests for ParquetFormatWriter with schema evolution scenarios.
-  * 
-  * This test reproduces the ArrayIndexOutOfBoundsException that occurs when:
-  * 1. The latest.schema.optimization.enabled feature is enabled
-  * 2. Records with different schema versions are interleaved
-  * 3. The AttachLatestSchemaOptimizer adapts older schema records to the latest schema
-  * 4. The Parquet writer receives records with schemas that have the same logical structure
-  *    but different Avro schema objects
-  */
+ * Tests for ParquetFormatWriter with schema evolution scenarios.
+ *
+ * This test reproduces the ArrayIndexOutOfBoundsException that occurs when:
+ * 1. The latest.schema.optimization.enabled feature is enabled
+ * 2. Records with different schema versions are interleaved
+ * 3. The AttachLatestSchemaOptimizer adapts older schema records to the latest schema
+ * 4. The Parquet writer receives records with schemas that have the same logical structure
+ *    but different Avro schema objects
+ */
 class ParquetFormatWriterSchemaEvolutionTest extends AnyFlatSpec with Matchers with EitherValues {
 
   implicit val compressionCodec: CompressionCodec = UNCOMPRESSED.toCodec()
-  val topicPartition: TopicPartition = Topic("testTopic").withPartition(1)
-  val topic: Topic = Topic("testTopic")
+  val topicPartition:            TopicPartition   = Topic("testTopic").withPartition(1)
+  val topic:                     Topic            = Topic("testTopic")
 
   private def createSchema(name: String, version: Int, fields: (String, Schema)*): Schema = {
     val builder = SchemaBuilder.struct().name(name).version(version)
@@ -85,16 +85,16 @@ class ParquetFormatWriterSchemaEvolutionTest extends AnyFlatSpec with Matchers w
     new BufferedOutputStream(new FileOutputStream(file))
 
   /**
-    * This test reproduces the issue where writing records with adapted schemas
-    * causes ArrayIndexOutOfBoundsException.
-    * 
-    * Scenario:
-    * 1. Create schema v2 with 3 fields (simulating the "latest" schema)
-    * 2. Write a record with schema v2 (initializes the Parquet writer)
-    * 3. Create a struct originally from v1 schema (2 fields) but adapted to v2 schema
-    * 4. Write the adapted record - this triggers the bug because the Avro GenericRecord
-    *    is created with a different schema object than the one used to initialize the writer
-    */
+   * This test reproduces the issue where writing records with adapted schemas
+   * causes ArrayIndexOutOfBoundsException.
+   *
+   * Scenario:
+   * 1. Create schema v2 with 3 fields (simulating the "latest" schema)
+   * 2. Write a record with schema v2 (initializes the Parquet writer)
+   * 3. Create a struct originally from v1 schema (2 fields) but adapted to v2 schema
+   * 4. Write the adapted record - this triggers the bug because the Avro GenericRecord
+   *    is created with a different schema object than the one used to initialize the writer
+   */
   "ParquetFormatWriter" should "handle writing records adapted from older schema versions" in {
     val tempFile = createTempFile()
 
@@ -119,7 +119,7 @@ class ParquetFormatWriterSchemaEvolutionTest extends AnyFlatSpec with Matchers w
     adaptedStruct.put("field2", 100)
     adaptedStruct.put("field3", null) // New field gets null value
 
-    val blobStream = new BuildLocalOutputStream(toBufferedOutputStream(tempFile), topicPartition)
+    val blobStream          = new BuildLocalOutputStream(toBufferedOutputStream(tempFile), topicPartition)
     val parquetFormatWriter = new ParquetFormatWriter(blobStream)
 
     // Write first record with v2 schema - this initializes the Parquet writer
@@ -152,14 +152,14 @@ class ParquetFormatWriterSchemaEvolutionTest extends AnyFlatSpec with Matchers w
   }
 
   /**
-    * Test using the actual AttachLatestSchemaOptimizer to adapt records.
-    * This reproduces the exact scenario from production where:
-    * 1. Batch 1: Record with v2 schema arrives - writer initialized with v2
-    * 2. Batch 2: Record with v1 schema arrives - optimizer adapts it to v2
-    * 
-    * The key difference is that the optimizer creates ENTIRELY NEW Schema and Struct objects,
-    * which may produce different Avro schema objects when converted.
-    */
+   * Test using the actual AttachLatestSchemaOptimizer to adapt records.
+   * This reproduces the exact scenario from production where:
+   * 1. Batch 1: Record with v2 schema arrives - writer initialized with v2
+   * 2. Batch 2: Record with v1 schema arrives - optimizer adapts it to v2
+   *
+   * The key difference is that the optimizer creates ENTIRELY NEW Schema and Struct objects,
+   * which may produce different Avro schema objects when converted.
+   */
   "ParquetFormatWriter" should "handle records adapted by AttachLatestSchemaOptimizer" in {
     val tempFile = createTempFile()
 
@@ -201,7 +201,7 @@ class ParquetFormatWriterSchemaEvolutionTest extends AnyFlatSpec with Matchers w
     // Verify the optimizer adapted the schema
     optimizedBatch2.head.valueSchema().version() shouldBe 2 // Should be adapted to v2
 
-    val blobStream = new BuildLocalOutputStream(toBufferedOutputStream(tempFile), topicPartition)
+    val blobStream          = new BuildLocalOutputStream(toBufferedOutputStream(tempFile), topicPartition)
     val parquetFormatWriter = new ParquetFormatWriter(blobStream)
 
     // Write the first batch (v2)
@@ -239,20 +239,20 @@ class ParquetFormatWriterSchemaEvolutionTest extends AnyFlatSpec with Matchers w
   }
 
   /**
-    * PRODUCTION BUG REPRODUCTION TEST
-    * 
-    * This test uses the EXACT Avro schemas from production, converted through Confluent's
-    * AvroData converter to Connect schemas. This matches exactly how Schema Registry
-    * deserializes records in the Kafka Connect pipeline.
-    * 
-    * Production schemas:
-    * - V2: 14 fields (includes clientTransactionIdentifier)
-    * - V3: 15 fields (adds businessUnit)
-    * 
-    * Bug scenario: V3 records first, then V2 records arrive.
-    * With latest.schema.optimization.enabled=true, V2 is adapted to V3.
-    * Without the fix, ArrayIndexOutOfBoundsException occurs.
-    */
+   * PRODUCTION BUG REPRODUCTION TEST
+   *
+   * This test uses the EXACT Avro schemas from production, converted through Confluent's
+   * AvroData converter to Connect schemas. This matches exactly how Schema Registry
+   * deserializes records in the Kafka Connect pipeline.
+   *
+   * Production schemas:
+   * - V2: 14 fields (includes clientTransactionIdentifier)
+   * - V3: 15 fields (adds businessUnit)
+   *
+   * Bug scenario: V3 records first, then V2 records arrive.
+   * With latest.schema.optimization.enabled=true, V2 is adapted to V3.
+   * Without the fix, ArrayIndexOutOfBoundsException occurs.
+   */
   "ParquetFormatWriter" should "handle production DslSDPEvent schemas V3 then V2 with AvroData conversion" in {
     val tempFile = createTempFile()
 
@@ -354,7 +354,7 @@ class ParquetFormatWriterSchemaEvolutionTest extends AnyFlatSpec with Matchers w
     }"""
 
     // Parse Avro schemas
-    val parser = new Parser()
+    val parser       = new Parser()
     val avroSchemaV2 = parser.parse(avroSchemaV2Json)
     val avroSchemaV3 = new Parser().parse(avroSchemaV3Json) // Use new parser to avoid cache
 
@@ -460,8 +460,8 @@ class ParquetFormatWriterSchemaEvolutionTest extends AnyFlatSpec with Matchers w
         .put("clientTransactionIdentifier", s"txn-v2-$idx")
     }
 
-    val optimizer = new AttachLatestSchemaOptimizer()
-    val blobStream = new BuildLocalOutputStream(toBufferedOutputStream(tempFile), topicPartition)
+    val optimizer           = new AttachLatestSchemaOptimizer()
+    val blobStream          = new BuildLocalOutputStream(toBufferedOutputStream(tempFile), topicPartition)
     val parquetFormatWriter = new ParquetFormatWriter(blobStream)
 
     // Batch 1: V3 records arrive first

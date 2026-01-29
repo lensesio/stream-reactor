@@ -32,17 +32,17 @@ import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.jdk.CollectionConverters.SeqHasAsJava
 
 /**
-  * Regression test for VersionSchemaChangeDetector bug.
-  *
-  * The bug: VersionSchemaChangeDetector only checks `newVersion > oldVersion`,
-  * missing the reverse direction (v3 -> v2). When v3 records arrive first,
-  * then v2 records arrive, no schema change is detected because 2 > 3 is false.
-  *
-  * This causes ArrayIndexOutOfBoundsException when writing v2 records with
-  * a schema that has fewer fields than the previously seen v3 schema.
-  *
-  * Fix: Change to `!Objects.equals(oldVersion, newVersion)` to detect ANY version change.
-  */
+ * Regression test for VersionSchemaChangeDetector bug.
+ *
+ * The bug: VersionSchemaChangeDetector only checks `newVersion > oldVersion`,
+ * missing the reverse direction (v3 -> v2). When v3 records arrive first,
+ * then v2 records arrive, no schema change is detected because 2 > 3 is false.
+ *
+ * This causes ArrayIndexOutOfBoundsException when writing v2 records with
+ * a schema that has fewer fields than the previously seen v3 schema.
+ *
+ * Fix: Change to `!Objects.equals(oldVersion, newVersion)` to detect ANY version change.
+ */
 class GCPStorageSinkTaskVersionDetectorBugTest
     extends AnyFlatSpec
     with Matchers
@@ -54,16 +54,16 @@ class GCPStorageSinkTaskVersionDetectorBugTest
   private val TopicName  = "myTopic"
 
   /**
-    * Test that v2 records can be written to a file initialized with v3 schema.
-    *
-    * Previously this would fail with ArrayIndexOutOfBoundsException because:
-    * - VersionSchemaChangeDetector only checks `newVersion > oldVersion` (2 > 3 = false)
-    * - So v2 records weren't detected as a schema change
-    * - v2 records tried to write to v3 parquet file with mismatched schemas
-    *
-    * Fix: ParquetFormatWriter now uses ToAvroDataConverter.convertToGenericRecordWithSchema()
-    * which creates GenericRecords using the writer's schema, properly handling missing fields.
-    */
+   * Test that v2 records can be written to a file initialized with v3 schema.
+   *
+   * Previously this would fail with ArrayIndexOutOfBoundsException because:
+   * - VersionSchemaChangeDetector only checks `newVersion > oldVersion` (2 > 3 = false)
+   * - So v2 records weren't detected as a schema change
+   * - v2 records tried to write to v3 parquet file with mismatched schemas
+   *
+   * Fix: ParquetFormatWriter now uses ToAvroDataConverter.convertToGenericRecordWithSchema()
+   * which creates GenericRecords using the writer's schema, properly handling missing fields.
+   */
   "GCPStorageSinkTask" should "write v2 records to v3 file without error (version detector)" in {
     // Schema v3 with an extra field
     val schemaV3 = SchemaBuilder.struct()
@@ -98,7 +98,7 @@ class GCPStorageSinkTaskVersionDetectorBugTest
 
     // Configure with VERSION schema change detector (no optimization)
     val props = (defaultProps ++ Map(
-      s"$prefix.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `PARQUET` PROPERTIES('${FlushCount.entryName}'=10)",
+      s"$prefix.kcql"                   -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `PARQUET` PROPERTIES('${FlushCount.entryName}'=10)",
       s"$prefix.schema.change.detector" -> "version",
     )).asJava
 
@@ -116,7 +116,16 @@ class GCPStorageSinkTaskVersionDetectorBugTest
     // Missing fields (extraField) will be null
     val sinkRecordsV2 = v2Records.zipWithIndex.map {
       case (struct, i) =>
-        new SinkRecord(TopicName, 1, null, null, schemaV2, struct, (i + 2).toLong, (i + 2).toLong, TimestampType.CREATE_TIME)
+        new SinkRecord(TopicName,
+                       1,
+                       null,
+                       null,
+                       schemaV2,
+                       struct,
+                       (i + 2).toLong,
+                       (i + 2).toLong,
+                       TimestampType.CREATE_TIME,
+        )
     }
 
     // With the fix, this should NOT throw exception - v2 records are converted using v3 schema
@@ -129,16 +138,16 @@ class GCPStorageSinkTaskVersionDetectorBugTest
   }
 
   /**
-    * Test that schema optimization adapts v2 records to v3 schema, allowing all records
-    * to be written to the SAME parquet file without triggering a schema change flush.
-    *
-    * When latest.schema.optimization.enabled=true:
-    * 1. v3 records arrive first - establishes v3 as the "latest" schema
-    * 2. v2 records arrive - they are adapted to v3 schema (extraField=null)
-    * 3. All records are written to the same file
-    *
-    * This demonstrates the schema optimization working correctly.
-    */
+   * Test that schema optimization adapts v2 records to v3 schema, allowing all records
+   * to be written to the SAME parquet file without triggering a schema change flush.
+   *
+   * When latest.schema.optimization.enabled=true:
+   * 1. v3 records arrive first - establishes v3 as the "latest" schema
+   * 2. v2 records arrive - they are adapted to v3 schema (extraField=null)
+   * 3. All records are written to the same file
+   *
+   * This demonstrates the schema optimization working correctly.
+   */
   "GCPStorageSinkTask" should "merge v3 and v2 records into same parquet file with schema optimization enabled" in {
     // Schema v3 with an extra field
     val schemaV3 = SchemaBuilder.struct()
@@ -173,7 +182,7 @@ class GCPStorageSinkTaskVersionDetectorBugTest
 
     // Configure with schema optimization enabled - this adapts v2 records to v3
     val props = (defaultProps ++ Map(
-      s"$prefix.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `PARQUET` PROPERTIES('${FlushCount.entryName}'=4,'padding.length.partition'='12','padding.length.offset'='12')",
+      s"$prefix.kcql"                               -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `PARQUET` PROPERTIES('${FlushCount.entryName}'=4,'padding.length.partition'='12','padding.length.offset'='12')",
       s"$prefix.latest.schema.optimization.enabled" -> "true",
     )).asJava
 
@@ -190,7 +199,16 @@ class GCPStorageSinkTaskVersionDetectorBugTest
     // Send v2 records after - with optimization enabled, these are adapted to v3
     val sinkRecordsV2 = v2Records.zipWithIndex.map {
       case (struct, i) =>
-        new SinkRecord(TopicName, 1, null, null, schemaV2, struct, (i + 2).toLong, (i + 2).toLong, TimestampType.CREATE_TIME)
+        new SinkRecord(TopicName,
+                       1,
+                       null,
+                       null,
+                       schemaV2,
+                       struct,
+                       (i + 2).toLong,
+                       (i + 2).toLong,
+                       TimestampType.CREATE_TIME,
+        )
     }
 
     // This should NOT throw exception - v2 records are adapted to v3 schema
@@ -205,16 +223,16 @@ class GCPStorageSinkTaskVersionDetectorBugTest
   }
 
   /**
-    * Test using BOTH version detector AND schema optimization together.
-    *
-    * When schema.change.detector=version AND latest.schema.optimization.enabled=true:
-    * 1. v3 records arrive first - establishes v3 as the "latest" schema
-    * 2. v2 records arrive - they are adapted to v3 schema BEFORE version check
-    * 3. Since all records now have v3 schema, version detector sees no change
-    * 4. All records are written to the SAME parquet file
-    *
-    * This is the recommended configuration for production use.
-    */
+   * Test using BOTH version detector AND schema optimization together.
+   *
+   * When schema.change.detector=version AND latest.schema.optimization.enabled=true:
+   * 1. v3 records arrive first - establishes v3 as the "latest" schema
+   * 2. v2 records arrive - they are adapted to v3 schema BEFORE version check
+   * 3. Since all records now have v3 schema, version detector sees no change
+   * 4. All records are written to the SAME parquet file
+   *
+   * This is the recommended configuration for production use.
+   */
   "GCPStorageSinkTask" should "merge v3 and v2 records into same file with version detector AND schema optimization" in {
     // Schema v3 with an extra field
     val schemaV3 = SchemaBuilder.struct()
@@ -249,8 +267,8 @@ class GCPStorageSinkTaskVersionDetectorBugTest
 
     // Configure with BOTH version detector AND schema optimization
     val props = (defaultProps ++ Map(
-      s"$prefix.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `PARQUET` PROPERTIES('${FlushCount.entryName}'=4,'padding.length.partition'='12','padding.length.offset'='12')",
-      s"$prefix.schema.change.detector" -> "version",
+      s"$prefix.kcql"                               -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `PARQUET` PROPERTIES('${FlushCount.entryName}'=4,'padding.length.partition'='12','padding.length.offset'='12')",
+      s"$prefix.schema.change.detector"             -> "version",
       s"$prefix.latest.schema.optimization.enabled" -> "true",
     )).asJava
 
@@ -269,7 +287,16 @@ class GCPStorageSinkTaskVersionDetectorBugTest
     // All records merged into same file
     val sinkRecordsV2 = v2Records.zipWithIndex.map {
       case (struct, i) =>
-        new SinkRecord(TopicName, 1, null, null, schemaV2, struct, (i + 2).toLong, (i + 2).toLong, TimestampType.CREATE_TIME)
+        new SinkRecord(TopicName,
+                       1,
+                       null,
+                       null,
+                       schemaV2,
+                       struct,
+                       (i + 2).toLong,
+                       (i + 2).toLong,
+                       TimestampType.CREATE_TIME,
+        )
     }
 
     // This should NOT throw exception - v2 records are adapted to v3 before version check
@@ -285,16 +312,16 @@ class GCPStorageSinkTaskVersionDetectorBugTest
   }
 
   /**
-    * Test using compatibility detector AND schema optimization together.
-    *
-    * When schema.change.detector=compatibility AND latest.schema.optimization.enabled=true:
-    * 1. v3 records arrive first - establishes v3 as the "latest" schema
-    * 2. v2 records arrive - they are adapted to v3 schema BEFORE compatibility check
-    * 3. Since all records now have v3 schema, compatibility detector sees no change
-    * 4. All records are written to the SAME parquet file
-    *
-    * This should have the same outcome as using version detector with optimization.
-    */
+   * Test using compatibility detector AND schema optimization together.
+   *
+   * When schema.change.detector=compatibility AND latest.schema.optimization.enabled=true:
+   * 1. v3 records arrive first - establishes v3 as the "latest" schema
+   * 2. v2 records arrive - they are adapted to v3 schema BEFORE compatibility check
+   * 3. Since all records now have v3 schema, compatibility detector sees no change
+   * 4. All records are written to the SAME parquet file
+   *
+   * This should have the same outcome as using version detector with optimization.
+   */
   "GCPStorageSinkTask" should "merge v3 and v2 records into same file with compatibility detector AND schema optimization" in {
     // Schema v3 with an extra field
     val schemaV3 = SchemaBuilder.struct()
@@ -329,8 +356,8 @@ class GCPStorageSinkTaskVersionDetectorBugTest
 
     // Configure with BOTH compatibility detector AND schema optimization
     val props = (defaultProps ++ Map(
-      s"$prefix.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `PARQUET` PROPERTIES('${FlushCount.entryName}'=4,'padding.length.partition'='12','padding.length.offset'='12')",
-      s"$prefix.schema.change.detector" -> "compatibility",
+      s"$prefix.kcql"                               -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `PARQUET` PROPERTIES('${FlushCount.entryName}'=4,'padding.length.partition'='12','padding.length.offset'='12')",
+      s"$prefix.schema.change.detector"             -> "compatibility",
       s"$prefix.latest.schema.optimization.enabled" -> "true",
     )).asJava
 
@@ -349,7 +376,16 @@ class GCPStorageSinkTaskVersionDetectorBugTest
     // All records merged into same file
     val sinkRecordsV2 = v2Records.zipWithIndex.map {
       case (struct, i) =>
-        new SinkRecord(TopicName, 1, null, null, schemaV2, struct, (i + 2).toLong, (i + 2).toLong, TimestampType.CREATE_TIME)
+        new SinkRecord(TopicName,
+                       1,
+                       null,
+                       null,
+                       schemaV2,
+                       struct,
+                       (i + 2).toLong,
+                       (i + 2).toLong,
+                       TimestampType.CREATE_TIME,
+        )
     }
 
     // This should NOT throw exception - v2 records are adapted to v3 before compatibility check
@@ -365,4 +401,3 @@ class GCPStorageSinkTaskVersionDetectorBugTest
   }
 
 }
-

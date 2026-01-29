@@ -37,22 +37,22 @@ import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.jdk.CollectionConverters.SeqHasAsJava
 
 /**
-  * Integration test that reproduces the VersionSchemaChangeDetector bug.
-  *
-  * This test sends records with schema v3 first, then v2.
-  * When processed with schema.change.detector=version (without the fix),
-  * it would fail because:
-  *   - v3 written first, file initialized with v3 schema
-  *   - v2 arrives, detector checks: 2 > 3 = False (no schema change detected)
-  *   - v2 record written to v3 file → ArrayIndexOutOfBoundsException
-  *
-  * With latest.schema.optimization.enabled=true, records should be adapted
-  * to the latest schema seen (v3) and written correctly.
-  *
-  * Based on the Python test producer script that reproduces the bug with:
-  *   - DslSDPEvent schema v2 (without businessUnit field)
-  *   - DslSDPEvent schema v3 (with businessUnit field)
-  */
+ * Integration test that reproduces the VersionSchemaChangeDetector bug.
+ *
+ * This test sends records with schema v3 first, then v2.
+ * When processed with schema.change.detector=version (without the fix),
+ * it would fail because:
+ *   - v3 written first, file initialized with v3 schema
+ *   - v2 arrives, detector checks: 2 > 3 = False (no schema change detected)
+ *   - v2 record written to v3 file → ArrayIndexOutOfBoundsException
+ *
+ * With latest.schema.optimization.enabled=true, records should be adapted
+ * to the latest schema seen (v3) and written correctly.
+ *
+ * Based on the Python test producer script that reproduces the bug with:
+ *   - DslSDPEvent schema v2 (without businessUnit field)
+ *   - DslSDPEvent schema v3 (with businessUnit field)
+ */
 class S3SinkTaskParquetV3ThenV2SchemaOptimizationTest
     extends AnyFlatSpec
     with Matchers
@@ -209,23 +209,23 @@ class S3SinkTaskParquetV3ThenV2SchemaOptimizationTest
   }
 
   /**
-    * Test that reproduces the exact bug scenario:
-    * - Send 5 v3 records first (with businessUnit field)
-    * - Then send 5 v2 records (without businessUnit field)
-    *
-    * Without the fix, this would cause ArrayIndexOutOfBoundsException because:
-    * - VersionSchemaChangeDetector only checks newVersion > oldVersion
-    * - 2 > 3 is False, so no schema change is detected
-    * - v2 record gets written to v3-initialized Parquet file
-    *
-    * With latest.schema.optimization.enabled=true, all records should be
-    * adapted to v3 schema and written correctly.
-    */
+   * Test that reproduces the exact bug scenario:
+   * - Send 5 v3 records first (with businessUnit field)
+   * - Then send 5 v2 records (without businessUnit field)
+   *
+   * Without the fix, this would cause ArrayIndexOutOfBoundsException because:
+   * - VersionSchemaChangeDetector only checks newVersion > oldVersion
+   * - 2 > 3 is False, so no schema change is detected
+   * - v2 record gets written to v3-initialized Parquet file
+   *
+   * With latest.schema.optimization.enabled=true, all records should be
+   * adapted to v3 schema and written correctly.
+   */
   "S3SinkTask" should "handle v3 then v2 schema sequence with parquet and schema optimization" in {
     val props = (
       defaultProps ++
         Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS PARQUET PROPERTIES('padding.length.partition'='12','padding.length.offset'='12','${FlushCount.entryName}'=10)",
+          "connect.s3.kcql"                               -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS PARQUET PROPERTIES('padding.length.partition'='12','padding.length.offset'='12','${FlushCount.entryName}'=10)",
           "connect.s3.latest.schema.optimization.enabled" -> "true",
         )
     ).asJava
@@ -292,14 +292,14 @@ class S3SinkTaskParquetV3ThenV2SchemaOptimizationTest
   }
 
   /**
-    * Test with interleaved v3 and v2 records to ensure consistent handling.
-    * Pattern: v3, v2, v3, v2, v3, v2, v3, v2
-    */
+   * Test with interleaved v3 and v2 records to ensure consistent handling.
+   * Pattern: v3, v2, v3, v2, v3, v2, v3, v2
+   */
   "S3SinkTask" should "handle interleaved v3 and v2 records with parquet and schema optimization" in {
     val props = (
       defaultProps ++
         Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS PARQUET PROPERTIES('padding.length.partition'='12','padding.length.offset'='12','${FlushCount.entryName}'=8)",
+          "connect.s3.kcql"                               -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS PARQUET PROPERTIES('padding.length.partition'='12','padding.length.offset'='12','${FlushCount.entryName}'=8)",
           "connect.s3.latest.schema.optimization.enabled" -> "true",
         )
     ).asJava
@@ -357,14 +357,14 @@ class S3SinkTaskParquetV3ThenV2SchemaOptimizationTest
   }
 
   /**
-    * Test multiple batches: first batch v3, second batch v2, simulating
-    * the real-world scenario where consumers process in batches.
-    */
+   * Test multiple batches: first batch v3, second batch v2, simulating
+   * the real-world scenario where consumers process in batches.
+   */
   "S3SinkTask" should "handle multiple batches with v3 first then v2 batch" in {
     val props = (
       defaultProps ++
         Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS PARQUET PROPERTIES('padding.length.partition'='12','padding.length.offset'='12','${FlushCount.entryName}'=6)",
+          "connect.s3.kcql"                               -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS PARQUET PROPERTIES('padding.length.partition'='12','padding.length.offset'='12','${FlushCount.entryName}'=6)",
           "connect.s3.latest.schema.optimization.enabled" -> "true",
         )
     ).asJava
