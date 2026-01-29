@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2025 Lenses.io Ltd
+ * Copyright 2017-2026 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -91,7 +91,7 @@ private object Transform extends StrictLogging {
           case m: java.util.Map[_, _] =>
             val map = m.asInstanceOf[java.util.Map[String, Any]]
             val jsonNode: JsonNode =
-              JacksonJson.mapper.setSerializationInclusion(JsonInclude.Include.ALWAYS).valueToTree[JsonNode](map)
+              JacksonJson.mapper.setDefaultPropertyInclusion(JsonInclude.Include.ALWAYS).valueToTree[JsonNode](map)
             Try(jsonNode.sql(fields, !withStructure)) match {
               case Success(j) => Option(j)
               case Failure(e) => raiseException(s"A KCQL exception occurred.${e.getMessage}", e)
