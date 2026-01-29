@@ -31,19 +31,22 @@ class ToAvroDataConverterTest extends AnyFunSuiteLike with Matchers {
   test("should convert date") {
     val date = Date.from(Instant.now().truncatedTo(ChronoUnit.DAYS))
     val daysSince: Long = daysSinceEpoch(date)
-    val converted = ToAvroDataConverter.convertToGenericRecord(DateSinkData(date))
+    // For primitive SinkData types, the schema parameter is not used
+    val converted = ToAvroDataConverter.convertToGenericRecordWithSchema(DateSinkData(date), null)
     checkValueAndSchema(converted, daysSince)
   }
 
   test("should convert time") {
     val asDate: Date = dateWithTimeFieldsOnly(12, 30, 45, 450)
-    val converted = ToAvroDataConverter.convertToGenericRecord(TimeSinkData(asDate))
+    // For primitive SinkData types, the schema parameter is not used
+    val converted = ToAvroDataConverter.convertToGenericRecordWithSchema(TimeSinkData(asDate), null)
     checkValueAndSchema(converted, asDate.getTime)
   }
 
   test("should convert timestamp") {
-    val date      = Date.from(Instant.now())
-    val converted = ToAvroDataConverter.convertToGenericRecord(TimestampSinkData(date))
+    val date = Date.from(Instant.now())
+    // For primitive SinkData types, the schema parameter is not used
+    val converted = ToAvroDataConverter.convertToGenericRecordWithSchema(TimestampSinkData(date), null)
     checkValueAndSchema(converted, date.getTime)
   }
 

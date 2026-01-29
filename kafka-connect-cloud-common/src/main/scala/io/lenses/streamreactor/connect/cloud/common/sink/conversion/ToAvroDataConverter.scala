@@ -49,12 +49,6 @@ object ToAvroDataConverter {
 
   def convertSchema(connectSchema: ConnectSchema): Schema = avroDataConverter.fromConnectSchema(connectSchema)
 
-  def convertToGenericRecord[A <: Any](sinkData: SinkData): Any =
-    sinkData match {
-      case StructSinkData(structVal) => avroDataConverter.fromConnectData(structVal.schema(), structVal)
-      case other                     => convertNonStructSinkData(other)
-    }
-
   /**
    * Converts SinkData to an Avro GenericRecord using a target Avro schema.
    * This ensures the GenericRecord uses the exact schema object provided,
