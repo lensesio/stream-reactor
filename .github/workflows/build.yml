@@ -1,6 +1,9 @@
 name: CI
 
 on:
+  push:
+    branches:
+      - 'release/**'
   pull_request:
   workflow_call:
     inputs:
