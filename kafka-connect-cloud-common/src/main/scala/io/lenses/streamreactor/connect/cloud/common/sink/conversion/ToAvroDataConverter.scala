@@ -145,6 +145,12 @@ object ToAvroDataConverter {
             case d: Date => d.getTime * 1000L
             case other => other
           }
+        case Some("decimal") =>
+          value match {
+            case bd: java.math.BigDecimal =>
+              ByteBuffer.wrap(bd.unscaledValue().toByteArray)
+            case other => other
+          }
         case _ =>
           // No logical type or unhandled logical type - convert based on physical schema type
           convertBySchemaType(value, targetSchema)
