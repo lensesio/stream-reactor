@@ -60,18 +60,25 @@ class ParquetFormatWriter(
   }
 
   private var writer: ParquetWriter[Any] = _
+  // Store the Avro schema used to initialize the writer - ensures consistent field positions
+  // This prevents ArrayIndexOutOfBoundsException when records have been adapted by AttachLatestSchemaOptimizer
+  private var writerAvroSchema: Schema = _
 
   override def write(messageDetail: MessageDetail): Either[Throwable, Unit] =
     Try {
 
       logger.debug("ParquetFormatWriter - write")
 
-      val genericRecord = ToAvroDataConverter.convertToGenericRecord(messageDetail.value)
       createWriterIfNoWriter(
         messageDetail.value.schema().getOrElse(
           throw new IllegalArgumentException("Schema-less data is not supported for Avro/Parquet"),
         ),
       )
+
+      // Convert using the stored writer schema to ensure consistent field positions
+      // This prevents ArrayIndexOutOfBoundsException when records have been adapted
+      // by AttachLatestSchemaOptimizer to use a newer schema version
+      val genericRecord = ToAvroDataConverter.convertToGenericRecordWithSchema(messageDetail.value, writerAvroSchema)
 
       writer.write(genericRecord)
       outputStream.flush()
@@ -84,6 +91,8 @@ class ParquetFormatWriter(
 
   private def init(connectSchema: ConnectSchema): ParquetWriter[Any] = {
     val schema: Schema = ToAvroDataConverter.convertSchema(connectSchema)
+    // Store the schema for use in subsequent writes
+    writerAvroSchema = schema
 
     val outputFile = new ParquetOutputFile(outputStream)
 

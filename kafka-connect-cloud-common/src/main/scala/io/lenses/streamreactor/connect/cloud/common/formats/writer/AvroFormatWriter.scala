@@ -101,7 +101,9 @@ class AvroFormatWriter(
       new DataFileWriter[Any](writer).setCodec(avroCompressionCodec).create(schema, outputStream)
 
     def write(valueStruct: SinkData): Unit = {
-      val record: Any = ToAvroDataConverter.convertToGenericRecord(valueStruct)
+      // Convert using the stored writer schema to ensure consistent field positions
+      // This prevents issues when records have been adapted by AttachLatestSchemaOptimizer
+      val record: Any = ToAvroDataConverter.convertToGenericRecordWithSchema(valueStruct, schema)
       fileWriter.append(record)
       fileWriter.flush()
     }

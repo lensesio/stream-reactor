@@ -18,7 +18,6 @@ package io.lenses.streamreactor.connect.cloud.common.sink.writer
 import cats.data.NonEmptyList
 import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
-import io.confluent.connect.avro.AvroData
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.FormatWriter
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.MessageDetail
@@ -30,6 +29,7 @@ import io.lenses.streamreactor.connect.cloud.common.sink.NonFatalCloudSinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.CloudCommitContext
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.CommitPolicy
+import io.lenses.streamreactor.connect.cloud.common.sink.conversion.ToAvroDataConverter
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.ObjectKeyBuilder
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.CopyOperation
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.DeleteOperation
@@ -69,9 +69,9 @@ class Writer[SM <: FileMetadata](
     def innerMessageWrite(writingState: Writing): Either[NonFatalCloudSinkError, Unit] =
       writingState.formatWriter.write(messageDetail) match {
         case Left(err: Throwable) =>
-          val avroDataConverter = new AvroData(2)
-          val schema            = messageDetail.value.schema().map(avroDataConverter.fromConnectSchema)
-          val keySchema         = messageDetail.key.schema().map(avroDataConverter.fromConnectSchema)
+          // Use Try to safely convert schema - prevents secondary errors from masking the original
+          val schema    = messageDetail.value.schema().flatMap(s => Try(ToAvroDataConverter.convertSchema(s)).toOption)
+          val keySchema = messageDetail.key.schema().flatMap(s => Try(ToAvroDataConverter.convertSchema(s)).toOption)
           logger.error(
             s"An error occurred while writing using ${writingState.formatWriter.getClass.getSimpleName}. " +
               s"Details: Topic-Partition: ${messageDetail.topic.value}-${messageDetail.partition}, " +
