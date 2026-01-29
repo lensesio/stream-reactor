@@ -37,12 +37,12 @@ import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.jdk.CollectionConverters.SeqHasAsJava
 
 /**
-  * Integration test for Parquet format with schema optimization enabled on GCP Storage.
-  *
-  * This test verifies that the fix for ArrayIndexOutOfBoundsException works correctly
-  * when latest.schema.optimization.enabled is true and records with different schema
-  * versions are interleaved, requiring adaptation to the latest schema.
-  */
+ * Integration test for Parquet format with schema optimization enabled on GCP Storage.
+ *
+ * This test verifies that the fix for ArrayIndexOutOfBoundsException works correctly
+ * when latest.schema.optimization.enabled is true and records with different schema
+ * versions are interleaved, requiring adaptation to the latest schema.
+ */
 class GCPStorageSinkTaskParquetSchemaOptimizationTest
     extends AnyFlatSpec
     with Matchers
@@ -144,7 +144,10 @@ class GCPStorageSinkTaskParquetSchemaOptimizationTest
 
     // Record 4: V3 schema (introduces address)
     val address4 = new Struct(addressSchema).put("street", "123 Main St").put("city", "Seattle").put("zipCode", "98101")
-    val struct4  = new Struct(schemaV3).put("name", "Diana").put("age", 28).put("email", "diana@example.com").put("address", address4)
+    val struct4 =
+      new Struct(schemaV3).put("name", "Diana").put("age", 28).put("email", "diana@example.com").put("address",
+                                                                                                     address4,
+      )
 
     // Record 5: V2 schema again (should be adapted to latest V3)
     val struct5 = new Struct(schemaV2).put("name", "Eve").put("age", 32).put("email", "eve@example.com")
@@ -273,7 +276,10 @@ class GCPStorageSinkTaskParquetSchemaOptimizationTest
     val struct1 = new Struct(orderSchemaV1).put("orderId", "ORD-001").put("amount", 100.50).put("metadata", meta1)
 
     // Record 2: V2 schema (introduces offset and timestamp in metadata)
-    val meta2   = new Struct(metadataSchemaV2).put("topic", TopicName).put("partition", 1).put("offset", 2L).put("timestamp", 20002L)
+    val meta2 =
+      new Struct(metadataSchemaV2).put("topic", TopicName).put("partition", 1).put("offset", 2L).put("timestamp",
+                                                                                                     20002L,
+      )
     val struct2 = new Struct(orderSchemaV2).put("orderId", "ORD-002").put("amount", 250.75).put("metadata", meta2)
 
     // Record 3: V1 schema again (should be adapted to V2)
@@ -281,7 +287,10 @@ class GCPStorageSinkTaskParquetSchemaOptimizationTest
     val struct3 = new Struct(orderSchemaV1).put("orderId", "ORD-003").put("amount", 75.00).put("metadata", meta3)
 
     // Record 4: V2 schema
-    val meta4   = new Struct(metadataSchemaV2).put("topic", TopicName).put("partition", 1).put("offset", 4L).put("timestamp", 20004L)
+    val meta4 =
+      new Struct(metadataSchemaV2).put("topic", TopicName).put("partition", 1).put("offset", 4L).put("timestamp",
+                                                                                                     20004L,
+      )
     val struct4 = new Struct(orderSchemaV2).put("orderId", "ORD-004").put("amount", 500.00).put("metadata", meta4)
 
     val record1 = toSinkRecord(struct1, TopicName, 1, 1L, 20001L)
@@ -342,4 +351,3 @@ class GCPStorageSinkTaskParquetSchemaOptimizationTest
   }
 
 }
-

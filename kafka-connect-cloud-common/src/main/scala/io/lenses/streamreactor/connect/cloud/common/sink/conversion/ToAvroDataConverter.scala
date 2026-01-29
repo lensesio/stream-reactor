@@ -56,15 +56,15 @@ object ToAvroDataConverter {
     }
 
   /**
-    * Converts SinkData to an Avro GenericRecord using a target Avro schema.
-    * This ensures the GenericRecord uses the exact schema object provided,
-    * which is critical for Parquet/Avro writers that rely on schema identity
-    * for field position lookups.
-    *
-    * @param sinkData The SinkData to convert
-    * @param targetSchema The target Avro schema to use for the GenericRecord
-    * @return The converted value (GenericRecord for structs, primitive values otherwise)
-    */
+   * Converts SinkData to an Avro GenericRecord using a target Avro schema.
+   * This ensures the GenericRecord uses the exact schema object provided,
+   * which is critical for Parquet/Avro writers that rely on schema identity
+   * for field position lookups.
+   *
+   * @param sinkData The SinkData to convert
+   * @param targetSchema The target Avro schema to use for the GenericRecord
+   * @return The converted value (GenericRecord for structs, primitive values otherwise)
+   */
   def convertToGenericRecordWithSchema(sinkData: SinkData, targetSchema: Schema): Any =
     sinkData match {
       case StructSinkData(structVal) => convertStructToGenericRecord(structVal, targetSchema)
@@ -72,10 +72,10 @@ object ToAvroDataConverter {
     }
 
   /**
-    * Common handler for non-struct SinkData types.
-    * This consolidates the conversion logic for all SinkData variants except StructSinkData,
-    * which requires different handling depending on whether a target schema is provided.
-    */
+   * Common handler for non-struct SinkData types.
+   * This consolidates the conversion logic for all SinkData variants except StructSinkData,
+   * which requires different handling depending on whether a target schema is provided.
+   */
   private def convertNonStructSinkData(sinkData: SinkData): Any =
     sinkData match {
       case MapSinkData(map, _)         => convert(map)
@@ -90,9 +90,9 @@ object ToAvroDataConverter {
     }
 
   /**
-    * Converts a Connect Struct to an Avro GenericRecord using the specified target schema.
-    * This handles nested structures recursively.
-    */
+   * Converts a Connect Struct to an Avro GenericRecord using the specified target schema.
+   * This handles nested structures recursively.
+   */
   private def convertStructToGenericRecord(struct: Struct, targetSchema: Schema): GenericRecord = {
     val record = new GenericData.Record(targetSchema)
     targetSchema.getFields.asScala.foreach { avroField =>
@@ -111,9 +111,9 @@ object ToAvroDataConverter {
   }
 
   /**
-    * Converts a Connect value to an Avro value using the target Avro schema.
-    * Handles logical types (Date, Time, Timestamp) and nested structures.
-    */
+   * Converts a Connect value to an Avro value using the target Avro schema.
+   * Handles logical types (Date, Time, Timestamp) and nested structures.
+   */
   private def convertFieldValue(value: Any, targetSchema: Schema): Any =
     if (value == null) {
       null
@@ -158,8 +158,8 @@ object ToAvroDataConverter {
     }
 
   /**
-    * Converts a value based on the physical Avro schema type.
-    */
+   * Converts a value based on the physical Avro schema type.
+   */
   private def convertBySchemaType(value: Any, targetSchema: Schema): Any =
     targetSchema.getType match {
       case Schema.Type.RECORD =>
