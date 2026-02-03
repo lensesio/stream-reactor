@@ -43,6 +43,8 @@ import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
 
 import java.io.File
 import scala.collection.immutable
+import scala.concurrent.ExecutionContext
+import scala.concurrent.duration.Duration
 
 class WriterManagerCreator[MD <: FileMetadata, SC <: CloudSinkConfig[_]] extends LazyLogging {
 
@@ -142,6 +144,10 @@ class WriterManagerCreator[MD <: FileMetadata, SC <: CloudSinkConfig[_]] extends
 
     val transformers = TopicsTransformers.from(config.bucketOptions)
 
+    //TODO make these configurable, but I am unsure of where this configuration should live
+    val commitManagerExecutionContext = ExecutionContext.global
+    val uploadDurationTimeout         = Duration.Inf
+
     val writerManager = new WriterManager[MD](
       commitPolicyFn,
       bucketAndPrefixFn,
@@ -154,6 +160,8 @@ class WriterManagerCreator[MD <: FileMetadata, SC <: CloudSinkConfig[_]] extends
       config.schemaChangeDetector,
       config.skipNullValues,
       pendingOperationsProcessors,
+      commitManagerExecutionContext,
+      uploadDurationTimeout,
     )
     (indexManager, writerManager)
   }
