@@ -15,9 +15,7 @@
  */
 package io.lenses.streamreactor.connect.cloud.common.sink.conversion
 
-import io.confluent.connect.avro.AvroData
-import io.confluent.connect.avro.AvroDataConfig
-import io.confluent.connect.schema.AbstractDataConfig
+import io.lenses.streamreactor.connect.config.AvroDataFactory
 import org.apache.avro.Schema
 import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.data.{ Schema => ConnectSchema }
@@ -39,13 +37,67 @@ import scala.jdk.CollectionConverters.SeqHasAsJava
 
 object ToAvroDataConverter {
 
-  private val avroDataConfig = new AvroDataConfig(
-    Map(
-      AvroDataConfig.ENHANCED_AVRO_SCHEMA_SUPPORT_CONFIG -> "true",
-      AbstractDataConfig.SCHEMAS_CACHE_SIZE_CONFIG       -> "100",
-    ).asJava,
-  )
-  private val avroDataConverter = new AvroData(avroDataConfig)
+  private val avroDataConverter = AvroDataFactory.create(100)
+
+  /** Schema name used by Confluent's AvroConverter for union types */
+  private val ConfluentAvroUnionSchemaName = "io.confluent.connect.avro.Union"
+
+  /**
+    * Checks if a Connect Struct represents an Avro union type.
+    * Confluent's Avro converter represents complex unions as STRUCTs with name "io.confluent.connect.avro.Union".
+    */
+  private def isConnectUnionStruct(struct: Struct): Boolean =
+    Option(struct.schema().name()).contains(ConfluentAvroUnionSchemaName)
+
+  /**
+    * Extracts the active value from a Connect union struct and converts it to Avro.
+    * A Connect union struct has one non-null field (the active branch) with others set to null.
+    *
+    * @param unionStruct The Connect union struct (e.g., Struct{string=CLOCK_OUT})
+    * @param targetUnionSchema The target Avro union schema
+    * @return The extracted and converted value
+    */
+  private def extractAndConvertUnionValue(unionStruct: Struct, targetUnionSchema: Schema): Any = {
+    val structSchema = unionStruct.schema()
+    // Find the non-null field in the union struct (the active branch)
+    val activeFieldOpt = structSchema.fields().asScala.find { field =>
+      unionStruct.get(field) != null
+    }
+
+    activeFieldOpt match {
+      case Some(activeField) =>
+        val fieldValue = unionStruct.get(activeField)
+        val fieldName  = activeField.name()
+
+        // Find the matching Avro schema in the union by name or type
+        // Priority: exact name match, then type name match
+        val matchingAvroSchema = targetUnionSchema.getTypes.asScala.find { avroType =>
+          // Match by full name (for named types like enums with namespace)
+          Option(avroType.getFullName).exists(fn => fn == fieldName || fn.endsWith("." + fieldName)) ||
+          // Match by simple name
+          Option(avroType.getName).contains(fieldName) ||
+          // Match by type name (e.g., "string" matches Schema.Type.STRING)
+          avroType.getType.getName.equalsIgnoreCase(fieldName)
+        }
+
+        matchingAvroSchema match {
+          case Some(avroSchema) =>
+            // Convert the value using the matched schema
+            convertFieldValue(fieldValue, avroSchema)
+          case None =>
+            // Fallback: try to find by Connect type match
+            val typeMatchSchema = targetUnionSchema.getTypes.asScala.find { avroType =>
+              avroType.getType != Schema.Type.NULL &&
+              activeField.schema().`type`().getName.toUpperCase == avroType.getType.name()
+            }
+            typeMatchSchema.map(convertFieldValue(fieldValue, _)).getOrElse(fieldValue)
+        }
+
+      case None =>
+        // All fields are null - return null
+        null
+    }
+  }
 
   def convertSchema(connectSchema: ConnectSchema): Schema = avroDataConverter.fromConnectSchema(connectSchema)
 
@@ -184,13 +236,29 @@ object ToAvroDataConverter {
           case other => other
         }
       case Schema.Type.UNION =>
-        // Handle union types (typically [null, actualType])
-        val nonNullSchema = targetSchema.getTypes.asScala.find(_.getType != Schema.Type.NULL)
-        nonNullSchema.map(convertFieldValue(value, _)).getOrElse(value)
+        // Handle union types - this is complex because Connect represents Avro unions in two ways:
+        // 1. Simple nullable union [null, T] - value is just T's value or null
+        // 2. Complex union [T1, T2, ...] - represented as a Struct named "io.confluent.connect.avro.Union"
+        //    with fields for each type, where only one field is non-null
+        value match {
+          case unionStruct: Struct if isConnectUnionStruct(unionStruct) =>
+            // This is a Connect union struct - extract the active branch value
+            extractAndConvertUnionValue(unionStruct, targetSchema)
+          case _ =>
+            // Simple case: just find the matching non-null schema type
+            val nonNullSchema = targetSchema.getTypes.asScala.find(_.getType != Schema.Type.NULL)
+            nonNullSchema.map(convertFieldValue(value, _)).getOrElse(value)
+        }
       case Schema.Type.BYTES =>
         value match {
           case bytes: Array[Byte] => ByteBuffer.wrap(bytes)
           case bb:    ByteBuffer  => bb
+          case other => other
+        }
+      case Schema.Type.ENUM =>
+        // For enum types, value should be a string - create an Avro GenericEnumSymbol
+        value match {
+          case s: String => new GenericData.EnumSymbol(targetSchema, s)
           case other => other
         }
       case _ => value

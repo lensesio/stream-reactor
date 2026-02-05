@@ -19,7 +19,7 @@ import io.lenses.streamreactor.connect.influx.converters.InfluxPoint
 import io.lenses.streamreactor.connect.influx.writers.ValuesExtractor
 import io.lenses.json.sql.JacksonJson
 import com.typesafe.scalalogging.LazyLogging
-import io.confluent.connect.avro.AvroData
+import io.lenses.streamreactor.connect.config.AvroDataFactory
 import org.apache.avro.generic.GenericData
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaBuilder
@@ -31,7 +31,7 @@ import scala.util.Success
 import scala.util.Try
 
 class ValuesExtractorJsonTest extends AnyWordSpec with Matchers with LazyLogging {
-  val avroData = new AvroData(8)
+  val avroData = AvroDataFactory.create(8)
 
   "ValuesExtractor" should {
     "return all the fields and their values" in {

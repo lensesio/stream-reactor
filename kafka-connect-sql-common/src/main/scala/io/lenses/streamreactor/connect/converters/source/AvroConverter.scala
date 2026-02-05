@@ -15,8 +15,8 @@
  */
 package io.lenses.streamreactor.connect.converters.source
 
-import io.confluent.connect.avro.AvroData
 import io.lenses.streamreactor.common.converters.MsgKey
+import io.lenses.streamreactor.connect.config.AvroDataFactory
 import org.apache.avro.generic.GenericDatumReader
 import org.apache.avro.generic.GenericRecord
 import org.apache.avro.io.DecoderFactory
@@ -30,7 +30,7 @@ import java.io.File
 import java.util.Collections
 
 class AvroConverter extends Converter {
-  private val avroData = new AvroData(8)
+  private val avroData = AvroDataFactory.create(8)
   private var sourceToSchemaMap: Map[String, AvroSchema]                        = Map.empty
   private var avroReadersMap:    Map[String, GenericDatumReader[GenericRecord]] = Map.empty
 

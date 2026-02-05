@@ -18,7 +18,7 @@ package io.lenses.streamreactor.connect.azure.documentdb.sink
 import java.util
 import io.lenses.streamreactor.connect.azure.documentdb.Json
 import com.sksamuel.avro4s.RecordFormat
-import io.confluent.connect.avro.AvroData
+import io.lenses.streamreactor.connect.config.AvroDataFactory
 import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.connect.data.Struct
 import org.scalatest.matchers.should.Matchers
@@ -27,7 +27,7 @@ import org.scalatest.wordspec.AnyWordSpec
 import scala.jdk.CollectionConverters.MapHasAsJava
 
 class KeysExtractorTest extends AnyWordSpec with Matchers {
-  private val avroData = new AvroData(4)
+  private val avroData = AvroDataFactory.create(4)
 
   case class WithNested(id: Int, nested: SomeTest)
 

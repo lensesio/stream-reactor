@@ -17,8 +17,8 @@ package io.lenses.streamreactor.connect.cloud.common.sink.writer
 
 import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
-import io.confluent.connect.avro.AvroData
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
+import io.lenses.streamreactor.connect.config.AvroDataFactory
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.FormatWriter
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.MessageDetail
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.schema.SchemaChangeDetector
@@ -55,15 +55,15 @@ class Writer[SM <: FileMetadata](
   private val lastSeekedOffset: Option[Offset] = writerIndexer.getSeekedOffsetForTopicPartition(topicPartition)
 
   var writeState: WriteState = NoWriter(CommitState(topicPartition, lastSeekedOffset))
+  private val avroDataConverter = AvroDataFactory.create(100)
 
   def write(messageDetail: MessageDetail): Either[SinkError, Unit] = {
 
     def innerMessageWrite(writingState: Writing): Either[NonFatalCloudSinkError, Unit] =
       writingState.formatWriter.write(messageDetail) match {
         case Left(err: Throwable) =>
-          val avroDataConverter = new AvroData(2)
-          val schema            = messageDetail.value.schema().map(avroDataConverter.fromConnectSchema)
-          val keySchema         = messageDetail.key.schema().map(avroDataConverter.fromConnectSchema)
+          val schema    = messageDetail.value.schema().map(avroDataConverter.fromConnectSchema)
+          val keySchema = messageDetail.key.schema().map(avroDataConverter.fromConnectSchema)
           logger.error(
             s"An error occurred while writing using ${writingState.formatWriter.getClass.getSimpleName}. " +
               s"Details: Topic-Partition: ${messageDetail.topic.value}-${messageDetail.partition}, " +

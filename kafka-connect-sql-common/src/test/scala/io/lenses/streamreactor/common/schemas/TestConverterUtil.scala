@@ -15,8 +15,8 @@
  */
 package io.lenses.streamreactor.common.schemas
 
-import io.confluent.connect.avro.AvroData
 import io.lenses.streamreactor.common.TestUtilsBase
+import io.lenses.streamreactor.connect.config.AvroDataFactory
 import io.lenses.streamreactor.common.config.base.settings.Projections
 import io.lenses.streamreactor.common.schemas.SinkRecordConverterHelper.SinkRecordExtension
 import org.apache.kafka.connect.data.Schema
@@ -75,7 +75,7 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
     }
 
     "handle nested fields" in {
-      val avroData   = new AvroData(1)
+      val avroData   = AvroDataFactory.create(1)
       val avro       = buildNestedAvro()
       val testRecord = avroData.toConnectData(avro.getSchema, avro)
       val input      = new SinkRecord(TOPIC, 1, Schema.STRING_SCHEMA, KEY, testRecord.schema(), testRecord.value(), 1)

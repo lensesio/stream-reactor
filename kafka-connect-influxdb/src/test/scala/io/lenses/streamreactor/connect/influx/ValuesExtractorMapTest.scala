@@ -20,7 +20,7 @@ import io.lenses.streamreactor.connect.influx.data.Foo
 import io.lenses.streamreactor.connect.influx.data.FooInner
 import io.lenses.streamreactor.connect.influx.writers.ValuesExtractor
 import com.sksamuel.avro4s.RecordFormat
-import io.confluent.connect.avro.AvroData
+import io.lenses.streamreactor.connect.config.AvroDataFactory
 import org.apache.kafka.connect.data.Struct
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -123,7 +123,7 @@ class ValuesExtractorMapTest extends AnyWordSpec with Matchers {
 
       val s        = RecordFormat[Foo]
       val avro     = s.to(Foo(100, Map("key1" -> FooInner("value1", 1.4), "key2" -> FooInner("value2", 0.11))))
-      val avroData = new AvroData(1)
+      val avroData = AvroDataFactory.create(1)
       val foo      = avroData.toConnectData(avro.getSchema, avro).value().asInstanceOf[Struct]
 
       ValuesExtractor.extract(foo, Vector("map", "key1", "s")) shouldBe "value1"

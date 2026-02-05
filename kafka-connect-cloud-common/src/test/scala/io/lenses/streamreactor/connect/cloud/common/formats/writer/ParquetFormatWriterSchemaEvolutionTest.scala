@@ -15,8 +15,7 @@
  */
 package io.lenses.streamreactor.connect.cloud.common.formats.writer
 
-import io.confluent.connect.avro.AvroData
-import io.confluent.connect.avro.AvroDataConfig
+import io.lenses.streamreactor.connect.config.AvroDataFactory
 import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodec
 import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodecName.UNCOMPRESSED
 import io.lenses.streamreactor.connect.cloud.common.model.Offset
@@ -360,13 +359,8 @@ class ParquetFormatWriterSchemaEvolutionTest extends AnyFlatSpec with Matchers w
 
     // Create AvroData converters (like Schema Registry does)
     // Each deserialization in production creates a new AvroData instance or uses cached one
-    val avroDataConfig = new AvroDataConfig(Map(
-      "enhanced.avro.schema.support" -> "true",
-      "schemas.cache.config"         -> "100",
-    ).asJava)
-
-    val avroDataV3 = new AvroData(avroDataConfig)
-    val avroDataV2 = new AvroData(avroDataConfig) // Separate instance to simulate different deserializations
+    val avroDataV3 = AvroDataFactory.create(100)
+    val avroDataV2 = AvroDataFactory.create(100) // Separate instance to simulate different deserializations
 
     // Convert Avro schemas to Connect schemas (this is what Schema Registry does)
     val connectSchemaV3 = avroDataV3.toConnectSchema(avroSchemaV3)

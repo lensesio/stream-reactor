@@ -15,8 +15,8 @@
  */
 package io.lenses.streamreactor.connect.converters.source
 
-import io.confluent.connect.avro.AvroData
 import io.lenses.streamreactor.common.converters.MsgKey
+import io.lenses.streamreactor.connect.config.AvroDataFactory
 import org.apache.kafka.connect.data._
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.source.SourceRecord
@@ -30,7 +30,7 @@ import scala.jdk.CollectionConverters.ListHasAsScala
   * Experimental
   */
 class JsonConverterWithSchemaEvolution extends Converter {
-  private val avroData = new AvroData(4)
+  private val avroData = AvroDataFactory.create(4)
   implicit private var latestSchema: Option[Schema] = None
 
   override def convert(
