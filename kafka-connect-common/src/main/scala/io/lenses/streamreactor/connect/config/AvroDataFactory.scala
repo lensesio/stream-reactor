@@ -43,4 +43,3 @@ object AvroDataFactory {
     new AvroData(config)
   }
 }
-
