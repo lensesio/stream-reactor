@@ -150,7 +150,7 @@ object Dependencies {
     //val hadoopShadedProtobufVersion = "1.2.0"
 
     val airCompressorVersion = "2.0.2"
-    val zstdVersion          = "1.5.7-3"
+    val zstdVersion          = "1.5.7-7"
 
     trait ElasticVersions {
       val elastic4sVersion, elasticSearchVersion, jnaVersion: String
