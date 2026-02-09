@@ -135,6 +135,216 @@ class ToAvroDataConverterTest extends AnyFunSuiteLike with Matchers {
     booleanDefault.asInstanceOf[java.lang.Boolean].booleanValue() should be(true)
   }
 
+  // Tests for union type fallback matching.
+  // The primary match in extractAndConvertUnionValue matches by Avro type name (e.g. "int", "long").
+  // These tests use non-standard field names in the Connect union struct so the primary match fails,
+  // forcing the type-based fallback path that maps Connect types to Avro types.
+
+  test("union fallback should match Connect INT32 to Avro INT") {
+    val avroSchemaJson =
+      """
+        |{
+        |  "type": "record",
+        |  "name": "TestRecord",
+        |  "namespace": "test",
+        |  "fields": [
+        |    {"name": "id", "type": "string"},
+        |    {"name": "data", "type": ["null", "int"]}
+        |  ]
+        |}
+        |""".stripMargin
+    val avroSchema = new Schema.Parser().parse(avroSchemaJson)
+
+    // Use a field name ("int32_value") that won't match any Avro type name,
+    // so the primary name-based match fails and the type-based fallback is exercised.
+    val unionSchema = SchemaBuilder.struct()
+      .name("io.confluent.connect.avro.Union")
+      .field("int32_value", org.apache.kafka.connect.data.Schema.OPTIONAL_INT32_SCHEMA)
+      .build()
+
+    val unionStruct = new Struct(unionSchema).put("int32_value", 42)
+
+    val outerSchema = SchemaBuilder.struct()
+      .name("test.TestRecord")
+      .field("id", org.apache.kafka.connect.data.Schema.STRING_SCHEMA)
+      .field("data", unionSchema)
+      .build()
+
+    val outerStruct = new Struct(outerSchema).put("id", "test1").put("data", unionStruct)
+    val result      = ToAvroDataConverter.convertToGenericRecordWithSchema(StructSinkData(outerStruct), avroSchema)
+
+    result shouldBe a[GenericRecord]
+    val record = result.asInstanceOf[GenericRecord]
+    record.get("id").toString should be("test1")
+    record.get("data") should be(42)
+  }
+
+  test("union fallback should match Connect INT64 to Avro LONG") {
+    val avroSchemaJson =
+      """
+        |{
+        |  "type": "record",
+        |  "name": "TestRecord",
+        |  "namespace": "test",
+        |  "fields": [
+        |    {"name": "id", "type": "string"},
+        |    {"name": "data", "type": ["null", "long"]}
+        |  ]
+        |}
+        |""".stripMargin
+    val avroSchema = new Schema.Parser().parse(avroSchemaJson)
+
+    val unionSchema = SchemaBuilder.struct()
+      .name("io.confluent.connect.avro.Union")
+      .field("int64_value", org.apache.kafka.connect.data.Schema.OPTIONAL_INT64_SCHEMA)
+      .build()
+
+    val unionStruct = new Struct(unionSchema).put("int64_value", 123456789L)
+
+    val outerSchema = SchemaBuilder.struct()
+      .name("test.TestRecord")
+      .field("id", org.apache.kafka.connect.data.Schema.STRING_SCHEMA)
+      .field("data", unionSchema)
+      .build()
+
+    val outerStruct = new Struct(outerSchema).put("id", "test2").put("data", unionStruct)
+    val result      = ToAvroDataConverter.convertToGenericRecordWithSchema(StructSinkData(outerStruct), avroSchema)
+
+    result shouldBe a[GenericRecord]
+    val record = result.asInstanceOf[GenericRecord]
+    record.get("id").toString should be("test2")
+    record.get("data") should be(123456789L)
+  }
+
+  test("union fallback should match Connect FLOAT32 to Avro FLOAT") {
+    val avroSchemaJson =
+      """
+        |{
+        |  "type": "record",
+        |  "name": "TestRecord",
+        |  "namespace": "test",
+        |  "fields": [
+        |    {"name": "id", "type": "string"},
+        |    {"name": "data", "type": ["null", "float"]}
+        |  ]
+        |}
+        |""".stripMargin
+    val avroSchema = new Schema.Parser().parse(avroSchemaJson)
+
+    val unionSchema = SchemaBuilder.struct()
+      .name("io.confluent.connect.avro.Union")
+      .field("float32_value", org.apache.kafka.connect.data.Schema.OPTIONAL_FLOAT32_SCHEMA)
+      .build()
+
+    val unionStruct = new Struct(unionSchema).put("float32_value", 3.14f)
+
+    val outerSchema = SchemaBuilder.struct()
+      .name("test.TestRecord")
+      .field("id", org.apache.kafka.connect.data.Schema.STRING_SCHEMA)
+      .field("data", unionSchema)
+      .build()
+
+    val outerStruct = new Struct(outerSchema).put("id", "test3").put("data", unionStruct)
+    val result      = ToAvroDataConverter.convertToGenericRecordWithSchema(StructSinkData(outerStruct), avroSchema)
+
+    result shouldBe a[GenericRecord]
+    val record = result.asInstanceOf[GenericRecord]
+    record.get("id").toString should be("test3")
+    record.get("data") should be(3.14f)
+  }
+
+  test("union fallback should match Connect FLOAT64 to Avro DOUBLE") {
+    val avroSchemaJson =
+      """
+        |{
+        |  "type": "record",
+        |  "name": "TestRecord",
+        |  "namespace": "test",
+        |  "fields": [
+        |    {"name": "id", "type": "string"},
+        |    {"name": "data", "type": ["null", "double"]}
+        |  ]
+        |}
+        |""".stripMargin
+    val avroSchema = new Schema.Parser().parse(avroSchemaJson)
+
+    val unionSchema = SchemaBuilder.struct()
+      .name("io.confluent.connect.avro.Union")
+      .field("float64_value", org.apache.kafka.connect.data.Schema.OPTIONAL_FLOAT64_SCHEMA)
+      .build()
+
+    val unionStruct = new Struct(unionSchema).put("float64_value", 2.71828)
+
+    val outerSchema = SchemaBuilder.struct()
+      .name("test.TestRecord")
+      .field("id", org.apache.kafka.connect.data.Schema.STRING_SCHEMA)
+      .field("data", unionSchema)
+      .build()
+
+    val outerStruct = new Struct(outerSchema).put("id", "test4").put("data", unionStruct)
+    val result      = ToAvroDataConverter.convertToGenericRecordWithSchema(StructSinkData(outerStruct), avroSchema)
+
+    result shouldBe a[GenericRecord]
+    val record = result.asInstanceOf[GenericRecord]
+    record.get("id").toString should be("test4")
+    record.get("data") should be(2.71828)
+  }
+
+  test("union fallback should match Connect STRUCT to Avro RECORD") {
+    val avroSchemaJson =
+      """
+        |{
+        |  "type": "record",
+        |  "name": "TestRecord",
+        |  "namespace": "test",
+        |  "fields": [
+        |    {"name": "id", "type": "string"},
+        |    {
+        |      "name": "data",
+        |      "type": ["null", {
+        |        "type": "record",
+        |        "name": "Inner",
+        |        "fields": [
+        |          {"name": "value", "type": "string"}
+        |        ]
+        |      }]
+        |    }
+        |  ]
+        |}
+        |""".stripMargin
+    val avroSchema = new Schema.Parser().parse(avroSchemaJson)
+
+    // Use a field name ("my_struct") that won't match the Avro record name ("Inner" / "test.Inner"),
+    // forcing the type-based fallback to match Connect STRUCT -> Avro RECORD.
+    val innerConnectSchema = SchemaBuilder.struct()
+      .name("test.Inner")
+      .field("value", org.apache.kafka.connect.data.Schema.STRING_SCHEMA)
+      .build()
+
+    val unionSchema = SchemaBuilder.struct()
+      .name("io.confluent.connect.avro.Union")
+      .field("my_struct", innerConnectSchema)
+      .build()
+
+    val innerStruct = new Struct(innerConnectSchema).put("value", "hello")
+    val unionStruct = new Struct(unionSchema).put("my_struct", innerStruct)
+
+    val outerSchema = SchemaBuilder.struct()
+      .name("test.TestRecord")
+      .field("id", org.apache.kafka.connect.data.Schema.STRING_SCHEMA)
+      .field("data", unionSchema)
+      .build()
+
+    val outerStruct = new Struct(outerSchema).put("id", "test5").put("data", unionStruct)
+    val result      = ToAvroDataConverter.convertToGenericRecordWithSchema(StructSinkData(outerStruct), avroSchema)
+
+    result shouldBe a[GenericRecord]
+    val record      = result.asInstanceOf[GenericRecord]
+    val innerRecord = record.get("data").asInstanceOf[GenericRecord]
+    record.get("id").toString should be("test5")
+    innerRecord.get("value").toString should be("hello")
+  }
+
   test("should use properly typed default values for nested struct fields") {
     // Create an Avro schema with a nested struct that has default values
     val avroSchemaJson =

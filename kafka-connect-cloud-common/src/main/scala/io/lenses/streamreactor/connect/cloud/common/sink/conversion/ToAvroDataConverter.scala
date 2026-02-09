@@ -42,6 +42,29 @@ object ToAvroDataConverter {
   /** Schema name used by Confluent's AvroConverter for union types */
   private val ConfluentAvroUnionSchemaName = "io.confluent.connect.avro.Union"
 
+  /**
+   * Mapping from Kafka Connect Schema.Type to Avro Schema.Type.
+   * Connect and Avro use different naming conventions for their types:
+   *   Connect: INT8, INT16, INT32, INT64, FLOAT32, FLOAT64, STRUCT
+   *   Avro:    INT,  INT,   INT,   LONG,  FLOAT,   DOUBLE,  RECORD
+   * This map is used in the fallback branch of union type matching
+   * where the primary name-based match has already failed.
+   */
+  private val connectToAvroType: Map[ConnectSchema.Type, Schema.Type] = Map(
+    ConnectSchema.Type.INT8    -> Schema.Type.INT,
+    ConnectSchema.Type.INT16   -> Schema.Type.INT,
+    ConnectSchema.Type.INT32   -> Schema.Type.INT,
+    ConnectSchema.Type.INT64   -> Schema.Type.LONG,
+    ConnectSchema.Type.FLOAT32 -> Schema.Type.FLOAT,
+    ConnectSchema.Type.FLOAT64 -> Schema.Type.DOUBLE,
+    ConnectSchema.Type.BOOLEAN -> Schema.Type.BOOLEAN,
+    ConnectSchema.Type.STRING  -> Schema.Type.STRING,
+    ConnectSchema.Type.BYTES   -> Schema.Type.BYTES,
+    ConnectSchema.Type.ARRAY   -> Schema.Type.ARRAY,
+    ConnectSchema.Type.MAP     -> Schema.Type.MAP,
+    ConnectSchema.Type.STRUCT  -> Schema.Type.RECORD,
+  )
+
   def convertSchema(connectSchema: ConnectSchema): Schema = avroDataConverter.fromConnectSchema(connectSchema)
 
   /**
@@ -241,9 +264,13 @@ object ToAvroDataConverter {
             // Convert the value using the matched schema
             convertFieldValue(fieldValue, avroSchema)
           case None =>
-            // Fallback: try to find by type match
+            // Fallback: try to find by type match using the Connect-to-Avro type mapping.
+            // Connect and Avro use different type names (e.g. INT32 vs INT, INT64 vs LONG,
+            // FLOAT32 vs FLOAT, FLOAT64 vs DOUBLE, STRUCT vs RECORD), so a direct string
+            // comparison would fail for these types.
             val typeMatchSchema = targetUnionSchema.getTypes.asScala.find { avroType =>
-              avroType.getType != Schema.Type.NULL && fieldSchema.`type`().getName.toUpperCase == avroType.getType.name()
+              avroType.getType != Schema.Type.NULL &&
+              connectToAvroType.get(fieldSchema.`type`()).contains(avroType.getType)
             }
             typeMatchSchema.map(convertFieldValue(fieldValue, _)).getOrElse(fieldValue)
         }
