@@ -18,14 +18,14 @@ package io.lenses.streamreactor.common.converters
 import com.sksamuel.avro4s.AvroSchema
 import com.sksamuel.avro4s.RecordFormat
 import com.sksamuel.avro4s.SchemaFor
-import io.confluent.connect.avro.AvroData
+import io.lenses.streamreactor.connect.avro.AvroDataFactory
 
 case class MsgKey(topic: String, id: String)
 
 object MsgKey {
   private val recordFormat = RecordFormat[MsgKey]
   private val avroSchema   = SchemaFor(AvroSchema[MsgKey])
-  private val avroData     = new AvroData(1)
+  private val avroData     = AvroDataFactory.create(1)
   val schema               = avroData.toConnectSchema(avroSchema.schema)
 
   def getStruct(topic: String, id: String): AnyRef =

@@ -17,8 +17,8 @@ package io.lenses.streamreactor.connect.converters.source
 
 import com.sksamuel.avro4s.AvroSchema
 import com.sksamuel.avro4s.RecordFormat
-import io.confluent.connect.avro.AvroData
 import io.lenses.streamreactor.common.converters.MsgKey
+import io.lenses.streamreactor.connect.avro.AvroDataFactory
 import org.apache.avro.Schema
 import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.errors.ConnectException
@@ -30,7 +30,7 @@ import java.util.Collections
 class JsonConverterWithSchemaEvolutionTest extends AnyWordSpec with Matchers {
   val topic       = "the_real_topic"
   val sourceTopic = "source_topic"
-  val avroData    = new AvroData(4)
+  val avroData    = AvroDataFactory.create(4)
 
   "JsonConverter" should {
     "throw IllegalArgumentException if payload is null" in {

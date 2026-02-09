@@ -16,8 +16,8 @@
 package io.lenses.streamreactor.connect.converters.source
 
 import com.sksamuel.avro4s._
-import io.confluent.connect.avro.AvroData
 import io.lenses.streamreactor.common.converters.MsgKey
+import io.lenses.streamreactor.connect.avro.AvroDataFactory
 import org.apache.avro.generic.GenericRecord
 import org.apache.avro.io.EncoderFactory
 import org.apache.avro.specific.SpecificDatumWriter
@@ -105,7 +105,7 @@ class AvroConverterTest extends AnyWordSpec with Matchers with BeforeAndAfterAll
         sourceRecord.key() shouldBe null
         sourceRecord.keySchema() shouldBe null
 
-        val avroData = new AvroData(4)
+        val avroData = AvroDataFactory.create(4)
 
         sourceRecord.value() shouldBe avroData.toConnectData(avro.getSchema, avro).value()
 
@@ -126,7 +126,7 @@ class AvroConverterTest extends AnyWordSpec with Matchers with BeforeAndAfterAll
       sourceRecord.key() shouldBe MsgKey.getStruct(sourceTopic, "1001")
       sourceRecord.keySchema() shouldBe MsgKey.schema
 
-      val avroData = new AvroData(4)
+      val avroData = AvroDataFactory.create(4)
       sourceRecord.valueSchema() shouldBe avroData.toConnectSchema(avro.getSchema)
 
       sourceRecord.value() shouldBe avroData.toConnectData(avro.getSchema, avro).value()
@@ -146,7 +146,7 @@ class AvroConverterTest extends AnyWordSpec with Matchers with BeforeAndAfterAll
       sourceRecord.key() shouldBe MsgKey.getStruct(sourceTopicWithPlus, "1001")
       sourceRecord.keySchema() shouldBe MsgKey.schema
 
-      val avroData = new AvroData(4)
+      val avroData = AvroDataFactory.create(4)
       sourceRecord.valueSchema() shouldBe avroData.toConnectSchema(avro.getSchema)
 
       sourceRecord.value() shouldBe avroData.toConnectData(avro.getSchema, avro).value()
