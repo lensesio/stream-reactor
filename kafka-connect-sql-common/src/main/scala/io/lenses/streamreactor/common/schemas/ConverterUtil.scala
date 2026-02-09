@@ -18,8 +18,8 @@ package io.lenses.streamreactor.common.schemas
 import com.fasterxml.jackson.databind.JsonNode
 import io.confluent.connect.avro.AvroConverter
 import io.confluent.connect.avro.AvroData
-import io.lenses.streamreactor.connect.config.AvroDataFactory
 import io.lenses.streamreactor.common.schemas.StructHelper._
+import io.lenses.streamreactor.connect.avro.AvroDataFactory
 import io.lenses.streamreactor.connect.json.SimpleJsonConverter
 import org.apache.avro.generic.GenericRecord
 import org.apache.kafka.connect.connector.ConnectRecord

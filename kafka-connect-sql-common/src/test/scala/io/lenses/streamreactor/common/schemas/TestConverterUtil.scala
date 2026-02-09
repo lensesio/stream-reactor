@@ -15,10 +15,10 @@
  */
 package io.lenses.streamreactor.common.schemas
 
-import io.lenses.streamreactor.connect.config.AvroDataFactory
 import io.lenses.streamreactor.common.TestUtilsBase
 import io.lenses.streamreactor.common.config.base.settings.Projections
 import io.lenses.streamreactor.common.schemas.SinkRecordConverterHelper.SinkRecordExtension
+import io.lenses.streamreactor.connect.avro.AvroDataFactory
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaBuilder
 import org.apache.kafka.connect.data.Struct

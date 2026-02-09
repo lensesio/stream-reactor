@@ -15,11 +15,11 @@
  */
 package io.lenses.streamreactor.connect.cloud.common.formats.reader
 
+import io.lenses.streamreactor.connect.avro.AvroDataFactory
 import org.apache.avro.file.DataFileStream
 import org.apache.avro.generic.GenericDatumReader
 import org.apache.avro.generic.GenericRecord
 import org.apache.kafka.connect.data.SchemaAndValue
-import io.lenses.streamreactor.connect.config.AvroDataFactory
 
 import java.io.InputStream
 import scala.util.Try

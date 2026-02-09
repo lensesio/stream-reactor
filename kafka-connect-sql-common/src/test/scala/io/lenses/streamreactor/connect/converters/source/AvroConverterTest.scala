@@ -16,8 +16,8 @@
 package io.lenses.streamreactor.connect.converters.source
 
 import com.sksamuel.avro4s._
-import io.lenses.streamreactor.connect.config.AvroDataFactory
 import io.lenses.streamreactor.common.converters.MsgKey
+import io.lenses.streamreactor.connect.avro.AvroDataFactory
 import org.apache.avro.generic.GenericRecord
 import org.apache.avro.io.EncoderFactory
 import org.apache.avro.specific.SpecificDatumWriter

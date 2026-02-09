@@ -18,11 +18,11 @@ package io.lenses.streamreactor.connect.mongodb.sink
 import java.util
 import io.lenses.streamreactor.connect.mongodb.Json
 import com.sksamuel.avro4s.RecordFormat
+import io.lenses.streamreactor.connect.avro.AvroDataFactory
 import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.connect.data.Struct
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import io.lenses.streamreactor.connect.config.AvroDataFactory
 
 import scala.collection.immutable.ListSet
 import scala.jdk.CollectionConverters.MapHasAsJava

@@ -16,6 +16,7 @@
 package io.lenses.streamreactor.connect.cloud.common.formats.reader
 
 import cats.implicits.catsSyntaxEitherId
+import io.lenses.streamreactor.connect.avro.AvroDataFactory
 import io.lenses.streamreactor.connect.cloud.common.formats.reader.parquet.ParquetSeekableInputStream
 import io.lenses.streamreactor.connect.cloud.common.formats.reader.parquet.ParquetStreamingInputFile
 import org.apache.avro.generic.GenericRecord
@@ -24,7 +25,6 @@ import org.apache.kafka.connect.data.SchemaAndValue
 import org.apache.parquet.avro.AvroParquetReader
 import org.apache.parquet.avro.AvroReadSupport.READ_INT96_AS_FIXED
 import org.apache.parquet.hadoop.ParquetReader
-import io.lenses.streamreactor.connect.config.AvroDataFactory
 
 import java.io.InputStream
 import scala.util.Try

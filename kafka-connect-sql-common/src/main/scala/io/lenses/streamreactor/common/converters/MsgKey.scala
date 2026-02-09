@@ -18,7 +18,7 @@ package io.lenses.streamreactor.common.converters
 import com.sksamuel.avro4s.AvroSchema
 import com.sksamuel.avro4s.RecordFormat
 import com.sksamuel.avro4s.SchemaFor
-import io.lenses.streamreactor.connect.config.AvroDataFactory
+import io.lenses.streamreactor.connect.avro.AvroDataFactory
 
 case class MsgKey(topic: String, id: String)
 

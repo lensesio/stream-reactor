@@ -17,8 +17,8 @@ package io.lenses.streamreactor.connect.converters.source
 
 import com.sksamuel.avro4s.AvroSchema
 import com.sksamuel.avro4s.RecordFormat
-import io.lenses.streamreactor.connect.config.AvroDataFactory
 import io.lenses.streamreactor.common.converters.MsgKey
+import io.lenses.streamreactor.connect.avro.AvroDataFactory
 import org.apache.avro.Schema
 import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.errors.ConnectException

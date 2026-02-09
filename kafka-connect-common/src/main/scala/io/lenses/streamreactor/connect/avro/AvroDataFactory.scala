@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.lenses.streamreactor.connect.config
+package io.lenses.streamreactor.connect.avro
 
 import io.confluent.connect.avro.AvroData
 import io.confluent.connect.avro.AvroDataConfig

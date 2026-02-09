@@ -15,7 +15,7 @@
  */
 package io.lenses.streamreactor.connect.cloud.common.formats.writer
 
-import io.lenses.streamreactor.connect.config.AvroDataFactory
+import io.lenses.streamreactor.connect.avro.AvroDataFactory
 import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodec
 import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodecName.UNCOMPRESSED
 import io.lenses.streamreactor.connect.cloud.common.model.Offset

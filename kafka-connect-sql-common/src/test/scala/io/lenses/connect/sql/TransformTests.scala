@@ -19,8 +19,8 @@ import com.sksamuel.avro4s.AvroSchema
 import com.sksamuel.avro4s.RecordFormat
 import com.sksamuel.avro4s.SchemaFor
 import com.sksamuel.avro4s.ToRecord
-import io.lenses.streamreactor.connect.config.AvroDataFactory
 import io.lenses.json.sql.JacksonJson
+import io.lenses.streamreactor.connect.avro.AvroDataFactory
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.Struct
 import org.scalatest.matchers.should.Matchers

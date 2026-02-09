@@ -18,6 +18,7 @@
 
 package io.lenses.streamreactor.connect.jms.sink.converters
 
+import io.lenses.streamreactor.connect.avro.AvroDataFactory
 import io.lenses.streamreactor.connect.jms.ItTestBase
 import io.lenses.streamreactor.connect.jms.config.JMSConfig
 import io.lenses.streamreactor.connect.jms.config.JMSSettings
@@ -30,7 +31,6 @@ import org.apache.kafka.connect.sink.SinkRecord
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import io.lenses.streamreactor.connect.config.AvroDataFactory
 
 import java.nio.ByteBuffer
 import java.util.UUID
