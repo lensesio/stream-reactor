@@ -18,17 +18,17 @@ package io.lenses.streamreactor.connect.mongodb.sink
 import java.util
 import io.lenses.streamreactor.connect.mongodb.Json
 import com.sksamuel.avro4s.RecordFormat
-import io.confluent.connect.avro.AvroData
 import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.connect.data.Struct
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+import io.lenses.streamreactor.connect.config.AvroDataFactory
 
 import scala.collection.immutable.ListSet
 import scala.jdk.CollectionConverters.MapHasAsJava
 
 class KeysExtractorTest extends AnyWordSpec with Matchers {
-  private val avroData = new AvroData(4)
+  private val avroData = AvroDataFactory.create(4)
 
   case class WithNested(id: Int, nested: SomeTest)
   case class SomeTest(name: String, value: Double, flags: Seq[Int], map: Map[String, String])

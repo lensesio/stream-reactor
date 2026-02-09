@@ -18,7 +18,7 @@ package io.lenses.connect.sql
 import com.sksamuel.avro4s.RecordFormat
 import com.sksamuel.avro4s.SchemaFor
 import com.sksamuel.avro4s.ToRecord
-import io.confluent.connect.avro.AvroData
+import io.lenses.streamreactor.connect.config.AvroDataFactory
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.sink.SinkRecord
@@ -56,7 +56,7 @@ class TransformationTests extends AnyWordSpec with Matchers {
       implicit val toRecord = ToRecord[LocalPizzaS]
       val record            = RecordFormat[Pizza].to(pepperoni)
 
-      val avroData = new AvroData(4)
+      val avroData = AvroDataFactory.create(4)
       val struct   = avroData.toConnectData(SchemaFor[Pizza].schema, record).value.asInstanceOf[Struct]
 
       val sr1 = new SinkRecord(topic1, 1, struct.schema(), struct, struct.schema(), struct, 991)
@@ -96,7 +96,7 @@ class TransformationTests extends AnyWordSpec with Matchers {
       implicit val toRecord = ToRecord[LocalPizzaS]
       val record            = RecordFormat[Pizza].to(pepperoni)
 
-      val avroData = new AvroData(4)
+      val avroData = AvroDataFactory.create(4)
       val struct   = avroData.toConnectData(SchemaFor[Pizza].schema, record).value.asInstanceOf[Struct]
 
       val sr1 = new SinkRecord(topic1, 1, struct.schema(), struct, struct.schema(), struct, 991)
@@ -124,7 +124,7 @@ class TransformationTests extends AnyWordSpec with Matchers {
   }
 
   private def compare[T](actual: Struct, t: T)(implicit schemaFor: SchemaFor[T], toRecord: ToRecord[T]) = {
-    val avroData = new AvroData(4)
+    val avroData = AvroDataFactory.create(4)
     val expectedSchema = avroData.toConnectSchema(schemaFor.schema).toString
       .replace("LocalPizzaS", "Pizza")
       .replace("LocalIngredientS", "Ingredient")

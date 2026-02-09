@@ -15,9 +15,7 @@
  */
 package io.lenses.streamreactor.connect.cloud.common.sink.conversion
 
-import io.confluent.connect.avro.AvroData
-import io.confluent.connect.avro.AvroDataConfig
-import io.confluent.connect.schema.AbstractDataConfig
+import io.lenses.streamreactor.connect.config.AvroDataFactory
 import org.apache.avro.Schema
 import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.data.{ Schema => ConnectSchema }
@@ -39,13 +37,10 @@ import scala.jdk.CollectionConverters.SeqHasAsJava
 
 object ToAvroDataConverter {
 
-  private val avroDataConfig = new AvroDataConfig(
-    Map(
-      AvroDataConfig.ENHANCED_AVRO_SCHEMA_SUPPORT_CONFIG -> "true",
-      AbstractDataConfig.SCHEMAS_CACHE_SIZE_CONFIG       -> "100",
-    ).asJava,
-  )
-  private val avroDataConverter = new AvroData(avroDataConfig)
+  private val avroDataConverter = AvroDataFactory.create(100)
+
+  /** Schema name used by Confluent's AvroConverter for union types */
+  private val ConfluentAvroUnionSchemaName = "io.confluent.connect.avro.Union"
 
   def convertSchema(connectSchema: ConnectSchema): Schema = avroDataConverter.fromConnectSchema(connectSchema)
 
@@ -258,9 +253,6 @@ object ToAvroDataConverter {
         null
     }
   }
-
-  /** Schema name used by Confluent's AvroConverter for union types */
-  private val ConfluentAvroUnionSchemaName = "io.confluent.connect.avro.Union"
 
   private def convertDateToDaysFromEpoch[A <: Any](value: Date) =
     ChronoUnit.DAYS.between(LocalDate.ofEpochDay(0), LocalDate.ofInstant(value.toInstant, ZoneId.systemDefault()))

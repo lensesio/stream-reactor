@@ -19,7 +19,7 @@ import com.sksamuel.avro4s.AvroSchema
 import com.sksamuel.avro4s.RecordFormat
 import com.sksamuel.avro4s.SchemaFor
 import com.sksamuel.avro4s.ToRecord
-import io.confluent.connect.avro.AvroData
+import io.lenses.streamreactor.connect.config.AvroDataFactory
 import io.lenses.json.sql.JacksonJson
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.Struct
@@ -33,7 +33,7 @@ import java.nio.ByteBuffer
  */
 class TransformTests extends AnyWordSpec with Matchers {
 
-  private val avroData = new AvroData(2)
+  private val avroData = AvroDataFactory.create(2)
   "Transform" should {
     "throw exception on null value" in {
       intercept[IllegalArgumentException] {

@@ -15,7 +15,7 @@
  */
 package io.lenses.streamreactor.common.converters.sink
 
-import io.confluent.connect.avro.AvroData
+import io.lenses.streamreactor.connect.config.AvroDataFactory
 import io.lenses.streamreactor.common.converters.MsgKey
 import org.apache.avro.generic.GenericRecord
 import org.apache.avro.io.EncoderFactory
@@ -28,7 +28,7 @@ import java.io.ByteArrayOutputStream
 import java.io.File
 
 class AvroConverter extends Converter {
-  private val avroData = new AvroData(8)
+  private val avroData = AvroDataFactory.create(8)
   private var sinkToSchemaMap: Map[String, AvroSchema]                 = Map.empty
   private var avroWritersMap:  Map[String, ReflectDatumWriter[Object]] = Map.empty
 

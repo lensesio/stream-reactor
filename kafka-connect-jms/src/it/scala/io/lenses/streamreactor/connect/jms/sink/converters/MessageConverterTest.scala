@@ -23,7 +23,6 @@ import io.lenses.streamreactor.connect.jms.config.JMSConfig
 import io.lenses.streamreactor.connect.jms.config.JMSSettings
 import io.lenses.streamreactor.connect.jms.sink.AvroDeserializer
 import io.lenses.streamreactor.example.AddressedPerson
-import io.confluent.connect.avro.AvroData
 import org.apache.activemq.ActiveMQConnectionFactory
 import org.apache.avro.generic.GenericData
 import org.apache.avro.util.Utf8
@@ -31,6 +30,7 @@ import org.apache.kafka.connect.sink.SinkRecord
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+import io.lenses.streamreactor.connect.config.AvroDataFactory
 
 import java.nio.ByteBuffer
 import java.util.UUID
@@ -185,7 +185,7 @@ class MessageConverterTest extends AnyWordSpec with Matchers with ItTestBase wit
   "AvroMessageConverter" should {
     "create a BytesMessage with avro payload" in {
 
-      lazy val avroData = new AvroData(128)
+      lazy val avroData = AvroDataFactory.create(128)
       val kafkaTopic1   = s"kafka-${UUID.randomUUID().toString}"
       val topicName     = UUID.randomUUID().toString
       val queueName     = UUID.randomUUID().toString

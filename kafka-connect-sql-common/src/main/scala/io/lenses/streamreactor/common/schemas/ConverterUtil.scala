@@ -18,6 +18,7 @@ package io.lenses.streamreactor.common.schemas
 import com.fasterxml.jackson.databind.JsonNode
 import io.confluent.connect.avro.AvroConverter
 import io.confluent.connect.avro.AvroData
+import io.lenses.streamreactor.connect.config.AvroDataFactory
 import io.lenses.streamreactor.common.schemas.StructHelper._
 import io.lenses.streamreactor.connect.json.SimpleJsonConverter
 import org.apache.avro.generic.GenericRecord
@@ -47,7 +48,7 @@ trait ConverterUtil {
   lazy val simpleJsonConverter = new SimpleJsonConverter()
   lazy val deserializer        = new JsonDeserializer()
   lazy val avroConverter       = new AvroConverter()
-  lazy val avroData            = new AvroData(100)
+  lazy val avroData: AvroData = AvroDataFactory.create(100)
 
   //for converting json to
   @deprecated("Consolidated into SinkRecord.newFilteredRecord", "3.0")
