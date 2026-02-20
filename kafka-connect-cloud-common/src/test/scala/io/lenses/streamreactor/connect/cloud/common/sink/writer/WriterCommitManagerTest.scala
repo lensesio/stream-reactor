@@ -28,6 +28,9 @@ import org.scalatest.EitherValues
 import org.scalatest.funsuite.AnyFunSuiteLike
 import org.scalatest.matchers.should.Matchers
 
+import scala.concurrent.duration.Duration
+import scala.concurrent.ExecutionContext
+
 class WriterCommitManagerTest
     extends AnyFunSuiteLike
     with BeforeAndAfterEach
@@ -42,7 +45,7 @@ class WriterCommitManagerTest
   override protected def beforeEach(): Unit = reset(mock[ConnectorTaskId])
 
   private def createManager(writers: Map[MapKey, Writer[FileMetadata]]) =
-    new WriterCommitManager(() => writers)
+    new WriterCommitManager(() => writers, ExecutionContext.global, Duration.Inf)
 
   private def createMockWriter(
     hasPendingUpload: Boolean                           = false,
