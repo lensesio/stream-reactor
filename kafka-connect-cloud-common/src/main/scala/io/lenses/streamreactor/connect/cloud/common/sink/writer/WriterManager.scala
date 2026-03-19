@@ -222,14 +222,16 @@ class WriterManager[SM <: FileMetadata](
       offsetAndMetadata.metadata(),
     )
 
-  def cleanUp(topicPartition: TopicPartition): Unit =
-    writers
-      .view.filterKeys(mapKey =>
-        mapKey
-          .topicPartition == topicPartition,
-      )
+  def cleanUp(topicPartition: TopicPartition): Unit = {
+    val keysToRemove = writers
+      .view.filterKeys(_.topicPartition == topicPartition)
       .keys
-      .foreach(writers.remove)
+      .toList
+    keysToRemove.foreach { key =>
+      writers.get(key).foreach(_.close())
+      writers.remove(key)
+    }
+  }
 
   def shouldSkipNullValues(): Boolean = skipNullValues
 

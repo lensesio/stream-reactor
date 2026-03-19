@@ -314,4 +314,67 @@ class WriterTest extends AnyFunSuiteLike with Matchers with MockitoSugar {
 
     writer.schemaHasChanged(schema) shouldBe false
   }
+
+  test("close should delete staging file when in Writing state") {
+    val tmpFile = File.createTempFile("writer-test-writing-", ".tmp")
+    tmpFile.exists() shouldBe true
+
+    val formatWriter = mock[FormatWriter]
+    when(writerIndexer.getSeekedOffsetForTopicPartition(topicPartition)).thenReturn(None)
+    val writer = new Writer[FileMetadata](topicPartition,
+                                          commitPolicy,
+                                          writerIndexer,
+                                          stagingFilenameFn,
+                                          objectKeyBuilder,
+                                          formatWriterFn,
+                                          schemaChangeDetector,
+                                          pendingOperationsProcessors,
+    )
+    writer.writeState = Writing(CommitState(topicPartition, Some(Offset(100))), formatWriter, tmpFile, Offset(150), 1L, 1L)
+
+    writer.close()
+
+    tmpFile.exists() shouldBe false
+    writer.writeState shouldBe a[NoWriter]
+  }
+
+  test("close should delete staging file when in Uploading state") {
+    val tmpFile = File.createTempFile("writer-test-uploading-", ".tmp")
+    tmpFile.exists() shouldBe true
+
+    when(writerIndexer.getSeekedOffsetForTopicPartition(topicPartition)).thenReturn(None)
+    val writer = new Writer[FileMetadata](topicPartition,
+                                          commitPolicy,
+                                          writerIndexer,
+                                          stagingFilenameFn,
+                                          objectKeyBuilder,
+                                          formatWriterFn,
+                                          schemaChangeDetector,
+                                          pendingOperationsProcessors,
+    )
+    writer.writeState = Uploading(CommitState(topicPartition, Some(Offset(100))), tmpFile, Offset(150), 1L, 1L)
+
+    writer.close()
+
+    tmpFile.exists() shouldBe false
+    writer.writeState shouldBe a[NoWriter]
+  }
+
+  test("close should be a no-op when in NoWriter state") {
+    when(writerIndexer.getSeekedOffsetForTopicPartition(topicPartition)).thenReturn(None)
+    val writer = new Writer[FileMetadata](topicPartition,
+                                          commitPolicy,
+                                          writerIndexer,
+                                          stagingFilenameFn,
+                                          objectKeyBuilder,
+                                          formatWriterFn,
+                                          schemaChangeDetector,
+                                          pendingOperationsProcessors,
+    )
+    writer.writeState = NoWriter(CommitState(topicPartition, Some(Offset(100))))
+
+    writer.close()
+
+    writer.writeState shouldBe a[NoWriter]
+  }
 }
