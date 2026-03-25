@@ -96,7 +96,9 @@ class PendingOperationsProcessorsTest
     inOrderVerifier.verify(fnIndexUpdate).apply(any[TopicPartition], any[Option[Offset]], any[Option[PendingState]])
   }
 
-  test("processPendingOperations should clear pending state via fnIndexUpdate when last op upload fails due to missing files") {
+  test(
+    "processPendingOperations should clear pending state via fnIndexUpdate when last op upload fails due to missing files",
+  ) {
     val pendingState = PendingState(
       pendingOffset = Offset(100),
       pendingOperations = NonEmptyList.of(

@@ -426,8 +426,15 @@ class IndexManagerV2Test
         CopyOperation("bucket", s".temp/${tp.partition}/staging.avro", s"final/${tp.partition}/data.avro", "copy-etag"),
         DeleteOperation("bucket", s".temp/${tp.partition}/staging.avro", "copy-etag"),
       )
-      val idx = IndexFile("old-owner", Some(Offset(tp.partition.toLong * 10)), Some(PendingState(Offset(tp.partition.toLong * 10 + 5), pendingOps)))
-      when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith(s"${tp.partition}.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+      val idx = IndexFile("old-owner",
+                          Some(Offset(tp.partition.toLong * 10)),
+                          Some(PendingState(Offset(tp.partition.toLong * 10 + 5), pendingOps)),
+      )
+      when(
+        si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith(s"${tp.partition}.lock"))(
+          ArgumentMatchers.eq(indexFileDecoder),
+        ),
+      )
         .thenReturn(Right(ObjectWithETag(idx, s"etag-${tp.partition}")))
     }
 

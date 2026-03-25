@@ -115,7 +115,7 @@ class IndexManagerV2(
     val path         = generateLockFilePath(connectorTaskId, topicPartition, directoryFileName)
     for {
       bucketAndPrefix <- bucketAndPrefixFn(topicPartition)
-      _ <- migrateOldPathIfExists(bucketAndPrefix, maybeOldPath, path, topicPartition)
+      _               <- migrateOldPathIfExists(bucketAndPrefix, maybeOldPath, path, topicPartition)
       offset <- tryOpen(bucketAndPrefix.bucket, path) match {
 
         case Left(FileNotFoundError(_, _)) =>
