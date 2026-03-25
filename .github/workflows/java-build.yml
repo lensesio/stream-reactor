@@ -1,6 +1,9 @@
 name: CI-java
 on:
   pull_request:
+  push:
+    branches:
+      - 'release/**'
   workflow_call:
     inputs:
       version:
