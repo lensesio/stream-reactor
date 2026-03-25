@@ -146,9 +146,9 @@ class PendingOperationsProcessors(
           processor.process(head) match {
             case Left(NonFatalCloudSinkError(_, _, true)) =>
               logger.warn(
-                s"Non-fatal error encountered. Pending operations will be cancelled but processing will continue. Returning committed offset for $topicPartition.",
+                s"Non-fatal error encountered. Cancelling pending operations for last op for $topicPartition.",
               )
-              committedOffset.asRight
+              fnIndexUpdate(topicPartition, committedOffset, Option.empty)
 
             case Left(error) =>
               logger.error(s"Error encountered while processing $head: ${error.message()}", error.exception().orNull)

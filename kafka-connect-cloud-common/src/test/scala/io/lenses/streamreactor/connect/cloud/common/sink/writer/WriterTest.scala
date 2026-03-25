@@ -330,7 +330,8 @@ class WriterTest extends AnyFunSuiteLike with Matchers with MockitoSugar {
                                           schemaChangeDetector,
                                           pendingOperationsProcessors,
     )
-    writer.writeState = Writing(CommitState(topicPartition, Some(Offset(100))), formatWriter, tmpFile, Offset(150), 1L, 1L)
+    writer.writeState =
+      Writing(CommitState(topicPartition, Some(Offset(100))), formatWriter, tmpFile, Offset(150), 1L, 1L)
 
     writer.close()
 

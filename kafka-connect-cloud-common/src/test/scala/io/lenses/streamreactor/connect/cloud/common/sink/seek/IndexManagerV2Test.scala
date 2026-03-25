@@ -29,7 +29,9 @@ import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
 import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.deprecated.IndexManagerV1
+import io.lenses.streamreactor.connect.cloud.common.model.UploadableFile
 import io.lenses.streamreactor.connect.cloud.common.storage.FileNotFoundError
+import io.lenses.streamreactor.connect.cloud.common.storage.NonExistingFileError
 import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
 import io.lenses.streamreactor.connect.cloud.common.sink.FatalCloudSinkError
 import io.lenses.streamreactor.connect.cloud.common.storage.PathError
@@ -249,28 +251,23 @@ class IndexManagerV2Test
     lockFilePath should be(s"$directoryFileName/my-connector/.locks/Topic(my-topic)/5.lock")
   }
 
-  test("open should successfully process pending operations without race condition") {
-    // This test verifies that the race condition bug has been fixed. Previously, pending operations
-    // were processed before the eTag was stored in topicPartitionToETags map, causing the update()
-    // method to fail with "Index not found" error. Now it should work correctly.
-
+  test("open should successfully process pending operations and preserve correct eTag for subsequent updates") {
     val topicPartition  = Topic("my-topic").withPartition(0)
     val bucketAndPrefix = CloudLocation("my-bucket", "prefix".some)
 
-    // Create pending operations similar to the bug report
     val pendingOperations = NonEmptyList.of(
       CopyOperation(
         bucket = "my-bucket",
         source =
-          ".temp-upload/Topic(my-topic)/0/b25f433f-d790-4ba1-b6d6-871f07c7a211kafka/topics/497de2d9f0370cd3/my-topic/0/000000000773_1756721073301_1756810548919.avro",
-        destination = "kafka/topics/497de2d9f0370cd3/my-topic/0/000000000773_1756721073301_1756810548919.avro",
-        eTag        = "\"004ef63902cbd9da30709e77c0132bf6\"",
+          ".temp-upload/Topic(my-topic)/0/uuid/my-topic/0/000000000773.avro",
+        destination = "my-topic/0/000000000773.avro",
+        eTag        = "\"copy-etag\"",
       ),
       DeleteOperation(
         bucket = "my-bucket",
         source =
-          ".temp-upload/Topic(my-topic)/0/b25f433f-d790-4ba1-b6d6-871f07c7a211kafka/topics/497de2d9f0370cd3/my-topic/0/000000000773_1756721073301_1756810548919.avro",
-        eTag = "\"004ef63902cbd9da30709e77c0132bf6\"",
+          ".temp-upload/Topic(my-topic)/0/uuid/my-topic/0/000000000773.avro",
+        eTag = "\"copy-etag\"",
       ),
     )
 
@@ -280,74 +277,201 @@ class IndexManagerV2Test
     )
 
     val indexFile = IndexFile(
-      owner           = "bbee8a19-639b-4a5d-9f6f-b344f9bb00c0",
+      owner           = "old-owner",
       committedOffset = Some(Offset(733)),
       pendingState    = Some(pendingState),
     )
 
     val objectWithETag = ObjectWithETag(indexFile, "original-etag")
 
-    // Setup mocks
+    val si = mock[StorageInterface[_]]
+
     when(bucketAndPrefixFn(topicPartition)).thenReturn(Right(bucketAndPrefix))
-    // Mock pathExists to return false for old path (no migration needed)
-    when(storageInterface.pathExists(anyString(), anyString())).thenReturn(Right(false))
-    when(storageInterface.getBlobAsObject[IndexFile](anyString(), anyString())(ArgumentMatchers.eq(indexFileDecoder)))
+    when(si.pathExists(anyString(), anyString())).thenReturn(Right(false))
+    when(si.getBlobAsObject[IndexFile](anyString(), anyString())(ArgumentMatchers.eq(indexFileDecoder)))
       .thenReturn(Right(objectWithETag))
 
-    // Mock the storage interface methods that will be called during pending operations processing
-    when(storageInterface.mvFile(anyString(), anyString(), anyString(), anyString(), any[Option[String]]))
+    when(si.mvFile(anyString(), anyString(), anyString(), anyString(), any[Option[String]]))
       .thenReturn(Right(()))
-    when(storageInterface.deleteFile(anyString(), anyString(), anyString()))
+    when(si.deleteFile(anyString(), anyString(), anyString()))
       .thenReturn(Right(()))
 
-    // Mock writeBlobToFile to simulate successful index file updates during pending operations processing
+    // Return incrementing eTags to simulate GCS generation progression.
+    // open() will call update() twice during pending ops (checkpoint after copy, final after delete),
+    // then once more for the subsequent update() call.
+    val writeResponses = new java.util.concurrent.atomic.AtomicInteger(0)
+    val eTags          = Array("etag-after-copy", "etag-after-delete", "etag-after-subsequent-update")
+    val offsets        = Array(Some(Offset(733)), Some(Offset(773)), Some(Offset(900)))
     when(
-      storageInterface.writeBlobToFile[IndexFile](anyString(), anyString(), any[ObjectWithETag[IndexFile]])(
+      si.writeBlobToFile[IndexFile](anyString(), anyString(), any[ObjectWithETag[IndexFile]])(
         ArgumentMatchers.eq(indexFileEncoder),
       ),
-    ).thenReturn(Right(ObjectWithETag(indexFile.copy(pendingState = None, committedOffset = Some(Offset(773))),
-                                      "updated-etag",
-    )))
+    ).thenAnswer { (_: org.mockito.invocation.InvocationOnMock) =>
+      val idx = writeResponses.getAndIncrement()
+      Right(ObjectWithETag(IndexFile("owner", offsets(idx), None), eTags(idx)))
+    }
 
-    // Create a real PendingOperationsProcessors instance to test the actual flow
-    val realPendingOperationsProcessors = new PendingOperationsProcessors(storageInterface)
+    val realPendingOperationsProcessors = new PendingOperationsProcessors(si)
 
-    // Create a new IndexManagerV2 with the real pending operations processor
     val realIndexManagerV2 = new IndexManagerV2(
       bucketAndPrefixFn,
       oldIndexManager,
       realPendingOperationsProcessors,
       indexesDirectoryName,
-    )(storageInterface, connectorTaskId)
+    )(si, connectorTaskId)
 
-    // The open method should now succeed and process pending operations correctly
-    // The fix ensures that:
-    // 1. Index file is loaded with pending operations
-    // 2. eTag is stored in topicPartitionToETags map before processing pending operations
-    // 3. processPendingOperations is called which calls update()
-    // 4. update() can successfully get eTag from topicPartitionToETags map
-    // 5. Pending operations are processed successfully
     val result = realIndexManagerV2.open(Set(topicPartition))
-
-    // Verify the operation succeeds
     result.isRight shouldBe true
     result.value shouldBe Map(topicPartition -> Some(Offset(773)))
 
-    // Verify that the storage interface was called to load the index file
-    verify(storageInterface).getBlobAsObject[IndexFile](anyString(), anyString())(ArgumentMatchers.eq(indexFileDecoder))
+    // Verify a subsequent update() succeeds (it would fail with stale eTag before the fix).
+    val updateResult = realIndexManagerV2.update(topicPartition, Some(Offset(900)), None)
+    updateResult.isRight shouldBe true
+    updateResult.value shouldBe Some(Offset(900))
 
-    // Verify that pending operations were processed (copy and delete operations)
-    verify(storageInterface).mvFile(anyString(), anyString(), anyString(), anyString(), any[Option[String]])
-    verify(storageInterface).deleteFile(anyString(), anyString(), anyString())
-
-    // Verify that the index file was updated after processing pending operations
-    // Note: writeBlobToFile may be called multiple times during pending operations processing
-    verify(storageInterface, times(2)).writeBlobToFile[IndexFile](anyString(),
-                                                                  anyString(),
-                                                                  any[ObjectWithETag[IndexFile]],
-    )(
+    // The third writeBlobToFile call (for the subsequent update) should use "etag-after-delete" (the latest),
+    // not "original-etag" (the stale one). Capture and verify.
+    val captor = ArgumentCaptor.forClass(classOf[ObjectWithETag[IndexFile]])
+    verify(si, times(3)).writeBlobToFile[IndexFile](anyString(), anyString(), captor.capture())(
       ArgumentMatchers.eq(indexFileEncoder),
     )
+    val thirdCall = captor.getAllValues.get(2)
+    thirdCall.eTag shouldBe "etag-after-delete"
+  }
+
+  test("open with cancelPending on upload failure should clear pending state and allow subsequent updates") {
+    val topicPartition  = Topic("my-topic").withPartition(0)
+    val bucketAndPrefix = CloudLocation("my-bucket", "prefix".some)
+    val tempFile        = new java.io.File("/nonexistent/path/to/staging-file")
+
+    val pendingOperations = NonEmptyList.of[FileOperation](
+      UploadOperation("my-bucket", tempFile, ".temp-upload/my-topic/0/staging.avro"),
+      CopyOperation("my-bucket", ".temp-upload/my-topic/0/staging.avro", "my-topic/0/000000000500.avro", "placeholder"),
+      DeleteOperation("my-bucket", ".temp-upload/my-topic/0/staging.avro", "placeholder"),
+    )
+
+    val pendingState = PendingState(
+      pendingOffset     = Offset(500),
+      pendingOperations = pendingOperations,
+    )
+
+    val indexFile = IndexFile(
+      owner           = "dead-worker-owner",
+      committedOffset = Some(Offset(450)),
+      pendingState    = Some(pendingState),
+    )
+
+    val si = mock[StorageInterface[_]]
+
+    when(bucketAndPrefixFn(topicPartition)).thenReturn(Right(bucketAndPrefix))
+    when(si.pathExists(anyString(), anyString())).thenReturn(Right(false))
+    when(si.getBlobAsObject[IndexFile](anyString(), anyString())(ArgumentMatchers.eq(indexFileDecoder)))
+      .thenReturn(Right(ObjectWithETag(indexFile, "original-etag")))
+
+    // Upload will fail with NonExistingFileError (local file from dead worker doesn't exist)
+    when(si.uploadFile(any[UploadableFile], anyString(), anyString()))
+      .thenReturn(Left(NonExistingFileError(tempFile)))
+
+    // writeBlobToFile: first call clears pending state (cancelPending), second is the subsequent update
+    val cancelWriteResponses = new java.util.concurrent.atomic.AtomicInteger(0)
+    val cancelETags          = Array("etag-after-cancel", "etag-after-update")
+    when(
+      si.writeBlobToFile[IndexFile](anyString(), anyString(), any[ObjectWithETag[IndexFile]])(
+        ArgumentMatchers.eq(indexFileEncoder),
+      ),
+    ).thenAnswer { (_: org.mockito.invocation.InvocationOnMock) =>
+      val idx  = cancelWriteResponses.getAndIncrement()
+      val eTag = cancelETags(idx)
+      Right(ObjectWithETag(IndexFile("owner", Some(Offset(450)), None), eTag))
+    }
+
+    val realPendingOperationsProcessors = new PendingOperationsProcessors(si)
+    val realIndexManagerV2 = new IndexManagerV2(
+      bucketAndPrefixFn,
+      oldIndexManager,
+      realPendingOperationsProcessors,
+      indexesDirectoryName,
+    )(si, connectorTaskId)
+
+    val result = realIndexManagerV2.open(Set(topicPartition))
+    result.isRight shouldBe true
+    // cancelPending with further ops calls fnIndexUpdate which returns the committed offset
+    result.value shouldBe Map(topicPartition -> Some(Offset(450)))
+
+    // Verify subsequent update works (would fail if eTag was stale)
+    val updateResult = realIndexManagerV2.update(topicPartition, Some(Offset(600)), None)
+    updateResult.isRight shouldBe true
+
+    // The second writeBlobToFile should use "etag-after-cancel", not "original-etag"
+    val captor = ArgumentCaptor.forClass(classOf[ObjectWithETag[IndexFile]])
+    verify(si, times(2)).writeBlobToFile[IndexFile](anyString(), anyString(), captor.capture())(
+      ArgumentMatchers.eq(indexFileEncoder),
+    )
+    captor.getAllValues.get(1).eTag shouldBe "etag-after-cancel"
+  }
+
+  test("open should handle many partitions concurrently without Index not found errors") {
+    val numPartitions   = 50
+    val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
+    val topicPartitions = (0 until numPartitions).map(i => Topic("stress-topic").withPartition(i)).toSet
+
+    val si = mock[StorageInterface[_]]
+
+    when(bucketAndPrefixFn(any[TopicPartition])).thenReturn(Right(bucketAndPrefix))
+    when(si.pathExists(anyString(), anyString())).thenReturn(Right(false))
+
+    // Each partition has pending state to force the codepath through processPendingOperations -> update()
+    topicPartitions.foreach { tp =>
+      val pendingOps = NonEmptyList.of(
+        CopyOperation("bucket", s".temp/${tp.partition}/staging.avro", s"final/${tp.partition}/data.avro", "copy-etag"),
+        DeleteOperation("bucket", s".temp/${tp.partition}/staging.avro", "copy-etag"),
+      )
+      val idx = IndexFile("old-owner",
+                          Some(Offset(tp.partition.toLong * 10)),
+                          Some(PendingState(Offset(tp.partition.toLong * 10 + 5), pendingOps)),
+      )
+      when(
+        si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith(s"${tp.partition}.lock"))(
+          ArgumentMatchers.eq(indexFileDecoder),
+        ),
+      )
+        .thenReturn(Right(ObjectWithETag(idx, s"etag-${tp.partition}")))
+    }
+
+    when(si.mvFile(anyString(), anyString(), anyString(), anyString(), any[Option[String]]))
+      .thenReturn(Right(()))
+    when(si.deleteFile(anyString(), anyString(), anyString()))
+      .thenReturn(Right(()))
+
+    val writeCounter = new java.util.concurrent.atomic.AtomicInteger(0)
+    when(
+      si.writeBlobToFile[IndexFile](anyString(), anyString(), any[ObjectWithETag[IndexFile]])(
+        ArgumentMatchers.eq(indexFileEncoder),
+      ),
+    ).thenAnswer { (_: org.mockito.invocation.InvocationOnMock) =>
+      val count = writeCounter.incrementAndGet()
+      Right(ObjectWithETag(IndexFile("owner", Some(Offset(count.toLong)), None), s"etag-write-$count"))
+    }
+
+    val realPendingOperationsProcessors = new PendingOperationsProcessors(si)
+    val realIndexManagerV2 = new IndexManagerV2(
+      bucketAndPrefixFn,
+      oldIndexManager,
+      realPendingOperationsProcessors,
+      indexesDirectoryName,
+    )(si, connectorTaskId)
+
+    val result = realIndexManagerV2.open(topicPartitions)
+    result.isRight shouldBe true
+    result.value.size shouldBe numPartitions
+
+    // Verify all partitions can be updated after open (would fail with "Index not found" before the fix)
+    topicPartitions.foreach { tp =>
+      val updateResult = realIndexManagerV2.update(tp, Some(Offset(9999)), None)
+      withClue(s"update for partition ${tp.partition} should succeed: ") {
+        updateResult.isRight shouldBe true
+      }
+    }
   }
 
   test("migrateOldPathIfExists should move old path to new path when old path exists") {

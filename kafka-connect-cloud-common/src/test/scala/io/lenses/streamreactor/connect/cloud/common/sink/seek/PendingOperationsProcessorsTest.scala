@@ -96,7 +96,9 @@ class PendingOperationsProcessorsTest
     inOrderVerifier.verify(fnIndexUpdate).apply(any[TopicPartition], any[Option[Offset]], any[Option[PendingState]])
   }
 
-  test("processPendingOperations should return no pending operations if upload fails due to missing files") {
+  test(
+    "processPendingOperations should clear pending state via fnIndexUpdate when last op upload fails due to missing files",
+  ) {
     val pendingState = PendingState(
       pendingOffset = Offset(100),
       pendingOperations = NonEmptyList.of(
@@ -118,34 +120,8 @@ class PendingOperationsProcessorsTest
 
     val inOrderVerifier = Mockito.inOrder(storageInterface, fnIndexUpdate)
     inOrderVerifier.verify(storageInterface).uploadFile(any[UploadableFile], anyString(), anyString())
-  }
-
-  test("processPendingOperations should return error if upload fails") {
-    val pendingState = PendingState(
-      pendingOffset = Offset(100),
-      pendingOperations = NonEmptyList.of(
-        UploadOperation("source1", tempLocalFile, "dest1"),
-      ),
-    )
-
-    when(storageInterface.uploadFile(any[UploadableFile], anyString(), anyString()))
-      .thenReturn(Left(NonExistingFileError(tempLocalFile)))
-
-    val result = pendingOperationsProcessors.processPendingOperations(
-      topicPartition,
-      Some(Offset(50)),
-      pendingState,
-      fnIndexUpdate,
-    )
-
-    result shouldBe Right(Some(Offset(50)))
-
-    val inOrderVerifier = Mockito.inOrder(storageInterface, fnIndexUpdate)
-    inOrderVerifier.verify(storageInterface).uploadFile(any[UploadableFile], anyString(), anyString())
-    inOrderVerifier.verify(fnIndexUpdate, times(0)).apply(any[TopicPartition],
-                                                          any[Option[Offset]],
-                                                          any[Option[PendingState]],
-    )
+    // cancelPending on last op now clears pending state in storage via fnIndexUpdate
+    inOrderVerifier.verify(fnIndexUpdate).apply(topicPartition, Some(Offset(50)), None)
   }
 
   test("processPendingOperations should skip further operations if delete fails") {

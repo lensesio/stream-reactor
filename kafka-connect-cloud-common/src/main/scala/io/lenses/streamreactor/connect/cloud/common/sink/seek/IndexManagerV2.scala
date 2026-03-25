@@ -33,7 +33,7 @@ import io.lenses.streamreactor.connect.cloud.common.storage.FileNotFoundError
 import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
 import io.lenses.streamreactor.connect.cloud.common.storage.UploadError
 
-import scala.collection.mutable
+import scala.collection.concurrent.TrieMap
 
 /**
  * A class that implements the `IndexManager` trait to manage indexing operations
@@ -72,12 +72,13 @@ class IndexManagerV2(
   // A unique identifier for the lock owner, derived from the connector task ID.
   private val lockOwner = connectorTaskId.lockUuid
 
-  // A mutable map that stores the latest offset for each TopicPartition that was seeked during the initialization of the Kafka Connect SinkTask.
-  // The key is the TopicPartition and the value is the corresponding Offset.
-  private val seekedOffsets = mutable.Map.empty[TopicPartition, Offset]
+  // Thread-safe map storing the latest offset for each TopicPartition seeked during SinkTask initialization.
+  // Must be concurrent because open() uses parTraverse to process partitions on multiple fibers.
+  private val seekedOffsets = TrieMap.empty[TopicPartition, Offset]
 
-  // A mutable map that tracks the latest eTags for index files, enabling detection of changes to the files for appropriate handling.
-  private val topicPartitionToETags = mutable.Map.empty[TopicPartition, String]
+  // Thread-safe map tracking the latest eTags for index files, enabling conditional writes.
+  // Must be concurrent because open() uses parTraverse to process partitions on multiple fibers.
+  private val topicPartitionToETags = TrieMap.empty[TopicPartition, String]
 
   /**
    * Opens a set of topic partitions for writing. If an index file is not found,
@@ -114,45 +115,41 @@ class IndexManagerV2(
     val path         = generateLockFilePath(connectorTaskId, topicPartition, directoryFileName)
     for {
       bucketAndPrefix <- bucketAndPrefixFn(topicPartition)
-      //move maybeOldPath to path if exists
-      _ <- migrateOldPathIfExists(bucketAndPrefix, maybeOldPath, path, topicPartition)
-      open: ObjectWithETag[IndexFile] <- tryOpen(bucketAndPrefix.bucket, path) match {
+      _               <- migrateOldPathIfExists(bucketAndPrefix, maybeOldPath, path, topicPartition)
+      offset <- tryOpen(bucketAndPrefix.bucket, path) match {
 
         case Left(FileNotFoundError(_, _)) =>
           createNewIndexFileNoOverwrite(topicPartition, path, bucketAndPrefix)
+            .map(updateDataReturnOffset(topicPartition, _))
 
         case Left(fileLoadError: FileLoadError) =>
           new FatalCloudSinkError(fileLoadError.message(), fileLoadError.toExceptionOption, topicPartition).asLeft[
-            ObjectWithETag[IndexFile],
+            Option[Offset],
           ]
 
         case Right(objectWithetag @ ObjectWithETag(
-              idx @ IndexFile(_, committedOffset, Some(PendingState(pendingOffset, pendingOperations))),
+              IndexFile(_, committedOffset, Some(PendingState(pendingOffset, pendingOperations))),
               _,
             )) =>
-          // file exists
-          //store the eTag otherwise processPendingOperations which ends up calling update will fail
-          // because the eTag is missing for the topic partition
           topicPartitionToETags.put(topicPartition, objectWithetag.eTag)
-          for {
-            newCommittedOffset <- pendingOperationsProcessors.processPendingOperations(
-              topicPartition,
-              committedOffset,
-              PendingState(pendingOffset, pendingOperations),
-              update,
-            )
-            updatedOffsets = objectWithetag.copy(
-              wrappedObject = idx.copy(
-                pendingState    = Option.empty,
-                committedOffset = newCommittedOffset,
-              ),
-            )
-          } yield updatedOffsets
+          pendingOperationsProcessors.processPendingOperations(
+            topicPartition,
+            committedOffset,
+            PendingState(pendingOffset, pendingOperations),
+            update,
+          ).map { resolvedOffset =>
+            // processPendingOperations calls update() which already maintains topicPartitionToETags
+            // with the correct eTag. We must NOT overwrite it with the stale original eTag.
+            // Only ensure seekedOffsets is updated for cases where update() was not called
+            // (e.g. cancelPending on the last operation).
+            resolvedOffset.foreach(o => seekedOffsets.put(topicPartition, o))
+            resolvedOffset
+          }
 
         case Right(objectWithetag @ ObjectWithETag(IndexFile(_, _, _), _)) =>
-          objectWithetag.asRight[SinkError]
+          updateDataReturnOffset(topicPartition, objectWithetag).asRight[SinkError]
       }
-    } yield updateDataReturnOffset(topicPartition, open)
+    } yield offset
 
   }
 
