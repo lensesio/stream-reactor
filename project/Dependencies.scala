@@ -70,7 +70,7 @@ object Dependencies {
 
     val lombokVersion = "1.18.38"
 
-    val logbackVersion      = "1.5.18"
+    val logbackVersion      = "1.5.32"
     val scalaLoggingVersion = "3.9.5"
 
     val dnsJavaVersion  = "3.6.3"
