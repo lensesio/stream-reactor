@@ -286,6 +286,14 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
     )
 
     Option(writerManager).foreach(_.close())
+    // WriterManager.close() deliberately does NOT clear seekedOffsets (to preserve them for
+    // IndexManagerV2's final GC drain in stop()). Clear state for revoked partitions here so
+    // the background GC/sweep threads don't operate on partitions now owned by another task.
+    Option(indexManager).foreach { im =>
+      partitions.asScala.foreach { ktp =>
+        im.clearTopicPartitionState(TopicPartition(Topic(ktp.topic()), ktp.partition()))
+      }
+    }
   }
 
   override def stop(): Unit = {
@@ -293,7 +301,11 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
 
     Option(writerManager).foreach(_.close())
     writerManager = null
+    // indexManager.close() performs a final synchronous drainGcQueue() that needs seekedOffsets
+    // to still be populated. clearTopicPartitionState is NOT called before close() — the state
+    // is GC'd with the indexManager reference immediately after.
     Option(indexManager).foreach(_.close())
+    indexManager = null
     Option(connectorTaskId).foreach(CloudSinkMetricsRegistrar.unregister)
   }
 
@@ -311,7 +323,7 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
       s3Client        <- createClient(config.connectionConfig)
       storageInterface = createStorageInterface(connectorTaskId, config, s3Client)
       _               <- setRetryInterval(config)
-      maxWriters       = config.indexOptions.map(_.maxGranularCacheSize).getOrElse(WriterManager.DefaultMaxWriters)
+      maxWriters       = config.indexOptions.map(_.maxWriters).getOrElse(WriterManager.DefaultMaxWriters)
       metrics          = new CloudSinkMetrics(maxWriters)
       (indexManager, writerManager) <- Try(
         writerManagerCreator.from(config, metrics)(connectorTaskId, storageInterface),

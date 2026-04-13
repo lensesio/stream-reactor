@@ -104,9 +104,13 @@ class WriterManager[SM <: FileMetadata](
     // offsets or eTags linger in memory after the task stops. Writer.close() deliberately
     // does NOT evict cache entries (they are left for cleanUpObsoleteLocks to GC), so this
     // bulk eviction is the sole memory cleanup path on shutdown.
+    //
+    // NOTE: clearTopicPartitionState is deliberately NOT called here. It removes seekedOffsets
+    // entries, which are needed by IndexManagerV2.close() → drainGcQueue() to avoid discarding
+    // queued GC items as "partition no longer owned." The state is cleared by CloudSinkTask.stop()
+    // after indexManager.close() completes.
     topicPartitions.foreach { tp =>
       indexManager.evictAllGranularLocks(tp)
-      indexManager.clearTopicPartitionState(tp)
     }
   }
 
@@ -349,7 +353,7 @@ object WriterManager {
   val DefaultMaxWriters: Int = 10000
 
   def sanitize(value: String): String =
-    URLEncoder.encode(value, "UTF-8")
+    URLEncoder.encode(value, "UTF-8").replace("_", "%5F")
 
   def derivePartitionKey(partitionValues: Map[PartitionField, String]): Option[String] =
     if (partitionValues.isEmpty) None

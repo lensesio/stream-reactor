@@ -41,13 +41,13 @@ trait IndexConfigKeys extends WithConnectorPrefix {
     s"Exactly once is enabled by default.  It works by keeping an .indexes directory at the root of your bucket with subdirectories for indexes.  Exactly once support can be disabled and the default offset tracking from kafka can be used instead by setting this to false."
   private val ENABLE_EXACTLY_ONCE_DEFAULT = true
 
-  val MAX_GRANULAR_CACHE_SIZE = s"$connectorPrefix.indexes.max.cache.size"
-  private val MAX_GRANULAR_CACHE_SIZE_DOC =
+  val MAX_WRITERS = s"$connectorPrefix.indexes.max.writers"
+  private val MAX_WRITERS_DOC =
     s"Maximum number of idle writers (and their granular lock cache entries) to retain in memory. " +
       s"When the total number of writers exceeds this threshold, idle writers in NoWriter state are evicted. " +
       s"Active writers with buffered data are never evicted, so the actual count may temporarily exceed this value. " +
       s"Increase this when PARTITIONBY cardinality is high and you want to reduce lock file recreation on previously idle keys."
-  private val MAX_GRANULAR_CACHE_SIZE_DEFAULT = WriterManager.DefaultMaxWriters
+  private val MAX_WRITERS_DEFAULT = WriterManager.DefaultMaxWriters
 
   val GC_INTERVAL_SECONDS = s"$connectorPrefix.indexes.gc.interval.seconds"
   private val GC_INTERVAL_SECONDS_DOC =
@@ -70,17 +70,17 @@ trait IndexConfigKeys extends WithConnectorPrefix {
 
   val GC_SWEEP_INTERVAL_SECONDS = s"$connectorPrefix.indexes.gc.sweep.interval.seconds"
   private val GC_SWEEP_INTERVAL_SECONDS_DOC =
-    s"Interval in seconds between periodic orphan sweeps. " +
-      s"Only effective when the sweep is enabled via ${GC_SWEEP_ENABLED}. " +
-      s"Each task sweeps only its own partitions."
+    s"How often (in seconds) the orphan sweep job runs. " +
+      s"Controls scheduling only -- each cycle scans for orphaned lock files left by prior task instances. " +
+      s"Only effective when the sweep is enabled via ${GC_SWEEP_ENABLED}."
   private val GC_SWEEP_INTERVAL_SECONDS_DEFAULT = IndexManagerV2.DefaultGcSweepIntervalSeconds
 
-  val GC_SWEEP_AGE_SECONDS = s"$connectorPrefix.indexes.gc.sweep.age.seconds"
-  private val GC_SWEEP_AGE_SECONDS_DOC =
-    s"Recency filter for the orphan sweep: lock files whose lastModified timestamp is newer than this threshold " +
-      s"(in seconds) are skipped without a GET read, reducing API cost. " +
-      s"Should be at least as large as the sweep interval to avoid sweeping files created since the last sweep."
-  private val GC_SWEEP_AGE_SECONDS_DEFAULT = IndexManagerV2.DefaultGcSweepAgeSeconds
+  val GC_SWEEP_MIN_AGE_SECONDS = s"$connectorPrefix.indexes.gc.sweep.min.age.seconds"
+  private val GC_SWEEP_MIN_AGE_SECONDS_DOC =
+    s"Minimum age (in seconds) a lock file must have before the sweep considers it for deletion. " +
+      s"Files whose lastModified is more recent than this are skipped without a GET read, reducing API cost. " +
+      s"Should be >= the sweep interval to avoid examining files created since the last sweep."
+  private val GC_SWEEP_MIN_AGE_SECONDS_DEFAULT = IndexManagerV2.DefaultGcSweepMinAgeSeconds
 
   val GC_SWEEP_MAX_READS = s"$connectorPrefix.indexes.gc.sweep.max.reads"
   private val GC_SWEEP_MAX_READS_DOC =
@@ -125,16 +125,16 @@ trait IndexConfigKeys extends WithConnectorPrefix {
         ENABLE_EXACTLY_ONCE,
       )
       .define(
-        MAX_GRANULAR_CACHE_SIZE,
+        MAX_WRITERS,
         Type.INT,
-        MAX_GRANULAR_CACHE_SIZE_DEFAULT,
+        MAX_WRITERS_DEFAULT,
         ConfigDef.Range.atLeast(1),
         Importance.LOW,
-        MAX_GRANULAR_CACHE_SIZE_DOC,
+        MAX_WRITERS_DOC,
         "Sink Seek",
         4,
         ConfigDef.Width.LONG,
-        MAX_GRANULAR_CACHE_SIZE,
+        MAX_WRITERS,
       )
       .define(
         GC_INTERVAL_SECONDS,
@@ -184,16 +184,16 @@ trait IndexConfigKeys extends WithConnectorPrefix {
         GC_SWEEP_INTERVAL_SECONDS,
       )
       .define(
-        GC_SWEEP_AGE_SECONDS,
+        GC_SWEEP_MIN_AGE_SECONDS,
         Type.INT,
-        GC_SWEEP_AGE_SECONDS_DEFAULT,
+        GC_SWEEP_MIN_AGE_SECONDS_DEFAULT,
         ConfigDef.Range.atLeast(1),
         Importance.LOW,
-        GC_SWEEP_AGE_SECONDS_DOC,
+        GC_SWEEP_MIN_AGE_SECONDS_DOC,
         "Sink Seek",
         9,
         ConfigDef.Width.LONG,
-        GC_SWEEP_AGE_SECONDS,
+        GC_SWEEP_MIN_AGE_SECONDS,
       )
       .define(
         GC_SWEEP_MAX_READS,
@@ -214,12 +214,12 @@ trait IndexSettings extends BaseSettings with IndexConfigKeys {
       IndexOptions(
         getInt(SEEK_MAX_INDEX_FILES),
         getString(INDEXES_DIRECTORY_NAME),
-        getInt(MAX_GRANULAR_CACHE_SIZE),
+        getInt(MAX_WRITERS),
         getInt(GC_INTERVAL_SECONDS),
         getInt(GC_BATCH_SIZE),
         getBoolean(GC_SWEEP_ENABLED),
         getInt(GC_SWEEP_INTERVAL_SECONDS),
-        getInt(GC_SWEEP_AGE_SECONDS),
+        getInt(GC_SWEEP_MIN_AGE_SECONDS),
         getInt(GC_SWEEP_MAX_READS),
       ),
     )

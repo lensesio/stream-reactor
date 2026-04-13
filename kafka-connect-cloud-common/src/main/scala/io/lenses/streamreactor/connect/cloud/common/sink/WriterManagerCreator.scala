@@ -143,7 +143,7 @@ class WriterManagerCreator[MD <: FileMetadata, SC <: CloudSinkConfig[_]] extends
         io.gcBatchSize,
         io.gcSweepEnabled,
         io.gcSweepIntervalSeconds,
-        io.gcSweepAgeSeconds,
+        io.gcSweepMinAgeSeconds,
         io.gcSweepMaxReads,
         metrics,
       ),
@@ -151,7 +151,7 @@ class WriterManagerCreator[MD <: FileMetadata, SC <: CloudSinkConfig[_]] extends
 
     val transformers = TopicsTransformers.from(config.bucketOptions)
 
-    val maxWriters = config.indexOptions.map(_.maxGranularCacheSize).getOrElse(WriterManager.DefaultMaxWriters)
+    val maxWriters = config.indexOptions.map(_.maxWriters).getOrElse(WriterManager.DefaultMaxWriters)
 
     val writerManager = new WriterManager[MD](
       commitPolicyFn,

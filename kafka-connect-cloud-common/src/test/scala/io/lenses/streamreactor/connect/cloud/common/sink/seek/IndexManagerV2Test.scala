@@ -760,6 +760,19 @@ class IndexManagerV2Test
   test("sanitize is collision-resistant") {
     import io.lenses.streamreactor.connect.cloud.common.sink.writer.WriterManager
     WriterManager.sanitize("a/b") should not be WriterManager.sanitize("a_b")
+    WriterManager.sanitize("x_y") should not be WriterManager.sanitize("x") + "_" + WriterManager.sanitize("y")
+  }
+
+  test("derivePartitionKey is collision-resistant for underscores in values and field names") {
+    import io.lenses.streamreactor.connect.cloud.common.sink.writer.WriterManager
+    import io.lenses.streamreactor.connect.cloud.common.sink.config.PartitionNamePath
+    import io.lenses.streamreactor.connect.cloud.common.sink.config.ValuePartitionField
+    val fieldA  = ValuePartitionField(PartitionNamePath("a"))
+    val fieldZ  = ValuePartitionField(PartitionNamePath("z"))
+    val fieldYZ = ValuePartitionField(PartitionNamePath("y_z"))
+    val key1    = WriterManager.derivePartitionKey(Map(fieldA -> "x_y", fieldZ -> "1"))
+    val key2    = WriterManager.derivePartitionKey(Map(fieldA -> "x", fieldYZ -> "1"))
+    key1 should not be key2
   }
 
   test("partitionKey derivation sorts by field name") {
@@ -1760,6 +1773,57 @@ class IndexManagerV2Test
     )
   }
 
+  test("close() drains GC queue even when evictAllGranularLocks was called first (real shutdown sequence)") {
+    val tp              = Topic("topic1").withPartition(0)
+    val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
+
+    val si = mock[StorageInterface[_]]
+    when(bucketAndPrefixFn(any[TopicPartition])).thenReturn(Right(bucketAndPrefix))
+    when(si.pathExists(anyString(), anyString())).thenReturn(Right(false))
+    when(si.getBlobAsObject[IndexFile](anyString(), anyString())(ArgumentMatchers.eq(indexFileDecoder)))
+      .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(100)), None), "master-etag")))
+    when(si.deleteFiles(anyString(), any[Seq[String]])).thenReturn(Right(()))
+
+    val im = new IndexManagerV2(
+      bucketAndPrefixFn,
+      oldIndexManager,
+      pendingOperationsProcessors,
+      indexesDirectoryName,
+      gcIntervalSeconds = Int.MaxValue,
+    )(si, connectorTaskId)
+
+    im.open(Set(tp))
+
+    when(
+      si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/pk-old.lock"))(
+        ArgumentMatchers.eq(indexFileDecoder),
+      ),
+    )
+      .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(50)), None), "etag-old")))
+    im.getSeekedOffsetForPartitionKey(tp, "pk-old") shouldBe Right(Some(Offset(50)))
+
+    when(
+      si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/pk-active.lock"))(
+        ArgumentMatchers.eq(indexFileDecoder),
+      ),
+    )
+      .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(200)), None), "etag-active")))
+    im.getSeekedOffsetForPartitionKey(tp, "pk-active") shouldBe Right(Some(Offset(200)))
+
+    im.cleanUpObsoleteLocks(tp, Offset(100), Set("pk-active")) shouldBe Right(())
+
+    // Simulate WriterManager.close(): evict granular caches but do NOT clear seekedOffsets.
+    // Before the fix, WriterManager.close() also called clearTopicPartitionState here,
+    // which removed seekedOffsets entries and caused drainGcQueue to discard everything.
+    im.evictAllGranularLocks(tp)
+
+    im.close()
+
+    verify(si).deleteFiles(ArgumentMatchers.eq("bucket"),
+                           ArgumentMatchers.argThat[Seq[String]](_.exists(_.contains("pk-old"))),
+    )
+  }
+
   // --- loadGranularLock PendingState tests ---
 
   test(
@@ -2028,7 +2092,7 @@ class IndexManagerV2Test
     si:                     StorageInterface[_],
     gcSweepEnabled:         Boolean = true,
     gcSweepIntervalSeconds: Int     = 86400,
-    gcSweepAgeSeconds:      Int     = 3600,
+    gcSweepMinAgeSeconds:   Int     = 3600,
     gcSweepMaxReads:        Int     = 1000,
   ): IndexManagerV2 =
     new IndexManagerV2(
@@ -2039,7 +2103,7 @@ class IndexManagerV2Test
       gcIntervalSeconds      = Int.MaxValue,
       gcSweepEnabled         = gcSweepEnabled,
       gcSweepIntervalSeconds = gcSweepIntervalSeconds,
-      gcSweepAgeSeconds      = gcSweepAgeSeconds,
+      gcSweepMinAgeSeconds   = gcSweepMinAgeSeconds,
       gcSweepMaxReads        = gcSweepMaxReads,
     )(si, connectorTaskId)
 
@@ -2100,7 +2164,7 @@ class IndexManagerV2Test
     } finally im.close()
   }
 
-  test("sweep skips files younger than gcSweepAgeSeconds") {
+  test("sweep skips files younger than gcSweepMinAgeSeconds") {
     val tp              = Topic("topic1").withPartition(0)
     val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
     val si              = mock[StorageInterface[_]]
@@ -2115,7 +2179,7 @@ class IndexManagerV2Test
                                                                                            any[Option[String]],
     )
 
-    val im = createSweepTestManager(si, gcSweepAgeSeconds = 3600)
+    val im = createSweepTestManager(si, gcSweepMinAgeSeconds = 3600)
     try {
       im.open(Set(tp))
       im.sweepOrphanedLocks()

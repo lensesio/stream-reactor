@@ -21,11 +21,11 @@ import io.lenses.streamreactor.connect.cloud.common.sink.writer.WriterManager
 case class IndexOptions(
   maxIndexFiles:          Int,
   indexesDirectoryName:   String,
-  maxGranularCacheSize:   Int     = WriterManager.DefaultMaxWriters,
+  maxWriters:             Int     = WriterManager.DefaultMaxWriters,
   gcIntervalSeconds:      Int     = IndexManagerV2.DefaultGcIntervalSeconds,
   gcBatchSize:            Int     = IndexManagerV2.DefaultGcBatchSize,
   gcSweepEnabled:         Boolean = IndexManagerV2.DefaultGcSweepEnabled,
   gcSweepIntervalSeconds: Int     = IndexManagerV2.DefaultGcSweepIntervalSeconds,
-  gcSweepAgeSeconds:      Int     = IndexManagerV2.DefaultGcSweepAgeSeconds,
+  gcSweepMinAgeSeconds:   Int     = IndexManagerV2.DefaultGcSweepMinAgeSeconds,
   gcSweepMaxReads:        Int     = IndexManagerV2.DefaultGcSweepMaxReads,
 )

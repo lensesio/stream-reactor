@@ -30,13 +30,13 @@ object CloudSinkMetricsRegistrar {
 
   def register(metrics: CloudSinkMetricsMBean, connectorTaskId: ConnectorTaskId): Unit = {
     val mbs: MBeanServer = ManagementFactory.getPlatformMBeanServer
-    val name             = objectName(connectorTaskId)
+    val name = objectName(connectorTaskId)
     registerWithRetry(mbs, metrics, name)
   }
 
   def unregister(connectorTaskId: ConnectorTaskId): Unit = {
     val mbs: MBeanServer = ManagementFactory.getPlatformMBeanServer
-    val name             = objectName(connectorTaskId)
+    val name = objectName(connectorTaskId)
     if (mbs.isRegistered(name)) {
       mbs.unregisterMBean(name)
     }

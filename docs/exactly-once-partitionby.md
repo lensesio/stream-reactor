@@ -144,7 +144,7 @@ PARTITIONBY _value.date, _value.hour
 → partitionKey = "date=2024-01-01_hour=12"
 ```
 
-The structural `=` between field name and value is a literal character. URL encoding applies to the field name and value independently, so any `=` appearing *within* a data value is encoded as `%3D` (e.g., a value of `a=b` becomes `a%3Db`). Simple alphanumeric values and hyphens pass through unencoded.
+The structural `=` between field name and value is a literal character. URL encoding applies to the field name and value independently, so any `=` appearing *within* a data value is encoded as `%3D` (e.g., a value of `a=b` becomes `a%3Db`). Underscores are encoded as `%5F` because `_` is used as the separator between field-value pairs — without this encoding, distinct partition value combinations containing underscores could produce identical keys (e.g., fields `{"a" → "x_y", "z" → "1"}` and `{"a" → "x", "y_z" → "1"}` would both produce `a=x_y_z=1`). Simple alphanumeric values and hyphens (excluding underscores) pass through unencoded.
 
 ### How duplication is prevented
 
@@ -258,7 +258,7 @@ Partial batches (fewer items than `gcBatchSize`) are deleted normally -- the bat
 
 #### Task shutdown
 
-When the connector task is stopped (`CloudSinkTask.stop()`), `indexManager.close()` is called. This shuts down the `ScheduledExecutorService` and performs a final synchronous drain of any remaining items in `gcQueue`, ensuring that lock files identified for deletion during the last `preCommit` cycle are cleaned up before the task exits.
+When the connector task is stopped (`CloudSinkTask.stop()`), `WriterManager.close()` is called first. This closes all writers and evicts granular lock cache entries via `evictAllGranularLocks`, but deliberately does **not** call `clearTopicPartitionState`. The `seekedOffsets` map must remain populated so that the subsequent `indexManager.close()` -- which shuts down the `ScheduledExecutorService` and performs a final synchronous drain of any remaining items in `gcQueue` -- can distinguish items that belong to this task from items for revoked partitions. If `seekedOffsets` were cleared before the drain, every queued GC item would be discarded as "partition no longer owned," and the documented final-drain cleanup would never delete anything. The `indexManager` reference (along with its internal state) is set to `null` immediately after `close()` returns and is garbage-collected.
 
 #### Orphaned lock sweep
 
@@ -270,7 +270,7 @@ To address this, a **periodic orphan sweep** runs on a separate `ScheduledExecut
 
 **Filtering**: For each owned `TopicPartition`, the sweep calls `listFileMetaRecursive` to enumerate lock files, then applies:
 
-1. **Recency filter**: Files with `lastModified` newer than `gcSweepAgeSeconds` are skipped without a GET read (configured via `connect.<prefix>.indexes.gc.sweep.age.seconds`, default 86400 = 24h).
+1. **Recency filter**: Files with `lastModified` newer than `gcSweepMinAgeSeconds` are skipped without a GET read (configured via `connect.<prefix>.indexes.gc.sweep.min.age.seconds`, default 86400 = 24h).
 2. **Cache exclusion**: Files whose partition key is already in `granularCache` are skipped (already tracked by regular GC).
 3. **GET cap**: A global budget of `gcSweepMaxReads` GET requests per sweep cycle across all partitions (configured via `connect.<prefix>.indexes.gc.sweep.max.reads`, default 1000). When exhausted, remaining partitions are deferred to the next cycle.
 4. **Offset comparison**: The lock file is read and its `committedOffset` is compared against the master lock offset (`seekedOffsets.get(tp)`). Only lock files with `committedOffset < masterLockOffset` are enqueued as orphans.
@@ -281,7 +281,7 @@ Lock files with no `committedOffset` (freshly created) are skipped. Partitions w
 
 - `connect.<prefix>.indexes.gc.sweep.enabled` -- enable or disable the orphan sweep (default `true`).
 - `connect.<prefix>.indexes.gc.sweep.interval.seconds` -- interval between sweep runs (default 86400 = 24h).
-- `connect.<prefix>.indexes.gc.sweep.age.seconds` -- recency filter threshold (default 86400 = 24h).
+- `connect.<prefix>.indexes.gc.sweep.min.age.seconds` -- minimum age (in seconds) a lock file must have before the sweep considers it for deletion (default 86400 = 24h).
 - `connect.<prefix>.indexes.gc.sweep.max.reads` -- per-cycle GET cap across all partitions (default 1000).
 
 **Exactly-once safety**: The sweep preserves exactly-once guarantees because (a) only lock files with `committedOffset` strictly below the master lock offset are enqueued, meaning their data has already been committed; (b) `drainGcQueue` checks `granularCache.containsKey` before deleting, protecting any file reclaimed by a new writer; (c) if a deleted lock is later needed by a new writer, `ensureGranularLock` recreates it and the writer falls back to the master lock offset for deduplication; and (d) the sweep never writes to lock files, so writers' eTags are unaffected.
@@ -355,7 +355,7 @@ Without eviction, the `writers` map in `WriterManager` grows without bound. Writ
 
 **How it works**
 
-`WriterManager` has a `maxWriters` parameter (default `10,000`, configured via `connect.<prefix>.indexes.max.cache.size`). When a new writer is created and the map exceeds this threshold, an eviction sweep runs:
+`WriterManager` has a `maxWriters` parameter (default `10,000`, configured via `connect.<prefix>.indexes.max.writers`). When a new writer is created and the map exceeds this threshold, an eviction sweep runs:
 
 1. The sweep iterates the writers map looking for idle writers (`NoWriter` state).
 2. Up to `writers.size - maxWriters` idle writers are evicted.
@@ -442,7 +442,7 @@ This constraint also applies when the same connector name is reused across envir
 
 Each active `Writer` holds a `FormatWriter` (typically 1-10 MB of heap for Parquet/Avro page buffers and dictionary encoders), an open `java.io.File` handle (one file descriptor), and commit-state metadata. Under high-cardinality `PARTITIONBY` (e.g. partitioning by `user_id` or `session_id` with millions of unique values), the connector creates a `Writer` per unique value.
 
-**Mitigation**: `WriterManager` implements idle-writer eviction bounded by `maxWriters` (default `10,000`, configured via `connect.<prefix>.indexes.max.cache.size`). When a new writer is created and the total count exceeds the threshold, writers in `NoWriter` state (committed, no buffered data) are evicted. Their `close()` is called, releasing the `FormatWriter` heap and file descriptor. The granular cache entry is deliberately **not** evicted -- it is left in the cache so that `cleanUpObsoleteLocks` can detect it as obsolete on the next `preCommit`. Writers in `Writing` or `Uploading` state are pinned and never evicted, so the map may temporarily exceed `maxWriters` during high-cardinality bursts where all writers are actively buffering. See "Idle writer eviction" under "Lifecycle" for full details.
+**Mitigation**: `WriterManager` implements idle-writer eviction bounded by `maxWriters` (default `10,000`, configured via `connect.<prefix>.indexes.max.writers`). When a new writer is created and the total count exceeds the threshold, writers in `NoWriter` state (committed, no buffered data) are evicted. Their `close()` is called, releasing the `FormatWriter` heap and file descriptor. The granular cache entry is deliberately **not** evicted -- it is left in the cache so that `cleanUpObsoleteLocks` can detect it as obsolete on the next `preCommit`. Writers in `Writing` or `Uploading` state are pinned and never evicted, so the map may temporarily exceed `maxWriters` during high-cardinality bursts where all writers are actively buffering. See "Idle writer eviction" under "Lifecycle" for full details.
 
 Note that eviction only applies to idle writers. If the workload simultaneously maintains a very large number of *active* writers (all in `Writing` state), the map grows without bound. This is an inherent constraint: active writers hold buffered data that cannot be discarded without data loss. Operators with such workloads must size heap and `ulimit -n` accordingly.
 
@@ -460,7 +460,7 @@ Note that eviction only applies to idle writers. If the workload simultaneously 
 |----------|---------|-------------|
 | `connect.<prefix>.indexes.gc.sweep.enabled` | `true` | Enable or disable the orphan sweep. |
 | `connect.<prefix>.indexes.gc.sweep.interval.seconds` | `86400` (24h) | Interval between sweep runs. Only effective when the sweep is enabled. |
-| `connect.<prefix>.indexes.gc.sweep.age.seconds` | `86400` (24h) | Recency filter: lock files younger than this threshold are skipped without a GET read. Should be at least as large as the sweep interval. |
+| `connect.<prefix>.indexes.gc.sweep.min.age.seconds` | `86400` (24h) | Minimum age a lock file must have before the sweep considers it for deletion. Files younger than this are skipped without a GET read. Should be >= the sweep interval. |
 | `connect.<prefix>.indexes.gc.sweep.max.reads` | `1000` | Per-cycle GET cap across all partitions. When exhausted, remaining partitions are deferred to the next cycle. |
 
 See "Orphaned lock sweep" under "Garbage collection" for the full sweep architecture, filtering logic, and exactly-once safety analysis.
@@ -473,7 +473,7 @@ See "Orphaned lock sweep" under "Garbage collection" for the full sweep architec
 
 Previously, the granular lock cache used a bounded `LinkedHashMap` with automatic LRU eviction. When the number of active partition keys exceeded the configured cache size, the cache silently evicted entries for active writers. On next flush, the writer detected the missing eTag and raised a `FatalCloudSinkError`, crashing a healthy task.
 
-**Resolution**: The granular cache is now an unbounded `ConcurrentHashMap` with no automatic eviction. Entries are added when writers are created and removed by `cleanUpObsoleteLocks` (GC enqueue), `evictAllGranularLocks` (shutdown/rebalance), or explicit `evictGranularLock` calls. `Writer.close()` deliberately does **not** evict cache entries, allowing `cleanUpObsoleteLocks` to detect obsolete keys. The `connect.<prefix>.indexes.max.cache.size` config controls the idle-writer eviction threshold in `WriterManager` (via `maxWriters`) rather than a hard cache cap. See "Lazy loading and in-memory cache" and "Idle writer eviction" under "Lifecycle" for full details.
+**Resolution**: The granular cache is now an unbounded `ConcurrentHashMap` with no automatic eviction. Entries are added when writers are created and removed by `cleanUpObsoleteLocks` (GC enqueue), `evictAllGranularLocks` (shutdown/rebalance), or explicit `evictGranularLock` calls. `Writer.close()` deliberately does **not** evict cache entries, allowing `cleanUpObsoleteLocks` to detect obsolete keys. The `connect.<prefix>.indexes.max.writers` config controls the idle-writer eviction threshold in `WriterManager` (via `maxWriters`) rather than a hard cache cap. See "Lazy loading and in-memory cache" and "Idle writer eviction" under "Lifecycle" for full details.
 
 ### Lazy-load burst at startup (Medium)
 

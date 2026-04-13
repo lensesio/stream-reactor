@@ -26,7 +26,7 @@ import javax.management.ObjectName
 class CloudSinkMetricsTest extends AnyFunSuiteLike with Matchers with BeforeAndAfterEach {
 
   private val maxWriters = 5000
-  private var metrics:    CloudSinkMetrics = _
+  private var metrics: CloudSinkMetrics = _
 
   override def beforeEach(): Unit = {
     metrics = new CloudSinkMetrics(maxWriters)

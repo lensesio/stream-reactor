@@ -77,7 +77,7 @@ class IndexManagerV2(
   gcBatchSize:                 Int              = IndexManagerV2.DefaultGcBatchSize,
   gcSweepEnabled:              Boolean          = IndexManagerV2.DefaultGcSweepEnabled,
   gcSweepIntervalSeconds:      Int              = IndexManagerV2.DefaultGcSweepIntervalSeconds,
-  gcSweepAgeSeconds:           Int              = IndexManagerV2.DefaultGcSweepAgeSeconds,
+  gcSweepMinAgeSeconds:        Int              = IndexManagerV2.DefaultGcSweepMinAgeSeconds,
   gcSweepMaxReads:             Int              = IndexManagerV2.DefaultGcSweepMaxReads,
   metrics:                     CloudSinkMetrics = new CloudSinkMetrics(0),
 )(
@@ -794,7 +794,7 @@ class IndexManagerV2(
       var totalEnqueued  = 0
       var tpsScanned     = 0
       var tpsSkipped     = 0
-      val ageThreshold   = Instant.now().minusSeconds(gcSweepAgeSeconds.toLong)
+      val ageThreshold   = Instant.now().minusSeconds(gcSweepMinAgeSeconds.toLong)
       val now            = System.currentTimeMillis()
 
       for (tp <- Random.shuffle(seekedOffsets.keys.toList) if readsRemaining > 0) {
@@ -992,7 +992,7 @@ object IndexManagerV2 {
   val DefaultGcBatchSize:            Int     = 1000
   val DefaultGcSweepEnabled:         Boolean = true
   val DefaultGcSweepIntervalSeconds: Int     = 86400
-  val DefaultGcSweepAgeSeconds:      Int     = 86400
+  val DefaultGcSweepMinAgeSeconds:   Int     = 86400
   val DefaultGcSweepMaxReads:        Int     = 1000
 
   /**
