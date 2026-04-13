@@ -457,11 +457,9 @@ class WriterManagerPreCommitTest
 
   // --- non-PARTITIONBY writers have empty partitionValues, producing no partition key ---
 
-  test("preCommit works with non-PARTITIONBY writers (empty partitionValues)") {
+  test("preCommit skips updateMasterLock for non-PARTITIONBY writers (empty partitionValues)") {
     val indexManager = mock[IndexManager]
     when(indexManager.getSeekedOffsetForTopicPartition(tp0)).thenReturn(None)
-    when(indexManager.updateMasterLock(any[TopicPartition], any[Offset])).thenReturn(Right(()))
-    when(indexManager.cleanUpObsoleteLocks(any[TopicPartition], any[Offset], any[Set[String]])).thenReturn(Right(()))
 
     val wm = buildWriterManager(indexManager)
     val emptyPartitionValues: immutable.Map[PartitionField, String] = Map.empty
@@ -472,10 +470,33 @@ class WriterManagerPreCommitTest
     result should contain key tp0
     result(tp0).offset() shouldBe 51L
 
-    import org.mockito.ArgumentCaptor
-    val activeKeysCaptor = ArgumentCaptor.forClass(classOf[Set[String]])
-    verify(indexManager).cleanUpObsoleteLocks(any[TopicPartition], any[Offset], activeKeysCaptor.capture())
-    activeKeysCaptor.getValue shouldBe empty
+    verify(indexManager, never).updateMasterLock(any[TopicPartition], any[Offset])
+    verify(indexManager, never).cleanUpObsoleteLocks(any[TopicPartition], any[Offset], any[Set[String]])
+  }
+
+  test("preCommit maintains high watermark correctly for non-PARTITIONBY writers across cycles") {
+    val indexManager = mock[IndexManager]
+    when(indexManager.getSeekedOffsetForTopicPartition(tp0)).thenReturn(None)
+
+    val wm = buildWriterManager(indexManager)
+    val emptyPartitionValues: immutable.Map[PartitionField, String] = Map.empty
+
+    val writer1 = writerInNoWriterState(tp0, Some(Offset(50)))
+    wm.putWriter(MapKey(tp0, emptyPartitionValues), writer1)
+
+    val result1 = wm.preCommit(currentOffsets(tp0, 200))
+    result1(tp0).offset() shouldBe 51L
+
+    // Replace with a writer that has a lower committed offset (simulates eviction + re-creation
+    // without cleanUp). High watermark should prevent regression.
+    writer1.close()
+    val writer2 = writerInNoWriterState(tp0, Some(Offset(30)))
+    wm.putWriter(MapKey(tp0, emptyPartitionValues), writer2)
+
+    val result2 = wm.preCommit(currentOffsets(tp0, 200))
+    result2(tp0).offset() shouldBe 51L // high watermark prevents regression
+
+    verify(indexManager, never).updateMasterLock(any[TopicPartition], any[Offset])
   }
 
   // --- evictIdleWritersIfNeeded ---

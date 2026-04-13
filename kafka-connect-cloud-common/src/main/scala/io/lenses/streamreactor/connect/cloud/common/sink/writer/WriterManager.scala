@@ -270,30 +270,40 @@ class WriterManager[SM <: FileMetadata](
     )
     val globalSafeOffset = math.max(calculatedSafeOffset, previousHighWatermark)
 
-    indexManager.updateMasterLock(topicPartition, Offset(globalSafeOffset)) match {
-      case Left(err) =>
-        metrics.incrementMasterLockFailures()
-        logger.error(
-          s"[${connectorTaskId.show}] Master lock update failed for $topicPartition: ${err.message()}. " +
-            s"Returning no offset to prevent consumer advance.",
-        )
-        return None
-      case Right(_) =>
-        metrics.incrementMasterLockUpdates()
-        safeOffsetHighWatermarks.put(topicPartition, globalSafeOffset)
-        logger.debug(
-          s"[${connectorTaskId.show}] Updated master lock for $topicPartition with globalSafeOffset=$globalSafeOffset",
-        )
-        val activePartitionKeys: Set[String] = writers
-          .filter { case (key, _) => key.topicPartition == topicPartition }
-          .keys
-          .flatMap(key => WriterManager.derivePartitionKey(key.partitionValues))
-          .toSet
-        indexManager.cleanUpObsoleteLocks(topicPartition, Offset(globalSafeOffset), activePartitionKeys) match {
-          case Left(err) =>
-            logger.warn(s"[${connectorTaskId.show}] Best-effort GC failed for $topicPartition: ${err.message()}")
-          case Right(_) =>
-        }
+    val hasPartitionByWriters =
+      writers.keys.exists(k => k.topicPartition == topicPartition && k.partitionValues.nonEmpty)
+
+    if (hasPartitionByWriters) {
+      // PARTITIONBY mode: writers update granular locks, so the master lock needs a separate write.
+      indexManager.updateMasterLock(topicPartition, Offset(globalSafeOffset)) match {
+        case Left(err) =>
+          metrics.incrementMasterLockFailures()
+          logger.error(
+            s"[${connectorTaskId.show}] Master lock update failed for $topicPartition: ${err.message()}. " +
+              s"Returning no offset to prevent consumer advance.",
+          )
+          return None
+        case Right(_) =>
+          metrics.incrementMasterLockUpdates()
+          safeOffsetHighWatermarks.put(topicPartition, globalSafeOffset)
+          logger.debug(
+            s"[${connectorTaskId.show}] Updated master lock for $topicPartition with globalSafeOffset=$globalSafeOffset",
+          )
+          val activePartitionKeys: Set[String] = writers
+            .filter { case (key, _) => key.topicPartition == topicPartition }
+            .keys
+            .flatMap(key => WriterManager.derivePartitionKey(key.partitionValues))
+            .toSet
+          indexManager.cleanUpObsoleteLocks(topicPartition, Offset(globalSafeOffset), activePartitionKeys) match {
+            case Left(err) =>
+              logger.warn(s"[${connectorTaskId.show}] Best-effort GC failed for $topicPartition: ${err.message()}")
+            case Right(_) =>
+          }
+      }
+    } else {
+      // Non-PARTITIONBY mode: Writer.commit() already maintains the master lock via
+      // indexManager.update(), so skip the redundant cloud write.
+      safeOffsetHighWatermarks.put(topicPartition, globalSafeOffset)
     }
 
     Some(new OffsetAndMetadata(
