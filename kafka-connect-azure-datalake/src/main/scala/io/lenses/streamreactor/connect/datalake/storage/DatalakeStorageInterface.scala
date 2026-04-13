@@ -126,7 +126,7 @@ class DatalakeStorageInterface(connectorTaskId: ConnectorTaskId, client: DataLak
   ): Either[FileListError, Option[ListOfMetadataResponse[DatalakeFileMetadata]]] =
     Try {
       val bucketClient     = client.getFileSystemClient(bucket)
-      val listPathsOptions = new ListPathsOptions()
+      val listPathsOptions = new ListPathsOptions().setRecursive(true)
       prefix.foreach(listPathsOptions.setPath)
       val iter    = bucketClient.listPaths(listPathsOptions, null)
       val results = DatalakePageIterableAdaptor.getResults(iter)
@@ -136,7 +136,7 @@ class DatalakeStorageInterface(connectorTaskId: ConnectorTaskId, client: DataLak
         results.map(pi => DatalakeFileMetadata(pi.getName, pi.getLastModified.toInstant, None)),
       )
     }.toEither.recover {
-      case ex: DataLakeStorageException if ex.getStatusCode.toString.startsWith("4") =>
+      case ex: DataLakeStorageException if ex.getStatusCode == 404 =>
         Option.empty
     }.leftMap {
       ex: Throwable => FileListError(ex, bucket, prefix)
@@ -148,7 +148,7 @@ class DatalakeStorageInterface(connectorTaskId: ConnectorTaskId, client: DataLak
   ): Either[FileListError, Option[ListOfKeysResponse[DatalakeFileMetadata]]] =
     Try {
       val bucketClient     = client.getFileSystemClient(bucket)
-      val listPathsOptions = new ListPathsOptions()
+      val listPathsOptions = new ListPathsOptions().setRecursive(true)
       prefix.foreach(listPathsOptions.setPath)
       val iter = bucketClient.listPaths(listPathsOptions, null)
 
@@ -156,7 +156,7 @@ class DatalakeStorageInterface(connectorTaskId: ConnectorTaskId, client: DataLak
       toListOfKeys(bucket, prefix, none, results)
     }
       .toEither.recover {
-        case ex: DataLakeStorageException if ex.getStatusCode.toString.startsWith("4") =>
+        case ex: DataLakeStorageException if ex.getStatusCode == 404 =>
           Option.empty
       }.leftMap {
         ex: Throwable => FileListError(ex, bucket, prefix)

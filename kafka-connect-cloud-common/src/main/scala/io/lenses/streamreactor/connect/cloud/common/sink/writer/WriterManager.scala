@@ -245,29 +245,35 @@ class WriterManager[SM <: FileMetadata](
 
     if (committedOffsets.isEmpty) return None
 
-    val calculatedSafeOffset = if (firstBufferedOffsets.nonEmpty) {
-      val minFirstBuffered = firstBufferedOffsets.map(_.value).min
-      val maxCommittedPlus1 = committedOffsets.map(_.value).max + 1
-      math.min(minFirstBuffered, maxCommittedPlus1)
-    } else {
-      committedOffsets.map(_.value).max + 1
-    }
+    val calculatedSafeOffset =
+      if (firstBufferedOffsets.nonEmpty) {
+        val minFirstBuffered  = firstBufferedOffsets.map(_.value).min
+        val maxCommittedPlus1 = committedOffsets.map(_.value).max + 1
+        math.min(minFirstBuffered, maxCommittedPlus1)
+      } else {
+        committedOffsets.map(_.value).max + 1
+      }
 
-    val previousHighWatermark = safeOffsetHighWatermarks.getOrElseUpdate(topicPartition,
+    val previousHighWatermark = safeOffsetHighWatermarks.getOrElseUpdate(
+      topicPartition,
       indexManager.getSeekedOffsetForTopicPartition(topicPartition)
         .map(_.value + 1)
         .getOrElse(0L),
     )
-    val globalSafeOffset      = math.max(calculatedSafeOffset, previousHighWatermark)
+    val globalSafeOffset = math.max(calculatedSafeOffset, previousHighWatermark)
 
     indexManager.updateMasterLock(topicPartition, Offset(globalSafeOffset)) match {
       case Left(err) =>
-        logger.error(s"[${connectorTaskId.show}] Master lock update failed for $topicPartition: ${err.message()}. " +
-          s"Returning no offset to prevent consumer advance.")
+        logger.error(
+          s"[${connectorTaskId.show}] Master lock update failed for $topicPartition: ${err.message()}. " +
+            s"Returning no offset to prevent consumer advance.",
+        )
         return None
       case Right(_) =>
         safeOffsetHighWatermarks.put(topicPartition, globalSafeOffset)
-        logger.debug(s"[${connectorTaskId.show}] Updated master lock for $topicPartition with globalSafeOffset=$globalSafeOffset")
+        logger.debug(
+          s"[${connectorTaskId.show}] Updated master lock for $topicPartition with globalSafeOffset=$globalSafeOffset",
+        )
         val activePartitionKeys: Set[String] = writers
           .filter { case (key, _) => key.topicPartition == topicPartition }
           .keys
@@ -311,7 +317,9 @@ class WriterManager[SM <: FileMetadata](
       .take(writers.size - maxWriters + 1)
       .toList
     if (idleEntries.nonEmpty) {
-      logger.debug(s"[${connectorTaskId.show}] Evicting ${idleEntries.size} idle writer(s) (map size ${writers.size} exceeds maxWriters $maxWriters)")
+      logger.debug(
+        s"[${connectorTaskId.show}] Evicting ${idleEntries.size} idle writer(s) (map size ${writers.size} exceeds maxWriters $maxWriters)",
+      )
     }
     idleEntries.foreach { case (key, writer) =>
       writer.close()

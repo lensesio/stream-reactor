@@ -56,20 +56,20 @@ class WriterManagerPreCommitTest
     with ArgumentMatchersSugar
     with BeforeAndAfter {
 
-  private implicit val connectorTaskId:       ConnectorTaskId      = ConnectorTaskId("test-connector", 1, 1)
+  private implicit val connectorTaskId:        ConnectorTaskId        = ConnectorTaskId("test-connector", 1, 1)
   private implicit val cloudLocationValidator: CloudLocationValidator = SampleData.cloudLocationValidator
 
   private val tp0 = Topic("topic").withPartition(0)
 
-  private val dateField: PartitionField = ValuePartitionField(PartitionNamePath("date"))
-  private val dateA: immutable.Map[PartitionField, String] = Map(dateField -> "2024-01-01")
-  private val dateB: immutable.Map[PartitionField, String] = Map(dateField -> "2024-01-02")
+  private val dateField: PartitionField                        = ValuePartitionField(PartitionNamePath("date"))
+  private val dateA:     immutable.Map[PartitionField, String] = Map(dateField -> "2024-01-01")
+  private val dateB:     immutable.Map[PartitionField, String] = Map(dateField -> "2024-01-02")
 
-  private val commitPolicy          = mock[CommitPolicy]
-  private val formatWriter          = mock[FormatWriter]
-  private val objectKeyBuilder      = mock[ObjectKeyBuilder]
-  private val schemaChangeDetector  = mock[SchemaChangeDetector]
-  private val pendingOpsProcessors  = mock[PendingOperationsProcessors]
+  private val commitPolicy         = mock[CommitPolicy]
+  private val formatWriter         = mock[FormatWriter]
+  private val objectKeyBuilder     = mock[ObjectKeyBuilder]
+  private val schemaChangeDetector = mock[SchemaChangeDetector]
+  private val pendingOpsProcessors = mock[PendingOperationsProcessors]
 
   private def makeWriter(
     tp:              TopicPartition,
@@ -122,18 +122,18 @@ class WriterManagerPreCommitTest
 
   private def buildWriterManager(indexManager: IndexManager, maxWriters: Int = 10000): WriterManager[FileMetadata] =
     new WriterManager[FileMetadata](
-      commitPolicyFn          = _ => Right(commitPolicy),
-      bucketAndPrefixFn       = _ => Right(CloudLocation("bucket", None)),
-      keyNamerFn              = _ => Right(mock[KeyNamer]),
-      stagingFilenameFn       = (_, _) => Right(new File("test")),
-      objKeyBuilderFn         = (_, _) => objectKeyBuilder,
-      formatWriterFn          = (_, _) => Right(formatWriter),
-      indexManager            = indexManager,
-      transformerF            = (m: MessageDetail) => Right(m),
-      schemaChangeDetector    = schemaChangeDetector,
-      skipNullValues          = false,
+      commitPolicyFn              = _ => Right(commitPolicy),
+      bucketAndPrefixFn           = _ => Right(CloudLocation("bucket", None)),
+      keyNamerFn                  = _ => Right(mock[KeyNamer]),
+      stagingFilenameFn           = (_, _) => Right(new File("test")),
+      objKeyBuilderFn             = (_, _) => objectKeyBuilder,
+      formatWriterFn              = (_, _) => Right(formatWriter),
+      indexManager                = indexManager,
+      transformerF                = (m: MessageDetail) => Right(m),
+      schemaChangeDetector        = schemaChangeDetector,
+      skipNullValues              = false,
       pendingOperationsProcessors = pendingOpsProcessors,
-      maxWriters              = maxWriters,
+      maxWriters                  = maxWriters,
     )
 
   private def currentOffsets(tp: TopicPartition, offset: Long): immutable.Map[TopicPartition, OffsetAndMetadata] =
@@ -143,7 +143,7 @@ class WriterManagerPreCommitTest
 
   test("preCommit returns no offset when no writers exist for a partition") {
     val indexManager = mock[IndexManager]
-    val wm = buildWriterManager(indexManager)
+    val wm           = buildWriterManager(indexManager)
 
     val result = wm.preCommit(currentOffsets(tp0, 100))
     result shouldBe empty
@@ -151,9 +151,10 @@ class WriterManagerPreCommitTest
 
   test("preCommit returns no offset when no writer has committed yet") {
     val indexManager = mock[IndexManager]
-    val wm = buildWriterManager(indexManager)
+    val wm           = buildWriterManager(indexManager)
 
-    val writerA = writerInWritingState(tp0, committedOffset = None, firstBufferedOffset = Offset(0), uncommittedOffset = Offset(5))
+    val writerA =
+      writerInWritingState(tp0, committedOffset = None, firstBufferedOffset = Offset(0), uncommittedOffset = Offset(5))
     wm.putWriter(MapKey(tp0, dateA), writerA)
 
     val result = wm.preCommit(currentOffsets(tp0, 100))
@@ -166,7 +167,7 @@ class WriterManagerPreCommitTest
     when(indexManager.updateMasterLock(any[TopicPartition], any[Offset])).thenReturn(Right(()))
     when(indexManager.cleanUpObsoleteLocks(any[TopicPartition], any[Offset], any[Set[String]])).thenReturn(Right(()))
 
-    val wm = buildWriterManager(indexManager)
+    val wm      = buildWriterManager(indexManager)
     val writerA = writerInNoWriterState(tp0, Some(Offset(104)))
     val writerB = writerInNoWriterState(tp0, Some(Offset(105)))
     wm.putWriter(MapKey(tp0, dateA), writerA)
@@ -183,9 +184,13 @@ class WriterManagerPreCommitTest
     when(indexManager.updateMasterLock(any[TopicPartition], any[Offset])).thenReturn(Right(()))
     when(indexManager.cleanUpObsoleteLocks(any[TopicPartition], any[Offset], any[Set[String]])).thenReturn(Right(()))
 
-    val wm = buildWriterManager(indexManager)
+    val wm      = buildWriterManager(indexManager)
     val writerB = writerInNoWriterState(tp0, Some(Offset(105)))
-    val writerA = writerInWritingState(tp0, committedOffset = None, firstBufferedOffset = Offset(100), uncommittedOffset = Offset(104))
+    val writerA = writerInWritingState(tp0,
+                                       committedOffset     = None,
+                                       firstBufferedOffset = Offset(100),
+                                       uncommittedOffset   = Offset(104),
+    )
     wm.putWriter(MapKey(tp0, dateA), writerA)
     wm.putWriter(MapKey(tp0, dateB), writerB)
 
@@ -204,7 +209,11 @@ class WriterManagerPreCommitTest
     // Writer A committed to 50, Writer B is writing with firstBuffered=1000
     // Without math.min, globalSafeOffset would be 1000, skipping offsets 51-999
     val writerA = writerInNoWriterState(tp0, Some(Offset(50)))
-    val writerB = writerInWritingState(tp0, committedOffset = Some(Offset(50)), firstBufferedOffset = Offset(1000), uncommittedOffset = Offset(1005))
+    val writerB = writerInWritingState(tp0,
+                                       committedOffset     = Some(Offset(50)),
+                                       firstBufferedOffset = Offset(1000),
+                                       uncommittedOffset   = Offset(1005),
+    )
     wm.putWriter(MapKey(tp0, dateA), writerA)
     wm.putWriter(MapKey(tp0, dateB), writerB)
 
@@ -222,7 +231,7 @@ class WriterManagerPreCommitTest
     when(indexManager.updateMasterLock(any[TopicPartition], any[Offset])).thenReturn(Right(()))
     when(indexManager.cleanUpObsoleteLocks(any[TopicPartition], any[Offset], any[Set[String]])).thenReturn(Right(()))
 
-    val wm = buildWriterManager(indexManager)
+    val wm      = buildWriterManager(indexManager)
     val writerA = writerInNoWriterState(tp0, Some(Offset(30)))
     wm.putWriter(MapKey(tp0, dateA), writerA)
 
@@ -240,7 +249,7 @@ class WriterManagerPreCommitTest
     when(indexManager.updateMasterLock(any[TopicPartition], any[Offset])).thenReturn(Right(()))
     when(indexManager.cleanUpObsoleteLocks(any[TopicPartition], any[Offset], any[Set[String]])).thenReturn(Right(()))
 
-    val wm = buildWriterManager(indexManager)
+    val wm      = buildWriterManager(indexManager)
     val writerA = writerInNoWriterState(tp0, Some(Offset(50)))
     wm.putWriter(MapKey(tp0, dateA), writerA)
 
@@ -259,7 +268,7 @@ class WriterManagerPreCommitTest
     when(indexManager.updateMasterLock(any[TopicPartition], any[Offset]))
       .thenReturn(Left(FatalCloudSinkError("eTag mismatch", tp0)))
 
-    val wm = buildWriterManager(indexManager)
+    val wm      = buildWriterManager(indexManager)
     val writerA = writerInNoWriterState(tp0, Some(Offset(50)))
     wm.putWriter(MapKey(tp0, dateA), writerA)
 
@@ -275,7 +284,7 @@ class WriterManagerPreCommitTest
     when(indexManager.updateMasterLock(any[TopicPartition], any[Offset]))
       .thenReturn(Left(FatalCloudSinkError("eTag mismatch", tp0)))
 
-    val wm = buildWriterManager(indexManager)
+    val wm      = buildWriterManager(indexManager)
     val writerA = writerInNoWriterState(tp0, Some(Offset(50)))
     wm.putWriter(MapKey(tp0, dateA), writerA)
 
@@ -364,7 +373,7 @@ class WriterManagerPreCommitTest
     when(indexManager.updateMasterLock(any[TopicPartition], any[Offset])).thenReturn(Right(()))
     when(indexManager.cleanUpObsoleteLocks(any[TopicPartition], any[Offset], any[Set[String]])).thenReturn(Right(()))
 
-    val wm = buildWriterManager(indexManager)
+    val wm      = buildWriterManager(indexManager)
     val writerA = writerInNoWriterState(tp0, Some(Offset(50)))
     val writerB = writerInNoWriterState(tp0, Some(Offset(60)))
     wm.putWriter(MapKey(tp0, dateA), writerA)
@@ -387,7 +396,7 @@ class WriterManagerPreCommitTest
     when(indexManager.updateMasterLock(any[TopicPartition], any[Offset]))
       .thenReturn(Left(FatalCloudSinkError("write failed", tp0)))
 
-    val wm = buildWriterManager(indexManager)
+    val wm      = buildWriterManager(indexManager)
     val writerA = writerInNoWriterState(tp0, Some(Offset(50)))
     wm.putWriter(MapKey(tp0, dateA), writerA)
 
@@ -404,7 +413,7 @@ class WriterManagerPreCommitTest
     when(indexManager.updateMasterLock(any[TopicPartition], any[Offset])).thenReturn(Right(()))
     when(indexManager.cleanUpObsoleteLocks(any[TopicPartition], any[Offset], any[Set[String]])).thenReturn(Right(()))
 
-    val wm = buildWriterManager(indexManager)
+    val wm      = buildWriterManager(indexManager)
     val writerA = writerInNoWriterState(tp0, Some(Offset(50)))
     wm.putWriter(MapKey(tp0, dateA), writerA)
 
@@ -422,7 +431,7 @@ class WriterManagerPreCommitTest
     when(indexManager.updateMasterLock(any[TopicPartition], any[Offset])).thenReturn(Right(()))
     when(indexManager.cleanUpObsoleteLocks(any[TopicPartition], any[Offset], any[Set[String]])).thenReturn(Right(()))
 
-    val wm = buildWriterManager(indexManager)
+    val wm      = buildWriterManager(indexManager)
     val writerA = writerInNoWriterState(tp0, Some(Offset(105)))
     wm.putWriter(MapKey(tp0, dateA), writerA)
 
@@ -473,7 +482,7 @@ class WriterManagerPreCommitTest
 
   test("eviction does nothing when writer count is below maxWriters") {
     val indexManager = mock[IndexManager]
-    val wm = buildWriterManager(indexManager, maxWriters = 5)
+    val wm           = buildWriterManager(indexManager, maxWriters = 5)
 
     val writerA = writerInNoWriterState(tp0, Some(Offset(10)))
     val writerB = writerInNoWriterState(tp0, Some(Offset(20)))
@@ -487,7 +496,7 @@ class WriterManagerPreCommitTest
 
   test("eviction removes idle writers when count equals maxWriters") {
     val indexManager = mock[IndexManager]
-    val wm = buildWriterManager(indexManager, maxWriters = 2)
+    val wm           = buildWriterManager(indexManager, maxWriters = 2)
 
     val writerA = writerInNoWriterState(tp0, Some(Offset(10)))
     val writerB = writerInNoWriterState(tp0, Some(Offset(20)))
@@ -502,7 +511,7 @@ class WriterManagerPreCommitTest
 
   test("eviction does not remove writers that are actively writing") {
     val indexManager = mock[IndexManager]
-    val wm = buildWriterManager(indexManager, maxWriters = 1)
+    val wm           = buildWriterManager(indexManager, maxWriters = 1)
 
     val writerA = writerInWritingState(tp0, Some(Offset(10)), Offset(11), Offset(15))
     wm.putWriter(MapKey(tp0, dateA), writerA)

@@ -111,7 +111,7 @@ class WriterTest extends AnyFunSuiteLike with Matchers with MockitoSugar with Ar
     writer.writeState = Uploading(
       CommitState(topicPartition, Some(Offset(100))),
       new File("test-file"),
-      firstBufferedOffset    = Offset(100),
+      firstBufferedOffset = Offset(100),
       Offset(150),
       earliestRecordTimestamp = 1L,
       latestRecordTimestamp   = 1L,
@@ -148,7 +148,14 @@ class WriterTest extends AnyFunSuiteLike with Matchers with MockitoSugar with Ar
                                           pendingOperationsProcessors,
     )
     writer.writeState =
-      Writing(CommitState(topicPartition, Some(Offset(100))), formatWriter, new File("test-file"), Offset(100), Offset(150), 1L, 1L)
+      Writing(CommitState(topicPartition, Some(Offset(100))),
+              formatWriter,
+              new File("test-file"),
+              Offset(100),
+              Offset(150),
+              1L,
+              1L,
+      )
     writer.shouldSkip(Offset(150)) shouldBe true
     writer.shouldSkip(Offset(149)) shouldBe true
   }
@@ -165,7 +172,14 @@ class WriterTest extends AnyFunSuiteLike with Matchers with MockitoSugar with Ar
                                           pendingOperationsProcessors,
     )
     writer.writeState =
-      Writing(CommitState(topicPartition, Some(Offset(100))), formatWriter, new File("test-file"), Offset(100), Offset(150), 1L, 1L)
+      Writing(CommitState(topicPartition, Some(Offset(100))),
+              formatWriter,
+              new File("test-file"),
+              Offset(100),
+              Offset(150),
+              1L,
+              1L,
+      )
     writer.shouldSkip(Offset(151)) shouldBe false
   }
 
@@ -346,7 +360,8 @@ class WriterTest extends AnyFunSuiteLike with Matchers with MockitoSugar with Ar
                                           schemaChangeDetector,
                                           pendingOperationsProcessors,
     )
-    writer.writeState = Uploading(CommitState(topicPartition, Some(Offset(100))), tmpFile, Offset(100), Offset(150), 1L, 1L)
+    writer.writeState =
+      Uploading(CommitState(topicPartition, Some(Offset(100))), tmpFile, Offset(100), Offset(150), 1L, 1L)
 
     writer.close()
 
@@ -390,30 +405,51 @@ class WriterTest extends AnyFunSuiteLike with Matchers with MockitoSugar with Ar
   }
 
   test("toUploading should carry firstBufferedOffset from Writing") {
-    val fw = mock[FormatWriter]
-    val writing = Writing(CommitState(topicPartition, None), fw, new File("test"), Offset(42), Offset(99), 1L, 2L)
+    val fw        = mock[FormatWriter]
+    val writing   = Writing(CommitState(topicPartition, None), fw, new File("test"), Offset(42), Offset(99), 1L, 2L)
     val uploading = writing.toUploading
     uploading.firstBufferedOffset shouldBe Offset(42)
   }
 
   test("getFirstBufferedOffset returns Some in Writing state") {
     val fw = mock[FormatWriter]
-    val writer = new Writer[FileMetadata](topicPartition, commitPolicy, writerIndexer, stagingFilenameFn,
-      objectKeyBuilder, formatWriterFn, schemaChangeDetector, pendingOperationsProcessors)
+    val writer = new Writer[FileMetadata](topicPartition,
+                                          commitPolicy,
+                                          writerIndexer,
+                                          stagingFilenameFn,
+                                          objectKeyBuilder,
+                                          formatWriterFn,
+                                          schemaChangeDetector,
+                                          pendingOperationsProcessors,
+    )
     writer.writeState = Writing(CommitState(topicPartition, None), fw, new File("test"), Offset(42), Offset(50), 1L, 1L)
     writer.getFirstBufferedOffset shouldBe Some(Offset(42))
   }
 
   test("getFirstBufferedOffset returns Some in Uploading state") {
-    val writer = new Writer[FileMetadata](topicPartition, commitPolicy, writerIndexer, stagingFilenameFn,
-      objectKeyBuilder, formatWriterFn, schemaChangeDetector, pendingOperationsProcessors)
+    val writer = new Writer[FileMetadata](topicPartition,
+                                          commitPolicy,
+                                          writerIndexer,
+                                          stagingFilenameFn,
+                                          objectKeyBuilder,
+                                          formatWriterFn,
+                                          schemaChangeDetector,
+                                          pendingOperationsProcessors,
+    )
     writer.writeState = Uploading(CommitState(topicPartition, None), new File("test"), Offset(42), Offset(50), 1L, 1L)
     writer.getFirstBufferedOffset shouldBe Some(Offset(42))
   }
 
   test("getFirstBufferedOffset returns None in NoWriter state") {
-    val writer = new Writer[FileMetadata](topicPartition, commitPolicy, writerIndexer, stagingFilenameFn,
-      objectKeyBuilder, formatWriterFn, schemaChangeDetector, pendingOperationsProcessors)
+    val writer = new Writer[FileMetadata](topicPartition,
+                                          commitPolicy,
+                                          writerIndexer,
+                                          stagingFilenameFn,
+                                          objectKeyBuilder,
+                                          formatWriterFn,
+                                          schemaChangeDetector,
+                                          pendingOperationsProcessors,
+    )
     writer.getFirstBufferedOffset shouldBe None
   }
 
@@ -421,41 +457,80 @@ class WriterTest extends AnyFunSuiteLike with Matchers with MockitoSugar with Ar
 
   test("Writer with partitionKey should use granular lock seeked offset") {
     when(writerIndexer.indexingEnabled).thenReturn(true)
-    val writer = new Writer[FileMetadata](topicPartition, commitPolicy, writerIndexer, stagingFilenameFn,
-      objectKeyBuilder, formatWriterFn, schemaChangeDetector, pendingOperationsProcessors,
-      partitionKey = Some("date=12_00"), lastSeekedOffset = Some(Offset(200)))
+    val writer = new Writer[FileMetadata](topicPartition,
+                                          commitPolicy,
+                                          writerIndexer,
+                                          stagingFilenameFn,
+                                          objectKeyBuilder,
+                                          formatWriterFn,
+                                          schemaChangeDetector,
+                                          pendingOperationsProcessors,
+                                          partitionKey     = Some("date=12_00"),
+                                          lastSeekedOffset = Some(Offset(200)),
+    )
     writer.shouldSkip(Offset(200)) shouldBe true
   }
 
   test("Writer with partitionKey=None should fallback to master lock seeked offset") {
     when(writerIndexer.indexingEnabled).thenReturn(true)
-    val writer = new Writer[FileMetadata](topicPartition, commitPolicy, writerIndexer, stagingFilenameFn,
-      objectKeyBuilder, formatWriterFn, schemaChangeDetector, pendingOperationsProcessors,
-      partitionKey = None, lastSeekedOffset = Some(Offset(100)))
+    val writer = new Writer[FileMetadata](topicPartition,
+                                          commitPolicy,
+                                          writerIndexer,
+                                          stagingFilenameFn,
+                                          objectKeyBuilder,
+                                          formatWriterFn,
+                                          schemaChangeDetector,
+                                          pendingOperationsProcessors,
+                                          partitionKey     = None,
+                                          lastSeekedOffset = Some(Offset(100)),
+    )
     writer.shouldSkip(Offset(100)) shouldBe true
   }
 
   test("Writer with partitionKey should not skip offsets above granular lock") {
     when(writerIndexer.indexingEnabled).thenReturn(true)
-    val writer = new Writer[FileMetadata](topicPartition, commitPolicy, writerIndexer, stagingFilenameFn,
-      objectKeyBuilder, formatWriterFn, schemaChangeDetector, pendingOperationsProcessors,
-      partitionKey = Some("date=12_00"), lastSeekedOffset = Some(Offset(200)))
+    val writer = new Writer[FileMetadata](topicPartition,
+                                          commitPolicy,
+                                          writerIndexer,
+                                          stagingFilenameFn,
+                                          objectKeyBuilder,
+                                          formatWriterFn,
+                                          schemaChangeDetector,
+                                          pendingOperationsProcessors,
+                                          partitionKey     = Some("date=12_00"),
+                                          lastSeekedOffset = Some(Offset(200)),
+    )
     writer.shouldSkip(Offset(201)) shouldBe false
   }
 
   test("close should evict granular lock when partitionKey is defined") {
-    val writer = new Writer[FileMetadata](topicPartition, commitPolicy, writerIndexer, stagingFilenameFn,
-      objectKeyBuilder, formatWriterFn, schemaChangeDetector, pendingOperationsProcessors,
-      partitionKey = Some("date=12_00"), lastSeekedOffset = Some(Offset(200)))
+    val writer = new Writer[FileMetadata](topicPartition,
+                                          commitPolicy,
+                                          writerIndexer,
+                                          stagingFilenameFn,
+                                          objectKeyBuilder,
+                                          formatWriterFn,
+                                          schemaChangeDetector,
+                                          pendingOperationsProcessors,
+                                          partitionKey     = Some("date=12_00"),
+                                          lastSeekedOffset = Some(Offset(200)),
+    )
     writer.close()
     verify(writerIndexer).evictGranularLock(topicPartition, "date=12_00")
   }
 
   test("close should not evict granular lock when partitionKey is None") {
     val freshIndexer = mock[IndexManager]
-    val writer = new Writer[FileMetadata](topicPartition, commitPolicy, freshIndexer, stagingFilenameFn,
-      objectKeyBuilder, formatWriterFn, schemaChangeDetector, pendingOperationsProcessors,
-      partitionKey = None)
+    val writer = new Writer[FileMetadata](topicPartition,
+                                          commitPolicy,
+                                          freshIndexer,
+                                          stagingFilenameFn,
+                                          objectKeyBuilder,
+                                          formatWriterFn,
+                                          schemaChangeDetector,
+                                          pendingOperationsProcessors,
+                                          partitionKey = None,
+    )
     writer.close()
     verify(freshIndexer, never).evictGranularLock(any[TopicPartition], any[String])
   }

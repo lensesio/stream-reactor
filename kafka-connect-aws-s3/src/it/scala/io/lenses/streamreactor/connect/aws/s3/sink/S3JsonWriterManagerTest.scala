@@ -470,7 +470,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
     lauraFiles should not be empty
     tomFiles should not be empty
 
-    val lockFiles = listBucketPath(BucketName, ".indexes/")
+    val lockFiles     = listBucketPath(BucketName, ".indexes/")
     val granularLocks = lockFiles.filter(f => f.contains("/1/") && f.endsWith(".lock") && !f.endsWith("1.lock"))
     granularLocks should not be empty
   }

@@ -19,6 +19,7 @@ import io.lenses.streamreactor.common.config.base.traits.BaseSettings
 import io.lenses.streamreactor.common.config.base.traits.WithConnectorPrefix
 import io.lenses.streamreactor.connect.cloud.common.sink.config.IndexOptions
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexManagerV2
+import io.lenses.streamreactor.connect.cloud.common.sink.writer.WriterManager
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.Importance
 import org.apache.kafka.common.config.ConfigDef.Type
@@ -46,7 +47,7 @@ trait IndexConfigKeys extends WithConnectorPrefix {
       s"When the total number of writers exceeds this threshold, idle writers in NoWriter state are evicted. " +
       s"Active writers with buffered data are never evicted, so the actual count may temporarily exceed this value. " +
       s"Increase this when PARTITIONBY cardinality is high and you want to reduce lock file recreation on previously idle keys."
-  private val MAX_GRANULAR_CACHE_SIZE_DEFAULT = IndexManagerV2.DefaultMaxGranularCacheSize
+  private val MAX_GRANULAR_CACHE_SIZE_DEFAULT = WriterManager.DefaultMaxWriters
 
   val GC_INTERVAL_SECONDS = s"$connectorPrefix.indexes.gc.interval.seconds"
   private val GC_INTERVAL_SECONDS_DOC =
@@ -209,15 +210,17 @@ trait IndexConfigKeys extends WithConnectorPrefix {
 }
 trait IndexSettings extends BaseSettings with IndexConfigKeys {
   def getIndexSettings: Option[IndexOptions] =
-    Option.when(getBoolean(ENABLE_EXACTLY_ONCE))(IndexOptions(
-      getInt(SEEK_MAX_INDEX_FILES),
-      getString(INDEXES_DIRECTORY_NAME),
-      getInt(MAX_GRANULAR_CACHE_SIZE),
-      getInt(GC_INTERVAL_SECONDS),
-      getInt(GC_BATCH_SIZE),
-      getBoolean(GC_SWEEP_ENABLED),
-      getInt(GC_SWEEP_INTERVAL_SECONDS),
-      getInt(GC_SWEEP_AGE_SECONDS),
-      getInt(GC_SWEEP_MAX_READS),
-    ))
+    Option.when(getBoolean(ENABLE_EXACTLY_ONCE))(
+      IndexOptions(
+        getInt(SEEK_MAX_INDEX_FILES),
+        getString(INDEXES_DIRECTORY_NAME),
+        getInt(MAX_GRANULAR_CACHE_SIZE),
+        getInt(GC_INTERVAL_SECONDS),
+        getInt(GC_BATCH_SIZE),
+        getBoolean(GC_SWEEP_ENABLED),
+        getInt(GC_SWEEP_INTERVAL_SECONDS),
+        getInt(GC_SWEEP_AGE_SECONDS),
+        getInt(GC_SWEEP_MAX_READS),
+      ),
+    )
 }

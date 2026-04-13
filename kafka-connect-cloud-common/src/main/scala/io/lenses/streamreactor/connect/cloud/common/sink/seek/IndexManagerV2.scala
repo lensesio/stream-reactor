@@ -71,7 +71,6 @@ class IndexManagerV2(
   oldIndexManager:             IndexManagerV1,
   pendingOperationsProcessors: PendingOperationsProcessors,
   directoryFileName:           String,
-  maxGranularCacheSize:        Int     = IndexManagerV2.DefaultMaxGranularCacheSize,
   gcIntervalSeconds:           Int     = IndexManagerV2.DefaultGcIntervalSeconds,
   gcBatchSize:                 Int     = IndexManagerV2.DefaultGcBatchSize,
   gcSweepEnabled:              Boolean = IndexManagerV2.DefaultGcSweepEnabled,
@@ -122,7 +121,11 @@ class IndexManagerV2(
       t.setDaemon(true)
       t
     }
-    executor.scheduleAtFixedRate(() => drainGcQueue(), gcIntervalSeconds.toLong, gcIntervalSeconds.toLong, TimeUnit.SECONDS)
+    executor.scheduleAtFixedRate(() => drainGcQueue(),
+                                 gcIntervalSeconds.toLong,
+                                 gcIntervalSeconds.toLong,
+                                 TimeUnit.SECONDS,
+    )
     executor
   }
 
@@ -133,7 +136,11 @@ class IndexManagerV2(
         t.setDaemon(true)
         t
       }
-      executor.scheduleAtFixedRate(() => sweepOrphanedLocks(), gcSweepIntervalSeconds.toLong, gcSweepIntervalSeconds.toLong, TimeUnit.SECONDS)
+      executor.scheduleAtFixedRate(() => sweepOrphanedLocks(),
+                                   gcSweepIntervalSeconds.toLong,
+                                   gcSweepIntervalSeconds.toLong,
+                                   TimeUnit.SECONDS,
+      )
       executor
     }
 
@@ -547,13 +554,18 @@ class IndexManagerV2(
               // our read (FileNotFoundError) and this write (NoOverwriteExistingObject
               // precondition failed). Re-read to populate the cache; if the re-read also
               // fails, propagate that error as fatal.
-              logger.info(s"NoOverwriteExistingObject write failed for $topicPartition/$partitionKey, " +
-                s"re-reading existing lock (likely created by another task)")
+              logger.info(
+                s"NoOverwriteExistingObject write failed for $topicPartition/$partitionKey, " +
+                  s"re-reading existing lock (likely created by another task)",
+              )
               tryOpen(bucketAndPrefix.bucket, path) match {
                 case Right(existing) =>
                   resolveAndCacheGranularLock(topicPartition, partitionKey, existing)
                 case Left(retryErr) =>
-                  (new FatalCloudSinkError(retryErr.message(), retryErr.toExceptionOption, topicPartition): SinkError).asLeft
+                  (new FatalCloudSinkError(retryErr.message(),
+                                           retryErr.toExceptionOption,
+                                           topicPartition,
+                  ): SinkError).asLeft
               }
             }
           case Left(err) =>
@@ -619,19 +631,21 @@ class IndexManagerV2(
   }
 
   override def cleanUpObsoleteLocks(
-    topicPartition:     TopicPartition,
-    globalSafeOffset:   Offset,
+    topicPartition:      TopicPartition,
+    globalSafeOffset:    Offset,
     activePartitionKeys: Set[String],
   ): Either[SinkError, Unit] = {
     val keysToRemove = ListBuffer.empty[(TopicPartition, String)]
-    val it = granularCache.entrySet().iterator()
+    val it           = granularCache.entrySet().iterator()
     while (it.hasNext) {
-      val entry = it.next()
+      val entry    = it.next()
       val (tp, pk) = entry.getKey
       val cached   = entry.getValue
-      if (tp == topicPartition &&
+      if (
+        tp == topicPartition &&
         cached.offset.exists(_.value < globalSafeOffset.value) &&
-        !activePartitionKeys.contains(pk)) {
+        !activePartitionKeys.contains(pk)
+      ) {
         keysToRemove += ((tp, pk))
       }
     }
@@ -651,52 +665,56 @@ class IndexManagerV2(
     }
   }
 
-  private[seek] def drainGcQueue(): Unit = try {
-    val buffer = new ListBuffer[(String, String)]()
-    var item   = gcQueue.poll()
-    while (item != null) {
-      if (granularCache.containsKey((item.topicPartition, item.partitionKey))) {
-        logger.debug(s"GC skipping ${item.topicPartition}/${item.partitionKey}: reclaimed by new writer")
-      } else {
-        buffer += ((item.bucket, item.path))
-      }
-      item = gcQueue.poll()
-    }
-    if (buffer.isEmpty) return
-
-    val byBucket: Map[String, Seq[String]] = buffer.toList
-      .groupBy(_._1)
-      .map { case (bucket, entries) => bucket -> entries.map(_._2) }
-
-    byBucket.foreach {
-      case (bucket, paths) =>
-        paths.grouped(gcBatchSize).foreach { chunk =>
-          storageInterface.deleteFiles(bucket, chunk) match {
-            case Left(err) =>
-              logger.warn(s"Background GC failed to delete ${chunk.size} lock file(s) from bucket=$bucket: ${err.message()}")
-            case Right(_) =>
-              logger.debug(s"Background GC deleted ${chunk.size} lock file(s) from bucket=$bucket")
-          }
+  private[seek] def drainGcQueue(): Unit =
+    try {
+      val buffer = new ListBuffer[(String, String)]()
+      var item   = gcQueue.poll()
+      while (item != null) {
+        if (granularCache.containsKey((item.topicPartition, item.partitionKey))) {
+          logger.debug(s"GC skipping ${item.topicPartition}/${item.partitionKey}: reclaimed by new writer")
+        } else {
+          buffer += ((item.bucket, item.path))
         }
+        item = gcQueue.poll()
+      }
+      if (buffer.isEmpty) return
+
+      val byBucket: Map[String, Seq[String]] = buffer.toList
+        .groupBy(_._1)
+        .map { case (bucket, entries) => bucket -> entries.map(_._2) }
+
+      byBucket.foreach {
+        case (bucket, paths) =>
+          paths.grouped(gcBatchSize).foreach { chunk =>
+            storageInterface.deleteFiles(bucket, chunk) match {
+              case Left(err) =>
+                logger.warn(
+                  s"Background GC failed to delete ${chunk.size} lock file(s) from bucket=$bucket: ${err.message()}",
+                )
+              case Right(_) =>
+                logger.debug(s"Background GC deleted ${chunk.size} lock file(s) from bucket=$bucket")
+            }
+          }
+      }
+    } catch {
+      case NonFatal(e) =>
+        logger.warn(s"Unexpected error in background GC drain for ${connectorTaskId.show}", e)
     }
-  } catch {
-    case NonFatal(e) =>
-      logger.warn(s"Unexpected error in background GC drain for ${connectorTaskId.show}", e)
-  }
 
-  private[seek] def sweepOrphanedLocks(): Unit = try {
-    if (!gcSweepEnabled) return
+  private[seek] def sweepOrphanedLocks(): Unit =
+    try {
+      if (!gcSweepEnabled) return
 
-    val buckets = resolveSweepBuckets()
-    if (buckets.isEmpty) return
-    if (!isSweepDue(buckets)) return
-    if (!writeSweepMarkers(buckets)) return
+      val buckets = resolveSweepBuckets()
+      if (buckets.isEmpty) return
+      if (!isSweepDue(buckets)) return
+      if (!writeSweepMarkers(buckets)) return
 
-    executeSweep()
-  } catch {
-    case NonFatal(e) =>
-      logger.warn(s"Unexpected error in orphan sweep for ${connectorTaskId.show}", e)
-  }
+      executeSweep()
+    } catch {
+      case NonFatal(e) =>
+        logger.warn(s"Unexpected error in orphan sweep for ${connectorTaskId.show}", e)
+    }
 
   /** Collects all distinct buckets from the currently assigned TopicPartitions. */
   private def resolveSweepBuckets(): Set[String] =
@@ -763,7 +781,7 @@ class IndexManagerV2(
       seekedOffsets.get(tp).foreach { masterOffset =>
         tpsScanned += 1
         val (enqueued, readsUsed) = sweepPartition(tp, masterOffset, ageThreshold, readsRemaining)
-        totalEnqueued  += enqueued
+        totalEnqueued += enqueued
         readsRemaining -= readsUsed
       }
     }
@@ -816,8 +834,8 @@ class IndexManagerV2(
   }
 
   private sealed trait SweepClassification
-  private case object SweepSkip                            extends SweepClassification
-  private case class SweepNeedsRead(partitionKey: String)  extends SweepClassification
+  private case object SweepSkip extends SweepClassification
+  private case class SweepNeedsRead(partitionKey: String) extends SweepClassification
 
   /** Applies extension, recency, and cache-presence filters to decide whether a lock file needs a GET read. */
   private def classifyLockFile(
@@ -895,17 +913,12 @@ object IndexManagerV2 {
     implicit val sweepMarkerDecoder: io.circe.Decoder[SweepMarker] = deriveDecoder
   }
 
-  // Controls the idle-writer eviction threshold in WriterManager. When the total number of
-  // writers exceeds this value, idle (NoWriter-state) writers are evicted along with their
-  // granular cache entries. Active writers are never evicted, so both the writers map and
-  // granular cache may temporarily exceed this limit during high-cardinality bursts.
-  val DefaultMaxGranularCacheSize: Int    = 10000
-  val DefaultGcIntervalSeconds: Int       = 300
-  val DefaultGcBatchSize: Int             = 1000
-  val DefaultGcSweepEnabled: Boolean      = true
-  val DefaultGcSweepIntervalSeconds: Int  = 86400
-  val DefaultGcSweepAgeSeconds: Int       = 86400
-  val DefaultGcSweepMaxReads: Int         = 1000
+  val DefaultGcIntervalSeconds:      Int     = 300
+  val DefaultGcBatchSize:            Int     = 1000
+  val DefaultGcSweepEnabled:         Boolean = true
+  val DefaultGcSweepIntervalSeconds: Int     = 86400
+  val DefaultGcSweepAgeSeconds:      Int     = 86400
+  val DefaultGcSweepMaxReads:        Int     = 1000
 
   /**
    * Converts a given connector task ID and topic partition into a lock file path.

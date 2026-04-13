@@ -82,8 +82,8 @@ class NoIndexManager extends IndexManager {
     Right(())
 
   override def cleanUpObsoleteLocks(
-    topicPartition:     TopicPartition,
-    globalSafeOffset:   Offset,
+    topicPartition:      TopicPartition,
+    globalSafeOffset:    Offset,
     activePartitionKeys: Set[String],
   ): Either[SinkError, Unit] =
     Right(())

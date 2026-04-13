@@ -137,7 +137,6 @@ class WriterManagerCreator[MD <: FileMetadata, SC <: CloudSinkConfig[_]] extends
         ),
         pendingOperationsProcessors,
         io.indexesDirectoryName,
-        io.maxGranularCacheSize,
         io.gcIntervalSeconds,
         io.gcBatchSize,
         io.gcSweepEnabled,

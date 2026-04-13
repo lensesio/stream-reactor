@@ -55,8 +55,8 @@ class Writer[SM <: FileMetadata](
   formatWriterFn:              File => Either[SinkError, FormatWriter],
   schemaChangeDetector:        SchemaChangeDetector,
   pendingOperationsProcessors: PendingOperationsProcessors,
-  partitionKey:                Option[String]  = None,
-  lastSeekedOffset:            Option[Offset]  = None,
+  partitionKey:                Option[String] = None,
+  lastSeekedOffset:            Option[Offset] = None,
 )(
   implicit
   connectorTaskId: ConnectorTaskId,
@@ -180,7 +180,7 @@ class Writer[SM <: FileMetadata](
     }
   }
 
-  def close(): Unit = {
+  def close(): Unit =
     writeState = writeState match {
       case state @ NoWriter(_) => state
       case Writing(commitState, formatWriter, file, _, _, _, _) =>
@@ -191,7 +191,6 @@ class Writer[SM <: FileMetadata](
         Try(file.delete())
         NoWriter(commitState.reset())
     }
-  }
 
   def isIdle: Boolean = writeState.isInstanceOf[NoWriter]
 
@@ -199,9 +198,9 @@ class Writer[SM <: FileMetadata](
 
   def getFirstBufferedOffset: Option[Offset] =
     writeState match {
-      case _: NoWriter                    => None
-      case w: Writing                     => Some(w.firstBufferedOffset)
-      case u: Uploading                   => Some(u.firstBufferedOffset)
+      case _: NoWriter  => None
+      case w: Writing   => Some(w.firstBufferedOffset)
+      case u: Uploading => Some(u.firstBufferedOffset)
     }
 
   def shouldFlush: Boolean =

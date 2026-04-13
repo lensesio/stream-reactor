@@ -65,6 +65,7 @@ import io.lenses.streamreactor.connect.datalake.storage.SamplePages.emptyPagedIt
 import io.lenses.streamreactor.connect.datalake.storage.SamplePages.pagedIterable
 import io.lenses.streamreactor.connect.datalake.storage.SamplePages.pages
 import org.mockito.Answers
+import org.mockito.ArgumentCaptor
 import org.mockito.ArgumentMatchers.anyString
 import org.mockito.ArgumentMatchersSugar
 import org.mockito.InOrder
@@ -448,6 +449,19 @@ class DatalakeStorageInterfaceTest
 
   }
 
+  "listKeysRecursive" should "set recursive flag on ListPathsOptions" in {
+    val bucket = "test-bucket"
+    val prefix = Some("test-prefix")
+
+    val fsClient      = client.getFileSystemClient(bucket)
+    val optionsCaptor = ArgumentCaptor.forClass(classOf[ListPathsOptions])
+    when(fsClient.listPaths(optionsCaptor.capture(), any[Duration])).thenReturn(pagedIterable)
+
+    storageInterface.listKeysRecursive(bucket, prefix)
+
+    optionsCaptor.getValue.isRecursive should be(true)
+  }
+
   "listKeysRecursive" should "return None when no keys are found" in {
     val bucket = "test-bucket"
     val prefix = Some("non-existing-prefix")
@@ -474,6 +488,45 @@ class DatalakeStorageInterfaceTest
     result.left.value should be(a[FileListError])
   }
 
+  "listKeysRecursive" should "return Right(None) when DataLakeStorageException has 404 status" in {
+    val bucket = "test-bucket"
+    val prefix = Some("test-prefix")
+
+    when(client.getFileSystemClient(bucket).listPaths(any[ListPathsOptions], any[Duration])).thenThrow(
+      new DataLakeStorageException("PathNotFound", mockHttpResponse(404), null),
+    )
+
+    val result = storageInterface.listKeysRecursive(bucket, prefix)
+
+    result.value should be(None)
+  }
+
+  "listKeysRecursive" should "propagate 403 Forbidden as Left(FileListError)" in {
+    val bucket = "test-bucket"
+    val prefix = Some("test-prefix")
+
+    when(client.getFileSystemClient(bucket).listPaths(any[ListPathsOptions], any[Duration])).thenThrow(
+      new DataLakeStorageException("AuthorizationFailure", mockHttpResponse(403), null),
+    )
+
+    val result = storageInterface.listKeysRecursive(bucket, prefix)
+
+    result.left.value should be(a[FileListError])
+  }
+
+  "listKeysRecursive" should "propagate 401 Unauthorized as Left(FileListError)" in {
+    val bucket = "test-bucket"
+    val prefix = Some("test-prefix")
+
+    when(client.getFileSystemClient(bucket).listPaths(any[ListPathsOptions], any[Duration])).thenThrow(
+      new DataLakeStorageException("AuthenticationFailed", mockHttpResponse(401), null),
+    )
+
+    val result = storageInterface.listKeysRecursive(bucket, prefix)
+
+    result.left.value should be(a[FileListError])
+  }
+
   "listFileMetaRecursive" should "return metadata for all files when successful" in {
     val bucket = "test-bucket"
     val prefix = Some("test-prefix")
@@ -489,6 +542,19 @@ class DatalakeStorageInterfaceTest
       fm.lastModified should not be null
     }
     metadata.latestFileMetadata.file should be("99.txt")
+  }
+
+  "listFileMetaRecursive" should "set recursive flag on ListPathsOptions" in {
+    val bucket = "test-bucket"
+    val prefix = Some("test-prefix")
+
+    val fsClient      = client.getFileSystemClient(bucket)
+    val optionsCaptor = ArgumentCaptor.forClass(classOf[ListPathsOptions])
+    when(fsClient.listPaths(optionsCaptor.capture(), any[Duration])).thenReturn(pagedIterable)
+
+    storageInterface.listFileMetaRecursive(bucket, prefix)
+
+    optionsCaptor.getValue.isRecursive should be(true)
   }
 
   "listFileMetaRecursive" should "return None when no files are found" in {
@@ -510,6 +576,45 @@ class DatalakeStorageInterfaceTest
 
     when(client.getFileSystemClient(bucket).listPaths(any[ListPathsOptions], any[Duration])).thenThrow(
       new IllegalStateException("The mystery of life isn't a problem to solve, but a reality to experience."),
+    )
+
+    val result = storageInterface.listFileMetaRecursive(bucket, prefix)
+
+    result.left.value should be(a[FileListError])
+  }
+
+  "listFileMetaRecursive" should "return Right(None) when DataLakeStorageException has 404 status" in {
+    val bucket = "test-bucket"
+    val prefix = Some("test-prefix")
+
+    when(client.getFileSystemClient(bucket).listPaths(any[ListPathsOptions], any[Duration])).thenThrow(
+      new DataLakeStorageException("PathNotFound", mockHttpResponse(404), null),
+    )
+
+    val result = storageInterface.listFileMetaRecursive(bucket, prefix)
+
+    result.value should be(None)
+  }
+
+  "listFileMetaRecursive" should "propagate 403 Forbidden as Left(FileListError)" in {
+    val bucket = "test-bucket"
+    val prefix = Some("test-prefix")
+
+    when(client.getFileSystemClient(bucket).listPaths(any[ListPathsOptions], any[Duration])).thenThrow(
+      new DataLakeStorageException("AuthorizationFailure", mockHttpResponse(403), null),
+    )
+
+    val result = storageInterface.listFileMetaRecursive(bucket, prefix)
+
+    result.left.value should be(a[FileListError])
+  }
+
+  "listFileMetaRecursive" should "propagate 401 Unauthorized as Left(FileListError)" in {
+    val bucket = "test-bucket"
+    val prefix = Some("test-prefix")
+
+    when(client.getFileSystemClient(bucket).listPaths(any[ListPathsOptions], any[Duration])).thenThrow(
+      new DataLakeStorageException("AuthenticationFailed", mockHttpResponse(401), null),
     )
 
     val result = storageInterface.listFileMetaRecursive(bucket, prefix)

@@ -661,7 +661,11 @@ class IndexManagerV2Test
     runOpenForOffset(Set(tp), bucketAndPrefix)
 
     // After open, override getBlobAsObject to return FileNotFoundError for granular lock paths
-    when(storageInterface.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/date=12_00.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+    when(
+      storageInterface.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/date=12_00.lock"))(
+        ArgumentMatchers.eq(indexFileDecoder),
+      ),
+    )
       .thenReturn(Left(FileNotFoundError(new Exception("Not found"), "granular-path")))
 
     indexManagerV2.getSeekedOffsetForPartitionKey(tp, "date=12_00") shouldBe Right(None)
@@ -764,8 +768,8 @@ class IndexManagerV2Test
     import io.lenses.streamreactor.connect.cloud.common.sink.config.ValuePartitionField
     val dateField = ValuePartitionField(PartitionNamePath("date"))
     val hourField = ValuePartitionField(PartitionNamePath("hour"))
-    val key1 = WriterManager.derivePartitionKey(Map(dateField -> "2024", hourField -> "12"))
-    val key2 = WriterManager.derivePartitionKey(Map(hourField -> "12", dateField -> "2024"))
+    val key1      = WriterManager.derivePartitionKey(Map(dateField -> "2024", hourField -> "12"))
+    val key2      = WriterManager.derivePartitionKey(Map(hourField -> "12", dateField -> "2024"))
     key1 shouldBe key2
   }
 
@@ -777,7 +781,7 @@ class IndexManagerV2Test
   //   - subsequent calls for the same key return the cached value without touching storage
   //   - evictGranularLock removes a single entry; the next lookup re-fetches from storage
   //   - evictAllGranularLocks removes all entries for a topic-partition
-  //   - when maxGranularCacheSize is exceeded, the least-recently-used entry is dropped
+  //   - the granular cache is unbounded and grows without automatic eviction
 
   test("open should NOT read granular locks eagerly") {
     val tp              = Topic("topic1").withPartition(0)
@@ -790,7 +794,10 @@ class IndexManagerV2Test
       .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(100)), None), "etag")))
 
     val im = new IndexManagerV2(
-      bucketAndPrefixFn, oldIndexManager, pendingOperationsProcessors, indexesDirectoryName,
+      bucketAndPrefixFn,
+      oldIndexManager,
+      pendingOperationsProcessors,
+      indexesDirectoryName,
       gcIntervalSeconds = Int.MaxValue,
     )(si, connectorTaskId)
 
@@ -811,25 +818,36 @@ class IndexManagerV2Test
     when(bucketAndPrefixFn(any[TopicPartition])).thenReturn(Right(bucketAndPrefix))
     when(si.pathExists(anyString(), anyString())).thenReturn(Right(false))
     // Master lock for open()
-    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith("0.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith("0.lock"))(
+      ArgumentMatchers.eq(indexFileDecoder),
+    ))
       .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(100)), None), "etag")))
 
     val im = new IndexManagerV2(
-      bucketAndPrefixFn, oldIndexManager, pendingOperationsProcessors, indexesDirectoryName,
+      bucketAndPrefixFn,
+      oldIndexManager,
+      pendingOperationsProcessors,
+      indexesDirectoryName,
       gcIntervalSeconds = Int.MaxValue,
     )(si, connectorTaskId)
 
     im.open(Set(tp))
 
     // Now mock the granular lock path to return a specific offset
-    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/date%3D12_00.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+    when(
+      si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/date%3D12_00.lock"))(
+        ArgumentMatchers.eq(indexFileDecoder),
+      ),
+    )
       .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(200)), None), "granular-etag")))
 
     try {
       val result = im.getSeekedOffsetForPartitionKey(tp, "date%3D12_00")
       result shouldBe Right(Some(Offset(200)))
 
-      verify(si).getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/date%3D12_00.lock"))(ArgumentMatchers.eq(indexFileDecoder))
+      verify(si).getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/date%3D12_00.lock"))(
+        ArgumentMatchers.eq(indexFileDecoder),
+      )
     } finally im.close()
   }
 
@@ -840,17 +858,26 @@ class IndexManagerV2Test
     val si = mock[StorageInterface[_]]
     when(bucketAndPrefixFn(any[TopicPartition])).thenReturn(Right(bucketAndPrefix))
     when(si.pathExists(anyString(), anyString())).thenReturn(Right(false))
-    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith("0.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith("0.lock"))(
+      ArgumentMatchers.eq(indexFileDecoder),
+    ))
       .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(100)), None), "etag")))
 
     val im = new IndexManagerV2(
-      bucketAndPrefixFn, oldIndexManager, pendingOperationsProcessors, indexesDirectoryName,
+      bucketAndPrefixFn,
+      oldIndexManager,
+      pendingOperationsProcessors,
+      indexesDirectoryName,
       gcIntervalSeconds = Int.MaxValue,
     )(si, connectorTaskId)
 
     im.open(Set(tp))
 
-    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/date%3D12_00.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+    when(
+      si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/date%3D12_00.lock"))(
+        ArgumentMatchers.eq(indexFileDecoder),
+      ),
+    )
       .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(200)), None), "granular-etag")))
 
     try {
@@ -858,7 +885,9 @@ class IndexManagerV2Test
       im.getSeekedOffsetForPartitionKey(tp, "date%3D12_00") shouldBe Right(Some(Offset(200)))
 
       // getBlobAsObject for the granular path should be called only once (second call hits cache)
-      verify(si, times(1)).getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/date%3D12_00.lock"))(ArgumentMatchers.eq(indexFileDecoder))
+      verify(si, times(1)).getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/date%3D12_00.lock"))(
+        ArgumentMatchers.eq(indexFileDecoder),
+      )
     } finally im.close()
   }
 
@@ -869,17 +898,26 @@ class IndexManagerV2Test
     val si = mock[StorageInterface[_]]
     when(bucketAndPrefixFn(any[TopicPartition])).thenReturn(Right(bucketAndPrefix))
     when(si.pathExists(anyString(), anyString())).thenReturn(Right(false))
-    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith("0.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith("0.lock"))(
+      ArgumentMatchers.eq(indexFileDecoder),
+    ))
       .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(100)), None), "etag")))
 
     val im = new IndexManagerV2(
-      bucketAndPrefixFn, oldIndexManager, pendingOperationsProcessors, indexesDirectoryName,
+      bucketAndPrefixFn,
+      oldIndexManager,
+      pendingOperationsProcessors,
+      indexesDirectoryName,
       gcIntervalSeconds = Int.MaxValue,
     )(si, connectorTaskId)
 
     im.open(Set(tp))
 
-    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/date%3D12_00.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+    when(
+      si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/date%3D12_00.lock"))(
+        ArgumentMatchers.eq(indexFileDecoder),
+      ),
+    )
       .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(200)), None), "granular-etag")))
 
     im.getSeekedOffsetForPartitionKey(tp, "date%3D12_00") shouldBe Right(Some(Offset(200)))
@@ -887,13 +925,19 @@ class IndexManagerV2Test
     im.evictGranularLock(tp, "date%3D12_00")
 
     // After eviction, the next call should trigger another storage read
-    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/date%3D12_00.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+    when(
+      si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/date%3D12_00.lock"))(
+        ArgumentMatchers.eq(indexFileDecoder),
+      ),
+    )
       .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(300)), None), "granular-etag-2")))
 
     try {
       im.getSeekedOffsetForPartitionKey(tp, "date%3D12_00") shouldBe Right(Some(Offset(300)))
 
-      verify(si, times(2)).getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/date%3D12_00.lock"))(ArgumentMatchers.eq(indexFileDecoder))
+      verify(si, times(2)).getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/date%3D12_00.lock"))(
+        ArgumentMatchers.eq(indexFileDecoder),
+      )
     } finally im.close()
   }
 
@@ -904,11 +948,16 @@ class IndexManagerV2Test
     val si = mock[StorageInterface[_]]
     when(bucketAndPrefixFn(any[TopicPartition])).thenReturn(Right(bucketAndPrefix))
     when(si.pathExists(anyString(), anyString())).thenReturn(Right(false))
-    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith("0.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith("0.lock"))(
+      ArgumentMatchers.eq(indexFileDecoder),
+    ))
       .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(100)), None), "etag")))
 
     val im = new IndexManagerV2(
-      bucketAndPrefixFn, oldIndexManager, pendingOperationsProcessors, indexesDirectoryName,
+      bucketAndPrefixFn,
+      oldIndexManager,
+      pendingOperationsProcessors,
+      indexesDirectoryName,
       gcIntervalSeconds = Int.MaxValue,
     )(si, connectorTaskId)
 
@@ -916,7 +965,11 @@ class IndexManagerV2Test
 
     // Load 3 granular locks
     Seq("pk1", "pk2", "pk3").foreach { pk =>
-      when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains(s"/0/$pk.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+      when(
+        si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains(s"/0/$pk.lock"))(
+          ArgumentMatchers.eq(indexFileDecoder),
+        ),
+      )
         .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(200)), None), s"etag-$pk")))
       im.getSeekedOffsetForPartitionKey(tp, pk) shouldBe Right(Some(Offset(200)))
     }
@@ -930,26 +983,34 @@ class IndexManagerV2Test
     } finally im.close()
   }
 
-  test("cache does not hard-evict entries when exceeding maxGranularCacheSize") {
+  test("granular cache grows unbounded without automatic eviction") {
     val tp              = Topic("topic1").withPartition(0)
     val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
 
     val si = mock[StorageInterface[_]]
     when(bucketAndPrefixFn(any[TopicPartition])).thenReturn(Right(bucketAndPrefix))
     when(si.pathExists(anyString(), anyString())).thenReturn(Right(false))
-    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith("0.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith("0.lock"))(
+      ArgumentMatchers.eq(indexFileDecoder),
+    ))
       .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(100)), None), "etag")))
 
     val im = new IndexManagerV2(
-      bucketAndPrefixFn, oldIndexManager, pendingOperationsProcessors, indexesDirectoryName,
-      maxGranularCacheSize = 2,
+      bucketAndPrefixFn,
+      oldIndexManager,
+      pendingOperationsProcessors,
+      indexesDirectoryName,
       gcIntervalSeconds = Int.MaxValue,
     )(si, connectorTaskId)
 
     im.open(Set(tp))
 
     Seq("pk1", "pk2", "pk3").foreach { pk =>
-      when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains(s"/0/$pk.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+      when(
+        si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains(s"/0/$pk.lock"))(
+          ArgumentMatchers.eq(indexFileDecoder),
+        ),
+      )
         .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(200)), None), s"etag-$pk")))
     }
 
@@ -957,14 +1018,16 @@ class IndexManagerV2Test
     im.getSeekedOffsetForPartitionKey(tp, "pk2") shouldBe Right(Some(Offset(200)))
     im.granularCacheSize shouldBe 2
 
-    // Loading a third entry does NOT evict pk1 — cache grows beyond maxGranularCacheSize
+    // Loading a third entry does NOT evict pk1 — cache is unbounded
     im.getSeekedOffsetForPartitionKey(tp, "pk3") shouldBe Right(Some(Offset(200)))
     im.granularCacheSize shouldBe 3
 
     try {
       // pk1 is still cached — no re-read from storage needed
       im.getSeekedOffsetForPartitionKey(tp, "pk1") shouldBe Right(Some(Offset(200)))
-      verify(si, times(1)).getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/pk1.lock"))(ArgumentMatchers.eq(indexFileDecoder))
+      verify(si, times(1)).getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/pk1.lock"))(
+        ArgumentMatchers.eq(indexFileDecoder),
+      )
     } finally im.close()
   }
 
@@ -977,18 +1040,27 @@ class IndexManagerV2Test
     val si = mock[StorageInterface[_]]
     when(bucketAndPrefixFn(any[TopicPartition])).thenReturn(Right(bucketAndPrefix))
     when(si.pathExists(anyString(), anyString())).thenReturn(Right(false))
-    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith("0.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith("0.lock"))(
+      ArgumentMatchers.eq(indexFileDecoder),
+    ))
       .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(100)), None), "etag")))
 
     val im = new IndexManagerV2(
-      bucketAndPrefixFn, oldIndexManager, pendingOperationsProcessors, indexesDirectoryName,
+      bucketAndPrefixFn,
+      oldIndexManager,
+      pendingOperationsProcessors,
+      indexesDirectoryName,
       gcIntervalSeconds = Int.MaxValue,
     )(si, connectorTaskId)
 
     im.open(Set(tp))
 
     // tryOpen finds the granular lock -- it already exists from a prior run
-    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/date%3D12_00.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+    when(
+      si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/date%3D12_00.lock"))(
+        ArgumentMatchers.eq(indexFileDecoder),
+      ),
+    )
       .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(50)), None), "existing-granular-etag")))
 
     val result = im.ensureGranularLock(tp, "date%3D12_00")
@@ -1006,7 +1078,9 @@ class IndexManagerV2Test
       im.getSeekedOffsetForPartitionKey(tp, "date%3D12_00") shouldBe Right(Some(Offset(50)))
       // Verify getBlobAsObject for the granular path was called exactly once (by ensureGranularLock),
       // not twice (no additional call from getSeekedOffsetForPartitionKey)
-      verify(si, times(1)).getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/date%3D12_00.lock"))(ArgumentMatchers.eq(indexFileDecoder))
+      verify(si, times(1)).getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/date%3D12_00.lock"))(
+        ArgumentMatchers.eq(indexFileDecoder),
+      )
     } finally im.close()
   }
 
@@ -1017,22 +1091,36 @@ class IndexManagerV2Test
     val si = mock[StorageInterface[_]]
     when(bucketAndPrefixFn(any[TopicPartition])).thenReturn(Right(bucketAndPrefix))
     when(si.pathExists(anyString(), anyString())).thenReturn(Right(false))
-    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith("0.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith("0.lock"))(
+      ArgumentMatchers.eq(indexFileDecoder),
+    ))
       .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(100)), None), "etag")))
 
     val im = new IndexManagerV2(
-      bucketAndPrefixFn, oldIndexManager, pendingOperationsProcessors, indexesDirectoryName,
+      bucketAndPrefixFn,
+      oldIndexManager,
+      pendingOperationsProcessors,
+      indexesDirectoryName,
       gcIntervalSeconds = Int.MaxValue,
     )(si, connectorTaskId)
 
     im.open(Set(tp))
 
     // tryOpen returns FileNotFoundError -- file does not exist yet
-    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/date%3D12_00.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+    when(
+      si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/date%3D12_00.lock"))(
+        ArgumentMatchers.eq(indexFileDecoder),
+      ),
+    )
       .thenReturn(Left(FileNotFoundError(new Exception("Not found"), "granular-path")))
-    when(si.writeBlobToFile[IndexFile](anyString(), ArgumentMatchers.contains("/0/date%3D12_00.lock"), any[NoOverwriteExistingObject[IndexFile]])(
-      ArgumentMatchers.eq(indexFileEncoder),
-    )).thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", None, None), "new-granular-etag")))
+    when(
+      si.writeBlobToFile[IndexFile](anyString(),
+                                    ArgumentMatchers.contains("/0/date%3D12_00.lock"),
+                                    any[NoOverwriteExistingObject[IndexFile]],
+      )(
+        ArgumentMatchers.eq(indexFileEncoder),
+      ),
+    ).thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", None, None), "new-granular-etag")))
 
     try {
       val result = im.ensureGranularLock(tp, "date%3D12_00")
@@ -1054,11 +1142,16 @@ class IndexManagerV2Test
     val pp = mock[PendingOperationsProcessors]
     when(bucketAndPrefixFn(any[TopicPartition])).thenReturn(Right(bucketAndPrefix))
     when(si.pathExists(anyString(), anyString())).thenReturn(Right(false))
-    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith("0.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith("0.lock"))(
+      ArgumentMatchers.eq(indexFileDecoder),
+    ))
       .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(50)), None), "master-etag")))
 
     val im = new IndexManagerV2(
-      bucketAndPrefixFn, oldIndexManager, pp, indexesDirectoryName,
+      bucketAndPrefixFn,
+      oldIndexManager,
+      pp,
+      indexesDirectoryName,
       gcIntervalSeconds = Int.MaxValue,
     )(si, connectorTaskId)
 
@@ -1070,24 +1163,39 @@ class IndexManagerV2Test
     )
     val pendingIndexFile = IndexFile("lockOwner", Some(Offset(80)), Some(PendingState(Offset(90), pendingOps)))
 
-    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/pk-pending.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+    when(
+      si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/pk-pending.lock"))(
+        ArgumentMatchers.eq(indexFileDecoder),
+      ),
+    )
       .thenReturn(Right(ObjectWithETag(pendingIndexFile, "granular-etag-v1")))
 
     // Mock writeBlobToFile so the fnUpdate callback (updateForPartitionKey) can write the resolved lock
-    when(si.writeBlobToFile[IndexFile](anyString(), ArgumentMatchers.contains("/0/pk-pending.lock"), any[ObjectWithETag[IndexFile]])(
-      ArgumentMatchers.eq(indexFileEncoder),
-    )).thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(90)), None), "granular-etag-v2")))
+    when(
+      si.writeBlobToFile[IndexFile](anyString(),
+                                    ArgumentMatchers.contains("/0/pk-pending.lock"),
+                                    any[ObjectWithETag[IndexFile]],
+      )(
+        ArgumentMatchers.eq(indexFileEncoder),
+      ),
+    ).thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(90)), None), "granular-etag-v2")))
 
     // processPendingOperations invokes fnUpdate to write the resolved offset, then returns it
-    when(pp.processPendingOperations(
-      ArgumentMatchers.eq(tp),
-      ArgumentMatchers.eq(Some(Offset(80))),
-      any[PendingState],
-      any[(TopicPartition, Option[Offset], Option[PendingState]) => Either[SinkError, Option[Offset]]],
-    )).thenAnswer((invocation: org.mockito.invocation.InvocationOnMock) => {
-      val fnUpdate = invocation.getArgument[(TopicPartition, Option[Offset], Option[PendingState]) => Either[SinkError, Option[Offset]]](3)
+    when(
+      pp.processPendingOperations(
+        ArgumentMatchers.eq(tp),
+        ArgumentMatchers.eq(Some(Offset(80))),
+        any[PendingState],
+        any[(TopicPartition, Option[Offset], Option[PendingState]) => Either[SinkError, Option[Offset]]],
+      ),
+    ).thenAnswer { (invocation: org.mockito.invocation.InvocationOnMock) =>
+      val fnUpdate = invocation.getArgument[(
+        TopicPartition,
+        Option[Offset],
+        Option[PendingState],
+      ) => Either[SinkError, Option[Offset]]](3)
       fnUpdate(tp, Some(Offset(90)), None)
-    })
+    }
 
     try {
       val result = im.ensureGranularLock(tp, "pk-pending")
@@ -1105,7 +1213,9 @@ class IndexManagerV2Test
       val seeked = im.getSeekedOffsetForPartitionKey(tp, "pk-pending")
       seeked shouldBe Right(Some(Offset(90)))
 
-      verify(si, times(1)).getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/pk-pending.lock"))(ArgumentMatchers.eq(indexFileDecoder))
+      verify(si, times(1)).getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/pk-pending.lock"))(
+        ArgumentMatchers.eq(indexFileDecoder),
+      )
     } finally im.close()
   }
 
@@ -1117,11 +1227,16 @@ class IndexManagerV2Test
     val pp = mock[PendingOperationsProcessors]
     when(bucketAndPrefixFn(any[TopicPartition])).thenReturn(Right(bucketAndPrefix))
     when(si.pathExists(anyString(), anyString())).thenReturn(Right(false))
-    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith("0.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith("0.lock"))(
+      ArgumentMatchers.eq(indexFileDecoder),
+    ))
       .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(50)), None), "master-etag")))
 
     val im = new IndexManagerV2(
-      bucketAndPrefixFn, oldIndexManager, pp, indexesDirectoryName,
+      bucketAndPrefixFn,
+      oldIndexManager,
+      pp,
+      indexesDirectoryName,
       gcIntervalSeconds = Int.MaxValue,
     )(si, connectorTaskId)
 
@@ -1133,15 +1248,21 @@ class IndexManagerV2Test
     )
     val pendingIndexFile = IndexFile("lockOwner", Some(Offset(80)), Some(PendingState(Offset(90), pendingOps)))
 
-    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/pk-pending.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+    when(
+      si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/pk-pending.lock"))(
+        ArgumentMatchers.eq(indexFileDecoder),
+      ),
+    )
       .thenReturn(Right(ObjectWithETag(pendingIndexFile, "granular-etag-v1")))
 
-    when(pp.processPendingOperations(
-      ArgumentMatchers.eq(tp),
-      ArgumentMatchers.eq(Some(Offset(80))),
-      any[PendingState],
-      any[(TopicPartition, Option[Offset], Option[PendingState]) => Either[SinkError, Option[Offset]]],
-    )).thenReturn(Left(FatalCloudSinkError("transient cloud error", tp)))
+    when(
+      pp.processPendingOperations(
+        ArgumentMatchers.eq(tp),
+        ArgumentMatchers.eq(Some(Offset(80))),
+        any[PendingState],
+        any[(TopicPartition, Option[Offset], Option[PendingState]) => Either[SinkError, Option[Offset]]],
+      ),
+    ).thenReturn(Left(FatalCloudSinkError("transient cloud error", tp)))
 
     try {
       val result = im.ensureGranularLock(tp, "pk-pending")
@@ -1159,11 +1280,16 @@ class IndexManagerV2Test
     val pp = mock[PendingOperationsProcessors]
     when(bucketAndPrefixFn(any[TopicPartition])).thenReturn(Right(bucketAndPrefix))
     when(si.pathExists(anyString(), anyString())).thenReturn(Right(false))
-    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith("0.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith("0.lock"))(
+      ArgumentMatchers.eq(indexFileDecoder),
+    ))
       .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(50)), None), "master-etag")))
 
     val im = new IndexManagerV2(
-      bucketAndPrefixFn, oldIndexManager, pp, indexesDirectoryName,
+      bucketAndPrefixFn,
+      oldIndexManager,
+      pp,
+      indexesDirectoryName,
       gcIntervalSeconds = Int.MaxValue,
     )(si, connectorTaskId)
 
@@ -1173,28 +1299,38 @@ class IndexManagerV2Test
       CopyOperation("bucket", "temp-path", "final-path", "placeholder"),
       DeleteOperation("bucket", "temp-path", "placeholder"),
     )
-    val pendingLock = Right(ObjectWithETag(
-      IndexFile("lockOwner", Some(Offset(80)), Some(PendingState(Offset(90), pendingOps))),
-      "granular-etag-conflict",
-    ))
+    val pendingLock = Right(
+      ObjectWithETag(
+        IndexFile("lockOwner", Some(Offset(80)), Some(PendingState(Offset(90), pendingOps))),
+        "granular-etag-conflict",
+      ),
+    )
     val notFound: Either[FileNotFoundError, ObjectWithETag[IndexFile]] =
       Left(FileNotFoundError(new Exception("Not found"), "granular-path"))
 
     // First tryOpen returns FileNotFoundError, retry re-read returns lock with PendingState
     org.mockito.Mockito.doReturn(notFound, pendingLock)
-      .when(si).getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/pk-conflict.lock"))(ArgumentMatchers.eq(indexFileDecoder))
+      .when(si).getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/pk-conflict.lock"))(
+        ArgumentMatchers.eq(indexFileDecoder),
+      )
 
     // Write fails (another task created it between read and write)
     org.mockito.Mockito.doReturn(Left(FileCreateError(new Exception("conflict"), "granular-path")))
-      .when(si).writeBlobToFile[IndexFile](anyString(), ArgumentMatchers.contains("/0/pk-conflict.lock"), any[NoOverwriteExistingObject[IndexFile]])(
-        ArgumentMatchers.eq(indexFileEncoder))
+      .when(si).writeBlobToFile[IndexFile](anyString(),
+                                           ArgumentMatchers.contains("/0/pk-conflict.lock"),
+                                           any[NoOverwriteExistingObject[IndexFile]],
+      )(
+        ArgumentMatchers.eq(indexFileEncoder),
+      )
 
-    when(pp.processPendingOperations(
-      ArgumentMatchers.eq(tp),
-      ArgumentMatchers.eq(Some(Offset(80))),
-      any[PendingState],
-      any[(TopicPartition, Option[Offset], Option[PendingState]) => Either[SinkError, Option[Offset]]],
-    )).thenReturn(Right(Some(Offset(90))))
+    when(
+      pp.processPendingOperations(
+        ArgumentMatchers.eq(tp),
+        ArgumentMatchers.eq(Some(Offset(80))),
+        any[PendingState],
+        any[(TopicPartition, Option[Offset], Option[PendingState]) => Either[SinkError, Option[Offset]]],
+      ),
+    ).thenReturn(Right(Some(Offset(90))))
 
     try {
       val result = im.ensureGranularLock(tp, "pk-conflict")
@@ -1218,11 +1354,16 @@ class IndexManagerV2Test
     val si = mock[StorageInterface[_]]
     when(bucketAndPrefixFn(any[TopicPartition])).thenReturn(Right(bucketAndPrefix))
     when(si.pathExists(anyString(), anyString())).thenReturn(Right(false))
-    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith("0.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith("0.lock"))(
+      ArgumentMatchers.eq(indexFileDecoder),
+    ))
       .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(100)), None), "etag")))
 
     val im = new IndexManagerV2(
-      bucketAndPrefixFn, oldIndexManager, pendingOperationsProcessors, indexesDirectoryName,
+      bucketAndPrefixFn,
+      oldIndexManager,
+      pendingOperationsProcessors,
+      indexesDirectoryName,
       gcIntervalSeconds = Int.MaxValue,
     )(si, connectorTaskId)
 
@@ -1230,7 +1371,11 @@ class IndexManagerV2Test
       im.open(Set(tp))
 
       Seq("pk-old", "pk-new").zip(Seq(Offset(50), Offset(200))).foreach { case (pk, offset) =>
-        when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains(s"/0/$pk.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+        when(
+          si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains(s"/0/$pk.lock"))(
+            ArgumentMatchers.eq(indexFileDecoder),
+          ),
+        )
           .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(offset), None), s"etag-$pk")))
         im.getSeekedOffsetForPartitionKey(tp, pk) shouldBe Right(Some(offset))
       }
@@ -1265,11 +1410,16 @@ class IndexManagerV2Test
     val si = mock[StorageInterface[_]]
     when(bucketAndPrefixFn(any[TopicPartition])).thenReturn(Right(bucketAndPrefix))
     when(si.pathExists(anyString(), anyString())).thenReturn(Right(false))
-    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith("0.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith("0.lock"))(
+      ArgumentMatchers.eq(indexFileDecoder),
+    ))
       .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(100)), None), "etag")))
 
     val im = new IndexManagerV2(
-      bucketAndPrefixFn, oldIndexManager, pendingOperationsProcessors, indexesDirectoryName,
+      bucketAndPrefixFn,
+      oldIndexManager,
+      pendingOperationsProcessors,
+      indexesDirectoryName,
       gcIntervalSeconds = Int.MaxValue,
     )(si, connectorTaskId)
 
@@ -1277,11 +1427,20 @@ class IndexManagerV2Test
       im.open(Set(tp))
 
       // tryOpen returns FileNotFoundError for the granular lock -- file does not exist yet
-      when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/pk-etag-only.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+      when(
+        si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/pk-etag-only.lock"))(
+          ArgumentMatchers.eq(indexFileDecoder),
+        ),
+      )
         .thenReturn(Left(FileNotFoundError(new Exception("Not found"), "pk-etag-only-path")))
-      when(si.writeBlobToFile[IndexFile](anyString(), ArgumentMatchers.contains("/0/pk-etag-only.lock"), any[NoOverwriteExistingObject[IndexFile]])(
-        ArgumentMatchers.eq(indexFileEncoder),
-      )).thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", None, None), "etag-only")))
+      when(
+        si.writeBlobToFile[IndexFile](anyString(),
+                                      ArgumentMatchers.contains("/0/pk-etag-only.lock"),
+                                      any[NoOverwriteExistingObject[IndexFile]],
+        )(
+          ArgumentMatchers.eq(indexFileEncoder),
+        ),
+      ).thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", None, None), "etag-only")))
 
       im.ensureGranularLock(tp, "pk-etag-only") shouldBe Right(())
 
@@ -1303,11 +1462,16 @@ class IndexManagerV2Test
     val si = mock[StorageInterface[_]]
     when(bucketAndPrefixFn(any[TopicPartition])).thenReturn(Right(bucketAndPrefix))
     when(si.pathExists(anyString(), anyString())).thenReturn(Right(false))
-    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith("0.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith("0.lock"))(
+      ArgumentMatchers.eq(indexFileDecoder),
+    ))
       .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(100)), None), "etag")))
 
     val im = new IndexManagerV2(
-      bucketAndPrefixFn, oldIndexManager, pendingOperationsProcessors, indexesDirectoryName,
+      bucketAndPrefixFn,
+      oldIndexManager,
+      pendingOperationsProcessors,
+      indexesDirectoryName,
       gcIntervalSeconds = Int.MaxValue,
     )(si, connectorTaskId)
 
@@ -1315,7 +1479,11 @@ class IndexManagerV2Test
       im.open(Set(tp))
 
       // Load a granular lock with a low committed offset (would normally be deleted)
-      when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/pk-active.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+      when(
+        si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/pk-active.lock"))(
+          ArgumentMatchers.eq(indexFileDecoder),
+        ),
+      )
         .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(30)), None), "etag-active")))
       im.getSeekedOffsetForPartitionKey(tp, "pk-active") shouldBe Right(Some(Offset(30)))
 
@@ -1337,14 +1505,19 @@ class IndexManagerV2Test
     val si = mock[StorageInterface[_]]
     when(bucketAndPrefixFn(any[TopicPartition])).thenReturn(Right(bucketAndPrefix))
     when(si.pathExists(anyString(), anyString())).thenReturn(Right(false))
-    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith("0.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith("0.lock"))(
+      ArgumentMatchers.eq(indexFileDecoder),
+    ))
       .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(100)), None), "etag")))
     when(si.deleteFiles(anyString(), any[Seq[String]])).thenReturn(Right(()))
 
     val im = new IndexManagerV2(
-      bucketAndPrefixFn, oldIndexManager, pendingOperationsProcessors, indexesDirectoryName,
+      bucketAndPrefixFn,
+      oldIndexManager,
+      pendingOperationsProcessors,
+      indexesDirectoryName,
       gcIntervalSeconds = Int.MaxValue,
-      gcBatchSize = 2,
+      gcBatchSize       = 2,
     )(si, connectorTaskId)
 
     try {
@@ -1352,11 +1525,19 @@ class IndexManagerV2Test
 
       // Load 3 granular locks: 2 obsolete (below threshold) and 1 current (above threshold)
       Seq("pk-old-1", "pk-old-2").foreach { pk =>
-        when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains(s"/0/$pk.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+        when(
+          si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains(s"/0/$pk.lock"))(
+            ArgumentMatchers.eq(indexFileDecoder),
+          ),
+        )
           .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(10)), None), s"etag-$pk")))
         im.getSeekedOffsetForPartitionKey(tp, pk) shouldBe Right(Some(Offset(10)))
       }
-      when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains(s"/0/pk-current.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+      when(
+        si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains(s"/0/pk-current.lock"))(
+          ArgumentMatchers.eq(indexFileDecoder),
+        ),
+      )
         .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(200)), None), "etag-current")))
       im.getSeekedOffsetForPartitionKey(tp, "pk-current") shouldBe Right(Some(Offset(200)))
 
@@ -1384,18 +1565,27 @@ class IndexManagerV2Test
     val si = mock[StorageInterface[_]]
     when(bucketAndPrefixFn(any[TopicPartition])).thenReturn(Right(bucketAndPrefix))
     when(si.pathExists(anyString(), anyString())).thenReturn(Right(false))
-    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith("0.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith("0.lock"))(
+      ArgumentMatchers.eq(indexFileDecoder),
+    ))
       .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(100)), None), "etag")))
 
     val im = new IndexManagerV2(
-      bucketAndPrefixFn, oldIndexManager, pendingOperationsProcessors, indexesDirectoryName,
+      bucketAndPrefixFn,
+      oldIndexManager,
+      pendingOperationsProcessors,
+      indexesDirectoryName,
       gcIntervalSeconds = Int.MaxValue,
     )(si, connectorTaskId)
 
     im.open(Set(tp))
 
     // Load a granular lock into the cache
-    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/pk-final.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+    when(
+      si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/pk-final.lock"))(
+        ArgumentMatchers.eq(indexFileDecoder),
+      ),
+    )
       .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(10)), None), "etag-pk-final")))
     im.getSeekedOffsetForPartitionKey(tp, "pk-final") shouldBe Right(Some(Offset(10)))
 
@@ -1424,15 +1614,20 @@ class IndexManagerV2Test
       .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(100)), None), "etag-v1")))
 
     val im = new IndexManagerV2(
-      bucketAndPrefixFn, oldIndexManager, pendingOperationsProcessors, indexesDirectoryName,
+      bucketAndPrefixFn,
+      oldIndexManager,
+      pendingOperationsProcessors,
+      indexesDirectoryName,
       gcIntervalSeconds = Int.MaxValue,
     )(si, connectorTaskId)
 
     im.open(Set(tp))
 
-    when(si.writeBlobToFile[IndexFile](anyString(), anyString(), any[ObjectWithETag[IndexFile]])(
-      ArgumentMatchers.eq(indexFileEncoder),
-    )).thenReturn(Left(FileCreateError(new Exception("eTag mismatch"), "content")))
+    when(
+      si.writeBlobToFile[IndexFile](anyString(), anyString(), any[ObjectWithETag[IndexFile]])(
+        ArgumentMatchers.eq(indexFileEncoder),
+      ),
+    ).thenReturn(Left(FileCreateError(new Exception("eTag mismatch"), "content")))
 
     val firstResult = im.updateMasterLock(tp, Offset(101))
     firstResult.isLeft shouldBe true
@@ -1452,21 +1647,25 @@ class IndexManagerV2Test
     } finally im.close()
   }
 
-  // --- granular cache grows beyond old maxGranularCacheSize without error ---
+  // --- granular cache grows unbounded without error ---
 
-  test("granular cache holds entries beyond maxGranularCacheSize when no eviction occurs") {
+  test("granular cache holds arbitrary number of entries when no eviction occurs") {
     val tp              = Topic("topic1").withPartition(0)
     val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
 
     val si = mock[StorageInterface[_]]
     when(bucketAndPrefixFn(any[TopicPartition])).thenReturn(Right(bucketAndPrefix))
     when(si.pathExists(anyString(), anyString())).thenReturn(Right(false))
-    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith("0.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith("0.lock"))(
+      ArgumentMatchers.eq(indexFileDecoder),
+    ))
       .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(100)), None), "master-etag")))
 
     val im = new IndexManagerV2(
-      bucketAndPrefixFn, oldIndexManager, pendingOperationsProcessors, indexesDirectoryName,
-      maxGranularCacheSize = 1,
+      bucketAndPrefixFn,
+      oldIndexManager,
+      pendingOperationsProcessors,
+      indexesDirectoryName,
       gcIntervalSeconds = Int.MaxValue,
     )(si, connectorTaskId)
 
@@ -1474,13 +1673,20 @@ class IndexManagerV2Test
       im.open(Set(tp))
 
       // Load pk1 into cache
-      when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/pk1.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+      when(
+        si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/pk1.lock"))(
+          ArgumentMatchers.eq(indexFileDecoder),
+        ),
+      )
         .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(200)), None), "etag-pk1")))
       im.getSeekedOffsetForPartitionKey(tp, "pk1") shouldBe Right(Some(Offset(200)))
 
-      // Load pk2 -- cache size is now 2, exceeding maxGranularCacheSize=1
-      // With Option A (no hard LRU eviction), both entries remain in the cache
-      when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/pk2.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+      // Load pk2 -- cache size is now 2; both entries remain (no automatic eviction)
+      when(
+        si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/pk2.lock"))(
+          ArgumentMatchers.eq(indexFileDecoder),
+        ),
+      )
         .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(300)), None), "etag-pk2")))
       im.getSeekedOffsetForPartitionKey(tp, "pk2") shouldBe Right(Some(Offset(300)))
 
@@ -1488,7 +1694,10 @@ class IndexManagerV2Test
 
       // pk1 is still in cache -- updateForPartitionKey should succeed, not FatalCloudSinkError
       when(
-        si.writeBlobToFile[IndexFile](anyString(), ArgumentMatchers.contains("/0/pk1.lock"), any[ObjectWithETag[IndexFile]])(
+        si.writeBlobToFile[IndexFile](anyString(),
+                                      ArgumentMatchers.contains("/0/pk1.lock"),
+                                      any[ObjectWithETag[IndexFile]],
+        )(
           ArgumentMatchers.eq(indexFileEncoder),
         ),
       )
@@ -1513,18 +1722,29 @@ class IndexManagerV2Test
 
     // gcIntervalSeconds very large so the background timer never fires during this test
     val im = new IndexManagerV2(
-      bucketAndPrefixFn, oldIndexManager, pendingOperationsProcessors, indexesDirectoryName,
+      bucketAndPrefixFn,
+      oldIndexManager,
+      pendingOperationsProcessors,
+      indexesDirectoryName,
       gcIntervalSeconds = Int.MaxValue,
     )(si, connectorTaskId)
 
     im.open(Set(tp))
 
     // Load two granular locks into cache
-    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/pk-old.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+    when(
+      si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/pk-old.lock"))(
+        ArgumentMatchers.eq(indexFileDecoder),
+      ),
+    )
       .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(50)), None), "etag-old")))
     im.getSeekedOffsetForPartitionKey(tp, "pk-old") shouldBe Right(Some(Offset(50)))
 
-    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/pk-active.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+    when(
+      si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/pk-active.lock"))(
+        ArgumentMatchers.eq(indexFileDecoder),
+      ),
+    )
       .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(200)), None), "etag-active")))
     im.getSeekedOffsetForPartitionKey(tp, "pk-active") shouldBe Right(Some(Offset(200)))
 
@@ -1535,12 +1755,16 @@ class IndexManagerV2Test
     im.close()
 
     // Verify deleteFiles was called with the enqueued path
-    verify(si).deleteFiles(ArgumentMatchers.eq("bucket"), ArgumentMatchers.argThat[Seq[String]](_.exists(_.contains("pk-old"))))
+    verify(si).deleteFiles(ArgumentMatchers.eq("bucket"),
+                           ArgumentMatchers.argThat[Seq[String]](_.exists(_.contains("pk-old"))),
+    )
   }
 
   // --- loadGranularLock PendingState tests ---
 
-  test("loadGranularLock evicts cache entry when processPendingOperations fails, allowing retry to re-read from storage") {
+  test(
+    "loadGranularLock evicts cache entry when processPendingOperations fails, allowing retry to re-read from storage",
+  ) {
     val tp              = Topic("topic1").withPartition(0)
     val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
 
@@ -1549,11 +1773,16 @@ class IndexManagerV2Test
     when(bucketAndPrefixFn(any[TopicPartition])).thenReturn(Right(bucketAndPrefix))
     when(si.pathExists(anyString(), anyString())).thenReturn(Right(false))
     // Master lock for open()
-    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith("0.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith("0.lock"))(
+      ArgumentMatchers.eq(indexFileDecoder),
+    ))
       .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(50)), None), "master-etag")))
 
     val im = new IndexManagerV2(
-      bucketAndPrefixFn, oldIndexManager, pp, indexesDirectoryName,
+      bucketAndPrefixFn,
+      oldIndexManager,
+      pp,
+      indexesDirectoryName,
       gcIntervalSeconds = Int.MaxValue,
     )(si, connectorTaskId)
 
@@ -1567,16 +1796,22 @@ class IndexManagerV2Test
     val pendingIndexFile = IndexFile("lockOwner", Some(Offset(80)), Some(PendingState(Offset(90), pendingOps)))
 
     // First call: granular lock has PendingState
-    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/pk-pending.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+    when(
+      si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/pk-pending.lock"))(
+        ArgumentMatchers.eq(indexFileDecoder),
+      ),
+    )
       .thenReturn(Right(ObjectWithETag(pendingIndexFile, "granular-etag-v1")))
 
     // processPendingOperations fails (transient cloud error)
-    when(pp.processPendingOperations(
-      ArgumentMatchers.eq(tp),
-      ArgumentMatchers.eq(Some(Offset(80))),
-      any[PendingState],
-      any[(TopicPartition, Option[Offset], Option[PendingState]) => Either[SinkError, Option[Offset]]],
-    )).thenReturn(Left(FatalCloudSinkError("transient cloud error", tp)))
+    when(
+      pp.processPendingOperations(
+        ArgumentMatchers.eq(tp),
+        ArgumentMatchers.eq(Some(Offset(80))),
+        any[PendingState],
+        any[(TopicPartition, Option[Offset], Option[PendingState]) => Either[SinkError, Option[Offset]]],
+      ),
+    ).thenReturn(Left(FatalCloudSinkError("transient cloud error", tp)))
 
     val firstResult = im.getSeekedOffsetForPartitionKey(tp, "pk-pending")
     firstResult.isLeft shouldBe true
@@ -1586,7 +1821,11 @@ class IndexManagerV2Test
 
     // Second call: retry should re-read from storage, this time the PendingState was resolved externally
     val resolvedIndexFile = IndexFile("lockOwner", Some(Offset(90)), None)
-    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/pk-pending.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+    when(
+      si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/pk-pending.lock"))(
+        ArgumentMatchers.eq(indexFileDecoder),
+      ),
+    )
       .thenReturn(Right(ObjectWithETag(resolvedIndexFile, "granular-etag-v2")))
 
     val secondResult = im.getSeekedOffsetForPartitionKey(tp, "pk-pending")
@@ -1594,7 +1833,9 @@ class IndexManagerV2Test
 
     try {
       // Verify storage was read twice (once per call, no poisoned cache hit)
-      verify(si, times(2)).getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/pk-pending.lock"))(ArgumentMatchers.eq(indexFileDecoder))
+      verify(si, times(2)).getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/pk-pending.lock"))(
+        ArgumentMatchers.eq(indexFileDecoder),
+      )
     } finally im.close()
   }
 
@@ -1606,11 +1847,16 @@ class IndexManagerV2Test
     val pp = mock[PendingOperationsProcessors]
     when(bucketAndPrefixFn(any[TopicPartition])).thenReturn(Right(bucketAndPrefix))
     when(si.pathExists(anyString(), anyString())).thenReturn(Right(false))
-    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith("0.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith("0.lock"))(
+      ArgumentMatchers.eq(indexFileDecoder),
+    ))
       .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(50)), None), "master-etag")))
 
     val im = new IndexManagerV2(
-      bucketAndPrefixFn, oldIndexManager, pp, indexesDirectoryName,
+      bucketAndPrefixFn,
+      oldIndexManager,
+      pp,
+      indexesDirectoryName,
       gcIntervalSeconds = Int.MaxValue,
     )(si, connectorTaskId)
 
@@ -1623,16 +1869,22 @@ class IndexManagerV2Test
     )
     val pendingIndexFile = IndexFile("lockOwner", Some(Offset(80)), Some(PendingState(Offset(90), pendingOps)))
 
-    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/pk-pending.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+    when(
+      si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/pk-pending.lock"))(
+        ArgumentMatchers.eq(indexFileDecoder),
+      ),
+    )
       .thenReturn(Right(ObjectWithETag(pendingIndexFile, "granular-etag-v1")))
 
     // processPendingOperations succeeds and returns the resolved offset
-    when(pp.processPendingOperations(
-      ArgumentMatchers.eq(tp),
-      ArgumentMatchers.eq(Some(Offset(80))),
-      any[PendingState],
-      any[(TopicPartition, Option[Offset], Option[PendingState]) => Either[SinkError, Option[Offset]]],
-    )).thenReturn(Right(Some(Offset(90))))
+    when(
+      pp.processPendingOperations(
+        ArgumentMatchers.eq(tp),
+        ArgumentMatchers.eq(Some(Offset(80))),
+        any[PendingState],
+        any[(TopicPartition, Option[Offset], Option[PendingState]) => Either[SinkError, Option[Offset]]],
+      ),
+    ).thenReturn(Right(Some(Offset(90))))
 
     try {
       val result = im.getSeekedOffsetForPartitionKey(tp, "pk-pending")
@@ -1641,7 +1893,9 @@ class IndexManagerV2Test
       // Subsequent call should hit the cache (processPendingOperations updates it via fnUpdate,
       // but in this mock scenario the cache was populated by the initial put with eTag; the
       // returned offset is from processPendingOperations, not from cache -- verify no second storage read)
-      verify(si, times(1)).getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/pk-pending.lock"))(ArgumentMatchers.eq(indexFileDecoder))
+      verify(si, times(1)).getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/pk-pending.lock"))(
+        ArgumentMatchers.eq(indexFileDecoder),
+      )
     } finally im.close()
   }
 
@@ -1654,11 +1908,16 @@ class IndexManagerV2Test
     val si = mock[StorageInterface[_]]
     when(bucketAndPrefixFn(any[TopicPartition])).thenReturn(Right(bucketAndPrefix))
     when(si.pathExists(anyString(), anyString())).thenReturn(Right(false))
-    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith("0.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith("0.lock"))(
+      ArgumentMatchers.eq(indexFileDecoder),
+    ))
       .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(100)), None), "etag")))
 
     val im = new IndexManagerV2(
-      bucketAndPrefixFn, oldIndexManager, pendingOperationsProcessors, indexesDirectoryName,
+      bucketAndPrefixFn,
+      oldIndexManager,
+      pendingOperationsProcessors,
+      indexesDirectoryName,
       gcIntervalSeconds = Int.MaxValue,
     )(si, connectorTaskId)
 
@@ -1666,7 +1925,11 @@ class IndexManagerV2Test
       im.open(Set(tp))
 
       // Load a granular lock into the cache
-      when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/pk-reclaim.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+      when(
+        si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/pk-reclaim.lock"))(
+          ArgumentMatchers.eq(indexFileDecoder),
+        ),
+      )
         .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(50)), None), "etag-reclaim-v1")))
       im.getSeekedOffsetForPartitionKey(tp, "pk-reclaim") shouldBe Right(Some(Offset(50)))
       im.granularCacheSize shouldBe 1
@@ -1676,7 +1939,11 @@ class IndexManagerV2Test
       im.granularCacheSize shouldBe 0
 
       // Simulate a new writer reclaiming this key (re-reads from storage, populates cache)
-      when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/pk-reclaim.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+      when(
+        si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/pk-reclaim.lock"))(
+          ArgumentMatchers.eq(indexFileDecoder),
+        ),
+      )
         .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(50)), None), "etag-reclaim-v2")))
       im.ensureGranularLock(tp, "pk-reclaim") shouldBe Right(())
       im.granularCacheSize shouldBe 1
@@ -1698,11 +1965,16 @@ class IndexManagerV2Test
     val si = mock[StorageInterface[_]]
     when(bucketAndPrefixFn(any[TopicPartition])).thenReturn(Right(bucketAndPrefix))
     when(si.pathExists(anyString(), anyString())).thenReturn(Right(false))
-    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith("0.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith("0.lock"))(
+      ArgumentMatchers.eq(indexFileDecoder),
+    ))
       .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(100)), None), "etag")))
 
     val im = new IndexManagerV2(
-      bucketAndPrefixFn, oldIndexManager, pendingOperationsProcessors, indexesDirectoryName,
+      bucketAndPrefixFn,
+      oldIndexManager,
+      pendingOperationsProcessors,
+      indexesDirectoryName,
       gcIntervalSeconds = Int.MaxValue,
     )(si, connectorTaskId)
 
@@ -1711,7 +1983,11 @@ class IndexManagerV2Test
 
       // Load two granular locks
       Seq("pk-gone", "pk-reclaimed").foreach { pk =>
-        when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains(s"/0/$pk.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+        when(
+          si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains(s"/0/$pk.lock"))(
+            ArgumentMatchers.eq(indexFileDecoder),
+          ),
+        )
           .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(30)), None), s"etag-$pk")))
         im.getSeekedOffsetForPartitionKey(tp, pk) shouldBe Right(Some(Offset(30)))
       }
@@ -1722,7 +1998,11 @@ class IndexManagerV2Test
       im.granularCacheSize shouldBe 0
 
       // Reclaim only pk-reclaimed (simulating a new writer)
-      when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/pk-reclaimed.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+      when(
+        si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/pk-reclaimed.lock"))(
+          ArgumentMatchers.eq(indexFileDecoder),
+        ),
+      )
         .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(30)), None), "etag-reclaimed-v2")))
       im.ensureGranularLock(tp, "pk-reclaimed") shouldBe Right(())
       im.granularCacheSize shouldBe 1
@@ -1747,19 +2027,21 @@ class IndexManagerV2Test
   private def createSweepTestManager(
     si:                     StorageInterface[_],
     gcSweepEnabled:         Boolean = true,
-    gcSweepIntervalSeconds: Int = 86400,
-    gcSweepAgeSeconds:      Int = 3600,
-    gcSweepMaxReads:        Int = 1000,
-  ): IndexManagerV2 = {
+    gcSweepIntervalSeconds: Int     = 86400,
+    gcSweepAgeSeconds:      Int     = 3600,
+    gcSweepMaxReads:        Int     = 1000,
+  ): IndexManagerV2 =
     new IndexManagerV2(
-      bucketAndPrefixFn, oldIndexManager, pendingOperationsProcessors, indexesDirectoryName,
+      bucketAndPrefixFn,
+      oldIndexManager,
+      pendingOperationsProcessors,
+      indexesDirectoryName,
       gcIntervalSeconds      = Int.MaxValue,
       gcSweepEnabled         = gcSweepEnabled,
       gcSweepIntervalSeconds = gcSweepIntervalSeconds,
       gcSweepAgeSeconds      = gcSweepAgeSeconds,
       gcSweepMaxReads        = gcSweepMaxReads,
     )(si, connectorTaskId)
-  }
 
   private def setupSweepMocks(
     si:              StorageInterface[_],
@@ -1797,8 +2079,14 @@ class IndexManagerV2Test
     val orphanMeta   = TestFileMetadata(orphanPath, oldTime)
     val listResponse = ListOfMetadataResponse("bucket", Some("prefix"), Seq(orphanMeta), orphanMeta)
 
-    org.mockito.Mockito.doReturn(Right(Some(listResponse))).when(si).listFileMetaRecursive(anyString(), any[Option[String]])
-    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("orphan-key.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+    org.mockito.Mockito.doReturn(Right(Some(listResponse))).when(si).listFileMetaRecursive(anyString(),
+                                                                                           any[Option[String]],
+    )
+    when(
+      si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("orphan-key.lock"))(
+        ArgumentMatchers.eq(indexFileDecoder),
+      ),
+    )
       .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(50)), None), "orphan-etag")))
     when(si.deleteFiles(anyString(), any[Seq[String]])).thenReturn(Right(()))
 
@@ -1823,14 +2111,18 @@ class IndexManagerV2Test
     val recentMeta   = TestFileMetadata(recentPath, recentTime)
     val listResponse = ListOfMetadataResponse("bucket", Some("prefix"), Seq(recentMeta), recentMeta)
 
-    org.mockito.Mockito.doReturn(Right(Some(listResponse))).when(si).listFileMetaRecursive(anyString(), any[Option[String]])
+    org.mockito.Mockito.doReturn(Right(Some(listResponse))).when(si).listFileMetaRecursive(anyString(),
+                                                                                           any[Option[String]],
+    )
 
     val im = createSweepTestManager(si, gcSweepAgeSeconds = 3600)
     try {
       im.open(Set(tp))
       im.sweepOrphanedLocks()
 
-      verify(si, never).getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("recent-key.lock"))(ArgumentMatchers.eq(indexFileDecoder))
+      verify(si, never).getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("recent-key.lock"))(
+        ArgumentMatchers.eq(indexFileDecoder),
+      )
     } finally im.close()
   }
 
@@ -1845,10 +2137,16 @@ class IndexManagerV2Test
     val cachedMeta   = TestFileMetadata(cachedPath, oldTime)
     val listResponse = ListOfMetadataResponse("bucket", Some("prefix"), Seq(cachedMeta), cachedMeta)
 
-    org.mockito.Mockito.doReturn(Right(Some(listResponse))).when(si).listFileMetaRecursive(anyString(), any[Option[String]])
+    org.mockito.Mockito.doReturn(Right(Some(listResponse))).when(si).listFileMetaRecursive(anyString(),
+                                                                                           any[Option[String]],
+    )
 
     // Load cached-key into the granular cache
-    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("cached-key.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+    when(
+      si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("cached-key.lock"))(
+        ArgumentMatchers.eq(indexFileDecoder),
+      ),
+    )
       .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(50)), None), "cached-etag")))
 
     val im = createSweepTestManager(si)
@@ -1859,11 +2157,15 @@ class IndexManagerV2Test
       // Reset the mock to track new invocations
       reset(si)
       setupSweepMocks(si, tp, bucketAndPrefix)
-      org.mockito.Mockito.doReturn(Right(Some(listResponse))).when(si).listFileMetaRecursive(anyString(), any[Option[String]])
+      org.mockito.Mockito.doReturn(Right(Some(listResponse))).when(si).listFileMetaRecursive(anyString(),
+                                                                                             any[Option[String]],
+      )
 
       im.sweepOrphanedLocks()
 
-      verify(si, never).getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("cached-key.lock"))(ArgumentMatchers.eq(indexFileDecoder))
+      verify(si, never).getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("cached-key.lock"))(
+        ArgumentMatchers.eq(indexFileDecoder),
+      )
     } finally im.close()
   }
 
@@ -1878,8 +2180,14 @@ class IndexManagerV2Test
     val highMeta     = TestFileMetadata(highPath, oldTime)
     val listResponse = ListOfMetadataResponse("bucket", Some("prefix"), Seq(highMeta), highMeta)
 
-    org.mockito.Mockito.doReturn(Right(Some(listResponse))).when(si).listFileMetaRecursive(anyString(), any[Option[String]])
-    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("high-key.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+    org.mockito.Mockito.doReturn(Right(Some(listResponse))).when(si).listFileMetaRecursive(anyString(),
+                                                                                           any[Option[String]],
+    )
+    when(
+      si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("high-key.lock"))(
+        ArgumentMatchers.eq(indexFileDecoder),
+      ),
+    )
       .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(150)), None), "high-etag")))
     when(si.deleteFiles(anyString(), any[Seq[String]])).thenReturn(Right(()))
 
@@ -1904,8 +2212,14 @@ class IndexManagerV2Test
     val noOffMeta    = TestFileMetadata(noOffPath, oldTime)
     val listResponse = ListOfMetadataResponse("bucket", Some("prefix"), Seq(noOffMeta), noOffMeta)
 
-    org.mockito.Mockito.doReturn(Right(Some(listResponse))).when(si).listFileMetaRecursive(anyString(), any[Option[String]])
-    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("no-offset.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+    org.mockito.Mockito.doReturn(Right(Some(listResponse))).when(si).listFileMetaRecursive(anyString(),
+                                                                                           any[Option[String]],
+    )
+    when(
+      si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("no-offset.lock"))(
+        ArgumentMatchers.eq(indexFileDecoder),
+      ),
+    )
       .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", None, None), "no-off-etag")))
     when(si.deleteFiles(anyString(), any[Seq[String]])).thenReturn(Right(()))
 
@@ -1927,11 +2241,19 @@ class IndexManagerV2Test
 
     when(bucketAndPrefixFn(any[TopicPartition])).thenReturn(Right(bucketAndPrefix))
     when(si.pathExists(anyString(), anyString())).thenReturn(Right(false))
-    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith("0.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith("0.lock"))(
+      ArgumentMatchers.eq(indexFileDecoder),
+    ))
       .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(100)), None), "etag0")))
-    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith("1.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith("1.lock"))(
+      ArgumentMatchers.eq(indexFileDecoder),
+    ))
       .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(100)), None), "etag1")))
-    when(si.getBlobAsObject[IndexManagerV2.SweepMarker](anyString(), ArgumentMatchers.contains("sweep-marker"))(any[Decoder[IndexManagerV2.SweepMarker]]))
+    when(
+      si.getBlobAsObject[IndexManagerV2.SweepMarker](anyString(), ArgumentMatchers.contains("sweep-marker"))(
+        any[Decoder[IndexManagerV2.SweepMarker]],
+      ),
+    )
       .thenReturn(Left(FileNotFoundError(new Exception("Not found"), "sweep-marker")))
     when(si.writeStringToFile(anyString(), anyString(), any[UploadableString])).thenReturn(Right(()))
 
@@ -1950,7 +2272,11 @@ class IndexManagerV2Test
     org.mockito.Mockito.doReturn(Right(Some(allFiles))).when(si).listFileMetaRecursive(anyString(), any[Option[String]])
 
     // Each lock file read returns a low offset (below master)
-    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.matches(".*pk-\\d+\\.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+    when(
+      si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.matches(".*pk-\\d+\\.lock"))(
+        ArgumentMatchers.eq(indexFileDecoder),
+      ),
+    )
       .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(10)), None), "pk-etag")))
 
     val im = createSweepTestManager(si, gcSweepMaxReads = 2)
@@ -1959,7 +2285,9 @@ class IndexManagerV2Test
       im.sweepOrphanedLocks()
 
       // Only 2 lock file reads should have been made total
-      verify(si, times(2)).getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.matches(".*pk-\\d+\\.lock"))(ArgumentMatchers.eq(indexFileDecoder))
+      verify(si, times(2)).getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.matches(".*pk-\\d+\\.lock"))(
+        ArgumentMatchers.eq(indexFileDecoder),
+      )
     } finally im.close()
   }
 
@@ -1970,12 +2298,18 @@ class IndexManagerV2Test
 
     when(bucketAndPrefixFn(any[TopicPartition])).thenReturn(Right(bucketAndPrefix))
     when(si.pathExists(anyString(), anyString())).thenReturn(Right(false))
-    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith("0.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith("0.lock"))(
+      ArgumentMatchers.eq(indexFileDecoder),
+    ))
       .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(100)), None), "etag")))
 
     // Marker says next run is in the future
     val futureMarker = IndexManagerV2.SweepMarker(System.currentTimeMillis(), System.currentTimeMillis() + 86400000L)
-    when(si.getBlobAsObject[IndexManagerV2.SweepMarker](anyString(), ArgumentMatchers.contains("sweep-marker"))(any[Decoder[IndexManagerV2.SweepMarker]]))
+    when(
+      si.getBlobAsObject[IndexManagerV2.SweepMarker](anyString(), ArgumentMatchers.contains("sweep-marker"))(
+        any[Decoder[IndexManagerV2.SweepMarker]],
+      ),
+    )
       .thenReturn(Right(ObjectWithETag(futureMarker, "marker-etag")))
 
     val im = createSweepTestManager(si)
@@ -1987,8 +2321,13 @@ class IndexManagerV2Test
       verify(si, never).listFileMetaRecursive(anyString(), any[Option[String]])
 
       // Now change marker to be in the past
-      val pastMarker = IndexManagerV2.SweepMarker(System.currentTimeMillis() - 172800000L, System.currentTimeMillis() - 86400000L)
-      when(si.getBlobAsObject[IndexManagerV2.SweepMarker](anyString(), ArgumentMatchers.contains("sweep-marker"))(any[Decoder[IndexManagerV2.SweepMarker]]))
+      val pastMarker =
+        IndexManagerV2.SweepMarker(System.currentTimeMillis() - 172800000L, System.currentTimeMillis() - 86400000L)
+      when(
+        si.getBlobAsObject[IndexManagerV2.SweepMarker](anyString(), ArgumentMatchers.contains("sweep-marker"))(
+          any[Decoder[IndexManagerV2.SweepMarker]],
+        ),
+      )
         .thenReturn(Right(ObjectWithETag(pastMarker, "marker-etag")))
       when(si.writeStringToFile(anyString(), anyString(), any[UploadableString])).thenReturn(Right(()))
       org.mockito.Mockito.doReturn(Right(None)).when(si).listFileMetaRecursive(anyString(), any[Option[String]])
@@ -2013,7 +2352,10 @@ class IndexManagerV2Test
       im.sweepOrphanedLocks()
 
       val inOrder = org.mockito.Mockito.inOrder(si)
-      inOrder.verify(si).writeStringToFile(anyString(), ArgumentMatchers.contains("sweep-marker"), any[UploadableString])
+      inOrder.verify(si).writeStringToFile(anyString(),
+                                           ArgumentMatchers.contains("sweep-marker"),
+                                           any[UploadableString],
+      )
       inOrder.verify(si).listFileMetaRecursive(anyString(), any[Option[String]])
     } finally im.close()
   }
@@ -2044,11 +2386,17 @@ class IndexManagerV2Test
 
     when(bucketAndPrefixFn(any[TopicPartition])).thenReturn(Right(bucketAndPrefix))
     when(si.pathExists(anyString(), anyString())).thenReturn(Right(false))
-    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith("0.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith("0.lock"))(
+      ArgumentMatchers.eq(indexFileDecoder),
+    ))
       .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(100)), None), "etag")))
 
     // Marker read returns a transient error (not FileNotFoundError)
-    when(si.getBlobAsObject[IndexManagerV2.SweepMarker](anyString(), ArgumentMatchers.contains("sweep-marker"))(any[Decoder[IndexManagerV2.SweepMarker]]))
+    when(
+      si.getBlobAsObject[IndexManagerV2.SweepMarker](anyString(), ArgumentMatchers.contains("sweep-marker"))(
+        any[Decoder[IndexManagerV2.SweepMarker]],
+      ),
+    )
       .thenReturn(Left(GeneralFileLoadError(new Exception("transient"), "sweep-marker")))
 
     val im = createSweepTestManager(si)
@@ -2069,7 +2417,9 @@ class IndexManagerV2Test
 
     when(bucketAndPrefixFn(any[TopicPartition])).thenReturn(Right(bucketAndPrefix))
     when(si.pathExists(anyString(), anyString())).thenReturn(Right(false))
-    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith("0.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith("0.lock"))(
+      ArgumentMatchers.eq(indexFileDecoder),
+    ))
       .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(100)), None), "etag")))
 
     val im = createSweepTestManager(si, gcSweepEnabled = false)
@@ -2078,7 +2428,9 @@ class IndexManagerV2Test
       im.sweepOrphanedLocks()
 
       // Nothing should happen -- no marker reads, no listing, no writes
-      verify(si, never).getBlobAsObject[IndexManagerV2.SweepMarker](anyString(), ArgumentMatchers.contains("sweep-marker"))(any[Decoder[IndexManagerV2.SweepMarker]])
+      verify(si, never).getBlobAsObject[IndexManagerV2.SweepMarker](anyString(),
+                                                                    ArgumentMatchers.contains("sweep-marker"),
+      )(any[Decoder[IndexManagerV2.SweepMarker]])
       verify(si, never).listFileMetaRecursive(anyString(), any[Option[String]])
     } finally im.close()
   }
@@ -2089,15 +2441,23 @@ class IndexManagerV2Test
     val si              = mock[StorageInterface[_]]
     setupSweepMocks(si, tp, bucketAndPrefix)
 
-    val oldTime       = Instant.now().minusSeconds(7200)
-    val pendingPath   = s"$indexesDirectoryName/${connectorTaskId.name}/.locks/${tp.topic}/${tp.partition}/pending-key.lock"
-    val pendingMeta   = TestFileMetadata(pendingPath, oldTime)
-    val listResponse  = ListOfMetadataResponse("bucket", Some("prefix"), Seq(pendingMeta), pendingMeta)
+    val oldTime = Instant.now().minusSeconds(7200)
+    val pendingPath =
+      s"$indexesDirectoryName/${connectorTaskId.name}/.locks/${tp.topic}/${tp.partition}/pending-key.lock"
+    val pendingMeta  = TestFileMetadata(pendingPath, oldTime)
+    val listResponse = ListOfMetadataResponse("bucket", Some("prefix"), Seq(pendingMeta), pendingMeta)
 
-    org.mockito.Mockito.doReturn(Right(Some(listResponse))).when(si).listFileMetaRecursive(anyString(), any[Option[String]])
+    org.mockito.Mockito.doReturn(Right(Some(listResponse))).when(si).listFileMetaRecursive(anyString(),
+                                                                                           any[Option[String]],
+    )
 
-    val pendingState = PendingState(Offset(51), NonEmptyList.one(DeleteOperation("bucket", "some/temp/path", "old-etag")))
-    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("pending-key.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+    val pendingState =
+      PendingState(Offset(51), NonEmptyList.one(DeleteOperation("bucket", "some/temp/path", "old-etag")))
+    when(
+      si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("pending-key.lock"))(
+        ArgumentMatchers.eq(indexFileDecoder),
+      ),
+    )
       .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(50)), Some(pendingState)), "pending-etag")))
     when(si.deleteFiles(anyString(), any[Seq[String]])).thenReturn(Right(()))
 

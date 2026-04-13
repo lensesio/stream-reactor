@@ -79,17 +79,33 @@ class GranularLockScenarioTest extends AnyFunSuiteLike with Matchers with Mockit
     when(indexManager.indexingEnabled).thenReturn(true)
 
     // Writer A has a granular lock at 104 (committed)
-    val writerA = new Writer[FileMetadata](topicPartition, commitPolicy, indexManager, stagingFilenameFn,
-      objectKeyBuilder, formatWriterFn, schemaChangeDetector, pendingOperationsProcessors,
-      partitionKey = Some("date=12_00"), lastSeekedOffset = Some(Offset(104)))
+    val writerA = new Writer[FileMetadata](topicPartition,
+                                           commitPolicy,
+                                           indexManager,
+                                           stagingFilenameFn,
+                                           objectKeyBuilder,
+                                           formatWriterFn,
+                                           schemaChangeDetector,
+                                           pendingOperationsProcessors,
+                                           partitionKey     = Some("date=12_00"),
+                                           lastSeekedOffset = Some(Offset(104)),
+    )
     writerA.shouldSkip(Offset(100)) shouldBe true
     writerA.shouldSkip(Offset(104)) shouldBe true
     writerA.shouldSkip(Offset(105)) shouldBe false
 
     // Writer B has no granular lock (uncommitted) -- falls back to master lock at 100
-    val writerB = new Writer[FileMetadata](topicPartition, commitPolicy, indexManager, stagingFilenameFn,
-      objectKeyBuilder, formatWriterFn, schemaChangeDetector, pendingOperationsProcessors,
-      partitionKey = Some("date=12_15"), lastSeekedOffset = Some(Offset(100)))
+    val writerB = new Writer[FileMetadata](topicPartition,
+                                           commitPolicy,
+                                           indexManager,
+                                           stagingFilenameFn,
+                                           objectKeyBuilder,
+                                           formatWriterFn,
+                                           schemaChangeDetector,
+                                           pendingOperationsProcessors,
+                                           partitionKey     = Some("date=12_15"),
+                                           lastSeekedOffset = Some(Offset(100)),
+    )
     writerB.shouldSkip(Offset(100)) shouldBe true
     writerB.shouldSkip(Offset(101)) shouldBe false
   }
@@ -98,30 +114,45 @@ class GranularLockScenarioTest extends AnyFunSuiteLike with Matchers with Mockit
     when(indexManager.indexingEnabled).thenReturn(true)
 
     // Writer A committed up to 104
-    val writerA = new Writer[FileMetadata](topicPartition, commitPolicy, indexManager, stagingFilenameFn,
-      objectKeyBuilder, formatWriterFn, schemaChangeDetector, pendingOperationsProcessors)
+    val writerA = new Writer[FileMetadata](topicPartition,
+                                           commitPolicy,
+                                           indexManager,
+                                           stagingFilenameFn,
+                                           objectKeyBuilder,
+                                           formatWriterFn,
+                                           schemaChangeDetector,
+                                           pendingOperationsProcessors,
+    )
     writerA.writeState = NoWriter(CommitState(topicPartition, Some(Offset(104))))
     writerA.getCommittedOffset shouldBe Some(Offset(104))
     writerA.getFirstBufferedOffset shouldBe None
 
     // Writer B has buffered data starting at 101
-    val writerB = new Writer[FileMetadata](topicPartition, commitPolicy, indexManager, stagingFilenameFn,
-      objectKeyBuilder, formatWriterFn, schemaChangeDetector, pendingOperationsProcessors,
-      lastSeekedOffset = None)
-    writerB.writeState = Writing(CommitState(topicPartition, None), formatWriter, new File("test"),
-      Offset(101), Offset(103), 1L, 1L)
+    val writerB = new Writer[FileMetadata](topicPartition,
+                                           commitPolicy,
+                                           indexManager,
+                                           stagingFilenameFn,
+                                           objectKeyBuilder,
+                                           formatWriterFn,
+                                           schemaChangeDetector,
+                                           pendingOperationsProcessors,
+                                           lastSeekedOffset = None,
+    )
+    writerB.writeState =
+      Writing(CommitState(topicPartition, None), formatWriter, new File("test"), Offset(101), Offset(103), 1L, 1L)
     writerB.getFirstBufferedOffset shouldBe Some(Offset(101))
 
     val firstBufferedOffsets = Seq(writerA, writerB).flatMap(_.getFirstBufferedOffset)
     val committedOffsets     = Seq(writerA, writerB).flatMap(_.getCommittedOffset)
 
-    val globalSafeOffset = if (firstBufferedOffsets.nonEmpty) {
-      val minFirstBuffered  = firstBufferedOffsets.map(_.value).min
-      val maxCommittedPlus1 = committedOffsets.map(_.value).max + 1
-      math.min(minFirstBuffered, maxCommittedPlus1)
-    } else {
-      committedOffsets.map(_.value).max + 1
-    }
+    val globalSafeOffset =
+      if (firstBufferedOffsets.nonEmpty) {
+        val minFirstBuffered  = firstBufferedOffsets.map(_.value).min
+        val maxCommittedPlus1 = committedOffsets.map(_.value).max + 1
+        math.min(minFirstBuffered, maxCommittedPlus1)
+      } else {
+        committedOffsets.map(_.value).max + 1
+      }
 
     globalSafeOffset shouldBe 101L
   }
@@ -130,9 +161,17 @@ class GranularLockScenarioTest extends AnyFunSuiteLike with Matchers with Mockit
     when(indexManager.indexingEnabled).thenReturn(true)
 
     // No granular lock exists, so WriterManager falls back to master lock (100)
-    val writer = new Writer[FileMetadata](topicPartition, commitPolicy, indexManager, stagingFilenameFn,
-      objectKeyBuilder, formatWriterFn, schemaChangeDetector, pendingOperationsProcessors,
-      partitionKey = Some("date=12_00"), lastSeekedOffset = Some(Offset(100)))
+    val writer = new Writer[FileMetadata](topicPartition,
+                                          commitPolicy,
+                                          indexManager,
+                                          stagingFilenameFn,
+                                          objectKeyBuilder,
+                                          formatWriterFn,
+                                          schemaChangeDetector,
+                                          pendingOperationsProcessors,
+                                          partitionKey     = Some("date=12_00"),
+                                          lastSeekedOffset = Some(Offset(100)),
+    )
     writer.shouldSkip(Offset(100)) shouldBe true
     writer.shouldSkip(Offset(101)) shouldBe false
   }
@@ -141,9 +180,17 @@ class GranularLockScenarioTest extends AnyFunSuiteLike with Matchers with Mockit
     when(indexManager.indexingEnabled).thenReturn(true)
     // updateMasterLock(tp, Offset(107)) writes committedOffset = 106 (globalSafeOffset - 1)
     // Old code reads master lock and gets committedOffset = 106
-    val writer = new Writer[FileMetadata](topicPartition, commitPolicy, indexManager, stagingFilenameFn,
-      objectKeyBuilder, formatWriterFn, schemaChangeDetector, pendingOperationsProcessors,
-      partitionKey = None, lastSeekedOffset = Some(Offset(106)))
+    val writer = new Writer[FileMetadata](topicPartition,
+                                          commitPolicy,
+                                          indexManager,
+                                          stagingFilenameFn,
+                                          objectKeyBuilder,
+                                          formatWriterFn,
+                                          schemaChangeDetector,
+                                          pendingOperationsProcessors,
+                                          partitionKey     = None,
+                                          lastSeekedOffset = Some(Offset(106)),
+    )
     writer.shouldSkip(Offset(106)) shouldBe true
     writer.shouldSkip(Offset(107)) shouldBe false
   }
@@ -151,15 +198,29 @@ class GranularLockScenarioTest extends AnyFunSuiteLike with Matchers with Mockit
   test("preCommit returns max committed + 1 when all writers are committed") {
     when(indexManager.indexingEnabled).thenReturn(true)
 
-    val writerA = new Writer[FileMetadata](topicPartition, commitPolicy, indexManager, stagingFilenameFn,
-      objectKeyBuilder, formatWriterFn, schemaChangeDetector, pendingOperationsProcessors)
+    val writerA = new Writer[FileMetadata](topicPartition,
+                                           commitPolicy,
+                                           indexManager,
+                                           stagingFilenameFn,
+                                           objectKeyBuilder,
+                                           formatWriterFn,
+                                           schemaChangeDetector,
+                                           pendingOperationsProcessors,
+    )
     writerA.writeState = NoWriter(CommitState(topicPartition, Some(Offset(104))))
 
-    val writerB = new Writer[FileMetadata](topicPartition, commitPolicy, indexManager, stagingFilenameFn,
-      objectKeyBuilder, formatWriterFn, schemaChangeDetector, pendingOperationsProcessors)
+    val writerB = new Writer[FileMetadata](topicPartition,
+                                           commitPolicy,
+                                           indexManager,
+                                           stagingFilenameFn,
+                                           objectKeyBuilder,
+                                           formatWriterFn,
+                                           schemaChangeDetector,
+                                           pendingOperationsProcessors,
+    )
     writerB.writeState = NoWriter(CommitState(topicPartition, Some(Offset(106))))
 
-    val allWriters          = Seq(writerA, writerB)
+    val allWriters           = Seq(writerA, writerB)
     val firstBufferedOffsets = allWriters.flatMap(_.getFirstBufferedOffset)
     val committedOffsets     = allWriters.flatMap(_.getCommittedOffset)
 
@@ -173,9 +234,17 @@ class GranularLockScenarioTest extends AnyFunSuiteLike with Matchers with Mockit
     when(indexManager.indexingEnabled).thenReturn(true)
 
     // First writer sees granular lock at 200
-    val writerA = new Writer[FileMetadata](topicPartition, commitPolicy, indexManager, stagingFilenameFn,
-      objectKeyBuilder, formatWriterFn, schemaChangeDetector, pendingOperationsProcessors,
-      partitionKey = Some("date=12_00"), lastSeekedOffset = Some(Offset(200)))
+    val writerA = new Writer[FileMetadata](topicPartition,
+                                           commitPolicy,
+                                           indexManager,
+                                           stagingFilenameFn,
+                                           objectKeyBuilder,
+                                           formatWriterFn,
+                                           schemaChangeDetector,
+                                           pendingOperationsProcessors,
+                                           partitionKey     = Some("date=12_00"),
+                                           lastSeekedOffset = Some(Offset(200)),
+    )
     writerA.shouldSkip(Offset(200)) shouldBe true
     writerA.shouldSkip(Offset(201)) shouldBe false
 
@@ -184,9 +253,17 @@ class GranularLockScenarioTest extends AnyFunSuiteLike with Matchers with Mockit
 
     // After close, simulate that the granular lock has been updated to 300
     // (WriterManager.createWriter would resolve this via getSeekedOffsetForPartitionKey)
-    val writerB = new Writer[FileMetadata](topicPartition, commitPolicy, indexManager, stagingFilenameFn,
-      objectKeyBuilder, formatWriterFn, schemaChangeDetector, pendingOperationsProcessors,
-      partitionKey = Some("date=12_00"), lastSeekedOffset = Some(Offset(300)))
+    val writerB = new Writer[FileMetadata](topicPartition,
+                                           commitPolicy,
+                                           indexManager,
+                                           stagingFilenameFn,
+                                           objectKeyBuilder,
+                                           formatWriterFn,
+                                           schemaChangeDetector,
+                                           pendingOperationsProcessors,
+                                           partitionKey     = Some("date=12_00"),
+                                           lastSeekedOffset = Some(Offset(300)),
+    )
     writerB.shouldSkip(Offset(300)) shouldBe true
     writerB.shouldSkip(Offset(301)) shouldBe false
   }
@@ -195,36 +272,72 @@ class GranularLockScenarioTest extends AnyFunSuiteLike with Matchers with Mockit
     when(indexManager.indexingEnabled).thenReturn(true)
 
     // Writer A committed to 104, no buffered data (NoWriter)
-    val writerA = new Writer[FileMetadata](topicPartition, commitPolicy, indexManager, stagingFilenameFn,
-      objectKeyBuilder, formatWriterFn, schemaChangeDetector, pendingOperationsProcessors)
+    val writerA = new Writer[FileMetadata](topicPartition,
+                                           commitPolicy,
+                                           indexManager,
+                                           stagingFilenameFn,
+                                           objectKeyBuilder,
+                                           formatWriterFn,
+                                           schemaChangeDetector,
+                                           pendingOperationsProcessors,
+    )
     writerA.writeState = NoWriter(CommitState(topicPartition, Some(Offset(104))))
 
     // Writer B committed to 102, currently buffering from 103 to 106
-    val writerB = new Writer[FileMetadata](topicPartition, commitPolicy, indexManager, stagingFilenameFn,
-      objectKeyBuilder, formatWriterFn, schemaChangeDetector, pendingOperationsProcessors)
-    writerB.writeState = Writing(CommitState(topicPartition, Some(Offset(102))), formatWriter, new File("test"),
-      firstBufferedOffset = Offset(103), uncommittedOffset = Offset(106), 1L, 1L)
+    val writerB = new Writer[FileMetadata](topicPartition,
+                                           commitPolicy,
+                                           indexManager,
+                                           stagingFilenameFn,
+                                           objectKeyBuilder,
+                                           formatWriterFn,
+                                           schemaChangeDetector,
+                                           pendingOperationsProcessors,
+    )
+    writerB.writeState = Writing(
+      CommitState(topicPartition, Some(Offset(102))),
+      formatWriter,
+      new File("test"),
+      firstBufferedOffset = Offset(103),
+      uncommittedOffset   = Offset(106),
+      1L,
+      1L,
+    )
 
     // Writer C has no committed offset, buffering from 100
-    val writerC = new Writer[FileMetadata](topicPartition, commitPolicy, indexManager, stagingFilenameFn,
-      objectKeyBuilder, formatWriterFn, schemaChangeDetector, pendingOperationsProcessors)
-    writerC.writeState = Writing(CommitState(topicPartition, None), formatWriter, new File("test"),
-      firstBufferedOffset = Offset(100), uncommittedOffset = Offset(101), 1L, 1L)
+    val writerC = new Writer[FileMetadata](topicPartition,
+                                           commitPolicy,
+                                           indexManager,
+                                           stagingFilenameFn,
+                                           objectKeyBuilder,
+                                           formatWriterFn,
+                                           schemaChangeDetector,
+                                           pendingOperationsProcessors,
+    )
+    writerC.writeState = Writing(
+      CommitState(topicPartition, None),
+      formatWriter,
+      new File("test"),
+      firstBufferedOffset = Offset(100),
+      uncommittedOffset   = Offset(101),
+      1L,
+      1L,
+    )
 
-    val allWriters = Seq(writerA, writerB, writerC)
+    val allWriters           = Seq(writerA, writerB, writerC)
     val firstBufferedOffsets = allWriters.flatMap(_.getFirstBufferedOffset)
     val committedOffsets     = allWriters.flatMap(_.getCommittedOffset)
 
     firstBufferedOffsets should contain theSameElementsAs Seq(Offset(103), Offset(100))
     committedOffsets should contain theSameElementsAs Seq(Offset(104), Offset(102))
 
-    val globalSafeOffset = if (firstBufferedOffsets.nonEmpty) {
-      val minFirstBuffered  = firstBufferedOffsets.map(_.value).min
-      val maxCommittedPlus1 = committedOffsets.map(_.value).max + 1
-      math.min(minFirstBuffered, maxCommittedPlus1)
-    } else {
-      committedOffsets.map(_.value).max + 1
-    }
+    val globalSafeOffset =
+      if (firstBufferedOffsets.nonEmpty) {
+        val minFirstBuffered  = firstBufferedOffsets.map(_.value).min
+        val maxCommittedPlus1 = committedOffsets.map(_.value).max + 1
+        math.min(minFirstBuffered, maxCommittedPlus1)
+      } else {
+        committedOffsets.map(_.value).max + 1
+      }
 
     // min(100, 105) = 100
     globalSafeOffset shouldBe 100L
@@ -234,30 +347,51 @@ class GranularLockScenarioTest extends AnyFunSuiteLike with Matchers with Mockit
     when(indexManager.indexingEnabled).thenReturn(true)
 
     // Writer A committed to 104, no buffered data (NoWriter)
-    val writerA = new Writer[FileMetadata](topicPartition, commitPolicy, indexManager, stagingFilenameFn,
-      objectKeyBuilder, formatWriterFn, schemaChangeDetector, pendingOperationsProcessors)
+    val writerA = new Writer[FileMetadata](topicPartition,
+                                           commitPolicy,
+                                           indexManager,
+                                           stagingFilenameFn,
+                                           objectKeyBuilder,
+                                           formatWriterFn,
+                                           schemaChangeDetector,
+                                           pendingOperationsProcessors,
+    )
     writerA.writeState = NoWriter(CommitState(topicPartition, Some(Offset(104))))
 
     // Writer B is in Uploading state: committed to 90, buffered from 91 to 95
-    val writerB = new Writer[FileMetadata](topicPartition, commitPolicy, indexManager, stagingFilenameFn,
-      objectKeyBuilder, formatWriterFn, schemaChangeDetector, pendingOperationsProcessors)
-    writerB.writeState = Uploading(CommitState(topicPartition, Some(Offset(90))), new File("test"),
-      firstBufferedOffset = Offset(91), uncommittedOffset = Offset(95), 1L, 1L)
+    val writerB = new Writer[FileMetadata](topicPartition,
+                                           commitPolicy,
+                                           indexManager,
+                                           stagingFilenameFn,
+                                           objectKeyBuilder,
+                                           formatWriterFn,
+                                           schemaChangeDetector,
+                                           pendingOperationsProcessors,
+    )
+    writerB.writeState = Uploading(
+      CommitState(topicPartition, Some(Offset(90))),
+      new File("test"),
+      firstBufferedOffset = Offset(91),
+      uncommittedOffset   = Offset(95),
+      1L,
+      1L,
+    )
 
-    val allWriters = Seq(writerA, writerB)
+    val allWriters           = Seq(writerA, writerB)
     val firstBufferedOffsets = allWriters.flatMap(_.getFirstBufferedOffset)
     val committedOffsets     = allWriters.flatMap(_.getCommittedOffset)
 
     firstBufferedOffsets should contain theSameElementsAs Seq(Offset(91))
     committedOffsets should contain theSameElementsAs Seq(Offset(104), Offset(90))
 
-    val globalSafeOffset = if (firstBufferedOffsets.nonEmpty) {
-      val minFirstBuffered  = firstBufferedOffsets.map(_.value).min
-      val maxCommittedPlus1 = committedOffsets.map(_.value).max + 1
-      math.min(minFirstBuffered, maxCommittedPlus1)
-    } else {
-      committedOffsets.map(_.value).max + 1
-    }
+    val globalSafeOffset =
+      if (firstBufferedOffsets.nonEmpty) {
+        val minFirstBuffered  = firstBufferedOffsets.map(_.value).min
+        val maxCommittedPlus1 = committedOffsets.map(_.value).max + 1
+        math.min(minFirstBuffered, maxCommittedPlus1)
+      } else {
+        committedOffsets.map(_.value).max + 1
+      }
 
     // min(91, 105) = 91 -- must not advance past the Uploading writer's buffered data
     globalSafeOffset shouldBe 91L
@@ -267,17 +401,38 @@ class GranularLockScenarioTest extends AnyFunSuiteLike with Matchers with Mockit
     when(indexManager.indexingEnabled).thenReturn(true)
 
     // Writer A committed to 104, no buffered data
-    val writerA = new Writer[FileMetadata](topicPartition, commitPolicy, indexManager, stagingFilenameFn,
-      objectKeyBuilder, formatWriterFn, schemaChangeDetector, pendingOperationsProcessors)
+    val writerA = new Writer[FileMetadata](topicPartition,
+                                           commitPolicy,
+                                           indexManager,
+                                           stagingFilenameFn,
+                                           objectKeyBuilder,
+                                           formatWriterFn,
+                                           schemaChangeDetector,
+                                           pendingOperationsProcessors,
+    )
     writerA.writeState = NoWriter(CommitState(topicPartition, Some(Offset(104))))
 
     // Writer B committed to 110, buffering from 200
-    val writerB = new Writer[FileMetadata](topicPartition, commitPolicy, indexManager, stagingFilenameFn,
-      objectKeyBuilder, formatWriterFn, schemaChangeDetector, pendingOperationsProcessors)
-    writerB.writeState = Writing(CommitState(topicPartition, Some(Offset(110))), formatWriter, new File("test"),
-      firstBufferedOffset = Offset(200), uncommittedOffset = Offset(210), 1L, 1L)
+    val writerB = new Writer[FileMetadata](topicPartition,
+                                           commitPolicy,
+                                           indexManager,
+                                           stagingFilenameFn,
+                                           objectKeyBuilder,
+                                           formatWriterFn,
+                                           schemaChangeDetector,
+                                           pendingOperationsProcessors,
+    )
+    writerB.writeState = Writing(
+      CommitState(topicPartition, Some(Offset(110))),
+      formatWriter,
+      new File("test"),
+      firstBufferedOffset = Offset(200),
+      uncommittedOffset   = Offset(210),
+      1L,
+      1L,
+    )
 
-    val allWriters          = Seq(writerA, writerB)
+    val allWriters           = Seq(writerA, writerB)
     val firstBufferedOffsets = allWriters.flatMap(_.getFirstBufferedOffset)
     val committedOffsets     = allWriters.flatMap(_.getCommittedOffset)
 
@@ -347,8 +502,15 @@ class GranularLockScenarioTest extends AnyFunSuiteLike with Matchers with Mockit
     val currentOffsets = immutable.Map(topicPartition -> new OffsetAndMetadata(100L))
     wm.preCommit(currentOffsets) shouldBe empty
 
-    val committedWriter = new Writer[FileMetadata](topicPartition, commitPolicy, mockIM, stagingFilenameFn,
-      objectKeyBuilder, formatWriterFn, schemaChangeDetector, pendingOperationsProcessors)
+    val committedWriter = new Writer[FileMetadata](topicPartition,
+                                                   commitPolicy,
+                                                   mockIM,
+                                                   stagingFilenameFn,
+                                                   objectKeyBuilder,
+                                                   formatWriterFn,
+                                                   schemaChangeDetector,
+                                                   pendingOperationsProcessors,
+    )
     committedWriter.writeState = NoWriter(CommitState(topicPartition, Some(Offset(104))))
 
     val allWriters       = Seq(committedWriter)
@@ -363,38 +525,96 @@ class GranularLockScenarioTest extends AnyFunSuiteLike with Matchers with Mockit
   test("isIdle returns true for NoWriter, false for Writing and Uploading") {
     when(indexManager.indexingEnabled).thenReturn(true)
 
-    val writerIdle = new Writer[FileMetadata](topicPartition, commitPolicy, indexManager, stagingFilenameFn,
-      objectKeyBuilder, formatWriterFn, schemaChangeDetector, pendingOperationsProcessors,
-      partitionKey = Some("date=12_00"), lastSeekedOffset = Some(Offset(104)))
+    val writerIdle = new Writer[FileMetadata](topicPartition,
+                                              commitPolicy,
+                                              indexManager,
+                                              stagingFilenameFn,
+                                              objectKeyBuilder,
+                                              formatWriterFn,
+                                              schemaChangeDetector,
+                                              pendingOperationsProcessors,
+                                              partitionKey     = Some("date=12_00"),
+                                              lastSeekedOffset = Some(Offset(104)),
+    )
     writerIdle.writeState = NoWriter(CommitState(topicPartition, Some(Offset(104))))
     writerIdle.isIdle shouldBe true
 
-    val writerWriting = new Writer[FileMetadata](topicPartition, commitPolicy, indexManager, stagingFilenameFn,
-      objectKeyBuilder, formatWriterFn, schemaChangeDetector, pendingOperationsProcessors,
-      partitionKey = Some("date=12_15"), lastSeekedOffset = Some(Offset(100)))
-    writerWriting.writeState = Writing(CommitState(topicPartition, Some(Offset(100))), formatWriter, new File("test"),
-      firstBufferedOffset = Offset(101), uncommittedOffset = Offset(103), 1L, 1L)
+    val writerWriting = new Writer[FileMetadata](topicPartition,
+                                                 commitPolicy,
+                                                 indexManager,
+                                                 stagingFilenameFn,
+                                                 objectKeyBuilder,
+                                                 formatWriterFn,
+                                                 schemaChangeDetector,
+                                                 pendingOperationsProcessors,
+                                                 partitionKey     = Some("date=12_15"),
+                                                 lastSeekedOffset = Some(Offset(100)),
+    )
+    writerWriting.writeState = Writing(
+      CommitState(topicPartition, Some(Offset(100))),
+      formatWriter,
+      new File("test"),
+      firstBufferedOffset = Offset(101),
+      uncommittedOffset   = Offset(103),
+      1L,
+      1L,
+    )
     writerWriting.isIdle shouldBe false
 
-    val writerUploading = new Writer[FileMetadata](topicPartition, commitPolicy, indexManager, stagingFilenameFn,
-      objectKeyBuilder, formatWriterFn, schemaChangeDetector, pendingOperationsProcessors,
-      partitionKey = Some("date=12_30"), lastSeekedOffset = Some(Offset(100)))
-    writerUploading.writeState = Uploading(CommitState(topicPartition, Some(Offset(100))), new File("test"),
-      firstBufferedOffset = Offset(101), uncommittedOffset = Offset(103), 1L, 1L)
+    val writerUploading = new Writer[FileMetadata](topicPartition,
+                                                   commitPolicy,
+                                                   indexManager,
+                                                   stagingFilenameFn,
+                                                   objectKeyBuilder,
+                                                   formatWriterFn,
+                                                   schemaChangeDetector,
+                                                   pendingOperationsProcessors,
+                                                   partitionKey     = Some("date=12_30"),
+                                                   lastSeekedOffset = Some(Offset(100)),
+    )
+    writerUploading.writeState = Uploading(
+      CommitState(topicPartition, Some(Offset(100))),
+      new File("test"),
+      firstBufferedOffset = Offset(101),
+      uncommittedOffset   = Offset(103),
+      1L,
+      1L,
+    )
     writerUploading.isIdle shouldBe false
   }
 
   test("activePartitionKeys includes all writers in the map (idle and active) to protect lock files from GC") {
     val pf = PartitionField(Seq("_value")).value
 
-    val writerIdle = new Writer[FileMetadata](topicPartition, commitPolicy, indexManager, stagingFilenameFn,
-      objectKeyBuilder, formatWriterFn, schemaChangeDetector, pendingOperationsProcessors)
+    val writerIdle = new Writer[FileMetadata](topicPartition,
+                                              commitPolicy,
+                                              indexManager,
+                                              stagingFilenameFn,
+                                              objectKeyBuilder,
+                                              formatWriterFn,
+                                              schemaChangeDetector,
+                                              pendingOperationsProcessors,
+    )
     writerIdle.writeState = NoWriter(CommitState(topicPartition, Some(Offset(104))))
 
-    val writerActive = new Writer[FileMetadata](topicPartition, commitPolicy, indexManager, stagingFilenameFn,
-      objectKeyBuilder, formatWriterFn, schemaChangeDetector, pendingOperationsProcessors)
-    writerActive.writeState = Writing(CommitState(topicPartition, Some(Offset(100))), formatWriter, new File("test"),
-      firstBufferedOffset = Offset(101), uncommittedOffset = Offset(103), 1L, 1L)
+    val writerActive = new Writer[FileMetadata](topicPartition,
+                                                commitPolicy,
+                                                indexManager,
+                                                stagingFilenameFn,
+                                                objectKeyBuilder,
+                                                formatWriterFn,
+                                                schemaChangeDetector,
+                                                pendingOperationsProcessors,
+    )
+    writerActive.writeState = Writing(
+      CommitState(topicPartition, Some(Offset(100))),
+      formatWriter,
+      new File("test"),
+      firstBufferedOffset = Offset(101),
+      uncommittedOffset   = Offset(103),
+      1L,
+      1L,
+    )
 
     val writers: Map[MapKey, Writer[FileMetadata]] = Map(
       MapKey(topicPartition, immutable.Map(pf -> "idle_val")) -> writerIdle,
@@ -471,12 +691,26 @@ class GranularLockScenarioTest extends AnyFunSuiteLike with Matchers with Mockit
 
     // Demonstrate the high watermark arithmetic protects against regression:
     // Before eviction: two idle writers at offsets 500 and 200
-    val writerHigh = new Writer[FileMetadata](topicPartition, commitPolicy, mockIM, stagingFilenameFn,
-      objectKeyBuilder, formatWriterFn, schemaChangeDetector, pendingOperationsProcessors)
+    val writerHigh = new Writer[FileMetadata](topicPartition,
+                                              commitPolicy,
+                                              mockIM,
+                                              stagingFilenameFn,
+                                              objectKeyBuilder,
+                                              formatWriterFn,
+                                              schemaChangeDetector,
+                                              pendingOperationsProcessors,
+    )
     writerHigh.writeState = NoWriter(CommitState(topicPartition, Some(Offset(500))))
 
-    val writerLow = new Writer[FileMetadata](topicPartition, commitPolicy, mockIM, stagingFilenameFn,
-      objectKeyBuilder, formatWriterFn, schemaChangeDetector, pendingOperationsProcessors)
+    val writerLow = new Writer[FileMetadata](topicPartition,
+                                             commitPolicy,
+                                             mockIM,
+                                             stagingFilenameFn,
+                                             objectKeyBuilder,
+                                             formatWriterFn,
+                                             schemaChangeDetector,
+                                             pendingOperationsProcessors,
+    )
     writerLow.writeState = NoWriter(CommitState(topicPartition, Some(Offset(200))))
 
     // Before eviction: globalSafeOffset = max(committed) + 1 = 501
@@ -488,8 +722,8 @@ class GranularLockScenarioTest extends AnyFunSuiteLike with Matchers with Mockit
     afterEviction shouldBe 201L
 
     // The high watermark guard ensures: max(201, 501) = 501 (no regression)
-    val highWatermark    = beforeEviction
-    val correctedOffset  = math.max(afterEviction, highWatermark)
+    val highWatermark   = beforeEviction
+    val correctedOffset = math.max(afterEviction, highWatermark)
     correctedOffset shouldBe 501L
   }
 
@@ -500,19 +734,22 @@ class GranularLockScenarioTest extends AnyFunSuiteLike with Matchers with Mockit
     when(mockIM.ensureGranularLock(any[TopicPartition], any[String])).thenReturn(Right(()))
     when(mockIM.getSeekedOffsetForPartitionKey(any[TopicPartition], any[String])).thenReturn(Right(None))
     when(mockIM.evictAllGranularLocks(any[TopicPartition])).thenAnswer(())
-    when(mockIM.cleanUpObsoleteLocks(any[TopicPartition], Offset(ArgumentMatchers.anyLong()), any[Set[String]])).thenReturn(Right(()))
+    when(
+      mockIM.cleanUpObsoleteLocks(any[TopicPartition], Offset(ArgumentMatchers.anyLong()), any[Set[String]]),
+    ).thenReturn(Right(()))
     when(mockIM.updateForPartitionKey(any[TopicPartition], any[String], any[Option[Offset]], any[Option[PendingState]]))
-      .thenAnswer { (_: TopicPartition, _: String, co: Option[Offset], _: Option[PendingState]) => Right(co) }
+      .thenAnswer((_: TopicPartition, _: String, co: Option[Offset], _: Option[PendingState]) => Right(co))
 
     var masterLockOffsets = List.empty[Long]
-    when(mockIM.updateMasterLock(any[TopicPartition], Offset(ArgumentMatchers.anyLong()))).thenAnswer { (_: TopicPartition, offset: Offset) =>
-      masterLockOffsets = masterLockOffsets :+ offset.value
-      Right(())
+    when(mockIM.updateMasterLock(any[TopicPartition], Offset(ArgumentMatchers.anyLong()))).thenAnswer {
+      (_: TopicPartition, offset: Offset) =>
+        masterLockOffsets = masterLockOffsets :+ offset.value
+        Right(())
     }
 
     val pf = PartitionField(Seq("_value")).value
 
-    val mockKN = mock[KeyNamer]
+    val mockKN    = mock[KeyNamer]
     var callCount = 0
     when(mockKN.processPartitionValues(any[MessageDetail], any[TopicPartition]))
       .thenAnswer { (_: MessageDetail, _: TopicPartition) =>
@@ -536,7 +773,11 @@ class GranularLockScenarioTest extends AnyFunSuiteLike with Matchers with Mockit
 
     val mockPOP = mock[PendingOperationsProcessors]
     type IndexUpdateFn = (TopicPartition, Option[Offset], Option[PendingState]) => Either[SinkError, Option[Offset]]
-    when(mockPOP.processPendingOperations(any[TopicPartition], any[Option[Offset]], any[PendingState], any[IndexUpdateFn]))
+    when(mockPOP.processPendingOperations(any[TopicPartition],
+                                          any[Option[Offset]],
+                                          any[PendingState],
+                                          any[IndexUpdateFn],
+    ))
       .thenAnswer { (tp: TopicPartition, _: Option[Offset], ps: PendingState, fn: IndexUpdateFn) =>
         fn(tp, Some(ps.pendingOffset), None)
       }
@@ -600,10 +841,12 @@ class GranularLockScenarioTest extends AnyFunSuiteLike with Matchers with Mockit
     when(mockIM.ensureGranularLock(any[TopicPartition], any[String])).thenReturn(Right(()))
     when(mockIM.getSeekedOffsetForPartitionKey(any[TopicPartition], any[String])).thenReturn(Right(None))
     when(mockIM.evictAllGranularLocks(any[TopicPartition])).thenAnswer(())
-    when(mockIM.cleanUpObsoleteLocks(any[TopicPartition], Offset(ArgumentMatchers.anyLong()), any[Set[String]])).thenReturn(Right(()))
+    when(
+      mockIM.cleanUpObsoleteLocks(any[TopicPartition], Offset(ArgumentMatchers.anyLong()), any[Set[String]]),
+    ).thenReturn(Right(()))
     when(mockIM.updateMasterLock(any[TopicPartition], Offset(ArgumentMatchers.anyLong()))).thenReturn(Right(()))
     when(mockIM.update(any[TopicPartition], any[Option[Offset]], any[Option[PendingState]]))
-      .thenAnswer { (_: TopicPartition, co: Option[Offset], _: Option[PendingState]) => Right(co) }
+      .thenAnswer((_: TopicPartition, co: Option[Offset], _: Option[PendingState]) => Right(co))
 
     val mockKN = mock[KeyNamer]
     when(mockKN.processPartitionValues(any[MessageDetail], any[TopicPartition]))
@@ -625,7 +868,11 @@ class GranularLockScenarioTest extends AnyFunSuiteLike with Matchers with Mockit
 
     type IndexUpdateFn = (TopicPartition, Option[Offset], Option[PendingState]) => Either[SinkError, Option[Offset]]
     val mockPOP = mock[PendingOperationsProcessors]
-    when(mockPOP.processPendingOperations(any[TopicPartition], any[Option[Offset]], any[PendingState], any[IndexUpdateFn]))
+    when(mockPOP.processPendingOperations(any[TopicPartition],
+                                          any[Option[Offset]],
+                                          any[PendingState],
+                                          any[IndexUpdateFn],
+    ))
       .thenAnswer { (tp: TopicPartition, _: Option[Offset], ps: PendingState, fn: IndexUpdateFn) =>
         fn(tp, Some(ps.pendingOffset), None)
       }
@@ -746,10 +993,12 @@ class GranularLockScenarioTest extends AnyFunSuiteLike with Matchers with Mockit
     when(mockIM.ensureGranularLock(any[TopicPartition], any[String])).thenReturn(Right(()))
     when(mockIM.getSeekedOffsetForPartitionKey(any[TopicPartition], any[String])).thenReturn(Right(None))
     when(mockIM.updateForPartitionKey(any[TopicPartition], any[String], any[Option[Offset]], any[Option[PendingState]]))
-      .thenAnswer { (_: TopicPartition, _: String, co: Option[Offset], _: Option[PendingState]) => Right(co) }
+      .thenAnswer((_: TopicPartition, _: String, co: Option[Offset], _: Option[PendingState]) => Right(co))
 
     var capturedActiveKeys: Set[String] = Set.empty
-    when(mockIM.cleanUpObsoleteLocks(any[TopicPartition], Offset(ArgumentMatchers.anyLong()), any[Set[String]])).thenAnswer {
+    when(
+      mockIM.cleanUpObsoleteLocks(any[TopicPartition], Offset(ArgumentMatchers.anyLong()), any[Set[String]]),
+    ).thenAnswer {
       (_: TopicPartition, _: Offset, activeKeys: Set[String]) =>
         capturedActiveKeys = activeKeys
         Right(())
@@ -757,7 +1006,7 @@ class GranularLockScenarioTest extends AnyFunSuiteLike with Matchers with Mockit
 
     val pf = PartitionField(Seq("_value")).value
 
-    val mockKN = mock[KeyNamer]
+    val mockKN       = mock[KeyNamer]
     var keyCallCount = 0
     when(mockKN.processPartitionValues(any[MessageDetail], any[TopicPartition]))
       .thenAnswer { (_: MessageDetail, _: TopicPartition) =>
@@ -781,7 +1030,11 @@ class GranularLockScenarioTest extends AnyFunSuiteLike with Matchers with Mockit
 
     type IndexUpdateFn = (TopicPartition, Option[Offset], Option[PendingState]) => Either[SinkError, Option[Offset]]
     val mockPOP = mock[PendingOperationsProcessors]
-    when(mockPOP.processPendingOperations(any[TopicPartition], any[Option[Offset]], any[PendingState], any[IndexUpdateFn]))
+    when(mockPOP.processPendingOperations(any[TopicPartition],
+                                          any[Option[Offset]],
+                                          any[PendingState],
+                                          any[IndexUpdateFn],
+    ))
       .thenAnswer { (tp: TopicPartition, _: Option[Offset], ps: PendingState, fn: IndexUpdateFn) =>
         fn(tp, Some(ps.pendingOffset), None)
       }
@@ -839,9 +1092,9 @@ class GranularLockScenarioTest extends AnyFunSuiteLike with Matchers with Mockit
     when(mockIM.getSeekedOffsetForPartitionKey(any[TopicPartition], any[String])).thenReturn(Right(None))
     when(mockIM.evictAllGranularLocks(any[TopicPartition])).thenAnswer(())
     when(mockIM.updateForPartitionKey(any[TopicPartition], any[String], any[Option[Offset]], any[Option[PendingState]]))
-      .thenAnswer { (_: TopicPartition, _: String, co: Option[Offset], _: Option[PendingState]) => Right(co) }
+      .thenAnswer((_: TopicPartition, _: String, co: Option[Offset], _: Option[PendingState]) => Right(co))
 
-    val mockKN = mock[KeyNamer]
+    val mockKN       = mock[KeyNamer]
     var keyCallCount = 0
     when(mockKN.processPartitionValues(any[MessageDetail], any[TopicPartition]))
       .thenAnswer { (_: MessageDetail, _: TopicPartition) =>
@@ -873,7 +1126,11 @@ class GranularLockScenarioTest extends AnyFunSuiteLike with Matchers with Mockit
 
     type IndexUpdateFn = (TopicPartition, Option[Offset], Option[PendingState]) => Either[SinkError, Option[Offset]]
     val mockPOP = mock[PendingOperationsProcessors]
-    when(mockPOP.processPendingOperations(any[TopicPartition], any[Option[Offset]], any[PendingState], any[IndexUpdateFn]))
+    when(mockPOP.processPendingOperations(any[TopicPartition],
+                                          any[Option[Offset]],
+                                          any[PendingState],
+                                          any[IndexUpdateFn],
+    ))
       .thenAnswer { (tp: TopicPartition, _: Option[Offset], ps: PendingState, fn: IndexUpdateFn) =>
         fn(tp, Some(ps.pendingOffset), None)
       }
@@ -922,14 +1179,17 @@ class GranularLockScenarioTest extends AnyFunSuiteLike with Matchers with Mockit
     when(mockIM.ensureGranularLock(any[TopicPartition], any[String])).thenReturn(Right(()))
     when(mockIM.getSeekedOffsetForPartitionKey(any[TopicPartition], any[String])).thenReturn(Right(None))
     when(mockIM.evictAllGranularLocks(any[TopicPartition])).thenAnswer(())
-    when(mockIM.cleanUpObsoleteLocks(any[TopicPartition], Offset(ArgumentMatchers.anyLong()), any[Set[String]])).thenReturn(Right(()))
+    when(
+      mockIM.cleanUpObsoleteLocks(any[TopicPartition], Offset(ArgumentMatchers.anyLong()), any[Set[String]]),
+    ).thenReturn(Right(()))
     when(mockIM.updateForPartitionKey(any[TopicPartition], any[String], any[Option[Offset]], any[Option[PendingState]]))
-      .thenAnswer { (_: TopicPartition, _: String, co: Option[Offset], _: Option[PendingState]) => Right(co) }
+      .thenAnswer((_: TopicPartition, _: String, co: Option[Offset], _: Option[PendingState]) => Right(co))
 
     var masterLockOffsets = List.empty[Long]
-    when(mockIM.updateMasterLock(any[TopicPartition], Offset(ArgumentMatchers.anyLong()))).thenAnswer { (_: TopicPartition, offset: Offset) =>
-      masterLockOffsets = masterLockOffsets :+ offset.value
-      Right(())
+    when(mockIM.updateMasterLock(any[TopicPartition], Offset(ArgumentMatchers.anyLong()))).thenAnswer {
+      (_: TopicPartition, offset: Offset) =>
+        masterLockOffsets = masterLockOffsets :+ offset.value
+        Right(())
     }
 
     val pf = PartitionField(Seq("_value")).value
@@ -954,7 +1214,11 @@ class GranularLockScenarioTest extends AnyFunSuiteLike with Matchers with Mockit
 
     type IndexUpdateFn = (TopicPartition, Option[Offset], Option[PendingState]) => Either[SinkError, Option[Offset]]
     val mockPOP = mock[PendingOperationsProcessors]
-    when(mockPOP.processPendingOperations(any[TopicPartition], any[Option[Offset]], any[PendingState], any[IndexUpdateFn]))
+    when(mockPOP.processPendingOperations(any[TopicPartition],
+                                          any[Option[Offset]],
+                                          any[PendingState],
+                                          any[IndexUpdateFn],
+    ))
       .thenAnswer { (tp: TopicPartition, _: Option[Offset], ps: PendingState, fn: IndexUpdateFn) =>
         fn(tp, Some(ps.pendingOffset), None)
       }

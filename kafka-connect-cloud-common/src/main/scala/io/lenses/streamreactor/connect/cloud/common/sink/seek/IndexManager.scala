@@ -131,8 +131,8 @@ trait IndexManager {
    * @return An `Either` containing a `SinkError` on failure or `Unit` on success.
    */
   def cleanUpObsoleteLocks(
-    topicPartition:     TopicPartition,
-    globalSafeOffset:   Offset,
+    topicPartition:      TopicPartition,
+    globalSafeOffset:    Offset,
     activePartitionKeys: Set[String],
   ): Either[SinkError, Unit]
 

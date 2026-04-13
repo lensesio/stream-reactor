@@ -35,8 +35,14 @@ case class NoWriter(commitState: CommitState) extends WriteState(commitState) wi
     recordTimestamp:   Long,
   ): Writing = {
     logger.debug("state transition: NoWriter => Writing")
-    Writing(commitState, formatWriter, file, firstBufferedOffset = uncommittedOffset, uncommittedOffset,
-      recordTimestamp, recordTimestamp)
+    Writing(commitState,
+            formatWriter,
+            file,
+            firstBufferedOffset = uncommittedOffset,
+            uncommittedOffset,
+            recordTimestamp,
+            recordTimestamp,
+    )
   }
 
 }
@@ -70,8 +76,13 @@ case class Writing(
 
   def toUploading: Uploading = {
     logger.debug("state transition: Writing => Uploading")
-    Uploading(commitState.reset(), file, firstBufferedOffset, uncommittedOffset, earliestRecordTimestamp,
-      latestRecordTimestamp)
+    Uploading(commitState.reset(),
+              file,
+              firstBufferedOffset,
+              uncommittedOffset,
+              earliestRecordTimestamp,
+              latestRecordTimestamp,
+    )
   }
 }
 
