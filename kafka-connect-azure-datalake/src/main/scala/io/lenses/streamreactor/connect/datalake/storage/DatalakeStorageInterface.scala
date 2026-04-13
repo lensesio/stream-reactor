@@ -124,7 +124,23 @@ class DatalakeStorageInterface(connectorTaskId: ConnectorTaskId, client: DataLak
     bucket: String,
     prefix: Option[String],
   ): Either[FileListError, Option[ListOfMetadataResponse[DatalakeFileMetadata]]] =
-    throw new NotImplementedError("Required for source")
+    Try {
+      val bucketClient     = client.getFileSystemClient(bucket)
+      val listPathsOptions = new ListPathsOptions()
+      prefix.foreach(listPathsOptions.setPath)
+      val iter    = bucketClient.listPaths(listPathsOptions, null)
+      val results = DatalakePageIterableAdaptor.getResults(iter)
+      processObjectsAsFileMeta(
+        bucket,
+        prefix,
+        results.map(pi => DatalakeFileMetadata(pi.getName, pi.getLastModified.toInstant, None)),
+      )
+    }.toEither.recover {
+      case ex: DataLakeStorageException if ex.getStatusCode.toString.startsWith("4") =>
+        Option.empty
+    }.leftMap {
+      ex: Throwable => FileListError(ex, bucket, prefix)
+    }
 
   override def listKeysRecursive(
     bucket: String,

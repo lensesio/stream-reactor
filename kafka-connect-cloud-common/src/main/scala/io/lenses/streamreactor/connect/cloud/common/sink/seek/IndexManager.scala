@@ -172,6 +172,15 @@ trait IndexManager {
   ): Unit
 
   /**
+   * Removes all in-memory state for a topic partition (seeked offsets, eTags).
+   * Called during partition revocation (rebalance) and task shutdown to prevent
+   * background threads (e.g. the orphan sweep) from operating on stale partitions.
+   *
+   * @param topicPartition The `TopicPartition` whose state should be cleared.
+   */
+  def clearTopicPartitionState(topicPartition: TopicPartition): Unit
+
+  /**
    * Releases any resources held by this IndexManager (e.g. background executors).
    * Called during connector task shutdown.
    */

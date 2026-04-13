@@ -103,6 +103,8 @@ class NoIndexManager extends IndexManager {
     topicPartition: TopicPartition,
   ): Unit = ()
 
+  override def clearTopicPartitionState(topicPartition: TopicPartition): Unit = ()
+
   override def close(): Unit = ()
 
   /**

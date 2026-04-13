@@ -252,7 +252,7 @@ A `ScheduledExecutorService` runs a `drainGcQueue` task at a configurable interv
 1. The queue is drained into a local buffer. For each dequeued item, the drain checks whether the partition key has been **reclaimed** by a new writer (i.e., `granularCache.containsKey(tp, pk)` returns `true`). If reclaimed, the item is silently skipped -- the file is needed by the new writer and must not be deleted. This check eliminates the race condition where `cleanUpObsoleteLocks` enqueues a lock for deletion, but a new writer for the same partition key is created before the drain runs.
 2. Non-reclaimed paths are grouped by bucket.
 3. Each bucket's paths are chunked into batches of configurable size (`connect.<prefix>.indexes.gc.batch.size`, default 1000) and deleted via `storageInterface.deleteFiles`. On S3 this maps to the `DeleteObjects` API (up to 1,000 keys per call); on GCS and Azure the storage interface handles batching internally.
-4. Delete failures are logged at WARN level but do not propagate -- orphaned lock files are harmless and will be re-enqueued or swept manually. They do not affect correctness.
+4. Delete failures are logged at WARN level but do not propagate -- orphaned lock files are harmless and will be re-enqueued on the next run or cleaned up by the periodic orphan sweep (see "Orphaned lock sweep" below). They do not affect correctness.
 
 Partial batches (fewer items than `gcBatchSize`) are deleted normally -- the batch size is an upper bound, not a minimum. Every non-reclaimed enqueued path is deleted on the next drain tick regardless of how many items are queued.
 
@@ -260,9 +260,31 @@ Partial batches (fewer items than `gcBatchSize`) are deleted normally -- the bat
 
 When the connector task is stopped (`CloudSinkTask.stop()`), `indexManager.close()` is called. This shuts down the `ScheduledExecutorService` and performs a final synchronous drain of any remaining items in `gcQueue`, ensuring that lock files identified for deletion during the last `preCommit` cycle are cleaned up before the task exits.
 
-#### Scope limitation
+#### Orphaned lock sweep
 
-`cleanUpObsoleteLocks` only operates on lock entries that are present in the in-memory cache. Granular lock files in cloud storage that were never loaded into the cache (e.g., partition keys from prior runs that no longer receive data) are not cleaned up. Over time with high-cardinality `PARTITIONBY` and evolving partition keys, these orphaned lock files accumulate. These files are small (a few hundred bytes each) and do not affect correctness, but operators running high-cardinality workloads with transient partition keys should periodically sweep the `.locks/<topic>/<partition>/` directories to remove stale files.
+`cleanUpObsoleteLocks` only operates on lock entries present in the in-memory `granularCache`. Granular lock files from prior runs that no longer receive data are never loaded into the cache and therefore never cleaned up by the regular GC. Over time with high-cardinality `PARTITIONBY` and evolving partition keys, these orphaned lock files accumulate in cloud storage.
+
+To address this, a **periodic orphan sweep** runs on a separate `ScheduledExecutorService` (`sweepExecutor`), decoupled from the regular GC drain timer. Each task sweeps only its own partitions. The sweep is a **discovery-only** phase -- it lists lock files in cloud storage, filters them, and enqueues `GcItem`s into the existing `gcQueue`. Actual deletion is handled by `drainGcQueue` on the existing `gcExecutor`, which applies the same cache-gated reclaim check as regular GC items.
+
+**Scheduling**: The sweep executor fires at the configured `gcSweepIntervalSeconds` interval (default 86400s = 24h). A **persistent sweep marker file** (`sweep-marker-<taskNo>.json`) is written to **every distinct bucket** the task currently owns partitions in, so it survives rebalances that move partitions across buckets. The marker stores `lastRunEpochMillis` and `nextRunEpochMillis`. Before scanning, the sweep writes markers to all buckets with an updated `nextRunEpochMillis` (write-before-sweep pattern). The sweep is suppressed if **any** bucket still has a non-expired marker, preventing premature re-runs after a rebalance. This ensures that a crash mid-sweep does not trigger an immediate re-sweep on restart -- the markers persist across restarts and rebalances.
+
+**Filtering**: For each owned `TopicPartition`, the sweep calls `listFileMetaRecursive` to enumerate lock files, then applies:
+
+1. **Recency filter**: Files with `lastModified` newer than `gcSweepAgeSeconds` are skipped without a GET read (configured via `connect.<prefix>.indexes.gc.sweep.age.seconds`, default 86400 = 24h).
+2. **Cache exclusion**: Files whose partition key is already in `granularCache` are skipped (already tracked by regular GC).
+3. **GET cap**: A global budget of `gcSweepMaxReads` GET requests per sweep cycle across all partitions (configured via `connect.<prefix>.indexes.gc.sweep.max.reads`, default 1000). When exhausted, remaining partitions are deferred to the next cycle.
+4. **Offset comparison**: The lock file is read and its `committedOffset` is compared against the master lock offset (`seekedOffsets.get(tp)`). Only lock files with `committedOffset < masterLockOffset` are enqueued as orphans.
+
+Lock files with no `committedOffset` (freshly created) are skipped. Partitions without a master lock offset in `seekedOffsets` (e.g. brand-new partitions that have never had a commit) are also skipped -- there is no safe baseline to compare against.
+
+**Configuration**:
+
+- `connect.<prefix>.indexes.gc.sweep.enabled` -- enable or disable the orphan sweep (default `true`).
+- `connect.<prefix>.indexes.gc.sweep.interval.seconds` -- interval between sweep runs (default 86400 = 24h).
+- `connect.<prefix>.indexes.gc.sweep.age.seconds` -- recency filter threshold (default 86400 = 24h).
+- `connect.<prefix>.indexes.gc.sweep.max.reads` -- per-cycle GET cap across all partitions (default 1000).
+
+**Exactly-once safety**: The sweep preserves exactly-once guarantees because (a) only lock files with `committedOffset` strictly below the master lock offset are enqueued, meaning their data has already been committed; (b) `drainGcQueue` checks `granularCache.containsKey` before deleting, protecting any file reclaimed by a new writer; (c) if a deleted lock is later needed by a new writer, `ensureGranularLock` recreates it and the writer falls back to the master lock offset for deduplication; and (d) the sweep never writes to lock files, so writers' eTags are unaffected.
 
 ### Zombie task and temp-upload fencing
 
@@ -400,17 +422,42 @@ All three extend `CloudSinkTask` and are wired through `WriterManagerCreator.fro
 
 This section documents known non-functional constraints that operators should be aware of when running with `PARTITIONBY` under high cardinality.
 
+### Indexes directory must be unique per connector (Critical)
+
+Lock file paths are derived from `<indexes-dir>/<connector-name>/.locks/<topic>/<partition>/`. If two connectors read the same topic names (even from different Kafka clusters) and write to the same bucket/prefix, they **must** use different indexes directories (`connect.<prefix>.indexes.name`). Otherwise their lock files collide: each connector overwrites the other's master and granular locks, leading to offset regression, duplicate data, and `FatalCloudSinkError` crashes due to eTag mismatches.
+
+This constraint also applies when the same connector name is reused across environments (e.g. staging and production writing to the same bucket). The default indexes directory (`.indexes`) is shared, so at least one environment must override it.
+
 ### Writer accumulation under high cardinality (Mitigated)
 
 Each active `Writer` holds a `FormatWriter` (typically 1-10 MB of heap for Parquet/Avro page buffers and dictionary encoders), an open `java.io.File` handle (one file descriptor), and commit-state metadata. Under high-cardinality `PARTITIONBY` (e.g. partitioning by `user_id` or `session_id` with millions of unique values), the connector creates a `Writer` per unique value.
 
-**Mitigation**: `WriterManager` implements idle-writer eviction bounded by `maxWriters` (default `10,000`, configured via `connect.<prefix>.indexes.max.cache.size`). When a new writer is created and the total count exceeds the threshold, writers in `NoWriter` state (committed, no buffered data) are evicted. Their `close()` call evicts the granular cache entry and releases heap. Writers in `Writing` or `Uploading` state are pinned and never evicted, so the map may temporarily exceed `maxWriters` during high-cardinality bursts where all writers are actively buffering. See "Idle writer eviction" under "Lifecycle" for full details.
+**Mitigation**: `WriterManager` implements idle-writer eviction bounded by `maxWriters` (default `10,000`, configured via `connect.<prefix>.indexes.max.cache.size`). When a new writer is created and the total count exceeds the threshold, writers in `NoWriter` state (committed, no buffered data) are evicted. Their `close()` is called, releasing the `FormatWriter` heap and file descriptor. The granular cache entry is deliberately **not** evicted -- it is left in the cache so that `cleanUpObsoleteLocks` can detect it as obsolete on the next `preCommit`. Writers in `Writing` or `Uploading` state are pinned and never evicted, so the map may temporarily exceed `maxWriters` during high-cardinality bursts where all writers are actively buffering. See "Idle writer eviction" under "Lifecycle" for full details.
 
 Note that eviction only applies to idle writers. If the workload simultaneously maintains a very large number of *active* writers (all in `Writing` state), the map grows without bound. This is an inherent constraint: active writers hold buffered data that cannot be discarded without data loss. Operators with such workloads must size heap and `ulimit -n` accordingly.
 
 ### GC timing in preCommit (High -- mitigated)
 
 `cleanUpObsoleteLocks` runs inline during `preCommit` (only after a successful master lock update), but it now performs **no cloud I/O**. It evicts obsolete entries from the in-memory cache and enqueues their storage paths onto a `ConcurrentLinkedQueue`. Actual cloud deletes are performed asynchronously by a background `ScheduledExecutorService` that drains the queue at a configurable interval (`connect.<prefix>.indexes.gc.interval.seconds`, default 300s) and issues batched deletes (`connect.<prefix>.indexes.gc.batch.size`, default 1000 keys per call). This decouples GC latency from `preCommit` entirely, eliminating the risk of `offset.flush.timeout.ms` breaches under high cardinality. See "Garbage collection" under "Lifecycle" for full details.
+
+### Orphaned granular lock files (Mitigated)
+
+`cleanUpObsoleteLocks` only operates on lock entries present in the in-memory cache. Granular lock files from prior runs that no longer receive data are never loaded into the cache and therefore accumulate in cloud storage over time. With high-cardinality `PARTITIONBY` and evolving partition keys (e.g. date-based partitioning), the number of orphaned files grows with each key rotation.
+
+**Mitigation**: An automatic periodic orphan sweep discovers and deletes these files. The sweep is configurable via three properties:
+
+| Property | Default | Description |
+|----------|---------|-------------|
+| `connect.<prefix>.indexes.gc.sweep.enabled` | `true` | Enable or disable the orphan sweep. |
+| `connect.<prefix>.indexes.gc.sweep.interval.seconds` | `86400` (24h) | Interval between sweep runs. Only effective when the sweep is enabled. |
+| `connect.<prefix>.indexes.gc.sweep.age.seconds` | `86400` (24h) | Recency filter: lock files younger than this threshold are skipped without a GET read. Should be at least as large as the sweep interval. |
+| `connect.<prefix>.indexes.gc.sweep.max.reads` | `1000` | Per-cycle GET cap across all partitions. When exhausted, remaining partitions are deferred to the next cycle. |
+
+See "Orphaned lock sweep" under "Garbage collection" for the full sweep architecture, filtering logic, and exactly-once safety analysis.
+
+**Cost considerations**: LIST API calls are proportional to the number of owned partitions per sweep cycle (one call per partition). GET calls are globally capped at `gcSweepMaxReads`. Since the default sweep interval is 24 hours, the cost burst is infrequent. Operators with very high partition counts (thousands per task) should be aware of the LIST cost spike and can increase the sweep interval or disable the sweep if necessary.
+
+**Known limitation -- marker orphans on task scale-down**: The sweep writes a marker file (`sweep-marker-<taskNo>.json`) into every distinct bucket the task owns partitions in. When the connector is scaled down (e.g. from 10 tasks to 5), marker files for tasks 5-9 remain in each bucket they previously wrote to. These are tiny JSON files (< 200 bytes each) and do not affect correctness or runtime behavior.
 
 ### Granular cache and writer map desync (Resolved)
 
@@ -444,7 +491,7 @@ When a zombie task's Phase 2 lock update fails after uploading to `.temp-upload/
 |----------|---------|
 | Crash after writer commit, before `preCommit` | Granular lock is up to date. Master lock may be stale. On restart, consumer re-reads from master lock offset. Granular locks deduplicate. **No data loss, possible replay (no duplication due to granular locks).** |
 | Crash during `preCommit` (master lock update) | eTag-based atomic write means the master lock either updated or didn't. On restart, the last successful state is read. **No corruption.** |
-| Crash during garbage collection | Items already enqueued in `gcQueue` but not yet drained are lost. Items already drained but whose batched delete was in flight may be partially deleted. In both cases the orphaned granular lock files are harmless -- they sit below the `globalSafeOffset` watermark and are either re-enqueued on the next run or swept manually. **No impact on correctness.** |
+| Crash during garbage collection | Items already enqueued in `gcQueue` but not yet drained are lost. Items already drained but whose batched delete was in flight may be partially deleted. In both cases the orphaned granular lock files are harmless -- they sit below the `globalSafeOffset` watermark and are either re-enqueued on the next run or cleaned up by the periodic orphan sweep. **No impact on correctness.** |
 | Crash with `PendingState` on a granular lock | `PendingState` is detected and resolved during **lazy load**, when the writer first calls `getSeekedOffsetForPartitionKey` for that partition key. If the local staging file still exists, the pending upload is completed. If the staging file is gone (the common case after a crash), the pending operation is abandoned (`cancelPending=true`) and the records revert to "uncommitted". On replay from the master lock offset, these records are re-delivered and re-processed. The write is **re-done from scratch**, not resumed. **No data loss, no duplication.** |
 | Crash with `PendingState` on master lock | Existing behavior, unchanged. On restart, pending operations are completed. **No data loss.** |
 | Zombie task uploads to `.temp-upload/` but Phase 2 eTag update fails | Temp file is orphaned at `.temp-upload/...`. Final output path is unaffected. **No duplication.** Storage leak requires periodic sweep (see "Zombie task and temp-upload fencing"). |
@@ -452,6 +499,7 @@ When a zombie task's Phase 2 lock update fails after uploading to `.temp-upload/
 | New record arrives for a previously evicted idle writer | The writer was in `NoWriter` state (committed, no buffered data) when evicted. A new writer is created, `ensureGranularLock` recreates the lock (or finds it still exists if GC hasn't run yet), and `getSeekedOffsetForPartitionKey` loads the offset from storage (or falls back to master lock offset if the lock was GC'd). `shouldSkip` correctly deduplicates already-committed records. **No data loss, no duplication.** |
 | Idle writer with highest committed offset is evicted | The `safeOffsetHighWatermarks` map prevents `globalSafeOffset` from regressing below the previously reported value. The master lock retains the high watermark. GC decisions made at the previous (higher) threshold remain valid. On crash recovery, the consumer seeks to the non-regressed master lock offset and does not replay records whose granular locks were deleted. **No data loss, no duplication.** |
 | GC enqueues lock for deletion, but new writer reclaims it before drain runs | `cleanUpObsoleteLocks` removes the cache entry and enqueues the file path. Before the background drain runs, a new writer calls `ensureGranularLock`, which re-reads the file from storage and re-populates the cache. When `drainGcQueue` runs, it checks `granularCache.containsKey(tp, pk)` and finds the reclaimed entry, skipping the delete. The new writer's eTag remains valid. **No data loss, no duplication.** |
+| Crash during orphan sweep | The write-before-sweep marker file prevents an immediate re-sweep on crash restart. Items already enqueued into `gcQueue` are subject to the same offset-gated and cache-gated deletion as regular GC items. Partially scanned partitions are deferred to the next sweep cycle. **No impact on correctness.** |
 | Task restarts with higher master lock from previous instance | The high-watermark (`safeOffsetHighWatermarks`) is initialized on first `preCommit` from the master lock's `committedOffset + 1`. Even if the restarted task only sees partition keys with lower offsets, the `globalSafeOffset` floor is set from the persistent master lock, preventing regression. **No data loss, no duplication.** |
 
 ---

@@ -29,16 +29,19 @@ import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexManagerV2._
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.deprecated.IndexManagerV1
 import io.lenses.streamreactor.connect.cloud.common.storage.FileLoadError
+import io.lenses.streamreactor.connect.cloud.common.storage.FileMetadata
 import io.lenses.streamreactor.connect.cloud.common.storage.FileNotFoundError
 import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
 import io.lenses.streamreactor.connect.cloud.common.storage.UploadError
 
+import java.time.Instant
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.TimeUnit
 import scala.collection.concurrent.TrieMap
+import scala.util.control.NonFatal
 import scala.collection.mutable.ListBuffer
 
 /**
@@ -68,9 +71,13 @@ class IndexManagerV2(
   oldIndexManager:             IndexManagerV1,
   pendingOperationsProcessors: PendingOperationsProcessors,
   directoryFileName:           String,
-  maxGranularCacheSize:        Int = IndexManagerV2.DefaultMaxGranularCacheSize,
-  gcIntervalSeconds:           Int = IndexManagerV2.DefaultGcIntervalSeconds,
-  gcBatchSize:                 Int = IndexManagerV2.DefaultGcBatchSize,
+  maxGranularCacheSize:        Int     = IndexManagerV2.DefaultMaxGranularCacheSize,
+  gcIntervalSeconds:           Int     = IndexManagerV2.DefaultGcIntervalSeconds,
+  gcBatchSize:                 Int     = IndexManagerV2.DefaultGcBatchSize,
+  gcSweepEnabled:              Boolean = IndexManagerV2.DefaultGcSweepEnabled,
+  gcSweepIntervalSeconds:      Int     = IndexManagerV2.DefaultGcSweepIntervalSeconds,
+  gcSweepAgeSeconds:           Int     = IndexManagerV2.DefaultGcSweepAgeSeconds,
+  gcSweepMaxReads:             Int     = IndexManagerV2.DefaultGcSweepMaxReads,
 )(
   implicit
   storageInterface: StorageInterface[?],
@@ -118,6 +125,17 @@ class IndexManagerV2(
     executor.scheduleAtFixedRate(() => drainGcQueue(), gcIntervalSeconds.toLong, gcIntervalSeconds.toLong, TimeUnit.SECONDS)
     executor
   }
+
+  private val sweepExecutor: Option[ScheduledExecutorService] =
+    Option.when(gcSweepEnabled) {
+      val executor = Executors.newSingleThreadScheduledExecutor { (r: Runnable) =>
+        val t = new Thread(r, s"sweep-${connectorTaskId.show}")
+        t.setDaemon(true)
+        t
+      }
+      executor.scheduleAtFixedRate(() => sweepOrphanedLocks(), gcSweepIntervalSeconds.toLong, gcSweepIntervalSeconds.toLong, TimeUnit.SECONDS)
+      executor
+    }
 
   /**
    * Opens a set of topic partitions for writing. If an index file is not found,
@@ -529,6 +547,11 @@ class IndexManagerV2(
     val _ = granularCache.keySet().removeIf(_._1 == topicPartition)
   }
 
+  override def clearTopicPartitionState(topicPartition: TopicPartition): Unit = {
+    seekedOffsets.remove(topicPartition)
+    val _ = topicPartitionToETags.remove(topicPartition)
+  }
+
   override def updateMasterLock(
     topicPartition:   TopicPartition,
     globalSafeOffset: Offset,
@@ -600,10 +623,7 @@ class IndexManagerV2(
     }
   }
 
-  // Exposed for testing: triggers one drain cycle synchronously on the calling thread.
-  private[seek] def drainGcQueueNow(): Unit = drainGcQueue()
-
-  private def drainGcQueue(): Unit = try {
+  private[seek] def drainGcQueue(): Unit = try {
     val buffer = new ListBuffer[(String, String)]()
     var item   = gcQueue.poll()
     while (item != null) {
@@ -632,11 +652,194 @@ class IndexManagerV2(
         }
     }
   } catch {
-    case e: Exception =>
+    case NonFatal(e) =>
       logger.warn(s"Unexpected error in background GC drain for ${connectorTaskId.show}", e)
   }
 
+  private[seek] def sweepOrphanedLocks(): Unit = try {
+    if (!gcSweepEnabled) return
+
+    val buckets = resolveSweepBuckets()
+    if (buckets.isEmpty) return
+    if (!isSweepDue(buckets)) return
+    if (!writeSweepMarkers(buckets)) return
+
+    executeSweep()
+  } catch {
+    case NonFatal(e) =>
+      logger.warn(s"Unexpected error in orphan sweep for ${connectorTaskId.show}", e)
+  }
+
+  /** Collects all distinct buckets from the currently assigned TopicPartitions. */
+  private def resolveSweepBuckets(): Set[String] =
+    seekedOffsets.keys.toList
+      .flatMap(tp => bucketAndPrefixFn(tp).map(_.bucket).toOption)
+      .toSet
+
+  /**
+   * Checks whether the sweep is due by reading markers from all buckets.
+   * The sweep is suppressed if any bucket still has a non-expired marker,
+   * ensuring a rebalance into a new bucket does not trigger a premature re-run.
+   */
+  private def isSweepDue(buckets: Set[String]): Boolean = {
+    val markerPath = generateSweepMarkerPath(connectorTaskId, directoryFileName)
+    val now        = System.currentTimeMillis()
+    !buckets.exists { bucket =>
+      storageInterface.getBlobAsObject[SweepMarker](bucket, markerPath) match {
+        case Right(ObjectWithETag(marker, _)) if marker.nextRunEpochMillis > now =>
+          true
+        case Left(err) if !err.isInstanceOf[FileNotFoundError] =>
+          logger.warn(s"Transient error reading sweep marker in bucket=$bucket, skipping sweep: ${err.message()}")
+          true
+        case _ =>
+          false
+      }
+    }
+  }
+
+  /**
+   * Writes the sweep marker to every bucket (write-before-sweep pattern).
+   * Returns false only when all writes fail; partial success is acceptable.
+   */
+  private def writeSweepMarkers(buckets: Set[String]): Boolean = {
+    val now        = System.currentTimeMillis()
+    val markerPath = generateSweepMarkerPath(connectorTaskId, directoryFileName)
+    val markerJson = {
+      import io.circe.syntax._
+      import IndexManagerV2.SweepMarker.sweepMarkerEncoder
+      SweepMarker(now, now + gcSweepIntervalSeconds * 1000L).asJson.noSpaces
+    }
+    val uploadable = io.lenses.streamreactor.connect.cloud.common.model.UploadableString(markerJson)
+
+    var anySuccess = false
+    buckets.foreach { bucket =>
+      storageInterface.writeStringToFile(bucket, markerPath, uploadable) match {
+        case Left(err) =>
+          logger.warn(s"Failed to write sweep marker to bucket=$bucket: $err")
+        case Right(_) =>
+          anySuccess = true
+      }
+    }
+    if (!anySuccess) logger.warn(s"All sweep marker writes failed, skipping sweep for ${connectorTaskId.show}")
+    anySuccess
+  }
+
+  /** Iterates over all owned TopicPartitions and sweeps orphaned lock files within the GET budget. */
+  private def executeSweep(): Unit = {
+    var readsRemaining = gcSweepMaxReads
+    var totalEnqueued  = 0
+    var tpsScanned     = 0
+    val ageThreshold   = Instant.now().minusSeconds(gcSweepAgeSeconds.toLong)
+
+    for (tp <- seekedOffsets.keys.toList if readsRemaining > 0) {
+      seekedOffsets.get(tp).foreach { masterOffset =>
+        tpsScanned += 1
+        val (enqueued, readsUsed) = sweepPartition(tp, masterOffset, ageThreshold, readsRemaining)
+        totalEnqueued  += enqueued
+        readsRemaining -= readsUsed
+      }
+    }
+
+    if (totalEnqueued > 0 || tpsScanned > 0) {
+      logger.info(
+        s"Orphan sweep complete for ${connectorTaskId.show}: scanned=$tpsScanned TPs, enqueued=$totalEnqueued orphans, " +
+          s"remaining GET budget=$readsRemaining",
+      )
+    }
+  }
+
+  /** Lists lock files for one TopicPartition, classifies each, and enqueues orphans into gcQueue. */
+  private def sweepPartition(
+    tp:             TopicPartition,
+    masterOffset:   Offset,
+    ageThreshold:   Instant,
+    readsRemaining: Int,
+  ): (Int, Int) = {
+    val prefix = s"$directoryFileName/${connectorTaskId.name}/.locks/${tp.topic}/${tp.partition}/"
+    val bucket = bucketAndPrefixFn(tp) match {
+      case Right(loc) => loc.bucket
+      case Left(_)    => return (0, 0)
+    }
+
+    val files = storageInterface.listFileMetaRecursive(bucket, Some(prefix)) match {
+      case Left(err) =>
+        logger.warn(s"Sweep: failed to list files for $tp: ${err.message()}")
+        return (0, 0)
+      case Right(None) =>
+        return (0, 0)
+      case Right(Some(listing)) =>
+        // Safe: SM <: FileMetadata and Seq is covariant, but the existential type on
+        // StorageInterface[?] prevents the compiler from proving it. The cast is always valid.
+        listing.files.asInstanceOf[Seq[FileMetadata]]
+    }
+
+    var budget   = readsRemaining
+    var enqueued = 0
+    for (fileMeta <- files if budget > 0) {
+      classifyLockFile(tp, fileMeta, ageThreshold) match {
+        case SweepSkip => // no-op
+        case SweepNeedsRead(partitionKey) =>
+          budget -= 1
+          if (readAndEnqueue(bucket, fileMeta.file, tp, partitionKey, masterOffset))
+            enqueued += 1
+      }
+    }
+    (enqueued, readsRemaining - budget)
+  }
+
+  private sealed trait SweepClassification
+  private case object SweepSkip                            extends SweepClassification
+  private case class SweepNeedsRead(partitionKey: String)  extends SweepClassification
+
+  /** Applies extension, recency, and cache-presence filters to decide whether a lock file needs a GET read. */
+  private def classifyLockFile(
+    tp:           TopicPartition,
+    fileMeta:     FileMetadata,
+    ageThreshold: Instant,
+  ): SweepClassification = {
+    val path = fileMeta.file
+    if (!path.endsWith(".lock")) return SweepSkip
+    if (fileMeta.lastModified.isAfter(ageThreshold)) return SweepSkip
+
+    val fileName     = path.substring(path.lastIndexOf('/') + 1)
+    val partitionKey = fileName.stripSuffix(".lock")
+    if (granularCache.containsKey((tp, partitionKey))) SweepSkip
+    else SweepNeedsRead(partitionKey)
+  }
+
+  /**
+   * GETs the lock file and enqueues it for deletion if its committedOffset is below the master.
+   * Lock files with PendingState are also safe to sweep when their committedOffset is below master:
+   * the master lock can only advance past an offset once all writers have committed it.
+   */
+  private def readAndEnqueue(
+    bucket:       String,
+    path:         String,
+    tp:           TopicPartition,
+    partitionKey: String,
+    masterOffset: Offset,
+  ): Boolean =
+    storageInterface.getBlobAsObject[IndexFile](bucket, path) match {
+      case Left(err) =>
+        logger.warn(s"Sweep: failed to read lock file $path: ${err.message()}")
+        false
+      case Right(ObjectWithETag(IndexFile(_, Some(committedOffset), _), _))
+          if committedOffset.value < masterOffset.value =>
+        gcQueue.add(GcItem(bucket, path, tp, partitionKey))
+        true
+      case _ =>
+        false
+    }
+
   override def close(): Unit = {
+    sweepExecutor.foreach { exec =>
+      exec.shutdownNow()
+      try {
+        val _ = exec.awaitTermination(5, TimeUnit.SECONDS)
+      } catch {
+        case _: InterruptedException => Thread.currentThread().interrupt()
+      }
+    }
     gcExecutor.shutdownNow()
     try {
       val _ = gcExecutor.awaitTermination(5, TimeUnit.SECONDS)
@@ -656,13 +859,25 @@ object IndexManagerV2 {
 
   private[seek] case class GcItem(bucket: String, path: String, topicPartition: TopicPartition, partitionKey: String)
 
+  private[seek] case class SweepMarker(lastRunEpochMillis: Long, nextRunEpochMillis: Long)
+
+  private[seek] object SweepMarker {
+    import io.circe.generic.semiauto._
+    implicit val sweepMarkerEncoder: io.circe.Encoder[SweepMarker] = deriveEncoder
+    implicit val sweepMarkerDecoder: io.circe.Decoder[SweepMarker] = deriveDecoder
+  }
+
   // Controls the idle-writer eviction threshold in WriterManager. When the total number of
   // writers exceeds this value, idle (NoWriter-state) writers are evicted along with their
   // granular cache entries. Active writers are never evicted, so both the writers map and
   // granular cache may temporarily exceed this limit during high-cardinality bursts.
-  val DefaultMaxGranularCacheSize: Int = 10000
-  val DefaultGcIntervalSeconds: Int    = 300
-  val DefaultGcBatchSize: Int          = 1000
+  val DefaultMaxGranularCacheSize: Int    = 10000
+  val DefaultGcIntervalSeconds: Int       = 300
+  val DefaultGcBatchSize: Int             = 1000
+  val DefaultGcSweepEnabled: Boolean      = true
+  val DefaultGcSweepIntervalSeconds: Int  = 86400
+  val DefaultGcSweepAgeSeconds: Int       = 86400
+  val DefaultGcSweepMaxReads: Int         = 1000
 
   /**
    * Converts a given connector task ID and topic partition into a lock file path.
@@ -697,5 +912,11 @@ object IndexManagerV2 {
     directoryFileName: String,
   ): String =
     s"$directoryFileName/${connectorTaskId.name}/.locks/${topicPartition.topic}/${topicPartition.partition}/$partitionKey.lock"
+
+  private[seek] def generateSweepMarkerPath(
+    connectorTaskId:   ConnectorTaskId,
+    directoryFileName: String,
+  ): String =
+    s"$directoryFileName/${connectorTaskId.name}/.locks/sweep-marker-${connectorTaskId.taskNo}.json"
 
 }

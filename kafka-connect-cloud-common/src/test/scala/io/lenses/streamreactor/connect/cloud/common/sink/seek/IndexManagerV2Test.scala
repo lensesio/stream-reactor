@@ -31,11 +31,16 @@ import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.deprecated.IndexManagerV1
 import io.lenses.streamreactor.connect.cloud.common.model.UploadableFile
 import io.lenses.streamreactor.connect.cloud.common.storage.FileNotFoundError
+import io.lenses.streamreactor.connect.cloud.common.storage.GeneralFileLoadError
+import io.lenses.streamreactor.connect.cloud.common.storage.ListOfMetadataResponse
 import io.lenses.streamreactor.connect.cloud.common.storage.NonExistingFileError
 import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
 import io.lenses.streamreactor.connect.cloud.common.sink.FatalCloudSinkError
 import io.lenses.streamreactor.connect.cloud.common.storage.PathError
 import io.lenses.streamreactor.connect.cloud.common.storage.FileMoveError
+import io.lenses.streamreactor.connect.cloud.common.model.UploadableString
+
+import java.time.Instant
 import org.mockito.ArgumentCaptor
 import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchersSugar
@@ -1079,7 +1084,7 @@ class IndexManagerV2Test
 
       // Now trigger the drain
       when(si.deleteFiles(anyString(), any[Seq[String]])).thenReturn(Right(()))
-      im.drainGcQueueNow()
+      im.drainGcQueue()
 
       // After drain, deleteFiles should have been called with pk-old path
       verify(si).deleteFiles(anyString(), ArgumentMatchers.argThat[Seq[String]](_.exists(_.contains("pk-old"))))
@@ -1199,7 +1204,7 @@ class IndexManagerV2Test
       // 2 obsolete items evicted from cache, 1 current remains
       im.granularCacheSize shouldBe 1
 
-      im.drainGcQueueNow()
+      im.drainGcQueue()
 
       // With gcBatchSize=2 and 2 items, deleteFiles should be called once (batch of 2)
       verify(si, times(1)).deleteFiles(anyString(), any[Seq[String]])
@@ -1363,7 +1368,7 @@ class IndexManagerV2Test
     // Enqueue pk-old for GC (offset 50 < globalSafeOffset 100, not in active set)
     im.cleanUpObsoleteLocks(tp, Offset(100), Set("pk-active")) shouldBe Right(())
 
-    // Without calling drainGcQueueNow(), call close() which should drain the queue
+    // Without calling drainGcQueue(), call close() which should drain the queue
     im.close()
 
     // Verify deleteFiles was called with the enqueued path
@@ -1515,7 +1520,7 @@ class IndexManagerV2Test
 
       // Drain: the key is back in the cache, so drainGcQueue should skip the delete
       when(si.deleteFiles(anyString(), any[Seq[String]])).thenReturn(Right(()))
-      im.drainGcQueueNow()
+      im.drainGcQueue()
 
       verify(si, never).deleteFiles(anyString(), any[Seq[String]])
     } finally {
@@ -1561,7 +1566,7 @@ class IndexManagerV2Test
 
       // Drain: pk-gone should be deleted, pk-reclaimed should be skipped
       when(si.deleteFiles(anyString(), any[Seq[String]])).thenReturn(Right(()))
-      im.drainGcQueueNow()
+      im.drainGcQueue()
 
       val pathCaptor = ArgumentCaptor.forClass(classOf[Seq[String]])
       verify(si, times(1)).deleteFiles(anyString(), pathCaptor.capture())
@@ -1572,5 +1577,465 @@ class IndexManagerV2Test
     } finally {
       im.close()
     }
+  }
+
+  // --- Orphan sweep tests ---
+
+  private def createSweepTestManager(
+    si:                     StorageInterface[_],
+    gcSweepEnabled:         Boolean = true,
+    gcSweepIntervalSeconds: Int = 86400,
+    gcSweepAgeSeconds:      Int = 3600,
+    gcSweepMaxReads:        Int = 1000,
+  ): IndexManagerV2 = {
+    new IndexManagerV2(
+      bucketAndPrefixFn, oldIndexManager, pendingOperationsProcessors, indexesDirectoryName,
+      gcIntervalSeconds      = Int.MaxValue,
+      gcSweepEnabled         = gcSweepEnabled,
+      gcSweepIntervalSeconds = gcSweepIntervalSeconds,
+      gcSweepAgeSeconds      = gcSweepAgeSeconds,
+      gcSweepMaxReads        = gcSweepMaxReads,
+    )(si, connectorTaskId)
+  }
+
+  private def setupSweepMocks(
+    si:              StorageInterface[_],
+    tp:              TopicPartition,
+    bucketAndPrefix: CloudLocation,
+  ): Unit = {
+    when(bucketAndPrefixFn(any[TopicPartition]))
+      .thenReturn(Right(bucketAndPrefix))
+    when(si.pathExists(anyString(), anyString()))
+      .thenReturn(Right(false))
+    when(
+      si.getBlobAsObject[IndexFile](
+        anyString(),
+        ArgumentMatchers.endsWith(s"${tp.partition}.lock"),
+      )(ArgumentMatchers.eq(indexFileDecoder)),
+    ).thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(100)), None), "etag")))
+    when(
+      si.getBlobAsObject[IndexManagerV2.SweepMarker](
+        anyString(),
+        ArgumentMatchers.contains("sweep-marker"),
+      )(any[Decoder[IndexManagerV2.SweepMarker]]),
+    ).thenReturn(Left(FileNotFoundError(new Exception("Not found"), "sweep-marker")))
+    val _ = when(si.writeStringToFile(anyString(), anyString(), any[UploadableString]))
+      .thenReturn(Right(()))
+  }
+
+  test("sweep enqueues orphaned lock files below master lock offset") {
+    val tp              = Topic("topic1").withPartition(0)
+    val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
+    val si              = mock[StorageInterface[_]]
+    setupSweepMocks(si, tp, bucketAndPrefix)
+
+    val oldTime      = Instant.now().minusSeconds(7200)
+    val orphanPath   = s"$indexesDirectoryName/${connectorTaskId.name}/.locks/${tp.topic}/${tp.partition}/orphan-key.lock"
+    val orphanMeta   = TestFileMetadata(orphanPath, oldTime)
+    val listResponse = ListOfMetadataResponse("bucket", Some("prefix"), Seq(orphanMeta), orphanMeta)
+
+    org.mockito.Mockito.doReturn(Right(Some(listResponse))).when(si).listFileMetaRecursive(anyString(), any[Option[String]])
+    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("orphan-key.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+      .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(50)), None), "orphan-etag")))
+    when(si.deleteFiles(anyString(), any[Seq[String]])).thenReturn(Right(()))
+
+    val im = createSweepTestManager(si)
+    try {
+      im.open(Set(tp))
+      im.sweepOrphanedLocks()
+      im.drainGcQueue()
+
+      verify(si, times(1)).deleteFiles(anyString(), any[Seq[String]])
+    } finally im.close()
+  }
+
+  test("sweep skips files younger than gcSweepAgeSeconds") {
+    val tp              = Topic("topic1").withPartition(0)
+    val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
+    val si              = mock[StorageInterface[_]]
+    setupSweepMocks(si, tp, bucketAndPrefix)
+
+    val recentTime   = Instant.now()
+    val recentPath   = s"$indexesDirectoryName/${connectorTaskId.name}/.locks/${tp.topic}/${tp.partition}/recent-key.lock"
+    val recentMeta   = TestFileMetadata(recentPath, recentTime)
+    val listResponse = ListOfMetadataResponse("bucket", Some("prefix"), Seq(recentMeta), recentMeta)
+
+    org.mockito.Mockito.doReturn(Right(Some(listResponse))).when(si).listFileMetaRecursive(anyString(), any[Option[String]])
+
+    val im = createSweepTestManager(si, gcSweepAgeSeconds = 3600)
+    try {
+      im.open(Set(tp))
+      im.sweepOrphanedLocks()
+
+      verify(si, never).getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("recent-key.lock"))(ArgumentMatchers.eq(indexFileDecoder))
+    } finally im.close()
+  }
+
+  test("sweep skips lock files already in granularCache") {
+    val tp              = Topic("topic1").withPartition(0)
+    val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
+    val si              = mock[StorageInterface[_]]
+    setupSweepMocks(si, tp, bucketAndPrefix)
+
+    val oldTime      = Instant.now().minusSeconds(7200)
+    val cachedPath   = s"$indexesDirectoryName/${connectorTaskId.name}/.locks/${tp.topic}/${tp.partition}/cached-key.lock"
+    val cachedMeta   = TestFileMetadata(cachedPath, oldTime)
+    val listResponse = ListOfMetadataResponse("bucket", Some("prefix"), Seq(cachedMeta), cachedMeta)
+
+    org.mockito.Mockito.doReturn(Right(Some(listResponse))).when(si).listFileMetaRecursive(anyString(), any[Option[String]])
+
+    // Load cached-key into the granular cache
+    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("cached-key.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+      .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(50)), None), "cached-etag")))
+
+    val im = createSweepTestManager(si)
+    try {
+      im.open(Set(tp))
+      im.ensureGranularLock(tp, "cached-key") shouldBe Right(())
+
+      // Reset the mock to track new invocations
+      reset(si)
+      setupSweepMocks(si, tp, bucketAndPrefix)
+      org.mockito.Mockito.doReturn(Right(Some(listResponse))).when(si).listFileMetaRecursive(anyString(), any[Option[String]])
+
+      im.sweepOrphanedLocks()
+
+      verify(si, never).getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("cached-key.lock"))(ArgumentMatchers.eq(indexFileDecoder))
+    } finally im.close()
+  }
+
+  test("sweep skips lock files with committedOffset >= master offset") {
+    val tp              = Topic("topic1").withPartition(0)
+    val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
+    val si              = mock[StorageInterface[_]]
+    setupSweepMocks(si, tp, bucketAndPrefix)
+
+    val oldTime      = Instant.now().minusSeconds(7200)
+    val highPath     = s"$indexesDirectoryName/${connectorTaskId.name}/.locks/${tp.topic}/${tp.partition}/high-key.lock"
+    val highMeta     = TestFileMetadata(highPath, oldTime)
+    val listResponse = ListOfMetadataResponse("bucket", Some("prefix"), Seq(highMeta), highMeta)
+
+    org.mockito.Mockito.doReturn(Right(Some(listResponse))).when(si).listFileMetaRecursive(anyString(), any[Option[String]])
+    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("high-key.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+      .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(150)), None), "high-etag")))
+    when(si.deleteFiles(anyString(), any[Seq[String]])).thenReturn(Right(()))
+
+    val im = createSweepTestManager(si)
+    try {
+      im.open(Set(tp))
+      im.sweepOrphanedLocks()
+      im.drainGcQueue()
+
+      verify(si, never).deleteFiles(anyString(), any[Seq[String]])
+    } finally im.close()
+  }
+
+  test("sweep skips lock files with no committedOffset") {
+    val tp              = Topic("topic1").withPartition(0)
+    val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
+    val si              = mock[StorageInterface[_]]
+    setupSweepMocks(si, tp, bucketAndPrefix)
+
+    val oldTime      = Instant.now().minusSeconds(7200)
+    val noOffPath    = s"$indexesDirectoryName/${connectorTaskId.name}/.locks/${tp.topic}/${tp.partition}/no-offset.lock"
+    val noOffMeta    = TestFileMetadata(noOffPath, oldTime)
+    val listResponse = ListOfMetadataResponse("bucket", Some("prefix"), Seq(noOffMeta), noOffMeta)
+
+    org.mockito.Mockito.doReturn(Right(Some(listResponse))).when(si).listFileMetaRecursive(anyString(), any[Option[String]])
+    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("no-offset.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+      .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", None, None), "no-off-etag")))
+    when(si.deleteFiles(anyString(), any[Seq[String]])).thenReturn(Right(()))
+
+    val im = createSweepTestManager(si)
+    try {
+      im.open(Set(tp))
+      im.sweepOrphanedLocks()
+      im.drainGcQueue()
+
+      verify(si, never).deleteFiles(anyString(), any[Seq[String]])
+    } finally im.close()
+  }
+
+  test("sweep respects gcSweepMaxReads cap across all TPs") {
+    val tp1             = Topic("topic1").withPartition(0)
+    val tp2             = Topic("topic1").withPartition(1)
+    val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
+    val si              = mock[StorageInterface[_]]
+
+    when(bucketAndPrefixFn(any[TopicPartition])).thenReturn(Right(bucketAndPrefix))
+    when(si.pathExists(anyString(), anyString())).thenReturn(Right(false))
+    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith("0.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+      .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(100)), None), "etag0")))
+    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith("1.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+      .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(100)), None), "etag1")))
+    when(si.getBlobAsObject[IndexManagerV2.SweepMarker](anyString(), ArgumentMatchers.contains("sweep-marker"))(any[Decoder[IndexManagerV2.SweepMarker]]))
+      .thenReturn(Left(FileNotFoundError(new Exception("Not found"), "sweep-marker")))
+    when(si.writeStringToFile(anyString(), anyString(), any[UploadableString])).thenReturn(Right(()))
+
+    val oldTime = Instant.now().minusSeconds(7200)
+
+    def makeLockFiles(tp: TopicPartition, count: Int): ListOfMetadataResponse[TestFileMetadata] = {
+      val files = (1 to count).map { i =>
+        val path = s"$indexesDirectoryName/${connectorTaskId.name}/.locks/${tp.topic}/${tp.partition}/pk-$i.lock"
+        TestFileMetadata(path, oldTime)
+      }
+      ListOfMetadataResponse("bucket", Some("prefix"), files, files.head)
+    }
+
+    // Return 3 lock files for each TP listing
+    val allFiles = makeLockFiles(tp1, 3)
+    org.mockito.Mockito.doReturn(Right(Some(allFiles))).when(si).listFileMetaRecursive(anyString(), any[Option[String]])
+
+    // Each lock file read returns a low offset (below master)
+    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.matches(".*pk-\\d+\\.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+      .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(10)), None), "pk-etag")))
+
+    val im = createSweepTestManager(si, gcSweepMaxReads = 2)
+    try {
+      im.open(Set(tp1, tp2))
+      im.sweepOrphanedLocks()
+
+      // Only 2 lock file reads should have been made total
+      verify(si, times(2)).getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.matches(".*pk-\\d+\\.lock"))(ArgumentMatchers.eq(indexFileDecoder))
+    } finally im.close()
+  }
+
+  test("sweep reads and respects marker file timing") {
+    val tp              = Topic("topic1").withPartition(0)
+    val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
+    val si              = mock[StorageInterface[_]]
+
+    when(bucketAndPrefixFn(any[TopicPartition])).thenReturn(Right(bucketAndPrefix))
+    when(si.pathExists(anyString(), anyString())).thenReturn(Right(false))
+    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith("0.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+      .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(100)), None), "etag")))
+
+    // Marker says next run is in the future
+    val futureMarker = IndexManagerV2.SweepMarker(System.currentTimeMillis(), System.currentTimeMillis() + 86400000L)
+    when(si.getBlobAsObject[IndexManagerV2.SweepMarker](anyString(), ArgumentMatchers.contains("sweep-marker"))(any[Decoder[IndexManagerV2.SweepMarker]]))
+      .thenReturn(Right(ObjectWithETag(futureMarker, "marker-etag")))
+
+    val im = createSweepTestManager(si)
+    try {
+      im.open(Set(tp))
+      im.sweepOrphanedLocks()
+
+      // Should NOT have listed files (marker says not yet due)
+      verify(si, never).listFileMetaRecursive(anyString(), any[Option[String]])
+
+      // Now change marker to be in the past
+      val pastMarker = IndexManagerV2.SweepMarker(System.currentTimeMillis() - 172800000L, System.currentTimeMillis() - 86400000L)
+      when(si.getBlobAsObject[IndexManagerV2.SweepMarker](anyString(), ArgumentMatchers.contains("sweep-marker"))(any[Decoder[IndexManagerV2.SweepMarker]]))
+        .thenReturn(Right(ObjectWithETag(pastMarker, "marker-etag")))
+      when(si.writeStringToFile(anyString(), anyString(), any[UploadableString])).thenReturn(Right(()))
+      org.mockito.Mockito.doReturn(Right(None)).when(si).listFileMetaRecursive(anyString(), any[Option[String]])
+
+      im.sweepOrphanedLocks()
+
+      // Should have listed files now
+      verify(si, times(1)).listFileMetaRecursive(anyString(), any[Option[String]])
+    } finally im.close()
+  }
+
+  test("sweep writes marker before scanning") {
+    val tp              = Topic("topic1").withPartition(0)
+    val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
+    val si              = mock[StorageInterface[_]]
+    setupSweepMocks(si, tp, bucketAndPrefix)
+    org.mockito.Mockito.doReturn(Right(None)).when(si).listFileMetaRecursive(anyString(), any[Option[String]])
+
+    val im = createSweepTestManager(si)
+    try {
+      im.open(Set(tp))
+      im.sweepOrphanedLocks()
+
+      val inOrder = org.mockito.Mockito.inOrder(si)
+      inOrder.verify(si).writeStringToFile(anyString(), ArgumentMatchers.contains("sweep-marker"), any[UploadableString])
+      inOrder.verify(si).listFileMetaRecursive(anyString(), any[Option[String]])
+    } finally im.close()
+  }
+
+  test("sweep skips TP when seekedOffsets returns None") {
+    val tp              = Topic("topic1").withPartition(0)
+    val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
+    val si              = mock[StorageInterface[_]]
+    setupSweepMocks(si, tp, bucketAndPrefix)
+
+    // Only open tp, so seekedOffsets only has tp (topic2/0 would have None)
+    org.mockito.Mockito.doReturn(Right(None)).when(si).listFileMetaRecursive(anyString(), any[Option[String]])
+
+    val im = createSweepTestManager(si)
+    try {
+      im.open(Set(tp))
+      im.sweepOrphanedLocks()
+
+      // Should only list for tp, not tp2 (which has no seekedOffset)
+      verify(si, times(1)).listFileMetaRecursive(anyString(), any[Option[String]])
+    } finally im.close()
+  }
+
+  test("sweep treats transient marker read error as not-yet-due") {
+    val tp              = Topic("topic1").withPartition(0)
+    val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
+    val si              = mock[StorageInterface[_]]
+
+    when(bucketAndPrefixFn(any[TopicPartition])).thenReturn(Right(bucketAndPrefix))
+    when(si.pathExists(anyString(), anyString())).thenReturn(Right(false))
+    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith("0.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+      .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(100)), None), "etag")))
+
+    // Marker read returns a transient error (not FileNotFoundError)
+    when(si.getBlobAsObject[IndexManagerV2.SweepMarker](anyString(), ArgumentMatchers.contains("sweep-marker"))(any[Decoder[IndexManagerV2.SweepMarker]]))
+      .thenReturn(Left(GeneralFileLoadError(new Exception("transient"), "sweep-marker")))
+
+    val im = createSweepTestManager(si)
+    try {
+      im.open(Set(tp))
+      im.sweepOrphanedLocks()
+
+      // Should NOT have listed files or written marker (transient error = skip sweep)
+      verify(si, never).listFileMetaRecursive(anyString(), any[Option[String]])
+      verify(si, never).writeStringToFile(anyString(), anyString(), any[UploadableString])
+    } finally im.close()
+  }
+
+  test("sweep is disabled when gcSweepEnabled = false") {
+    val tp              = Topic("topic1").withPartition(0)
+    val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
+    val si              = mock[StorageInterface[_]]
+
+    when(bucketAndPrefixFn(any[TopicPartition])).thenReturn(Right(bucketAndPrefix))
+    when(si.pathExists(anyString(), anyString())).thenReturn(Right(false))
+    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith("0.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+      .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(100)), None), "etag")))
+
+    val im = createSweepTestManager(si, gcSweepEnabled = false)
+    try {
+      im.open(Set(tp))
+      im.sweepOrphanedLocks()
+
+      // Nothing should happen -- no marker reads, no listing, no writes
+      verify(si, never).getBlobAsObject[IndexManagerV2.SweepMarker](anyString(), ArgumentMatchers.contains("sweep-marker"))(any[Decoder[IndexManagerV2.SweepMarker]])
+      verify(si, never).listFileMetaRecursive(anyString(), any[Option[String]])
+    } finally im.close()
+  }
+
+  test("sweep enqueues orphaned lock file with PendingState and committedOffset below master") {
+    val tp              = Topic("topic1").withPartition(0)
+    val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
+    val si              = mock[StorageInterface[_]]
+    setupSweepMocks(si, tp, bucketAndPrefix)
+
+    val oldTime       = Instant.now().minusSeconds(7200)
+    val pendingPath   = s"$indexesDirectoryName/${connectorTaskId.name}/.locks/${tp.topic}/${tp.partition}/pending-key.lock"
+    val pendingMeta   = TestFileMetadata(pendingPath, oldTime)
+    val listResponse  = ListOfMetadataResponse("bucket", Some("prefix"), Seq(pendingMeta), pendingMeta)
+
+    org.mockito.Mockito.doReturn(Right(Some(listResponse))).when(si).listFileMetaRecursive(anyString(), any[Option[String]])
+
+    val pendingState = PendingState(Offset(51), NonEmptyList.one(DeleteOperation("bucket", "some/temp/path", "old-etag")))
+    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("pending-key.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+      .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(50)), Some(pendingState)), "pending-etag")))
+    when(si.deleteFiles(anyString(), any[Seq[String]])).thenReturn(Right(()))
+
+    val im = createSweepTestManager(si)
+    try {
+      im.open(Set(tp))
+      im.sweepOrphanedLocks()
+      im.drainGcQueue()
+
+      verify(si, times(1)).deleteFiles(anyString(), any[Seq[String]])
+    } finally im.close()
+  }
+
+  test("sweep writes markers to all distinct buckets when TPs span multiple buckets") {
+    val tp1 = Topic("topic1").withPartition(0)
+    val tp2 = Topic("topic2").withPartition(0)
+    val si  = mock[StorageInterface[_]]
+
+    when(bucketAndPrefixFn(ArgumentMatchers.eq(tp1)))
+      .thenReturn(Right(CloudLocation("bucket-a", "prefix".some)))
+    when(bucketAndPrefixFn(ArgumentMatchers.eq(tp2)))
+      .thenReturn(Right(CloudLocation("bucket-b", "prefix".some)))
+    when(si.pathExists(anyString(), anyString()))
+      .thenReturn(Right(false))
+    when(
+      si.getBlobAsObject[IndexFile](
+        anyString(),
+        ArgumentMatchers.endsWith(".lock"),
+      )(ArgumentMatchers.eq(indexFileDecoder)),
+    ).thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(100)), None), "etag")))
+    when(
+      si.getBlobAsObject[IndexManagerV2.SweepMarker](
+        anyString(),
+        ArgumentMatchers.contains("sweep-marker"),
+      )(any[Decoder[IndexManagerV2.SweepMarker]]),
+    ).thenReturn(Left(FileNotFoundError(new Exception("Not found"), "sweep-marker")))
+    when(si.writeStringToFile(anyString(), anyString(), any[UploadableString]))
+      .thenReturn(Right(()))
+    org.mockito.Mockito.doReturn(Right(None))
+      .when(si).listFileMetaRecursive(anyString(), any[Option[String]])
+
+    val im = createSweepTestManager(si)
+    try {
+      im.open(Set(tp1, tp2))
+      im.sweepOrphanedLocks()
+
+      val bucketCaptor = ArgumentCaptor.forClass(classOf[String])
+      verify(si, times(2)).writeStringToFile(
+        bucketCaptor.capture(),
+        ArgumentMatchers.contains("sweep-marker"),
+        any[UploadableString],
+      )
+      bucketCaptor.getAllValues should contain allOf ("bucket-a", "bucket-b")
+    } finally im.close()
+  }
+
+  test("sweep is suppressed when any bucket has a non-expired marker") {
+    val tp1 = Topic("topic1").withPartition(0)
+    val tp2 = Topic("topic2").withPartition(0)
+    val si  = mock[StorageInterface[_]]
+
+    when(bucketAndPrefixFn(ArgumentMatchers.eq(tp1)))
+      .thenReturn(Right(CloudLocation("bucket-a", "prefix".some)))
+    when(bucketAndPrefixFn(ArgumentMatchers.eq(tp2)))
+      .thenReturn(Right(CloudLocation("bucket-b", "prefix".some)))
+    when(si.pathExists(anyString(), anyString()))
+      .thenReturn(Right(false))
+    when(
+      si.getBlobAsObject[IndexFile](
+        anyString(),
+        ArgumentMatchers.endsWith(".lock"),
+      )(ArgumentMatchers.eq(indexFileDecoder)),
+    ).thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(100)), None), "etag")))
+
+    val futureMarker = IndexManagerV2.SweepMarker(
+      System.currentTimeMillis(),
+      System.currentTimeMillis() + 86400000L,
+    )
+    // bucket-a: no marker (first run)
+    when(
+      si.getBlobAsObject[IndexManagerV2.SweepMarker](
+        ArgumentMatchers.eq("bucket-a"),
+        ArgumentMatchers.contains("sweep-marker"),
+      )(any[Decoder[IndexManagerV2.SweepMarker]]),
+    ).thenReturn(Left(FileNotFoundError(new Exception("Not found"), "sweep-marker")))
+    // bucket-b: non-expired marker
+    when(
+      si.getBlobAsObject[IndexManagerV2.SweepMarker](
+        ArgumentMatchers.eq("bucket-b"),
+        ArgumentMatchers.contains("sweep-marker"),
+      )(any[Decoder[IndexManagerV2.SweepMarker]]),
+    ).thenReturn(Right(ObjectWithETag(futureMarker, "marker-etag")))
+
+    val im = createSweepTestManager(si)
+    try {
+      im.open(Set(tp1, tp2))
+      im.sweepOrphanedLocks()
+
+      // bucket-b has a non-expired marker, so sweep should be suppressed entirely
+      verify(si, never).writeStringToFile(anyString(), anyString(), any[UploadableString])
+      verify(si, never).listFileMetaRecursive(anyString(), any[Option[String]])
+    } finally im.close()
   }
 }

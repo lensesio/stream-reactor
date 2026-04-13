@@ -140,6 +140,10 @@ class WriterManagerCreator[MD <: FileMetadata, SC <: CloudSinkConfig[_]] extends
         io.maxGranularCacheSize,
         io.gcIntervalSeconds,
         io.gcBatchSize,
+        io.gcSweepEnabled,
+        io.gcSweepIntervalSeconds,
+        io.gcSweepAgeSeconds,
+        io.gcSweepMaxReads,
       ),
     ).getOrElse(new NoIndexManager())
 

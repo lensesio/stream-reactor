@@ -18,9 +18,13 @@ package io.lenses.streamreactor.connect.cloud.common.sink.config
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexManagerV2
 
 case class IndexOptions(
-  maxIndexFiles:        Int,
-  indexesDirectoryName: String,
-  maxGranularCacheSize: Int = IndexManagerV2.DefaultMaxGranularCacheSize,
-  gcIntervalSeconds:    Int = IndexManagerV2.DefaultGcIntervalSeconds,
-  gcBatchSize:          Int = IndexManagerV2.DefaultGcBatchSize,
+  maxIndexFiles:          Int,
+  indexesDirectoryName:   String,
+  maxGranularCacheSize:   Int     = IndexManagerV2.DefaultMaxGranularCacheSize,
+  gcIntervalSeconds:      Int     = IndexManagerV2.DefaultGcIntervalSeconds,
+  gcBatchSize:            Int     = IndexManagerV2.DefaultGcBatchSize,
+  gcSweepEnabled:         Boolean = IndexManagerV2.DefaultGcSweepEnabled,
+  gcSweepIntervalSeconds: Int     = IndexManagerV2.DefaultGcSweepIntervalSeconds,
+  gcSweepAgeSeconds:      Int     = IndexManagerV2.DefaultGcSweepAgeSeconds,
+  gcSweepMaxReads:        Int     = IndexManagerV2.DefaultGcSweepMaxReads,
 )

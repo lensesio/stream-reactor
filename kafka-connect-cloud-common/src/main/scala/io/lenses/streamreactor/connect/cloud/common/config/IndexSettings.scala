@@ -60,6 +60,34 @@ trait IndexConfigKeys extends WithConnectorPrefix {
       s"Matches S3 DeleteObjects limit of 1000 by default. GCS and Azure handle arbitrary sizes."
   private val GC_BATCH_SIZE_DEFAULT = IndexManagerV2.DefaultGcBatchSize
 
+  val GC_SWEEP_ENABLED = s"$connectorPrefix.indexes.gc.sweep.enabled"
+  private val GC_SWEEP_ENABLED_DOC =
+    s"Enable or disable the periodic orphan sweep that discovers and deletes granular lock files in cloud storage " +
+      s"not tracked by the in-memory cache (e.g. from prior runs with different partition keys). " +
+      s"Each task sweeps only its own partitions."
+  private val GC_SWEEP_ENABLED_DEFAULT = IndexManagerV2.DefaultGcSweepEnabled
+
+  val GC_SWEEP_INTERVAL_SECONDS = s"$connectorPrefix.indexes.gc.sweep.interval.seconds"
+  private val GC_SWEEP_INTERVAL_SECONDS_DOC =
+    s"Interval in seconds between periodic orphan sweeps. " +
+      s"Only effective when the sweep is enabled via ${GC_SWEEP_ENABLED}. " +
+      s"Each task sweeps only its own partitions."
+  private val GC_SWEEP_INTERVAL_SECONDS_DEFAULT = IndexManagerV2.DefaultGcSweepIntervalSeconds
+
+  val GC_SWEEP_AGE_SECONDS = s"$connectorPrefix.indexes.gc.sweep.age.seconds"
+  private val GC_SWEEP_AGE_SECONDS_DOC =
+    s"Recency filter for the orphan sweep: lock files whose lastModified timestamp is newer than this threshold " +
+      s"(in seconds) are skipped without a GET read, reducing API cost. " +
+      s"Should be at least as large as the sweep interval to avoid sweeping files created since the last sweep."
+  private val GC_SWEEP_AGE_SECONDS_DEFAULT = IndexManagerV2.DefaultGcSweepAgeSeconds
+
+  val GC_SWEEP_MAX_READS = s"$connectorPrefix.indexes.gc.sweep.max.reads"
+  private val GC_SWEEP_MAX_READS_DOC =
+    s"Maximum number of GET requests (lock file reads) per sweep cycle across all partitions. " +
+      s"When the cap is exhausted, remaining partitions are deferred to the next cycle. " +
+      s"Controls the most expensive API operation during the sweep."
+  private val GC_SWEEP_MAX_READS_DEFAULT = IndexManagerV2.DefaultGcSweepMaxReads
+
   def addIndexSettingsToConfigDef(configDef: ConfigDef): ConfigDef =
     configDef
       .define(
@@ -131,6 +159,53 @@ trait IndexConfigKeys extends WithConnectorPrefix {
         ConfigDef.Width.LONG,
         GC_BATCH_SIZE,
       )
+      .define(
+        GC_SWEEP_ENABLED,
+        Type.BOOLEAN,
+        GC_SWEEP_ENABLED_DEFAULT,
+        Importance.LOW,
+        GC_SWEEP_ENABLED_DOC,
+        "Sink Seek",
+        7,
+        ConfigDef.Width.NONE,
+        GC_SWEEP_ENABLED,
+      )
+      .define(
+        GC_SWEEP_INTERVAL_SECONDS,
+        Type.INT,
+        GC_SWEEP_INTERVAL_SECONDS_DEFAULT,
+        ConfigDef.Range.atLeast(1),
+        Importance.LOW,
+        GC_SWEEP_INTERVAL_SECONDS_DOC,
+        "Sink Seek",
+        8,
+        ConfigDef.Width.LONG,
+        GC_SWEEP_INTERVAL_SECONDS,
+      )
+      .define(
+        GC_SWEEP_AGE_SECONDS,
+        Type.INT,
+        GC_SWEEP_AGE_SECONDS_DEFAULT,
+        ConfigDef.Range.atLeast(1),
+        Importance.LOW,
+        GC_SWEEP_AGE_SECONDS_DOC,
+        "Sink Seek",
+        9,
+        ConfigDef.Width.LONG,
+        GC_SWEEP_AGE_SECONDS,
+      )
+      .define(
+        GC_SWEEP_MAX_READS,
+        Type.INT,
+        GC_SWEEP_MAX_READS_DEFAULT,
+        ConfigDef.Range.atLeast(1),
+        Importance.LOW,
+        GC_SWEEP_MAX_READS_DOC,
+        "Sink Seek",
+        10,
+        ConfigDef.Width.LONG,
+        GC_SWEEP_MAX_READS,
+      )
 }
 trait IndexSettings extends BaseSettings with IndexConfigKeys {
   def getIndexSettings: Option[IndexOptions] =
@@ -140,5 +215,9 @@ trait IndexSettings extends BaseSettings with IndexConfigKeys {
       getInt(MAX_GRANULAR_CACHE_SIZE),
       getInt(GC_INTERVAL_SECONDS),
       getInt(GC_BATCH_SIZE),
+      getBoolean(GC_SWEEP_ENABLED),
+      getInt(GC_SWEEP_INTERVAL_SECONDS),
+      getInt(GC_SWEEP_AGE_SECONDS),
+      getInt(GC_SWEEP_MAX_READS),
     ))
 }

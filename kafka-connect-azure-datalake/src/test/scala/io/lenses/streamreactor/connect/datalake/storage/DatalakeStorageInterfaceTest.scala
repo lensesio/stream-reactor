@@ -55,6 +55,7 @@ import io.lenses.streamreactor.connect.cloud.common.storage.FileListError
 import io.lenses.streamreactor.connect.cloud.common.storage.GeneralFileLoadError
 import io.lenses.streamreactor.connect.cloud.common.storage.FileMoveError
 import io.lenses.streamreactor.connect.cloud.common.storage.ListOfKeysResponse
+import io.lenses.streamreactor.connect.cloud.common.storage.ListOfMetadataResponse
 import io.lenses.streamreactor.connect.cloud.common.storage.NonExistingFileError
 import io.lenses.streamreactor.connect.cloud.common.storage.PathError
 import io.lenses.streamreactor.connect.cloud.common.storage.UploadFailedError
@@ -469,6 +470,49 @@ class DatalakeStorageInterfaceTest
     )
 
     val result = storageInterface.listKeysRecursive(bucket, prefix)
+
+    result.left.value should be(a[FileListError])
+  }
+
+  "listFileMetaRecursive" should "return metadata for all files when successful" in {
+    val bucket = "test-bucket"
+    val prefix = Some("test-prefix")
+
+    setUpPageIterableReturningMock()
+
+    val result = storageInterface.listFileMetaRecursive(bucket, prefix)
+
+    val metadata: ListOfMetadataResponse[DatalakeFileMetadata] = result.value.value
+    metadata.files.size should be(100)
+    metadata.files.foreach { fm =>
+      fm.file should not be empty
+      fm.lastModified should not be null
+    }
+    metadata.latestFileMetadata.file should be("99.txt")
+  }
+
+  "listFileMetaRecursive" should "return None when no files are found" in {
+    val bucket = "test-bucket"
+    val prefix = Some("non-existing-prefix")
+
+    when(
+      client.getFileSystemClient(anyString).listPaths(any[ListPathsOptions], any[Duration]),
+    ).thenReturn(emptyPagedIterable)
+
+    val result = storageInterface.listFileMetaRecursive(bucket, prefix)
+
+    result.value should be(None)
+  }
+
+  "listFileMetaRecursive" should "return a Left(FileListError) if there is an exception" in {
+    val bucket = "test-bucket"
+    val prefix = Some("test-prefix")
+
+    when(client.getFileSystemClient(bucket).listPaths(any[ListPathsOptions], any[Duration])).thenThrow(
+      new IllegalStateException("The mystery of life isn't a problem to solve, but a reality to experience."),
+    )
+
+    val result = storageInterface.listFileMetaRecursive(bucket, prefix)
 
     result.left.value should be(a[FileListError])
   }

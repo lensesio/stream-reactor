@@ -102,7 +102,10 @@ class WriterManager[SM <: FileMetadata](
     // offsets or eTags linger in memory after the task stops. Writer.close() deliberately
     // does NOT evict cache entries (they are left for cleanUpObsoleteLocks to GC), so this
     // bulk eviction is the sole memory cleanup path on shutdown.
-    topicPartitions.foreach(indexManager.evictAllGranularLocks)
+    topicPartitions.foreach { tp =>
+      indexManager.evictAllGranularLocks(tp)
+      indexManager.clearTopicPartitionState(tp)
+    }
   }
 
   def write(topicPartitionOffset: TopicPartitionOffset, messageDetail: MessageDetail): Either[SinkError, Unit] = {
@@ -298,6 +301,7 @@ class WriterManager[SM <: FileMetadata](
     // necessary after a rebalance: if the partition is later re-assigned to this task, the
     // new writers must load fresh lock state from storage rather than reading stale cached data.
     indexManager.evictAllGranularLocks(topicPartition)
+    indexManager.clearTopicPartitionState(topicPartition)
   }
 
   private def evictIdleWritersIfNeeded(): Unit = {
@@ -316,6 +320,10 @@ class WriterManager[SM <: FileMetadata](
   }
 
   private[writer] def writerCount: Int = writers.size
+
+  private[writer] def putWriter(key: MapKey, writer: Writer[SM]): Unit = { val _ = writers.put(key, writer) }
+
+  private[writer] def evictIdleWritersNow(): Unit = evictIdleWritersIfNeeded()
 
   def shouldSkipNullValues(): Boolean = skipNullValues
 
