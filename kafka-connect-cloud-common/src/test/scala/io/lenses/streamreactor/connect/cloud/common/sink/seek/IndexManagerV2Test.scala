@@ -37,6 +37,7 @@ import io.lenses.streamreactor.connect.cloud.common.storage.NonExistingFileError
 import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
 import io.lenses.streamreactor.connect.cloud.common.sink.FatalCloudSinkError
 import io.lenses.streamreactor.connect.cloud.common.storage.PathError
+import io.lenses.streamreactor.connect.cloud.common.storage.FileCreateError
 import io.lenses.streamreactor.connect.cloud.common.storage.FileMoveError
 import io.lenses.streamreactor.connect.cloud.common.model.UploadableString
 
@@ -1045,6 +1046,169 @@ class IndexManagerV2Test
     } finally im.close()
   }
 
+  test("ensureGranularLock resolves PendingState and caches the resolved offset") {
+    val tp              = Topic("topic1").withPartition(0)
+    val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
+
+    val si = mock[StorageInterface[_]]
+    val pp = mock[PendingOperationsProcessors]
+    when(bucketAndPrefixFn(any[TopicPartition])).thenReturn(Right(bucketAndPrefix))
+    when(si.pathExists(anyString(), anyString())).thenReturn(Right(false))
+    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith("0.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+      .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(50)), None), "master-etag")))
+
+    val im = new IndexManagerV2(
+      bucketAndPrefixFn, oldIndexManager, pp, indexesDirectoryName,
+      gcIntervalSeconds = Int.MaxValue,
+    )(si, connectorTaskId)
+
+    im.open(Set(tp))
+
+    val pendingOps = NonEmptyList.of[FileOperation](
+      CopyOperation("bucket", "temp-path", "final-path", "placeholder"),
+      DeleteOperation("bucket", "temp-path", "placeholder"),
+    )
+    val pendingIndexFile = IndexFile("lockOwner", Some(Offset(80)), Some(PendingState(Offset(90), pendingOps)))
+
+    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/pk-pending.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+      .thenReturn(Right(ObjectWithETag(pendingIndexFile, "granular-etag-v1")))
+
+    // Mock writeBlobToFile so the fnUpdate callback (updateForPartitionKey) can write the resolved lock
+    when(si.writeBlobToFile[IndexFile](anyString(), ArgumentMatchers.contains("/0/pk-pending.lock"), any[ObjectWithETag[IndexFile]])(
+      ArgumentMatchers.eq(indexFileEncoder),
+    )).thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(90)), None), "granular-etag-v2")))
+
+    // processPendingOperations invokes fnUpdate to write the resolved offset, then returns it
+    when(pp.processPendingOperations(
+      ArgumentMatchers.eq(tp),
+      ArgumentMatchers.eq(Some(Offset(80))),
+      any[PendingState],
+      any[(TopicPartition, Option[Offset], Option[PendingState]) => Either[SinkError, Option[Offset]]],
+    )).thenAnswer((invocation: org.mockito.invocation.InvocationOnMock) => {
+      val fnUpdate = invocation.getArgument[(TopicPartition, Option[Offset], Option[PendingState]) => Either[SinkError, Option[Offset]]](3)
+      fnUpdate(tp, Some(Offset(90)), None)
+    })
+
+    try {
+      val result = im.ensureGranularLock(tp, "pk-pending")
+      result shouldBe Right(())
+
+      verify(pp).processPendingOperations(
+        ArgumentMatchers.eq(tp),
+        ArgumentMatchers.eq(Some(Offset(80))),
+        any[PendingState],
+        any[(TopicPartition, Option[Offset], Option[PendingState]) => Either[SinkError, Option[Offset]]],
+      )
+
+      // getSeekedOffsetForPartitionKey should be a cache hit (no second storage read)
+      // and should return the resolved offset, not the stale pre-pending one
+      val seeked = im.getSeekedOffsetForPartitionKey(tp, "pk-pending")
+      seeked shouldBe Right(Some(Offset(90)))
+
+      verify(si, times(1)).getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/pk-pending.lock"))(ArgumentMatchers.eq(indexFileDecoder))
+    } finally im.close()
+  }
+
+  test("ensureGranularLock evicts cache entry when PendingState resolution fails") {
+    val tp              = Topic("topic1").withPartition(0)
+    val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
+
+    val si = mock[StorageInterface[_]]
+    val pp = mock[PendingOperationsProcessors]
+    when(bucketAndPrefixFn(any[TopicPartition])).thenReturn(Right(bucketAndPrefix))
+    when(si.pathExists(anyString(), anyString())).thenReturn(Right(false))
+    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith("0.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+      .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(50)), None), "master-etag")))
+
+    val im = new IndexManagerV2(
+      bucketAndPrefixFn, oldIndexManager, pp, indexesDirectoryName,
+      gcIntervalSeconds = Int.MaxValue,
+    )(si, connectorTaskId)
+
+    im.open(Set(tp))
+
+    val pendingOps = NonEmptyList.of[FileOperation](
+      CopyOperation("bucket", "temp-path", "final-path", "placeholder"),
+      DeleteOperation("bucket", "temp-path", "placeholder"),
+    )
+    val pendingIndexFile = IndexFile("lockOwner", Some(Offset(80)), Some(PendingState(Offset(90), pendingOps)))
+
+    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/pk-pending.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+      .thenReturn(Right(ObjectWithETag(pendingIndexFile, "granular-etag-v1")))
+
+    when(pp.processPendingOperations(
+      ArgumentMatchers.eq(tp),
+      ArgumentMatchers.eq(Some(Offset(80))),
+      any[PendingState],
+      any[(TopicPartition, Option[Offset], Option[PendingState]) => Either[SinkError, Option[Offset]]],
+    )).thenReturn(Left(FatalCloudSinkError("transient cloud error", tp)))
+
+    try {
+      val result = im.ensureGranularLock(tp, "pk-pending")
+      result.isLeft shouldBe true
+
+      im.granularCacheSize shouldBe 0
+    } finally im.close()
+  }
+
+  test("ensureGranularLock resolves PendingState on retry re-read after write conflict") {
+    val tp              = Topic("topic1").withPartition(0)
+    val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
+
+    val si = mock[StorageInterface[_]]
+    val pp = mock[PendingOperationsProcessors]
+    when(bucketAndPrefixFn(any[TopicPartition])).thenReturn(Right(bucketAndPrefix))
+    when(si.pathExists(anyString(), anyString())).thenReturn(Right(false))
+    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith("0.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+      .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(50)), None), "master-etag")))
+
+    val im = new IndexManagerV2(
+      bucketAndPrefixFn, oldIndexManager, pp, indexesDirectoryName,
+      gcIntervalSeconds = Int.MaxValue,
+    )(si, connectorTaskId)
+
+    im.open(Set(tp))
+
+    val pendingOps = NonEmptyList.of[FileOperation](
+      CopyOperation("bucket", "temp-path", "final-path", "placeholder"),
+      DeleteOperation("bucket", "temp-path", "placeholder"),
+    )
+    val pendingLock = Right(ObjectWithETag(
+      IndexFile("lockOwner", Some(Offset(80)), Some(PendingState(Offset(90), pendingOps))),
+      "granular-etag-conflict",
+    ))
+    val notFound: Either[FileNotFoundError, ObjectWithETag[IndexFile]] =
+      Left(FileNotFoundError(new Exception("Not found"), "granular-path"))
+
+    // First tryOpen returns FileNotFoundError, retry re-read returns lock with PendingState
+    org.mockito.Mockito.doReturn(notFound, pendingLock)
+      .when(si).getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/pk-conflict.lock"))(ArgumentMatchers.eq(indexFileDecoder))
+
+    // Write fails (another task created it between read and write)
+    org.mockito.Mockito.doReturn(Left(FileCreateError(new Exception("conflict"), "granular-path")))
+      .when(si).writeBlobToFile[IndexFile](anyString(), ArgumentMatchers.contains("/0/pk-conflict.lock"), any[NoOverwriteExistingObject[IndexFile]])(
+        ArgumentMatchers.eq(indexFileEncoder))
+
+    when(pp.processPendingOperations(
+      ArgumentMatchers.eq(tp),
+      ArgumentMatchers.eq(Some(Offset(80))),
+      any[PendingState],
+      any[(TopicPartition, Option[Offset], Option[PendingState]) => Either[SinkError, Option[Offset]]],
+    )).thenReturn(Right(Some(Offset(90))))
+
+    try {
+      val result = im.ensureGranularLock(tp, "pk-conflict")
+      result shouldBe Right(())
+
+      verify(pp).processPendingOperations(
+        ArgumentMatchers.eq(tp),
+        ArgumentMatchers.eq(Some(Offset(80))),
+        any[PendingState],
+        any[(TopicPartition, Option[Offset], Option[PendingState]) => Either[SinkError, Option[Offset]]],
+      )
+    } finally im.close()
+  }
+
   // --- cleanUpObsoleteLocks tests ---
 
   test("cleanUpObsoleteLocks evicts cache immediately but defers cloud deletion to background drain") {
@@ -1266,7 +1430,6 @@ class IndexManagerV2Test
 
     im.open(Set(tp))
 
-    import io.lenses.streamreactor.connect.cloud.common.storage.FileCreateError
     when(si.writeBlobToFile[IndexFile](anyString(), anyString(), any[ObjectWithETag[IndexFile]])(
       ArgumentMatchers.eq(indexFileEncoder),
     )).thenReturn(Left(FileCreateError(new Exception("eTag mismatch"), "content")))

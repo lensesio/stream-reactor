@@ -477,12 +477,48 @@ class IndexManagerV2(
   }
 
   /**
+   * Caches a granular lock read from storage, resolving any PendingState first.
+   * When PendingState is present the pending upload/copy/delete operations are
+   * completed (or rolled back) via processPendingOperations before the resolved
+   * offset is cached. This mirrors the handling in loadGranularLock.
+   */
+  private def resolveAndCacheGranularLock(
+    topicPartition: TopicPartition,
+    partitionKey:   String,
+    objectWithEtag: ObjectWithETag[IndexFile],
+  ): Either[SinkError, Unit] =
+    objectWithEtag match {
+      case ObjectWithETag(IndexFile(_, committedOffset, Some(PendingState(pendingOffset, pendingOps))), _) =>
+        logger.info(s"ensureGranularLock found PendingState for $topicPartition/$partitionKey, resolving")
+        granularCache.put((topicPartition, partitionKey), GranularCacheEntry(None, objectWithEtag.eTag))
+        val fnUpdate: (TopicPartition, Option[Offset], Option[PendingState]) => Either[SinkError, Option[Offset]] =
+          (tp, co, ps) => updateForPartitionKey(tp, partitionKey, co, ps)
+        val result = pendingOperationsProcessors.processPendingOperations(
+          topicPartition,
+          committedOffset,
+          PendingState(pendingOffset, pendingOps),
+          fnUpdate,
+        )
+        if (result.isLeft) {
+          granularCache.remove((topicPartition, partitionKey))
+        }
+        result.map(_ => ())
+
+      case ObjectWithETag(IndexFile(_, committedOffset, None), eTag) =>
+        granularCache.put((topicPartition, partitionKey), GranularCacheEntry(committedOffset, eTag))
+        ().asRight
+    }
+
+  /**
    * Ensures the granular lock for a partition key has an initial eTag
    * (by creating the lock file if it doesn't already exist).
    *
    * Uses tryOpen instead of pathExists to avoid an extra API call: if the lock already
    * exists, the read populates the cache immediately so that the subsequent
    * getSeekedOffsetForPartitionKey call is a cache hit rather than a second storage read.
+   *
+   * If the existing lock contains a PendingState (from a crash mid-commit),
+   * the pending operations are resolved before caching.
    */
   override def ensureGranularLock(
     topicPartition: TopicPartition,
@@ -496,11 +532,7 @@ class IndexManagerV2(
         bucketAndPrefix <- bucketAndPrefixFn(topicPartition)
         _ <- tryOpen(bucketAndPrefix.bucket, path) match {
           case Right(objectWithEtag) =>
-            granularCache.put(
-              (topicPartition, partitionKey),
-              GranularCacheEntry(objectWithEtag.wrappedObject.committedOffset, objectWithEtag.eTag),
-            )
-            ().asRight[SinkError]
+            resolveAndCacheGranularLock(topicPartition, partitionKey, objectWithEtag)
           case Left(_: FileNotFoundError) =>
             val idx = IndexFile(lockOwner, None, None)
             storageInterface.writeBlobToFile(
@@ -519,11 +551,7 @@ class IndexManagerV2(
                 s"re-reading existing lock (likely created by another task)")
               tryOpen(bucketAndPrefix.bucket, path) match {
                 case Right(existing) =>
-                  granularCache.put(
-                    (topicPartition, partitionKey),
-                    GranularCacheEntry(existing.wrappedObject.committedOffset, existing.eTag),
-                  )
-                  ().asRight[SinkError]
+                  resolveAndCacheGranularLock(topicPartition, partitionKey, existing)
                 case Left(retryErr) =>
                   (new FatalCloudSinkError(retryErr.message(), retryErr.toExceptionOption, topicPartition): SinkError).asLeft
               }
