@@ -62,6 +62,49 @@ class NoIndexManager extends IndexManager {
    */
   override def getSeekedOffsetForTopicPartition(topicPartition: TopicPartition): Option[Offset] = Option.empty
 
+  override def getSeekedOffsetForPartitionKey(
+    topicPartition: TopicPartition,
+    partitionKey:   String,
+  ): Either[SinkError, Option[Offset]] = Option.empty.asRight
+
+  override def updateForPartitionKey(
+    topicPartition:  TopicPartition,
+    partitionKey:    String,
+    committedOffset: Option[Offset],
+    pendingState:    Option[PendingState],
+  ): Either[SinkError, Option[Offset]] =
+    Option.empty.asRight
+
+  override def updateMasterLock(
+    topicPartition:   TopicPartition,
+    globalSafeOffset: Offset,
+  ): Either[SinkError, Unit] =
+    Right(())
+
+  override def cleanUpObsoleteLocks(
+    topicPartition:     TopicPartition,
+    globalSafeOffset:   Offset,
+    activePartitionKeys: Set[String],
+  ): Either[SinkError, Unit] =
+    Right(())
+
+  override def ensureGranularLock(
+    topicPartition: TopicPartition,
+    partitionKey:   String,
+  ): Either[SinkError, Unit] =
+    Right(())
+
+  override def evictGranularLock(
+    topicPartition: TopicPartition,
+    partitionKey:   String,
+  ): Unit = ()
+
+  override def evictAllGranularLocks(
+    topicPartition: TopicPartition,
+  ): Unit = ()
+
+  override def close(): Unit = ()
+
   /**
    * Indicates whether indexing is enabled. This implementation always returns `false`.
    *

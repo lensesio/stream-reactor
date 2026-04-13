@@ -291,6 +291,7 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
 
     Option(writerManager).foreach(_.close())
     writerManager = null
+    Option(indexManager).foreach(_.close())
   }
 
   def createClient(config: CC): Either[Throwable, CT]

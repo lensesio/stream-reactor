@@ -55,12 +55,12 @@ class Writer[SM <: FileMetadata](
   formatWriterFn:              File => Either[SinkError, FormatWriter],
   schemaChangeDetector:        SchemaChangeDetector,
   pendingOperationsProcessors: PendingOperationsProcessors,
+  partitionKey:                Option[String]  = None,
+  lastSeekedOffset:            Option[Offset]  = None,
 )(
   implicit
   connectorTaskId: ConnectorTaskId,
 ) extends LazyLogging {
-
-  private val lastSeekedOffset: Option[Offset] = indexManager.getSeekedOffsetForTopicPartition(topicPartition)
 
   var writeState: WriteState = NoWriter(CommitState(topicPartition, lastSeekedOffset))
 
@@ -131,10 +131,16 @@ class Writer[SM <: FileMetadata](
     writeState match {
       case uploadState @ Uploading(commitState,
                                    file,
+                                   _,
                                    uncommittedOffset,
                                    earliestRecordTimestamp,
                                    latestRecordTimestamp,
           ) =>
+        val fnIndexUpdate: (TopicPartition, Option[Offset], Option[PendingState]) => Either[SinkError, Option[Offset]] =
+          partitionKey match {
+            case Some(pk) => (tp, co, ps) => indexManager.updateForPartitionKey(tp, pk, co, ps)
+            case None     => indexManager.update
+          }
         for {
           key  <- objectKeyBuilder.build(uncommittedOffset, earliestRecordTimestamp, latestRecordTimestamp)
           path <- key.path.toRight(NonFatalCloudSinkError("No path exists within cloud location"))
@@ -159,7 +165,7 @@ class Writer[SM <: FileMetadata](
             topicPartition,
             getCommittedOffset,
             PendingState(uncommittedOffset, pendingOperations),
-            indexManager.update,
+            fnIndexUpdate,
           )
           stateReset <- Try {
             logger.debug(s"[{}] Writer.resetState: Resetting state $writeState", connectorTaskId.show)
@@ -174,23 +180,35 @@ class Writer[SM <: FileMetadata](
     }
   }
 
-  def close(): Unit =
+  def close(): Unit = {
     writeState = writeState match {
       case state @ NoWriter(_) => state
-      case Writing(commitState, formatWriter, file, _, _, _) =>
+      case Writing(commitState, formatWriter, file, _, _, _, _) =>
         Try(formatWriter.close())
         Try(file.delete())
         NoWriter(commitState.reset())
-      case Uploading(commitState, file, _, _, _) =>
+      case Uploading(commitState, file, _, _, _, _) =>
         Try(file.delete())
         NoWriter(commitState.reset())
     }
+    // Release the in-memory cache entry for this writer's partition key so that memory is freed
+    // promptly on close. If a new writer is later created for the same partition key it will
+    // re-load the granular lock from storage, preserving exactly-once correctness.
+    partitionKey.foreach(pk => indexManager.evictGranularLock(topicPartition, pk))
+  }
 
   def getCommittedOffset: Option[Offset] = writeState.getCommitState.committedOffset
 
+  def getFirstBufferedOffset: Option[Offset] =
+    writeState match {
+      case _: NoWriter                    => None
+      case w: Writing                     => Some(w.firstBufferedOffset)
+      case u: Uploading                   => Some(u.firstBufferedOffset)
+    }
+
   def shouldFlush: Boolean =
     writeState match {
-      case Writing(commitState, _, file, uncommittedOffset, _, _) => commitPolicy.shouldFlush(
+      case Writing(commitState, _, file, _, uncommittedOffset, _, _) => commitPolicy.shouldFlush(
           CloudCommitContext(
             topicPartition.withOffset(uncommittedOffset),
             commitState.recordCount,
@@ -247,9 +265,9 @@ class Writer[SM <: FileMetadata](
       writeState match {
         case NoWriter(commitState) =>
           shouldSkipInternal(currentOffset, commitState.committedOffset)
-        case Uploading(commitState, _, uncommittedOffset, _, _) =>
+        case Uploading(commitState, _, _, uncommittedOffset, _, _) =>
           shouldSkipInternal(currentOffset, Option(largestOffset(commitState.committedOffset, uncommittedOffset)))
-        case Writing(commitState, _, _, uncommittedOffset, _, _) =>
+        case Writing(commitState, _, _, _, uncommittedOffset, _, _) =>
           shouldSkipInternal(currentOffset, Option(largestOffset(commitState.committedOffset, uncommittedOffset)))
       }
     }

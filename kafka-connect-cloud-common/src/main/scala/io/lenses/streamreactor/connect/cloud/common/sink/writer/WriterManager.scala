@@ -21,6 +21,7 @@ import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.FormatWriter
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.MessageDetail
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.schema.SchemaChangeDetector
+import io.lenses.streamreactor.connect.cloud.common.model.Offset
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartitionOffset
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
@@ -38,6 +39,7 @@ import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.connect.data.Schema
 
 import java.io.File
+import java.net.URLEncoder
 import scala.collection.immutable
 import scala.collection.mutable
 
@@ -86,8 +88,14 @@ class WriterManager[SM <: FileMetadata](
 
   def close(): Unit = {
     logger.debug(s"[{}] Received call to WriterManager.close", connectorTaskId.show)
+    val topicPartitions = writers.keys.map(_.topicPartition).toSet
     writers.values.foreach(_.close())
     writers.clear()
+    // After closing all writers, evict their granular lock cache entries so that no stale
+    // offsets or eTags linger in memory after the task stops. Individual writer.close() calls
+    // above already evict per-key entries, but this ensures any keys missed (e.g. due to a
+    // previous error path) are also cleaned up.
+    topicPartitions.foreach(indexManager.evictAllGranularLocks)
   }
 
   def write(topicPartitionOffset: TopicPartitionOffset, messageDetail: MessageDetail): Either[SinkError, Unit] = {
@@ -171,8 +179,18 @@ class WriterManager[SM <: FileMetadata](
     partitionValues: Map[PartitionField, String],
   ): Either[SinkError, Writer[SM]] = {
     logger.debug(s"[${connectorTaskId.show}] Creating new writer for bucketAndPrefix:$bucketAndPrefix")
+    val partitionKey = WriterManager.derivePartitionKey(partitionValues)
     for {
       commitPolicy <- commitPolicyFn(topicPartition)
+      _            <- partitionKey.fold(().asRight[SinkError])(pk => indexManager.ensureGranularLock(topicPartition, pk))
+      lastSeekedOffset <- partitionKey match {
+        case Some(pk) =>
+          indexManager.getSeekedOffsetForPartitionKey(topicPartition, pk).map {
+            granularOffset => granularOffset.orElse(indexManager.getSeekedOffsetForTopicPartition(topicPartition))
+          }
+        case None =>
+          indexManager.getSeekedOffsetForTopicPartition(topicPartition).asRight[SinkError]
+      }
     } yield {
       new Writer(
         topicPartition,
@@ -183,6 +201,8 @@ class WriterManager[SM <: FileMetadata](
         formatWriterFn.curried(topicPartition),
         schemaChangeDetector,
         pendingOperationsProcessors,
+        partitionKey,
+        lastSeekedOffset,
       )
     }
   }
@@ -195,32 +215,57 @@ class WriterManager[SM <: FileMetadata](
         getOffsetAndMeta(tp, offAndMeta).map(tp -> _)
       }
 
-  private def writerForTopicPartitionWithMaxOffset(topicPartition: TopicPartition): Option[Writer[SM]] =
-    // Collect writers for the topic-partition that have a committed offset, convert to Seq and
-    // pick the writer with the highest committed offset value using maxByOption (Scala 2.13)
+  private def writersForTopicPartition(topicPartition: TopicPartition): Seq[Writer[SM]] =
     writers
       .collect {
-        case (key, writer) if key.topicPartition == topicPartition && writer.getCommittedOffset.nonEmpty => writer
+        case (key, writer) if key.topicPartition == topicPartition => writer
       }
       .toSeq
-      .maxByOption(_.getCommittedOffset.get.value)
 
   private def getOffsetAndMeta(
     topicPartition:    TopicPartition,
     offsetAndMetadata: OffsetAndMetadata,
-  ): Option[OffsetAndMetadata] =
-    // Compose Options functionally: find the writer with max offset, then build the new OffsetAndMetadata
-    for {
-      writer    <- writerForTopicPartitionWithMaxOffset(topicPartition)
-      committed <- writer.getCommittedOffset
-    } yield new OffsetAndMetadata(
-      // kafka last offset for a partition is the last committed + 1
-      // Therefore the connector should report last committed + 1 or it will lead to a constant lag og 1
-      // which might confuse the users.
-      committed.value + 1,
+  ): Option[OffsetAndMetadata] = {
+    val tpWriters = writersForTopicPartition(topicPartition)
+    if (tpWriters.isEmpty) return None
+
+    val firstBufferedOffsets = tpWriters.flatMap(_.getFirstBufferedOffset)
+    val committedOffsets     = tpWriters.flatMap(_.getCommittedOffset)
+
+    if (committedOffsets.isEmpty) return None
+
+    val globalSafeOffset = if (firstBufferedOffsets.nonEmpty) {
+      val minFirstBuffered = firstBufferedOffsets.map(_.value).min
+      val maxCommittedPlus1 = committedOffsets.map(_.value).max + 1
+      math.min(minFirstBuffered, maxCommittedPlus1)
+    } else {
+      committedOffsets.map(_.value).max + 1
+    }
+
+    indexManager.updateMasterLock(topicPartition, Offset(globalSafeOffset)) match {
+      case Left(err) =>
+        logger.error(s"[${connectorTaskId.show}] Master lock update failed for $topicPartition: ${err.message()}. " +
+          s"Returning no offset to prevent consumer advance.")
+        return None
+      case Right(_) =>
+        logger.debug(s"[${connectorTaskId.show}] Updated master lock for $topicPartition with globalSafeOffset=$globalSafeOffset")
+        val activePartitionKeys: Set[String] = writers.keys
+          .filter(_.topicPartition == topicPartition)
+          .flatMap(key => WriterManager.derivePartitionKey(key.partitionValues))
+          .toSet
+        indexManager.cleanUpObsoleteLocks(topicPartition, Offset(globalSafeOffset), activePartitionKeys) match {
+          case Left(err) =>
+            logger.warn(s"[${connectorTaskId.show}] Best-effort GC failed for $topicPartition: ${err.message()}")
+          case Right(_) =>
+        }
+    }
+
+    Some(new OffsetAndMetadata(
+      globalSafeOffset,
       offsetAndMetadata.leaderEpoch(),
       offsetAndMetadata.metadata(),
-    )
+    ))
+  }
 
   def cleanUp(topicPartition: TopicPartition): Unit = {
     val keysToRemove = writers
@@ -231,8 +276,28 @@ class WriterManager[SM <: FileMetadata](
       writers.get(key).foreach(_.close())
       writers.remove(key)
     }
+    // Evict all remaining granular lock entries for this partition from the cache. This is
+    // necessary after a rebalance: if the partition is later re-assigned to this task, the
+    // new writers must load fresh lock state from storage rather than reading stale cached data.
+    indexManager.evictAllGranularLocks(topicPartition)
   }
 
   def shouldSkipNullValues(): Boolean = skipNullValues
 
+}
+
+object WriterManager {
+
+  def sanitize(value: String): String =
+    URLEncoder.encode(value, "UTF-8")
+
+  def derivePartitionKey(partitionValues: Map[PartitionField, String]): Option[String] =
+    if (partitionValues.isEmpty) None
+    else {
+      val key = partitionValues.toSeq
+        .sortBy(_._1.name())
+        .map { case (field, value) => s"${sanitize(field.name())}=${sanitize(value)}" }
+        .mkString("_")
+      Some(key)
+    }
 }

@@ -18,6 +18,7 @@ package io.lenses.streamreactor.connect.cloud.common.config
 import io.lenses.streamreactor.common.config.base.traits.BaseSettings
 import io.lenses.streamreactor.common.config.base.traits.WithConnectorPrefix
 import io.lenses.streamreactor.connect.cloud.common.sink.config.IndexOptions
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexManagerV2
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.Importance
 import org.apache.kafka.common.config.ConfigDef.Type
@@ -38,6 +39,25 @@ trait IndexConfigKeys extends WithConnectorPrefix {
   private val ENABLE_EXACTLY_ONCE_DOC =
     s"Exactly once is enabled by default.  It works by keeping an .indexes directory at the root of your bucket with subdirectories for indexes.  Exactly once support can be disabled and the default offset tracking from kafka can be used instead by setting this to false."
   private val ENABLE_EXACTLY_ONCE_DEFAULT = true
+
+  val MAX_GRANULAR_CACHE_SIZE = s"$connectorPrefix.indexes.max.cache.size"
+  private val MAX_GRANULAR_CACHE_SIZE_DOC =
+    s"Maximum number of granular lock entries to hold in the in-memory cache. " +
+      s"Each entry tracks a unique PARTITIONBY value. Increase this when PARTITIONBY cardinality exceeds the default. " +
+      s"Entries evicted by LRU are transparently re-loaded from cloud storage on next access, but frequent re-loads degrade throughput."
+  private val MAX_GRANULAR_CACHE_SIZE_DEFAULT = IndexManagerV2.DefaultMaxGranularCacheSize
+
+  val GC_INTERVAL_SECONDS = s"$connectorPrefix.indexes.gc.interval.seconds"
+  private val GC_INTERVAL_SECONDS_DOC =
+    s"Interval in seconds between background garbage-collection sweeps that delete obsolete granular lock files from cloud storage. " +
+      s"Lower values clean up faster but increase API calls; higher values reduce API cost at the expense of lingering orphaned lock files."
+  private val GC_INTERVAL_SECONDS_DEFAULT = IndexManagerV2.DefaultGcIntervalSeconds
+
+  val GC_BATCH_SIZE = s"$connectorPrefix.indexes.gc.batch.size"
+  private val GC_BATCH_SIZE_DOC =
+    s"Maximum number of lock file paths to delete in a single batched cloud API call during background garbage collection. " +
+      s"Matches S3 DeleteObjects limit of 1000 by default. GCS and Azure handle arbitrary sizes."
+  private val GC_BATCH_SIZE_DEFAULT = IndexManagerV2.DefaultGcBatchSize
 
   def addIndexSettingsToConfigDef(configDef: ConfigDef): ConfigDef =
     configDef
@@ -74,11 +94,50 @@ trait IndexConfigKeys extends WithConnectorPrefix {
         ConfigDef.Width.NONE,
         ENABLE_EXACTLY_ONCE,
       )
+      .define(
+        MAX_GRANULAR_CACHE_SIZE,
+        Type.INT,
+        MAX_GRANULAR_CACHE_SIZE_DEFAULT,
+        ConfigDef.Range.atLeast(1),
+        Importance.LOW,
+        MAX_GRANULAR_CACHE_SIZE_DOC,
+        "Sink Seek",
+        4,
+        ConfigDef.Width.LONG,
+        MAX_GRANULAR_CACHE_SIZE,
+      )
+      .define(
+        GC_INTERVAL_SECONDS,
+        Type.INT,
+        GC_INTERVAL_SECONDS_DEFAULT,
+        ConfigDef.Range.atLeast(1),
+        Importance.LOW,
+        GC_INTERVAL_SECONDS_DOC,
+        "Sink Seek",
+        5,
+        ConfigDef.Width.LONG,
+        GC_INTERVAL_SECONDS,
+      )
+      .define(
+        GC_BATCH_SIZE,
+        Type.INT,
+        GC_BATCH_SIZE_DEFAULT,
+        ConfigDef.Range.atLeast(1),
+        Importance.LOW,
+        GC_BATCH_SIZE_DOC,
+        "Sink Seek",
+        6,
+        ConfigDef.Width.LONG,
+        GC_BATCH_SIZE,
+      )
 }
 trait IndexSettings extends BaseSettings with IndexConfigKeys {
   def getIndexSettings: Option[IndexOptions] =
     Option.when(getBoolean(ENABLE_EXACTLY_ONCE))(IndexOptions(
       getInt(SEEK_MAX_INDEX_FILES),
       getString(INDEXES_DIRECTORY_NAME),
+      getInt(MAX_GRANULAR_CACHE_SIZE),
+      getInt(GC_INTERVAL_SECONDS),
+      getInt(GC_BATCH_SIZE),
     ))
 }

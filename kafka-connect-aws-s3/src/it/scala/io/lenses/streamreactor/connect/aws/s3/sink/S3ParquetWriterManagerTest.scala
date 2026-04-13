@@ -108,7 +108,7 @@ class S3ParquetWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyC
         dataStorage      = DataStorageSettings.disabled,
       ),
     ),
-    indexOptions = IndexOptions(5, ".indexes").some,
+    indexOptions = IndexOptions(5, ".indexes", 10000, 300, 1000).some,
     compressionCodec,
     batchDelete                 = true,
     errorPolicy                 = ErrorPolicy(ErrorPolicyEnum.THROW),
