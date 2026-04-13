@@ -107,8 +107,9 @@ class WriterManager[SM <: FileMetadata](
     //
     // NOTE: clearTopicPartitionState is deliberately NOT called here. It removes seekedOffsets
     // entries, which are needed by IndexManagerV2.close() → drainGcQueue() to avoid discarding
-    // queued GC items as "partition no longer owned." The state is cleared by CloudSinkTask.stop()
-    // after indexManager.close() completes.
+    // queued GC items as "partition no longer owned." Neither CloudSinkTask.close() nor stop()
+    // calls clearTopicPartitionState; the state is GC'd with the indexManager reference when
+    // stop() sets it to null.
     topicPartitions.foreach { tp =>
       indexManager.evictAllGranularLocks(tp)
     }

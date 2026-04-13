@@ -258,7 +258,7 @@ Partial batches (fewer items than `gcBatchSize`) are deleted normally -- the bat
 
 #### Task shutdown
 
-When the connector task is stopped (`CloudSinkTask.stop()`), `WriterManager.close()` is called first. This closes all writers and evicts granular lock cache entries via `evictAllGranularLocks`, but deliberately does **not** call `clearTopicPartitionState`. The `seekedOffsets` map must remain populated so that the subsequent `indexManager.close()` -- which shuts down the `ScheduledExecutorService` and performs a final synchronous drain of any remaining items in `gcQueue` -- can distinguish items that belong to this task from items for revoked partitions. If `seekedOffsets` were cleared before the drain, every queued GC item would be discarded as "partition no longer owned," and the documented final-drain cleanup would never delete anything. The `indexManager` reference (along with its internal state) is set to `null` immediately after `close()` returns and is garbage-collected.
+Kafka Connect calls `close(allPartitions)` before `stop()`. `CloudSinkTask.close()` calls `WriterManager.close()`, which closes all writers and evicts granular lock cache entries via `evictAllGranularLocks`, but deliberately does **not** call `clearTopicPartitionState`. `CloudSinkTask.close()` itself also does **not** call `clearTopicPartitionState`. The `seekedOffsets` map must remain populated so that the subsequent `indexManager.close()` -- called from `CloudSinkTask.stop()`, which shuts down the `ScheduledExecutorService` and performs a final synchronous drain of any remaining items in `gcQueue` -- can distinguish items that belong to this task from items for revoked partitions. If `seekedOffsets` were cleared before the drain, every queued GC item would be discarded as "partition no longer owned," and the final-drain cleanup would never delete anything. The `indexManager` reference (along with its internal state) is set to `null` immediately after `close()` returns and is garbage-collected.
 
 #### Orphaned lock sweep
 
@@ -273,7 +273,7 @@ To address this, a **periodic orphan sweep** runs on a separate `ScheduledExecut
 1. **Recency filter**: Files with `lastModified` newer than `gcSweepMinAgeSeconds` are skipped without a GET read (configured via `connect.<prefix>.indexes.gc.sweep.min.age.seconds`, default 86400 = 24h).
 2. **Cache exclusion**: Files whose partition key is already in `granularCache` are skipped (already tracked by regular GC).
 3. **GET cap**: A global budget of `gcSweepMaxReads` GET requests per sweep cycle across all partitions (configured via `connect.<prefix>.indexes.gc.sweep.max.reads`, default 1000). When exhausted, remaining partitions are deferred to the next cycle.
-4. **Offset comparison**: The lock file is read and its `committedOffset` is compared against the master lock offset (`seekedOffsets.get(tp)`). Only lock files with `committedOffset < masterLockOffset` are enqueued as orphans.
+4. **Offset comparison**: The lock file is read and its `committedOffset` is compared against the master lock offset (`seekedOffsets.get(tp)`). Only lock files with `committedOffset <= masterLockOffset` are enqueued as orphans. Since the master lock stores `globalSafeOffset - 1`, this is equivalent to `committedOffset < globalSafeOffset`, matching the threshold used by `cleanUpObsoleteLocks`.
 
 Lock files with no `committedOffset` (freshly created) are skipped. Partitions without a master lock offset in `seekedOffsets` (e.g. brand-new partitions that have never had a commit) are also skipped -- there is no safe baseline to compare against.
 
@@ -284,7 +284,7 @@ Lock files with no `committedOffset` (freshly created) are skipped. Partitions w
 - `connect.<prefix>.indexes.gc.sweep.min.age.seconds` -- minimum age (in seconds) a lock file must have before the sweep considers it for deletion (default 86400 = 24h).
 - `connect.<prefix>.indexes.gc.sweep.max.reads` -- per-cycle GET cap across all partitions (default 1000).
 
-**Exactly-once safety**: The sweep preserves exactly-once guarantees because (a) only lock files with `committedOffset` strictly below the master lock offset are enqueued, meaning their data has already been committed; (b) `drainGcQueue` checks `granularCache.containsKey` before deleting, protecting any file reclaimed by a new writer; (c) if a deleted lock is later needed by a new writer, `ensureGranularLock` recreates it and the writer falls back to the master lock offset for deduplication; and (d) the sweep never writes to lock files, so writers' eTags are unaffected.
+**Exactly-once safety**: The sweep preserves exactly-once guarantees because (a) only lock files with `committedOffset` at or below the master lock's `committedOffset` (equivalently, below `globalSafeOffset`) are enqueued, meaning their data has already been committed; (b) `drainGcQueue` checks `granularCache.containsKey` before deleting, protecting any file reclaimed by a new writer; (c) if a deleted lock is later needed by a new writer, `ensureGranularLock` recreates it and the writer falls back to the master lock offset for deduplication; and (d) the sweep never writes to lock files, so writers' eTags are unaffected.
 
 ### Zombie task and temp-upload fencing
 

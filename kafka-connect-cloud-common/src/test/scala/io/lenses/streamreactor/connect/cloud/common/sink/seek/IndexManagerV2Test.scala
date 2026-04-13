@@ -1824,6 +1824,57 @@ class IndexManagerV2Test
     )
   }
 
+  test("close() final drain discards all items when clearTopicPartitionState was called first (regression)") {
+    val tp              = Topic("topic1").withPartition(0)
+    val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
+
+    val si = mock[StorageInterface[_]]
+    when(bucketAndPrefixFn(any[TopicPartition])).thenReturn(Right(bucketAndPrefix))
+    when(si.pathExists(anyString(), anyString())).thenReturn(Right(false))
+    when(si.getBlobAsObject[IndexFile](anyString(), anyString())(ArgumentMatchers.eq(indexFileDecoder)))
+      .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(100)), None), "master-etag")))
+    when(si.deleteFiles(anyString(), any[Seq[String]])).thenReturn(Right(()))
+
+    val im = new IndexManagerV2(
+      bucketAndPrefixFn,
+      oldIndexManager,
+      pendingOperationsProcessors,
+      indexesDirectoryName,
+      gcIntervalSeconds = Int.MaxValue,
+    )(si, connectorTaskId)
+
+    im.open(Set(tp))
+
+    when(
+      si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/pk-old.lock"))(
+        ArgumentMatchers.eq(indexFileDecoder),
+      ),
+    )
+      .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(50)), None), "etag-old")))
+    im.getSeekedOffsetForPartitionKey(tp, "pk-old") shouldBe Right(Some(Offset(50)))
+
+    when(
+      si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/pk-active.lock"))(
+        ArgumentMatchers.eq(indexFileDecoder),
+      ),
+    )
+      .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(200)), None), "etag-active")))
+    im.getSeekedOffsetForPartitionKey(tp, "pk-active") shouldBe Right(Some(Offset(200)))
+
+    im.cleanUpObsoleteLocks(tp, Offset(100), Set("pk-active")) shouldBe Right(())
+
+    // Simulate the OLD CloudSinkTask.close() sequence: WriterManager.close() followed by
+    // clearTopicPartitionState for every partition. This empties seekedOffsets so the final
+    // drainGcQueue() in close() discards all items as "partition no longer owned."
+    im.evictAllGranularLocks(tp)
+    im.clearTopicPartitionState(tp)
+
+    im.close()
+
+    // The final drain should have discarded the item — deleteFiles must NOT be called.
+    verify(si, never).deleteFiles(anyString(), any[Seq[String]])
+  }
+
   // --- loadGranularLock PendingState tests ---
 
   test(
@@ -2233,7 +2284,7 @@ class IndexManagerV2Test
     } finally im.close()
   }
 
-  test("sweep skips lock files with committedOffset >= master offset") {
+  test("sweep skips lock files with committedOffset above master offset") {
     val tp              = Topic("topic1").withPartition(0)
     val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
     val si              = mock[StorageInterface[_]]
@@ -2262,6 +2313,41 @@ class IndexManagerV2Test
       im.drainGcQueue()
 
       verify(si, never).deleteFiles(anyString(), any[Seq[String]])
+    } finally im.close()
+  }
+
+  test("sweep enqueues orphaned lock at exactly master offset (off-by-one regression)") {
+    val tp              = Topic("topic1").withPartition(0)
+    val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
+    val si              = mock[StorageInterface[_]]
+    setupSweepMocks(si, tp, bucketAndPrefix)
+
+    val oldTime      = Instant.now().minusSeconds(7200)
+    val exactPath    = s"$indexesDirectoryName/${connectorTaskId.name}/.locks/${tp.topic}/${tp.partition}/exact-key.lock"
+    val exactMeta    = TestFileMetadata(exactPath, oldTime)
+    val listResponse = ListOfMetadataResponse("bucket", Some("prefix"), Seq(exactMeta), exactMeta)
+
+    org.mockito.Mockito.doReturn(Right(Some(listResponse))).when(si).listFileMetaRecursive(anyString(),
+                                                                                           any[Option[String]],
+    )
+    // Orphan's committedOffset == master lock's committedOffset (both 100).
+    // Since seekedOffsets stores globalSafeOffset - 1, this is equivalent to
+    // granularOffset < globalSafeOffset, so the orphan should be swept.
+    when(
+      si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("exact-key.lock"))(
+        ArgumentMatchers.eq(indexFileDecoder),
+      ),
+    )
+      .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(100)), None), "exact-etag")))
+    when(si.deleteFiles(anyString(), any[Seq[String]])).thenReturn(Right(()))
+
+    val im = createSweepTestManager(si)
+    try {
+      im.open(Set(tp))
+      im.sweepOrphanedLocks()
+      im.drainGcQueue()
+
+      verify(si, times(1)).deleteFiles(anyString(), any[Seq[String]])
     } finally im.close()
   }
 

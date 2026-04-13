@@ -277,6 +277,13 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
    * Whenever close is called, the topics and partitions assigned to this task
    * may be changing, eg, in a re-balance. Therefore, we must commit our open files
    * for those (topic,partitions) to ensure no records are lost.
+   *
+   * seekedOffsets in IndexManagerV2 is deliberately NOT cleared here. During shutdown,
+   * Kafka Connect calls close(allPartitions) before stop(). If seekedOffsets were cleared
+   * here, the final drainGcQueue() in IndexManagerV2.close() (called from stop()) would
+   * discard every queued item as "partition no longer owned", and obsolete lock files would
+   * never be deleted. The seekedOffsets state is GC'd with the indexManager reference when
+   * stop() sets it to null.
    */
   override def close(partitions: util.Collection[KafkaTopicPartition]): Unit = {
     logger.debug(
@@ -286,24 +293,16 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
     )
 
     Option(writerManager).foreach(_.close())
-    // WriterManager.close() deliberately does NOT clear seekedOffsets (to preserve them for
-    // IndexManagerV2's final GC drain in stop()). Clear state for revoked partitions here so
-    // the background GC/sweep threads don't operate on partitions now owned by another task.
-    Option(indexManager).foreach { im =>
-      partitions.asScala.foreach { ktp =>
-        im.clearTopicPartitionState(TopicPartition(Topic(ktp.topic()), ktp.partition()))
-      }
-    }
   }
 
   override def stop(): Unit = {
     logger.debug("[{}] Stop", Option(connectorTaskId).map(_.show).getOrElse("Unnamed"))
 
-    Option(writerManager).foreach(_.close())
     writerManager = null
-    // indexManager.close() performs a final synchronous drainGcQueue() that needs seekedOffsets
-    // to still be populated. clearTopicPartitionState is NOT called before close() — the state
-    // is GC'd with the indexManager reference immediately after.
+    // indexManager.close() shuts down background executors and performs a final synchronous
+    // drainGcQueue(). seekedOffsets is still populated (close() does not clear it), so the
+    // drain correctly identifies owned partitions. The state is GC'd with the indexManager
+    // reference immediately after.
     Option(indexManager).foreach(_.close())
     indexManager = null
     Option(connectorTaskId).foreach(CloudSinkMetricsRegistrar.unregister)
