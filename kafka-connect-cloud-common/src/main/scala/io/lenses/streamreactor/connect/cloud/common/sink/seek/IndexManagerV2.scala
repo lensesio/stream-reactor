@@ -26,6 +26,7 @@ import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.sink.FatalCloudSinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
+import io.lenses.streamreactor.connect.cloud.common.sink.metrics.CloudSinkMetrics
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexManagerV2._
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.deprecated.IndexManagerV1
 import io.lenses.streamreactor.connect.cloud.common.storage.FileLoadError
@@ -41,6 +42,7 @@ import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.TimeUnit
 import scala.collection.concurrent.TrieMap
+import scala.util.Random
 import scala.util.control.NonFatal
 import scala.collection.mutable.ListBuffer
 
@@ -71,12 +73,13 @@ class IndexManagerV2(
   oldIndexManager:             IndexManagerV1,
   pendingOperationsProcessors: PendingOperationsProcessors,
   directoryFileName:           String,
-  gcIntervalSeconds:           Int     = IndexManagerV2.DefaultGcIntervalSeconds,
-  gcBatchSize:                 Int     = IndexManagerV2.DefaultGcBatchSize,
-  gcSweepEnabled:              Boolean = IndexManagerV2.DefaultGcSweepEnabled,
-  gcSweepIntervalSeconds:      Int     = IndexManagerV2.DefaultGcSweepIntervalSeconds,
-  gcSweepAgeSeconds:           Int     = IndexManagerV2.DefaultGcSweepAgeSeconds,
-  gcSweepMaxReads:             Int     = IndexManagerV2.DefaultGcSweepMaxReads,
+  gcIntervalSeconds:           Int              = IndexManagerV2.DefaultGcIntervalSeconds,
+  gcBatchSize:                 Int              = IndexManagerV2.DefaultGcBatchSize,
+  gcSweepEnabled:              Boolean          = IndexManagerV2.DefaultGcSweepEnabled,
+  gcSweepIntervalSeconds:      Int              = IndexManagerV2.DefaultGcSweepIntervalSeconds,
+  gcSweepAgeSeconds:           Int              = IndexManagerV2.DefaultGcSweepAgeSeconds,
+  gcSweepMaxReads:             Int              = IndexManagerV2.DefaultGcSweepMaxReads,
+  metrics:                     CloudSinkMetrics = new CloudSinkMetrics(0),
 )(
   implicit
   storageInterface: StorageInterface[?],
@@ -95,23 +98,49 @@ class IndexManagerV2(
   // Must be concurrent because open() uses parTraverse to process partitions on multiple fibers.
   private val topicPartitionToETags = TrieMap.empty[TopicPartition, String]
 
-  // Granular lock cache: keyed by (TopicPartition, partitionKey).
+  // Granular lock cache: nested ConcurrentHashMap keyed by TopicPartition, then partitionKey.
   // Lazily populated on first writer access. Not bounded by automatic eviction — entries are
   // removed by cleanUpObsoleteLocks (GC enqueue), evictAllGranularLocks (shutdown/rebalance),
   // and evictGranularLock (explicit single-key eviction).
-  // This avoids the desync where hard LRU eviction removes an entry for an active writer,
-  // causing a spurious FatalCloudSinkError on next flush.
   //
-  // An entry can have offset = None when the lock file exists in storage but has no committed
-  // offset yet (e.g. a freshly created lock via ensureGranularLock).
+  // Nested structure enables O(keys-in-partition) scans in cleanUpObsoleteLocks instead of
+  // O(total-cache-size), avoiding CPU spikes at high partition * key cardinality.
   //
   // Thread safety: ConcurrentHashMap is required because the background GC thread reads
   // the cache (containsKey) to check whether a scheduled-for-deletion key has been reclaimed
   // by a new writer. All mutating access occurs on the single Kafka Connect task thread.
-  private val granularCache = new ConcurrentHashMap[(TopicPartition, String), GranularCacheEntry]()
+  private val granularCache = new ConcurrentHashMap[TopicPartition, ConcurrentHashMap[String, GranularCacheEntry]]()
+
+  private def gcGet(tp: TopicPartition, pk: String): GranularCacheEntry = {
+    val inner = granularCache.get(tp)
+    if (inner == null) null else inner.get(pk)
+  }
+
+  private def gcPut(tp: TopicPartition, pk: String, entry: GranularCacheEntry): Unit = {
+    granularCache.computeIfAbsent(tp, _ => new ConcurrentHashMap[String, GranularCacheEntry]()).put(pk, entry)
+    ()
+  }
+
+  private def gcRemove(tp: TopicPartition, pk: String): Unit = {
+    val inner = granularCache.get(tp)
+    if (inner != null) {
+      inner.remove(pk)
+      if (inner.isEmpty) { val _ = granularCache.remove(tp) }
+    }
+  }
+
+  private def gcContainsKey(tp: TopicPartition, pk: String): Boolean = {
+    val inner = granularCache.get(tp)
+    inner != null && inner.containsKey(pk)
+  }
+
+  private def gcRemoveAllForTp(tp: TopicPartition): Unit = {
+    val _ = granularCache.remove(tp)
+  }
 
   // Exposed for testing only; not part of the public API.
-  private[seek] def granularCacheSize: Int = granularCache.size()
+  private[seek] def granularCacheSize: Int =
+    granularCache.values().stream().mapToInt(_.size()).sum()
 
   private val gcQueue: ConcurrentLinkedQueue[GcItem] = new ConcurrentLinkedQueue()
 
@@ -361,16 +390,47 @@ class IndexManagerV2(
     topicPartition: TopicPartition,
     partitionKey:   String,
   ): Either[SinkError, Option[Offset]] = {
-    val cached = granularCache.get((topicPartition, partitionKey))
-    if (cached != null) cached.offset.asRight
-    else loadGranularLock(topicPartition, partitionKey)
+    val cached = gcGet(topicPartition, partitionKey)
+    if (cached != null) {
+      metrics.incrementGranularCacheHits()
+      cached.offset.asRight
+    } else {
+      metrics.incrementGranularCacheMisses()
+      loadGranularLock(topicPartition, partitionKey)
+    }
   }
 
   /**
+   * Retrieves the seeked offset for a specific topic partition.
    * Lazily loads a single granular lock from cloud storage on cache miss.
    * Returns Right(None) if the lock file doesn't exist (FileNotFoundError).
    * Returns Left(SinkError) on transient cloud errors or PendingState resolution failures.
-   * If a PendingState is found, it is resolved before caching.
+   *
+   * If a PendingState is found, it is resolved (completed or rolled back) **before** the
+   * offset and eTag are cached. A PendingState means the previous task instance crashed
+   * mid-commit, between phases of the Upload → Copy → Delete protocol. The lock file
+   * records which operations were still in flight. Resolution cannot be deferred for two
+   * reasons:
+   *
+   *  - '''Offset indeterminacy''': The `committedOffset` stored alongside a PendingState
+   *    reflects the state ''before'' the interrupted commit. If the pending operations
+   *    complete successfully, the true committed offset advances to `pendingOffset`. If
+   *    they are cancelled (e.g. the staging file no longer exists), it stays at
+   *    `committedOffset`. The writer's `shouldSkip` logic needs the resolved offset to
+   *    correctly deduplicate records -- caching the pre-resolution value would cause
+   *    duplication (offset too low: already-committed records not skipped) or data loss
+   *    (offset too high after a stale cache hit: uncommitted records skipped).
+   *
+   *  - '''eTag staleness''': Each step of `processPendingOperations` writes an updated
+   *    lock file (recording progress or clearing the pending state), advancing the eTag.
+   *    If we cached the pre-resolution eTag and let a writer proceed, its next conditional
+   *    write would fail with an eTag mismatch. Worse, if resolution ran later on a
+   *    different code path, the writer's cached eTag would be stale, breaking the
+   *    zombie-fencing invariant (see "Zombie task and temp-upload fencing" in the
+   *    architecture doc).
+   *
+   * On resolution failure the cache entry is removed so that a subsequent access retries
+   * cleanly from storage.
    */
   private def loadGranularLock(
     topicPartition: TopicPartition,
@@ -385,7 +445,7 @@ class IndexManagerV2(
               _,
             )) =>
           logger.info(s"Lazy-loading granular lock with PendingState for $topicPartition/$partitionKey")
-          granularCache.put((topicPartition, partitionKey), GranularCacheEntry(None, objectWithEtag.eTag))
+          gcPut(topicPartition, partitionKey, GranularCacheEntry(None, objectWithEtag.eTag))
           val fnUpdate: (TopicPartition, Option[Offset], Option[PendingState]) => Either[SinkError, Option[Offset]] =
             (tp, co, ps) => updateForPartitionKey(tp, partitionKey, co, ps)
           val result = pendingOperationsProcessors.processPendingOperations(
@@ -395,13 +455,13 @@ class IndexManagerV2(
             fnUpdate,
           )
           if (result.isLeft) {
-            granularCache.remove((topicPartition, partitionKey))
+            gcRemove(topicPartition, partitionKey)
           }
           result
 
         case Right(objectWithEtag @ ObjectWithETag(IndexFile(_, committedOffset, None), _)) =>
           logger.info(s"Lazy-loaded granular lock for $topicPartition/$partitionKey, offset=$committedOffset")
-          granularCache.put((topicPartition, partitionKey), GranularCacheEntry(committedOffset, objectWithEtag.eTag))
+          gcPut(topicPartition, partitionKey, GranularCacheEntry(committedOffset, objectWithEtag.eTag))
           committedOffset.asRight
 
         case Left(_: FileNotFoundError) =>
@@ -431,7 +491,7 @@ class IndexManagerV2(
     topicPartition: TopicPartition,
     partitionKey:   String,
   ): Either[SinkError, String] = {
-    val cached = granularCache.get((topicPartition, partitionKey))
+    val cached = gcGet(topicPartition, partitionKey)
     if (cached != null) cached.eTag.asRight
     else {
       val error = FatalCloudSinkError(
@@ -475,10 +535,11 @@ class IndexManagerV2(
           objectWithEtag.asRight
       }
     } yield {
-      granularCache.put(
-        (topicPartition, partitionKey),
-        GranularCacheEntry(blobFileWrite.wrappedObject.committedOffset, blobFileWrite.eTag),
+      gcPut(topicPartition,
+            partitionKey,
+            GranularCacheEntry(blobFileWrite.wrappedObject.committedOffset, blobFileWrite.eTag),
       )
+      metrics.setGranularCacheSize(granularCacheSize)
       blobFileWrite.wrappedObject.committedOffset
     }
   }
@@ -497,7 +558,7 @@ class IndexManagerV2(
     objectWithEtag match {
       case ObjectWithETag(IndexFile(_, committedOffset, Some(PendingState(pendingOffset, pendingOps))), _) =>
         logger.info(s"ensureGranularLock found PendingState for $topicPartition/$partitionKey, resolving")
-        granularCache.put((topicPartition, partitionKey), GranularCacheEntry(None, objectWithEtag.eTag))
+        gcPut(topicPartition, partitionKey, GranularCacheEntry(None, objectWithEtag.eTag))
         val fnUpdate: (TopicPartition, Option[Offset], Option[PendingState]) => Either[SinkError, Option[Offset]] =
           (tp, co, ps) => updateForPartitionKey(tp, partitionKey, co, ps)
         val result = pendingOperationsProcessors.processPendingOperations(
@@ -507,12 +568,12 @@ class IndexManagerV2(
           fnUpdate,
         )
         if (result.isLeft) {
-          granularCache.remove((topicPartition, partitionKey))
+          gcRemove(topicPartition, partitionKey)
         }
         result.map(_ => ())
 
       case ObjectWithETag(IndexFile(_, committedOffset, None), eTag) =>
-        granularCache.put((topicPartition, partitionKey), GranularCacheEntry(committedOffset, eTag))
+        gcPut(topicPartition, partitionKey, GranularCacheEntry(committedOffset, eTag))
         ().asRight
     }
 
@@ -531,9 +592,11 @@ class IndexManagerV2(
     topicPartition: TopicPartition,
     partitionKey:   String,
   ): Either[SinkError, Unit] =
-    if (granularCache.containsKey((topicPartition, partitionKey))) {
+    if (gcContainsKey(topicPartition, partitionKey)) {
+      metrics.incrementGranularCacheHits()
       ().asRight
     } else {
+      metrics.incrementGranularCacheMisses()
       val path = generateGranularLockFilePath(connectorTaskId, topicPartition, partitionKey, directoryFileName)
       for {
         bucketAndPrefix <- bucketAndPrefixFn(topicPartition)
@@ -547,7 +610,7 @@ class IndexManagerV2(
               path,
               NoOverwriteExistingObject(idx),
             ).map { result =>
-              granularCache.put((topicPartition, partitionKey), GranularCacheEntry(None, result.eTag))
+              gcPut(topicPartition, partitionKey, GranularCacheEntry(None, result.eTag))
               ()
             }.left.flatMap { _: UploadError =>
               // The write failed -- most likely because another task created the file between
@@ -578,13 +641,15 @@ class IndexManagerV2(
     topicPartition: TopicPartition,
     partitionKey:   String,
   ): Unit = {
-    val _ = granularCache.remove((topicPartition, partitionKey))
+    gcRemove(topicPartition, partitionKey)
+    metrics.setGranularCacheSize(granularCacheSize)
   }
 
   override def evictAllGranularLocks(
     topicPartition: TopicPartition,
   ): Unit = {
-    val _ = granularCache.keySet().removeIf(_._1 == topicPartition)
+    gcRemoveAllForTp(topicPartition)
+    metrics.setGranularCacheSize(granularCacheSize)
   }
 
   override def clearTopicPartitionState(topicPartition: TopicPartition): Unit = {
@@ -635,18 +700,20 @@ class IndexManagerV2(
     globalSafeOffset:    Offset,
     activePartitionKeys: Set[String],
   ): Either[SinkError, Unit] = {
-    val keysToRemove = ListBuffer.empty[(TopicPartition, String)]
-    val it           = granularCache.entrySet().iterator()
+    val inner = granularCache.get(topicPartition)
+    if (inner == null || inner.isEmpty) return ().asRight
+
+    val keysToRemove = ListBuffer.empty[String]
+    val it           = inner.entrySet().iterator()
     while (it.hasNext) {
-      val entry    = it.next()
-      val (tp, pk) = entry.getKey
-      val cached   = entry.getValue
+      val entry  = it.next()
+      val pk     = entry.getKey
+      val cached = entry.getValue
       if (
-        tp == topicPartition &&
         cached.offset.exists(_.value < globalSafeOffset.value) &&
         !activePartitionKeys.contains(pk)
       ) {
-        keysToRemove += ((tp, pk))
+        keysToRemove += pk
       }
     }
 
@@ -655,43 +722,60 @@ class IndexManagerV2(
     for {
       bucketAndPrefix <- bucketAndPrefixFn(topicPartition)
     } yield {
-      keysToRemove.toList.foreach {
-        case (tp, pk) =>
-          granularCache.remove((tp, pk))
-          val path = generateGranularLockFilePath(connectorTaskId, tp, pk, directoryFileName)
-          gcQueue.add(GcItem(bucketAndPrefix.bucket, path, tp, pk))
+      keysToRemove.toList.foreach { pk =>
+        gcRemove(topicPartition, pk)
+        val path = generateGranularLockFilePath(connectorTaskId, topicPartition, pk, directoryFileName)
+        gcQueue.add(GcItem(bucketAndPrefix.bucket, path, topicPartition, pk))
       }
+      metrics.incrementGcLocksEnqueued(keysToRemove.size.toLong)
+      metrics.setGranularCacheSize(granularCacheSize)
+      metrics.setGcQueueDepth(gcQueue.size())
       logger.debug(s"Enqueued ${keysToRemove.size} obsolete granular lock(s) for async deletion for $topicPartition")
     }
   }
 
   private[seek] def drainGcQueue(): Unit =
     try {
-      val buffer = new ListBuffer[(String, String)]()
-      var item   = gcQueue.poll()
+      val eligible = new ListBuffer[GcItem]()
+      var item     = gcQueue.poll()
       while (item != null) {
-        if (granularCache.containsKey((item.topicPartition, item.partitionKey))) {
+        if (!seekedOffsets.contains(item.topicPartition)) {
+          logger.debug(
+            s"GC discarding ${item.topicPartition}/${item.partitionKey}: partition no longer owned by this task",
+          )
+          metrics.incrementGcLocksSkippedRevoked()
+        } else if (gcContainsKey(item.topicPartition, item.partitionKey)) {
           logger.debug(s"GC skipping ${item.topicPartition}/${item.partitionKey}: reclaimed by new writer")
+          metrics.incrementGcLocksSkippedReclaimed()
         } else {
-          buffer += ((item.bucket, item.path))
+          eligible += item
         }
         item = gcQueue.poll()
       }
-      if (buffer.isEmpty) return
+      metrics.setGcQueueDepth(gcQueue.size())
+      if (eligible.isEmpty) return
 
-      val byBucket: Map[String, Seq[String]] = buffer.toList
-        .groupBy(_._1)
-        .map { case (bucket, entries) => bucket -> entries.map(_._2) }
+      val byBucket: Map[String, Seq[GcItem]] = eligible.toList.groupBy(_.bucket)
 
       byBucket.foreach {
-        case (bucket, paths) =>
-          paths.grouped(gcBatchSize).foreach { chunk =>
-            storageInterface.deleteFiles(bucket, chunk) match {
+        case (bucket, items) =>
+          items.grouped(gcBatchSize).foreach { chunk =>
+            storageInterface.deleteFiles(bucket, chunk.map(_.path)) match {
               case Left(err) =>
+                metrics.incrementGcDeleteFailures()
                 logger.warn(
                   s"Background GC failed to delete ${chunk.size} lock file(s) from bucket=$bucket: ${err.message()}",
                 )
+                val retryable = chunk.filter(_.retryCount < MaxGcRetries)
+                retryable.foreach(i => gcQueue.add(i.copy(retryCount = i.retryCount + 1)))
+                if (retryable.nonEmpty) {
+                  metrics.incrementGcDeleteRetries(retryable.size.toLong)
+                  logger.debug(
+                    s"Re-enqueued ${retryable.size} item(s) for retry (dropped ${chunk.size - retryable.size} that exceeded max retries)",
+                  )
+                }
               case Right(_) =>
+                metrics.incrementGcLocksDeleted(chunk.size.toLong)
                 logger.debug(s"Background GC deleted ${chunk.size} lock file(s) from bucket=$bucket")
             }
           }
@@ -705,92 +789,75 @@ class IndexManagerV2(
     try {
       if (!gcSweepEnabled) return
 
-      val buckets = resolveSweepBuckets()
-      if (buckets.isEmpty) return
-      if (!isSweepDue(buckets)) return
-      if (!writeSweepMarkers(buckets)) return
+      metrics.incrementSweepRuns()
+      var readsRemaining = gcSweepMaxReads
+      var totalEnqueued  = 0
+      var tpsScanned     = 0
+      var tpsSkipped     = 0
+      val ageThreshold   = Instant.now().minusSeconds(gcSweepAgeSeconds.toLong)
+      val now            = System.currentTimeMillis()
 
-      executeSweep()
+      for (tp <- Random.shuffle(seekedOffsets.keys.toList) if readsRemaining > 0) {
+        seekedOffsets.get(tp).foreach { masterOffset =>
+          bucketAndPrefixFn(tp) match {
+            case Right(loc) =>
+              val bucket = loc.bucket
+              if (isSweepDueForPartition(bucket, tp, now)) {
+                writeSweepMarkerForPartition(bucket, tp, now)
+                tpsScanned += 1
+                val (enqueued, readsUsed) = sweepPartition(tp, masterOffset, ageThreshold, readsRemaining)
+                totalEnqueued += enqueued
+                readsRemaining -= readsUsed
+              } else {
+                tpsSkipped += 1
+              }
+            case Left(_) => ()
+          }
+        }
+      }
+
+      metrics.incrementSweepOrphansEnqueued(totalEnqueued.toLong)
+      metrics.setSweepGetBudgetUsed(gcSweepMaxReads - readsRemaining)
+
+      if (totalEnqueued > 0 || tpsScanned > 0) {
+        logger.info(
+          s"Orphan sweep complete for ${connectorTaskId.show}: scanned=$tpsScanned TPs, " +
+            s"skipped=$tpsSkipped TPs (marker not expired), enqueued=$totalEnqueued orphans, " +
+            s"remaining GET budget=$readsRemaining",
+        )
+      }
     } catch {
       case NonFatal(e) =>
         logger.warn(s"Unexpected error in orphan sweep for ${connectorTaskId.show}", e)
     }
 
-  /** Collects all distinct buckets from the currently assigned TopicPartitions. */
-  private def resolveSweepBuckets(): Set[String] =
-    seekedOffsets.keys.toList
-      .flatMap(tp => bucketAndPrefixFn(tp).map(_.bucket).toOption)
-      .toSet
-
-  /**
-   * Checks whether the sweep is due by reading markers from all buckets.
-   * The sweep is suppressed if any bucket still has a non-expired marker,
-   * ensuring a rebalance into a new bucket does not trigger a premature re-run.
-   */
-  private def isSweepDue(buckets: Set[String]): Boolean = {
-    val markerPath = generateSweepMarkerPath(connectorTaskId, directoryFileName)
-    val now        = System.currentTimeMillis()
-    !buckets.exists { bucket =>
-      storageInterface.getBlobAsObject[SweepMarker](bucket, markerPath) match {
-        case Right(ObjectWithETag(marker, _)) if marker.nextRunEpochMillis > now =>
-          true
-        case Left(err) if !err.isInstanceOf[FileNotFoundError] =>
-          logger.warn(s"Transient error reading sweep marker in bucket=$bucket, skipping sweep: ${err.message()}")
-          true
-        case _ =>
-          false
-      }
+  /** Checks whether the sweep marker for a specific TopicPartition has expired. */
+  private def isSweepDueForPartition(bucket: String, tp: TopicPartition, now: Long): Boolean = {
+    val markerPath = generateSweepMarkerPath(connectorTaskId, tp, directoryFileName)
+    storageInterface.getBlobAsObject[SweepMarker](bucket, markerPath) match {
+      case Right(ObjectWithETag(marker, _)) if marker.nextRunEpochMillis > now =>
+        false
+      case Left(err) if !err.isInstanceOf[FileNotFoundError] =>
+        logger.warn(s"Transient error reading sweep marker for $tp in bucket=$bucket, skipping: ${err.message()}")
+        false
+      case _ =>
+        true
     }
   }
 
-  /**
-   * Writes the sweep marker to every bucket (write-before-sweep pattern).
-   * Returns false only when all writes fail; partial success is acceptable.
-   */
-  private def writeSweepMarkers(buckets: Set[String]): Boolean = {
-    val now        = System.currentTimeMillis()
-    val markerPath = generateSweepMarkerPath(connectorTaskId, directoryFileName)
+  /** Writes a sweep marker for a specific TopicPartition (write-before-sweep pattern). */
+  private def writeSweepMarkerForPartition(bucket: String, tp: TopicPartition, now: Long): Unit = {
+    val markerPath = generateSweepMarkerPath(connectorTaskId, tp, directoryFileName)
     val markerJson = {
       import io.circe.syntax._
       import IndexManagerV2.SweepMarker.sweepMarkerEncoder
       SweepMarker(now, now + gcSweepIntervalSeconds * 1000L).asJson.noSpaces
     }
     val uploadable = io.lenses.streamreactor.connect.cloud.common.model.UploadableString(markerJson)
-
-    var anySuccess = false
-    buckets.foreach { bucket =>
-      storageInterface.writeStringToFile(bucket, markerPath, uploadable) match {
-        case Left(err) =>
-          logger.warn(s"Failed to write sweep marker to bucket=$bucket: $err")
-        case Right(_) =>
-          anySuccess = true
-      }
-    }
-    if (!anySuccess) logger.warn(s"All sweep marker writes failed, skipping sweep for ${connectorTaskId.show}")
-    anySuccess
-  }
-
-  /** Iterates over all owned TopicPartitions and sweeps orphaned lock files within the GET budget. */
-  private def executeSweep(): Unit = {
-    var readsRemaining = gcSweepMaxReads
-    var totalEnqueued  = 0
-    var tpsScanned     = 0
-    val ageThreshold   = Instant.now().minusSeconds(gcSweepAgeSeconds.toLong)
-
-    for (tp <- seekedOffsets.keys.toList if readsRemaining > 0) {
-      seekedOffsets.get(tp).foreach { masterOffset =>
-        tpsScanned += 1
-        val (enqueued, readsUsed) = sweepPartition(tp, masterOffset, ageThreshold, readsRemaining)
-        totalEnqueued += enqueued
-        readsRemaining -= readsUsed
-      }
-    }
-
-    if (totalEnqueued > 0 || tpsScanned > 0) {
-      logger.info(
-        s"Orphan sweep complete for ${connectorTaskId.show}: scanned=$tpsScanned TPs, enqueued=$totalEnqueued orphans, " +
-          s"remaining GET budget=$readsRemaining",
-      )
+    storageInterface.writeStringToFile(bucket, markerPath, uploadable) match {
+      case Left(err) =>
+        logger.warn(s"Failed to write sweep marker for $tp to bucket=$bucket: $err")
+      case Right(_) => ()
     }
   }
 
@@ -849,7 +916,7 @@ class IndexManagerV2(
 
     val fileName     = path.substring(path.lastIndexOf('/') + 1)
     val partitionKey = fileName.stripSuffix(".lock")
-    if (granularCache.containsKey((tp, partitionKey))) SweepSkip
+    if (gcContainsKey(tp, partitionKey)) SweepSkip
     else SweepNeedsRead(partitionKey)
   }
 
@@ -903,7 +970,15 @@ object IndexManagerV2 {
 
   case class GranularCacheEntry(offset: Option[Offset], eTag: String)
 
-  private[seek] case class GcItem(bucket: String, path: String, topicPartition: TopicPartition, partitionKey: String)
+  private[seek] case class GcItem(
+    bucket:         String,
+    path:           String,
+    topicPartition: TopicPartition,
+    partitionKey:   String,
+    retryCount:     Int = 0,
+  )
+
+  val MaxGcRetries: Int = 3
 
   private[seek] case class SweepMarker(lastRunEpochMillis: Long, nextRunEpochMillis: Long)
 
@@ -956,8 +1031,9 @@ object IndexManagerV2 {
 
   private[seek] def generateSweepMarkerPath(
     connectorTaskId:   ConnectorTaskId,
+    topicPartition:    TopicPartition,
     directoryFileName: String,
   ): String =
-    s"$directoryFileName/${connectorTaskId.name}/.locks/sweep-marker-${connectorTaskId.taskNo}.json"
+    s"$directoryFileName/${connectorTaskId.name}/.locks/${topicPartition.topic}/${topicPartition.partition}/sweep-marker.json"
 
 }

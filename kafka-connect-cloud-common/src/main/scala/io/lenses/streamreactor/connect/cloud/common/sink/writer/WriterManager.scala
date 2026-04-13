@@ -30,6 +30,7 @@ import io.lenses.streamreactor.connect.cloud.common.sink.FatalCloudSinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.CommitPolicy
 import io.lenses.streamreactor.connect.cloud.common.sink.config.PartitionField
+import io.lenses.streamreactor.connect.cloud.common.sink.metrics.CloudSinkMetrics
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.KeyNamer
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.ObjectKeyBuilder
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexManager
@@ -66,7 +67,8 @@ class WriterManager[SM <: FileMetadata](
   schemaChangeDetector:        SchemaChangeDetector,
   skipNullValues:              Boolean,
   pendingOperationsProcessors: PendingOperationsProcessors,
-  maxWriters:                  Int = WriterManager.DefaultMaxWriters,
+  maxWriters:                  Int              = WriterManager.DefaultMaxWriters,
+  metrics:                     CloudSinkMetrics = new CloudSinkMetrics(WriterManager.DefaultMaxWriters),
 )(
   implicit
   connectorTaskId: ConnectorTaskId,
@@ -179,6 +181,7 @@ class WriterManager[SM <: FileMetadata](
             .map { w =>
               evictIdleWritersIfNeeded()
               writers.put(key, w)
+              metrics.setWriterCount(writers.size)
               w
             }
       }
@@ -264,12 +267,14 @@ class WriterManager[SM <: FileMetadata](
 
     indexManager.updateMasterLock(topicPartition, Offset(globalSafeOffset)) match {
       case Left(err) =>
+        metrics.incrementMasterLockFailures()
         logger.error(
           s"[${connectorTaskId.show}] Master lock update failed for $topicPartition: ${err.message()}. " +
             s"Returning no offset to prevent consumer advance.",
         )
         return None
       case Right(_) =>
+        metrics.incrementMasterLockUpdates()
         safeOffsetHighWatermarks.put(topicPartition, globalSafeOffset)
         logger.debug(
           s"[${connectorTaskId.show}] Updated master lock for $topicPartition with globalSafeOffset=$globalSafeOffset",
@@ -324,7 +329,9 @@ class WriterManager[SM <: FileMetadata](
     idleEntries.foreach { case (key, writer) =>
       writer.close()
       writers.remove(key)
+      metrics.incrementIdleWriterEvictions()
     }
+    metrics.setWriterCount(writers.size)
   }
 
   private[writer] def writerCount: Int = writers.size

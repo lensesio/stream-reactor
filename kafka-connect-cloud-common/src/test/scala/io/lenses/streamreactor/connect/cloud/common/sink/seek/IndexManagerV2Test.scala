@@ -2471,7 +2471,7 @@ class IndexManagerV2Test
     } finally im.close()
   }
 
-  test("sweep writes markers to all distinct buckets when TPs span multiple buckets") {
+  test("sweep writes per-TP markers to each partition's bucket") {
     val tp1 = Topic("topic1").withPartition(0)
     val tp2 = Topic("topic2").withPartition(0)
     val si  = mock[StorageInterface[_]]
@@ -2505,16 +2505,29 @@ class IndexManagerV2Test
       im.sweepOrphanedLocks()
 
       val bucketCaptor = ArgumentCaptor.forClass(classOf[String])
+      val pathCaptor   = ArgumentCaptor.forClass(classOf[String])
       verify(si, times(2)).writeStringToFile(
         bucketCaptor.capture(),
-        ArgumentMatchers.contains("sweep-marker"),
+        pathCaptor.capture(),
         any[UploadableString],
       )
-      bucketCaptor.getAllValues should contain allOf ("bucket-a", "bucket-b")
+      val buckets = bucketCaptor.getAllValues
+      val paths   = pathCaptor.getAllValues
+      val writes  = (0 until buckets.size()).map(i => (buckets.get(i), paths.get(i))).toSet
+      writes should contain(
+        ("bucket-a",
+         s"$indexesDirectoryName/${connectorTaskId.name}/.locks/${tp1.topic}/${tp1.partition}/sweep-marker.json",
+        ),
+      )
+      writes should contain(
+        ("bucket-b",
+         s"$indexesDirectoryName/${connectorTaskId.name}/.locks/${tp2.topic}/${tp2.partition}/sweep-marker.json",
+        ),
+      )
     } finally im.close()
   }
 
-  test("sweep is suppressed when any bucket has a non-expired marker") {
+  test("sweep is suppressed only for TP whose marker is non-expired") {
     val tp1 = Topic("topic1").withPartition(0)
     val tp2 = Topic("topic2").withPartition(0)
     val si  = mock[StorageInterface[_]]
@@ -2536,29 +2549,49 @@ class IndexManagerV2Test
       System.currentTimeMillis(),
       System.currentTimeMillis() + 86400000L,
     )
-    // bucket-a: no marker (first run)
+    // tp1: no marker (first run) — should be swept
+    val tp1MarkerPath =
+      s"$indexesDirectoryName/${connectorTaskId.name}/.locks/${tp1.topic}/${tp1.partition}/sweep-marker.json"
     when(
       si.getBlobAsObject[IndexManagerV2.SweepMarker](
         ArgumentMatchers.eq("bucket-a"),
-        ArgumentMatchers.contains("sweep-marker"),
+        ArgumentMatchers.eq(tp1MarkerPath),
       )(any[Decoder[IndexManagerV2.SweepMarker]]),
     ).thenReturn(Left(FileNotFoundError(new Exception("Not found"), "sweep-marker")))
-    // bucket-b: non-expired marker
+    // tp2: non-expired marker — should be skipped
+    val tp2MarkerPath =
+      s"$indexesDirectoryName/${connectorTaskId.name}/.locks/${tp2.topic}/${tp2.partition}/sweep-marker.json"
     when(
       si.getBlobAsObject[IndexManagerV2.SweepMarker](
         ArgumentMatchers.eq("bucket-b"),
-        ArgumentMatchers.contains("sweep-marker"),
+        ArgumentMatchers.eq(tp2MarkerPath),
       )(any[Decoder[IndexManagerV2.SweepMarker]]),
     ).thenReturn(Right(ObjectWithETag(futureMarker, "marker-etag")))
+
+    when(si.writeStringToFile(anyString(), anyString(), any[UploadableString]))
+      .thenReturn(Right(()))
+    org.mockito.Mockito.doReturn(Right(None))
+      .when(si).listFileMetaRecursive(anyString(), any[Option[String]])
 
     val im = createSweepTestManager(si)
     try {
       im.open(Set(tp1, tp2))
       im.sweepOrphanedLocks()
 
-      // bucket-b has a non-expired marker, so sweep should be suppressed entirely
-      verify(si, never).writeStringToFile(anyString(), anyString(), any[UploadableString])
-      verify(si, never).listFileMetaRecursive(anyString(), any[Option[String]])
+      // tp1 should be swept (marker written + files listed)
+      verify(si, times(1)).writeStringToFile(
+        ArgumentMatchers.eq("bucket-a"),
+        ArgumentMatchers.eq(tp1MarkerPath),
+        any[UploadableString],
+      )
+      verify(si, times(1)).listFileMetaRecursive(anyString(), any[Option[String]])
+
+      // tp2's marker should NOT be written (skipped due to non-expired marker)
+      verify(si, never).writeStringToFile(
+        ArgumentMatchers.eq("bucket-b"),
+        ArgumentMatchers.eq(tp2MarkerPath),
+        any[UploadableString],
+      )
     } finally im.close()
   }
 }

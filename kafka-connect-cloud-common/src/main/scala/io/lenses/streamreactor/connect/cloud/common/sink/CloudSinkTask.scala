@@ -33,6 +33,8 @@ import io.lenses.streamreactor.connect.cloud.common.sink.conversion.HeaderToSink
 import io.lenses.streamreactor.connect.cloud.common.sink.conversion.NullSinkData
 import io.lenses.streamreactor.connect.cloud.common.sink.conversion.ValueToSinkDataConverter
 import io.lenses.streamreactor.connect.cloud.common.sink.optimization.AttachLatestSchemaOptimizer
+import io.lenses.streamreactor.connect.cloud.common.sink.metrics.CloudSinkMetrics
+import io.lenses.streamreactor.connect.cloud.common.sink.metrics.CloudSinkMetricsRegistrar
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexManager
 import io.lenses.streamreactor.connect.cloud.common.sink.writer.WriterManager
 import io.lenses.streamreactor.connect.cloud.common.storage.FileMetadata
@@ -292,6 +294,7 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
     Option(writerManager).foreach(_.close())
     writerManager = null
     Option(indexManager).foreach(_.close())
+    Option(connectorTaskId).foreach(CloudSinkMetricsRegistrar.unregister)
   }
 
   def createClient(config: CC): Either[Throwable, CT]
@@ -308,12 +311,15 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
       s3Client        <- createClient(config.connectionConfig)
       storageInterface = createStorageInterface(connectorTaskId, config, s3Client)
       _               <- setRetryInterval(config)
+      maxWriters       = config.indexOptions.map(_.maxGranularCacheSize).getOrElse(WriterManager.DefaultMaxWriters)
+      metrics          = new CloudSinkMetrics(maxWriters)
       (indexManager, writerManager) <- Try(
-        writerManagerCreator.from(config)(connectorTaskId, storageInterface),
+        writerManagerCreator.from(config, metrics)(connectorTaskId, storageInterface),
       ).toEither
       _ <- initializeFromConfig(config)
     } yield {
       logMetrics = config.logMetrics
+      CloudSinkMetricsRegistrar.register(metrics, connectorTaskId)
       (indexManager, writerManager, config)
     }
 

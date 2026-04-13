@@ -30,6 +30,7 @@ import io.lenses.streamreactor.connect.cloud.common.sink.config.CloudSinkBucketO
 import io.lenses.streamreactor.connect.cloud.common.sink.config.PartitionField
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.KeyNamer
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.ObjectKeyBuilder
+import io.lenses.streamreactor.connect.cloud.common.sink.metrics.CloudSinkMetrics
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexManager
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexManagerV2
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.NoIndexManager
@@ -47,7 +48,8 @@ import scala.collection.immutable
 class WriterManagerCreator[MD <: FileMetadata, SC <: CloudSinkConfig[_]] extends LazyLogging {
 
   def from(
-    config: SC,
+    config:  SC,
+    metrics: CloudSinkMetrics = new CloudSinkMetrics(WriterManager.DefaultMaxWriters),
   )(
     implicit
     connectorTaskId:  ConnectorTaskId,
@@ -143,6 +145,7 @@ class WriterManagerCreator[MD <: FileMetadata, SC <: CloudSinkConfig[_]] extends
         io.gcSweepIntervalSeconds,
         io.gcSweepAgeSeconds,
         io.gcSweepMaxReads,
+        metrics,
       ),
     ).getOrElse(new NoIndexManager())
 
@@ -163,6 +166,7 @@ class WriterManagerCreator[MD <: FileMetadata, SC <: CloudSinkConfig[_]] extends
       config.skipNullValues,
       pendingOperationsProcessors,
       maxWriters,
+      metrics,
     )
     (indexManager, writerManager)
   }
