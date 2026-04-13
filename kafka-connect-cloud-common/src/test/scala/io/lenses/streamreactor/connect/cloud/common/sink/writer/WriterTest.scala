@@ -503,7 +503,7 @@ class WriterTest extends AnyFunSuiteLike with Matchers with MockitoSugar with Ar
     writer.shouldSkip(Offset(201)) shouldBe false
   }
 
-  test("close should evict granular lock when partitionKey is defined") {
+  test("close should not evict granular lock even when partitionKey is defined") {
     val writer = new Writer[FileMetadata](topicPartition,
                                           commitPolicy,
                                           writerIndexer,
@@ -516,7 +516,7 @@ class WriterTest extends AnyFunSuiteLike with Matchers with MockitoSugar with Ar
                                           lastSeekedOffset = Some(Offset(200)),
     )
     writer.close()
-    verify(writerIndexer).evictGranularLock(topicPartition, "date=12_00")
+    verify(writerIndexer, never).evictGranularLock(any[TopicPartition], any[String])
   }
 
   test("close should not evict granular lock when partitionKey is None") {

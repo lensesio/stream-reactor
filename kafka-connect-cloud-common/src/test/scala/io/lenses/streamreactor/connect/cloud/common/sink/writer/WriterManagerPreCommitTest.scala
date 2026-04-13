@@ -421,7 +421,7 @@ class WriterManagerPreCommitTest
     wm.close()
 
     verify(indexManager).evictAllGranularLocks(tp0)
-    verify(indexManager).clearTopicPartitionState(tp0)
+    verify(indexManager, never).clearTopicPartitionState(tp0)
     wm.writerCount shouldBe 0
   }
 
