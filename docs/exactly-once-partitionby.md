@@ -216,7 +216,7 @@ Kafka Connect calls `put` and `preCommit` on the same thread per task. The corre
 
 ### Normal operation
 
-1. **Startup** (`open`): The index manager reads only the master lock to get the last known safe offset. Granular locks are **not** read at startup. When the first record for a given partition key arrives and a writer is created, `ensureGranularLock` attempts to read the lock file from cloud storage (via `getBlobAsObject`); if it exists, the result is cached immediately so that the subsequent `getSeekedOffsetForPartitionKey` call is a cache hit rather than a second storage read. If the file does not exist (`FileNotFoundError`), it creates one with `NoOverwriteExistingObject`. The writer then lazily loads its own granular lock from cloud storage on the first call to `getSeekedOffsetForPartitionKey`. If no granular lock file exists yet (e.g. fresh deployment or new partition key), the writer falls back to the master lock offset for its `shouldSkip` decisions.
+1. **Startup** (`open`): The index manager reads only the master lock to get the last known safe offset. Granular locks are **not** read at startup -- they are lazily loaded when the first record for a given partition key arrives (see "Lazy loading and in-memory cache" for the full cache lifecycle). If no granular lock file exists yet (e.g. fresh deployment or new partition key), the writer falls back to the master lock offset for its `shouldSkip` decisions.
 
 2. **Writing**: Records arrive from Kafka. Each record is routed to the appropriate writer based on its partition values. The writer tracks its `firstBufferedOffset` (the offset of the first record it received since the last commit) and `uncommittedOffset` (the latest offset it has received).
 
