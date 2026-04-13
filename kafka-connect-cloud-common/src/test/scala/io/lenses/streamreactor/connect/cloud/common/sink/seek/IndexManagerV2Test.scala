@@ -924,7 +924,7 @@ class IndexManagerV2Test
     } finally im.close()
   }
 
-  test("cache evicts LRU entry when max size exceeded") {
+  test("cache does not hard-evict entries when exceeding maxGranularCacheSize") {
     val tp              = Topic("topic1").withPartition(0)
     val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
 
@@ -934,7 +934,6 @@ class IndexManagerV2Test
     when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith("0.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
       .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(100)), None), "etag")))
 
-    // Create an IndexManagerV2 with maxGranularCacheSize=2
     val im = new IndexManagerV2(
       bucketAndPrefixFn, oldIndexManager, pendingOperationsProcessors, indexesDirectoryName,
       maxGranularCacheSize = 2,
@@ -952,15 +951,14 @@ class IndexManagerV2Test
     im.getSeekedOffsetForPartitionKey(tp, "pk2") shouldBe Right(Some(Offset(200)))
     im.granularCacheSize shouldBe 2
 
-    // Loading a third entry should evict the LRU (pk1)
+    // Loading a third entry does NOT evict pk1 — cache grows beyond maxGranularCacheSize
     im.getSeekedOffsetForPartitionKey(tp, "pk3") shouldBe Right(Some(Offset(200)))
-    im.granularCacheSize shouldBe 2
+    im.granularCacheSize shouldBe 3
 
     try {
-      // pk1 was evicted, so loading it again should trigger a storage read
+      // pk1 is still cached — no re-read from storage needed
       im.getSeekedOffsetForPartitionKey(tp, "pk1") shouldBe Right(Some(Offset(200)))
-      // pk1 loaded twice total (initial + after eviction)
-      verify(si, times(2)).getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/pk1.lock"))(ArgumentMatchers.eq(indexFileDecoder))
+      verify(si, times(1)).getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/pk1.lock"))(ArgumentMatchers.eq(indexFileDecoder))
     } finally im.close()
   }
 
@@ -1286,9 +1284,9 @@ class IndexManagerV2Test
     } finally im.close()
   }
 
-  // --- resolveGranularETag fencing after LRU eviction ---
+  // --- granular cache grows beyond old maxGranularCacheSize without error ---
 
-  test("updateForPartitionKey returns FatalCloudSinkError after LRU eviction to preserve fencing") {
+  test("granular cache holds entries beyond maxGranularCacheSize when no eviction occurs") {
     val tp              = Topic("topic1").withPartition(0)
     val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
 
@@ -1298,33 +1296,37 @@ class IndexManagerV2Test
     when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith("0.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
       .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(100)), None), "master-etag")))
 
-    // maxGranularCacheSize=1 so the first entry is evicted when the second is loaded
     val im = new IndexManagerV2(
       bucketAndPrefixFn, oldIndexManager, pendingOperationsProcessors, indexesDirectoryName,
       maxGranularCacheSize = 1,
       gcIntervalSeconds = Int.MaxValue,
     )(si, connectorTaskId)
 
-    im.open(Set(tp))
-
-    // Load pk1 into cache
-    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/pk1.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
-      .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(200)), None), "etag-pk1")))
-    im.getSeekedOffsetForPartitionKey(tp, "pk1") shouldBe Right(Some(Offset(200)))
-
-    // Load pk2 -- this evicts pk1 from the cache
-    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/pk2.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
-      .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(300)), None), "etag-pk2")))
-    im.getSeekedOffsetForPartitionKey(tp, "pk2") shouldBe Right(Some(Offset(300)))
-
-    // Now try to update pk1 -- eTag was evicted, resolveGranularETag should fail fatally
-    // to prevent a zombie task from stealing a new task's fencing token
-    val result = im.updateForPartitionKey(tp, "pk1", Some(Offset(250)), None)
-    result.isLeft shouldBe true
     try {
-      result.left.value shouldBe a[FatalCloudSinkError]
-      result.left.value.message() should include("not in cache")
-      result.left.value.message() should include("maxGranularCacheSize")
+      im.open(Set(tp))
+
+      // Load pk1 into cache
+      when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/pk1.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+        .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(200)), None), "etag-pk1")))
+      im.getSeekedOffsetForPartitionKey(tp, "pk1") shouldBe Right(Some(Offset(200)))
+
+      // Load pk2 -- cache size is now 2, exceeding maxGranularCacheSize=1
+      // With Option A (no hard LRU eviction), both entries remain in the cache
+      when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/pk2.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+        .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(300)), None), "etag-pk2")))
+      im.getSeekedOffsetForPartitionKey(tp, "pk2") shouldBe Right(Some(Offset(300)))
+
+      im.granularCacheSize shouldBe 2
+
+      // pk1 is still in cache -- updateForPartitionKey should succeed, not FatalCloudSinkError
+      when(
+        si.writeBlobToFile[IndexFile](anyString(), ArgumentMatchers.contains("/0/pk1.lock"), any[ObjectWithETag[IndexFile]])(
+          ArgumentMatchers.eq(indexFileEncoder),
+        ),
+      )
+        .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(250)), None), "etag-pk1-v2")))
+      val result = im.updateForPartitionKey(tp, "pk1", Some(Offset(250)), None)
+      result shouldBe Right(Some(Offset(250)))
     } finally im.close()
   }
 
@@ -1473,5 +1475,102 @@ class IndexManagerV2Test
       // returned offset is from processPendingOperations, not from cache -- verify no second storage read)
       verify(si, times(1)).getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/pk-pending.lock"))(ArgumentMatchers.eq(indexFileDecoder))
     } finally im.close()
+  }
+
+  // --- GC reclaim tests (cache-gated deletion) ---
+
+  test("drainGcQueue skips reclaimed keys when a new writer re-populates the cache before drain") {
+    val tp              = Topic("topic1").withPartition(0)
+    val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
+
+    val si = mock[StorageInterface[_]]
+    when(bucketAndPrefixFn(any[TopicPartition])).thenReturn(Right(bucketAndPrefix))
+    when(si.pathExists(anyString(), anyString())).thenReturn(Right(false))
+    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith("0.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+      .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(100)), None), "etag")))
+
+    val im = new IndexManagerV2(
+      bucketAndPrefixFn, oldIndexManager, pendingOperationsProcessors, indexesDirectoryName,
+      gcIntervalSeconds = Int.MaxValue,
+    )(si, connectorTaskId)
+
+    try {
+      im.open(Set(tp))
+
+      // Load a granular lock into the cache
+      when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/pk-reclaim.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+        .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(50)), None), "etag-reclaim-v1")))
+      im.getSeekedOffsetForPartitionKey(tp, "pk-reclaim") shouldBe Right(Some(Offset(50)))
+      im.granularCacheSize shouldBe 1
+
+      // Enqueue for GC (removes from cache)
+      im.cleanUpObsoleteLocks(tp, Offset(100), Set.empty) shouldBe Right(())
+      im.granularCacheSize shouldBe 0
+
+      // Simulate a new writer reclaiming this key (re-reads from storage, populates cache)
+      when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/pk-reclaim.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+        .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(50)), None), "etag-reclaim-v2")))
+      im.ensureGranularLock(tp, "pk-reclaim") shouldBe Right(())
+      im.granularCacheSize shouldBe 1
+
+      // Drain: the key is back in the cache, so drainGcQueue should skip the delete
+      when(si.deleteFiles(anyString(), any[Seq[String]])).thenReturn(Right(()))
+      im.drainGcQueueNow()
+
+      verify(si, never).deleteFiles(anyString(), any[Seq[String]])
+    } finally {
+      im.close()
+    }
+  }
+
+  test("drainGcQueue deletes un-reclaimed keys but skips reclaimed ones in the same batch") {
+    val tp              = Topic("topic1").withPartition(0)
+    val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
+
+    val si = mock[StorageInterface[_]]
+    when(bucketAndPrefixFn(any[TopicPartition])).thenReturn(Right(bucketAndPrefix))
+    when(si.pathExists(anyString(), anyString())).thenReturn(Right(false))
+    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith("0.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+      .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(100)), None), "etag")))
+
+    val im = new IndexManagerV2(
+      bucketAndPrefixFn, oldIndexManager, pendingOperationsProcessors, indexesDirectoryName,
+      gcIntervalSeconds = Int.MaxValue,
+    )(si, connectorTaskId)
+
+    try {
+      im.open(Set(tp))
+
+      // Load two granular locks
+      Seq("pk-gone", "pk-reclaimed").foreach { pk =>
+        when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains(s"/0/$pk.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+          .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(30)), None), s"etag-$pk")))
+        im.getSeekedOffsetForPartitionKey(tp, pk) shouldBe Right(Some(Offset(30)))
+      }
+      im.granularCacheSize shouldBe 2
+
+      // Enqueue both for GC
+      im.cleanUpObsoleteLocks(tp, Offset(100), Set.empty) shouldBe Right(())
+      im.granularCacheSize shouldBe 0
+
+      // Reclaim only pk-reclaimed (simulating a new writer)
+      when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/pk-reclaimed.lock"))(ArgumentMatchers.eq(indexFileDecoder)))
+        .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(30)), None), "etag-reclaimed-v2")))
+      im.ensureGranularLock(tp, "pk-reclaimed") shouldBe Right(())
+      im.granularCacheSize shouldBe 1
+
+      // Drain: pk-gone should be deleted, pk-reclaimed should be skipped
+      when(si.deleteFiles(anyString(), any[Seq[String]])).thenReturn(Right(()))
+      im.drainGcQueueNow()
+
+      val pathCaptor = ArgumentCaptor.forClass(classOf[Seq[String]])
+      verify(si, times(1)).deleteFiles(anyString(), pathCaptor.capture())
+      val deletedPaths = pathCaptor.getValue
+      deletedPaths should have size 1
+      deletedPaths.head should include("pk-gone")
+      deletedPaths.head should not include "pk-reclaimed"
+    } finally {
+      im.close()
+    }
   }
 }

@@ -42,9 +42,10 @@ trait IndexConfigKeys extends WithConnectorPrefix {
 
   val MAX_GRANULAR_CACHE_SIZE = s"$connectorPrefix.indexes.max.cache.size"
   private val MAX_GRANULAR_CACHE_SIZE_DOC =
-    s"Maximum number of granular lock entries to hold in the in-memory cache. " +
-      s"Each entry tracks a unique PARTITIONBY value. Increase this when PARTITIONBY cardinality exceeds the default. " +
-      s"Entries evicted by LRU are transparently re-loaded from cloud storage on next access, but frequent re-loads degrade throughput."
+    s"Maximum number of idle writers (and their granular lock cache entries) to retain in memory. " +
+      s"When the total number of writers exceeds this threshold, idle writers in NoWriter state are evicted. " +
+      s"Active writers with buffered data are never evicted, so the actual count may temporarily exceed this value. " +
+      s"Increase this when PARTITIONBY cardinality is high and you want to reduce lock file recreation on previously idle keys."
   private val MAX_GRANULAR_CACHE_SIZE_DEFAULT = IndexManagerV2.DefaultMaxGranularCacheSize
 
   val GC_INTERVAL_SECONDS = s"$connectorPrefix.indexes.gc.interval.seconds"

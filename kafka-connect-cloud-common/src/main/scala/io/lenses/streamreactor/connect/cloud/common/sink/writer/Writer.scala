@@ -191,11 +191,9 @@ class Writer[SM <: FileMetadata](
         Try(file.delete())
         NoWriter(commitState.reset())
     }
-    // Release the in-memory cache entry for this writer's partition key so that memory is freed
-    // promptly on close. If a new writer is later created for the same partition key it will
-    // re-load the granular lock from storage, preserving exactly-once correctness.
-    partitionKey.foreach(pk => indexManager.evictGranularLock(topicPartition, pk))
   }
+
+  def isIdle: Boolean = writeState.isInstanceOf[NoWriter]
 
   def getCommittedOffset: Option[Offset] = writeState.getCommitState.committedOffset
 

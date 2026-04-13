@@ -66,13 +66,19 @@ class WriterManager[SM <: FileMetadata](
   schemaChangeDetector:        SchemaChangeDetector,
   skipNullValues:              Boolean,
   pendingOperationsProcessors: PendingOperationsProcessors,
+  maxWriters:                  Int = WriterManager.DefaultMaxWriters,
 )(
   implicit
   connectorTaskId: ConnectorTaskId,
 ) extends StrictLogging {
 
-  private val writers             = mutable.Map.empty[MapKey, Writer[SM]]
+  private val writers             = mutable.LinkedHashMap.empty[MapKey, Writer[SM]]
   private val writerCommitManager = new WriterCommitManager[SM](() => writers.toMap)
+
+  // High-watermark per TopicPartition: the highest globalSafeOffset ever reported to Kafka Connect.
+  // Prevents regression when idle-writer eviction removes the writer that defined the previous
+  // high watermark (see "globalSafeOffset regression" in docs/exactly-once-partitionby.md).
+  private val safeOffsetHighWatermarks = mutable.Map.empty[TopicPartition, Long]
 
   def recommitPending(): Either[SinkError, Unit] = {
     logger.debug(s"[{}] Retry Pending", connectorTaskId.show)
@@ -91,10 +97,11 @@ class WriterManager[SM <: FileMetadata](
     val topicPartitions = writers.keys.map(_.topicPartition).toSet
     writers.values.foreach(_.close())
     writers.clear()
+    safeOffsetHighWatermarks.clear()
     // After closing all writers, evict their granular lock cache entries so that no stale
-    // offsets or eTags linger in memory after the task stops. Individual writer.close() calls
-    // above already evict per-key entries, but this ensures any keys missed (e.g. due to a
-    // previous error path) are also cleaned up.
+    // offsets or eTags linger in memory after the task stops. Writer.close() deliberately
+    // does NOT evict cache entries (they are left for cleanUpObsoleteLocks to GC), so this
+    // bulk eviction is the sole memory cleanup path on shutdown.
     topicPartitions.foreach(indexManager.evictAllGranularLocks)
   }
 
@@ -167,6 +174,7 @@ class WriterManager[SM <: FileMetadata](
         case None =>
           createWriter(bucketAndPrefix, topicPartition, partitionValues)
             .map { w =>
+              evictIdleWritersIfNeeded()
               writers.put(key, w)
               w
             }
@@ -234,7 +242,7 @@ class WriterManager[SM <: FileMetadata](
 
     if (committedOffsets.isEmpty) return None
 
-    val globalSafeOffset = if (firstBufferedOffsets.nonEmpty) {
+    val calculatedSafeOffset = if (firstBufferedOffsets.nonEmpty) {
       val minFirstBuffered = firstBufferedOffsets.map(_.value).min
       val maxCommittedPlus1 = committedOffsets.map(_.value).max + 1
       math.min(minFirstBuffered, maxCommittedPlus1)
@@ -242,15 +250,24 @@ class WriterManager[SM <: FileMetadata](
       committedOffsets.map(_.value).max + 1
     }
 
+    val previousHighWatermark = safeOffsetHighWatermarks.getOrElseUpdate(topicPartition,
+      indexManager.getSeekedOffsetForTopicPartition(topicPartition)
+        .map(_.value + 1)
+        .getOrElse(0L),
+    )
+    val globalSafeOffset      = math.max(calculatedSafeOffset, previousHighWatermark)
+
     indexManager.updateMasterLock(topicPartition, Offset(globalSafeOffset)) match {
       case Left(err) =>
         logger.error(s"[${connectorTaskId.show}] Master lock update failed for $topicPartition: ${err.message()}. " +
           s"Returning no offset to prevent consumer advance.")
         return None
       case Right(_) =>
+        safeOffsetHighWatermarks.put(topicPartition, globalSafeOffset)
         logger.debug(s"[${connectorTaskId.show}] Updated master lock for $topicPartition with globalSafeOffset=$globalSafeOffset")
-        val activePartitionKeys: Set[String] = writers.keys
-          .filter(_.topicPartition == topicPartition)
+        val activePartitionKeys: Set[String] = writers
+          .filter { case (key, _) => key.topicPartition == topicPartition }
+          .keys
           .flatMap(key => WriterManager.derivePartitionKey(key.partitionValues))
           .toSet
         indexManager.cleanUpObsoleteLocks(topicPartition, Offset(globalSafeOffset), activePartitionKeys) match {
@@ -276,17 +293,37 @@ class WriterManager[SM <: FileMetadata](
       writers.get(key).foreach(_.close())
       writers.remove(key)
     }
+    safeOffsetHighWatermarks.remove(topicPartition)
     // Evict all remaining granular lock entries for this partition from the cache. This is
     // necessary after a rebalance: if the partition is later re-assigned to this task, the
     // new writers must load fresh lock state from storage rather than reading stale cached data.
     indexManager.evictAllGranularLocks(topicPartition)
   }
 
+  private def evictIdleWritersIfNeeded(): Unit = {
+    if (writers.size < maxWriters) return
+    val idleEntries = writers.iterator
+      .filter { case (_, writer) => writer.isIdle }
+      .take(writers.size - maxWriters + 1)
+      .toList
+    if (idleEntries.nonEmpty) {
+      logger.debug(s"[${connectorTaskId.show}] Evicting ${idleEntries.size} idle writer(s) (map size ${writers.size} exceeds maxWriters $maxWriters)")
+    }
+    idleEntries.foreach { case (key, writer) =>
+      writer.close()
+      writers.remove(key)
+    }
+  }
+
+  private[writer] def writerCount: Int = writers.size
+
   def shouldSkipNullValues(): Boolean = skipNullValues
 
 }
 
 object WriterManager {
+
+  val DefaultMaxWriters: Int = 10000
 
   def sanitize(value: String): String =
     URLEncoder.encode(value, "UTF-8")

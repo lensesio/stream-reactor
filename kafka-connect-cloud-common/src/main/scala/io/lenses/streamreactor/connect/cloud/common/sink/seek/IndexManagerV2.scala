@@ -33,7 +33,7 @@ import io.lenses.streamreactor.connect.cloud.common.storage.FileNotFoundError
 import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
 import io.lenses.streamreactor.connect.cloud.common.storage.UploadError
 
-import java.util.{LinkedHashMap => JLinkedHashMap, Map => JMap}
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
@@ -90,27 +90,24 @@ class IndexManagerV2(
   private val topicPartitionToETags = TrieMap.empty[TopicPartition, String]
 
   // Granular lock cache: keyed by (TopicPartition, partitionKey).
-  // Lazily populated on first writer access; bounded by maxGranularCacheSize with LRU eviction.
-  //
-  // Uses a single access-ordered LinkedHashMap with automatic eldest-entry eviction.
-  // All operations (get, put, remove) are O(1). The single-threaded Kafka Connect contract
-  // (put/preCommit on the same task thread) makes synchronization unnecessary.
+  // Lazily populated on first writer access. Not bounded by automatic eviction — entries are
+  // removed by cleanUpObsoleteLocks (GC enqueue), evictAllGranularLocks (shutdown/rebalance),
+  // and evictGranularLock (explicit single-key eviction).
+  // This avoids the desync where hard LRU eviction removes an entry for an active writer,
+  // causing a spurious FatalCloudSinkError on next flush.
   //
   // An entry can have offset = None when the lock file exists in storage but has no committed
   // offset yet (e.g. a freshly created lock via ensureGranularLock).
-  private val granularCache: JLinkedHashMap[(TopicPartition, String), GranularCacheEntry] =
-    new JLinkedHashMap[(TopicPartition, String), GranularCacheEntry](16, 0.75f, true) {
-      override def removeEldestEntry(eldest: JMap.Entry[(TopicPartition, String), GranularCacheEntry]): Boolean = {
-        val shouldEvict = size > maxGranularCacheSize
-        if (shouldEvict) logger.warn(s"LRU evicted granular lock cache entry for ${eldest.getKey._1}/${eldest.getKey._2} (cache size exceeded $maxGranularCacheSize)")
-        shouldEvict
-      }
-    }
+  //
+  // Thread safety: ConcurrentHashMap is required because the background GC thread reads
+  // the cache (containsKey) to check whether a scheduled-for-deletion key has been reclaimed
+  // by a new writer. All mutating access occurs on the single Kafka Connect task thread.
+  private val granularCache = new ConcurrentHashMap[(TopicPartition, String), GranularCacheEntry]()
 
   // Exposed for testing only; not part of the public API.
   private[seek] def granularCacheSize: Int = granularCache.size()
 
-  private val gcQueue: ConcurrentLinkedQueue[(String, Seq[String])] = new ConcurrentLinkedQueue()
+  private val gcQueue: ConcurrentLinkedQueue[GcItem] = new ConcurrentLinkedQueue()
 
   private val gcExecutor: ScheduledExecutorService = {
     val executor = Executors.newSingleThreadScheduledExecutor { (r: Runnable) =>
@@ -414,8 +411,7 @@ class IndexManagerV2(
     else {
       val error = FatalCloudSinkError(
         s"Granular lock eTag for $topicPartition/$partitionKey not in cache. " +
-          s"This may indicate a zombie task or that maxGranularCacheSize ($maxGranularCacheSize) " +
-          s"is too small for the active PARTITIONBY cardinality. Failing to preserve fencing.",
+          s"This may indicate a zombie task whose cache entry was evicted. Failing to preserve fencing.",
         topicPartition,
       )
       logger.error(error.message)
@@ -594,13 +590,13 @@ class IndexManagerV2(
     for {
       bucketAndPrefix <- bucketAndPrefixFn(topicPartition)
     } yield {
-      val paths = keysToRemove.toList.map {
+      keysToRemove.toList.foreach {
         case (tp, pk) =>
           granularCache.remove((tp, pk))
-          generateGranularLockFilePath(connectorTaskId, tp, pk, directoryFileName)
+          val path = generateGranularLockFilePath(connectorTaskId, tp, pk, directoryFileName)
+          gcQueue.add(GcItem(bucketAndPrefix.bucket, path, tp, pk))
       }
-      gcQueue.add((bucketAndPrefix.bucket, paths))
-      logger.debug(s"Enqueued ${paths.size} obsolete granular lock(s) for async deletion for $topicPartition")
+      logger.debug(s"Enqueued ${keysToRemove.size} obsolete granular lock(s) for async deletion for $topicPartition")
     }
   }
 
@@ -608,17 +604,21 @@ class IndexManagerV2(
   private[seek] def drainGcQueueNow(): Unit = drainGcQueue()
 
   private def drainGcQueue(): Unit = try {
-    val buffer = new ListBuffer[(String, Seq[String])]()
+    val buffer = new ListBuffer[(String, String)]()
     var item   = gcQueue.poll()
     while (item != null) {
-      buffer += item
+      if (granularCache.containsKey((item.topicPartition, item.partitionKey))) {
+        logger.debug(s"GC skipping ${item.topicPartition}/${item.partitionKey}: reclaimed by new writer")
+      } else {
+        buffer += ((item.bucket, item.path))
+      }
       item = gcQueue.poll()
     }
     if (buffer.isEmpty) return
 
     val byBucket: Map[String, Seq[String]] = buffer.toList
       .groupBy(_._1)
-      .map { case (bucket, entries) => bucket -> entries.flatMap(_._2) }
+      .map { case (bucket, entries) => bucket -> entries.map(_._2) }
 
     byBucket.foreach {
       case (bucket, paths) =>
@@ -654,10 +654,12 @@ object IndexManagerV2 {
 
   case class GranularCacheEntry(offset: Option[Offset], eTag: String)
 
-  // 10,000 entries covers a typical high-cardinality PARTITIONBY workload (e.g. date + hour over
-  // many partitions) without significant heap pressure. Each entry holds a small case class
-  // (an Option[Offset] and a String eTag), so the footprint is well under 10 MB at this limit.
-  // Operators with larger cardinality should increase this via connector configuration.
+  private[seek] case class GcItem(bucket: String, path: String, topicPartition: TopicPartition, partitionKey: String)
+
+  // Controls the idle-writer eviction threshold in WriterManager. When the total number of
+  // writers exceeds this value, idle (NoWriter-state) writers are evicted along with their
+  // granular cache entries. Active writers are never evicted, so both the writers map and
+  // granular cache may temporarily exceed this limit during high-cardinality bursts.
   val DefaultMaxGranularCacheSize: Int = 10000
   val DefaultGcIntervalSeconds: Int    = 300
   val DefaultGcBatchSize: Int          = 1000
