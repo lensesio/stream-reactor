@@ -298,6 +298,7 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
   override def stop(): Unit = {
     logger.debug("[{}] Stop", Option(connectorTaskId).map(_.show).getOrElse("Unnamed"))
 
+    Option(writerManager).foreach(_.close())
     writerManager = null
     // indexManager.close() shuts down background executors and performs a final synchronous
     // drainGcQueue(). seekedOffsets is still populated (close() does not clear it), so the
