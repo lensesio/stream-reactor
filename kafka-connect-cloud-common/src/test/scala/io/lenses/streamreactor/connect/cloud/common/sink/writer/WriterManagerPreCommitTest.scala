@@ -515,7 +515,7 @@ class WriterManagerPreCommitTest
     wm.writerCount shouldBe 2
   }
 
-  test("eviction removes idle writers when count equals maxWriters") {
+  test("eviction does nothing when writer count equals maxWriters") {
     val indexManager = mock[IndexManager]
     val wm           = buildWriterManager(indexManager, maxWriters = 2)
 
@@ -526,8 +526,26 @@ class WriterManagerPreCommitTest
 
     wm.evictIdleWritersNow()
 
-    // maxWriters=2, size=2, evicts take(2 - 2 + 1) = 1 idle writer
-    wm.writerCount shouldBe 1
+    // maxWriters=2, size=2 (at limit, not over) → no eviction
+    wm.writerCount shouldBe 2
+  }
+
+  test("eviction removes one idle writer when count exceeds maxWriters by one") {
+    val indexManager = mock[IndexManager]
+    val dateC: immutable.Map[PartitionField, String] = Map(dateField -> "2024-01-03")
+    val wm = buildWriterManager(indexManager, maxWriters = 2)
+
+    val writerA = writerInNoWriterState(tp0, Some(Offset(10)))
+    val writerB = writerInNoWriterState(tp0, Some(Offset(20)))
+    val writerC = writerInNoWriterState(tp0, Some(Offset(30)))
+    wm.putWriter(MapKey(tp0, dateA), writerA)
+    wm.putWriter(MapKey(tp0, dateB), writerB)
+    wm.putWriter(MapKey(tp0, dateC), writerC)
+
+    wm.evictIdleWritersNow()
+
+    // maxWriters=2, size=3 → evicts take(3 - 2) = 1 idle writer
+    wm.writerCount shouldBe 2
   }
 
   test("eviction does not remove writers that are actively writing") {
@@ -545,20 +563,23 @@ class WriterManagerPreCommitTest
   test("eviction only removes idle writers, leaving active ones intact") {
     val indexManager = mock[IndexManager]
     val dateC: immutable.Map[PartitionField, String] = Map(dateField -> "2024-01-03")
+    val dateD: immutable.Map[PartitionField, String] = Map(dateField -> "2024-01-04")
     val wm = buildWriterManager(indexManager, maxWriters = 2)
 
     val writerA = writerInNoWriterState(tp0, Some(Offset(10)))
     val writerB = writerInWritingState(tp0, Some(Offset(20)), Offset(21), Offset(25))
     val writerC = writerInNoWriterState(tp0, Some(Offset(30)))
+    val writerD = writerInNoWriterState(tp0, Some(Offset(40)))
     wm.putWriter(MapKey(tp0, dateA), writerA)
     wm.putWriter(MapKey(tp0, dateB), writerB)
     wm.putWriter(MapKey(tp0, dateC), writerC)
+    wm.putWriter(MapKey(tp0, dateD), writerD)
 
     wm.evictIdleWritersNow()
 
-    // 3 writers, maxWriters=2 => needs to evict take(3 - 2 + 1) = 2, but only 2 are idle
-    // Both idle writers (A and C) are evicted, active writer B remains
-    wm.writerCount shouldBe 1
+    // 4 writers, maxWriters=2 => needs to evict take(4 - 2) = 2, but B is active
+    // Idle writers A and C are evicted, active writer B and idle writer D remain
+    wm.writerCount shouldBe 2
   }
 
   test("eviction respects insertion order (LinkedHashMap) for idle writer selection") {
@@ -567,21 +588,26 @@ class WriterManagerPreCommitTest
     when(indexManager.updateMasterLock(any[TopicPartition], any[Offset])).thenReturn(Right(()))
     when(indexManager.cleanUpObsoleteLocks(any[TopicPartition], any[Offset], any[Set[String]])).thenReturn(Right(()))
 
+    val dateC: immutable.Map[PartitionField, String] = Map(dateField -> "2024-01-03")
     val wm = buildWriterManager(indexManager, maxWriters = 2)
 
-    // Writer A (oldest, idle), Writer B (newest, idle)
+    // Writer A (oldest, idle), Writer B (middle, idle), Writer C (newest, idle)
     val writerA = writerInNoWriterState(tp0, Some(Offset(10)))
     val writerB = writerInNoWriterState(tp0, Some(Offset(20)))
+    val writerC = writerInNoWriterState(tp0, Some(Offset(30)))
     wm.putWriter(MapKey(tp0, dateA), writerA)
     wm.putWriter(MapKey(tp0, dateB), writerB)
+    wm.putWriter(MapKey(tp0, dateC), writerC)
 
     wm.evictIdleWritersNow()
 
-    wm.writerCount shouldBe 1
+    // 3 writers, maxWriters=2 => evicts take(3 - 2) = 1
     // Writer A was first in insertion order, so it gets evicted first.
-    // Verify B remains: preCommit should report offset 21 (B's committed + 1)
+    wm.writerCount shouldBe 2
+    // Verify B and C remain (not A): preCommit reports max(20,30)+1 = 31.
+    // If the newest writer C had been evicted instead, it would be max(10,20)+1 = 21.
     val result = wm.preCommit(currentOffsets(tp0, 200))
     result should contain key tp0
-    result(tp0).offset() shouldBe 21L
+    result(tp0).offset() shouldBe 31L
   }
 }

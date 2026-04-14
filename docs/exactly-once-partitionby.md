@@ -364,7 +364,7 @@ Without eviction, the `writers` map in `WriterManager` grows without bound. Writ
 
 Only `NoWriter`-state writers are evictable. Writers in `Writing` or `Uploading` state hold buffered or in-flight data and are never evicted. If all writers are active (non-idle), the map is allowed to grow beyond `maxWriters` -- this is safe because the granular cache grows in lockstep and no automatic cache eviction can desync the two.
 
-The sweep runs **before** inserting the new writer into the map. This prevents the just-created writer (which starts in `NoWriter` state) from being immediately evicted.
+The sweep runs **after** inserting the new writer into the map but explicitly excludes the just-inserted key from eviction candidates. This ensures the eviction guard and `take` count see the true map size (avoiding an off-by-one that would let the map oscillate one above `maxWriters`), while preventing the just-created writer (which starts in `NoWriter` state) from being immediately evicted.
 
 **Interaction with GC**
 

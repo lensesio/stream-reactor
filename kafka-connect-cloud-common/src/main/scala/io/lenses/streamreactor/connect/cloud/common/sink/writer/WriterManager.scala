@@ -22,6 +22,7 @@ import io.lenses.streamreactor.connect.cloud.common.formats.writer.FormatWriter
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.MessageDetail
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.schema.SchemaChangeDetector
 import io.lenses.streamreactor.connect.cloud.common.model.Offset
+import io.lenses.streamreactor.connect.cloud.common.model.Topic
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartitionOffset
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
@@ -184,8 +185,8 @@ class WriterManager[SM <: FileMetadata](
         case None =>
           createWriter(bucketAndPrefix, topicPartition, partitionValues)
             .map { w =>
-              evictIdleWritersIfNeeded()
               writers.put(key, w)
+              evictIdleWritersIfNeeded(key)
               metrics.setWriterCount(writers.size)
               w
             }
@@ -330,11 +331,11 @@ class WriterManager[SM <: FileMetadata](
     indexManager.clearTopicPartitionState(topicPartition)
   }
 
-  private def evictIdleWritersIfNeeded(): Unit = {
-    if (writers.size < maxWriters) return
+  private def evictIdleWritersIfNeeded(exclude: MapKey): Unit = {
+    if (writers.size <= maxWriters) return
     val idleEntries = writers.iterator
-      .filter { case (_, writer) => writer.isIdle }
-      .take(writers.size - maxWriters + 1)
+      .filter { case (k, writer) => k != exclude && writer.isIdle }
+      .take(writers.size - maxWriters)
       .toList
     if (idleEntries.nonEmpty) {
       logger.debug(
@@ -353,7 +354,8 @@ class WriterManager[SM <: FileMetadata](
 
   private[writer] def putWriter(key: MapKey, writer: Writer[SM]): Unit = { val _ = writers.put(key, writer) }
 
-  private[writer] def evictIdleWritersNow(): Unit = evictIdleWritersIfNeeded()
+  private[writer] def evictIdleWritersNow(): Unit =
+    evictIdleWritersIfNeeded(MapKey(TopicPartition(Topic("__sentinel__"), -1), immutable.Map.empty))
 
   def shouldSkipNullValues(): Boolean = skipNullValues
 
