@@ -582,30 +582,22 @@ class IndexManagerV2Test
     )
   }
 
-  test("migrateOldPathIfExists should propagate error when pathExists returns an error") {
+  test("migrateOldPathIfExists should skip migration gracefully when pathExists returns an error") {
     val topicPartition  = Topic("test-topic").withPartition(0)
     val bucketAndPrefix = CloudLocation("test-bucket", "test-prefix".some)
     val oldPath         = ".indexes2/.locks/Topic(test-topic)/0.lock"
     val pathError       = PathError(new RuntimeException("Storage error"), oldPath)
 
-    // Mock bucketAndPrefixFn to return the CloudLocation
     when(bucketAndPrefixFn(topicPartition)).thenReturn(Right(bucketAndPrefix))
-
-    // Mock pathExists to return an error
     when(storageInterface.pathExists("test-bucket", oldPath)).thenReturn(Left(pathError))
+    when(storageInterface.getBlobAsObject[IndexFile](anyString(), anyString())(ArgumentMatchers.eq(indexFileDecoder)))
+      .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(100)), None), "etag")))
 
     val result = indexManagerV2.open(Set(topicPartition))
 
-    result.isLeft shouldBe true
-    result.left.getOrElse(throw new RuntimeException("Expected Left but got Right")) shouldBe a[FatalCloudSinkError]
-    result.left.getOrElse(throw new RuntimeException("Expected Left but got Right")).asInstanceOf[
-      FatalCloudSinkError,
-    ].message shouldBe "error loading file (.indexes2/.locks/Topic(test-topic)/0.lock) Storage error"
+    result.isRight shouldBe true
 
-    // Verify that pathExists was called with the old path
     verify(storageInterface).pathExists("test-bucket", oldPath)
-
-    // Verify that mvFile was NOT called since pathExists failed
     verify(storageInterface, never).mvFile(anyString(),
                                            anyString(),
                                            anyString(),
@@ -2742,6 +2734,55 @@ class IndexManagerV2Test
         ArgumentMatchers.eq(tp2MarkerPath),
         any[UploadableString],
       )
+    } finally im.close()
+  }
+
+  test("close on a never-opened IndexManagerV2 should not start executors") {
+    val si  = mock[StorageInterface[_]]
+    val cti = ConnectorTaskId("test-connector", 1, 0)
+
+    val im = new IndexManagerV2(
+      bucketAndPrefixFn,
+      oldIndexManager,
+      pendingOperationsProcessors,
+      indexesDirectoryName,
+    )(si, cti)
+
+    im.executorsStarted shouldBe false
+    im.close()
+    im.executorsStarted shouldBe false
+  }
+
+  test("executors are started after open() is called") {
+    val si  = mock[StorageInterface[_]]
+    val cti = ConnectorTaskId("test-connector", 1, 0)
+
+    val bucketFn: TopicPartition => Either[SinkError, CloudLocation] =
+      _ => Right(CloudLocation("bucket", Some("prefix")))
+
+    val im = new IndexManagerV2(
+      bucketFn,
+      oldIndexManager,
+      pendingOperationsProcessors,
+      indexesDirectoryName,
+      gcIntervalSeconds = Int.MaxValue,
+      gcSweepEnabled    = false,
+    )(si, cti)
+
+    try {
+      im.executorsStarted shouldBe false
+
+      val tp       = Topic("topic1").withPartition(0)
+      val idxFile  = IndexFile(cti.lockUuid, Some(Offset(0)), None)
+      val objWETag = ObjectWithETag(idxFile, "etag1")
+
+      when(si.pathExists(anyString(), anyString())).thenReturn(Right(false))
+      when(si.getBlobAsObject[IndexFile](anyString(), anyString())(ArgumentMatchers.eq(indexFileDecoder)))
+        .thenReturn(Right(objWETag))
+
+      im.open(Set(tp))
+
+      im.executorsStarted shouldBe true
     } finally im.close()
   }
 }

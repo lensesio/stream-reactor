@@ -327,7 +327,10 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
       (indexManager, writerManager) <- Try(
         writerManagerCreator.from(config, metrics)(connectorTaskId, storageInterface),
       ).toEither
-      _ <- initializeFromConfig(config)
+      _ <- initializeFromConfig(config).left.map { err =>
+        indexManager.close()
+        err
+      }
     } yield {
       logMetrics = config.logMetrics
       CloudSinkMetricsRegistrar.register(metrics, connectorTaskId)

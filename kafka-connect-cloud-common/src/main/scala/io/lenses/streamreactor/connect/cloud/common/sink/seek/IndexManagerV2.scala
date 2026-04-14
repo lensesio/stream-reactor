@@ -138,33 +138,42 @@ class IndexManagerV2(
 
   private val gcQueue: ConcurrentLinkedQueue[GcItem] = new ConcurrentLinkedQueue()
 
-  private val gcExecutor: ScheduledExecutorService = {
-    val executor = Executors.newSingleThreadScheduledExecutor { (r: Runnable) =>
-      val t = new Thread(r, s"gc-${connectorTaskId.show}")
-      t.setDaemon(true)
-      t
-    }
-    executor.scheduleAtFixedRate(() => drainGcQueue(),
-                                 gcIntervalSeconds.toLong,
-                                 gcIntervalSeconds.toLong,
-                                 TimeUnit.SECONDS,
-    )
-    executor
-  }
+  // Executors are deferred to startExecutors() (called from open()) so that if
+  // IndexManagerV2 is constructed but the surrounding WriterManager/task setup
+  // fails, no daemon threads leak.
+  @volatile private[seek] var executorsStarted = false
+  @volatile private var gcExecutor:       Option[ScheduledExecutorService] = None
+  @volatile private var sweepExecutorOpt: Option[ScheduledExecutorService] = None
 
-  private val sweepExecutor: Option[ScheduledExecutorService] =
-    Option.when(gcSweepEnabled) {
-      val executor = Executors.newSingleThreadScheduledExecutor { (r: Runnable) =>
-        val t = new Thread(r, s"sweep-${connectorTaskId.show}")
-        t.setDaemon(true)
-        t
+  private def startExecutors(): Unit =
+    if (!executorsStarted) {
+      gcExecutor = Some {
+        val executor = Executors.newSingleThreadScheduledExecutor { (r: Runnable) =>
+          val t = new Thread(r, s"gc-${connectorTaskId.show}")
+          t.setDaemon(true)
+          t
+        }
+        executor.scheduleAtFixedRate(() => drainGcQueue(),
+                                     gcIntervalSeconds.toLong,
+                                     gcIntervalSeconds.toLong,
+                                     TimeUnit.SECONDS,
+        )
+        executor
       }
-      executor.scheduleAtFixedRate(() => sweepOrphanedLocks(),
-                                   gcSweepIntervalSeconds.toLong,
-                                   gcSweepIntervalSeconds.toLong,
-                                   TimeUnit.SECONDS,
-      )
-      executor
+      sweepExecutorOpt = Option.when(gcSweepEnabled) {
+        val executor = Executors.newSingleThreadScheduledExecutor { (r: Runnable) =>
+          val t = new Thread(r, s"sweep-${connectorTaskId.show}")
+          t.setDaemon(true)
+          t
+        }
+        executor.scheduleAtFixedRate(() => sweepOrphanedLocks(),
+                                     gcSweepIntervalSeconds.toLong,
+                                     gcSweepIntervalSeconds.toLong,
+                                     TimeUnit.SECONDS,
+        )
+        executor
+      }
+      executorsStarted = true
     }
 
   /**
@@ -175,12 +184,14 @@ class IndexManagerV2(
    * @return An `Either` containing a `SinkError` on failure or a map of
    *         `TopicPartition` to `Option[Offset]` on success.
    */
-  override def open(topicPartitions: Set[TopicPartition]): Either[SinkError, Map[TopicPartition, Option[Offset]]] =
+  override def open(topicPartitions: Set[TopicPartition]): Either[SinkError, Map[TopicPartition, Option[Offset]]] = {
+    startExecutors()
     topicPartitions.toList
       .parTraverse(tp => EitherT(IO(open(tp))).map(tp -> _))
       .map(_.toMap)
       .value
       .unsafeRunSync()
+  }
 
   /**
    * Opens a single topic partition for writing. If an index file is not found,
@@ -993,8 +1004,12 @@ class IndexManagerV2(
    * this point so the drain can distinguish owned partitions from revoked ones.
    */
   override def close(): Unit = {
+    if (!executorsStarted) {
+      logger.info(s"IndexManagerV2 closed for ${connectorTaskId.show} (executors were never started)")
+      return
+    }
     // 1. Stop the orphan sweep first -- it can enqueue new GC items
-    sweepExecutor.foreach { exec =>
+    sweepExecutorOpt.foreach { exec =>
       exec.shutdownNow()
       try {
         val _ = exec.awaitTermination(5, TimeUnit.SECONDS)
@@ -1003,11 +1018,13 @@ class IndexManagerV2(
       }
     }
     // 2. Stop the periodic GC drain timer
-    gcExecutor.shutdownNow()
-    try {
-      val _ = gcExecutor.awaitTermination(5, TimeUnit.SECONDS)
-    } catch {
-      case _: InterruptedException => Thread.currentThread().interrupt()
+    gcExecutor.foreach { exec =>
+      exec.shutdownNow()
+      try {
+        val _ = exec.awaitTermination(5, TimeUnit.SECONDS)
+      } catch {
+        case _: InterruptedException => Thread.currentThread().interrupt()
+      }
     }
     // 3. Final synchronous drain to flush any remaining enqueued items
     drainGcQueue()

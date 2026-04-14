@@ -149,26 +149,32 @@ class WriterManagerCreator[MD <: FileMetadata, SC <: CloudSinkConfig[_]] extends
       ),
     ).getOrElse(new NoIndexManager())
 
-    val transformers = TopicsTransformers.from(config.bucketOptions)
+    try {
+      val transformers = TopicsTransformers.from(config.bucketOptions)
 
-    val maxWriters = config.indexOptions.map(_.maxWriters).getOrElse(WriterManager.DefaultMaxWriters)
+      val maxWriters = config.indexOptions.map(_.maxWriters).getOrElse(WriterManager.DefaultMaxWriters)
 
-    val writerManager = new WriterManager[MD](
-      commitPolicyFn,
-      bucketAndPrefixFn,
-      keyNamerBuilderFn,
-      stagingFilenameFn,
-      finalFilenameFn,
-      formatWriterFn,
-      indexManager,
-      transformers.transform,
-      config.schemaChangeDetector,
-      config.skipNullValues,
-      pendingOperationsProcessors,
-      maxWriters,
-      metrics,
-    )
-    (indexManager, writerManager)
+      val writerManager = new WriterManager[MD](
+        commitPolicyFn,
+        bucketAndPrefixFn,
+        keyNamerBuilderFn,
+        stagingFilenameFn,
+        finalFilenameFn,
+        formatWriterFn,
+        indexManager,
+        transformers.transform,
+        config.schemaChangeDetector,
+        config.skipNullValues,
+        pendingOperationsProcessors,
+        maxWriters,
+        metrics,
+      )
+      (indexManager, writerManager)
+    } catch {
+      case e: Throwable =>
+        indexManager.close()
+        throw e
+    }
   }
 
   private def bucketOptsForTopic(config: CloudSinkConfig[_], topic: Topic): Option[CloudSinkBucketOptions] =
