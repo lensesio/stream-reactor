@@ -62,7 +62,10 @@ class Writer[SM <: FileMetadata](
   connectorTaskId: ConnectorTaskId,
 ) extends LazyLogging {
 
-  var writeState: WriteState = NoWriter(CommitState(topicPartition, lastSeekedOffset))
+  private var writeState: WriteState = NoWriter(CommitState(topicPartition, lastSeekedOffset))
+
+  private[writer] def forceWriteState(state: WriteState): Unit = writeState = state
+  private[writer] def currentWriteState: WriteState = writeState
 
   def write(messageDetail: MessageDetail): Either[SinkError, Unit] = {
 
@@ -192,7 +195,11 @@ class Writer[SM <: FileMetadata](
         NoWriter(commitState.reset())
     }
 
-  def isIdle: Boolean = writeState.isInstanceOf[NoWriter]
+  def isIdle: Boolean =
+    writeState match {
+      case NoWriter(_) => true
+      case _           => false
+    }
 
   def getCommittedOffset: Option[Offset] = writeState.getCommitState.committedOffset
 

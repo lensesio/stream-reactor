@@ -97,7 +97,7 @@ class WriterManagerPreCommitTest
     committedOffset: Option[Offset],
   ): Writer[FileMetadata] = {
     val w = makeWriter(tp, committedOffset)
-    w.writeState = NoWriter(CommitState(tp, committedOffset))
+    w.forceWriteState(NoWriter(CommitState(tp, committedOffset)))
     w
   }
 
@@ -108,14 +108,16 @@ class WriterManagerPreCommitTest
     uncommittedOffset:   Offset,
   ): Writer[FileMetadata] = {
     val w = makeWriter(tp, committedOffset)
-    w.writeState = Writing(
-      CommitState(tp, committedOffset),
-      formatWriter,
-      new File("test"),
-      firstBufferedOffset,
-      uncommittedOffset,
-      System.currentTimeMillis(),
-      System.currentTimeMillis(),
+    w.forceWriteState(
+      Writing(
+        CommitState(tp, committedOffset),
+        formatWriter,
+        new File("test"),
+        firstBufferedOffset,
+        uncommittedOffset,
+        System.currentTimeMillis(),
+        System.currentTimeMillis(),
+      ),
     )
     w
   }

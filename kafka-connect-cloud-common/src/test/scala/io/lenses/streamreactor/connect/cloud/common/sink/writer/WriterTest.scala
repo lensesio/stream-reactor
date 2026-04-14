@@ -77,7 +77,7 @@ class WriterTest extends AnyFunSuiteLike with Matchers with MockitoSugar with Ar
                                           schemaChangeDetector,
                                           pendingOperationsProcessors,
     )
-    writer.writeState = NoWriter(CommitState(topicPartition, Some(Offset(100))))
+    writer.forceWriteState(NoWriter(CommitState(topicPartition, Some(Offset(100)))))
     writer.shouldSkip(Offset(100)) shouldBe true
     writer.shouldSkip(Offset(99)) shouldBe true
   }
@@ -93,7 +93,7 @@ class WriterTest extends AnyFunSuiteLike with Matchers with MockitoSugar with Ar
                                           schemaChangeDetector,
                                           pendingOperationsProcessors,
     )
-    writer.writeState = NoWriter(CommitState(topicPartition, Some(Offset(100))))
+    writer.forceWriteState(NoWriter(CommitState(topicPartition, Some(Offset(100)))))
     writer.shouldSkip(Offset(101)) shouldBe false
   }
 
@@ -108,13 +108,15 @@ class WriterTest extends AnyFunSuiteLike with Matchers with MockitoSugar with Ar
                                           schemaChangeDetector,
                                           pendingOperationsProcessors,
     )
-    writer.writeState = Uploading(
-      CommitState(topicPartition, Some(Offset(100))),
-      new File("test-file"),
-      firstBufferedOffset = Offset(100),
-      Offset(150),
-      earliestRecordTimestamp = 1L,
-      latestRecordTimestamp   = 1L,
+    writer.forceWriteState(
+      Uploading(
+        CommitState(topicPartition, Some(Offset(100))),
+        new File("test-file"),
+        firstBufferedOffset = Offset(100),
+        Offset(150),
+        earliestRecordTimestamp = 1L,
+        latestRecordTimestamp   = 1L,
+      ),
     )
     writer.shouldSkip(Offset(150)) shouldBe true
     writer.shouldSkip(Offset(149)) shouldBe true
@@ -131,8 +133,9 @@ class WriterTest extends AnyFunSuiteLike with Matchers with MockitoSugar with Ar
                                           schemaChangeDetector,
                                           pendingOperationsProcessors,
     )
-    writer.writeState =
-      Uploading(CommitState(topicPartition, Some(Offset(100))), new File("test-file"), Offset(100), Offset(150), 1L, 1L)
+    writer.forceWriteState(
+      Uploading(CommitState(topicPartition, Some(Offset(100))), new File("test-file"), Offset(100), Offset(150), 1L, 1L),
+    )
     writer.shouldSkip(Offset(151)) shouldBe false
   }
 
@@ -147,7 +150,7 @@ class WriterTest extends AnyFunSuiteLike with Matchers with MockitoSugar with Ar
                                           schemaChangeDetector,
                                           pendingOperationsProcessors,
     )
-    writer.writeState =
+    writer.forceWriteState(
       Writing(CommitState(topicPartition, Some(Offset(100))),
               formatWriter,
               new File("test-file"),
@@ -155,7 +158,8 @@ class WriterTest extends AnyFunSuiteLike with Matchers with MockitoSugar with Ar
               Offset(150),
               1L,
               1L,
-      )
+      ),
+    )
     writer.shouldSkip(Offset(150)) shouldBe true
     writer.shouldSkip(Offset(149)) shouldBe true
   }
@@ -171,7 +175,7 @@ class WriterTest extends AnyFunSuiteLike with Matchers with MockitoSugar with Ar
                                           schemaChangeDetector,
                                           pendingOperationsProcessors,
     )
-    writer.writeState =
+    writer.forceWriteState(
       Writing(CommitState(topicPartition, Some(Offset(100))),
               formatWriter,
               new File("test-file"),
@@ -179,7 +183,8 @@ class WriterTest extends AnyFunSuiteLike with Matchers with MockitoSugar with Ar
               Offset(150),
               1L,
               1L,
-      )
+      ),
+    )
     writer.shouldSkip(Offset(151)) shouldBe false
   }
 
@@ -217,7 +222,7 @@ class WriterTest extends AnyFunSuiteLike with Matchers with MockitoSugar with Ar
                                           schemaChangeDetector,
                                           pendingOperationsProcessors,
     )
-    writer.writeState = writingState
+    writer.forceWriteState(writingState)
 
     when(schemaChangeDetector.detectSchemaChange(lastSchema, schema)).thenReturn(true)
 
@@ -240,7 +245,7 @@ class WriterTest extends AnyFunSuiteLike with Matchers with MockitoSugar with Ar
                                           schemaChangeDetector,
                                           pendingOperationsProcessors,
     )
-    writer.writeState = writingState
+    writer.forceWriteState(writingState)
 
     when(schemaChangeDetector.detectSchemaChange(lastSchema, schema)).thenReturn(false)
 
@@ -258,7 +263,7 @@ class WriterTest extends AnyFunSuiteLike with Matchers with MockitoSugar with Ar
                                           schemaChangeDetector,
                                           pendingOperationsProcessors,
     )
-    writer.writeState = NoWriter(CommitState(topicPartition, Some(Offset(100))))
+    writer.forceWriteState(NoWriter(CommitState(topicPartition, Some(Offset(100)))))
 
     writer.schemaHasChanged(schema) shouldBe false
   }
@@ -277,7 +282,7 @@ class WriterTest extends AnyFunSuiteLike with Matchers with MockitoSugar with Ar
                                           schemaChangeDetector,
                                           pendingOperationsProcessors,
     )
-    writer.writeState = writingState
+    writer.forceWriteState(writingState)
 
     writer.schemaHasChanged(schema) shouldBe false
   }
@@ -296,7 +301,7 @@ class WriterTest extends AnyFunSuiteLike with Matchers with MockitoSugar with Ar
                                           schemaChangeDetector,
                                           pendingOperationsProcessors,
     )
-    writer.writeState = writingState
+    writer.forceWriteState(writingState)
 
     writer.schemaHasChanged(schema) shouldBe false
   }
@@ -317,7 +322,7 @@ class WriterTest extends AnyFunSuiteLike with Matchers with MockitoSugar with Ar
                                           schemaChangeDetector,
                                           pendingOperationsProcessors,
     )
-    writer.writeState = writingState
+    writer.forceWriteState(writingState)
 
     when(schemaChangeDetector.detectSchemaChange(null, schema)).thenReturn(false)
 
@@ -338,13 +343,14 @@ class WriterTest extends AnyFunSuiteLike with Matchers with MockitoSugar with Ar
                                           schemaChangeDetector,
                                           pendingOperationsProcessors,
     )
-    writer.writeState =
-      Writing(CommitState(topicPartition, Some(Offset(100))), formatWriter, tmpFile, Offset(100), Offset(150), 1L, 1L)
+    writer.forceWriteState(
+      Writing(CommitState(topicPartition, Some(Offset(100))), formatWriter, tmpFile, Offset(100), Offset(150), 1L, 1L),
+    )
 
     writer.close()
 
     tmpFile.exists() shouldBe false
-    writer.writeState shouldBe a[NoWriter]
+    writer.currentWriteState shouldBe a[NoWriter]
   }
 
   test("close should delete staging file when in Uploading state") {
@@ -360,13 +366,14 @@ class WriterTest extends AnyFunSuiteLike with Matchers with MockitoSugar with Ar
                                           schemaChangeDetector,
                                           pendingOperationsProcessors,
     )
-    writer.writeState =
-      Uploading(CommitState(topicPartition, Some(Offset(100))), tmpFile, Offset(100), Offset(150), 1L, 1L)
+    writer.forceWriteState(
+      Uploading(CommitState(topicPartition, Some(Offset(100))), tmpFile, Offset(100), Offset(150), 1L, 1L),
+    )
 
     writer.close()
 
     tmpFile.exists() shouldBe false
-    writer.writeState shouldBe a[NoWriter]
+    writer.currentWriteState shouldBe a[NoWriter]
   }
 
   test("close should be a no-op when in NoWriter state") {
@@ -379,11 +386,11 @@ class WriterTest extends AnyFunSuiteLike with Matchers with MockitoSugar with Ar
                                           schemaChangeDetector,
                                           pendingOperationsProcessors,
     )
-    writer.writeState = NoWriter(CommitState(topicPartition, Some(Offset(100))))
+    writer.forceWriteState(NoWriter(CommitState(topicPartition, Some(Offset(100)))))
 
     writer.close()
 
-    writer.writeState shouldBe a[NoWriter]
+    writer.currentWriteState shouldBe a[NoWriter]
   }
 
   // Phase 1a: WriteState tests - firstBufferedOffset
@@ -422,7 +429,14 @@ class WriterTest extends AnyFunSuiteLike with Matchers with MockitoSugar with Ar
                                           schemaChangeDetector,
                                           pendingOperationsProcessors,
     )
-    writer.writeState = Writing(CommitState(topicPartition, None), fw, new File("test"), Offset(42), Offset(50), 1L, 1L)
+    writer.forceWriteState(Writing(CommitState(topicPartition, None),
+                                   fw,
+                                   new File("test"),
+                                   Offset(42),
+                                   Offset(50),
+                                   1L,
+                                   1L,
+    ))
     writer.getFirstBufferedOffset shouldBe Some(Offset(42))
   }
 
@@ -436,7 +450,13 @@ class WriterTest extends AnyFunSuiteLike with Matchers with MockitoSugar with Ar
                                           schemaChangeDetector,
                                           pendingOperationsProcessors,
     )
-    writer.writeState = Uploading(CommitState(topicPartition, None), new File("test"), Offset(42), Offset(50), 1L, 1L)
+    writer.forceWriteState(Uploading(CommitState(topicPartition, None),
+                                     new File("test"),
+                                     Offset(42),
+                                     Offset(50),
+                                     1L,
+                                     1L,
+    ))
     writer.getFirstBufferedOffset shouldBe Some(Offset(42))
   }
 
