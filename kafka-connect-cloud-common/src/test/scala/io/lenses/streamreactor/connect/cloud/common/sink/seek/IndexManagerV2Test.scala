@@ -2737,6 +2737,62 @@ class IndexManagerV2Test
     } finally im.close()
   }
 
+  test("sweep does not enqueue master lock file even if listing returns it") {
+    val tp              = Topic("topic1").withPartition(0)
+    val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
+    val si              = mock[StorageInterface[_]]
+    setupSweepMocks(si, tp, bucketAndPrefix)
+
+    val oldTime = Instant.now().minusSeconds(7200)
+
+    // Master lock sits outside the granular locks directory (sibling, not child)
+    val masterLockPath =
+      s"$indexesDirectoryName/${connectorTaskId.name}/.locks/${tp.topic}/${tp.partition}.lock"
+    val masterMeta = TestFileMetadata(masterLockPath, oldTime)
+
+    // Legitimate granular orphan inside the partition subdirectory
+    val orphanPath =
+      s"$indexesDirectoryName/${connectorTaskId.name}/.locks/${tp.topic}/${tp.partition}/orphan-key.lock"
+    val orphanMeta = TestFileMetadata(orphanPath, oldTime)
+
+    val listResponse =
+      ListOfMetadataResponse("bucket", Some("prefix"), Seq(masterMeta, orphanMeta), orphanMeta)
+
+    org.mockito.Mockito.doReturn(Right(Some(listResponse))).when(si).listFileMetaRecursive(
+      anyString(),
+      any[Option[String]],
+    )
+    when(
+      si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("orphan-key.lock"))(
+        ArgumentMatchers.eq(indexFileDecoder),
+      ),
+    ).thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(50)), None), "orphan-etag")))
+    when(si.deleteFiles(anyString(), any[Seq[String]])).thenReturn(Right(()))
+
+    val im = createSweepTestManager(si)
+    try {
+      im.open(Set(tp))
+      // Reset call counts so assertions below cover only the sweep phase
+      org.mockito.Mockito.clearInvocations(si)
+
+      im.sweepOrphanedLocks()
+      im.drainGcQueue()
+
+      // The master lock must never be GET-read by the sweep
+      verify(si, never).getBlobAsObject[IndexFile](
+        anyString(),
+        ArgumentMatchers.eq(masterLockPath),
+      )(ArgumentMatchers.eq(indexFileDecoder))
+
+      // The orphan must still be enqueued and deleted
+      val pathsCaptor = ArgumentCaptor.forClass(classOf[Seq[String]])
+      verify(si, times(1)).deleteFiles(anyString(), pathsCaptor.capture())
+      val deletedPaths = pathsCaptor.getValue
+      deletedPaths should contain(orphanPath)
+      deletedPaths should not contain masterLockPath
+    } finally im.close()
+  }
+
   test("close on a never-opened IndexManagerV2 should not start executors") {
     val si  = mock[StorageInterface[_]]
     val cti = ConnectorTaskId("test-connector", 1, 0)

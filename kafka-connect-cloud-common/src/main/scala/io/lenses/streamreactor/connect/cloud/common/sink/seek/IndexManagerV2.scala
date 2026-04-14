@@ -935,7 +935,7 @@ class IndexManagerV2(
       files.foldLeft((0, 0)) {
         case (acc @ (_, readsUsed), _) if readsUsed >= readsRemaining => acc
         case ((enqueued, readsUsed), fileMeta) =>
-          classifyLockFile(tp, fileMeta, ageThreshold) match {
+          classifyLockFile(tp, fileMeta, ageThreshold, prefix) match {
             case SweepSkip => (enqueued, readsUsed)
             case SweepNeedsRead(partitionKey) =>
               val didEnqueue = readAndEnqueue(bucket, fileMeta.file, tp, partitionKey, masterOffset)
@@ -950,14 +950,15 @@ class IndexManagerV2(
   private case object SweepSkip extends SweepClassification
   private case class SweepNeedsRead(partitionKey: String) extends SweepClassification
 
-  /** Applies extension, recency, and cache-presence filters to decide whether a lock file needs a GET read. */
+  /** Applies prefix-membership, extension, recency, and cache-presence filters to decide whether a lock file needs a GET read. */
   private def classifyLockFile(
     tp:           TopicPartition,
     fileMeta:     FileMetadata,
     ageThreshold: Instant,
+    prefix:       String,
   ): SweepClassification = {
     val path = fileMeta.file
-    if (!path.endsWith(".lock") || fileMeta.lastModified.isAfter(ageThreshold)) SweepSkip
+    if (!path.startsWith(prefix) || !path.endsWith(".lock") || fileMeta.lastModified.isAfter(ageThreshold)) SweepSkip
     else {
       val fileName     = path.substring(path.lastIndexOf('/') + 1)
       val partitionKey = fileName.stripSuffix(".lock")
