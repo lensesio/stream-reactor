@@ -243,7 +243,7 @@ Two safety guards apply to the enqueue decision:
 
 1. **Master lock durability gate**: GC only runs after the master lock has been successfully updated. If the master lock update fails, GC is skipped entirely. This prevents the scenario where granular locks are deleted but the master lock still points to an old offset -- on crash recovery, the consumer would seek to the stale master offset but the granular locks needed for deduplication would be gone, causing data duplication.
 
-2. **Writer map exclusion**: Lock files for partition keys that currently have a writer in the `writers` map are never enqueued, regardless of the writer's state. A writer still in the map may receive new records at any time; if its lock file were deleted while it was idle (`NoWriter` state), the subsequent commit would fail with a `FatalCloudSinkError` because the eTag required for the conditional write would no longer be in the cache, and `ensureGranularLock` is only called during writer creation -- not when an existing idle writer transitions back to `Writing`. Lock files become eligible for GC only after the writer is evicted from the map by `evictIdleWritersIfNeeded` (see "Idle writer eviction"). Once evicted, a new record for that partition key triggers `createWriter` which calls `ensureGranularLock` to recreate the lock or fall back to the master lock offset.
+2. **Writer map exclusion**: Lock files for partition keys that currently have a writer in the `writers` map are never enqueued, regardless of the writer's state. In practice, idle writers are eagerly evicted whenever a new writer is created (see "Idle writer eviction"), so the window in which an idle writer blocks its lock file from GC is brief. Once evicted, a new record for that partition key triggers `createWriter` which calls `ensureGranularLock` to recreate the lock or fall back to the master lock offset.
 
 #### Drain phase (asynchronous, background timer)
 
@@ -355,20 +355,19 @@ Without eviction, the `writers` map in `WriterManager` grows without bound. Writ
 
 **How it works**
 
-`WriterManager` has a `maxWriters` parameter (default `10,000`, configured via `connect.<prefix>.indexes.max.writers`). When a new writer is created and the map exceeds this threshold, an eviction sweep runs:
+Whenever a new writer is created, `WriterManager` eagerly evicts **all** idle writers (those in `NoWriter` state) from the map. This keeps the map lean -- only active writers (buffering or uploading data) and the just-created writer remain. Creating a writer is cheap (typically a granular cache hit, or one cloud GET on a miss), and closing an idle writer is essentially a no-op (it holds no buffered data or open file handles).
 
-1. The sweep iterates the writers map looking for idle writers (`NoWriter` state).
-2. Up to `writers.size - maxWriters` idle writers are evicted.
-3. Each evicted writer's `close()` is called. The granular cache entry is deliberately **not** evicted -- it is left in the cache so that `cleanUpObsoleteLocks` can detect it as obsolete on the next `preCommit`.
-4. The writer is removed from the map.
+The eviction sweep:
 
-Only `NoWriter`-state writers are evictable. Writers in `Writing` or `Uploading` state hold buffered or in-flight data and are never evicted. If all writers are active (non-idle), the map is allowed to grow beyond `maxWriters` -- this is safe because the granular cache grows in lockstep and no automatic cache eviction can desync the two.
+1. Iterates the writers map looking for idle writers (`NoWriter` state), excluding the just-created writer.
+2. Each idle writer's `close()` is called. The granular cache entry is deliberately **not** evicted -- it is left in the cache so that `cleanUpObsoleteLocks` can detect it as obsolete on the next `preCommit`.
+3. The writer is removed from the map.
 
-The sweep runs **after** inserting the new writer into the map but explicitly excludes the just-inserted key from eviction candidates. This ensures the eviction guard and `take` count see the true map size (avoiding an off-by-one that would let the map oscillate one above `maxWriters`), while preventing the just-created writer (which starts in `NoWriter` state) from being immediately evicted.
+Only `NoWriter`-state writers are evictable. Writers in `Writing` or `Uploading` state hold buffered or in-flight data and are never evicted. The just-created writer is excluded from eviction candidates because it starts in `NoWriter` state and would otherwise be immediately evicted.
 
 **Interaction with GC**
 
-`activePartitionKeys` -- the set of partition keys protected from GC -- includes **all** writers currently in the `writers` map, regardless of state. A lock file becomes eligible for GC only after its writer has been evicted from the map by `evictIdleWritersIfNeeded`. This is necessary because an idle writer still in the map can receive new records at any time; if its lock file were deleted, the writer would transition to `Writing` and eventually call `commit`, which would fail with a `FatalCloudSinkError` due to a missing eTag in the granular cache (`ensureGranularLock` is only called during writer creation, not when an existing idle writer resumes writing).
+`activePartitionKeys` -- the set of partition keys protected from GC -- includes **all** writers currently in the `writers` map, regardless of state. Because idle writers are eagerly evicted, their partition keys leave `activePartitionKeys` promptly, making their lock files eligible for GC on the very next `preCommit` cycle.
 
 Once a writer is evicted from the map, its `close()` is called but the granular cache entry is deliberately **left intact**. On the next `preCommit`, `cleanUpObsoleteLocks` detects that the cache entry's partition key is no longer in `activePartitionKeys` and its offset is below `globalSafeOffset`. It removes the cache entry and enqueues the lock file path into `gcQueue` for background deletion. If a new writer is created for the same partition key between the enqueue and the background drain, the drain skips the file (reclaim check via `ConcurrentHashMap.containsKey`), preserving the new writer's eTag.
 
@@ -442,7 +441,7 @@ This constraint also applies when the same connector name is reused across envir
 
 Each active `Writer` holds a `FormatWriter` (typically 1-10 MB of heap for Parquet/Avro page buffers and dictionary encoders), an open `java.io.File` handle (one file descriptor), and commit-state metadata. Under high-cardinality `PARTITIONBY` (e.g. partitioning by `user_id` or `session_id` with millions of unique values), the connector creates a `Writer` per unique value.
 
-**Mitigation**: `WriterManager` implements idle-writer eviction bounded by `maxWriters` (default `10,000`, configured via `connect.<prefix>.indexes.max.writers`). When a new writer is created and the total count exceeds the threshold, writers in `NoWriter` state (committed, no buffered data) are evicted. Their `close()` is called, releasing the `FormatWriter` heap and file descriptor. The granular cache entry is deliberately **not** evicted -- it is left in the cache so that `cleanUpObsoleteLocks` can detect it as obsolete on the next `preCommit`. Writers in `Writing` or `Uploading` state are pinned and never evicted, so the map may temporarily exceed `maxWriters` during high-cardinality bursts where all writers are actively buffering. See "Idle writer eviction" under "Lifecycle" for full details.
+**Mitigation**: `WriterManager` eagerly evicts all idle writers (those in `NoWriter` state) whenever a new writer is created. Their `close()` is called, releasing the `FormatWriter` heap and file descriptor. The granular cache entry is deliberately **not** evicted -- it is left in the cache so that `cleanUpObsoleteLocks` can detect it as obsolete on the next `preCommit`. Writers in `Writing` or `Uploading` state are pinned and never evicted. See "Idle writer eviction" under "Lifecycle" for full details.
 
 Note that eviction only applies to idle writers. If the workload simultaneously maintains a very large number of *active* writers (all in `Writing` state), the map grows without bound. This is an inherent constraint: active writers hold buffered data that cannot be discarded without data loss. Operators with such workloads must size heap and `ulimit -n` accordingly.
 
@@ -473,7 +472,7 @@ See "Orphaned lock sweep" under "Garbage collection" for the full sweep architec
 
 Previously, the granular lock cache used a bounded `LinkedHashMap` with automatic LRU eviction. When the number of active partition keys exceeded the configured cache size, the cache silently evicted entries for active writers. On next flush, the writer detected the missing eTag and raised a `FatalCloudSinkError`, crashing a healthy task.
 
-**Resolution**: The granular cache is now an unbounded `ConcurrentHashMap` with no automatic eviction. Entries are added when writers are created and removed by `cleanUpObsoleteLocks` (GC enqueue), `evictAllGranularLocks` (shutdown/rebalance), or explicit `evictGranularLock` calls. `Writer.close()` deliberately does **not** evict cache entries, allowing `cleanUpObsoleteLocks` to detect obsolete keys. The `connect.<prefix>.indexes.max.writers` config controls the idle-writer eviction threshold in `WriterManager` (via `maxWriters`) rather than a hard cache cap. See "Lazy loading and in-memory cache" and "Idle writer eviction" under "Lifecycle" for full details.
+**Resolution**: The granular cache is now an unbounded `ConcurrentHashMap` with no automatic eviction. Entries are added when writers are created and removed by `cleanUpObsoleteLocks` (GC enqueue), `evictAllGranularLocks` (shutdown/rebalance), or explicit `evictGranularLock` calls. `Writer.close()` deliberately does **not** evict cache entries, allowing `cleanUpObsoleteLocks` to detect obsolete keys. Idle writers are eagerly evicted from the writers map whenever a new writer is created, keeping the map lean and allowing lock file GC to proceed promptly. See "Lazy loading and in-memory cache" and "Idle writer eviction" under "Lifecycle" for full details.
 
 ### Lazy-load burst at startup (Medium)
 
@@ -521,6 +520,6 @@ When a zombie task's Phase 2 lock update fails after uploading to `.temp-upload/
 | **Duplication** | Writers overwrite each other's committed offset → offset regression → replayed records are re-written | Each writer has its own granular lock → no interference → `shouldSkip` is per-writer accurate |
 | **Data loss** | `preCommit` returns max committed offset → Kafka advances past uncommitted buffered data → crash loses records | `preCommit` returns `min(firstBufferedOffset)` → Kafka never advances past uncommitted data |
 | **Exactly-once** | Not guaranteed with PARTITIONBY | Guaranteed: no data loss (globalSafeOffset invariant) + no duplication (granular lock dedup) + monotonicity (globalSafeOffset never regresses) |
-| **Writer accumulation** | N/A (single writer per partition) | Idle writers evicted when map exceeds `maxWriters`; active writers pinned. Cache grows/shrinks in lockstep -- no desync. |
+| **Writer accumulation** | N/A (single writer per partition) | Idle writers eagerly evicted on every new writer creation; active writers pinned. Cache grows/shrinks in lockstep -- no desync. |
 | **Migration** | N/A | Fully transparent, zero-downtime upgrade |
 | **Rollback** | N/A | Safe: master lock is backward-compatible, granular locks are ignored by old code |

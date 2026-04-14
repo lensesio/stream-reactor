@@ -23,23 +23,15 @@ trait CloudSinkMetricsMBean {
   // --- Writer map ---
 
   /**
-   * Current number of Writer instances in the writers map. Compare against [[getMaxWriters]]
-   * to gauge eviction pressure. Unbounded growth under high-cardinality PARTITIONBY indicates
-   * the max-writers limit may need raising or the cardinality should be reduced.
+   * Current number of Writer instances in the writers map. Only active (non-idle) writers
+   * remain in the map; idle writers are eagerly evicted when a new writer is created.
    */
   def getWriterCount: Int
 
   /**
-   * Configured upper bound (connect.&lt;prefix&gt;.indexes.max.writers) on the writer map size
-   * before idle-writer eviction kicks in. Useful for capacity planning alongside [[getWriterCount]].
-   */
-  def getMaxWriters: Int
-
-  /**
-   * Cumulative count of idle (NoWriter-state) writers evicted to keep the map within
-   * [[getMaxWriters]]. A sustained high rate means partition-key cardinality regularly
-   * exceeds the configured limit, causing churn (evict then re-create) and additional
-   * storage reads to reload granular locks.
+   * Cumulative count of idle (NoWriter-state) writers evicted. Idle writers are eagerly
+   * evicted whenever a new writer is created, keeping the map lean and allowing granular
+   * lock GC to proceed sooner.
    */
   def getIdleWriterEvictions: Long
 
@@ -152,7 +144,7 @@ trait CloudSinkMetricsMBean {
   def getSweepGetBudgetUsed: Int
 }
 
-class CloudSinkMetrics(configMaxWriters: Int) extends CloudSinkMetricsMBean {
+class CloudSinkMetrics() extends CloudSinkMetricsMBean {
 
   private val writerCount         = new AtomicInteger(0)
   private val idleWriterEvictions = new LongAdder()
@@ -179,7 +171,6 @@ class CloudSinkMetrics(configMaxWriters: Int) extends CloudSinkMetricsMBean {
   // --- getters (exposed via JMX) ---
 
   override def getWriterCount:         Int  = writerCount.get()
-  override def getMaxWriters:          Int  = configMaxWriters
   override def getIdleWriterEvictions: Long = idleWriterEvictions.sum()
 
   override def getGranularCacheSize:   Int  = granularCacheSize.get()

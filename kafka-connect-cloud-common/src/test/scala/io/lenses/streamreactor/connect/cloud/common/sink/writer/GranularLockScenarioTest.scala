@@ -697,7 +697,6 @@ class GranularLockScenarioTest extends AnyFunSuiteLike with Matchers with Mockit
       schemaChangeDetector        = schemaChangeDetector,
       skipNullValues              = false,
       pendingOperationsProcessors = pendingOperationsProcessors,
-      maxWriters                  = 1,
     )
 
     // Write a record so that a writer is created (enters Writing state at offset 100)
@@ -826,12 +825,11 @@ class GranularLockScenarioTest extends AnyFunSuiteLike with Matchers with Mockit
       schemaChangeDetector        = schemaChangeDetector,
       skipNullValues              = false,
       pendingOperationsProcessors = mockPOP,
-      maxWriters                  = 1,
     )
 
     // Each write creates a new writer (unique partition key due to incrementing callCount),
     // and shouldFlush=true causes an immediate commit, so each writer transitions to NoWriter.
-    // With maxWriters=1, idle writers get evicted when the next one is created.
+    // Idle writers are eagerly evicted when the next one is created.
     wm.write(topicPartition.withOffset(Offset(500)), makeMockMsg(500L)) shouldBe Right(())
 
     // preCommit: globalSafeOffset = 501, master lock = 501
@@ -983,7 +981,6 @@ class GranularLockScenarioTest extends AnyFunSuiteLike with Matchers with Mockit
       schemaChangeDetector        = schemaChangeDetector,
       skipNullValues              = false,
       pendingOperationsProcessors = pendingOperationsProcessors,
-      maxWriters                  = 1,
     )
 
     val tp2 = Topic("test-topic").withPartition(1)
@@ -995,7 +992,7 @@ class GranularLockScenarioTest extends AnyFunSuiteLike with Matchers with Mockit
     // Write a record to partition 1 — creates a second writer, also in Writing state
     wm.write(tp2.withOffset(Offset(200)), makeMockMsg(1, 200L)) shouldBe Right(())
 
-    // Both writers are in Writing state — map exceeds maxWriters=1 but no eviction occurs
+    // Both writers are in Writing state — active writers are never evicted
     wm.writerCount shouldBe 2
   }
 
@@ -1083,7 +1080,6 @@ class GranularLockScenarioTest extends AnyFunSuiteLike with Matchers with Mockit
       schemaChangeDetector        = schemaChangeDetector,
       skipNullValues              = false,
       pendingOperationsProcessors = mockPOP,
-      maxWriters                  = 10000,
     )
 
     // Write and commit (shouldFlush=true) a record with partition key val_1 -> transitions to NoWriter (idle)
@@ -1099,7 +1095,7 @@ class GranularLockScenarioTest extends AnyFunSuiteLike with Matchers with Mockit
     capturedActiveKeys should contain(idleKey)
   }
 
-  test("evictIdleWritersIfNeeded respects maxWriters bound strictly") {
+  test("eager eviction keeps only the newest writer after multiple writes with unique partition keys") {
     val mockIM = mock[IndexManager]
     when(mockIM.indexingEnabled).thenReturn(false)
     when(mockIM.getSeekedOffsetForTopicPartition(any[TopicPartition])).thenReturn(None)
@@ -1174,17 +1170,16 @@ class GranularLockScenarioTest extends AnyFunSuiteLike with Matchers with Mockit
       schemaChangeDetector        = schemaChangeDetector,
       skipNullValues              = false,
       pendingOperationsProcessors = mockPOP,
-      maxWriters                  = 2,
     )
 
-    // Write 3 records each with a unique partition key; shouldFlush=true causes immediate commit -> NoWriter
+    // Write 3 records each with a unique partition key; shouldFlush=true causes immediate commit -> NoWriter.
+    // Each new writer creation eagerly evicts all idle writers, so only the newest remains.
     (1 to 3).foreach { i =>
       wm.write(topicPartition.withOffset(Offset(i.toLong)), makeMockMsg(i.toLong)) shouldBe Right(())
     }
 
-    // With maxWriters=2, the third write triggers eviction of 1 idle writer before inserting.
-    // After inserting: 2 idle writers remain (the surviving one + the newly committed one) = maxWriters.
-    wm.writerCount shouldBe 2
+    // Only the most recently created writer (key_3) remains; key_1 and key_2 were eagerly evicted.
+    wm.writerCount shouldBe 1
   }
 
   test("HWM initialization from master lock prevents master lock regression across restarts") {

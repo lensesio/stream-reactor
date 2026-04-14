@@ -25,16 +25,11 @@ import javax.management.ObjectName
 
 class CloudSinkMetricsTest extends AnyFunSuiteLike with Matchers with BeforeAndAfterEach {
 
-  private val maxWriters = 5000
   private var metrics: CloudSinkMetrics = _
 
   override def beforeEach(): Unit = {
-    metrics = new CloudSinkMetrics(maxWriters)
+    metrics = new CloudSinkMetrics()
     super.beforeEach()
-  }
-
-  test("MaxWriters returns configured value") {
-    metrics.getMaxWriters shouldBe maxWriters
   }
 
   // --- Writer map gauges / counters ---
@@ -149,8 +144,6 @@ class CloudSinkMetricsTest extends AnyFunSuiteLike with Matchers with BeforeAndA
 
       metrics.incrementMasterLockUpdates()
       mbs.getAttribute(name, "MasterLockUpdates") shouldBe 1L
-
-      mbs.getAttribute(name, "MaxWriters") shouldBe maxWriters
     } finally {
       CloudSinkMetricsRegistrar.unregister(taskId)
     }

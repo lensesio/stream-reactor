@@ -16,12 +16,10 @@
 package io.lenses.streamreactor.connect.cloud.common.sink.config
 
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexManagerV2
-import io.lenses.streamreactor.connect.cloud.common.sink.writer.WriterManager
 
 case class IndexOptions(
   maxIndexFiles:          Int,
   indexesDirectoryName:   String,
-  maxWriters:             Int     = WriterManager.DefaultMaxWriters,
   gcIntervalSeconds:      Int     = IndexManagerV2.DefaultGcIntervalSeconds,
   gcBatchSize:            Int     = IndexManagerV2.DefaultGcBatchSize,
   gcSweepEnabled:         Boolean = IndexManagerV2.DefaultGcSweepEnabled,

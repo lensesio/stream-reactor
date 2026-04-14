@@ -322,8 +322,7 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
       s3Client        <- createClient(config.connectionConfig)
       storageInterface = createStorageInterface(connectorTaskId, config, s3Client)
       _               <- setRetryInterval(config)
-      maxWriters       = config.indexOptions.map(_.maxWriters).getOrElse(WriterManager.DefaultMaxWriters)
-      metrics          = new CloudSinkMetrics(maxWriters)
+      metrics          = new CloudSinkMetrics()
       (indexManager, writerManager) <- Try(
         writerManagerCreator.from(config, metrics)(connectorTaskId, storageInterface),
       ).toEither

@@ -66,7 +66,7 @@ class WriterManagerCreatorTest extends AnyFunSuite with Matchers with MockitoSug
     val config = FakeCloudSinkConfig(
       connectionConfig            = FakeConnectionConfig(),
       bucketOptions               = Seq.empty,
-      indexOptions                = IndexOptions(maxIndexFiles = 10, ".indexes", 10000, 300, 1000).some,
+      indexOptions                = IndexOptions(maxIndexFiles = 10, ".indexes", 300, 1000).some,
       compressionCodec            = CompressionCodecName.ZSTD.toCodec(),
       errorPolicy                 = NoopErrorPolicy(),
       connectorRetryConfig        = new RetryConfig(1, 1L, 1.0),
@@ -75,7 +75,7 @@ class WriterManagerCreatorTest extends AnyFunSuite with Matchers with MockitoSug
     )
 
     val writerManagerCreator          = new WriterManagerCreator[FakeFileMetadata, FakeCloudSinkConfig]()
-    val (indexManager, writerManager) = writerManagerCreator.from(config, new CloudSinkMetrics(10000))
+    val (indexManager, writerManager) = writerManagerCreator.from(config, new CloudSinkMetrics())
     writerManager shouldBe a[WriterManager[_]]
     indexManager shouldBe an[IndexManagerV2]
   }

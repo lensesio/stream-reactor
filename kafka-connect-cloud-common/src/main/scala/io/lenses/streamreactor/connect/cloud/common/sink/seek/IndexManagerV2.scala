@@ -79,7 +79,7 @@ class IndexManagerV2(
   gcSweepIntervalSeconds:      Int              = IndexManagerV2.DefaultGcSweepIntervalSeconds,
   gcSweepMinAgeSeconds:        Int              = IndexManagerV2.DefaultGcSweepMinAgeSeconds,
   gcSweepMaxReads:             Int              = IndexManagerV2.DefaultGcSweepMaxReads,
-  metrics:                     CloudSinkMetrics = new CloudSinkMetrics(0),
+  metrics:                     CloudSinkMetrics = new CloudSinkMetrics(),
 )(
   implicit
   storageInterface: StorageInterface[?],

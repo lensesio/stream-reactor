@@ -19,7 +19,6 @@ import io.lenses.streamreactor.common.config.base.traits.BaseSettings
 import io.lenses.streamreactor.common.config.base.traits.WithConnectorPrefix
 import io.lenses.streamreactor.connect.cloud.common.sink.config.IndexOptions
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexManagerV2
-import io.lenses.streamreactor.connect.cloud.common.sink.writer.WriterManager
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.Importance
 import org.apache.kafka.common.config.ConfigDef.Type
@@ -40,14 +39,6 @@ trait IndexConfigKeys extends WithConnectorPrefix {
   private val ENABLE_EXACTLY_ONCE_DOC =
     s"Exactly once is enabled by default.  It works by keeping an .indexes directory at the root of your bucket with subdirectories for indexes.  Exactly once support can be disabled and the default offset tracking from kafka can be used instead by setting this to false."
   private val ENABLE_EXACTLY_ONCE_DEFAULT = true
-
-  val MAX_WRITERS = s"$connectorPrefix.indexes.max.writers"
-  private val MAX_WRITERS_DOC =
-    s"Maximum number of idle writers (and their granular lock cache entries) to retain in memory. " +
-      s"When the total number of writers exceeds this threshold, idle writers in NoWriter state are evicted. " +
-      s"Active writers with buffered data are never evicted, so the actual count may temporarily exceed this value. " +
-      s"Increase this when PARTITIONBY cardinality is high and you want to reduce lock file recreation on previously idle keys."
-  private val MAX_WRITERS_DEFAULT = WriterManager.DefaultMaxWriters
 
   val GC_INTERVAL_SECONDS = s"$connectorPrefix.indexes.gc.interval.seconds"
   private val GC_INTERVAL_SECONDS_DOC =
@@ -123,18 +114,6 @@ trait IndexConfigKeys extends WithConnectorPrefix {
         3,
         ConfigDef.Width.NONE,
         ENABLE_EXACTLY_ONCE,
-      )
-      .define(
-        MAX_WRITERS,
-        Type.INT,
-        MAX_WRITERS_DEFAULT,
-        ConfigDef.Range.atLeast(1),
-        Importance.LOW,
-        MAX_WRITERS_DOC,
-        "Sink Seek",
-        4,
-        ConfigDef.Width.LONG,
-        MAX_WRITERS,
       )
       .define(
         GC_INTERVAL_SECONDS,
@@ -214,7 +193,6 @@ trait IndexSettings extends BaseSettings with IndexConfigKeys {
       IndexOptions(
         getInt(SEEK_MAX_INDEX_FILES),
         getString(INDEXES_DIRECTORY_NAME),
-        getInt(MAX_WRITERS),
         getInt(GC_INTERVAL_SECONDS),
         getInt(GC_BATCH_SIZE),
         getBoolean(GC_SWEEP_ENABLED),

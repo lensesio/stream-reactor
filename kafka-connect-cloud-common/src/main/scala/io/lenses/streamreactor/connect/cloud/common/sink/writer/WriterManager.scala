@@ -68,8 +68,7 @@ class WriterManager[SM <: FileMetadata](
   schemaChangeDetector:        SchemaChangeDetector,
   skipNullValues:              Boolean,
   pendingOperationsProcessors: PendingOperationsProcessors,
-  maxWriters:                  Int              = WriterManager.DefaultMaxWriters,
-  metrics:                     CloudSinkMetrics = new CloudSinkMetrics(WriterManager.DefaultMaxWriters),
+  metrics:                     CloudSinkMetrics = new CloudSinkMetrics(),
 )(
   implicit
   connectorTaskId: ConnectorTaskId,
@@ -332,14 +331,12 @@ class WriterManager[SM <: FileMetadata](
   }
 
   private def evictIdleWritersIfNeeded(exclude: MapKey): Unit = {
-    if (writers.size <= maxWriters) return
     val idleEntries = writers.iterator
       .filter { case (k, writer) => k != exclude && writer.isIdle }
-      .take(writers.size - maxWriters)
       .toList
     if (idleEntries.nonEmpty) {
       logger.debug(
-        s"[${connectorTaskId.show}] Evicting ${idleEntries.size} idle writer(s) (map size ${writers.size} exceeds maxWriters $maxWriters)",
+        s"[${connectorTaskId.show}] Evicting ${idleEntries.size} idle writer(s) (map size ${writers.size})",
       )
     }
     idleEntries.foreach { case (key, writer) =>
@@ -362,8 +359,6 @@ class WriterManager[SM <: FileMetadata](
 }
 
 object WriterManager {
-
-  val DefaultMaxWriters: Int = 10000
 
   def sanitize(value: String): String =
     URLEncoder.encode(value, "UTF-8").replace("_", "%5F")

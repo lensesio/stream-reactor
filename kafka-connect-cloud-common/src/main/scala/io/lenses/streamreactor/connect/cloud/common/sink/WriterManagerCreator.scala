@@ -49,7 +49,7 @@ class WriterManagerCreator[MD <: FileMetadata, SC <: CloudSinkConfig[_]] extends
 
   def from(
     config:  SC,
-    metrics: CloudSinkMetrics = new CloudSinkMetrics(WriterManager.DefaultMaxWriters),
+    metrics: CloudSinkMetrics = new CloudSinkMetrics(),
   )(
     implicit
     connectorTaskId:  ConnectorTaskId,
@@ -152,8 +152,6 @@ class WriterManagerCreator[MD <: FileMetadata, SC <: CloudSinkConfig[_]] extends
     try {
       val transformers = TopicsTransformers.from(config.bucketOptions)
 
-      val maxWriters = config.indexOptions.map(_.maxWriters).getOrElse(WriterManager.DefaultMaxWriters)
-
       val writerManager = new WriterManager[MD](
         commitPolicyFn,
         bucketAndPrefixFn,
@@ -166,7 +164,6 @@ class WriterManagerCreator[MD <: FileMetadata, SC <: CloudSinkConfig[_]] extends
         config.schemaChangeDetector,
         config.skipNullValues,
         pendingOperationsProcessors,
-        maxWriters,
         metrics,
       )
       (indexManager, writerManager)
