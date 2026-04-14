@@ -87,13 +87,4 @@ trait GCPProxyContainerTest
       ()
     }.toEither
 
-  override def cleanUp(): Unit = {
-    for {
-      toDeleteArray <- listBucketPathEither(BucketName, "")
-      _ <- storageInterface.deleteFiles(BucketName, toDeleteArray)
-        .recover(err => logger.error(" _", err))
-    } yield ()
-    ()
-  }
-
 }

@@ -248,12 +248,10 @@ class IndexManagerV2(
   ): Either[FatalCloudSinkError, Unit] =
     storageInterface.pathExists(bucketAndPrefix.bucket, maybeOldPath) match {
       case Left(error) =>
-        //old path does not exist, nothing to do
-        val fatalError = new FatalCloudSinkError(error.message(), error.toExceptionOption, topicPartition)
-        logger.error(
-          s"Failed to check existence of old index file for $topicPartition at $maybeOldPath: ${fatalError.message}",
+        logger.warn(
+          s"Failed to check existence of old index file for $topicPartition at $maybeOldPath: ${error.message()}. Skipping migration.",
         )
-        fatalError.asLeft
+        ().asRight
       case Right(false) =>
         //old path does not exist, nothing to do
         ().asRight
@@ -340,17 +338,11 @@ class IndexManagerV2(
     committedOffset: Option[Offset],
     pendingState:    Option[PendingState],
   ): Either[SinkError, Option[Offset]] = {
-
     val path = generateLockFilePath(connectorTaskId, topicPartition, directoryFileName)
     for {
-      bucketAndPrefix <- bucketAndPrefixFn(topicPartition).leftMap { err =>
-        logger.error(s"Failed to get bucket and prefix for $topicPartition: ${err.message()}")
-        err
-      }
+      bucketAndPrefix <- bucketAndPrefixFn(topicPartition)
       eTag <- topicPartitionToETags.get(topicPartition).toRight {
-        val error = FatalCloudSinkError("Index not found", topicPartition)
-        logger.error(s"Failed to get eTag for $topicPartition: ${error.message}")
-        error
+        FatalCloudSinkError("Index not found", topicPartition)
       }
       index = ObjectWithETag(
         IndexFile(lockOwner, committedOffset, pendingState),
@@ -360,14 +352,8 @@ class IndexManagerV2(
         bucketAndPrefix.bucket,
         path,
         index,
-      ) match {
-        case Left(err: UploadError) =>
-          val error = new FatalCloudSinkError(err.message(), err.toExceptionOption, topicPartition)
-          logger.error(s"Failed to write blob file for $topicPartition: ${error.message}")
-          error.asLeft
-        case Right(objectWithEtag) =>
-          logger.trace("Updated file : {}", objectWithEtag)
-          objectWithEtag.asRight
+      ).leftMap { err: UploadError =>
+        new FatalCloudSinkError(err.message(), err.toExceptionOption, topicPartition): SinkError
       }
     } yield updateDataReturnOffset(topicPartition, blobFileWrite)
   }

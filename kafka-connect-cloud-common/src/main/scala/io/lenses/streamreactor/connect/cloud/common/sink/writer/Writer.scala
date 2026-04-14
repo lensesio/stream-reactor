@@ -139,7 +139,7 @@ class Writer[SM <: FileMetadata](
         val fnIndexUpdate: (TopicPartition, Option[Offset], Option[PendingState]) => Either[SinkError, Option[Offset]] =
           partitionKey match {
             case Some(pk) => (tp, co, ps) => indexManager.updateForPartitionKey(tp, pk, co, ps)
-            case None     => indexManager.update
+            case None     => (tp, co, ps) => indexManager.update(tp, co, ps)
           }
         for {
           key  <- objectKeyBuilder.build(uncommittedOffset, earliestRecordTimestamp, latestRecordTimestamp)

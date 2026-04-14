@@ -137,6 +137,7 @@ class AwsS3StorageInterface(
         pagReq.iterator().asScala.flatMap(
           _.contents().asScala.filterNot(AwsS3StorageFilter.filterOut)
             .filter(_.size() > 0)
+            .filterNot(_.key().endsWith("/"))
             .toSeq.map(o => S3FileMetadata(o.key(), o.lastModified())).filter(md =>
               extensionFilter.forall(_.filter(md)),
             ),
@@ -174,13 +175,14 @@ class AwsS3StorageInterface(
     logger.debug(s"[{}] Path exists? {}:{}", connectorTaskId.show, bucket, path)
 
     Try(
-      s3Client.listObjectsV2(
-        ListObjectsV2Request.builder().bucket(bucket).prefix(path).build(),
-      ).keyCount().toInt,
+      s3Client.headObject(
+        HeadObjectRequest.builder().bucket(bucket).key(path).build(),
+      ),
     ).toEither match {
       case Left(_: NoSuchKeyException) => false.asRight
+      case Left(ex: S3Exception) if ex.statusCode() == 404 => false.asRight
       case Left(other) => PathError(other, path).asLeft
-      case Right(keyCount: Int) => (keyCount > 0).asRight
+      case Right(_)    => true.asRight
     }
   }
 
