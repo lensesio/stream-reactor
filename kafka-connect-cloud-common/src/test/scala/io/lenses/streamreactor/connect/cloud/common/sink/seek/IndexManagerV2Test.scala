@@ -582,7 +582,7 @@ class IndexManagerV2Test
     )
   }
 
-  test("migrateOldPathIfExists should skip migration gracefully when pathExists returns an error") {
+  test("migrateOldPathIfExists should propagate error when pathExists fails") {
     val topicPartition  = Topic("test-topic").withPartition(0)
     val bucketAndPrefix = CloudLocation("test-bucket", "test-prefix".some)
     val oldPath         = ".indexes2/.locks/Topic(test-topic)/0.lock"
@@ -590,12 +590,11 @@ class IndexManagerV2Test
 
     when(bucketAndPrefixFn(topicPartition)).thenReturn(Right(bucketAndPrefix))
     when(storageInterface.pathExists("test-bucket", oldPath)).thenReturn(Left(pathError))
-    when(storageInterface.getBlobAsObject[IndexFile](anyString(), anyString())(ArgumentMatchers.eq(indexFileDecoder)))
-      .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(100)), None), "etag")))
 
     val result = indexManagerV2.open(Set(topicPartition))
 
-    result.isRight shouldBe true
+    result.isLeft shouldBe true
+    result.left.getOrElse(throw new RuntimeException("Expected Left")) shouldBe a[FatalCloudSinkError]
 
     verify(storageInterface).pathExists("test-bucket", oldPath)
     verify(storageInterface, never).mvFile(anyString(),

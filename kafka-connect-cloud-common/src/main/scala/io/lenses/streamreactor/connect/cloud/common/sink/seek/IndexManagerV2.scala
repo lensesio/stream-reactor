@@ -259,10 +259,11 @@ class IndexManagerV2(
   ): Either[FatalCloudSinkError, Unit] =
     storageInterface.pathExists(bucketAndPrefix.bucket, maybeOldPath) match {
       case Left(error) =>
-        logger.warn(
-          s"Failed to check existence of old index file for $topicPartition at $maybeOldPath: ${error.message()}. Skipping migration.",
+        val fatalError = new FatalCloudSinkError(error.message(), error.toExceptionOption, topicPartition)
+        logger.error(
+          s"Failed to check existence of old index file for $topicPartition at $maybeOldPath: ${fatalError.message}",
         )
-        ().asRight
+        fatalError.asLeft
       case Right(false) =>
         //old path does not exist, nothing to do
         ().asRight
