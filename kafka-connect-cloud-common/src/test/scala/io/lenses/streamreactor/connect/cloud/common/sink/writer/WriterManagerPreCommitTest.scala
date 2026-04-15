@@ -200,15 +200,15 @@ class WriterManagerPreCommitTest
     result(tp0).offset() shouldBe 100L
   }
 
-  test("preCommit takes min of firstBuffered and maxCommitted+1 to prevent skipping unseen partition keys") {
+  test("preCommit uses minFirstBuffered as safe offset even when it exceeds maxCommitted+1") {
     val indexManager = mock[IndexManager]
     when(indexManager.getSeekedOffsetForTopicPartition(tp0)).thenReturn(None)
     when(indexManager.updateMasterLock(any[TopicPartition], any[Offset])).thenReturn(Right(()))
     when(indexManager.cleanUpObsoleteLocks(any[TopicPartition], any[Offset], any[Set[String]])).thenReturn(Right(()))
 
     val wm = buildWriterManager(indexManager)
-    // Writer A committed to 50, Writer B is writing with firstBuffered=1000
-    // Without math.min, globalSafeOffset would be 1000, skipping offsets 51-999
+    // Writer A committed to 50, Writer B is writing with firstBuffered=1000.
+    // Offsets 51-999 were handled by writers that have since been evicted after committing.
     val writerA = writerInNoWriterState(tp0, Some(Offset(50)))
     val writerB = writerInWritingState(tp0,
                                        committedOffset     = Some(Offset(50)),
@@ -220,8 +220,7 @@ class WriterManagerPreCommitTest
 
     val result = wm.preCommit(currentOffsets(tp0, 2000))
     result should contain key tp0
-    // min(1000, max(50,50)+1) = min(1000, 51) = 51
-    result(tp0).offset() shouldBe 51L
+    result(tp0).offset() shouldBe 1000L
   }
 
   // --- High watermark initialization ---

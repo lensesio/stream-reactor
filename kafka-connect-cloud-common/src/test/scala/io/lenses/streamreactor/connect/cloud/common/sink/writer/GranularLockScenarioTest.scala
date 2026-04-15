@@ -148,9 +148,7 @@ class GranularLockScenarioTest extends AnyFunSuiteLike with Matchers with Mockit
 
     val globalSafeOffset =
       if (firstBufferedOffsets.nonEmpty) {
-        val minFirstBuffered  = firstBufferedOffsets.map(_.value).min
-        val maxCommittedPlus1 = committedOffsets.map(_.value).max + 1
-        math.min(minFirstBuffered, maxCommittedPlus1)
+        firstBufferedOffsets.map(_.value).min
       } else {
         committedOffsets.map(_.value).max + 1
       }
@@ -337,14 +335,12 @@ class GranularLockScenarioTest extends AnyFunSuiteLike with Matchers with Mockit
 
     val globalSafeOffset =
       if (firstBufferedOffsets.nonEmpty) {
-        val minFirstBuffered  = firstBufferedOffsets.map(_.value).min
-        val maxCommittedPlus1 = committedOffsets.map(_.value).max + 1
-        math.min(minFirstBuffered, maxCommittedPlus1)
+        firstBufferedOffsets.map(_.value).min
       } else {
         committedOffsets.map(_.value).max + 1
       }
 
-    // min(100, 105) = 100
+    // minFirstBuffered = 100
     globalSafeOffset shouldBe 100L
   }
 
@@ -393,18 +389,16 @@ class GranularLockScenarioTest extends AnyFunSuiteLike with Matchers with Mockit
 
     val globalSafeOffset =
       if (firstBufferedOffsets.nonEmpty) {
-        val minFirstBuffered  = firstBufferedOffsets.map(_.value).min
-        val maxCommittedPlus1 = committedOffsets.map(_.value).max + 1
-        math.min(minFirstBuffered, maxCommittedPlus1)
+        firstBufferedOffsets.map(_.value).min
       } else {
         committedOffsets.map(_.value).max + 1
       }
 
-    // min(91, 105) = 91 -- must not advance past the Uploading writer's buffered data
+    // minFirstBuffered = 91 -- must not advance past the Uploading writer's buffered data
     globalSafeOffset shouldBe 91L
   }
 
-  test("preCommit globalSafeOffset is maxCommitted+1 when firstBuffered > maxCommitted+1") {
+  test("preCommit globalSafeOffset is minFirstBuffered even when it exceeds maxCommitted+1") {
     when(indexManager.indexingEnabled).thenReturn(true)
 
     // Writer A committed to 104, no buffered data
@@ -443,16 +437,11 @@ class GranularLockScenarioTest extends AnyFunSuiteLike with Matchers with Mockit
 
     val allWriters           = Seq(writerA, writerB)
     val firstBufferedOffsets = allWriters.flatMap(_.getFirstBufferedOffset)
-    val committedOffsets     = allWriters.flatMap(_.getCommittedOffset)
 
-    val globalSafeOffset = {
-      val minFirstBuffered  = firstBufferedOffsets.map(_.value).min
-      val maxCommittedPlus1 = committedOffsets.map(_.value).max + 1
-      math.min(minFirstBuffered, maxCommittedPlus1)
-    }
+    val globalSafeOffset = firstBufferedOffsets.map(_.value).min
 
-    // min(200, 111) = 111
-    globalSafeOffset shouldBe 111L
+    // minFirstBuffered = 200
+    globalSafeOffset shouldBe 200L
   }
 
   test("preCommit returns no offset when updateMasterLock fails (fencing)") {

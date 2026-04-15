@@ -255,9 +255,7 @@ class WriterManager[SM <: FileMetadata](
 
     val calculatedSafeOffset =
       if (firstBufferedOffsets.nonEmpty) {
-        val minFirstBuffered  = firstBufferedOffsets.map(_.value).min
-        val maxCommittedPlus1 = committedOffsets.map(_.value).max + 1
-        math.min(minFirstBuffered, maxCommittedPlus1)
+        firstBufferedOffsets.map(_.value).min
       } else {
         committedOffsets.map(_.value).max + 1
       }
