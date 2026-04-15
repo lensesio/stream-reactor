@@ -2912,6 +2912,51 @@ class IndexManagerV2Test
     } finally im.close()
   }
 
+  test("close() resets executor state so a subsequent open() recreates executors") {
+    val si  = mock[StorageInterface[_]]
+    val cti = ConnectorTaskId("test-connector", 1, 0)
+
+    val bucketFn: TopicPartition => Either[SinkError, CloudLocation] =
+      _ => Right(CloudLocation("bucket", Some("prefix")))
+
+    val im = new IndexManagerV2(
+      bucketFn,
+      oldIndexManager,
+      pendingOperationsProcessors,
+      indexesDirectoryName,
+      gcIntervalSeconds = Int.MaxValue,
+      gcSweepEnabled    = true,
+    )(si, cti)
+
+    try {
+      val tp       = Topic("topic1").withPartition(0)
+      val idxFile  = IndexFile(cti.lockUuid, Some(Offset(0)), None)
+      val objWETag = ObjectWithETag(idxFile, "etag1")
+
+      when(si.pathExists(anyString(), anyString())).thenReturn(Right(false))
+      when(si.getBlobAsObject[IndexFile](anyString(), anyString())(ArgumentMatchers.eq(indexFileDecoder)))
+        .thenReturn(Right(objWETag))
+
+      // First open — executors should be created
+      im.open(Set(tp))
+      im.executorsStarted shouldBe true
+      im.gcExecutor should not be empty
+      im.sweepExecutorOpt should not be empty
+
+      // close — executors should be shut down and state reset
+      im.close()
+      im.executorsStarted shouldBe false
+      im.gcExecutor shouldBe None
+      im.sweepExecutorOpt shouldBe None
+
+      // Second open — fresh executors should be created
+      im.open(Set(tp))
+      im.executorsStarted shouldBe true
+      im.gcExecutor should not be empty
+      im.sweepExecutorOpt should not be empty
+    } finally im.close()
+  }
+
   test("open() clears stale seekedOffsets from revoked partitions after rebalance") {
     val tp0             = Topic("topic1").withPartition(0)
     val tp1             = Topic("topic1").withPartition(1)

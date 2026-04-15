@@ -163,8 +163,8 @@ class IndexManagerV2(
   // IndexManagerV2 is constructed but the surrounding WriterManager/task setup
   // fails, no daemon threads leak.
   @volatile private[seek] var executorsStarted = false
-  @volatile private var gcExecutor:       Option[ScheduledExecutorService] = None
-  @volatile private var sweepExecutorOpt: Option[ScheduledExecutorService] = None
+  @volatile private[seek] var gcExecutor:       Option[ScheduledExecutorService] = None
+  @volatile private[seek] var sweepExecutorOpt: Option[ScheduledExecutorService] = None
 
   private def startExecutors(): Unit =
     if (!executorsStarted) {
@@ -1107,6 +1107,11 @@ class IndexManagerV2(
     }
     // 3. Final synchronous drain to flush any remaining enqueued items
     drainGcQueue()
+    // 4. Reset executor state so startExecutors() creates fresh executors if open() is called
+    //    again on this instance (e.g. after a rebalance close → open cycle).
+    executorsStarted = false
+    gcExecutor       = None
+    sweepExecutorOpt = None
     logger.info(s"IndexManagerV2 closed for ${connectorTaskId.show}")
   }
 
