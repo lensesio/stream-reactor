@@ -181,6 +181,15 @@ trait IndexManager {
   def clearTopicPartitionState(topicPartition: TopicPartition): Unit
 
   /**
+   * Signals that partitions are being closed and background threads should skip work
+   * until the next `open()` call. This is a best-effort gate: it prevents new scheduled
+   * invocations of `drainGcQueue` and `sweepOrphanedLocks` from starting, but cannot
+   * stop an already-running invocation. In-flight executions are benign -- see the
+   * architecture doc for the full safety argument.
+   */
+  def suspendBackgroundWork(): Unit
+
+  /**
    * Releases any resources held by this IndexManager (e.g. background executors).
    * Called during connector task shutdown.
    */

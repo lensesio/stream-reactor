@@ -105,6 +105,8 @@ class NoIndexManager extends IndexManager {
 
   override def clearTopicPartitionState(topicPartition: TopicPartition): Unit = ()
 
+  override def suspendBackgroundWork(): Unit = ()
+
   override def close(): Unit = ()
 
   /**

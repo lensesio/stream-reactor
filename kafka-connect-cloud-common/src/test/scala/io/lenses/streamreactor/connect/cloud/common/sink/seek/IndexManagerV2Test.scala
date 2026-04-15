@@ -2964,4 +2964,63 @@ class IndexManagerV2Test
       im.getSeekedOffsetForTopicPartition(tp0) shouldBe None
     } finally im.close()
   }
+
+  test("suspendBackgroundWork() prevents scheduled sweep and drain until next open()") {
+    val tp0             = Topic("topic1").withPartition(0)
+    val tp1             = Topic("topic1").withPartition(1)
+    val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
+
+    val si = mock[StorageInterface[_]]
+    when(bucketAndPrefixFn(any[TopicPartition])).thenReturn(Right(bucketAndPrefix))
+    when(si.pathExists(anyString(), anyString())).thenReturn(Right(false))
+    when(si.getBlobAsObject[IndexFile](anyString(), anyString())(ArgumentMatchers.eq(indexFileDecoder)))
+      .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(100)), None), "etag")))
+
+    val im = new IndexManagerV2(
+      bucketAndPrefixFn,
+      oldIndexManager,
+      pendingOperationsProcessors,
+      indexesDirectoryName,
+      gcIntervalSeconds      = Int.MaxValue,
+      gcSweepEnabled         = true,
+      gcSweepIntervalSeconds = 86400,
+      gcSweepMinAgeSeconds   = 3600,
+      gcSweepMaxReads        = 1000,
+    )(si, connectorTaskId)
+
+    try {
+      im.open(Set(tp0, tp1))
+      im.acceptingWork shouldBe true
+
+      // Simulate close() calling suspendBackgroundWork()
+      im.suspendBackgroundWork()
+      im.acceptingWork shouldBe false
+
+      // Set up sweep mocks -- these should NOT be called while suspended
+      when(
+        si.getBlobAsObject[IndexManagerV2.SweepMarker](
+          anyString(),
+          ArgumentMatchers.contains("sweep-marker"),
+        )(any[Decoder[IndexManagerV2.SweepMarker]]),
+      ).thenReturn(Left(FileNotFoundError(new Exception("Not found"), "sweep-marker")))
+      val _ = when(si.writeStringToFile(anyString(), anyString(), any[UploadableString]))
+        .thenReturn(Right(()))
+      when(si.listFileMetaRecursive(anyString(), any[Option[String]])).thenReturn(Right(None))
+
+      // Direct call simulates what the scheduled lambda does: check flag, then invoke
+      if (im.acceptingWork) im.sweepOrphanedLocks()
+      if (im.acceptingWork) im.drainGcQueue()
+
+      // Sweep should not have run -- no listFileMetaRecursive calls
+      verify(si, times(0)).listFileMetaRecursive(anyString(), any[Option[String]])
+
+      // Rebalance: open() with new partitions re-enables background work
+      im.open(Set(tp1))
+      im.acceptingWork shouldBe true
+
+      // Now the sweep should work
+      im.sweepOrphanedLocks()
+      verify(si, times(1)).listFileMetaRecursive(anyString(), any[Option[String]])
+    } finally im.close()
+  }
 }

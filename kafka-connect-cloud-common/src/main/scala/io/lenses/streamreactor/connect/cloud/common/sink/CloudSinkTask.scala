@@ -292,6 +292,13 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
       partitions.size(),
     )
 
+    // Suspend background GC/sweep threads before closing writers. This is a best-effort
+    // gate that prevents new scheduled invocations from starting during the close → open
+    // rebalance window. An already-running invocation is not interrupted but is benign
+    // (see architecture doc "Rebalance" section). On shutdown (close → stop), the flag
+    // stays false until the executors are shut down in IndexManagerV2.close(), which
+    // calls drainGcQueue() directly and bypasses the gate.
+    Option(indexManager).foreach(_.suspendBackgroundWork())
     Option(writerManager).foreach(_.close())
   }
 

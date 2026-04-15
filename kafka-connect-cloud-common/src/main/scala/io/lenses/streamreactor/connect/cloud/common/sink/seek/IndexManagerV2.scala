@@ -114,24 +114,27 @@ class IndexManagerV2(
   private def gcGet(tp: TopicPartition, pk: String): Option[GranularCacheEntry] =
     Option(granularCache.get(tp)).flatMap(inner => Option(inner.get(pk)))
 
-  private def gcPut(tp: TopicPartition, pk: String, entry: GranularCacheEntry): Unit =
-    granularCache.compute(tp,
-                          (_, inner) => {
-                            val map = if (inner == null) new ConcurrentHashMap[String, GranularCacheEntry]() else inner
-                            map.put(pk, entry)
-                            map
-                          },
+  private def gcPut(tp: TopicPartition, pk: String, entry: GranularCacheEntry): Unit = {
+    val _ = granularCache.compute(tp,
+                                  (_, inner) => {
+                                    val map =
+                                      if (inner == null) new ConcurrentHashMap[String, GranularCacheEntry]() else inner
+                                    map.put(pk, entry)
+                                    map
+                                  },
     )
+  }
 
-  private def gcRemove(tp: TopicPartition, pk: String): Unit =
-    granularCache.compute(tp,
-                          (_, inner) =>
-                            if (inner == null) null
-                            else {
-                              inner.remove(pk)
-                              if (inner.isEmpty) null else inner
-                            },
+  private def gcRemove(tp: TopicPartition, pk: String): Unit = {
+    val _ = granularCache.compute(tp,
+                                  (_, inner) =>
+                                    if (inner == null) null
+                                    else {
+                                      inner.remove(pk)
+                                      if (inner.isEmpty) null else inner
+                                    },
     )
+  }
 
   private def gcContainsKey(tp: TopicPartition, pk: String): Boolean =
     Option(granularCache.get(tp)).exists(_.containsKey(pk))
@@ -145,6 +148,16 @@ class IndexManagerV2(
     granularCache.values().asScala.map(_.size()).sum
 
   private val gcQueue: ConcurrentLinkedQueue[GcItem] = new ConcurrentLinkedQueue()
+
+  // Best-effort gate: when false, scheduled invocations of drainGcQueue / sweepOrphanedLocks
+  // are skipped. Set to false by suspendBackgroundWork() (called from CloudSinkTask.close()),
+  // set to true at the end of open(). This cannot stop an already-running invocation -- the
+  // volatile provides visibility, not mutual exclusion. In-flight executions are benign:
+  //  - drainGcQueue: processes items enqueued before the rebalance, which were correctly
+  //    identified as obsolete (offset below globalSafeOffset). Deleting them is safe.
+  //  - sweepOrphanedLocks: read-only LIST/GET on revoked partitions; any enqueued GcItems
+  //    are discarded by the next drain after open() prunes seekedOffsets.
+  @volatile private[seek] var acceptingWork = false
 
   // Executors are deferred to startExecutors() (called from open()) so that if
   // IndexManagerV2 is constructed but the surrounding WriterManager/task setup
@@ -161,7 +174,7 @@ class IndexManagerV2(
           t.setDaemon(true)
           t
         }
-        executor.scheduleAtFixedRate(() => drainGcQueue(),
+        executor.scheduleAtFixedRate(() => if (acceptingWork) drainGcQueue(),
                                      gcIntervalSeconds.toLong,
                                      gcIntervalSeconds.toLong,
                                      TimeUnit.SECONDS,
@@ -174,7 +187,7 @@ class IndexManagerV2(
           t.setDaemon(true)
           t
         }
-        executor.scheduleAtFixedRate(() => sweepOrphanedLocks(),
+        executor.scheduleAtFixedRate(() => if (acceptingWork) sweepOrphanedLocks(),
                                      gcSweepIntervalSeconds.toLong,
                                      gcSweepIntervalSeconds.toLong,
                                      TimeUnit.SECONDS,
@@ -211,11 +224,14 @@ class IndexManagerV2(
       }
     }
 
-    topicPartitions.toList
+    val result = topicPartitions.toList
       .parTraverse(tp => EitherT(IO(open(tp))).map(tp -> _))
       .map(_.toMap)
       .value
       .unsafeRunSync()
+
+    acceptingWork = true
+    result
   }
 
   /**
@@ -1022,6 +1038,11 @@ class IndexManagerV2(
         false
     }
 
+  override def suspendBackgroundWork(): Unit = {
+    acceptingWork = false
+    logger.debug(s"[${connectorTaskId.show}] Background work suspended (acceptingWork=false)")
+  }
+
   /**
    * Shuts down background executors and performs a final synchronous GC drain.
    *
@@ -1029,6 +1050,9 @@ class IndexManagerV2(
    * then the GC executor, then a final synchronous `drainGcQueue()` flushes any items
    * that were enqueued but not yet drained. `seekedOffsets` must still be populated at
    * this point so the drain can distinguish owned partitions from revoked ones.
+   *
+   * The final `drainGcQueue()` call is direct (not through the scheduled lambda), so
+   * it bypasses the `acceptingWork` gate and runs regardless of the flag's value.
    */
   override def close(): Unit = {
     if (!executorsStarted) {

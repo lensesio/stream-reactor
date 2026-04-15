@@ -270,6 +270,15 @@ To prevent this, `IndexManagerV2.open()` prunes stale state before processing th
 - On the first `open()` call, `seekedOffsets` is empty and no pruning occurs.
 - On rebalance, exactly the revoked partitions are cleaned up, while retained and newly assigned partitions proceed through the normal `open()` flow.
 
+**Best-effort background-thread gate**: Between `close()` returning and `open()` completing the prune, there is a brief window where background threads could observe stale `seekedOffsets`. To minimize this, `CloudSinkTask.close()` calls `indexManager.suspendBackgroundWork()` before `writerManager.close()`, which sets a `@volatile var acceptingWork = false` flag on `IndexManagerV2`. The scheduled executor lambdas check this flag before invoking `drainGcQueue` or `sweepOrphanedLocks` -- if false, the invocation is skipped. `open()` sets the flag back to `true` after pruning stale partitions and processing the new assignment.
+
+This is a **best-effort gate, not mutual exclusion**: the volatile flag cannot stop a background thread that has already entered `drainGcQueue()` or `sweepOrphanedLocks()` at the instant the flag is flipped. In-flight executions are benign:
+
+- **`drainGcQueue()`**: Processes items that were enqueued before the rebalance by `cleanUpObsoleteLocks`. Those items were correctly identified as obsolete (committed offset below `globalSafeOffset`, no active writer). Deleting them is safe regardless of which task now owns the partition -- the data they tracked is already durably committed, and if the new owner later needs a lock, `ensureGranularLock` recreates it with a fall-back to the master lock offset.
+- **`sweepOrphanedLocks()`**: Issues read-only LIST and GET API calls on revoked partitions (wasteful but harmless -- no writes, no corruption). Any `GcItem`s it enqueues for those partitions will be discarded by the *next* `drainGcQueue()` run, because by then `open()` will have pruned `seekedOffsets` and the drain's `seekedOffsets.contains` check will return false.
+
+On the **shutdown path** (`close()` → `stop()`), the flag stays false. The final synchronous `drainGcQueue()` in `IndexManagerV2.close()` is called directly (not through the scheduled lambda), so it bypasses the gate and runs regardless of the flag's value.
+
 #### Orphaned lock sweep
 
 `cleanUpObsoleteLocks` only operates on lock entries present in the in-memory `granularCache`. Granular lock files from prior runs that no longer receive data are never loaded into the cache and therefore never cleaned up by the regular GC. Over time with high-cardinality `PARTITIONBY` and evolving partition keys, these orphaned lock files accumulate in cloud storage.
