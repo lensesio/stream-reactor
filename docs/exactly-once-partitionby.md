@@ -243,7 +243,7 @@ Two safety guards apply to the enqueue decision:
 
 1. **Master lock durability gate**: GC only runs after the master lock has been successfully updated. If the master lock update fails, GC is skipped entirely. This prevents the scenario where granular locks are deleted but the master lock still points to an old offset -- on crash recovery, the consumer would seek to the stale master offset but the granular locks needed for deduplication would be gone, causing data duplication.
 
-2. **Writer map exclusion**: Lock files for partition keys that currently have a writer in the `writers` map are never enqueued, regardless of the writer's state. In practice, idle writers are eagerly evicted whenever a new writer is created (see "Idle writer eviction"), so the window in which an idle writer blocks its lock file from GC is brief. Once evicted, a new record for that partition key triggers `createWriter` which calls `ensureGranularLock` to recreate the lock or fall back to the master lock offset.
+2. **Writer map exclusion**: Lock files for partition keys that currently have a writer in the `writers` map are never enqueued, regardless of the writer's state. Idle writers are eagerly evicted whenever a new writer is created (see "Idle writer eviction"), and the cache entry is evicted at the same time. Once evicted, the lock file in cloud storage becomes an orphan for the periodic sweep, or is re-read from storage if a new record for that partition key triggers `createWriter` → `ensureGranularLock`.
 
 #### Drain phase (asynchronous, background timer)
 
@@ -351,6 +351,8 @@ The granular lock cache is an unbounded `java.util.concurrent.ConcurrentHashMap`
 
 This design eliminates a previous failure mode: with a bounded `LinkedHashMap` and automatic `removeEldestEntry` eviction, the cache could silently evict an entry for an active writer that still needed its eTag for the next conditional commit. On next flush, `updateForPartitionKey` would detect the missing eTag and raise a `FatalCloudSinkError` -- crashing a healthy task simply because the active working set temporarily exceeded the cache cap. Removing automatic eviction means the cache grows without bound when all writers are actively writing, which is the correct behaviour: every active writer needs its eTag in memory.
 
+In practice, eager eviction on idle writer removal means the steady-state cache size is bounded by the number of concurrently active writers (those in `Writing` or `Uploading` state), not by the total number of unique partition keys ever observed.
+
 If a writer's cache entry is missing at commit time (which can only happen due to a bug or a zombie task whose cache was explicitly evicted), `updateForPartitionKey` raises a `FatalCloudSinkError`. This is intentional: re-reading the eTag from storage would defeat the zombie-task fencing mechanism (see "Zombie task and temp-upload fencing").
 
 **Writer-lifecycle eviction**
@@ -358,6 +360,7 @@ If a writer's cache entry is missing at commit time (which can only happen due t
 Cache entries are explicitly evicted at these lifecycle boundaries:
 
 - `Writer.close()`: does **not** evict the granular cache entry. The entry is deliberately left in the cache so that `cleanUpObsoleteLocks` can detect it as obsolete on the next `preCommit` cycle. If a new writer is created for the same partition key before `preCommit`, `ensureGranularLock` finds a cache hit and reuses the valid eTag without a storage read.
+- **Idle writer eviction** (`evictIdleWritersIfNeeded`): evicts the granular cache entry immediately when the writer is removed from the `writers` map. This bounds the cache size to O(active writers). The lock file in cloud storage is untouched -- it becomes an orphan for the periodic sweep or is re-read from storage if a new writer is later created for the same key via `ensureGranularLock`.
 - `WriterManager.cleanUp(topicPartition)`: evicts all granular lock entries for the topic-partition being reassigned away (via `evictAllGranularLocks`).
 - `WriterManager.close()`: evicts all granular lock entries for every topic-partition owned by the task (via `evictAllGranularLocks`, called during connector stop).
 - `cleanUpObsoleteLocks`: removes entries from the cache when enqueuing them for GC (during `preCommit`).
@@ -366,7 +369,7 @@ Lock files in cloud storage are **not** affected by cache eviction -- they remai
 
 **Re-loading after eviction**
 
-If a new writer is later created for the same partition key -- e.g. after idle-writer eviction or after a rebalance hands the partition back to this task -- `ensureGranularLock` checks the cache first. If the entry still exists (common after idle eviction, before the next `preCommit`), the cached eTag is reused without a storage read. If the entry was removed by `cleanUpObsoleteLocks` or `evictAllGranularLocks`, `ensureGranularLock` re-reads the lock file from storage via `tryOpen`, resolves any `PendingState`, and re-populates the cache. If `ensureGranularLock` finds a cache miss, `getSeekedOffsetForPartitionKey` would also re-read via `loadGranularLock`, but in practice the preceding `ensureGranularLock` call always populates the cache first. These are the **only** code paths that read eTags from storage. The commit path (`updateForPartitionKey`) does **not** re-read on cache miss; instead it raises a `FatalCloudSinkError` to preserve the zombie-fencing invariant (see "Zombie task and temp-upload fencing").
+If a new writer is later created for the same partition key -- e.g. after idle-writer eviction or after a rebalance hands the partition back to this task -- `ensureGranularLock` checks the cache first. After idle-writer eviction the cache entry has been evicted, so this is always a cache miss: `ensureGranularLock` re-reads the lock file from storage via `tryOpen`, resolves any `PendingState`, and re-populates the cache. If `ensureGranularLock` finds a cache miss, `getSeekedOffsetForPartitionKey` would also re-read via `loadGranularLock`, but in practice the preceding `ensureGranularLock` call always populates the cache first. These are the **only** code paths that read eTags from storage. The commit path (`updateForPartitionKey`) does **not** re-read on cache miss; instead it raises a `FatalCloudSinkError` to preserve the zombie-fencing invariant (see "Zombie task and temp-upload fencing").
 
 ### Idle writer eviction
 
@@ -379,8 +382,9 @@ Whenever a new writer is created, `WriterManager` eagerly evicts **all** idle wr
 The eviction sweep:
 
 1. Iterates the writers map looking for idle writers (`NoWriter` state), excluding the just-created writer.
-2. Each idle writer's `close()` is called. The granular cache entry is deliberately **not** evicted -- it is left in the cache so that `cleanUpObsoleteLocks` can detect it as obsolete on the next `preCommit`.
+2. Each idle writer's `close()` is called.
 3. The writer is removed from the map.
+4. The granular cache entry is evicted immediately via `evictGranularLock`. The lock file in cloud storage is untouched -- it becomes an orphan for the periodic sweep (or is re-read from storage if a new writer is later created for the same key).
 
 Only `NoWriter`-state writers are evictable. Writers in `Writing` or `Uploading` state hold buffered or in-flight data and are never evicted. The just-created writer is excluded from eviction candidates because it starts in `NoWriter` state and would otherwise be immediately evicted.
 
@@ -388,7 +392,7 @@ Only `NoWriter`-state writers are evictable. Writers in `Writing` or `Uploading`
 
 `activePartitionKeys` -- the set of partition keys protected from GC -- includes **all** writers currently in the `writers` map, regardless of state. Because idle writers are eagerly evicted, their partition keys leave `activePartitionKeys` promptly, making their lock files eligible for GC on the very next `preCommit` cycle.
 
-Once a writer is evicted from the map, its `close()` is called but the granular cache entry is deliberately **left intact**. On the next `preCommit`, `cleanUpObsoleteLocks` detects that the cache entry's partition key is no longer in `activePartitionKeys` and its offset is below `globalSafeOffset`. It removes the cache entry and enqueues the lock file path into `gcQueue` for background deletion. If a new writer is created for the same partition key between the enqueue and the background drain, the drain skips the file (reclaim check via `ConcurrentHashMap.containsKey`), preserving the new writer's eTag.
+Once a writer is evicted from the map, its `close()` is called and the granular cache entry is evicted immediately. The lock file in cloud storage is **not** deleted at this point -- it becomes an orphan. The periodic orphan sweep (see "Orphaned lock sweep") discovers and deletes these files on its next cycle. If a new writer is created for the same partition key before the sweep runs, `ensureGranularLock` re-reads the lock from storage and re-populates the cache, so the file is preserved.
 
 **Interaction with exactly-once guarantees**
 
@@ -396,7 +400,7 @@ Idle writer eviction does not compromise exactly-once semantics, provided the `g
 
 - **No data loss**: Evicted writers are in `NoWriter` state -- they have no buffered data. The master lock accurately reflects all committed data.
 - **No duplication**: When active writers still hold buffered data, `calculatedSafeOffset` equals `min(firstBufferedOffset)` across those writers. Because only `NoWriter`-state writers are evictable, eviction cannot change `firstBufferedOffset` values; the safe offset depends solely on active, buffered writers and is unaffected by eviction. When all writers are idle (no buffered data), `calculatedSafeOffset` falls back to `max(committedOffsets) + 1`. Evicting writers with high committed offsets would cause this value to drop, but the `safeOffsetHighWatermarks` map in `WriterManager` prevents regression: the reported offset is always `max(calculated, previousHighWatermark)`, so the master lock never moves backwards. When a new writer is created for a previously evicted partition key, it reads the granular lock from storage (if it still exists) or falls back to the non-regressed master lock offset. In either case, `shouldSkip` correctly deduplicates already-committed records.
-- **Fencing preserved**: The evicted writer's cache entry remains in memory after `Writer.close()`. If a zombie task tries to commit using a stale eTag, the cloud storage conditional write fails and `updateForPartitionKey` raises a `FatalCloudSinkError` as intended. The cache entry is eventually cleaned up by `cleanUpObsoleteLocks` on the next `preCommit` or by `evictAllGranularLocks` on shutdown/rebalance.
+- **Fencing preserved**: The evicted writer is in `NoWriter` state and will never call `updateForPartitionKey`, so the eTag in the evicted cache entry is unreachable -- evicting it has no effect on fencing. If a zombie task tries to commit using a stale eTag, the cloud storage conditional write fails and `updateForPartitionKey` raises a `FatalCloudSinkError` as intended. The zombie-fencing invariant depends on eTags held by *active* writers, not evicted idle ones.
 
 ---
 

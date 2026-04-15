@@ -793,7 +793,15 @@ class IndexManagerV2(
             }
             metrics.incrementGcLocksEnqueued(keysToRemove.size.toLong)
             metrics.setGranularCacheSize(granularCacheSize)
-            metrics.setGcQueueDepth(gcQueue.size())
+            val depth = gcQueue.size()
+            metrics.setGcQueueDepth(depth)
+            if (depth > 10000) {
+              logger.warn(
+                s"GC queue depth is $depth for $topicPartition. " +
+                  s"Consider reducing connect.<prefix>.indexes.gc.interval.seconds " +
+                  s"(currently ${gcIntervalSeconds}s) to drain faster.",
+              )
+            }
             logger.debug(
               s"Enqueued ${keysToRemove.size} obsolete granular lock(s) for async deletion for $topicPartition",
             )
@@ -843,7 +851,8 @@ class IndexManagerV2(
                 case Left(err) =>
                   metrics.incrementGcDeleteFailures()
                   logger.warn(
-                    s"Background GC failed to delete ${chunk.size} lock file(s) from bucket=$bucket: ${err.message()}",
+                    s"Background GC batch delete failed for ${chunk.size} lock file(s) from bucket=$bucket: ${err.message()}. " +
+                      s"Re-enqueuing conservatively (some items may have been deleted -- idempotent retry is safe).",
                   )
                   val retryable = chunk.filter(_.retryCount < MaxGcRetries)
                   retryable.foreach(i => gcQueue.add(i.copy(retryCount = i.retryCount + 1)))
@@ -984,9 +993,7 @@ class IndexManagerV2(
         case Right(maybeListing) => maybeListing
       }
     } yield {
-      // Safe: SM <: FileMetadata and Seq is covariant, but the existential type on
-      // StorageInterface[?] prevents the compiler from proving it. The cast is always valid.
-      val files = listing.files.asInstanceOf[Seq[FileMetadata]]
+      val files = listing.files.collect { case fm: FileMetadata => fm }
       // Classify each file and GET-read only those that pass the filter chain, respecting the budget
       files.foldLeft((0, 0)) {
         case (acc @ (_, readsUsed), _) if readsUsed >= readsRemaining => acc

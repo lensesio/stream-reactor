@@ -515,6 +515,43 @@ class WriterManagerPreCommitTest
     wm.writerCount shouldBe 0
   }
 
+  test("eviction eagerly evicts granular cache entries for idle writers") {
+    val indexManager = mock[IndexManager]
+    val wm           = buildWriterManager(indexManager)
+
+    val writerA = writerInNoWriterState(tp0, Some(Offset(10)))
+    val writerB = writerInNoWriterState(tp0, Some(Offset(20)))
+    wm.putWriter(MapKey(tp0, dateA), writerA)
+    wm.putWriter(MapKey(tp0, dateB), writerB)
+
+    wm.writerCount shouldBe 2
+
+    // Trigger eviction of all idle writers
+    wm.evictIdleWritersNow()
+
+    wm.writerCount shouldBe 0
+
+    val pkA = WriterManager.derivePartitionKey(dateA).get
+    val pkB = WriterManager.derivePartitionKey(dateB).get
+    verify(indexManager).evictGranularLock(tp0, pkA)
+    verify(indexManager).evictGranularLock(tp0, pkB)
+  }
+
+  test("eviction does not evict cache for non-PARTITIONBY writers (empty partitionValues)") {
+    val indexManager = mock[IndexManager]
+    val wm           = buildWriterManager(indexManager)
+
+    val emptyPartitionValues: immutable.Map[PartitionField, String] = Map.empty
+    val writer = writerInNoWriterState(tp0, Some(Offset(10)))
+    wm.putWriter(MapKey(tp0, emptyPartitionValues), writer)
+
+    wm.evictIdleWritersNow()
+    wm.writerCount shouldBe 0
+
+    // derivePartitionKey returns None for empty partitionValues, so evictGranularLock should NOT be called
+    verify(indexManager, never).evictGranularLock(any[TopicPartition], any[String])
+  }
+
   test("eviction does not remove writers that are actively writing") {
     val indexManager = mock[IndexManager]
     val wm           = buildWriterManager(indexManager)

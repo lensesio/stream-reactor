@@ -99,6 +99,10 @@ class WriterManager[SM <: FileMetadata](
     val topicPartitions = writers.keys.map(_.topicPartition).toSet
     writers.values.foreach(_.close())
     writers.clear()
+    // Safe to clear all watermarks, including for retained partitions on rebalance:
+    // getOffsetAndMeta re-initializes each partition's watermark from the master lock's
+    // seeked offset (committedOffset + 1) on first preCommit after re-opening, which
+    // equals the previous globalSafeOffset. No regression is possible.
     safeOffsetHighWatermarks.clear()
     // After closing all writers, evict their granular lock cache entries so that no stale
     // offsets or eTags linger in memory after the task stops. Writer.close() deliberately
@@ -340,6 +344,9 @@ class WriterManager[SM <: FileMetadata](
     idleEntries.foreach { case (key, writer) =>
       writer.close()
       writers.remove(key)
+      WriterManager.derivePartitionKey(key.partitionValues).foreach { pk =>
+        indexManager.evictGranularLock(key.topicPartition, pk)
+      }
       metrics.incrementIdleWriterEvictions()
     }
     metrics.setWriterCount(writers.size)
