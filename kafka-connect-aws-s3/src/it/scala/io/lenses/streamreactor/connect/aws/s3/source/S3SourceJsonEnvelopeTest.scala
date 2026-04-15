@@ -53,6 +53,8 @@ class S3SourceJsonEnvelopeTest
 
   "task" should "extract from json files containing the envelope" in {
     forAll(compressionCodecs) { codec =>
+      val existing = listBucketPath(BucketName, s"$MyPrefix/json/")
+      if (existing.nonEmpty) storageInterface.deleteFiles(BucketName, existing)
       uploadFile(codec)
 
       val task = new S3SourceTask()
