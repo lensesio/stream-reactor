@@ -2840,4 +2840,128 @@ class IndexManagerV2Test
       im.executorsStarted shouldBe true
     } finally im.close()
   }
+
+  test("open() clears stale seekedOffsets from revoked partitions after rebalance") {
+    val tp0             = Topic("topic1").withPartition(0)
+    val tp1             = Topic("topic1").withPartition(1)
+    val tp2             = Topic("topic1").withPartition(2)
+    val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
+
+    val si = mock[StorageInterface[_]]
+    when(bucketAndPrefixFn(any[TopicPartition])).thenReturn(Right(bucketAndPrefix))
+    when(si.pathExists(anyString(), anyString())).thenReturn(Right(false))
+    when(si.getBlobAsObject[IndexFile](anyString(), anyString())(ArgumentMatchers.eq(indexFileDecoder)))
+      .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(100)), None), "etag")))
+
+    val im = new IndexManagerV2(
+      bucketAndPrefixFn,
+      oldIndexManager,
+      pendingOperationsProcessors,
+      indexesDirectoryName,
+      gcIntervalSeconds      = Int.MaxValue,
+      gcSweepEnabled         = true,
+      gcSweepIntervalSeconds = 86400,
+      gcSweepMinAgeSeconds   = 3600,
+      gcSweepMaxReads        = 1000,
+    )(si, connectorTaskId)
+
+    try {
+      // First assignment: {tp0, tp1}
+      im.open(Set(tp0, tp1))
+      im.getSeekedOffsetForTopicPartition(tp0) shouldBe Some(Offset(100))
+      im.getSeekedOffsetForTopicPartition(tp1) shouldBe Some(Offset(100))
+
+      // Rebalance: tp0 revoked, tp2 added → new assignment {tp1, tp2}
+      im.open(Set(tp1, tp2))
+
+      // tp0 should have been pruned
+      im.getSeekedOffsetForTopicPartition(tp0) shouldBe None
+      // tp1 should still be present (re-opened)
+      im.getSeekedOffsetForTopicPartition(tp1) shouldBe Some(Offset(100))
+      // tp2 should be present (newly opened)
+      im.getSeekedOffsetForTopicPartition(tp2) shouldBe Some(Offset(100))
+
+      // Sweep should NOT process tp0 (no longer in seekedOffsets).
+      // After pruning, only tp1 and tp2 remain, so the sweep should list exactly 2 partitions.
+      when(
+        si.getBlobAsObject[IndexManagerV2.SweepMarker](
+          anyString(),
+          ArgumentMatchers.contains("sweep-marker"),
+        )(any[Decoder[IndexManagerV2.SweepMarker]]),
+      ).thenReturn(Left(FileNotFoundError(new Exception("Not found"), "sweep-marker")))
+      val _ = when(si.writeStringToFile(anyString(), anyString(), any[UploadableString]))
+        .thenReturn(Right(()))
+      when(si.listFileMetaRecursive(anyString(), any[Option[String]])).thenReturn(Right(None))
+
+      im.sweepOrphanedLocks()
+
+      verify(si, times(2)).listFileMetaRecursive(anyString(), any[Option[String]])
+    } finally im.close()
+  }
+
+  test("open() does not clear anything on first call when seekedOffsets is empty") {
+    val tp0             = Topic("topic1").withPartition(0)
+    val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
+
+    val si = mock[StorageInterface[_]]
+    when(bucketAndPrefixFn(any[TopicPartition])).thenReturn(Right(bucketAndPrefix))
+    when(si.pathExists(anyString(), anyString())).thenReturn(Right(false))
+    when(si.getBlobAsObject[IndexFile](anyString(), anyString())(ArgumentMatchers.eq(indexFileDecoder)))
+      .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(50)), None), "etag")))
+
+    val im = new IndexManagerV2(
+      bucketAndPrefixFn,
+      oldIndexManager,
+      pendingOperationsProcessors,
+      indexesDirectoryName,
+      gcIntervalSeconds = Int.MaxValue,
+    )(si, connectorTaskId)
+
+    try {
+      // First open on a fresh instance — no stale state to prune
+      im.open(Set(tp0))
+      im.getSeekedOffsetForTopicPartition(tp0) shouldBe Some(Offset(50))
+    } finally im.close()
+  }
+
+  test("open() clears granular cache entries for revoked partitions") {
+    val tp0             = Topic("topic1").withPartition(0)
+    val tp1             = Topic("topic1").withPartition(1)
+    val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
+
+    val si = mock[StorageInterface[_]]
+    when(bucketAndPrefixFn(any[TopicPartition])).thenReturn(Right(bucketAndPrefix))
+    when(si.pathExists(anyString(), anyString())).thenReturn(Right(false))
+    when(si.getBlobAsObject[IndexFile](anyString(), anyString())(ArgumentMatchers.eq(indexFileDecoder)))
+      .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(100)), None), "etag")))
+
+    val im = new IndexManagerV2(
+      bucketAndPrefixFn,
+      oldIndexManager,
+      pendingOperationsProcessors,
+      indexesDirectoryName,
+      gcIntervalSeconds = Int.MaxValue,
+    )(si, connectorTaskId)
+
+    try {
+      // Open tp0 and tp1
+      im.open(Set(tp0, tp1))
+
+      // Populate granular cache for tp0 by loading a granular lock
+      when(
+        si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/pk-a.lock"))(
+          ArgumentMatchers.eq(indexFileDecoder),
+        ),
+      ).thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(80)), None), "g-etag")))
+      im.getSeekedOffsetForPartitionKey(tp0, "pk-a") shouldBe Right(Some(Offset(80)))
+      im.granularCacheSize shouldBe 1
+
+      // Rebalance: tp0 revoked → new assignment {tp1}
+      im.open(Set(tp1))
+
+      // Granular cache for tp0 should be evicted
+      im.granularCacheSize shouldBe 0
+      im.getSeekedOffsetForTopicPartition(tp0) shouldBe None
+    } finally im.close()
+  }
 }

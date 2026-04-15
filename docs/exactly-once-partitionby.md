@@ -260,6 +260,16 @@ Partial batches (fewer items than `gcBatchSize`) are deleted normally -- the bat
 
 Kafka Connect calls `close(allPartitions)` before `stop()`. `CloudSinkTask.close()` calls `WriterManager.close()`, which closes all writers and evicts granular lock cache entries via `evictAllGranularLocks`, but deliberately does **not** call `clearTopicPartitionState`. `CloudSinkTask.close()` itself also does **not** call `clearTopicPartitionState`. The `seekedOffsets` map must remain populated so that the subsequent `indexManager.close()` -- called from `CloudSinkTask.stop()`, which shuts down the `ScheduledExecutorService` and performs a final synchronous drain of any remaining items in `gcQueue` -- can distinguish items that belong to this task from items for revoked partitions. If `seekedOffsets` were cleared before the drain, every queued GC item would be discarded as "partition no longer owned," and the final-drain cleanup would never delete anything. The `indexManager` reference (along with its internal state) is set to `null` immediately after `close()` returns and is garbage-collected.
 
+#### Rebalance (partition reassignment)
+
+During a rebalance, Kafka Connect calls `close(currentPartitions)` followed by `open(newPartitions)` -- `stop()` is **not** called. Because `WriterManager.close()` deliberately does not call `clearTopicPartitionState`, `seekedOffsets` entries for revoked partitions would otherwise survive indefinitely. The background `sweepOrphanedLocks` iterates `seekedOffsets.keys` and would process revoked partitions, issuing LIST and GET API calls on partitions now owned by another task. Similarly, `drainGcQueue` would treat items for revoked partitions as owned (since `seekedOffsets.contains` returns true).
+
+To prevent this, `IndexManagerV2.open()` prunes stale state before processing the new partition set. It computes `stalePartitions = seekedOffsets.keys -- newTopicPartitions` and calls `evictAllGranularLocks` and `clearTopicPartitionState` for each stale partition. This is safe because:
+
+- During shutdown, `open()` is never called between `close()` and `stop()`, so the shutdown path is unaffected -- `seekedOffsets` remains populated for the final GC drain.
+- On the first `open()` call, `seekedOffsets` is empty and no pruning occurs.
+- On rebalance, exactly the revoked partitions are cleaned up, while retained and newly assigned partitions proceed through the normal `open()` flow.
+
 #### Orphaned lock sweep
 
 `cleanUpObsoleteLocks` only operates on lock entries present in the in-memory `granularCache`. Granular lock files from prior runs that no longer receive data are never loaded into the cache and therefore never cleaned up by the regular GC. Over time with high-cardinality `PARTITIONBY` and evolving partition keys, these orphaned lock files accumulate in cloud storage.

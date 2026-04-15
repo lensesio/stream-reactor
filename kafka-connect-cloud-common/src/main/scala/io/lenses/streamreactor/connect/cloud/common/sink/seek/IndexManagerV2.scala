@@ -186,6 +186,23 @@ class IndexManagerV2(
    */
   override def open(topicPartitions: Set[TopicPartition]): Either[SinkError, Map[TopicPartition, Option[Offset]]] = {
     startExecutors()
+
+    // Prune state for partitions that were in the previous assignment but are not in the
+    // new one (revoked during a rebalance). During shutdown close() is followed by stop(),
+    // not open(), so this branch is never reached on the shutdown path -- seekedOffsets
+    // remain populated for the final drainGcQueue() in IndexManagerV2.close().
+    val stalePartitions = seekedOffsets.keys.toSet -- topicPartitions
+    if (stalePartitions.nonEmpty) {
+      logger.info(
+        s"[${connectorTaskId.show}] Clearing stale state for ${stalePartitions.size} revoked partition(s) " +
+          s"from previous assignment: ${stalePartitions.mkString(", ")}",
+      )
+      stalePartitions.foreach { tp =>
+        evictAllGranularLocks(tp)
+        clearTopicPartitionState(tp)
+      }
+    }
+
     topicPartitions.toList
       .parTraverse(tp => EitherT(IO(open(tp))).map(tp -> _))
       .map(_.toMap)
