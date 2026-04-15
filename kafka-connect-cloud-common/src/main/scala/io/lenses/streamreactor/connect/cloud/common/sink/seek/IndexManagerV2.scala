@@ -114,16 +114,24 @@ class IndexManagerV2(
   private def gcGet(tp: TopicPartition, pk: String): Option[GranularCacheEntry] =
     Option(granularCache.get(tp)).flatMap(inner => Option(inner.get(pk)))
 
-  private def gcPut(tp: TopicPartition, pk: String, entry: GranularCacheEntry): Unit = {
-    granularCache.computeIfAbsent(tp, _ => new ConcurrentHashMap[String, GranularCacheEntry]()).put(pk, entry)
-    ()
-  }
+  private def gcPut(tp: TopicPartition, pk: String, entry: GranularCacheEntry): Unit =
+    granularCache.compute(tp,
+                          (_, inner) => {
+                            val map = if (inner == null) new ConcurrentHashMap[String, GranularCacheEntry]() else inner
+                            map.put(pk, entry)
+                            map
+                          },
+    )
 
   private def gcRemove(tp: TopicPartition, pk: String): Unit =
-    Option(granularCache.get(tp)).foreach { inner =>
-      inner.remove(pk)
-      if (inner.isEmpty) { val _ = granularCache.remove(tp) }
-    }
+    granularCache.compute(tp,
+                          (_, inner) =>
+                            if (inner == null) null
+                            else {
+                              inner.remove(pk)
+                              if (inner.isEmpty) null else inner
+                            },
+    )
 
   private def gcContainsKey(tp: TopicPartition, pk: String): Boolean =
     Option(granularCache.get(tp)).exists(_.containsKey(pk))
