@@ -208,6 +208,152 @@ This is important for two reasons:
 
 ---
 
+## Prerequisite: Deterministic Partition Keys
+
+The exactly-once invariant described above rests on an implicit assumption: **the same Kafka offset must always route to the same partition key (and therefore the same writer and granular lock) on every delivery**. When this holds, the proof is valid. When it breaks, both cross-path duplication and data misplacement become possible, and the two-tier lock system cannot prevent them.
+
+### Why determinism matters
+
+The deduplication mechanism is **per-writer**: each writer's `shouldSkip` consults only its own granular lock. If offset N was committed by Writer A (partition key `date=2024-04-14`) and is later replayed into Writer B (partition key `date=2024-04-15`), Writer B has no record of offset N in its granular lock and will write the record again. The master lock fallback (`getSeekedOffsetForTopicPartition`) protects against some cases -- if the master lock's `committedOffset` is >= N, the new writer's `lastSeekedOffset` will cause `shouldSkip(N)` to return true. But this only holds when the master lock has already advanced past N. In the window between a writer committing and the next `preCommit` updating the master lock, or when the granular lock for the new partition key already has a committed offset from earlier legitimate records that is lower than N, the dedup check fails and the record is written twice -- once under each partition key.
+
+### How Connect SMTs break determinism
+
+Kafka Connect Single Message Transforms (SMTs) run **on every delivery** of a record, including replays after a crash or rebalance. The Connect worker applies the SMT chain before passing records to the sink task's `put()` method. This means the transform output is not part of the durable Kafka record -- it is recomputed each time.
+
+A common customer pattern is to use an SMT to inject the current wallclock time into a header or value field, then partition by that field:
+
+```sql
+-- SMT injects processing-time date into header
+-- KCQL partitions by that header plus business fields
+INSERT INTO bucket:output SELECT * FROM topic PARTITIONBY _header.date, _value.region, _value.category
+```
+
+If the SMT uses `System.currentTimeMillis()`, `LocalDate.now()`, `Instant.now()`, or any processing-context-derived value, the injected field changes between the original delivery and any subsequent replay. The partition key changes, the record routes to a different writer, and the determinism prerequisite is violated.
+
+The following sequence diagram shows exactly where the SMT re-executes and how it produces different routing on replay:
+
+```mermaid
+sequenceDiagram
+    participant Kafka
+    participant Worker as Connect Worker
+    participant SMT
+    participant Sink as Cloud Sink Task
+    participant WriterA as Writer A<br/>date=2024-04-14
+    participant WriterB as Writer B<br/>date=2024-04-15
+
+    Note over Kafka,WriterB: Original delivery (April 14, 23:58)
+    Kafka->>Worker: poll() returns offset 200
+    Worker->>SMT: transform(record)
+    SMT-->>Worker: header.date = 2024-04-14
+    Worker->>Sink: put(records)
+    Sink->>WriterA: write(offset 200)
+    WriterA-->>WriterA: commit → granular lock A: committedOffset=200
+
+    Note over Kafka,WriterB: Rebalance at 23:59, replay at 00:01
+    Kafka->>Worker: poll() returns offset 200 (replay)
+    Worker->>SMT: transform(record)
+    SMT-->>Worker: header.date = 2024-04-15
+    Worker->>Sink: put(records)
+    Sink->>WriterB: write(offset 200)
+    Note over WriterB: shouldSkip(200)? → checks own granular lock
+```
+
+### Failure mode: cross-path duplication
+
+When the partition key changes on replay, a record that was already durably committed under one partition key can be written again under a different one. This happens when the new writer's granular lock has a committed offset lower than the replayed record's offset:
+
+```mermaid
+flowchart TD
+    A["Offset 200 delivered at 23:58\nSMT stamps date=2024-04-14\nWriter A commits\nGranular lock A: committedOffset=200"] --> B["Rebalance at 23:59\nclose() discards staging files\nMaster lock: committedOffset=200"]
+    B --> C["Replay offset 200 at 00:01\nSMT stamps date=2024-04-15"]
+    C --> D{"Granular lock B exists\nwith earlier records?"}
+    D -->|"Yes: committedOffset=195\n(from legitimate Apr-15 records)"| E{"shouldSkip(200)?"}
+    D -->|"No lock exists, falls back\nto master lock offset 200"| F{"shouldSkip(200)?"}
+    E -->|"200 > 195 → No"| G["Record WRITTEN AGAIN\nto date=2024-04-15/ path"]
+    F -->|"200 <= 200 → Yes"| H["Record correctly skipped"]
+    G --> I["DUPLICATION:\nOffset 200 exists in BOTH\ndate=2024-04-14/ AND\ndate=2024-04-15/"]
+```
+
+The left branch (granular lock B has `committedOffset=195` from earlier legitimate April 15 records) is the problematic case. The right branch (no granular lock, master lock fallback) happens to be safe in this specific example, but is not a reliable protection -- it depends on the master lock having already been updated past the replayed offset, which is timing-dependent.
+
+The duplication is **cross-path**: both output directories contain the record. Downstream query engines that union-read across date partitions will see the record twice. Engines that read a single partition will see it in the wrong bucket.
+
+### Failure mode: data misplacement
+
+Even when records are not technically duplicated (e.g., the master lock fallback correctly skips them), records that were buffered but not yet committed before the rebalance will be replayed with a new partition key. These records land in the wrong time bucket:
+
+- Offsets 201-210 were buffered in Writer A (`date=2024-04-14`) but not committed before the rebalance.
+- `globalSafeOffset` was 201 (the first buffered offset), so Kafka replays from offset 201.
+- On replay at 00:01, the SMT stamps `date=2024-04-15`. All ten records are written to `date=2024-04-15/`.
+- The data is not lost and not duplicated, but it is in the wrong temporal partition.
+
+For downstream consumers that rely on date-partitioned paths for time-range queries, incremental processing, or retention policies, this misplacement is a form of data corruption.
+
+### What IS deterministic (safe for exactly-once)
+
+| Source | Why it is safe |
+|--------|---------------|
+| Kafka record timestamp (`_timestamp`) | Set by the producer or broker at produce time. Immutable in the Kafka log. Identical on every delivery. |
+| Fields in the record value (`_value.event_date`) | Part of the serialized Kafka record. Identical on every delivery. |
+| Fields in the record key (`_key.id`) | Part of the serialized Kafka record. Identical on every delivery. |
+| Headers set by the **producer** | Written into the Kafka record at produce time. Identical on every delivery. |
+
+### What is NOT deterministic (breaks exactly-once)
+
+| Source | Why it is unsafe |
+|--------|-----------------|
+| SMT injecting `System.currentTimeMillis()` or `Instant.now()` | Processing-time wallclock. Changes on replay. |
+| SMT injecting `LocalDate.now()` or `LocalDateTime.now()` | Processing-time wallclock. Changes on replay, especially near midnight. |
+| SMT deriving values from environment variables or hostname | May change after rebalance to a different worker. |
+| Any SMT whose output depends on external state (database lookup, API call) | External state may have changed between deliveries. |
+
+### Rolling windows and multiple writers
+
+A common use of wallclock-based partitioning is to organize output into rolling time windows (e.g., daily or hourly directories). At steady state this produces a **rolling window of 1-2 active writers** -- one for the current time bucket and possibly one for the previous bucket during the boundary transition period. This is architecturally well-handled:
+
+```mermaid
+flowchart LR
+    subgraph partition ["Kafka Partition 0"]
+        R1["offset 100\nregion=us"]
+        R2["offset 101\nregion=eu"]
+        R3["offset 102\nregion=us"]
+        R4["offset 103\nregion=eu"]
+    end
+    subgraph activeWriters ["Active Writers"]
+        WA["Writer A\ndate=Apr-14, region=us\n(idle after commit)"]
+        WB["Writer B\ndate=Apr-15, region=us\n(active, buffering)"]
+        WC["Writer C\ndate=Apr-15, region=eu\n(active, buffering)"]
+    end
+    subgraph granularLocks ["Granular Locks"]
+        LA["lock: date%3DApr-14_region%3Dus\ncommittedOffset=98"]
+        LB["lock: date%3DApr-15_region%3Dus\ncommittedOffset=97"]
+        LC["lock: date%3DApr-15_region%3Deu\ncommittedOffset=96"]
+    end
+    R1 --> WB
+    R2 --> WC
+    R3 --> WB
+    R4 --> WC
+    WA -.->|"committed, idle"| LA
+    WB -.->|"will update on commit"| LB
+    WC -.->|"will update on commit"| LC
+```
+
+- **Idle writer eviction** keeps the writer map lean: when Writer B or C is created for a given `TopicPartition`, idle writers for that same partition are evicted.
+- **Coordinated commit** ensures all writers for a TopicPartition commit together when any one triggers a flush, keeping the `globalSafeOffset` computation correct.
+- **Granular lock GC** cleans up old date partition locks once their committed offset falls below `globalSafeOffset`.
+
+The number of concurrent writers is not the concern. Multiple writers are architecturally necessary for `PARTITIONBY` and the two-tier lock system handles them correctly. The concern is solely whether the partition key derivation is **deterministic across deliveries**.
+
+### Recommendations
+
+1. **Use record-intrinsic timestamps.** Partition by the Kafka record timestamp or a field set by the producer (e.g., `_value.event_time`, `_value.created_at`). These are immutable in the Kafka log and produce identical partition keys on every delivery.
+
+2. **If an SMT is required**, ensure it derives values exclusively from the record content (key, value, headers, or timestamp), not from processing context. For example, an SMT that reformats `_timestamp` into `yyyy-MM-dd` is safe; an SMT that calls `LocalDate.now()` is not.
+
+3. **If wallclock partitioning is unavoidable**, understand the trade-off: exactly-once semantics cannot be guaranteed across crash/rebalance events near window boundaries. Records near the boundary may be duplicated across two output paths or placed in the wrong time bucket. The connector will not lose data (`globalSafeOffset` prevents Kafka from advancing past uncommitted records), but output correctness is compromised.
+
+---
+
 ## Lifecycle: How It All Fits Together
 
 ### Single-threaded contract
@@ -243,7 +389,7 @@ Two safety guards apply to the enqueue decision:
 
 1. **Master lock durability gate**: GC only runs after the master lock has been successfully updated. If the master lock update fails, GC is skipped entirely. This prevents the scenario where granular locks are deleted but the master lock still points to an old offset -- on crash recovery, the consumer would seek to the stale master offset but the granular locks needed for deduplication would be gone, causing data duplication.
 
-2. **Writer map exclusion**: Lock files for partition keys that currently have a writer in the `writers` map are never enqueued, regardless of the writer's state. Idle writers are eagerly evicted whenever a new writer is created (see "Idle writer eviction"), and the cache entry is evicted at the same time. Once evicted, the lock file in cloud storage becomes an orphan for the periodic sweep, or is re-read from storage if a new record for that partition key triggers `createWriter` → `ensureGranularLock`.
+2. **Writer map exclusion**: Lock files for partition keys that currently have a writer in the `writers` map are never enqueued, regardless of the writer's state. Idle writers are eagerly evicted whenever a new writer is created for the same `TopicPartition` (see "Idle writer eviction"), and the cache entry is evicted at the same time. Once evicted, the lock file in cloud storage becomes an orphan for the periodic sweep, or is re-read from storage if a new record for that partition key triggers `createWriter` → `ensureGranularLock`.
 
 #### Drain phase (asynchronous, background timer)
 
@@ -360,7 +506,7 @@ If a writer's cache entry is missing at commit time (which can only happen due t
 Cache entries are explicitly evicted at these lifecycle boundaries:
 
 - `Writer.close()`: does **not** evict the granular cache entry. The entry is deliberately left in the cache so that `cleanUpObsoleteLocks` can detect it as obsolete on the next `preCommit` cycle. If a new writer is created for the same partition key before `preCommit`, `ensureGranularLock` finds a cache hit and reuses the valid eTag without a storage read.
-- **Idle writer eviction** (`evictIdleWritersIfNeeded`): evicts the granular cache entry immediately when the writer is removed from the `writers` map. This bounds the cache size to O(active writers). The lock file in cloud storage is untouched -- it becomes an orphan for the periodic sweep or is re-read from storage if a new writer is later created for the same key via `ensureGranularLock`.
+- **Idle writer eviction** (`evictIdleWritersIfNeeded`): evicts the granular cache entry immediately when the writer is removed from the `writers` map. Eviction is scoped to the same `TopicPartition` as the newly created writer, so idle writers for other partitions are unaffected. This bounds the cache size to O(active writers per partition). The lock file in cloud storage is untouched -- it becomes an orphan for the periodic sweep or is re-read from storage if a new writer is later created for the same key via `ensureGranularLock`.
 - `WriterManager.cleanUp(topicPartition)`: evicts all granular lock entries for the topic-partition being reassigned away (via `evictAllGranularLocks`).
 - `WriterManager.close()`: evicts all granular lock entries for every topic-partition owned by the task (via `evictAllGranularLocks`, called during connector stop).
 - `cleanUpObsoleteLocks`: removes entries from the cache when enqueuing them for GC (during `preCommit`).
@@ -377,11 +523,11 @@ Without eviction, the `writers` map in `WriterManager` grows without bound. Writ
 
 **How it works**
 
-Whenever a new writer is created, `WriterManager` eagerly evicts **all** idle writers (those in `NoWriter` state) from the map. This keeps the map lean -- only active writers (buffering or uploading data) and the just-created writer remain. Creating a writer is cheap (typically a granular cache hit, or one cloud GET on a miss), and closing an idle writer is essentially a no-op (it holds no buffered data or open file handles).
+Whenever a new writer is created, `WriterManager` eagerly evicts all idle writers (those in `NoWriter` state) **for the same `TopicPartition`** from the map. This keeps each partition's writer set lean -- only active writers (buffering or uploading data) and the just-created writer remain for that partition. Idle writers for other partitions are not disturbed, avoiding unnecessary cloud storage GETs to re-read granular locks when data next arrives for those partitions. Creating a writer is cheap (typically a granular cache hit, or one cloud GET on a miss), and closing an idle writer is essentially a no-op (it holds no buffered data or open file handles).
 
 The eviction sweep:
 
-1. Iterates the writers map looking for idle writers (`NoWriter` state), excluding the just-created writer.
+1. Iterates the writers map looking for idle writers (`NoWriter` state) belonging to the same `TopicPartition` as the new writer, excluding the just-created writer itself.
 2. Each idle writer's `close()` is called.
 3. The writer is removed from the map.
 4. The granular cache entry is evicted immediately via `evictGranularLock`. The lock file in cloud storage is untouched -- it becomes an orphan for the periodic sweep (or is re-read from storage if a new writer is later created for the same key).
@@ -390,7 +536,7 @@ Only `NoWriter`-state writers are evictable. Writers in `Writing` or `Uploading`
 
 **Interaction with GC**
 
-`activePartitionKeys` -- the set of partition keys protected from GC -- includes **all** writers currently in the `writers` map, regardless of state. Because idle writers are eagerly evicted, their partition keys leave `activePartitionKeys` promptly, making their lock files eligible for GC on the very next `preCommit` cycle.
+`activePartitionKeys` -- the set of partition keys protected from GC -- includes **all** writers currently in the `writers` map, regardless of state. Because idle writers for the same `TopicPartition` are eagerly evicted, their partition keys leave `activePartitionKeys` promptly, making their lock files eligible for GC on the very next `preCommit` cycle.
 
 Once a writer is evicted from the map, its `close()` is called and the granular cache entry is evicted immediately. The lock file in cloud storage is **not** deleted at this point -- it becomes an orphan. The periodic orphan sweep (see "Orphaned lock sweep") discovers and deletes these files on its next cycle. If a new writer is created for the same partition key before the sweep runs, `ensureGranularLock` re-reads the lock from storage and re-populates the cache, so the file is preserved.
 
@@ -464,7 +610,7 @@ This constraint also applies when the same connector name is reused across envir
 
 Each active `Writer` holds a `FormatWriter` (typically 1-10 MB of heap for Parquet/Avro page buffers and dictionary encoders), an open `java.io.File` handle (one file descriptor), and commit-state metadata. Under high-cardinality `PARTITIONBY` (e.g. partitioning by `user_id` or `session_id` with millions of unique values), the connector creates a `Writer` per unique value.
 
-**Mitigation**: `WriterManager` eagerly evicts all idle writers (those in `NoWriter` state) whenever a new writer is created. Their `close()` is called, releasing the `FormatWriter` heap and file descriptor. The granular cache entry is deliberately **not** evicted -- it is left in the cache so that `cleanUpObsoleteLocks` can detect it as obsolete on the next `preCommit`. Writers in `Writing` or `Uploading` state are pinned and never evicted. See "Idle writer eviction" under "Lifecycle" for full details.
+**Mitigation**: `WriterManager` eagerly evicts all idle writers (those in `NoWriter` state) for the same `TopicPartition` whenever a new writer is created. Their `close()` is called, releasing the `FormatWriter` heap and file descriptor. The granular cache entry is deliberately **not** evicted -- it is left in the cache so that `cleanUpObsoleteLocks` can detect it as obsolete on the next `preCommit`. Writers in `Writing` or `Uploading` state are pinned and never evicted. See "Idle writer eviction" under "Lifecycle" for full details.
 
 Note that eviction only applies to idle writers. If the workload simultaneously maintains a very large number of *active* writers (all in `Writing` state), the map grows without bound. This is an inherent constraint: active writers hold buffered data that cannot be discarded without data loss. Operators with such workloads must size heap and `ulimit -n` accordingly.
 
@@ -495,7 +641,7 @@ See "Orphaned lock sweep" under "Garbage collection" for the full sweep architec
 
 Previously, the granular lock cache used a bounded `LinkedHashMap` with automatic LRU eviction. When the number of active partition keys exceeded the configured cache size, the cache silently evicted entries for active writers. On next flush, the writer detected the missing eTag and raised a `FatalCloudSinkError`, crashing a healthy task.
 
-**Resolution**: The granular cache is now an unbounded `ConcurrentHashMap` with no automatic eviction. Entries are added when writers are created and removed by `cleanUpObsoleteLocks` (GC enqueue), `evictAllGranularLocks` (shutdown/rebalance), or explicit `evictGranularLock` calls. `Writer.close()` deliberately does **not** evict cache entries, allowing `cleanUpObsoleteLocks` to detect obsolete keys. Idle writers are eagerly evicted from the writers map whenever a new writer is created, keeping the map lean and allowing lock file GC to proceed promptly. See "Lazy loading and in-memory cache" and "Idle writer eviction" under "Lifecycle" for full details.
+**Resolution**: The granular cache is now an unbounded `ConcurrentHashMap` with no automatic eviction. Entries are added when writers are created and removed by `cleanUpObsoleteLocks` (GC enqueue), `evictAllGranularLocks` (shutdown/rebalance), or explicit `evictGranularLock` calls. `Writer.close()` deliberately does **not** evict cache entries, allowing `cleanUpObsoleteLocks` to detect obsolete keys. Idle writers are eagerly evicted from the writers map whenever a new writer is created for the same `TopicPartition`, keeping each partition's writer set lean and allowing lock file GC to proceed promptly. See "Lazy loading and in-memory cache" and "Idle writer eviction" under "Lifecycle" for full details.
 
 ### Lazy-load burst at startup (Medium)
 

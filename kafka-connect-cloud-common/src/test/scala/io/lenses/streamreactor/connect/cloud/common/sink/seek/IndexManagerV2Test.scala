@@ -3206,4 +3206,34 @@ class IndexManagerV2Test
 
     verify(si).deleteFiles(anyString(), ArgumentMatchers.argThat[Seq[String]](_.exists(_.contains("pk-shutdown"))))
   }
+
+  test("open() does not set acceptingWork when parTraverse returns a Left") {
+    val tp0             = Topic("topic1").withPartition(0)
+    val tp1             = Topic("topic1").withPartition(1)
+    val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
+
+    val si = mock[StorageInterface[_]]
+
+    when(bucketAndPrefixFn(ArgumentMatchers.eq(tp0))).thenReturn(Right(bucketAndPrefix))
+    when(bucketAndPrefixFn(ArgumentMatchers.eq(tp1)))
+      .thenReturn(Left(FatalCloudSinkError("simulated failure", tp1)))
+
+    when(si.pathExists(anyString(), anyString())).thenReturn(Right(false))
+    when(si.getBlobAsObject[IndexFile](anyString(), anyString())(ArgumentMatchers.eq(indexFileDecoder)))
+      .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(50)), None), "etag")))
+
+    val im = new IndexManagerV2(
+      bucketAndPrefixFn,
+      oldIndexManager,
+      pendingOperationsProcessors,
+      indexesDirectoryName,
+      gcIntervalSeconds = Int.MaxValue,
+    )(si, connectorTaskId)
+
+    try {
+      val result = im.open(Set(tp0, tp1))
+      result.isLeft shouldBe true
+      im.acceptingWork shouldBe false
+    } finally im.close()
+  }
 }

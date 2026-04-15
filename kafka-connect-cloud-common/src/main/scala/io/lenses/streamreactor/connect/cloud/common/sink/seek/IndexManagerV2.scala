@@ -230,8 +230,13 @@ class IndexManagerV2(
       .value
       .unsafeRunSync()
 
-    acceptingWork = true
-    result
+    result match {
+      case r @ Right(_) =>
+        acceptingWork = true
+        r
+      case l @ Left(_) =>
+        l
+    }
   }
 
   /**

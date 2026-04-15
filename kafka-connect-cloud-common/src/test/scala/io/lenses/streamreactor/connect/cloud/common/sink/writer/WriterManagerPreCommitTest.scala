@@ -510,7 +510,7 @@ class WriterManagerPreCommitTest
     wm.putWriter(MapKey(tp0, dateA), writerA)
     wm.putWriter(MapKey(tp0, dateB), writerB)
 
-    wm.evictIdleWritersNow()
+    wm.evictIdleWritersNow(tp0)
 
     wm.writerCount shouldBe 0
   }
@@ -526,8 +526,8 @@ class WriterManagerPreCommitTest
 
     wm.writerCount shouldBe 2
 
-    // Trigger eviction of all idle writers
-    wm.evictIdleWritersNow()
+    // Trigger eviction of all idle writers for tp0
+    wm.evictIdleWritersNow(tp0)
 
     wm.writerCount shouldBe 0
 
@@ -545,7 +545,7 @@ class WriterManagerPreCommitTest
     val writer = writerInNoWriterState(tp0, Some(Offset(10)))
     wm.putWriter(MapKey(tp0, emptyPartitionValues), writer)
 
-    wm.evictIdleWritersNow()
+    wm.evictIdleWritersNow(tp0)
     wm.writerCount shouldBe 0
 
     // derivePartitionKey returns None for empty partitionValues, so evictGranularLock should NOT be called
@@ -559,7 +559,7 @@ class WriterManagerPreCommitTest
     val writerA = writerInWritingState(tp0, Some(Offset(10)), Offset(11), Offset(15))
     wm.putWriter(MapKey(tp0, dateA), writerA)
 
-    wm.evictIdleWritersNow()
+    wm.evictIdleWritersNow(tp0)
 
     wm.writerCount shouldBe 1
   }
@@ -579,9 +579,35 @@ class WriterManagerPreCommitTest
     wm.putWriter(MapKey(tp0, dateC), writerC)
     wm.putWriter(MapKey(tp0, dateD), writerD)
 
-    wm.evictIdleWritersNow()
+    wm.evictIdleWritersNow(tp0)
 
     // All 3 idle writers (A, C, D) evicted; only active writer B remains
     wm.writerCount shouldBe 1
+  }
+
+  test("eviction is scoped to the target TopicPartition and does not evict idle writers from other partitions") {
+    val indexManager = mock[IndexManager]
+    val wm           = buildWriterManager(indexManager)
+
+    val tp1 = Topic("topic").withPartition(1)
+
+    val writerTp0A = writerInNoWriterState(tp0, Some(Offset(10)))
+    val writerTp0B = writerInNoWriterState(tp0, Some(Offset(20)))
+    val writerTp1A = writerInNoWriterState(tp1, Some(Offset(30)))
+    val writerTp1B = writerInNoWriterState(tp1, Some(Offset(40)))
+    wm.putWriter(MapKey(tp0, dateA), writerTp0A)
+    wm.putWriter(MapKey(tp0, dateB), writerTp0B)
+    wm.putWriter(MapKey(tp1, dateA), writerTp1A)
+    wm.putWriter(MapKey(tp1, dateB), writerTp1B)
+
+    wm.writerCount shouldBe 4
+
+    wm.evictIdleWritersNow(tp0)
+
+    // Only tp0's idle writers evicted; tp1's idle writers remain untouched
+    wm.writerCount shouldBe 2
+    verify(indexManager).evictGranularLock(tp0, WriterManager.derivePartitionKey(dateA).get)
+    verify(indexManager).evictGranularLock(tp0, WriterManager.derivePartitionKey(dateB).get)
+    verify(indexManager, never).evictGranularLock(eqTo(tp1), any[String])
   }
 }

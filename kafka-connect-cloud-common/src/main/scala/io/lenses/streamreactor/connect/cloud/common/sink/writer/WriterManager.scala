@@ -22,7 +22,6 @@ import io.lenses.streamreactor.connect.cloud.common.formats.writer.FormatWriter
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.MessageDetail
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.schema.SchemaChangeDetector
 import io.lenses.streamreactor.connect.cloud.common.model.Offset
-import io.lenses.streamreactor.connect.cloud.common.model.Topic
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartitionOffset
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
@@ -334,7 +333,7 @@ class WriterManager[SM <: FileMetadata](
 
   private def evictIdleWritersIfNeeded(exclude: MapKey): Unit = {
     val idleEntries = writers.iterator
-      .filter { case (k, writer) => k != exclude && writer.isIdle }
+      .filter { case (k, writer) => k != exclude && k.topicPartition == exclude.topicPartition && writer.isIdle }
       .toList
     if (idleEntries.nonEmpty) {
       logger.debug(
@@ -356,8 +355,8 @@ class WriterManager[SM <: FileMetadata](
 
   private[writer] def putWriter(key: MapKey, writer: Writer[SM]): Unit = { val _ = writers.put(key, writer) }
 
-  private[writer] def evictIdleWritersNow(): Unit =
-    evictIdleWritersIfNeeded(MapKey(TopicPartition(Topic("__sentinel__"), -1), immutable.Map.empty))
+  private[writer] def evictIdleWritersNow(topicPartition: TopicPartition): Unit =
+    evictIdleWritersIfNeeded(MapKey(topicPartition, immutable.Map.empty))
 
   def shouldSkipNullValues(): Boolean = skipNullValues
 
