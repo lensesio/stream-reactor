@@ -282,8 +282,8 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
    * Kafka Connect calls close(allPartitions) before stop(). If seekedOffsets were cleared
    * here, the final drainGcQueue() in IndexManagerV2.close() (called from stop()) would
    * discard every queued item as "partition no longer owned", and obsolete lock files would
-   * never be deleted. The seekedOffsets state is GC'd with the indexManager reference when
-   * stop() sets it to null.
+   * never be deleted. During rebalance (close + open without stop), stale seekedOffsets
+   * entries for revoked partitions are purged at the start of IndexManagerV2.open().
    */
   override def close(partitions: util.Collection[KafkaTopicPartition]): Unit = {
     logger.debug(
