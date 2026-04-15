@@ -3023,4 +3023,106 @@ class IndexManagerV2Test
       verify(si, times(1)).listFileMetaRecursive(anyString(), any[Option[String]])
     } finally im.close()
   }
+
+  test("suspendBackgroundWork() keeps GC items in queue when scheduled drain is skipped") {
+    val tp              = Topic("topic1").withPartition(0)
+    val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
+
+    val si = mock[StorageInterface[_]]
+    when(bucketAndPrefixFn(any[TopicPartition])).thenReturn(Right(bucketAndPrefix))
+    when(si.pathExists(anyString(), anyString())).thenReturn(Right(false))
+    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith("0.lock"))(
+      ArgumentMatchers.eq(indexFileDecoder),
+    ))
+      .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(100)), None), "etag")))
+
+    val im = new IndexManagerV2(
+      bucketAndPrefixFn,
+      oldIndexManager,
+      pendingOperationsProcessors,
+      indexesDirectoryName,
+      gcIntervalSeconds = Int.MaxValue,
+    )(si, connectorTaskId)
+
+    try {
+      im.open(Set(tp))
+
+      // Load a granular lock with an offset below the GC threshold
+      when(
+        si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/pk-queued.lock"))(
+          ArgumentMatchers.eq(indexFileDecoder),
+        ),
+      )
+        .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(10)), None), "etag-pk-queued")))
+      im.getSeekedOffsetForPartitionKey(tp, "pk-queued") shouldBe Right(Some(Offset(10)))
+
+      // Enqueue for GC
+      im.cleanUpObsoleteLocks(tp, Offset(100), Set.empty) shouldBe Right(())
+      im.granularCacheSize shouldBe 0
+
+      // Suspend background work
+      im.suspendBackgroundWork()
+      im.acceptingWork shouldBe false
+
+      // Simulate the scheduled lambda: flag is false so drain is skipped
+      if (im.acceptingWork) im.drainGcQueue()
+
+      // deleteFiles must NOT have been called — the item is still in the queue
+      verify(si, never).deleteFiles(anyString(), any[Seq[String]])
+
+      // Resume via open() and drain should now process the queued item
+      im.open(Set(tp))
+      im.acceptingWork shouldBe true
+      when(si.deleteFiles(anyString(), any[Seq[String]])).thenReturn(Right(()))
+      im.drainGcQueue()
+
+      verify(si).deleteFiles(anyString(), ArgumentMatchers.argThat[Seq[String]](_.exists(_.contains("pk-queued"))))
+    } finally im.close()
+  }
+
+  test("close() final drain processes items even when acceptingWork is false (shutdown bypass)") {
+    val tp              = Topic("topic1").withPartition(0)
+    val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
+
+    val si = mock[StorageInterface[_]]
+    when(bucketAndPrefixFn(any[TopicPartition])).thenReturn(Right(bucketAndPrefix))
+    when(si.pathExists(anyString(), anyString())).thenReturn(Right(false))
+    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith("0.lock"))(
+      ArgumentMatchers.eq(indexFileDecoder),
+    ))
+      .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(100)), None), "etag")))
+
+    val im = new IndexManagerV2(
+      bucketAndPrefixFn,
+      oldIndexManager,
+      pendingOperationsProcessors,
+      indexesDirectoryName,
+      gcIntervalSeconds = Int.MaxValue,
+    )(si, connectorTaskId)
+
+    im.open(Set(tp))
+
+    // Load a granular lock and enqueue for GC
+    when(
+      si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/pk-shutdown.lock"))(
+        ArgumentMatchers.eq(indexFileDecoder),
+      ),
+    )
+      .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(10)), None), "etag-pk-shutdown")))
+    im.getSeekedOffsetForPartitionKey(tp, "pk-shutdown") shouldBe Right(Some(Offset(10)))
+    im.cleanUpObsoleteLocks(tp, Offset(100), Set.empty) shouldBe Right(())
+
+    // Simulate CloudSinkTask.close() → suspendBackgroundWork() + writerManager.close()
+    im.suspendBackgroundWork()
+    im.acceptingWork shouldBe false
+    im.evictAllGranularLocks(tp)
+
+    verify(si, never).deleteFiles(anyString(), any[Seq[String]])
+
+    // close() calls drainGcQueue() directly, bypassing the scheduled lambda gate
+    when(si.deleteFiles(anyString(), any[Seq[String]])).thenReturn(Right(()))
+    im.close()
+
+    verify(si).deleteFiles(anyString(), ArgumentMatchers.argThat[Seq[String]](_.exists(_.contains("pk-shutdown"))))
+  }
 }
