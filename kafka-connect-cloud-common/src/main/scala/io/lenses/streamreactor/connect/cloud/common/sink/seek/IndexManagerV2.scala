@@ -931,13 +931,17 @@ class IndexManagerV2(
    * Returns `Some(protection)` carrying the eTag-based write precondition when the sweep is due,
    * or `None` when the marker is still valid (not yet expired) or unreadable.
    */
-  private def isSweepDueForPartition(bucket: String, tp: TopicPartition, now: Long): Option[ObjectProtection[SweepMarker]] = {
+  private def isSweepDueForPartition(
+    bucket: String,
+    tp:     TopicPartition,
+    now:    Long,
+  ): Option[ObjectProtection[SweepMarker]] = {
     val markerPath = generateSweepMarkerPath(connectorTaskId, tp, directoryFileName)
     val newMarker  = SweepMarker(now, now + gcSweepIntervalSeconds * 1000L)
     storageInterface.getBlobAsObject[SweepMarker](bucket, markerPath) match {
       case Right(ObjectWithETag(marker, _)) if marker.nextRunEpochMillis > now => None
       case Right(ObjectWithETag(_, eTag))                                      => Some(ObjectWithETag(newMarker, eTag))
-      case Left(_: FileNotFoundError)                                          => Some(NoOverwriteExistingObject(newMarker))
+      case Left(_: FileNotFoundError) => Some(NoOverwriteExistingObject(newMarker))
       case Left(err) =>
         logger.warn(s"Transient error reading sweep marker for $tp in bucket=$bucket, skipping: ${err.message()}")
         None

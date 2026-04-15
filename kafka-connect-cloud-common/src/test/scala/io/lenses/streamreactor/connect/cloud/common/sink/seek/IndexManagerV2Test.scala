@@ -2168,7 +2168,12 @@ class IndexManagerV2Test
         ArgumentMatchers.contains("sweep-marker"),
       )(any[Decoder[IndexManagerV2.SweepMarker]]),
     ).thenReturn(Left(FileNotFoundError(new Exception("Not found"), "sweep-marker")))
-    val _ = when(si.writeBlobToFile[IndexManagerV2.SweepMarker](anyString(), anyString(), any[ObjectProtection[IndexManagerV2.SweepMarker]])(any[Encoder[IndexManagerV2.SweepMarker]]))
+    val _ = when(
+      si.writeBlobToFile[IndexManagerV2.SweepMarker](anyString(),
+                                                     anyString(),
+                                                     any[ObjectProtection[IndexManagerV2.SweepMarker]],
+      )(any[Encoder[IndexManagerV2.SweepMarker]]),
+    )
       .thenReturn(Right(ObjectWithETag(IndexManagerV2.SweepMarker(0L, 0L), "marker-etag")))
   }
 
@@ -2394,7 +2399,12 @@ class IndexManagerV2Test
       ),
     )
       .thenReturn(Left(FileNotFoundError(new Exception("Not found"), "sweep-marker")))
-    when(si.writeBlobToFile[IndexManagerV2.SweepMarker](anyString(), anyString(), any[ObjectProtection[IndexManagerV2.SweepMarker]])(any[Encoder[IndexManagerV2.SweepMarker]]))
+    when(
+      si.writeBlobToFile[IndexManagerV2.SweepMarker](anyString(),
+                                                     anyString(),
+                                                     any[ObjectProtection[IndexManagerV2.SweepMarker]],
+      )(any[Encoder[IndexManagerV2.SweepMarker]]),
+    )
       .thenReturn(Right(ObjectWithETag(IndexManagerV2.SweepMarker(0L, 0L), "marker-etag")))
 
     val oldTime = Instant.now().minusSeconds(7200)
@@ -2469,7 +2479,12 @@ class IndexManagerV2Test
         ),
       )
         .thenReturn(Right(ObjectWithETag(pastMarker, "marker-etag")))
-      when(si.writeBlobToFile[IndexManagerV2.SweepMarker](anyString(), anyString(), any[ObjectProtection[IndexManagerV2.SweepMarker]])(any[Encoder[IndexManagerV2.SweepMarker]]))
+      when(
+        si.writeBlobToFile[IndexManagerV2.SweepMarker](anyString(),
+                                                       anyString(),
+                                                       any[ObjectProtection[IndexManagerV2.SweepMarker]],
+        )(any[Encoder[IndexManagerV2.SweepMarker]]),
+      )
         .thenReturn(Right(ObjectWithETag(IndexManagerV2.SweepMarker(0L, 0L), "marker-etag-new")))
       org.mockito.Mockito.doReturn(Right(None)).when(si).listFileMetaRecursive(anyString(), any[Option[String]])
 
@@ -2494,8 +2509,8 @@ class IndexManagerV2Test
 
       val inOrder = org.mockito.Mockito.inOrder(si)
       inOrder.verify(si).writeBlobToFile[IndexManagerV2.SweepMarker](anyString(),
-                                                                      ArgumentMatchers.contains("sweep-marker"),
-                                                                      any[ObjectProtection[IndexManagerV2.SweepMarker]],
+                                                                     ArgumentMatchers.contains("sweep-marker"),
+                                                                     any[ObjectProtection[IndexManagerV2.SweepMarker]],
       )(any[Encoder[IndexManagerV2.SweepMarker]])
       inOrder.verify(si).listFileMetaRecursive(anyString(), any[Option[String]])
     } finally im.close()
@@ -2547,7 +2562,10 @@ class IndexManagerV2Test
 
       // Should NOT have listed files or written marker (transient error = skip sweep)
       verify(si, never).listFileMetaRecursive(anyString(), any[Option[String]])
-      verify(si, never).writeBlobToFile[IndexManagerV2.SweepMarker](anyString(), anyString(), any[ObjectProtection[IndexManagerV2.SweepMarker]])(any[Encoder[IndexManagerV2.SweepMarker]])
+      verify(si, never).writeBlobToFile[IndexManagerV2.SweepMarker](anyString(),
+                                                                    anyString(),
+                                                                    any[ObjectProtection[IndexManagerV2.SweepMarker]],
+      )(any[Encoder[IndexManagerV2.SweepMarker]])
     } finally im.close()
   }
 
@@ -2571,7 +2589,12 @@ class IndexManagerV2Test
     ).thenReturn(Left(FileNotFoundError(new Exception("Not found"), "sweep-marker")))
 
     // Conditional write fails (another task created the marker first)
-    when(si.writeBlobToFile[IndexManagerV2.SweepMarker](anyString(), anyString(), any[ObjectProtection[IndexManagerV2.SweepMarker]])(any[Encoder[IndexManagerV2.SweepMarker]]))
+    when(
+      si.writeBlobToFile[IndexManagerV2.SweepMarker](anyString(),
+                                                     anyString(),
+                                                     any[ObjectProtection[IndexManagerV2.SweepMarker]],
+      )(any[Encoder[IndexManagerV2.SweepMarker]]),
+    )
       .thenReturn(Left(FileCreateError(new Exception("eTag mismatch"), "marker")))
 
     val im = createSweepTestManager(si)
@@ -2580,7 +2603,10 @@ class IndexManagerV2Test
       im.sweepOrphanedLocks()
 
       // Marker write was attempted
-      verify(si, times(1)).writeBlobToFile[IndexManagerV2.SweepMarker](anyString(), anyString(), any[ObjectProtection[IndexManagerV2.SweepMarker]])(any[Encoder[IndexManagerV2.SweepMarker]])
+      verify(si, times(1)).writeBlobToFile[IndexManagerV2.SweepMarker](anyString(),
+                                                                       anyString(),
+                                                                       any[ObjectProtection[IndexManagerV2.SweepMarker]],
+      )(any[Encoder[IndexManagerV2.SweepMarker]])
       // Sweep should NOT have proceeded (no file listing)
       verify(si, never).listFileMetaRecursive(anyString(), any[Option[String]])
     } finally im.close()
@@ -2670,7 +2696,12 @@ class IndexManagerV2Test
         ArgumentMatchers.contains("sweep-marker"),
       )(any[Decoder[IndexManagerV2.SweepMarker]]),
     ).thenReturn(Left(FileNotFoundError(new Exception("Not found"), "sweep-marker")))
-    when(si.writeBlobToFile[IndexManagerV2.SweepMarker](anyString(), anyString(), any[ObjectProtection[IndexManagerV2.SweepMarker]])(any[Encoder[IndexManagerV2.SweepMarker]]))
+    when(
+      si.writeBlobToFile[IndexManagerV2.SweepMarker](anyString(),
+                                                     anyString(),
+                                                     any[ObjectProtection[IndexManagerV2.SweepMarker]],
+      )(any[Encoder[IndexManagerV2.SweepMarker]]),
+    )
       .thenReturn(Right(ObjectWithETag(IndexManagerV2.SweepMarker(0L, 0L), "marker-etag")))
     org.mockito.Mockito.doReturn(Right(None))
       .when(si).listFileMetaRecursive(anyString(), any[Option[String]])
@@ -2744,7 +2775,12 @@ class IndexManagerV2Test
       )(any[Decoder[IndexManagerV2.SweepMarker]]),
     ).thenReturn(Right(ObjectWithETag(futureMarker, "marker-etag")))
 
-    when(si.writeBlobToFile[IndexManagerV2.SweepMarker](anyString(), anyString(), any[ObjectProtection[IndexManagerV2.SweepMarker]])(any[Encoder[IndexManagerV2.SweepMarker]]))
+    when(
+      si.writeBlobToFile[IndexManagerV2.SweepMarker](anyString(),
+                                                     anyString(),
+                                                     any[ObjectProtection[IndexManagerV2.SweepMarker]],
+      )(any[Encoder[IndexManagerV2.SweepMarker]]),
+    )
       .thenReturn(Right(ObjectWithETag(IndexManagerV2.SweepMarker(0L, 0L), "marker-etag")))
     org.mockito.Mockito.doReturn(Right(None))
       .when(si).listFileMetaRecursive(anyString(), any[Option[String]])
@@ -2924,7 +2960,12 @@ class IndexManagerV2Test
           ArgumentMatchers.contains("sweep-marker"),
         )(any[Decoder[IndexManagerV2.SweepMarker]]),
       ).thenReturn(Left(FileNotFoundError(new Exception("Not found"), "sweep-marker")))
-      val _ = when(si.writeBlobToFile[IndexManagerV2.SweepMarker](anyString(), anyString(), any[ObjectProtection[IndexManagerV2.SweepMarker]])(any[Encoder[IndexManagerV2.SweepMarker]]))
+      val _ = when(
+        si.writeBlobToFile[IndexManagerV2.SweepMarker](anyString(),
+                                                       anyString(),
+                                                       any[ObjectProtection[IndexManagerV2.SweepMarker]],
+        )(any[Encoder[IndexManagerV2.SweepMarker]]),
+      )
         .thenReturn(Right(ObjectWithETag(IndexManagerV2.SweepMarker(0L, 0L), "marker-etag")))
       when(si.listFileMetaRecursive(anyString(), any[Option[String]])).thenReturn(Right(None))
 
@@ -3038,7 +3079,12 @@ class IndexManagerV2Test
           ArgumentMatchers.contains("sweep-marker"),
         )(any[Decoder[IndexManagerV2.SweepMarker]]),
       ).thenReturn(Left(FileNotFoundError(new Exception("Not found"), "sweep-marker")))
-      val _ = when(si.writeBlobToFile[IndexManagerV2.SweepMarker](anyString(), anyString(), any[ObjectProtection[IndexManagerV2.SweepMarker]])(any[Encoder[IndexManagerV2.SweepMarker]]))
+      val _ = when(
+        si.writeBlobToFile[IndexManagerV2.SweepMarker](anyString(),
+                                                       anyString(),
+                                                       any[ObjectProtection[IndexManagerV2.SweepMarker]],
+        )(any[Encoder[IndexManagerV2.SweepMarker]]),
+      )
         .thenReturn(Right(ObjectWithETag(IndexManagerV2.SweepMarker(0L, 0L), "marker-etag")))
       when(si.listFileMetaRecursive(anyString(), any[Option[String]])).thenReturn(Right(None))
 
