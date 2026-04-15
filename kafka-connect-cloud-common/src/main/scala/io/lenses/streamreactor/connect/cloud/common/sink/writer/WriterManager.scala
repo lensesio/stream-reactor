@@ -207,9 +207,7 @@ class WriterManager[SM <: FileMetadata](
       _            <- partitionKey.fold(().asRight[SinkError])(pk => indexManager.ensureGranularLock(topicPartition, pk))
       lastSeekedOffset <- partitionKey match {
         case Some(pk) =>
-          indexManager.getSeekedOffsetForPartitionKey(topicPartition, pk).map {
-            granularOffset => granularOffset.orElse(indexManager.getSeekedOffsetForTopicPartition(topicPartition))
-          }
+          indexManager.getSeekedOffsetForPartitionKey(topicPartition, pk)
         case None =>
           indexManager.getSeekedOffsetForTopicPartition(topicPartition).asRight[SinkError]
       }

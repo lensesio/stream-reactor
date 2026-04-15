@@ -705,7 +705,7 @@ class IndexManagerV2Test
     captured.wrappedObject.pendingState shouldBe None
   }
 
-  test("updateMasterLock writes committedOffset = None when globalSafeOffset is 0") {
+  test("updateMasterLock writes committedOffset = Some(Offset(0)) when globalSafeOffset is 0") {
     val tp              = Topic("topic1").withPartition(0)
     val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
     runOpenForOffset(Set(tp), bucketAndPrefix)
@@ -715,13 +715,13 @@ class IndexManagerV2Test
       storageInterface.writeBlobToFile[IndexFile](anyString(), anyString(), captor.capture())(
         ArgumentMatchers.eq(indexFileEncoder),
       ),
-    ).thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", None, None), "new-etag")))
+    ).thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(0)), None), "new-etag")))
 
     val result = indexManagerV2.updateMasterLock(tp, Offset(0))
     result shouldBe Right(())
 
     val captured = captor.getValue
-    captured.wrappedObject.committedOffset shouldBe None
+    captured.wrappedObject.committedOffset shouldBe Some(Offset(0))
     captured.wrappedObject.pendingState shouldBe None
   }
 

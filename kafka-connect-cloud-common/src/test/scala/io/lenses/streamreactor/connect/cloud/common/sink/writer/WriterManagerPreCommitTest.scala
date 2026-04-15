@@ -260,6 +260,34 @@ class WriterManagerPreCommitTest
     result(tp0).offset() shouldBe 51L
   }
 
+  test("preCommit calls updateMasterLock with Offset(0) when globalSafeOffset is 0") {
+    val indexManager = mock[IndexManager]
+    when(indexManager.getSeekedOffsetForTopicPartition(tp0)).thenReturn(None)
+    when(indexManager.updateMasterLock(any[TopicPartition], any[Offset])).thenReturn(Right(()))
+    when(indexManager.cleanUpObsoleteLocks(any[TopicPartition], any[Offset], any[Set[String]])).thenReturn(Right(()))
+
+    val wm = buildWriterManager(indexManager)
+    // Writer A committed offset 5, Writer B is buffering from offset 0.
+    // committedOffsets = [5] (non-empty, so preCommit doesn't short-circuit).
+    // firstBufferedOffsets = [0], so calculatedSafeOffset = min(0) = 0.
+    // previousHighWatermark = 0 (no master lock offset). globalSafeOffset = max(0, 0) = 0.
+    val writerA = writerInNoWriterState(tp0, Some(Offset(5)))
+    val writerB =
+      writerInWritingState(tp0,
+                           committedOffset     = Some(Offset(5)),
+                           firstBufferedOffset = Offset(0),
+                           uncommittedOffset   = Offset(4),
+      )
+    wm.putWriter(MapKey(tp0, dateA), writerA)
+    wm.putWriter(MapKey(tp0, dateB), writerB)
+
+    val result = wm.preCommit(currentOffsets(tp0, 100))
+    result should contain key tp0
+    result(tp0).offset() shouldBe 0L
+
+    verify(indexManager).updateMasterLock(tp0, Offset(0))
+  }
+
   // --- Master lock failure handling ---
 
   test("preCommit returns no offset when master lock update fails") {

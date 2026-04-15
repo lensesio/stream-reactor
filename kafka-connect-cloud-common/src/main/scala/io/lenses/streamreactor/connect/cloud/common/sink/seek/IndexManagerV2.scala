@@ -729,8 +729,10 @@ class IndexManagerV2(
     globalSafeOffset: Offset,
   ): Either[SinkError, Unit] = {
     val path = generateLockFilePath(connectorTaskId, topicPartition, directoryFileName)
-    // Store globalSafeOffset - 1 to preserve the "highest committed offset" semantic
-    val committedOffset = Option.when(globalSafeOffset.value > 0)(Offset(globalSafeOffset.value - 1))
+    // Store globalSafeOffset - 1 to preserve the "highest committed offset" semantic.
+    // Floor at 0 so that globalSafeOffset == 0 produces Some(Offset(0)) rather than None,
+    // ensuring the master lock always has a seek target for crash recovery.
+    val committedOffset = Some(Offset(math.max(0L, globalSafeOffset.value - 1L)))
     for {
       bucketAndPrefix <- bucketAndPrefixFn(topicPartition)
       eTag <- topicPartitionToETags.get(topicPartition).toRight {
