@@ -892,14 +892,18 @@ class IndexManagerV2(
             bucketAndPrefixFn(tp) match {
               case Right(loc) =>
                 val bucket = loc.bucket
-                if (isSweepDueForPartition(bucket, tp, now)) {
-                  writeSweepMarkerForPartition(bucket, tp, now)
-                  tpsScanned += 1
-                  val (enqueued, readsUsed) = sweepPartition(tp, masterOffset, ageThreshold, readsRemaining)
-                  totalEnqueued += enqueued
-                  readsRemaining -= readsUsed
-                } else {
-                  tpsSkipped += 1
+                isSweepDueForPartition(bucket, tp, now) match {
+                  case Some(protection) =>
+                    if (writeSweepMarkerForPartition(bucket, tp, protection)) {
+                      tpsScanned += 1
+                      val (enqueued, readsUsed) = sweepPartition(tp, masterOffset, ageThreshold, readsRemaining)
+                      totalEnqueued += enqueued
+                      readsRemaining -= readsUsed
+                    } else {
+                      tpsSkipped += 1
+                    }
+                  case None =>
+                    tpsSkipped += 1
                 }
               case Left(_) => ()
             }
@@ -922,34 +926,40 @@ class IndexManagerV2(
       }
     }
 
-  /** Checks whether the sweep marker for a specific TopicPartition has expired. */
-  private def isSweepDueForPartition(bucket: String, tp: TopicPartition, now: Long): Boolean = {
+  /**
+   * Checks whether the sweep marker for a specific TopicPartition has expired.
+   * Returns `Some(protection)` carrying the eTag-based write precondition when the sweep is due,
+   * or `None` when the marker is still valid (not yet expired) or unreadable.
+   */
+  private def isSweepDueForPartition(bucket: String, tp: TopicPartition, now: Long): Option[ObjectProtection[SweepMarker]] = {
     val markerPath = generateSweepMarkerPath(connectorTaskId, tp, directoryFileName)
+    val newMarker  = SweepMarker(now, now + gcSweepIntervalSeconds * 1000L)
     storageInterface.getBlobAsObject[SweepMarker](bucket, markerPath) match {
-      case Right(ObjectWithETag(marker, _)) if marker.nextRunEpochMillis > now => false
-      case Left(_: FileNotFoundError) => true
+      case Right(ObjectWithETag(marker, _)) if marker.nextRunEpochMillis > now => None
+      case Right(ObjectWithETag(_, eTag))                                      => Some(ObjectWithETag(newMarker, eTag))
+      case Left(_: FileNotFoundError)                                          => Some(NoOverwriteExistingObject(newMarker))
       case Left(err) =>
         logger.warn(s"Transient error reading sweep marker for $tp in bucket=$bucket, skipping: ${err.message()}")
-        false
-      case _ => true
+        None
     }
   }
 
-  /** Writes a sweep marker for a specific TopicPartition (write-before-sweep pattern). */
-  private def writeSweepMarkerForPartition(bucket: String, tp: TopicPartition, now: Long): Unit = {
+  /**
+   * Writes a sweep marker for a specific TopicPartition using an eTag-conditional write.
+   * Returns `true` if the write succeeded (this task won the race), `false` otherwise.
+   */
+  private def writeSweepMarkerForPartition(
+    bucket:     String,
+    tp:         TopicPartition,
+    protection: ObjectProtection[SweepMarker],
+  ): Boolean = {
     val markerPath = generateSweepMarkerPath(connectorTaskId, tp, directoryFileName)
-    // Marker records when this sweep started and when the next one is allowed to run
-    val markerJson = {
-      import io.circe.syntax._
-      import IndexManagerV2.SweepMarker.sweepMarkerEncoder
-      SweepMarker(now, now + gcSweepIntervalSeconds * 1000L).asJson.noSpaces
-    }
-    // Fire-and-forget: marker write failure is non-fatal (worst case: a redundant sweep next cycle)
-    val uploadable = io.lenses.streamreactor.connect.cloud.common.model.UploadableString(markerJson)
-    storageInterface.writeStringToFile(bucket, markerPath, uploadable) match {
+    import IndexManagerV2.SweepMarker.sweepMarkerEncoder
+    storageInterface.writeBlobToFile(bucket, markerPath, protection) match {
       case Left(err) =>
-        logger.warn(s"Failed to write sweep marker for $tp to bucket=$bucket: $err")
-      case Right(_) => ()
+        logger.info(s"Sweep marker write lost race for $tp in bucket=$bucket (another task won): $err")
+        false
+      case Right(_) => true
     }
   }
 
