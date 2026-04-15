@@ -1,6 +1,5 @@
 package io.lenses.streamreactor.connect.gcp.storage.utils
 
-import cats.implicits.catsSyntaxApplicativeError
 import com.google.cloud.storage.BucketInfo
 import com.google.cloud.storage.Storage
 import com.typesafe.scalalogging.LazyLogging
