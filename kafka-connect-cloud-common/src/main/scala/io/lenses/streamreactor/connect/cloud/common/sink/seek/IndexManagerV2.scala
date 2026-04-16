@@ -1009,7 +1009,13 @@ class IndexManagerV2(
                   case None =>
                     tpsSkipped += 1
                 }
-              case Left(_) => ()
+              case Left(err) =>
+                // Misconfigured bucketAndPrefixFn used to be a silent skip. Log so
+                // operators can diagnose why a partition is never sweeping.
+                logger.warn(
+                  s"Sweep: could not resolve bucket/prefix for $tp, skipping this cycle: ${err.message()}",
+                )
+                tpsSkipped += 1
             }
           }
         }
@@ -1080,7 +1086,15 @@ class IndexManagerV2(
   ): (Int, Int) = {
     val prefix = s"$directoryFileName/${connectorTaskId.name}/.locks/${tp.topic}/${tp.partition}/"
     val result = for {
-      bucket <- bucketAndPrefixFn(tp).map(_.bucket).toOption
+      bucket <- bucketAndPrefixFn(tp) match {
+        case Right(loc) => Some(loc.bucket)
+        case Left(err)  =>
+          // sweepOrphanedLocks already logged the Left before reaching here, but we
+          // are also callable directly from tests and future call sites. Keep a
+          // diagnostic line rather than a silent None.
+          logger.warn(s"Sweep: could not resolve bucket/prefix for $tp: ${err.message()}")
+          None
+      }
       listing <- storageInterface.listFileMetaRecursive(bucket, Some(prefix)) match {
         case Left(err) =>
           logger.warn(s"Sweep: failed to list files for $tp: ${err.message()}")
