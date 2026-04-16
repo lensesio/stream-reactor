@@ -16,10 +16,14 @@
 package io.lenses.streamreactor.connect.cloud.common.testing
 
 import io.circe.generic.semiauto._
-import io.circe.{ Decoder, Encoder }
+import io.circe.Decoder
+import io.circe.Encoder
 import io.lenses.streamreactor.connect.cloud.common.model.UploadableFile
-import io.lenses.streamreactor.connect.cloud.common.sink.seek.{ NoOverwriteExistingObject, ObjectWithETag }
-import io.lenses.streamreactor.connect.cloud.common.storage.{ FileCreateError, FileMoveError, FileNotFoundError }
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.NoOverwriteExistingObject
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.ObjectWithETag
+import io.lenses.streamreactor.connect.cloud.common.storage.FileCreateError
+import io.lenses.streamreactor.connect.cloud.common.storage.FileMoveError
+import io.lenses.streamreactor.connect.cloud.common.storage.FileNotFoundError
 import io.lenses.streamreactor.connect.cloud.common.testing.InMemoryStorageInterface._
 import org.scalatest.EitherValues
 import org.scalatest.funsuite.AnyFunSuiteLike
@@ -57,7 +61,7 @@ class InMemoryStorageInterfaceTest extends AnyFunSuiteLike with Matchers with Ei
     val fake = newFake()
     val src  = writeTempFile("hello")
     val tag  = fake.uploadFile(UploadableFile(src), Bucket, "k1").value
-    tag                                should not be empty
+    tag should not be empty
     fake.pathExists(Bucket, "k1").value shouldBe true
     fake.getBlobAsString(Bucket, "k1").value shouldBe "hello"
   }
