@@ -2599,7 +2599,7 @@ class IndexManagerV2Test
     } finally im.close()
   }
 
-  test("sweep writes marker after scanning") {
+  test("sweep writes marker before scanning") {
     val tp              = Topic("topic1").withPartition(0)
     val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
     val si              = mock[StorageInterface[_]]
@@ -2612,11 +2612,11 @@ class IndexManagerV2Test
       im.sweepOrphanedLocks()
 
       val inOrder = org.mockito.Mockito.inOrder(si)
-      inOrder.verify(si).listFileMetaRecursive(anyString(), any[Option[String]])
       inOrder.verify(si).writeBlobToFile[IndexManagerV2.SweepMarker](anyString(),
                                                                      ArgumentMatchers.contains("sweep-marker"),
                                                                      any[ObjectProtection[IndexManagerV2.SweepMarker]],
       )(any[Encoder[IndexManagerV2.SweepMarker]])
+      inOrder.verify(si).listFileMetaRecursive(anyString(), any[Option[String]])
     } finally im.close()
   }
 
@@ -2673,7 +2673,7 @@ class IndexManagerV2Test
     } finally im.close()
   }
 
-  test("sweep still scans partition even when marker write loses eTag race") {
+  test("sweep skips scan when marker write loses eTag race") {
     val tp              = Topic("topic1").withPartition(0)
     val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
     val si              = mock[StorageInterface[_]]
@@ -2692,8 +2692,6 @@ class IndexManagerV2Test
       ),
     ).thenReturn(Left(FileNotFoundError(new Exception("Not found"), "sweep-marker")))
 
-    org.mockito.Mockito.doReturn(Right(None)).when(si).listFileMetaRecursive(anyString(), any[Option[String]])
-
     // Conditional write fails (another task created the marker first)
     when(
       si.writeBlobToFile[IndexManagerV2.SweepMarker](anyString(),
@@ -2708,13 +2706,15 @@ class IndexManagerV2Test
       im.open(Set(tp))
       im.sweepOrphanedLocks()
 
-      // Scan proceeds before marker write
-      verify(si, times(1)).listFileMetaRecursive(anyString(), any[Option[String]])
-      // Marker write was still attempted (after scan)
+      // Marker write was attempted exactly once (before the scan)
       verify(si, times(1)).writeBlobToFile[IndexManagerV2.SweepMarker](anyString(),
                                                                        anyString(),
                                                                        any[ObjectProtection[IndexManagerV2.SweepMarker]],
       )(any[Encoder[IndexManagerV2.SweepMarker]])
+      // Scan is skipped when the marker write loses the eTag race: no LIST call.
+      // `sweepPartition` gates all lock-file GETs behind the LIST, so asserting no LIST
+      // is sufficient to prove the expensive scan work was not performed.
+      verify(si, never).listFileMetaRecursive(anyString(), any[Option[String]])
     } finally im.close()
   }
 
@@ -3415,7 +3415,7 @@ class IndexManagerV2Test
     }
   }
 
-  test("sweep does not write marker when sweepPartition throws") {
+  test("sweep writes marker before scan; scan exception is swallowed by outer try") {
     val tp              = Topic("topic1").withPartition(0)
     val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
     val si              = mock[StorageInterface[_]]
@@ -3431,11 +3431,14 @@ class IndexManagerV2Test
       // sweepOrphanedLocks catches NonFatal internally, so this should not throw
       im.sweepOrphanedLocks()
 
-      // The marker should NOT have been written because the scan threw before reaching it
-      verify(si, never).writeBlobToFile[IndexManagerV2.SweepMarker](anyString(),
-                                                                    anyString(),
-                                                                    any[ObjectProtection[IndexManagerV2.SweepMarker]],
+      // Under the write-before-sweep fencing, the marker is persisted before the scan
+      // is attempted, so a mid-scan failure does not prevent the marker write.
+      verify(si, times(1)).writeBlobToFile[IndexManagerV2.SweepMarker](anyString(),
+                                                                       anyString(),
+                                                                       any[ObjectProtection[IndexManagerV2.SweepMarker]],
       )(any[Encoder[IndexManagerV2.SweepMarker]])
+      // The scan was attempted (and threw); the outer try/catch swallowed the error.
+      verify(si, times(1)).listFileMetaRecursive(anyString(), any[Option[String]])
     } finally im.close()
   }
 }

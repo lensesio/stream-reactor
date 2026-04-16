@@ -938,11 +938,17 @@ class IndexManagerV2(
                 val bucket = loc.bucket
                 isSweepDueForPartition(bucket, tp, now) match {
                   case Some(protection) =>
-                    tpsScanned += 1
-                    val (enqueued, readsUsed) = sweepPartition(tp, masterOffset, ageThreshold, readsRemaining)
-                    totalEnqueued += enqueued
-                    readsRemaining -= readsUsed
-                    writeSweepMarkerForPartition(bucket, tp, protection)
+                    // Write-before-sweep fencing: the eTag-conditional marker write acts as a
+                    // distributed lock. Only the task that wins the conditional write proceeds
+                    // with the expensive LIST+GET scan; losers skip this cycle entirely.
+                    if (writeSweepMarkerForPartition(bucket, tp, protection)) {
+                      tpsScanned += 1
+                      val (enqueued, readsUsed) = sweepPartition(tp, masterOffset, ageThreshold, readsRemaining)
+                      totalEnqueued += enqueued
+                      readsRemaining -= readsUsed
+                    } else {
+                      tpsSkipped += 1
+                    }
                   case None =>
                     tpsSkipped += 1
                 }
