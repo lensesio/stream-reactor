@@ -393,8 +393,42 @@ class GCPStorageStorageInterface(
     val sourceBlob   = Try(storage.get(sourceBlobId)).map(Option(_)).map(_.filter(_.exists()))
     sourceBlob match {
       case Success(None) =>
-        logger.warn("Object ({}/{}) doesn't exist to move", oldBucket, oldPath)
-        ().asRight
+        // Source is gone. If the destination is present, a previous mvFile already
+        // completed and this is a legitimate idempotent replay (e.g. pending-state
+        // recovery); returning Right is safe. If the destination is also missing,
+        // returning Right would silently clear the pending pipeline without ever
+        // writing the final object -> data loss. Return Left so the caller fails
+        // loudly.
+        val destinationBlob = Try(storage.get(BlobId.of(newBucket, newPath))).map(Option(_)).map(_.filter(_.exists()))
+        destinationBlob match {
+          case Success(Some(_)) =>
+            logger.warn(
+              "Object ({}/{}) missing but destination ({}/{}) exists; treating mvFile as idempotent success",
+              oldBucket,
+              oldPath,
+              newBucket,
+              newPath,
+            )
+            ().asRight
+          case Success(None) =>
+            logger.error(
+              "mvFile: both source ({}/{}) and destination ({}/{}) are missing; cannot complete move",
+              oldBucket,
+              oldPath,
+              newBucket,
+              newPath,
+            )
+            FileMoveError(
+              new IllegalStateException(
+                s"Source $oldBucket/$oldPath and destination $newBucket/$newPath both missing",
+              ),
+              oldPath,
+              newPath,
+            ).asLeft
+          case Failure(ex) =>
+            logger.error("mvFile: failed to verify destination ({}/{}): {}", newBucket, newPath, ex)
+            FileMoveError(ex, oldPath, newPath).asLeft
+        }
       case Failure(ex) =>
         logger.error("Object ({}/{}) could not be retrieved", ex)
         FileMoveError(ex, oldPath, newPath).asLeft

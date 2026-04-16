@@ -23,6 +23,7 @@ import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
 import io.lenses.streamreactor.connect.cloud.common.model.UploadableFile
 import io.lenses.streamreactor.connect.cloud.common.sink.NonFatalCloudSinkError
 import io.lenses.streamreactor.connect.cloud.common.storage.FileDeleteError
+import io.lenses.streamreactor.connect.cloud.common.storage.FileMoveError
 import io.lenses.streamreactor.connect.cloud.common.storage.NonExistingFileError
 import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
 import org.mockito.ArgumentMatchers.anyString
@@ -122,6 +123,37 @@ class PendingOperationsProcessorsTest
     inOrderVerifier.verify(storageInterface).uploadFile(any[UploadableFile], anyString(), anyString())
     // cancelPending on last op now clears pending state in storage via fnIndexUpdate
     inOrderVerifier.verify(fnIndexUpdate).apply(topicPartition, Some(Offset(50)), None)
+  }
+
+  test("processPendingOperations should NOT clear pending state when CopyOperation fails with both paths missing") {
+    // S1 contract: mvFile now returns Left(FileMoveError) when both source and
+    // destination are missing (instead of silently succeeding). The CopyOperation
+    // processor must propagate that Left and must NOT call fnIndexUpdate to clear
+    // the pending state -- otherwise the index would advance with no destination
+    // object having been written (silent data loss).
+    val pendingState = PendingState(
+      pendingOffset = Offset(100),
+      pendingOperations = NonEmptyList.of(
+        CopyOperation("bucket1", "missing-temp", "missing-dest", "etag-placeholder"),
+        DeleteOperation("bucket1", "missing-temp", "etag-placeholder"),
+      ),
+    )
+
+    when(storageInterface.mvFile(anyString(), anyString(), anyString(), anyString(), any[Option[String]]))
+      .thenReturn(
+        Left(FileMoveError(new IllegalStateException("both missing"), "missing-temp", "missing-dest")),
+      )
+
+    val result = pendingOperationsProcessors.processPendingOperations(
+      topicPartition,
+      Some(Offset(50)),
+      pendingState,
+      fnIndexUpdate,
+    )
+
+    result.isLeft shouldBe true
+    verify(storageInterface).mvFile(anyString(), anyString(), anyString(), anyString(), any[Option[String]])
+    verifyNoInteractions(fnIndexUpdate)
   }
 
   test("processPendingOperations should skip further operations if delete fails") {
