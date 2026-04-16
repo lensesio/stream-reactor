@@ -156,6 +156,9 @@ class IndexManagerV2(
 
   private val gcQueue: ConcurrentLinkedQueue[GcItem] = new ConcurrentLinkedQueue()
 
+  // Exposed for testing only; not part of the public API.
+  private[seek] def gcQueueSize: Int = gcQueue.size()
+
   // Best-effort gate: when false, scheduled invocations of drainGcQueue / sweepOrphanedLocks
   // are skipped. Set to false by suspendBackgroundWork() (called from CloudSinkTask.close()),
   // set to true at the end of open(). This cannot stop an already-running invocation -- the
@@ -885,26 +888,32 @@ class IndexManagerV2(
    *  3. Delete each batch via `storageInterface.deleteFiles`; on failure, re-enqueue items
    *     up to `MaxGcRetries` times. Failures are logged but never propagated.
    */
-  private[seek] def drainGcQueue(): Unit =
-    try {
-      // Phase 1: drain queue, applying partition-revoked and key-reclaimed filters
-      val eligible = Iterator.continually(gcQueue.poll()).takeWhile(_ != null).filter { item =>
-        if (!seekedOffsets.contains(item.topicPartition)) {
-          logger.debug(
-            s"GC discarding ${item.topicPartition}/${item.partitionKey}: partition no longer owned by this task",
-          )
-          metrics.incrementGcLocksSkippedRevoked()
-          false
-        } else if (gcContainsKey(item.topicPartition, item.partitionKey)) {
-          logger.debug(s"GC skipping ${item.topicPartition}/${item.partitionKey}: reclaimed by new writer")
-          metrics.incrementGcLocksSkippedReclaimed()
-          false
-        } else {
-          true
-        }
-      }.toList
-      metrics.setGcQueueDepth(gcQueue.size())
+  private[seek] def drainGcQueue(): Unit = {
+    // Phase 1: drain queue, applying partition-revoked and key-reclaimed filters
+    val eligible = Iterator.continually(gcQueue.poll()).takeWhile(_ != null).filter { item =>
+      if (!seekedOffsets.contains(item.topicPartition)) {
+        logger.debug(
+          s"GC discarding ${item.topicPartition}/${item.partitionKey}: partition no longer owned by this task",
+        )
+        metrics.incrementGcLocksSkippedRevoked()
+        false
+      } else if (gcContainsKey(item.topicPartition, item.partitionKey)) {
+        logger.debug(s"GC skipping ${item.topicPartition}/${item.partitionKey}: reclaimed by new writer")
+        metrics.incrementGcLocksSkippedReclaimed()
+        false
+      } else {
+        true
+      }
+    }.toList
+    metrics.setGcQueueDepth(gcQueue.size())
 
+    // `unprocessed` tracks items that have been polled out of gcQueue but not yet
+    // either deleted (Right) or explicitly handled as a Left (which has its own
+    // retry re-enqueue path). On an unexpected NonFatal throw anywhere below, we
+    // re-offer everything still in this set so no polled work is silently lost.
+    val unprocessed = scala.collection.mutable.Set.from(eligible)
+
+    try {
       if (eligible.nonEmpty) {
         // Phase 2: group by bucket for batched deletes
         val byBucket: Map[String, Seq[GcItem]] = eligible.groupBy(_.bucket)
@@ -928,17 +937,34 @@ class IndexManagerV2(
                       s"Re-enqueued ${retryable.size} item(s) for retry (dropped ${chunk.size - retryable.size} that exceeded max retries)",
                     )
                   }
+                  unprocessed --= chunk
                 case Right(_) =>
                   metrics.incrementGcLocksDeleted(chunk.size.toLong)
                   logger.debug(s"Background GC deleted ${chunk.size} lock file(s) from bucket=$bucket")
+                  unprocessed --= chunk
               }
             }
         }
       }
     } catch {
       case NonFatal(e) =>
+        // Re-offer any items we polled but could not send through the Right/Left
+        // branches -- otherwise an unexpected throw (bug, metric failure, etc.)
+        // silently deletes them from gcQueue and leaves their cloud-side lock
+        // files orphaned until the next sweep.
+        unprocessed.foreach(gcQueue.offer)
+        if (unprocessed.nonEmpty) {
+          logger.warn(
+            s"Re-enqueued ${unprocessed.size} GC item(s) after unexpected drain error for ${connectorTaskId.show}",
+          )
+        }
+        // Restore interrupt status so cooperative shutdown (close() awaitTermination)
+        // still observes the cancellation request -- InterruptedException is NonFatal
+        // on Scala 2.13, so without this the signal would be silently swallowed.
+        if (e.isInstanceOf[InterruptedException]) Thread.currentThread().interrupt()
         logger.warn(s"Unexpected error in background GC drain for ${connectorTaskId.show}", e)
     }
+  }
 
   /**
    * Periodic orphan sweep: discovers granular lock files in cloud storage that are not

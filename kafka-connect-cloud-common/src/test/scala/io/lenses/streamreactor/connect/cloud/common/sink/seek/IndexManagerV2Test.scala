@@ -2183,6 +2183,53 @@ class IndexManagerV2Test
     }
   }
 
+  test("drainGcQueue re-offers polled items when deleteFiles throws an unexpected exception") {
+    // Unexpected exceptions (not a Left storage error) used to be caught by the
+    // outer try/NonFatal and silently swallowed, dropping every polled item from
+    // gcQueue. The M2 fix tracks "unprocessed" items and re-offers them so nothing
+    // polled is silently lost.
+    val tp              = Topic("topic1").withPartition(0)
+    val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
+
+    val si = mock[StorageInterface[_]]
+    when(bucketAndPrefixFn(any[TopicPartition])).thenReturn(Right(bucketAndPrefix))
+    when(si.pathExists(anyString(), anyString())).thenReturn(Right(false))
+    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith("0.lock"))(
+      ArgumentMatchers.eq(indexFileDecoder),
+    ))
+      .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(100)), None), "etag")))
+
+    val im = new IndexManagerV2(
+      bucketAndPrefixFn,
+      oldIndexManager,
+      pendingOperationsProcessors,
+      indexesDirectoryName,
+      gcIntervalSeconds = Int.MaxValue,
+    )(si, connectorTaskId)
+
+    try {
+      im.open(Set(tp))
+
+      when(
+        si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/pk-doomed.lock"))(
+          ArgumentMatchers.eq(indexFileDecoder),
+        ),
+      )
+        .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(30)), None), "etag-doomed")))
+      im.getSeekedOffsetForPartitionKey(tp, "pk-doomed") shouldBe Right(Some(Offset(30)))
+
+      im.cleanUpObsoleteLocks(tp, Offset(100), Set.empty) shouldBe Right(())
+
+      when(si.deleteFiles(anyString(), any[Seq[String]])).thenThrow(new RuntimeException("boom"))
+
+      // Must not throw -- the outer catch handles NonFatal
+      im.drainGcQueue()
+
+      // The polled item must have been re-offered to the queue
+      im.gcQueueSize shouldBe 1
+    } finally im.close()
+  }
+
   // --- Orphan sweep tests ---
 
   private def createSweepTestManager(
