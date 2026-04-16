@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2025 Lenses.io Ltd
+ * Copyright 2017-2026 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,6 +25,7 @@ import io.lenses.streamreactor.common.config.base.RetryConfig;
 import io.lenses.streamreactor.common.config.base.model.ConnectorPrefix;
 import io.lenses.streamreactor.common.config.source.ConfigSource;
 import io.lenses.streamreactor.connect.gcp.common.auth.GCPConnectionConfig;
+import io.lenses.streamreactor.connect.gcp.common.auth.HttpTimeoutConfig;
 import lombok.Getter;
 import lombok.val;
 
@@ -43,6 +44,8 @@ public class GCPSettings implements ConfigSettings<GCPConnectionConfig> {
   private final String httpErrorRetryIntervalKey;
   private final String httpErrorRetryTimeoutMultiplier;
   private final String httpNbrOfRetriesKey;
+  private final String httpSocketTimeoutKey;
+  private final String httpConnectionTimeoutKey;
 
   //The default values for the GCP HTTP timeout is 3 minutes
   public static final Long HTTP_ERROR_RETRY_INTERVAL_DEFAULT = 500L;
@@ -66,6 +69,8 @@ public class GCPSettings implements ConfigSettings<GCPConnectionConfig> {
     httpErrorRetryTimeoutMultiplier =
         connectorPrefix.prefixKey("http.retry.timeout.multiplier");
     httpNbrOfRetriesKey = connectorPrefix.prefixKey("http.max.retries");
+    httpSocketTimeoutKey = connectorPrefix.prefixKey("http.socket.timeout");
+    httpConnectionTimeoutKey = connectorPrefix.prefixKey("http.connection.timeout");
     authModeSettings = new AuthModeSettings(connectorPrefix);
   }
 
@@ -123,7 +128,27 @@ public class GCPSettings implements ConfigSettings<GCPConnectionConfig> {
                 "Error",
                 4,
                 ConfigDef.Width.LONG,
-                httpErrorRetryTimeoutMultiplier);
+                httpErrorRetryTimeoutMultiplier)
+            .define(
+                httpSocketTimeoutKey,
+                Type.LONG,
+                HTTP_SOCKET_TIMEOUT_DEFAULT,
+                ConfigDef.Importance.LOW,
+                "HTTP socket (read) timeout in milliseconds for GCP service calls.",
+                "Error",
+                5,
+                ConfigDef.Width.LONG,
+                httpSocketTimeoutKey)
+            .define(
+                httpConnectionTimeoutKey,
+                Type.LONG,
+                HTTP_CONNECTION_TIMEOUT_DEFAULT,
+                ConfigDef.Importance.LOW,
+                "HTTP connection timeout in milliseconds for GCP service calls.",
+                "Error",
+                6,
+                ConfigDef.Width.LONG,
+                httpConnectionTimeoutKey);
 
     return authModeSettings.withSettings(conf);
   }
@@ -147,6 +172,16 @@ public class GCPSettings implements ConfigSettings<GCPConnectionConfig> {
               );
 
           builder.httpRetryConfig(retryConfig);
+
+          val httpTimeoutConfig =
+              HttpTimeoutConfig.builder()
+                  .socketTimeoutMillis(
+                      configSource.getLong(httpSocketTimeoutKey).orElse(HTTP_SOCKET_TIMEOUT_DEFAULT))
+                  .connectionTimeoutMillis(
+                      configSource.getLong(httpConnectionTimeoutKey).orElse(HTTP_CONNECTION_TIMEOUT_DEFAULT))
+                  .build();
+          builder.timeouts(httpTimeoutConfig);
+
           return builder.build();
         });
 
