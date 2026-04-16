@@ -3388,6 +3388,44 @@ class IndexManagerV2Test
     } finally im.close()
   }
 
+  test("open rolls back in-memory state when any partition fails") {
+    // tp0 succeeds (bucketAndPrefixFn Right, existing index file).
+    // tp1 fails (bucketAndPrefixFn Left).
+    // parTraverse returns Left, but tp0's successful fiber has already mutated
+    // seekedOffsets and topicPartitionToETags. The H2 fix rolls those back so
+    // the index manager is in a clean state.
+    val tp0             = Topic("topic1").withPartition(0)
+    val tp1             = Topic("topic1").withPartition(1)
+    val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
+
+    val si = mock[StorageInterface[_]]
+    when(bucketAndPrefixFn(ArgumentMatchers.eq(tp0))).thenReturn(Right(bucketAndPrefix))
+    when(bucketAndPrefixFn(ArgumentMatchers.eq(tp1)))
+      .thenReturn(Left(FatalCloudSinkError("simulated failure", tp1)))
+
+    when(si.pathExists(anyString(), anyString())).thenReturn(Right(false))
+    when(si.getBlobAsObject[IndexFile](anyString(), anyString())(ArgumentMatchers.eq(indexFileDecoder)))
+      .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(50)), None), "etag-tp0")))
+
+    val im = new IndexManagerV2(
+      bucketAndPrefixFn,
+      oldIndexManager,
+      pendingOperationsProcessors,
+      indexesDirectoryName,
+      gcIntervalSeconds = Int.MaxValue,
+    )(si, connectorTaskId)
+
+    try {
+      val result = im.open(Set(tp0, tp1))
+      result.isLeft shouldBe true
+
+      // The successful fiber for tp0 must NOT leak state after the aggregate Left.
+      im.getSeekedOffsetForTopicPartition(tp0) shouldBe None
+      im.getSeekedOffsetForTopicPartition(tp1) shouldBe None
+      im.acceptingWork shouldBe false
+    } finally im.close()
+  }
+
   test("close() shuts down gcExecutor even when executorsStarted is false (leak safety net)") {
     val si  = mock[StorageInterface[_]]
     val cti = ConnectorTaskId("test-connector", 1, 0)
