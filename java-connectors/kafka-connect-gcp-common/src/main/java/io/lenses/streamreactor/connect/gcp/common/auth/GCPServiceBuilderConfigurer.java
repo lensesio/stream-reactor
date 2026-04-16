@@ -25,6 +25,7 @@ import org.threeten.bp.Duration;
 import com.google.api.gax.retrying.RetrySettings;
 import com.google.cloud.Service;
 import com.google.cloud.ServiceOptions;
+import com.google.cloud.http.HttpTransportOptions;
 
 import io.lenses.streamreactor.common.config.base.RetryConfig;
 import lombok.AccessLevel;
@@ -68,6 +69,20 @@ public class GCPServiceBuilderConfigurer {
     builder.setRetrySettings(createRetrySettings(
         config.getHttpRetryConfig()
             .orElseThrow(createConfigException("RetrySettings has to be configured by setting a.b"))));
+
+    config.getTimeouts()
+        .filter(timeouts -> timeouts.getSocketTimeoutMillis() != null
+            || timeouts.getConnectionTimeoutMillis() != null)
+        .ifPresent(timeouts -> {
+          val transportBuilder = HttpTransportOptions.newBuilder();
+          if (timeouts.getSocketTimeoutMillis() != null) {
+            transportBuilder.setReadTimeout(timeouts.getSocketTimeoutMillis().intValue());
+          }
+          if (timeouts.getConnectionTimeoutMillis() != null) {
+            transportBuilder.setConnectTimeout(timeouts.getConnectionTimeoutMillis().intValue());
+          }
+          builder.setTransportOptions(transportBuilder.build());
+        });
 
     return builder;
   }
