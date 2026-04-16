@@ -3415,6 +3415,54 @@ class IndexManagerV2Test
     }
   }
 
+  test("startExecutors shuts down gcExecutor when its scheduleAtFixedRate throws") {
+    // A non-positive gc interval causes ScheduledThreadPoolExecutor.scheduleAtFixedRate
+    // to throw IllegalArgumentException. The fix must tear down the already-created
+    // pool so no daemon thread leaks.
+    val si = mock[StorageInterface[_]]
+    when(bucketAndPrefixFn(any[TopicPartition])).thenReturn(Right(CloudLocation("bucket", "prefix".some)))
+
+    val im = new IndexManagerV2(
+      bucketAndPrefixFn,
+      oldIndexManager,
+      pendingOperationsProcessors,
+      indexesDirectoryName,
+      gcIntervalSeconds = 0, // triggers IllegalArgumentException in scheduleAtFixedRate
+      gcSweepEnabled    = false,
+    )(si, connectorTaskId)
+
+    try {
+      a[IllegalArgumentException] should be thrownBy im.open(Set(Topic("t").withPartition(0)))
+      im.executorsStarted shouldBe false
+      im.gcExecutor shouldBe None
+      im.sweepExecutorOpt shouldBe None
+    } finally im.close()
+  }
+
+  test("startExecutors shuts down both gcExecutor and sweepExecutor when sweep scheduleAtFixedRate throws") {
+    // gc scheduling succeeds; sweep scheduling fails. The fix must shut down the newly
+    // created sweep pool AND the previously created gc pool, and reset both option fields.
+    val si = mock[StorageInterface[_]]
+    when(bucketAndPrefixFn(any[TopicPartition])).thenReturn(Right(CloudLocation("bucket", "prefix".some)))
+
+    val im = new IndexManagerV2(
+      bucketAndPrefixFn,
+      oldIndexManager,
+      pendingOperationsProcessors,
+      indexesDirectoryName,
+      gcIntervalSeconds      = Int.MaxValue,
+      gcSweepEnabled         = true,
+      gcSweepIntervalSeconds = 0, // triggers IllegalArgumentException in scheduleAtFixedRate
+    )(si, connectorTaskId)
+
+    try {
+      a[IllegalArgumentException] should be thrownBy im.open(Set(Topic("t").withPartition(0)))
+      im.executorsStarted shouldBe false
+      im.gcExecutor shouldBe None
+      im.sweepExecutorOpt shouldBe None
+    } finally im.close()
+  }
+
   test("sweep writes marker before scan; scan exception is swallowed by outer try") {
     val tp              = Topic("topic1").withPartition(0)
     val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
