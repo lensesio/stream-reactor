@@ -88,20 +88,47 @@ class AwsS3StorageInterfaceTest
     verify(s3Client).deleteObject(any[DeleteObjectRequest])
   }
 
-  it should "pass if no source object exists" in {
+  it should "return Right when source is missing but destination already exists (idempotent replay)" in {
+    // S1: a previous mvFile completed (source deleted, destination written). On
+    // pending-state replay we may be asked to do the move again; the contract is
+    // idempotent success, NOT silent skip-with-no-write.
+    val s3Client         = mock[S3Client]
+    val storageInterface = new AwsS3StorageInterface(mock[ConnectorTaskId], s3Client, batchDelete = false, None)
+
+    val sourceMatcher =
+      new org.mockito.ArgumentMatcher[HeadObjectRequest] {
+        override def matches(req: HeadObjectRequest): Boolean = req != null && req.key() == "oldPath"
+      }
+    val destMatcher =
+      new org.mockito.ArgumentMatcher[HeadObjectRequest] {
+        override def matches(req: HeadObjectRequest): Boolean = req != null && req.key() == "newPath"
+      }
+
+    org.mockito.Mockito.doThrow(NoSuchKeyException.builder().build())
+      .when(s3Client).headObject(org.mockito.ArgumentMatchers.argThat(sourceMatcher))
+    org.mockito.Mockito.doReturn(HeadObjectResponse.builder().build())
+      .when(s3Client).headObject(org.mockito.ArgumentMatchers.argThat(destMatcher))
+
+    val result = storageInterface.mvFile("oldBucket", "oldPath", "newBucket", "newPath", none)
+
+    result shouldBe Right(())
+    verify(s3Client, never).copyObject(any[CopyObjectRequest])
+    verify(s3Client, never).deleteObject(any[DeleteObjectRequest])
+  }
+
+  it should "return FileMoveError when both source and destination are missing" in {
+    // S1: nothing was ever written. The original implementation returned Right(())
+    // here, which silently advanced the pending pipeline without writing the final
+    // object -- silent data loss. We must return Left so the caller fails loudly.
     val s3Client         = mock[S3Client]
     val storageInterface = new AwsS3StorageInterface(mock[ConnectorTaskId], s3Client, batchDelete = false, None)
 
     org.mockito.Mockito.doThrow(NoSuchKeyException.builder().build()).when(s3Client).headObject(any[HeadObjectRequest])
-    org.mockito.Mockito.doReturn(CopyObjectResponse.builder().build()).when(s3Client).copyObject(any[CopyObjectRequest])
-    org.mockito.Mockito.doThrow(new RuntimeException("Delete failed")).when(s3Client).deleteObject(
-      any[DeleteObjectRequest],
-    )
 
     val result = storageInterface.mvFile("oldBucket", "oldPath", "newBucket", "newPath", none)
 
-    result.isRight shouldBe true
-    verify(s3Client).headObject(any[HeadObjectRequest])
+    result.isLeft shouldBe true
+    result.left.value shouldBe a[FileMoveError]
     verify(s3Client, never).copyObject(any[CopyObjectRequest])
     verify(s3Client, never).deleteObject(any[DeleteObjectRequest])
   }

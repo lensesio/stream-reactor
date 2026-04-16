@@ -429,9 +429,45 @@ class AwsS3StorageInterface(
     val headObjectRequest = HeadObjectRequest.builder().bucket(oldBucket).key(oldPath)
     maybeEtag.foreach(headObjectRequest.ifMatch)
     Try(s3Client.headObject(headObjectRequest.build())) match {
-      case Failure(ex: NoSuchKeyException) =>
-        logger.warn("Object ({}/{}) doesn't exist to move", oldBucket, oldPath, ex)
-        ().asRight
+      case Failure(_: NoSuchKeyException) =>
+        // Source is gone. This can happen in two legitimate scenarios:
+        //   1. A previous mvFile already succeeded (copy + delete-source both ran);
+        //      the destination is present and the operation is idempotent -> Right.
+        //   2. The source was never created / was externally removed. The destination
+        //      is absent and the caller is being asked to copy nothing; returning
+        //      Right(()) here used to silently "succeed" and clear the pending
+        //      pipeline, producing silent data loss. Instead, return Left so the
+        //      CopyOperationProcessor fails loudly.
+        val destHead = HeadObjectRequest.builder().bucket(newBucket).key(newPath).build()
+        Try(s3Client.headObject(destHead)) match {
+          case Success(_) =>
+            logger.warn(
+              "Object ({}/{}) missing but destination ({}/{}) exists; treating mvFile as idempotent success",
+              oldBucket,
+              oldPath,
+              newBucket,
+              newPath,
+            )
+            ().asRight
+          case Failure(_: NoSuchKeyException) =>
+            logger.error(
+              "mvFile: both source ({}/{}) and destination ({}/{}) are missing; cannot complete move",
+              oldBucket,
+              oldPath,
+              newBucket,
+              newPath,
+            )
+            FileMoveError(
+              new IllegalStateException(
+                s"Source $oldBucket/$oldPath and destination $newBucket/$newPath both missing",
+              ),
+              oldPath,
+              newPath,
+            ).asLeft
+          case Failure(ex) =>
+            logger.error("mvFile: failed to verify destination ({}/{}): {}", newBucket, newPath, ex)
+            FileMoveError(ex, oldPath, newPath).asLeft
+        }
       case Failure(ex) =>
         logger.error("Object ({}/{}) could not be retrieved", ex)
         FileMoveError(ex, oldPath, newPath).asLeft

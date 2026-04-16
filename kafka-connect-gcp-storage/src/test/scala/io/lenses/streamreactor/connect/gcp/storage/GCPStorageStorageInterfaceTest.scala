@@ -673,41 +673,65 @@ class GCPStorageStorageInterfaceTest
     // Verify that delete was not called, as the copy failed
     verify(client, never).delete(sourceBlobId)
   }
-  "mvFile" should "return no error if the source file does not exist initially (1)" in {
+  "mvFile" should "return FileMoveError when source missing and destination missing (1)" in {
+    // S1: previously this returned Right(()), silently advancing the pending pipeline
+    // without ever writing the destination -- silent data loss. New contract:
+    // require destination to exist for an idempotent success; otherwise Left.
     val oldBucket = "oldBucket"
     val oldPath   = "oldPath"
     val newBucket = "newBucket"
     val newPath   = "newPath"
 
-    val sourceBlobId = BlobId.of(oldBucket, oldPath)
+    val sourceBlobId      = BlobId.of(oldBucket, oldPath)
+    val destinationBlobId = BlobId.of(newBucket, newPath)
 
     mockBlobNonExistence1(sourceBlobId)
+    mockBlobNonExistence1(destinationBlobId)
 
     val result = storageInterface.mvFile(oldBucket, oldPath, newBucket, newPath, none)
 
-    result.value should be(())
-
+    result.left.value shouldBe a[FileMoveError]
     verify(client, never).copy(any[CopyRequest])
     verify(client, never).delete(sourceBlobId)
   }
 
-  "mvFile" should "return no error if the source file does not exist initially (2)" in {
+  "mvFile" should "return FileMoveError when source missing and destination missing (2)" in {
     val oldBucket = "oldBucket"
     val oldPath   = "oldPath"
     val newBucket = "newBucket"
     val newPath   = "newPath"
 
-    val sourceBlobId = BlobId.of(oldBucket, oldPath)
+    val sourceBlobId      = BlobId.of(oldBucket, oldPath)
+    val destinationBlobId = BlobId.of(newBucket, newPath)
 
     mockBlobNonExistence2(sourceBlobId)
+    mockBlobNonExistence2(destinationBlobId)
 
-    // Simulate a failure during the copy operation (e.g., source file does not exist)
-    when(client.copy(any[Storage.CopyRequest])).thenThrow(new RuntimeException("Source file does not exist"))
+    val result = storageInterface.mvFile(oldBucket, oldPath, newBucket, newPath, none)
+
+    result.left.value shouldBe a[FileMoveError]
+    verify(client, never).copy(any[CopyRequest])
+    verify(client, never).delete(sourceBlobId)
+  }
+
+  "mvFile" should "return Right when source missing but destination already exists (idempotent replay)" in {
+    // S1: a previous mvFile completed (source deleted, destination written). On
+    // pending-state replay we may be asked to do the move again; the contract is
+    // idempotent success.
+    val oldBucket = "oldBucket"
+    val oldPath   = "oldPath"
+    val newBucket = "newBucket"
+    val newPath   = "newPath"
+
+    val sourceBlobId      = BlobId.of(oldBucket, oldPath)
+    val destinationBlobId = BlobId.of(newBucket, newPath)
+
+    mockBlobNonExistence1(sourceBlobId)
+    mockBlobExistence(destinationBlobId)
 
     val result = storageInterface.mvFile(oldBucket, oldPath, newBucket, newPath, none)
 
     result.value should be(())
-
     verify(client, never).copy(any[CopyRequest])
     verify(client, never).delete(sourceBlobId)
   }
