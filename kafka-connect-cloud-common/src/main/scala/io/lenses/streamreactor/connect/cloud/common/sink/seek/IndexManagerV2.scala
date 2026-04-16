@@ -110,33 +110,35 @@ class IndexManagerV2(
   // Thread safety: ConcurrentHashMap is required because the background GC thread reads
   // the cache (containsKey) to check whether a scheduled-for-deletion key has been reclaimed
   // by a new writer. All mutating access occurs on the single Kafka Connect task thread.
-  private val granularCache = new ConcurrentHashMap[TopicPartition, ConcurrentHashMap[String, GranularCacheEntry]]()
+  private val granularCache            = new ConcurrentHashMap[TopicPartition, ConcurrentHashMap[String, GranularCacheEntry]]()
   private val granularCacheSizeCounter = new AtomicInteger(0)
 
   private def gcGet(tp: TopicPartition, pk: String): Option[GranularCacheEntry] =
     Option(granularCache.get(tp)).flatMap(inner => Option(inner.get(pk)))
 
   private def gcPut(tp: TopicPartition, pk: String, entry: GranularCacheEntry): Unit = {
-    val _ = granularCache.compute(tp,
-                                  (_, inner) => {
-                                    val map =
-                                      if (inner == null) new ConcurrentHashMap[String, GranularCacheEntry]() else inner
-                                    val prev = map.put(pk, entry)
-                                    if (prev == null) granularCacheSizeCounter.incrementAndGet()
-                                    map
-                                  },
+    val _ = granularCache.compute(
+      tp,
+      (_, inner) => {
+        val map =
+          if (inner == null) new ConcurrentHashMap[String, GranularCacheEntry]() else inner
+        val prev = map.put(pk, entry)
+        if (prev == null) granularCacheSizeCounter.incrementAndGet()
+        map
+      },
     )
   }
 
   private def gcRemove(tp: TopicPartition, pk: String): Unit = {
-    val _ = granularCache.compute(tp,
-                                  (_, inner) =>
-                                    if (inner == null) null
-                                    else {
-                                      val prev = inner.remove(pk)
-                                      if (prev != null) granularCacheSizeCounter.decrementAndGet()
-                                      if (inner.isEmpty) null else inner
-                                    },
+    val _ = granularCache.compute(
+      tp,
+      (_, inner) =>
+        if (inner == null) null
+        else {
+          val prev = inner.remove(pk)
+          if (prev != null) granularCacheSizeCounter.decrementAndGet()
+          if (inner.isEmpty) null else inner
+        },
     )
   }
 
