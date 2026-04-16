@@ -51,6 +51,20 @@ import scala.collection.mutable
  * End-to-end exactly-once scenarios driven against a real `IndexManagerV2` +
  * `PendingOperationsProcessors` stack wired against the [[InMemoryStorageInterface]].
  *
+ * Terminology used throughout the scenarios and the assertions below:
+ *
+ *   - M  ("committed offset"): the highest record offset whose bytes are durably persisted
+ *        at a final storage path. Stored on the master lock file per topic-partition.
+ *   - K  ("safe offset"): the offset reported to Kafka at `preCommit` time -- the offset of
+ *        the next record Kafka should deliver. Invariant: `K = M + 1`. Returning a K that
+ *        implies Kafka has already stored record M would violate exactly-once, so K must be
+ *        monotonically non-decreasing while this task continues to own the topic-partition.
+ *   - partition key (often shortened to `pk`): the PARTITIONBY grouping within a
+ *        topic-partition. In PARTITIONBY mode there is one writer per distinct key, each
+ *        writing to its own namespaced final-path prefix (e.g. `.../pk-a/`, `.../pk-b/`);
+ *        in non-PARTITIONBY mode the partition key is `None` and a single writer owns the
+ *        topic-partition.
+ *
  * Why
  *   The recovery and CAS paths in `IndexManagerV2` + `PendingOperationsProcessors` are
  *   where exactly-once correctness lives: a missed `If-Match`, a silent `mvFile` no-op, or
@@ -63,12 +77,17 @@ import scala.collection.mutable
  *   explicit expectations on the K-trace and on the final-path bytes. Five invariants are
  *   also checked at the end of every scenario:
  *
- *     - (a)  No loss: every offset that was reported as part of K (i.e. the synthetic
- *            writer received and committed it) appears at exactly one final path.
+ *     - (a)  No loss: every offset the synthetic writer successfully committed appears at
+ *            exactly one final path.
  *     - (a') No duplicates: each offset appears at most once across all final paths.
- *     - (b)  K is monotonically non-decreasing within an assignment generation.
- *     - (c)  Master-lock committed offset M <= K - 1 at every PreCommit step.
- *     -      Post-rebalance floor: K never regresses below M-at-rebalance.
+ *     - (b)  K is monotonically non-decreasing while this task continues to own the
+ *            topic-partition (i.e. within a single assignment generation -- a rebalance
+ *            starts a new generation and introduces a separate floor, captured below).
+ *     - (c)  `M <= K - 1` at every `PreCommit`: the reported safe offset never runs ahead
+ *            of what is actually persisted.
+ *     -      Post-rebalance floor: after a rebalance, K never regresses below whatever K
+ *            was immediately before the rebalance -- the new generation picks up from the
+ *            persisted state, it does not roll it back.
  *
  * How
  *   Instead of wiring the full `Writer` + `WriterManager` + `JsonFormatWriter` stack, the
@@ -138,14 +157,14 @@ class ExactlyOnceScenarioTest extends AnyFunSuite with Matchers with BeforeAndAf
       Assign(Set(tp0)),
       Write(tp0, None, 5L),
       InjectFailMove(tempPath),
-      Commit(tp0),                  // expected to fail mid-pipeline
+      Commit(tp0), // expected to fail mid-pipeline
       Crash,
       PreCommit(tp0, 100L),
     )
     h.run(ops, expectCommitErrors = true)
     h.persistedOffsets(tp0) shouldBe Set(5L)
     h.storage.pathExists(h.bucket, finalPath).getOrElse(false) shouldBe true
-    h.storage.pathExists(h.bucket, tempPath).getOrElse(true)   shouldBe false
+    h.storage.pathExists(h.bucket, tempPath).getOrElse(true) shouldBe false
   }
 
   test("crash after copy before delete: replay cleans temp and delivers once") {
@@ -158,7 +177,7 @@ class ExactlyOnceScenarioTest extends AnyFunSuite with Matchers with BeforeAndAf
       Assign(Set(tp0)),
       Write(tp0, None, 7L),
       InjectFailDelete(tempPath),
-      Commit(tp0),                  // expected to fail on temp cleanup
+      Commit(tp0), // expected to fail on temp cleanup
       Crash,
       PreCommit(tp0, 100L),
     )
@@ -197,9 +216,9 @@ class ExactlyOnceScenarioTest extends AnyFunSuite with Matchers with BeforeAndAf
       Assign(Set(tp0)),
       Write(tp0, None, 4L),
       Commit(tp0),
-      PreCommit(tp0, 100L),       // K = 5
+      PreCommit(tp0, 100L), // K = 5
       Rebalance(Set(tp0)),
-      PreCommit(tp0, 100L),       // K still 5 -- post-rebalance floor honored
+      PreCommit(tp0, 100L), // K still 5 -- post-rebalance floor honored
     )
     h.run(ops)
     h.ks(tp0).toList shouldBe List(5L, 5L)
@@ -238,7 +257,7 @@ class ExactlyOnceScenarioTest extends AnyFunSuite with Matchers with BeforeAndAf
       Assign(Set(tp0)),
       InjectCorruptETag(granularPath),
       Write(tp0, Some("pk-a"), 8L),
-      Commit(tp0),                 // expected to fail (granular CAS mismatch)
+      Commit(tp0), // expected to fail (granular CAS mismatch)
       Crash,
       Write(tp0, Some("pk-a"), 9L),
       Commit(tp0),
@@ -291,16 +310,16 @@ object ExactlyOnceScenarioTest {
 
   // ---------- Op DSL ----------
   sealed trait Op
-  final case class Assign(tps: Set[TopicPartition])        extends Op
+  final case class Assign(tps: Set[TopicPartition]) extends Op
   final case class Write(tp: TopicPartition, pk: Option[String], offset: Long) extends Op
-  final case class Commit(tp: TopicPartition)              extends Op
+  final case class Commit(tp: TopicPartition) extends Op
   final case class PreCommit(tp: TopicPartition, kafkaOffset: Long) extends Op
-  final case class Rebalance(newAssignment: Set[TopicPartition])    extends Op
-  case object Crash                                        extends Op
-  final case class InjectFailMove(tempPath: String)        extends Op
-  final case class InjectFailDelete(tempPath: String)      extends Op
-  final case class InjectFailWrite(path: String)           extends Op
-  final case class InjectCorruptETag(path: String)         extends Op
+  final case class Rebalance(newAssignment: Set[TopicPartition]) extends Op
+  case object Crash extends Op
+  final case class InjectFailMove(tempPath: String) extends Op
+  final case class InjectFailDelete(tempPath: String) extends Op
+  final case class InjectFailWrite(path: String) extends Op
+  final case class InjectCorruptETag(path: String) extends Op
   final case class AgeBlobAt(path: String, lastModified: Instant) extends Op
 
   // ---------- harness ----------
@@ -312,15 +331,15 @@ object ExactlyOnceScenarioTest {
    */
   final class Harness {
 
-    val bucket: String           = "test-bucket"
+    val bucket:            String = "test-bucket"
     val directoryFileName: String = ".indexes2"
 
     val storage = new InMemoryStorageInterface()
-    implicit val si: StorageInterface[FakeFileMetadata]    = storage
-    implicit val taskId: ConnectorTaskId                   = ConnectorTaskId("eo-test", 1, 0)
-    implicit val locValidator: CloudLocationValidator      = (location: CloudLocation) => Validated.valid(location)
+    implicit val si:           StorageInterface[FakeFileMetadata] = storage
+    implicit val taskId:       ConnectorTaskId                    = ConnectorTaskId("eo-test", 1, 0)
+    implicit val locValidator: CloudLocationValidator             = (location: CloudLocation) => Validated.valid(location)
 
-    private val pop = new PendingOperationsProcessors(storage)
+    private val pop         = new PendingOperationsProcessors(storage)
     private val v1Filenames = new IndexFilenames(directoryFileName + "-v1")
 
     private def bucketAndPrefix(tp: TopicPartition): Either[SinkError, CloudLocation] =
@@ -329,19 +348,24 @@ object ExactlyOnceScenarioTest {
     private var im: IndexManagerV2 = _
 
     // -- shadow state --
-    val ks:       mutable.Map[TopicPartition, mutable.ListBuffer[Long]] = mutable.Map.empty
-    val delivered: mutable.Map[TopicPartition, mutable.Set[Long]]       = mutable.Map.empty
+    val ks:        mutable.Map[TopicPartition, mutable.ListBuffer[Long]] = mutable.Map.empty
+    val delivered: mutable.Map[TopicPartition, mutable.Set[Long]]        = mutable.Map.empty
 
     /** Highest K ever returned for a TP -- used as the local HWM (mirrors WriterManager). */
     private val kHighWatermark = mutable.Map.empty[TopicPartition, Long]
+
     /** K-monotonicity guard within the current assignment generation. */
     private val currentGenerationLastK = mutable.Map.empty[TopicPartition, Long]
+
     /** Floor each TP must keep K above after a rebalance. */
     private val pendingRebalanceFloor = mutable.Map.empty[TopicPartition, Long]
+
     /** Per-(tp, pk) committed offset -- the highest record offset durably persisted. */
     private val committed = mutable.Map.empty[(TopicPartition, Option[String]), Long]
+
     /** In-memory record buffers per (tp, pk). Mirrors a Writer holding records before commit. */
     private val buffers = mutable.Map.empty[(TopicPartition, Option[String]), mutable.ListBuffer[Long]]
+
     /** Records the harness has issued on the current run (used for invariant a/a'). */
     private val deliveredAll = mutable.Map.empty[TopicPartition, mutable.Set[Long]]
 
@@ -362,7 +386,7 @@ object ExactlyOnceScenarioTest {
     }
 
     private def openOrFail(tps: Set[TopicPartition]): Unit = {
-      val res = im.open(tps)
+      val res    = im.open(tps)
       val seeded = res.fold(err => throw new AssertionError(s"open failed: ${err.message()}"), identity)
       // Refresh local committed view from what storage returned for each tp's master lock.
       seeded.foreach {
@@ -385,14 +409,15 @@ object ExactlyOnceScenarioTest {
 
     def silentClose(): Unit =
       if (im != null) {
-        try im.close() catch { case _: Throwable => () }
+        try im.close()
+        catch { case _: Throwable => () }
         im = null
       }
 
     // ---------- public op runner ----------
 
     def run(
-      ops: List[Op],
+      ops:                   List[Op],
       expectCommitErrors:    Boolean = false,
       expectPreCommitErrors: Boolean = false,
     ): Unit = {
@@ -429,11 +454,12 @@ object ExactlyOnceScenarioTest {
 
       case PreCommit(tp, _) =>
         // Compute K = max(committed across all writers for tp) + 1, clamped by HWM.
-        val activeKeys     = committed.keys.filter(_._1 == tp).toList
-        val maxCommitted   = activeKeys.flatMap(committed.get).reduceOption((a: Long, b: Long) => math.max(a, b)).getOrElse(-1L)
-        val rawK           = if (maxCommitted < 0) 0L else maxCommitted + 1L
-        val hwm            = kHighWatermark.getOrElse(tp, 0L)
-        val k              = math.max(rawK, hwm)
+        val activeKeys = committed.keys.filter(_._1 == tp).toList
+        val maxCommitted =
+          activeKeys.flatMap(committed.get).reduceOption((a: Long, b: Long) => math.max(a, b)).getOrElse(-1L)
+        val rawK = if (maxCommitted < 0) 0L else maxCommitted + 1L
+        val hwm  = kHighWatermark.getOrElse(tp, 0L)
+        val k    = math.max(rawK, hwm)
         // Drive the master lock update -- this is what real WriterManager.preCommit does.
         im.updateMasterLock(tp, Offset(k)) match {
           case Right(_) =>
@@ -477,8 +503,8 @@ object ExactlyOnceScenarioTest {
     // ---------- synthetic writer (mimics Writer.commit) ----------
 
     private def commitOne(tp: TopicPartition, pk: Option[String], offsets: List[Long]): Either[SinkError, Unit] = {
-      val tempLocal = writeLocalTempFile(offsets)
-      val finalPath = expectedFinalPath(tp, pk, offsets.max)
+      val tempLocal       = writeLocalTempFile(offsets)
+      val finalPath       = expectedFinalPath(tp, pk, offsets.max)
       val tempStoragePath = tempPathFor(tp, pk, offsets.max)
       val pendingOps = NonEmptyList.of(
         UploadOperation(bucket, tempLocal, tempStoragePath),

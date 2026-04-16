@@ -205,16 +205,18 @@ class InMemoryStorageInterface(systemName: String = "in-memory") extends Storage
     bucket:           String,
     path:             String,
     objectProtection: ObjectProtection[O],
-  )(implicit encoder: Encoder[O]): Either[UploadError, ObjectWithETag[O]] = {
+  )(
+    implicit
+    encoder: Encoder[O],
+  ): Either[UploadError, ObjectWithETag[O]] =
     takeFirstHook { case h: FailWriteAt if h.matches(bucket, path) => h } match {
       case Some(h) => h.asUploadError(bucket, path).asLeft
-      case None =>
+      case None    =>
         // CorruptETag persists normally but reports a wrong eTag back to the caller.
         val cachedOverride = takeFirstHook { case h: CorruptETag if h.matches(bucket, path) => h }
           .map(_ => freshETag())
         persist(bucket, path, objectProtection, freshETag(), cachedOverride)
     }
-  }
 
   override def getMetadata(bucket: String, path: String): Either[FileLoadError, ObjectMetadata] =
     Option(store.get((bucket, path))) match {
@@ -222,7 +224,7 @@ class InMemoryStorageInterface(systemName: String = "in-memory") extends Storage
       case None       => Left(FileNotFoundError(new IOException(s"No such key: $bucket/$path"), path))
     }
 
-  override def writeStringToFile(bucket: String, path: String, data: UploadableString): Either[UploadError, Unit] = {
+  override def writeStringToFile(bucket: String, path: String, data: UploadableString): Either[UploadError, Unit] =
     takeFirstHook { case h: FailWriteAt if h.matches(bucket, path) => h } match {
       case Some(h) => h.asUploadError(bucket, path).asLeft
       case None =>
@@ -233,7 +235,6 @@ class InMemoryStorageInterface(systemName: String = "in-memory") extends Storage
             ().asRight
         }
     }
-  }
 
   override def deleteFile(bucket: String, file: String, eTag: String): Either[FileDeleteError, Unit] = {
     val _ = eTag
@@ -325,7 +326,10 @@ class InMemoryStorageInterface(systemName: String = "in-memory") extends Storage
     objectProtection:   ObjectProtection[O],
     realETag:           String,
     cachedETagOverride: Option[String],
-  )(implicit encoder: Encoder[O]): Either[UploadError, ObjectWithETag[O]] = {
+  )(
+    implicit
+    encoder: Encoder[O],
+  ): Either[UploadError, ObjectWithETag[O]] = {
     val existing = Option(store.get((bucket, path)))
     objectProtection match {
       case NoOverwriteExistingObject(_) if existing.isDefined =>
@@ -398,20 +402,20 @@ object InMemoryStorageInterface {
 
   /** Fail the next write to `(bucket, path)` with `err` (or a default if `None`). */
   final case class FailWriteAt(bucket: String, path: String, err: Option[UploadError] = None) extends Hook {
-    def matches(b: String, p: String): Boolean = b == bucket && p == path
+    def matches(b:                String, p: String): Boolean     = b == bucket && p == path
     override def asUploadError(b: String, p: String): UploadError = err.getOrElse(super.asUploadError(b, p))
   }
 
   /** Fail the next mvFile sourced from `(bucket, path)` with `err`. */
   final case class FailMoveAt(bucket: String, path: String, err: Option[FileMoveError] = None) extends Hook {
-    def matches(b: String, p: String): Boolean = b == bucket && p == path
+    def matches(b:                    String, p:       String): Boolean = b == bucket && p == path
     override def asMoveError(oldPath: String, newPath: String): FileMoveError =
       err.getOrElse(super.asMoveError(oldPath, newPath))
   }
 
   /** Fail the next deleteFile/deleteFiles entry at `(bucket, path)` with `err`. */
   final case class FailDeleteAt(bucket: String, path: String, err: Option[FileDeleteError] = None) extends Hook {
-    def matches(b: String, p: String): Boolean = b == bucket && p == path
+    def matches(b:                String, p: String): Boolean         = b == bucket && p == path
     override def asDeleteError(b: String, p: String): FileDeleteError = err.getOrElse(super.asDeleteError(b, p))
   }
 
