@@ -121,7 +121,19 @@ public class ReportSender<C extends ConnectorSpecificRecordData> {
 
   public void close() {
     log.info("Stopping reporting Kafka Producer with clientId:" + reportingClientId);
-    Try.withCatch(() -> executorService.awaitTermination(DEFAULT_CLOSE_DURATION_IN_MILLIS, TimeUnit.MILLISECONDS));
+    // awaitTermination only waits -- it does NOT trigger termination. Without a
+    // prior shutdown() the call returns false immediately and the scheduled
+    // poll-and-send threads outlive the connector, leaking a thread per
+    // start/close cycle in workers with high connector churn.
+    executorService.shutdown();
+    val terminated =
+        Try.withCatch(() -> executorService.awaitTermination(DEFAULT_CLOSE_DURATION_IN_MILLIS, TimeUnit.MILLISECONDS))
+            .toOptional().orElse(Boolean.FALSE);
+    if (!Boolean.TRUE.equals(terminated)) {
+      // Either we timed out or awaitTermination threw InterruptedException; force
+      // an immediate shutdown so no scheduled tasks remain in the pool's queue.
+      executorService.shutdownNow();
+    }
     producer.close(Duration.ofMillis(DEFAULT_CLOSE_DURATION_IN_MILLIS));
   }
 
