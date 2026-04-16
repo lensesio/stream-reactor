@@ -94,7 +94,7 @@ class JMSSourceTaskTest extends ItTestBase with BeforeAndAfterAll with Eventuall
     records.head.valueSchema().toString shouldBe JMSStructMessage.getSchema().toString
     messagesLeftToAckShouldBe(10)
 
-    records.foreach(task.commitRecord)
+    records.foreach(task.commitRecord(_, null))
 
     messagesLeftToAckShouldBe(0)
 

@@ -43,7 +43,10 @@ import io.lenses.streamreactor.connect.cloud.common.sink.config.CloudSinkBucketO
 import io.lenses.streamreactor.connect.cloud.common.sink.config.LocalStagingArea
 import io.lenses.streamreactor.connect.cloud.common.sink.config.IndexOptions
 import io.lenses.streamreactor.connect.cloud.common.sink.config.PartitionDisplay.Values
+import io.lenses.streamreactor.connect.cloud.common.sink.config.PartitionNamePath
+import io.lenses.streamreactor.connect.cloud.common.sink.config.PartitionSelection
 import io.lenses.streamreactor.connect.cloud.common.sink.config.PartitionSelection.defaultPartitionSelection
+import io.lenses.streamreactor.connect.cloud.common.sink.config.ValuePartitionField
 import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.LeftPadPaddingStrategy
 import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.NoOpPaddingStrategy
 import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.PaddingService
@@ -53,6 +56,7 @@ import io.lenses.streamreactor.connect.cloud.common.sink.conversion.NullSinkData
 import io.lenses.streamreactor.connect.cloud.common.sink.conversion.SinkData
 import io.lenses.streamreactor.connect.cloud.common.sink.conversion.StructSinkData
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.CloudKeyNamer
+import io.lenses.streamreactor.connect.cloud.common.sink.naming.FileNamerConfig
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.OffsetFileNamer
 import io.lenses.streamreactor.connect.cloud.common.utils.ITSampleSchemaAndData.firstUsers
 import io.lenses.streamreactor.connect.cloud.common.utils.ITSampleSchemaAndData.users
@@ -94,9 +98,12 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
             JsonFormatSelection,
             defaultPartitionSelection(Values),
             new OffsetFileNamer(
-              identity[String],
-              JsonFormatSelection.extension,
-              None,
+              FileNamerConfig(
+                partitionPaddingStrategy = NoOpPaddingStrategy,
+                offsetPaddingStrategy    = NoOpPaddingStrategy,
+                extension                = JsonFormatSelection.extension,
+                suffix                   = None,
+              ),
             ),
             new PaddingService(Map[String, PaddingStrategy](
               "partition" -> NoOpPaddingStrategy,
@@ -107,7 +114,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
           dataStorage      = DataStorageSettings.disabled,
         ), // JsonS3Format
       ),
-      indexOptions = IndexOptions(5, ".indexes").some,
+      indexOptions = IndexOptions(5, ".indexes", 300, 1000).some,
       compressionCodec,
       batchDelete                 = true,
       errorPolicy                 = ErrorPolicy(ErrorPolicyEnum.THROW),
@@ -164,9 +171,12 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
             AvroFormatSelection,
             defaultPartitionSelection(Values),
             new OffsetFileNamer(
-              identity[String],
-              JsonFormatSelection.extension,
-              None,
+              FileNamerConfig(
+                partitionPaddingStrategy = NoOpPaddingStrategy,
+                offsetPaddingStrategy    = NoOpPaddingStrategy,
+                extension                = JsonFormatSelection.extension,
+                suffix                   = None,
+              ),
             ),
             new PaddingService(Map[String, PaddingStrategy](
               "partition" -> NoOpPaddingStrategy,
@@ -236,9 +246,12 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
             AvroFormatSelection,
             defaultPartitionSelection(Values),
             new OffsetFileNamer(
-              identity[String],
-              JsonFormatSelection.extension,
-              None,
+              FileNamerConfig(
+                partitionPaddingStrategy = NoOpPaddingStrategy,
+                offsetPaddingStrategy    = NoOpPaddingStrategy,
+                extension                = JsonFormatSelection.extension,
+                suffix                   = None,
+              ),
             ),
             new PaddingService(Map[String, PaddingStrategy](
               "partition" -> NoOpPaddingStrategy,
@@ -249,7 +262,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
           dataStorage      = DataStorageSettings.disabled,
         ),
       ),
-      indexOptions = IndexOptions(5, ".indexes").some,
+      indexOptions = IndexOptions(5, ".indexes", 300, 1000).some,
       compressionCodec,
       batchDelete                 = true,
       errorPolicy                 = ErrorPolicy(ErrorPolicyEnum.THROW),
@@ -315,9 +328,12 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
             AvroFormatSelection,
             defaultPartitionSelection(Values),
             new OffsetFileNamer(
-              identity[String],
-              JsonFormatSelection.extension,
-              None,
+              FileNamerConfig(
+                partitionPaddingStrategy = NoOpPaddingStrategy,
+                offsetPaddingStrategy    = NoOpPaddingStrategy,
+                extension                = JsonFormatSelection.extension,
+                suffix                   = None,
+              ),
             ),
             new PaddingService(Map[String, PaddingStrategy](
               "partition" -> NoOpPaddingStrategy,
@@ -328,7 +344,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
           dataStorage      = DataStorageSettings.disabled,
         ),
       ),
-      indexOptions = IndexOptions(5, ".indexes").some,
+      indexOptions = IndexOptions(5, ".indexes", 300, 1000).some,
       compressionCodec,
       batchDelete                 = true,
       errorPolicy                 = ErrorPolicy(ErrorPolicyEnum.THROW),
@@ -367,6 +383,96 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
     remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/1_1_1.json") should be(
       """[{"name":"sam","title":"mr","salary":100.43},{"name":"laura","title":"ms","salary":429.06}]""",
     )
+  }
+
+  "json sink" should "write records partitioned by value field (PARTITIONBY) with granular locks" in {
+
+    val bucketAndPrefix = CloudLocation(BucketName, PathPrefix.some)
+    val partitionSelection = PartitionSelection(
+      isCustom         = true,
+      partitions       = Seq(ValuePartitionField(PartitionNamePath("name"))),
+      partitionDisplay = Values,
+    )
+    val config = S3SinkConfig(
+      S3ConnectionConfig(
+        None,
+        Some(s3Container.identity.identity),
+        Some(s3Container.identity.credential),
+        AuthMode.Credentials,
+      ),
+      bucketOptions = Seq(
+        CloudSinkBucketOptions(
+          TopicName.some,
+          bucketAndPrefix,
+          commitPolicy    = CommitPolicy(Count(1)),
+          formatSelection = JsonFormatSelection,
+          keyNamer = new CloudKeyNamer(
+            JsonFormatSelection,
+            partitionSelection,
+            new OffsetFileNamer(
+              FileNamerConfig(
+                partitionPaddingStrategy = NoOpPaddingStrategy,
+                offsetPaddingStrategy    = NoOpPaddingStrategy,
+                extension                = JsonFormatSelection.extension,
+                suffix                   = None,
+              ),
+            ),
+            new PaddingService(Map[String, PaddingStrategy](
+              "partition" -> NoOpPaddingStrategy,
+              "offset"    -> LeftPadPaddingStrategy(12, 0),
+            )),
+          ),
+          localStagingArea = LocalStagingArea(localRoot),
+          dataStorage      = DataStorageSettings.disabled,
+        ),
+      ),
+      indexOptions = IndexOptions(5, ".indexes", 300, 1000).some,
+      compressionCodec,
+      batchDelete                 = true,
+      errorPolicy                 = ErrorPolicy(ErrorPolicyEnum.THROW),
+      connectorRetryConfig        = new RetryConfig(1, 1L, 1.0),
+      logMetrics                  = false,
+      schemaChangeDetector        = schemaChangeDetector,
+      skipNullValues              = true,
+      latestSchemaForWriteEnabled = false,
+    )
+
+    val (indexManager, sink) = writerManagerCreator.from(config)
+    val topic                = Topic(TopicName)
+    indexManager.open(Set(topic.withPartition(1)))
+
+    firstUsers.zipWithIndex.foreach {
+      case (struct: Struct, index: Int) =>
+        val offset = Offset(index.toLong + 1)
+        sink.write(
+          TopicPartitionOffset(topic, 1, offset),
+          MessageDetail(
+            NullSinkData(None),
+            StructSinkData(struct),
+            Map.empty[String, SinkData],
+            Some(Instant.ofEpochMilli((index + 1).toLong)),
+            topic,
+            1,
+            offset,
+          ),
+        )
+    }
+
+    sink.close()
+
+    val outputFiles = listBucketPath(BucketName, "streamReactorBackups/")
+    outputFiles should not be empty
+
+    val samFiles   = outputFiles.filter(_.contains("/sam/"))
+    val lauraFiles = outputFiles.filter(_.contains("/laura/"))
+    val tomFiles   = outputFiles.filter(_.contains("/tom/"))
+    samFiles should not be empty
+    lauraFiles should not be empty
+    tomFiles should not be empty
+
+    val lockFiles     = listBucketPath(BucketName, ".indexes/")
+    val granularLocks = lockFiles.filter(f => f.contains("/1/") && f.endsWith(".lock") && !f.endsWith("1.lock"))
+    granularLocks should not be empty
   }
 }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2025 Lenses.io Ltd
+ * Copyright 2017-2026 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,6 +33,8 @@ import io.lenses.streamreactor.connect.cloud.common.sink.conversion.HeaderToSink
 import io.lenses.streamreactor.connect.cloud.common.sink.conversion.NullSinkData
 import io.lenses.streamreactor.connect.cloud.common.sink.conversion.ValueToSinkDataConverter
 import io.lenses.streamreactor.connect.cloud.common.sink.optimization.AttachLatestSchemaOptimizer
+import io.lenses.streamreactor.connect.cloud.common.sink.metrics.CloudSinkMetrics
+import io.lenses.streamreactor.connect.cloud.common.sink.metrics.CloudSinkMetricsRegistrar
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexManager
 import io.lenses.streamreactor.connect.cloud.common.sink.writer.WriterManager
 import io.lenses.streamreactor.connect.cloud.common.storage.FileMetadata
@@ -275,6 +277,13 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
    * Whenever close is called, the topics and partitions assigned to this task
    * may be changing, eg, in a re-balance. Therefore, we must commit our open files
    * for those (topic,partitions) to ensure no records are lost.
+   *
+   * seekedOffsets in IndexManagerV2 is deliberately NOT cleared here. During shutdown,
+   * Kafka Connect calls close(allPartitions) before stop(). If seekedOffsets were cleared
+   * here, the final drainGcQueue() in IndexManagerV2.close() (called from stop()) would
+   * discard every queued item as "partition no longer owned", and obsolete lock files would
+   * never be deleted. During rebalance (close + open without stop), stale seekedOffsets
+   * entries for revoked partitions are purged at the start of IndexManagerV2.open().
    */
   override def close(partitions: util.Collection[KafkaTopicPartition]): Unit = {
     logger.debug(
@@ -283,14 +292,33 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
       partitions.size(),
     )
 
+    // Suspend background GC/sweep threads before closing writers. This is a best-effort
+    // gate that prevents new scheduled invocations from starting during the close → open
+    // rebalance window. An already-running invocation is not interrupted but is benign
+    // (see architecture doc "Rebalance" section). On shutdown (close → stop), the flag
+    // stays false until the executors are shut down in IndexManagerV2.close(), which
+    // calls drainGcQueue() directly and bypasses the gate.
+    Option(indexManager).foreach(_.suspendBackgroundWork())
     Option(writerManager).foreach(_.close())
   }
 
   override def stop(): Unit = {
     logger.debug("[{}] Stop", Option(connectorTaskId).map(_.show).getOrElse("Unnamed"))
 
+    // Defensive: close writers in case stop() is called without a preceding close()
+    // (e.g. during error recovery or non-standard Connect runtimes). WriterManager.close()
+    // is idempotent -- on the normal close-then-stop path, writers are already closed and
+    // the map is empty, so this is a no-op. Removing this call saves no meaningful work
+    // but eliminates a safety net for edge cases.
     Option(writerManager).foreach(_.close())
     writerManager = null
+    // indexManager.close() shuts down background executors and performs a final synchronous
+    // drainGcQueue(). seekedOffsets is still populated (close() does not clear it), so the
+    // drain correctly identifies owned partitions. The state is GC'd with the indexManager
+    // reference immediately after.
+    Option(indexManager).foreach(_.close())
+    indexManager = null
+    Option(connectorTaskId).foreach(CloudSinkMetricsRegistrar.unregister)
   }
 
   def createClient(config: CC): Either[Throwable, CT]
@@ -307,12 +335,17 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
       s3Client        <- createClient(config.connectionConfig)
       storageInterface = createStorageInterface(connectorTaskId, config, s3Client)
       _               <- setRetryInterval(config)
+      metrics          = new CloudSinkMetrics()
       (indexManager, writerManager) <- Try(
-        writerManagerCreator.from(config)(connectorTaskId, storageInterface),
+        writerManagerCreator.from(config, metrics)(connectorTaskId, storageInterface),
       ).toEither
-      _ <- initializeFromConfig(config)
+      _ <- initializeFromConfig(config).left.map { err =>
+        indexManager.close()
+        err
+      }
     } yield {
       logMetrics = config.logMetrics
+      CloudSinkMetricsRegistrar.register(metrics, connectorTaskId)
       (indexManager, writerManager, config)
     }
 

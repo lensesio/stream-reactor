@@ -47,8 +47,8 @@ object Dependencies {
 
     val cyclopsVersion = "10.4.1"
 
-    val kafkaVersion:     String = "3.9.1"
-    val confluentVersion: String = "7.9.2"
+    val kafkaVersion:     String = "4.1.0"
+    val confluentVersion: String = "8.1.0"
 
     val enumeratumVersion = "1.7.5"
 
@@ -121,7 +121,7 @@ object Dependencies {
     val jmsApiVersion         = "3.1.0"
     val activeMqVersion       = "6.1.6"
     val protocVersion         = "3.11.4"
-    val googleProtobufVersion = "3.25.8"
+    val googleProtobufVersion = "4.31.1"
 
     val mqttVersion = "1.2.5"
 

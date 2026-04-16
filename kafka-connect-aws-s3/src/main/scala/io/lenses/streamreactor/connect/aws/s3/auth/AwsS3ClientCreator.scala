@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2025 Lenses.io Ltd
+ * Copyright 2017-2026 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -46,9 +46,15 @@ object AwsS3ClientCreator extends ClientCreator[S3ConnectionConfig, S3Client] {
   def make(config: S3ConnectionConfig): Either[Throwable, S3Client] =
     for {
       s3Config <- Try {
+        // pathStyleAccess takes priority if set, otherwise fall back to enableVirtualHostBuckets.
+        // Note: enableVirtualHostBuckets (connect.s3.vhost.bucket) has inverted semantics -
+        // setting it to true actually enables path-style access because the value was passed
+        // directly to pathStyleAccessEnabled() without negation.
+        // Use connect.s3.path.style.access for correct, explicit behavior.
+        val usePathStyle = config.pathStyleAccess.getOrElse(config.enableVirtualHostBuckets)
         S3Configuration
           .builder
-          .pathStyleAccessEnabled(config.enableVirtualHostBuckets)
+          .pathStyleAccessEnabled(usePathStyle)
           .build
       }.toEither
 

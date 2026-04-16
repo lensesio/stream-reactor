@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2025 Lenses.io Ltd
+ * Copyright 2017-2026 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -118,12 +118,18 @@ class CloudKeyNamer(
     partitionValues:         Map[PartitionField, String],
     earliestRecordTimestamp: Long,
     latestRecordTimestamp:   Long,
-  ): Either[FatalCloudSinkError, CloudLocation] =
+  ): Either[FatalCloudSinkError, CloudLocation] = {
+    val params = FileNamerParams(
+      topicPartitionOffset,
+      earliestRecordTimestamp,
+      latestRecordTimestamp,
+    )
     Try(
       bucketAndPrefix.withPath(
-        s"${prefix(bucketAndPrefix)}${buildPartitionPrefix(partitionValues)}/${fileNamer.fileName(topicPartitionOffset, earliestRecordTimestamp, latestRecordTimestamp)}",
+        s"${prefix(bucketAndPrefix)}${buildPartitionPrefix(partitionValues)}/${fileNamer.fileName(params)}",
       ),
     ).toEither.left.map(ex => FatalCloudSinkError(ex.getMessage, topicPartitionOffset.toTopicPartition))
+  }
 
   override def processPartitionValues(
     messageDetail:  MessageDetail,

@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2025 Lenses.io Ltd
+ * Copyright 2017-2026 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,8 +15,8 @@
  */
 package io.lenses.streamreactor.common.converters.sink
 
-import io.confluent.connect.avro.AvroData
 import io.lenses.streamreactor.common.converters.MsgKey
+import io.lenses.streamreactor.connect.avro.AvroDataFactory
 import org.apache.avro.generic.GenericRecord
 import org.apache.avro.io.EncoderFactory
 import org.apache.avro.reflect.ReflectDatumWriter
@@ -28,7 +28,7 @@ import java.io.ByteArrayOutputStream
 import java.io.File
 
 class AvroConverter extends Converter {
-  private val avroData = new AvroData(8)
+  private val avroData = AvroDataFactory.create(8)
   private var sinkToSchemaMap: Map[String, AvroSchema]                 = Map.empty
   private var avroWritersMap:  Map[String, ReflectDatumWriter[Object]] = Map.empty
 

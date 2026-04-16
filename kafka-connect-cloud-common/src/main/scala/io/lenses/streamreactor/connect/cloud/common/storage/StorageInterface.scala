@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2025 Lenses.io Ltd
+ * Copyright 2017-2026 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -40,6 +40,27 @@ trait StorageInterface[SM <: FileMetadata] extends ResultProcessors {
 
   def close(): Unit
 
+  /**
+   * Checks whether an object exists at exactly the given key in the specified bucket.
+   *
+   * This is an **exact-key** check, not a prefix/directory check. It returns `true` only if
+   * an object whose key is literally equal to `path` exists in `bucket`. It will return `false`
+   * if there is no object at that exact key, even if objects whose keys start with `path` exist
+   * (i.e., "virtual directory" children are not considered).
+   *
+   * All backend implementations (S3, GCS, Azure Data Lake) share this exact-key semantic:
+   *   - S3: `HeadObject` on the exact key
+   *   - GCS: `BlobId.of(bucket, path)` lookup
+   *   - Azure: `DataLakeFileClient(path).exists()`
+   *
+   * Callers that need to check whether a "directory" or path prefix contains any objects should
+   * use `listKeysRecursive` or `list` with the desired prefix instead.
+   *
+   * @param bucket the bucket (or container/filesystem) to check
+   * @param path   the exact object key to check for existence
+   * @return `Right(true)` if the object exists, `Right(false)` if it does not,
+   *         or `Left(PathError)` if the check fails due to a storage error
+   */
   def pathExists(bucket: String, path: String): Either[PathError, Boolean]
 
   def list(
@@ -118,4 +139,14 @@ trait StorageInterface[SM <: FileMetadata] extends ResultProcessors {
    * @return Either a FileCreateError if the directory creation failed, or Unit if the directory was created successfully or already exists.
    */
   def createDirectoryIfNotExists(bucket: String, path: String): Either[FileCreateError, Unit]
+
+  /**
+   * Updates the lastModified timestamp of a file by copying it to itself.
+   * This is used to "touch" late-arrival files so they appear after the watermark.
+   *
+   * @param bucket The name of the bucket where the file is located.
+   * @param path The path of the file to touch.
+   * @return Either a FileTouchError if the operation failed, or Unit if successful.
+   */
+  def touchFile(bucket: String, path: String): Either[FileTouchError, Unit]
 }

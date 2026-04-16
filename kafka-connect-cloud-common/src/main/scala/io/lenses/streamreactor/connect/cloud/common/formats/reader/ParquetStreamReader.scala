@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2025 Lenses.io Ltd
+ * Copyright 2017-2026 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
 package io.lenses.streamreactor.connect.cloud.common.formats.reader
 
 import cats.implicits.catsSyntaxEitherId
-import io.confluent.connect.avro.AvroData
+import io.lenses.streamreactor.connect.avro.AvroDataFactory
 import io.lenses.streamreactor.connect.cloud.common.formats.reader.parquet.ParquetSeekableInputStream
 import io.lenses.streamreactor.connect.cloud.common.formats.reader.parquet.ParquetStreamingInputFile
 import org.apache.avro.generic.GenericRecord
@@ -34,7 +34,7 @@ class ParquetStreamReader(
 ) extends CloudDataIterator[SchemaAndValue]
     with Using {
   private val parquetReaderIteratorAdaptor = new ParquetReaderIteratorAdaptor(reader)
-  private val avroDataConverter            = new AvroData(100)
+  private val avroDataConverter            = AvroDataFactory.create()
 
   override def close(): Unit = {
     val _ = Try(reader.close())

@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2025 Lenses.io Ltd
+ * Copyright 2017-2026 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +18,6 @@ package io.lenses.streamreactor.connect.cloud.common.sink.writer
 import cats.data.NonEmptyList
 import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
-import io.confluent.connect.avro.AvroData
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.FormatWriter
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.MessageDetail
@@ -30,6 +29,7 @@ import io.lenses.streamreactor.connect.cloud.common.sink.NonFatalCloudSinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.CloudCommitContext
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.CommitPolicy
+import io.lenses.streamreactor.connect.cloud.common.sink.conversion.ToAvroDataConverter
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.ObjectKeyBuilder
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.CopyOperation
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.DeleteOperation
@@ -55,23 +55,26 @@ class Writer[SM <: FileMetadata](
   formatWriterFn:              File => Either[SinkError, FormatWriter],
   schemaChangeDetector:        SchemaChangeDetector,
   pendingOperationsProcessors: PendingOperationsProcessors,
+  partitionKey:                Option[String] = None,
+  lastSeekedOffset:            Option[Offset] = None,
 )(
   implicit
   connectorTaskId: ConnectorTaskId,
 ) extends LazyLogging {
 
-  private val lastSeekedOffset: Option[Offset] = indexManager.getSeekedOffsetForTopicPartition(topicPartition)
+  private var writeState: WriteState = NoWriter(CommitState(topicPartition, lastSeekedOffset))
 
-  var writeState: WriteState = NoWriter(CommitState(topicPartition, lastSeekedOffset))
+  private[writer] def forceWriteState(state: WriteState): Unit = writeState = state
+  private[writer] def currentWriteState: WriteState = writeState
 
   def write(messageDetail: MessageDetail): Either[SinkError, Unit] = {
 
     def innerMessageWrite(writingState: Writing): Either[NonFatalCloudSinkError, Unit] =
       writingState.formatWriter.write(messageDetail) match {
         case Left(err: Throwable) =>
-          val avroDataConverter = new AvroData(2)
-          val schema            = messageDetail.value.schema().map(avroDataConverter.fromConnectSchema)
-          val keySchema         = messageDetail.key.schema().map(avroDataConverter.fromConnectSchema)
+          // Use Try to safely convert schema - prevents secondary errors from masking the original
+          val schema    = messageDetail.value.schema().flatMap(s => Try(ToAvroDataConverter.convertSchema(s)).toOption)
+          val keySchema = messageDetail.key.schema().flatMap(s => Try(ToAvroDataConverter.convertSchema(s)).toOption)
           logger.error(
             s"An error occurred while writing using ${writingState.formatWriter.getClass.getSimpleName}. " +
               s"Details: Topic-Partition: ${messageDetail.topic.value}-${messageDetail.partition}, " +
@@ -131,28 +134,41 @@ class Writer[SM <: FileMetadata](
     writeState match {
       case uploadState @ Uploading(commitState,
                                    file,
+                                   _,
                                    uncommittedOffset,
                                    earliestRecordTimestamp,
                                    latestRecordTimestamp,
           ) =>
+        val fnIndexUpdate: (TopicPartition, Option[Offset], Option[PendingState]) => Either[SinkError, Option[Offset]] =
+          partitionKey match {
+            case Some(pk) => (tp, co, ps) => indexManager.updateForPartitionKey(tp, pk, co, ps)
+            case None     => (tp, co, ps) => indexManager.update(tp, co, ps)
+          }
         for {
-          key         <- objectKeyBuilder.build(uncommittedOffset, earliestRecordTimestamp, latestRecordTimestamp)
-          path        <- key.path.toRight(NonFatalCloudSinkError("No path exists within cloud location"))
-          tempFileUuid = UUID.randomUUID().toString
-          tempFileName = path.prependedAll(
-            s".temp-upload/${topicPartition.topic}/${topicPartition.partition}/$tempFileUuid",
-          )
-          pendingOperations = NonEmptyList.of[FileOperation](
-            UploadOperation(key.bucket, file, tempFileName),
-            CopyOperation(key.bucket, tempFileName, path, "placeholder"),
-            DeleteOperation(key.bucket, tempFileName, "placeholder"),
-          )
+          key  <- objectKeyBuilder.build(uncommittedOffset, earliestRecordTimestamp, latestRecordTimestamp)
+          path <- key.path.toRight(NonFatalCloudSinkError("No path exists within cloud location"))
+          pendingOperations =
+            if (indexManager.indexingEnabled) {
+              val tempFileUuid = UUID.randomUUID().toString
+              val tempFileName = path.prependedAll(
+                s".temp-upload/${topicPartition.topic}/${topicPartition.partition}/$tempFileUuid",
+              )
+
+              NonEmptyList.of[FileOperation](
+                UploadOperation(key.bucket, file, tempFileName),
+                CopyOperation(key.bucket, tempFileName, path, "placeholder"),
+                DeleteOperation(key.bucket, tempFileName, "placeholder"),
+              )
+            } else
+              NonEmptyList.of[FileOperation](
+                UploadOperation(key.bucket, file, path),
+              )
 
           _ <- pendingOperationsProcessors.processPendingOperations(
             topicPartition,
             getCommittedOffset,
             PendingState(uncommittedOffset, pendingOperations),
-            indexManager.update,
+            fnIndexUpdate,
           )
           stateReset <- Try {
             logger.debug(s"[{}] Writer.resetState: Resetting state $writeState", connectorTaskId.show)
@@ -170,20 +186,33 @@ class Writer[SM <: FileMetadata](
   def close(): Unit =
     writeState = writeState match {
       case state @ NoWriter(_) => state
-      case Writing(commitState, formatWriter, file, _, _, _) =>
+      case Writing(commitState, formatWriter, file, _, _, _, _) =>
         Try(formatWriter.close())
         Try(file.delete())
         NoWriter(commitState.reset())
-      case Uploading(commitState, file, _, _, _) =>
+      case Uploading(commitState, file, _, _, _, _) =>
         Try(file.delete())
         NoWriter(commitState.reset())
     }
 
+  def isIdle: Boolean =
+    writeState match {
+      case NoWriter(_) => true
+      case _           => false
+    }
+
   def getCommittedOffset: Option[Offset] = writeState.getCommitState.committedOffset
+
+  def getFirstBufferedOffset: Option[Offset] =
+    writeState match {
+      case _: NoWriter  => None
+      case w: Writing   => Some(w.firstBufferedOffset)
+      case u: Uploading => Some(u.firstBufferedOffset)
+    }
 
   def shouldFlush: Boolean =
     writeState match {
-      case Writing(commitState, _, file, uncommittedOffset, _, _) => commitPolicy.shouldFlush(
+      case Writing(commitState, _, file, _, uncommittedOffset, _, _) => commitPolicy.shouldFlush(
           CloudCommitContext(
             topicPartition.withOffset(uncommittedOffset),
             commitState.recordCount,
@@ -240,9 +269,9 @@ class Writer[SM <: FileMetadata](
       writeState match {
         case NoWriter(commitState) =>
           shouldSkipInternal(currentOffset, commitState.committedOffset)
-        case Uploading(commitState, _, uncommittedOffset, _, _) =>
+        case Uploading(commitState, _, _, uncommittedOffset, _, _) =>
           shouldSkipInternal(currentOffset, Option(largestOffset(commitState.committedOffset, uncommittedOffset)))
-        case Writing(commitState, _, _, uncommittedOffset, _, _) =>
+        case Writing(commitState, _, _, _, uncommittedOffset, _, _) =>
           shouldSkipInternal(currentOffset, Option(largestOffset(commitState.committedOffset, uncommittedOffset)))
       }
     }

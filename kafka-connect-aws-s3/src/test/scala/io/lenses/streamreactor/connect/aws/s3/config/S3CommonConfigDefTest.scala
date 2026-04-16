@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2025 Lenses.io Ltd
+ * Copyright 2017-2026 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -53,7 +53,7 @@ class S3CommonConfigDefTest extends AnyFlatSpec with Matchers with EitherValues 
   }
   "CommonConfigDef" should "parse original properties" in {
     val resultMap = commonConfigDef.config.parse(DefaultProps.asJava).asScala
-    resultMap should have size 19
+    resultMap should have size 20
     DeprecatedProps.filterNot { case (k, _) => k == KCQL_CONFIG }.foreach {
       case (k, _) => resultMap.get(k) should be(None)
     }

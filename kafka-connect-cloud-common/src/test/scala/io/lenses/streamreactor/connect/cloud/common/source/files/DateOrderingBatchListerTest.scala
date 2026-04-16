@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2025 Lenses.io Ltd
+ * Copyright 2017-2026 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -51,6 +51,7 @@ class DateOrderingBatchListerTest
     Option[ListResponse[String, TestFileMetadata]],
   ] =
     DateOrderingBatchLister.listBatch[TestFileMetadata](storageInterface, bucket, prefix.some, NumResults)
+
   private val instBase: Instant = Instant.now
   private def instant(no: Int): Instant = {
     require(no <= 100)
@@ -164,6 +165,7 @@ class DateOrderingBatchListerTest
       allFiles(29),
     ))
   }
+
   private def mockStorageInterface(storageInterfaceResponse: ListOfMetadataResponse[TestFileMetadata]) =
     when(
       storageInterface.listFileMetaRecursive(

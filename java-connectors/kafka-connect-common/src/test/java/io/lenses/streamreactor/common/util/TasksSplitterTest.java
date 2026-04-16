@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2025 Lenses.io Ltd
+ * Copyright 2017-2026 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 package io.lenses.streamreactor.common.util;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -25,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -79,5 +81,62 @@ class TasksSplitterTest {
             "INSERT INTO * SELECT * FROM topicA",
             "INSERT INTO * SELECT * FROM topicB"))
     );
+  }
+
+  @ParameterizedTest
+  @MethodSource("replicateTestCases")
+  void testReplicateForAllTasks(int maxTasks, int expectedSize) {
+    Map<String, String> props =
+        Map.of(
+            OTHER_KEY, OTHER_VALUE,
+            KCQL_SETTINGS_KEY, "INSERT INTO * SELECT * FROM topicA"
+        );
+
+    val result = TasksSplitter.replicateForAllTasks(maxTasks, props);
+
+    assertEquals(expectedSize, result.size());
+    for (val taskProps : result) {
+      assertEquals(OTHER_VALUE, taskProps.get(OTHER_KEY));
+      assertEquals("INSERT INTO * SELECT * FROM topicA", taskProps.get(KCQL_SETTINGS_KEY));
+    }
+  }
+
+  private static Stream<Arguments> replicateTestCases() {
+    return Stream.of(
+        Arguments.of(1, 1),
+        Arguments.of(3, 3),
+        Arguments.of(5, 5),
+        Arguments.of(0, 0),
+        Arguments.of(-1, 0)
+    );
+  }
+
+  @Test
+  void testReplicateForAllTasksCreatesIndependentCopies() {
+    Map<String, String> props =
+        Map.of(
+            OTHER_KEY, OTHER_VALUE,
+            KCQL_SETTINGS_KEY, "INSERT INTO * SELECT * FROM topicA"
+        );
+
+    val result = TasksSplitter.replicateForAllTasks(3, props);
+
+    assertEquals(3, result.size());
+    // Verify all maps have the same content
+    for (val taskProps : result) {
+      assertEquals(props, taskProps);
+    }
+  }
+
+  @Test
+  void testReplicateForAllTasksWithEmptyProps() {
+    Map<String, String> props = Map.of();
+
+    val result = TasksSplitter.replicateForAllTasks(2, props);
+
+    assertEquals(2, result.size());
+    for (val taskProps : result) {
+      assertTrue(taskProps.isEmpty());
+    }
   }
 }

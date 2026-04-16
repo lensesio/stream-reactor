@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2025 Lenses.io Ltd
+ * Copyright 2017-2026 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -43,8 +43,11 @@ class AwsS3StorageInterfaceTest
     val s3Client         = mock[S3Client]
     val storageInterface = new AwsS3StorageInterface(mock[ConnectorTaskId], s3Client, batchDelete = false, None)
 
-    when(s3Client.copyObject(any[CopyObjectRequest])).thenAnswer(CopyObjectResponse.builder().build())
-    when(s3Client.deleteObject(any[DeleteObjectRequest])).thenAnswer(DeleteObjectResponse.builder().build())
+    org.mockito.Mockito.doReturn(HeadObjectResponse.builder().build()).when(s3Client).headObject(any[HeadObjectRequest])
+    org.mockito.Mockito.doReturn(CopyObjectResponse.builder().build()).when(s3Client).copyObject(any[CopyObjectRequest])
+    org.mockito.Mockito.doReturn(DeleteObjectResponse.builder().build()).when(s3Client).deleteObject(
+      any[DeleteObjectRequest],
+    )
 
     val result = storageInterface.mvFile("oldBucket", "oldPath", "newBucket", "newPath", none)
 
@@ -57,7 +60,7 @@ class AwsS3StorageInterfaceTest
     val s3Client         = mock[S3Client]
     val storageInterface = new AwsS3StorageInterface(mock[ConnectorTaskId], s3Client, batchDelete = false, None)
 
-    when(s3Client.copyObject(any[CopyObjectRequest])).thenThrow(new RuntimeException("Copy failed"))
+    org.mockito.Mockito.doThrow(new RuntimeException("Copy failed")).when(s3Client).copyObject(any[CopyObjectRequest])
 
     val result = storageInterface.mvFile("oldBucket", "oldPath", "newBucket", "newPath", none)
 
@@ -71,9 +74,11 @@ class AwsS3StorageInterfaceTest
     val s3Client         = mock[S3Client]
     val storageInterface = new AwsS3StorageInterface(mock[ConnectorTaskId], s3Client, batchDelete = false, None)
 
-    when(s3Client.headObject(any[HeadObjectRequest])).thenAnswer(HeadObjectResponse.builder().build())
-    when(s3Client.copyObject(any[CopyObjectRequest])).thenAnswer(CopyObjectResponse.builder().build())
-    when(s3Client.deleteObject(any[DeleteObjectRequest])).thenThrow(new RuntimeException("Delete failed"))
+    org.mockito.Mockito.doReturn(HeadObjectResponse.builder().build()).when(s3Client).headObject(any[HeadObjectRequest])
+    org.mockito.Mockito.doReturn(CopyObjectResponse.builder().build()).when(s3Client).copyObject(any[CopyObjectRequest])
+    org.mockito.Mockito.doThrow(new RuntimeException("Delete failed")).when(s3Client).deleteObject(
+      any[DeleteObjectRequest],
+    )
 
     val result = storageInterface.mvFile("oldBucket", "oldPath", "newBucket", "newPath", none)
 
@@ -87,9 +92,11 @@ class AwsS3StorageInterfaceTest
     val s3Client         = mock[S3Client]
     val storageInterface = new AwsS3StorageInterface(mock[ConnectorTaskId], s3Client, batchDelete = false, None)
 
-    when(s3Client.headObject(any[HeadObjectRequest])).thenThrow(NoSuchKeyException.builder().build())
-    when(s3Client.copyObject(any[CopyObjectRequest])).thenAnswer(CopyObjectResponse.builder().build())
-    when(s3Client.deleteObject(any[DeleteObjectRequest])).thenThrow(new RuntimeException("Delete failed"))
+    org.mockito.Mockito.doThrow(NoSuchKeyException.builder().build()).when(s3Client).headObject(any[HeadObjectRequest])
+    org.mockito.Mockito.doReturn(CopyObjectResponse.builder().build()).when(s3Client).copyObject(any[CopyObjectRequest])
+    org.mockito.Mockito.doThrow(new RuntimeException("Delete failed")).when(s3Client).deleteObject(
+      any[DeleteObjectRequest],
+    )
 
     val result = storageInterface.mvFile("oldBucket", "oldPath", "newBucket", "newPath", none)
 

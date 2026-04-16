@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2025 Lenses.io Ltd
+ * Copyright 2017-2026 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -46,6 +46,8 @@ import com.azure.storage.file.datalake.models.PathInfo
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.model.UploadableFile
 import io.lenses.streamreactor.connect.cloud.common.model.UploadableString
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.NoOverwriteExistingObject
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.ObjectWithETag
 import io.lenses.streamreactor.connect.cloud.common.storage.EmptyContentsStringError
 import io.lenses.streamreactor.connect.cloud.common.storage.FileCreateError
 import io.lenses.streamreactor.connect.cloud.common.storage.FileDeleteError
@@ -53,14 +55,17 @@ import io.lenses.streamreactor.connect.cloud.common.storage.FileListError
 import io.lenses.streamreactor.connect.cloud.common.storage.GeneralFileLoadError
 import io.lenses.streamreactor.connect.cloud.common.storage.FileMoveError
 import io.lenses.streamreactor.connect.cloud.common.storage.ListOfKeysResponse
+import io.lenses.streamreactor.connect.cloud.common.storage.ListOfMetadataResponse
 import io.lenses.streamreactor.connect.cloud.common.storage.NonExistingFileError
 import io.lenses.streamreactor.connect.cloud.common.storage.PathError
 import io.lenses.streamreactor.connect.cloud.common.storage.UploadFailedError
 import io.lenses.streamreactor.connect.cloud.common.storage.ZeroByteFileError
+import io.circe.generic.semiauto._
 import io.lenses.streamreactor.connect.datalake.storage.SamplePages.emptyPagedIterable
 import io.lenses.streamreactor.connect.datalake.storage.SamplePages.pagedIterable
 import io.lenses.streamreactor.connect.datalake.storage.SamplePages.pages
 import org.mockito.Answers
+import org.mockito.ArgumentCaptor
 import org.mockito.ArgumentMatchers.anyString
 import org.mockito.ArgumentMatchersSugar
 import org.mockito.InOrder
@@ -444,6 +449,19 @@ class DatalakeStorageInterfaceTest
 
   }
 
+  "listKeysRecursive" should "set recursive flag on ListPathsOptions" in {
+    val bucket = "test-bucket"
+    val prefix = Some("test-prefix")
+
+    val fsClient      = client.getFileSystemClient(bucket)
+    val optionsCaptor = ArgumentCaptor.forClass(classOf[ListPathsOptions])
+    when(fsClient.listPaths(optionsCaptor.capture(), any[Duration])).thenReturn(pagedIterable)
+
+    storageInterface.listKeysRecursive(bucket, prefix)
+
+    optionsCaptor.getValue.isRecursive should be(true)
+  }
+
   "listKeysRecursive" should "return None when no keys are found" in {
     val bucket = "test-bucket"
     val prefix = Some("non-existing-prefix")
@@ -466,6 +484,140 @@ class DatalakeStorageInterfaceTest
     )
 
     val result = storageInterface.listKeysRecursive(bucket, prefix)
+
+    result.left.value should be(a[FileListError])
+  }
+
+  "listKeysRecursive" should "return Right(None) when DataLakeStorageException has 404 status" in {
+    val bucket = "test-bucket"
+    val prefix = Some("test-prefix")
+
+    when(client.getFileSystemClient(bucket).listPaths(any[ListPathsOptions], any[Duration])).thenThrow(
+      new DataLakeStorageException("PathNotFound", mockHttpResponse(404), null),
+    )
+
+    val result = storageInterface.listKeysRecursive(bucket, prefix)
+
+    result.value should be(None)
+  }
+
+  "listKeysRecursive" should "propagate 403 Forbidden as Left(FileListError)" in {
+    val bucket = "test-bucket"
+    val prefix = Some("test-prefix")
+
+    when(client.getFileSystemClient(bucket).listPaths(any[ListPathsOptions], any[Duration])).thenThrow(
+      new DataLakeStorageException("AuthorizationFailure", mockHttpResponse(403), null),
+    )
+
+    val result = storageInterface.listKeysRecursive(bucket, prefix)
+
+    result.left.value should be(a[FileListError])
+  }
+
+  "listKeysRecursive" should "propagate 401 Unauthorized as Left(FileListError)" in {
+    val bucket = "test-bucket"
+    val prefix = Some("test-prefix")
+
+    when(client.getFileSystemClient(bucket).listPaths(any[ListPathsOptions], any[Duration])).thenThrow(
+      new DataLakeStorageException("AuthenticationFailed", mockHttpResponse(401), null),
+    )
+
+    val result = storageInterface.listKeysRecursive(bucket, prefix)
+
+    result.left.value should be(a[FileListError])
+  }
+
+  "listFileMetaRecursive" should "return metadata for all files when successful" in {
+    val bucket = "test-bucket"
+    val prefix = Some("test-prefix")
+
+    setUpPageIterableReturningMock()
+
+    val result = storageInterface.listFileMetaRecursive(bucket, prefix)
+
+    val metadata: ListOfMetadataResponse[DatalakeFileMetadata] = result.value.value
+    metadata.files.size should be(100)
+    metadata.files.foreach { fm =>
+      fm.file should not be empty
+      fm.lastModified should not be null
+    }
+    metadata.latestFileMetadata.file should be("99.txt")
+  }
+
+  "listFileMetaRecursive" should "set recursive flag on ListPathsOptions" in {
+    val bucket = "test-bucket"
+    val prefix = Some("test-prefix")
+
+    val fsClient      = client.getFileSystemClient(bucket)
+    val optionsCaptor = ArgumentCaptor.forClass(classOf[ListPathsOptions])
+    when(fsClient.listPaths(optionsCaptor.capture(), any[Duration])).thenReturn(pagedIterable)
+
+    storageInterface.listFileMetaRecursive(bucket, prefix)
+
+    optionsCaptor.getValue.isRecursive should be(true)
+  }
+
+  "listFileMetaRecursive" should "return None when no files are found" in {
+    val bucket = "test-bucket"
+    val prefix = Some("non-existing-prefix")
+
+    when(
+      client.getFileSystemClient(anyString).listPaths(any[ListPathsOptions], any[Duration]),
+    ).thenReturn(emptyPagedIterable)
+
+    val result = storageInterface.listFileMetaRecursive(bucket, prefix)
+
+    result.value should be(None)
+  }
+
+  "listFileMetaRecursive" should "return a Left(FileListError) if there is an exception" in {
+    val bucket = "test-bucket"
+    val prefix = Some("test-prefix")
+
+    when(client.getFileSystemClient(bucket).listPaths(any[ListPathsOptions], any[Duration])).thenThrow(
+      new IllegalStateException("The mystery of life isn't a problem to solve, but a reality to experience."),
+    )
+
+    val result = storageInterface.listFileMetaRecursive(bucket, prefix)
+
+    result.left.value should be(a[FileListError])
+  }
+
+  "listFileMetaRecursive" should "return Right(None) when DataLakeStorageException has 404 status" in {
+    val bucket = "test-bucket"
+    val prefix = Some("test-prefix")
+
+    when(client.getFileSystemClient(bucket).listPaths(any[ListPathsOptions], any[Duration])).thenThrow(
+      new DataLakeStorageException("PathNotFound", mockHttpResponse(404), null),
+    )
+
+    val result = storageInterface.listFileMetaRecursive(bucket, prefix)
+
+    result.value should be(None)
+  }
+
+  "listFileMetaRecursive" should "propagate 403 Forbidden as Left(FileListError)" in {
+    val bucket = "test-bucket"
+    val prefix = Some("test-prefix")
+
+    when(client.getFileSystemClient(bucket).listPaths(any[ListPathsOptions], any[Duration])).thenThrow(
+      new DataLakeStorageException("AuthorizationFailure", mockHttpResponse(403), null),
+    )
+
+    val result = storageInterface.listFileMetaRecursive(bucket, prefix)
+
+    result.left.value should be(a[FileListError])
+  }
+
+  "listFileMetaRecursive" should "propagate 401 Unauthorized as Left(FileListError)" in {
+    val bucket = "test-bucket"
+    val prefix = Some("test-prefix")
+
+    when(client.getFileSystemClient(bucket).listPaths(any[ListPathsOptions], any[Duration])).thenThrow(
+      new DataLakeStorageException("AuthenticationFailed", mockHttpResponse(401), null),
+    )
+
+    val result = storageInterface.listFileMetaRecursive(bucket, prefix)
 
     result.left.value should be(a[FileListError])
   }
@@ -532,7 +684,7 @@ class DatalakeStorageInterfaceTest
     }
     val result = storageInterface.getBlobAsStringAndEtag(bucket, path)
 
-    result.value should be((expectedEtag, expectedContent))
+    result.value should be((expectedContent, expectedEtag))
   }
 
   "writeStringToFile" should "upload the data string to the specified path when successful" in {
@@ -675,6 +827,225 @@ class DatalakeStorageInterfaceTest
 
     result.isLeft should be(true)
     result.left.value should be(a[FileMoveError])
+  }
+
+  // Test data case class for writeBlobToFile tests
+  case class TestIndexFile(owner: String, offset: Option[Long])
+  implicit val testIndexFileEncoder: io.circe.Encoder[TestIndexFile] = deriveEncoder[TestIndexFile]
+
+  "writeBlobToFile" should "successfully create file with NoOverwriteExistingObject when file does not exist" in {
+    val bucket = "test-bucket"
+    val path   = "test-path/index.lock"
+
+    val testData = TestIndexFile("owner-123", Some(100L))
+
+    val fileClient       = mock[DataLakeFileClient]
+    val fileSystemClient = mock[DataLakeFileSystemClient]
+    val pathInfo         = mock[PathInfo]
+    val eTag             = "new-etag"
+
+    when(pathInfo.getETag).thenReturn(eTag)
+    when(client.getFileSystemClient(bucket)).thenReturn(fileSystemClient)
+    // NoOverwriteExistingObject should use overwrite=false
+    when(fileSystemClient.createFile(path, false)).thenReturn(fileClient)
+    doAnswer((_: InvocationOnMock) => ()).when(fileClient).append(any[ByteArrayInputStream], anyLong, anyLong)
+
+    val flushResponse = mock[Response[PathInfo]]
+    when(flushResponse.getValue).thenReturn(pathInfo)
+    // Flush should be called with null conditions (no If-Match)
+    when(
+      fileClient.flushWithResponse(
+        anyLong,
+        anyBoolean,
+        anyBoolean,
+        any[PathHttpHeaders],
+        isNull[DataLakeRequestConditions],
+        isNull[java.time.Duration],
+        any[Context],
+      ),
+    ).thenReturn(flushResponse)
+
+    val result = storageInterface.writeBlobToFile(bucket, path, NoOverwriteExistingObject(testData))
+
+    result.isRight should be(true)
+    result.value.wrappedObject should be(testData)
+    result.value.eTag should be(eTag)
+
+    // Verify createFile was called with overwrite=false
+    verify(fileSystemClient).createFile(path, false)
+  }
+
+  "writeBlobToFile" should "return FileCreateError when NoOverwriteExistingObject and file already exists (409 Conflict)" in {
+    val bucket = "test-bucket"
+    val path   = "test-path/index.lock"
+
+    val testData = TestIndexFile("owner-123", Some(100L))
+
+    val fileSystemClient = mock[DataLakeFileSystemClient]
+
+    when(client.getFileSystemClient(bucket)).thenReturn(fileSystemClient)
+    // Simulate 409 Conflict when file already exists and overwrite=false
+    when(fileSystemClient.createFile(path, false)).thenThrow(
+      new DataLakeStorageException("PathAlreadyExists", mockHttpResponse(409), null),
+    )
+
+    val result = storageInterface.writeBlobToFile(bucket, path, NoOverwriteExistingObject(testData))
+
+    result.isLeft should be(true)
+    result.left.value should be(a[FileCreateError])
+
+    // Verify createFile was called with overwrite=false
+    verify(fileSystemClient).createFile(path, false)
+  }
+
+  "writeBlobToFile" should "successfully update file with ObjectWithETag using If-Match condition on createFileWithResponse" in {
+    val bucket      = "test-bucket"
+    val path        = "test-path/index.lock"
+    val existingTag = "existing-etag"
+    val newTag      = "new-etag"
+
+    val testData = TestIndexFile("owner-123", Some(200L))
+
+    val fileClient       = mock[DataLakeFileClient]
+    val fileSystemClient = mock[DataLakeFileSystemClient]
+    val pathInfo         = mock[PathInfo]
+
+    when(pathInfo.getETag).thenReturn(newTag)
+    when(client.getFileSystemClient(bucket)).thenReturn(fileSystemClient)
+
+    // ObjectWithETag should use createFileWithResponse with If-Match condition
+    val createResponse = mock[Response[DataLakeFileClient]]
+    when(createResponse.getValue).thenReturn(fileClient)
+    when(
+      fileSystemClient.createFileWithResponse(
+        eqTo(path),
+        isNull[String],
+        isNull[String],
+        isNull[PathHttpHeaders],
+        isNull[java.util.Map[String, String]],
+        any[DataLakeRequestConditions],
+        isNull[java.time.Duration],
+        any[Context],
+      ),
+    ).thenReturn(createResponse)
+
+    doAnswer((_: InvocationOnMock) => ()).when(fileClient).append(any[ByteArrayInputStream], anyLong, anyLong)
+
+    val flushResponse = mock[Response[PathInfo]]
+    when(flushResponse.getValue).thenReturn(pathInfo)
+    when(
+      fileClient.flushWithResponse(
+        anyLong,
+        anyBoolean,
+        anyBoolean,
+        any[PathHttpHeaders],
+        isNull[DataLakeRequestConditions],
+        isNull[java.time.Duration],
+        any[Context],
+      ),
+    ).thenReturn(flushResponse)
+
+    val result = storageInterface.writeBlobToFile(bucket, path, ObjectWithETag(testData, existingTag))
+
+    result.isRight should be(true)
+    result.value.wrappedObject should be(testData)
+    result.value.eTag should be(newTag)
+
+    // Verify createFileWithResponse was called (not createFile)
+    verify(fileSystemClient).createFileWithResponse(
+      eqTo(path),
+      isNull[String],
+      isNull[String],
+      isNull[PathHttpHeaders],
+      isNull[java.util.Map[String, String]],
+      any[DataLakeRequestConditions],
+      isNull[java.time.Duration],
+      any[Context],
+    )
+  }
+
+  "writeBlobToFile" should "return FileCreateError when ObjectWithETag and eTag mismatch (412 Precondition Failed)" in {
+    val bucket      = "test-bucket"
+    val path        = "test-path/index.lock"
+    val existingTag = "old-etag"
+
+    val testData = TestIndexFile("owner-123", Some(200L))
+
+    val fileSystemClient = mock[DataLakeFileSystemClient]
+
+    when(client.getFileSystemClient(bucket)).thenReturn(fileSystemClient)
+    // Simulate 412 Precondition Failed when eTag doesn't match
+    when(
+      fileSystemClient.createFileWithResponse(
+        eqTo(path),
+        isNull[String],
+        isNull[String],
+        isNull[PathHttpHeaders],
+        isNull[java.util.Map[String, String]],
+        any[DataLakeRequestConditions],
+        isNull[java.time.Duration],
+        any[Context],
+      ),
+    ).thenThrow(
+      new DataLakeStorageException("ConditionNotMet", mockHttpResponse(412), null),
+    )
+
+    val result = storageInterface.writeBlobToFile(bucket, path, ObjectWithETag(testData, existingTag))
+
+    result.isLeft should be(true)
+    result.left.value should be(a[FileCreateError])
+  }
+
+  "writeBlobToFile" should "create parent directory and retry on PathNotFound" in {
+    val bucket = "test-bucket"
+    val path   = "a/b/index.lock"
+
+    val testData = TestIndexFile("owner-123", Some(100L))
+
+    val fileClient       = mock[DataLakeFileClient]
+    val fileSystemClient = mock[DataLakeFileSystemClient]
+    val directoryClient  = mock[DataLakeDirectoryClient]
+    val pathInfo         = mock[PathInfo]
+    val eTag             = "new-etag"
+
+    when(pathInfo.getETag).thenReturn(eTag)
+    when(client.getFileSystemClient(bucket)).thenReturn(fileSystemClient)
+
+    // First call throws PathNotFound, second succeeds
+    val createInvocationCount = new java.util.concurrent.atomic.AtomicInteger(0)
+    when(fileSystemClient.createFile(path, false)).thenAnswer { _: InvocationOnMock =>
+      if (createInvocationCount.getAndIncrement() == 0)
+        throw new DataLakeStorageException("PathNotFound", mockHttpResponse(404), null)
+      else fileClient
+    }
+
+    doAnswer((_: InvocationOnMock) => ()).when(fileClient).append(any[ByteArrayInputStream], anyLong, anyLong)
+
+    val flushResponse = mock[Response[PathInfo]]
+    when(flushResponse.getValue).thenReturn(pathInfo)
+    when(
+      fileClient.flushWithResponse(
+        anyLong,
+        anyBoolean,
+        anyBoolean,
+        any[PathHttpHeaders],
+        isNull[DataLakeRequestConditions],
+        isNull[java.time.Duration],
+        any[Context],
+      ),
+    ).thenReturn(flushResponse)
+
+    // Directory creation
+    when(fileSystemClient.getDirectoryClient(anyString())).thenReturn(directoryClient)
+    when(directoryClient.createIfNotExists()).thenReturn(pathInfo)
+
+    val result = storageInterface.writeBlobToFile(bucket, path, NoOverwriteExistingObject(testData))
+
+    result.isRight should be(true)
+    result.value.wrappedObject should be(testData)
+
+    // Verify createFile was called twice (once failed, once succeeded)
+    verify(fileSystemClient, times(2)).createFile(path, false)
   }
 
 }

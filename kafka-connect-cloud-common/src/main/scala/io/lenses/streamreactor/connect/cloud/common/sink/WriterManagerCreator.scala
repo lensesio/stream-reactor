@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2025 Lenses.io Ltd
+ * Copyright 2017-2026 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,6 +30,7 @@ import io.lenses.streamreactor.connect.cloud.common.sink.config.CloudSinkBucketO
 import io.lenses.streamreactor.connect.cloud.common.sink.config.PartitionField
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.KeyNamer
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.ObjectKeyBuilder
+import io.lenses.streamreactor.connect.cloud.common.sink.metrics.CloudSinkMetrics
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexManager
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexManagerV2
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.NoIndexManager
@@ -47,7 +48,8 @@ import scala.collection.immutable
 class WriterManagerCreator[MD <: FileMetadata, SC <: CloudSinkConfig[_]] extends LazyLogging {
 
   def from(
-    config: SC,
+    config:  SC,
+    metrics: CloudSinkMetrics = new CloudSinkMetrics(),
   )(
     implicit
     connectorTaskId:  ConnectorTaskId,
@@ -137,25 +139,39 @@ class WriterManagerCreator[MD <: FileMetadata, SC <: CloudSinkConfig[_]] extends
         ),
         pendingOperationsProcessors,
         io.indexesDirectoryName,
+        io.gcIntervalSeconds,
+        io.gcBatchSize,
+        io.gcSweepEnabled,
+        io.gcSweepIntervalSeconds,
+        io.gcSweepMinAgeSeconds,
+        io.gcSweepMaxReads,
+        metrics,
       ),
     ).getOrElse(new NoIndexManager())
 
-    val transformers = TopicsTransformers.from(config.bucketOptions)
+    try {
+      val transformers = TopicsTransformers.from(config.bucketOptions)
 
-    val writerManager = new WriterManager[MD](
-      commitPolicyFn,
-      bucketAndPrefixFn,
-      keyNamerBuilderFn,
-      stagingFilenameFn,
-      finalFilenameFn,
-      formatWriterFn,
-      indexManager,
-      transformers.transform,
-      config.schemaChangeDetector,
-      config.skipNullValues,
-      pendingOperationsProcessors,
-    )
-    (indexManager, writerManager)
+      val writerManager = new WriterManager[MD](
+        commitPolicyFn,
+        bucketAndPrefixFn,
+        keyNamerBuilderFn,
+        stagingFilenameFn,
+        finalFilenameFn,
+        formatWriterFn,
+        indexManager,
+        transformers.transform,
+        config.schemaChangeDetector,
+        config.skipNullValues,
+        pendingOperationsProcessors,
+        metrics,
+      )
+      (indexManager, writerManager)
+    } catch {
+      case e: Throwable =>
+        indexManager.close()
+        throw e
+    }
   }
 
   private def bucketOptsForTopic(config: CloudSinkConfig[_], topic: Topic): Option[CloudSinkBucketOptions] =

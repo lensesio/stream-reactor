@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2025 Lenses.io Ltd
+ * Copyright 2017-2026 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -58,6 +58,7 @@ object S3SourceConfig extends PropsToConfigConverter[S3SourceConfig] {
       s3ConfigDefBuilder.getSourceExtensionFilter,
       backoff,
       s3ConfigDefBuilder.getWriteWatermarkToHeaders,
+      s3ConfigDefBuilder.getLateArrivalInterval,
     )
 
   }
@@ -73,4 +74,5 @@ case class S3SourceConfig(
   extensionFilter:            Option[ExtensionFilter],
   emptySourceBackoffSettings: EmptySourceBackoffSettings,
   writeWatermarkToHeaders:    Boolean,
+  lateArrivalInterval:        Int,
 ) extends CloudSourceConfig[S3FileMetadata]

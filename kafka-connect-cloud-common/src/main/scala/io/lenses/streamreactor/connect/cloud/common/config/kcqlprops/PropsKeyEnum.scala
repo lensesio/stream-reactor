@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2025 Lenses.io Ltd
+ * Copyright 2017-2026 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -46,6 +46,8 @@ object PropsKeyEnum extends Enum[PropsKeyEntry] {
   case object StoreEnvelopeHeaders  extends PropsKeyEntry(DataStorageSettings.StoreHeadersKey)
   case object StoreEnvelopeValue    extends PropsKeyEntry(DataStorageSettings.StoreValueKey)
   case object StoreEnvelopeMetadata extends PropsKeyEntry(DataStorageSettings.StoreMetadataKey)
+  case object StoreFileNamer        extends PropsKeyEntry(DataStorageSettings.StoreFileNamer)
+  case object StoreFileNamerParam   extends PropsKeyEntry(DataStorageSettings.StoreFileNamerParam)
 
   case object PaddingLength extends PropsKeyEntry("padding.length")
 
@@ -69,6 +71,9 @@ object PropsKeyEnum extends Enum[PropsKeyEntry] {
   case object PostProcessActionPrefix extends PropsKeyEntry("post.process.action.prefix")
 
   case object PostProcessActionRetain extends PropsKeyEntry("post.process.action.retain.dirs")
+
+  case object PostProcessActionWatermarkProcessLateArrival
+      extends PropsKeyEntry("post.process.action.watermark.process.late.arrival")
 
   case object KeySuffix extends PropsKeyEntry("key.suffix")
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2025 Lenses.io Ltd
+ * Copyright 2017-2026 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,7 +15,15 @@
  */
 package io.lenses.streamreactor.connect.cloud.common.sink.config
 
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexManagerV2
+
 case class IndexOptions(
-  maxIndexFiles:        Int,
-  indexesDirectoryName: String,
+  maxIndexFiles:          Int,
+  indexesDirectoryName:   String,
+  gcIntervalSeconds:      Int     = IndexManagerV2.DefaultGcIntervalSeconds,
+  gcBatchSize:            Int     = IndexManagerV2.DefaultGcBatchSize,
+  gcSweepEnabled:         Boolean = IndexManagerV2.DefaultGcSweepEnabled,
+  gcSweepIntervalSeconds: Int     = IndexManagerV2.DefaultGcSweepIntervalSeconds,
+  gcSweepMinAgeSeconds:   Int     = IndexManagerV2.DefaultGcSweepMinAgeSeconds,
+  gcSweepMaxReads:        Int     = IndexManagerV2.DefaultGcSweepMaxReads,
 )

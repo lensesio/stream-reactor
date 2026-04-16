@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2025 Lenses.io Ltd
+ * Copyright 2017-2026 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -76,7 +76,7 @@ class S3Container(
 
 object S3Container {
   private val dockerImage         = DockerImageName.parse("andrewgaul/s3proxy")
-  private val defaultTag          = "sha-ba0fd6d"
+  private val defaultTag          = "2.9.0"
   private val defaultNetworkAlias = "s3"
   private val defaultPort         = 8080
 

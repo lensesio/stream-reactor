@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2025 Lenses.io Ltd
+ * Copyright 2017-2026 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -84,6 +84,18 @@ trait CloudSourceSettings extends BaseSettings with CloudSourceSettingsKeys {
   }
 
   def getWriteWatermarkToHeaders: Boolean = getBoolean(WRITE_WATERMARK_TO_HEADERS)
+
+  /**
+   * Retrieves the late arrival interval in seconds.
+   * This is used by the LateArrivalTouchTask to determine how often to check for late-arriving files.
+   * Returns the default value if not configured or if the configured value is not positive.
+   *
+   * @return The late arrival interval in seconds.
+   */
+  def getLateArrivalInterval: Int = {
+    val interval = getInt(SOURCE_LATE_ARRIVAL_INTERVAL)
+    if (interval > 0) interval else SOURCE_LATE_ARRIVAL_INTERVAL_DEFAULT
+  }
 
   /**
    * Extracts the property value from the configuration and transforms it into a set of strings.

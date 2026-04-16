@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2025 Lenses.io Ltd
+ * Copyright 2017-2026 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -93,4 +93,10 @@ case class FileListError(exception: Throwable, bucket: String, path: Option[Stri
 
   override def toExceptionOption: Option[Throwable] = exception.some
 
+}
+
+case class FileTouchError(exception: Throwable, fileName: String) extends UploadError {
+  override def message() = s"error touching file ($fileName) ${exception.getMessage}"
+
+  override def toExceptionOption: Option[Throwable] = exception.some
 }

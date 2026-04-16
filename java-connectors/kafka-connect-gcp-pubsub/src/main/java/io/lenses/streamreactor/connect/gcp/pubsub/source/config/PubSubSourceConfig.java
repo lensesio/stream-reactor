@@ -21,6 +21,9 @@ import static io.lenses.streamreactor.connect.gcp.pubsub.source.configdef.PubSub
 import static io.lenses.streamreactor.connect.gcp.pubsub.source.configdef.PubSubKcqlConverter.KCQL_PROP_KEY_QUEUE_MAX;
 
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.apache.kafka.common.config.ConfigException;
 
@@ -51,6 +54,36 @@ public class PubSubSourceConfig {
                 KCQL_PROP_KEY_QUEUE_MAX
             )
             )
-    );
+    ).flatMap(kcqls -> validateDistinctSubscriptions(kcqls));
+  }
+
+  /**
+   * Validates that each subscription ID (source) is only used once across all KCQL statements.
+   * Multiple KCQL statements referencing the same subscription would cause a conflict in
+   * PubSubSubscriberManager which uses subscription ID as a unique key.
+   *
+   * @param kcqls the list of KCQL statements to validate
+   * @return Either containing an error or the validated KCQL list
+   */
+  private Either<ConfigException, List<Kcql>> validateDistinctSubscriptions(List<Kcql> kcqls) {
+    List<String> duplicates =
+        kcqls.stream()
+            .map(Kcql::getSource)
+            .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()))
+            .entrySet().stream()
+            .filter(entry -> entry.getValue() > 1)
+            .map(Map.Entry::getKey)
+            .collect(Collectors.toList());
+
+    if (!duplicates.isEmpty()) {
+      String errorMessage =
+          duplicates.stream()
+              .map(sub -> String.format("Subscription '%s' is referenced multiple times", sub))
+              .collect(Collectors.joining("; "));
+      return Either.left(new ConfigException(
+          "Each GCP Pub/Sub subscription can only be mapped to one Kafka topic. " + errorMessage));
+    }
+
+    return Either.right(kcqls);
   }
 }

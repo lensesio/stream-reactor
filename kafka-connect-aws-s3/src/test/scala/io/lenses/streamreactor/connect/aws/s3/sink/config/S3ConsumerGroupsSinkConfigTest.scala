@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2025 Lenses.io Ltd
+ * Copyright 2017-2026 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -49,6 +49,7 @@ class S3ConsumerGroupsSinkConfigTest extends AnyFunSuite with Matchers {
               AuthMode.Credentials,
               Some("endpoint"),
               false,
+              None,
               new RetryConfig(5, 50, 0.0),
               HttpTimeoutConfig(Some(60000), Some(60000)),
               None,
@@ -74,13 +75,14 @@ class S3ConsumerGroupsSinkConfigTest extends AnyFunSuite with Matchers {
         value should be(
           S3ConsumerGroupsSinkConfig(
             CloudObjectKey("bucket", "a/b/c".some),
-            new S3ConnectionConfig(
+            S3ConnectionConfig(
               Some("eu-west-1"),
               Some("access"),
               Some("secret"),
               AuthMode.Credentials,
               Some("endpoint"),
               false,
+              None,
               new RetryConfig(5, 50, 0.0),
               HttpTimeoutConfig(Some(60000), Some(60000)),
               None,

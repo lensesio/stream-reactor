@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2025 Lenses.io Ltd
+ * Copyright 2017-2026 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@ import com.typesafe.scalalogging.LazyLogging
 
 object KafkaVersions extends LazyLogging {
 
-  private val FallbackConfluentVersion = "7.3.1"
+  private val FallbackConfluentVersion = "8.0.2"
 
   val ConfluentVersion: String = {
     val (vers, from) = sys.env.get("CONFLUENT_VERSION") match {

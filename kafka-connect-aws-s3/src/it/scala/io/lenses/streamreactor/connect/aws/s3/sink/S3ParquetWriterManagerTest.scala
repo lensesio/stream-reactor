@@ -52,6 +52,7 @@ import io.lenses.streamreactor.connect.cloud.common.sink.conversion.NullSinkData
 import io.lenses.streamreactor.connect.cloud.common.sink.conversion.SinkData
 import io.lenses.streamreactor.connect.cloud.common.sink.conversion.StructSinkData
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.CloudKeyNamer
+import io.lenses.streamreactor.connect.cloud.common.sink.naming.FileNamerConfig
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.OffsetFileNamer
 import org.apache.avro.generic.GenericRecord
 import org.apache.kafka.connect.data.Schema
@@ -73,7 +74,7 @@ class S3ParquetWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyC
   private val PathPrefix           = "streamReactorBackups"
   private val parquetFormatReader  = new ParquetFormatReader
 
-  private val bucketAndPrefix = CloudLocation(BucketName, PathPrefix.some)
+  private def bucketAndPrefix = CloudLocation(BucketName, PathPrefix.some)
   private def parquetConfig = S3SinkConfig(
     S3ConnectionConfig(
       None,
@@ -90,9 +91,12 @@ class S3ParquetWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyC
           ParquetFormatSelection,
           defaultPartitionSelection(Values),
           new OffsetFileNamer(
-            identity[String],
-            ParquetFormatSelection.extension,
-            None,
+            FileNamerConfig(
+              partitionPaddingStrategy = NoOpPaddingStrategy,
+              offsetPaddingStrategy    = NoOpPaddingStrategy,
+              extension                = ParquetFormatSelection.extension,
+              suffix                   = None,
+            ),
           ),
           new PaddingService(Map[String, PaddingStrategy](
             "partition" -> NoOpPaddingStrategy,
@@ -104,7 +108,7 @@ class S3ParquetWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyC
         dataStorage      = DataStorageSettings.disabled,
       ),
     ),
-    indexOptions = IndexOptions(5, ".indexes").some,
+    indexOptions = IndexOptions(5, ".indexes", 300, 1000).some,
     compressionCodec,
     batchDelete                 = true,
     errorPolicy                 = ErrorPolicy(ErrorPolicyEnum.THROW),

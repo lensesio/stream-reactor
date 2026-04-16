@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2025 Lenses.io Ltd
+ * Copyright 2017-2026 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -35,7 +35,14 @@ case class NoWriter(commitState: CommitState) extends WriteState(commitState) wi
     recordTimestamp:   Long,
   ): Writing = {
     logger.debug("state transition: NoWriter => Writing")
-    Writing(commitState, formatWriter, file, uncommittedOffset, recordTimestamp, recordTimestamp)
+    Writing(commitState,
+            formatWriter,
+            file,
+            firstBufferedOffset = uncommittedOffset,
+            uncommittedOffset,
+            recordTimestamp,
+            recordTimestamp,
+    )
   }
 
 }
@@ -44,6 +51,7 @@ case class Writing(
   commitState:             CommitState,
   formatWriter:            FormatWriter,
   file:                    File,
+  firstBufferedOffset:     Offset,
   uncommittedOffset:       Offset,
   earliestRecordTimestamp: Long,
   latestRecordTimestamp:   Long,
@@ -68,13 +76,20 @@ case class Writing(
 
   def toUploading: Uploading = {
     logger.debug("state transition: Writing => Uploading")
-    Uploading(commitState.reset(), file, uncommittedOffset, earliestRecordTimestamp, latestRecordTimestamp)
+    Uploading(commitState.reset(),
+              file,
+              firstBufferedOffset,
+              uncommittedOffset,
+              earliestRecordTimestamp,
+              latestRecordTimestamp,
+    )
   }
 }
 
 case class Uploading(
   commitState:             CommitState,
   file:                    File,
+  firstBufferedOffset:     Offset,
   uncommittedOffset:       Offset,
   earliestRecordTimestamp: Long,
   latestRecordTimestamp:   Long,

@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2025 Lenses.io Ltd
+ * Copyright 2017-2026 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -66,6 +66,7 @@ trait StreamReactorContainerPerSuite extends BeforeAndAfterAll with Eventually w
       .withNetwork(network)
       .withNetworkAliases("kafka")
       .withLogConsumer(new Slf4jLogConsumer(logger.underlying))
+      .withKraft()
 
   lazy val kafkaConnectContainer: KafkaConnectContainer = {
     KafkaConnectContainer(

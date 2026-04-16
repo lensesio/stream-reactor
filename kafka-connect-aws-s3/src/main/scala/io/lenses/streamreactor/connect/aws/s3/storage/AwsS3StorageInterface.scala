@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2025 Lenses.io Ltd
+ * Copyright 2017-2026 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -47,6 +47,7 @@ import software.amazon.awssdk.core.sync.RequestBody
 import software.amazon.awssdk.services.s3.S3Client
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException
 import software.amazon.awssdk.services.s3.model._
+import io.lenses.streamreactor.connect.cloud.common.storage.FileTouchError
 
 import java.io.InputStream
 import java.nio.charset.Charset
@@ -136,6 +137,7 @@ class AwsS3StorageInterface(
         pagReq.iterator().asScala.flatMap(
           _.contents().asScala.filterNot(AwsS3StorageFilter.filterOut)
             .filter(_.size() > 0)
+            .filterNot(_.key().endsWith("/"))
             .toSeq.map(o => S3FileMetadata(o.key(), o.lastModified())).filter(md =>
               extensionFilter.forall(_.filter(md)),
             ),
@@ -173,13 +175,14 @@ class AwsS3StorageInterface(
     logger.debug(s"[{}] Path exists? {}:{}", connectorTaskId.show, bucket, path)
 
     Try(
-      s3Client.listObjectsV2(
-        ListObjectsV2Request.builder().bucket(bucket).prefix(path).build(),
-      ).keyCount().toInt,
+      s3Client.headObject(
+        HeadObjectRequest.builder().bucket(bucket).key(path).build(),
+      ),
     ).toEither match {
       case Left(_: NoSuchKeyException) => false.asRight
+      case Left(ex: S3Exception) if ex.statusCode() == 404 => false.asRight
       case Left(other) => PathError(other, path).asLeft
-      case Right(keyCount: Int) => (keyCount > 0).asRight
+      case Right(_)    => true.asRight
     }
   }
 
@@ -479,5 +482,39 @@ class AwsS3StorageInterface(
         ()
     }
     .leftMap(ex => FileCreateError(ex, "empty object file"))
+
+  /**
+   * Updates the lastModified timestamp of a file by copying it to itself.
+   * Uses CopyObjectRequest with MetadataDirective.REPLACE to update the timestamp.
+   * Preserves existing user-defined metadata and content-type by reading them first.
+   *
+   * @param bucket The name of the S3 bucket.
+   * @param path The path of the file to touch.
+   * @return Either a FileTouchError if the operation failed, or Unit if successful.
+   */
+  override def touchFile(bucket: String, path: String): Either[FileTouchError, Unit] =
+    Try {
+      // First, retrieve existing metadata to preserve it
+      val headRequest = HeadObjectRequest.builder()
+        .bucket(bucket)
+        .key(path)
+        .build()
+      val headResponse = s3Client.headObject(headRequest)
+
+      // Build copy request preserving existing metadata and content-type
+      val copyRequestBuilder = CopyObjectRequest.builder()
+        .sourceBucket(bucket)
+        .sourceKey(path)
+        .destinationBucket(bucket)
+        .destinationKey(path)
+        .metadataDirective(MetadataDirective.REPLACE)
+        .metadata(headResponse.metadata())
+
+      // Preserve content-type if present
+      Option(headResponse.contentType()).foreach(copyRequestBuilder.contentType)
+
+      s3Client.copyObject(copyRequestBuilder.build())
+      logger.debug(s"[${connectorTaskId.show}] Touched file $bucket/$path to update lastModified timestamp")
+    }.toEither.leftMap(ex => FileTouchError(ex, path)).void
 
 }

@@ -74,11 +74,7 @@ public class GCPPubSubSourceConnector extends SourceConnector {
 
   @Override
   public List<Map<String, String>> taskConfigs(int maxTasks) {
-    return TasksSplitter.splitByKcqlStatements(
-        maxTasks,
-        props,
-        PubSubConfigSettings.getKcqlSettings()
-    );
+    return TasksSplitter.replicateForAllTasks(maxTasks, props);
   }
 
   @Override

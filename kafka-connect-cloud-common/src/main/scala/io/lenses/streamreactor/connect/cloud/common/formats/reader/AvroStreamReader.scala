@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2025 Lenses.io Ltd
+ * Copyright 2017-2026 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,7 +15,7 @@
  */
 package io.lenses.streamreactor.connect.cloud.common.formats.reader
 
-import io.confluent.connect.avro.AvroData
+import io.lenses.streamreactor.connect.avro.AvroDataFactory
 import org.apache.avro.file.DataFileStream
 import org.apache.avro.generic.GenericDatumReader
 import org.apache.avro.generic.GenericRecord
@@ -25,7 +25,7 @@ import java.io.InputStream
 import scala.util.Try
 
 class AvroStreamReader(input: InputStream) extends CloudDataIterator[SchemaAndValue] {
-  private val avroDataConverter = new AvroData(100)
+  private val avroDataConverter = AvroDataFactory.create()
 
   private val datumReader = new GenericDatumReader[GenericRecord]()
 

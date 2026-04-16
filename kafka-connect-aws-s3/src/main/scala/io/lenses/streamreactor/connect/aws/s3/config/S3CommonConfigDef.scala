@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2025 Lenses.io Ltd
+ * Copyright 2017-2026 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -79,7 +79,14 @@ trait S3CommonConfigDef
         Type.BOOLEAN,
         false,
         Importance.LOW,
-        "Enable virtual host buckets",
+        "Enable virtual host buckets (deprecated, use connect.s3.path.style.access instead)",
+      )
+      .define(
+        PATH_STYLE_ACCESS,
+        Type.BOOLEAN,
+        null,
+        Importance.LOW,
+        "Use path-style access for S3 requests (endpoint/bucket/key). Set to true for S3-compatible storage like MinIO. Takes priority over connect.s3.vhost.bucket if set.",
       )
       .define(
         HTTP_NBR_OF_RETRIES,

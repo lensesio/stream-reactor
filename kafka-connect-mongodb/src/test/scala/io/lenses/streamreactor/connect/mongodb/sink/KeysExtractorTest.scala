@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2025 Lenses.io Ltd
+ * Copyright 2017-2026 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@ package io.lenses.streamreactor.connect.mongodb.sink
 import java.util
 import io.lenses.streamreactor.connect.mongodb.Json
 import com.sksamuel.avro4s.RecordFormat
-import io.confluent.connect.avro.AvroData
+import io.lenses.streamreactor.connect.avro.AvroDataFactory
 import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.connect.data.Struct
 import org.scalatest.matchers.should.Matchers
@@ -28,7 +28,7 @@ import scala.collection.immutable.ListSet
 import scala.jdk.CollectionConverters.MapHasAsJava
 
 class KeysExtractorTest extends AnyWordSpec with Matchers {
-  private val avroData = new AvroData(4)
+  private val avroData = AvroDataFactory.create(4)
 
   case class WithNested(id: Int, nested: SomeTest)
   case class SomeTest(name: String, value: Double, flags: Seq[Int], map: Map[String, String])

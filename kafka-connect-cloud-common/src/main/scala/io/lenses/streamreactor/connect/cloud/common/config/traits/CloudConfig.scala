@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2025 Lenses.io Ltd
+ * Copyright 2017-2026 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -133,5 +133,13 @@ trait CloudSourceConfig[MD <: FileMetadata] extends CloudConfig {
   def emptySourceBackoffSettings: EmptySourceBackoffSettings
 
   def writeWatermarkToHeaders: Boolean
+
+  /**
+   * Retrieves the late arrival interval in seconds for the cloud source.
+   * This is used by the LateArrivalTouchTask to determine how often to check for late-arriving files.
+   *
+   * @return The late arrival interval in seconds.
+   */
+  def lateArrivalInterval: Int
 
 }

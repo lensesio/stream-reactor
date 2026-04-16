@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2025 Lenses.io Ltd
+ * Copyright 2017-2026 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,8 +19,8 @@ import com.sksamuel.avro4s.AvroSchema
 import com.sksamuel.avro4s.RecordFormat
 import com.sksamuel.avro4s.SchemaFor
 import com.sksamuel.avro4s.ToRecord
-import io.confluent.connect.avro.AvroData
 import io.lenses.json.sql.JacksonJson
+import io.lenses.streamreactor.connect.avro.AvroDataFactory
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.Struct
 import org.scalatest.matchers.should.Matchers
@@ -33,7 +33,7 @@ import java.nio.ByteBuffer
  */
 class TransformTests extends AnyWordSpec with Matchers {
 
-  private val avroData = new AvroData(2)
+  private val avroData = AvroDataFactory.create(2)
   "Transform" should {
     "throw exception on null value" in {
       intercept[IllegalArgumentException] {

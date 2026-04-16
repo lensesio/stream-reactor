@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2025 Lenses.io Ltd
+ * Copyright 2017-2026 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,9 +18,11 @@ package io.lenses.streamreactor.common.util;
 import static io.lenses.kcql.Kcql.KCQL_MULTI_STATEMENT_SEPARATOR;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import io.lenses.streamreactor.common.config.base.KcqlSettings;
@@ -29,7 +31,7 @@ import lombok.NoArgsConstructor;
 import lombok.val;
 
 /**
- * Utility class for splitting tasks based on KCQL statements.
+ * Utility class for splitting and replicating tasks based on KCQL statements.
  */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class TasksSplitter {
@@ -62,6 +64,24 @@ public class TasksSplitter {
             Map.Entry::getValue,
             (existing, replacement) -> replacement
         )))
+        .collect(Collectors.toUnmodifiableList());
+  }
+
+  /**
+   * Replicates the same properties map for all tasks.
+   * This allows all tasks to receive the same configuration, enabling parallel consumption
+   * from the same sources (e.g., GCP Pub/Sub subscriptions) with native load-balancing.
+   *
+   * @param maxTasks the number of tasks to create
+   * @param props    the properties map to replicate
+   * @return a list containing {@code maxTasks} copies of the properties map
+   */
+  public static List<Map<String, String>> replicateForAllTasks(int maxTasks, Map<String, String> props) {
+    if (maxTasks <= 0) {
+      return Collections.emptyList();
+    }
+    return IntStream.range(0, maxTasks)
+        .mapToObj(i -> Map.copyOf(props))
         .collect(Collectors.toUnmodifiableList());
   }
 
