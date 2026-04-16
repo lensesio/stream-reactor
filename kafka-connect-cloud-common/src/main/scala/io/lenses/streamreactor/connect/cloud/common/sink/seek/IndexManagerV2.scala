@@ -260,6 +260,15 @@ class IndexManagerV2(
         acceptingWork = true
         r
       case l @ Left(_) =>
+        // Per-partition open() mutates seekedOffsets / topicPartitionToETags /
+        // granularCache as each fiber completes. parTraverse propagates the first
+        // Left, but successful fibers have already committed their in-memory state.
+        // Roll back every partition in the requested set so the index manager is
+        // left in a clean pre-open state and a subsequent open() starts fresh.
+        topicPartitions.foreach { tp =>
+          evictAllGranularLocks(tp)
+          clearTopicPartitionState(tp)
+        }
         l
     }
   }
