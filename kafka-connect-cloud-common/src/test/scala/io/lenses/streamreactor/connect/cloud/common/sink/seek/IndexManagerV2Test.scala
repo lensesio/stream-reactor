@@ -2440,9 +2440,12 @@ class IndexManagerV2Test
       im.sweepOrphanedLocks()
       im.drainGcQueue()
 
-      verify(si, times(1)).deleteFiles(anyString(), ArgumentMatchers.argThat[Seq[String]](paths =>
-        paths.exists(_.contains("below-key")) && !paths.exists(_.contains("exact-key")),
-      ))
+      verify(si, times(1)).deleteFiles(
+        anyString(),
+        ArgumentMatchers.argThat[Seq[String]](paths =>
+          paths.exists(_.contains("below-key")) && !paths.exists(_.contains("exact-key")),
+        ),
+      )
     } finally im.close()
   }
 
