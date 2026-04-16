@@ -44,6 +44,8 @@ import org.apache.kafka.connect.data.Schema
 import java.io.File
 import java.util.UUID
 import scala.math.Ordered.orderingToOrdered
+import scala.util.Failure
+import scala.util.Success
 import scala.util.Try
 
 class Writer[SM <: FileMetadata](
@@ -170,13 +172,27 @@ class Writer[SM <: FileMetadata](
             PendingState(uncommittedOffset, pendingOperations),
             fnIndexUpdate,
           )
-          stateReset <- Try {
+          _ = {
             logger.debug(s"[{}] Writer.resetState: Resetting state $writeState", connectorTaskId.show)
             writeState = uploadState.toNoWriter
-            file.delete()
+            // The cloud commit has already succeeded at this point. A failure to
+            // delete the local temp file is a hygiene issue (disk leak) -- not a
+            // correctness issue -- so we must not propagate it as a FatalCloudSinkError.
+            // Doing so would fail the task AFTER data was durably written, which risks
+            // re-running the upload on restart and violating at-most-once for the
+            // same record offsets.
+            Try(file.delete()) match {
+              case Success(_) =>
+              case Failure(e) =>
+                logger.warn(
+                  s"[${connectorTaskId.show}] Failed to delete temp file ${file.getAbsolutePath} after successful commit; " +
+                    s"continuing (the cloud commit already succeeded)",
+                  e,
+                )
+            }
             logger.debug(s"[{}] Writer.resetState: New state $writeState", connectorTaskId.show)
-          }.toEither.leftMap(e => FatalCloudSinkError(e.getMessage, commitState.topicPartition))
-        } yield stateReset
+          }
+        } yield ()
       case other =>
         FatalCloudSinkError(s"Other $other error detected, abort", topicPartition).asLeft
 
