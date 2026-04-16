@@ -97,7 +97,8 @@ class IndexManagerV2(
 
   // Thread-safe map tracking the latest eTags for index files, enabling conditional writes.
   // Must be concurrent because open() uses parTraverse to process partitions on multiple fibers.
-  private val topicPartitionToETags = TrieMap.empty[TopicPartition, String]
+  // Visibility: private[seek] so tests in this package can observe eTag-cache invariants.
+  private[seek] val topicPartitionToETags = TrieMap.empty[TopicPartition, String]
 
   // Granular lock cache: nested ConcurrentHashMap keyed by TopicPartition, then partitionKey.
   // Lazily populated on first writer access. Not bounded by automatic eviction — entries are
@@ -322,6 +323,15 @@ class IndexManagerV2(
             // (e.g. cancelPending on the last operation).
             resolvedOffset.foreach(o => seekedOffsets.put(topicPartition, o))
             resolvedOffset
+          }.leftMap { err =>
+            // On failure, the eTag we seeded above may now be stale: an intermediate
+            // phase of processPendingOperations may have advanced the index file in
+            // storage before the final fnIndexUpdate failed. Drop the cached eTag so
+            // the next call re-reads the file and we never issue a conditional write
+            // with the wrong If-Match. Mirrors the gcRemove-on-failure pattern used
+            // when loading granular locks.
+            val _ = topicPartitionToETags.remove(topicPartition)
+            err
           }
 
         case Right(objectWithetag @ ObjectWithETag(IndexFile(_, _, _), _)) =>

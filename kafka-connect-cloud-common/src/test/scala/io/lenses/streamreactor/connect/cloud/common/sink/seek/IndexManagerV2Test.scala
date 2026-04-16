@@ -3388,6 +3388,57 @@ class IndexManagerV2Test
     } finally im.close()
   }
 
+  test("open removes cached eTag when processPendingOperations fails") {
+    // Seed scenario: the index file in storage has a PendingState, so open() seeds
+    // topicPartitionToETags with the pre-resolution eTag before handing off to
+    // processPendingOperations. If the latter returns Left (e.g. after advancing
+    // the index in storage during an intermediate phase), the cached eTag is now
+    // stale. The M1 fix removes it so the next call re-reads the file.
+    val tp              = Topic("topic1").withPartition(0)
+    val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
+
+    val si = mock[StorageInterface[_]]
+    val pp = mock[PendingOperationsProcessors]
+    when(bucketAndPrefixFn(any[TopicPartition])).thenReturn(Right(bucketAndPrefix))
+    when(si.pathExists(anyString(), anyString())).thenReturn(Right(false))
+
+    val pendingOps = NonEmptyList.of[FileOperation](
+      CopyOperation("bucket", "temp-path", "final-path", "placeholder"),
+      DeleteOperation("bucket", "temp-path", "placeholder"),
+    )
+    val pendingIndexFile = IndexFile("lockOwner", Some(Offset(80)), Some(PendingState(Offset(90), pendingOps)))
+
+    when(si.getBlobAsObject[IndexFile](anyString(), anyString())(ArgumentMatchers.eq(indexFileDecoder)))
+      .thenReturn(Right(ObjectWithETag(pendingIndexFile, "stale-master-etag")))
+
+    when(
+      pp.processPendingOperations(
+        ArgumentMatchers.eq(tp),
+        any[Option[Offset]],
+        any[PendingState],
+        any[(TopicPartition, Option[Offset], Option[PendingState]) => Either[SinkError, Option[Offset]]],
+      ),
+    ).thenReturn(Left(FatalCloudSinkError("simulated pending failure", tp)))
+
+    val im = new IndexManagerV2(
+      bucketAndPrefixFn,
+      oldIndexManager,
+      pp,
+      indexesDirectoryName,
+      gcIntervalSeconds = Int.MaxValue,
+    )(si, connectorTaskId)
+
+    try {
+      val result = im.open(Set(tp))
+      result.isLeft shouldBe true
+
+      // After H2 rollback AND M1 cleanup, the cache must not hold the pre-pending eTag
+      // even transiently for this tp -- otherwise a later conditional write could use
+      // a stale If-Match.
+      im.topicPartitionToETags.contains(tp) shouldBe false
+    } finally im.close()
+  }
+
   test("open rolls back in-memory state when any partition fails") {
     // tp0 succeeds (bucketAndPrefixFn Right, existing index file).
     // tp1 fails (bucketAndPrefixFn Left).
