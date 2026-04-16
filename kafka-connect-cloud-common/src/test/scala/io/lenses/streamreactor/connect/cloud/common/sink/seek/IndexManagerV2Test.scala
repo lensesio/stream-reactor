@@ -2599,7 +2599,7 @@ class IndexManagerV2Test
     } finally im.close()
   }
 
-  test("sweep writes marker before scanning") {
+  test("sweep writes marker after scanning") {
     val tp              = Topic("topic1").withPartition(0)
     val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
     val si              = mock[StorageInterface[_]]
@@ -2612,11 +2612,11 @@ class IndexManagerV2Test
       im.sweepOrphanedLocks()
 
       val inOrder = org.mockito.Mockito.inOrder(si)
+      inOrder.verify(si).listFileMetaRecursive(anyString(), any[Option[String]])
       inOrder.verify(si).writeBlobToFile[IndexManagerV2.SweepMarker](anyString(),
                                                                      ArgumentMatchers.contains("sweep-marker"),
                                                                      any[ObjectProtection[IndexManagerV2.SweepMarker]],
       )(any[Encoder[IndexManagerV2.SweepMarker]])
-      inOrder.verify(si).listFileMetaRecursive(anyString(), any[Option[String]])
     } finally im.close()
   }
 
@@ -2673,7 +2673,7 @@ class IndexManagerV2Test
     } finally im.close()
   }
 
-  test("sweep skips partition when marker write loses eTag race") {
+  test("sweep still scans partition even when marker write loses eTag race") {
     val tp              = Topic("topic1").withPartition(0)
     val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
     val si              = mock[StorageInterface[_]]
@@ -2692,6 +2692,8 @@ class IndexManagerV2Test
       ),
     ).thenReturn(Left(FileNotFoundError(new Exception("Not found"), "sweep-marker")))
 
+    org.mockito.Mockito.doReturn(Right(None)).when(si).listFileMetaRecursive(anyString(), any[Option[String]])
+
     // Conditional write fails (another task created the marker first)
     when(
       si.writeBlobToFile[IndexManagerV2.SweepMarker](anyString(),
@@ -2706,13 +2708,13 @@ class IndexManagerV2Test
       im.open(Set(tp))
       im.sweepOrphanedLocks()
 
-      // Marker write was attempted
+      // Scan proceeds before marker write
+      verify(si, times(1)).listFileMetaRecursive(anyString(), any[Option[String]])
+      // Marker write was still attempted (after scan)
       verify(si, times(1)).writeBlobToFile[IndexManagerV2.SweepMarker](anyString(),
                                                                        anyString(),
                                                                        any[ObjectProtection[IndexManagerV2.SweepMarker]],
       )(any[Encoder[IndexManagerV2.SweepMarker]])
-      // Sweep should NOT have proceeded (no file listing)
-      verify(si, never).listFileMetaRecursive(anyString(), any[Option[String]])
     } finally im.close()
   }
 
@@ -3383,6 +3385,57 @@ class IndexManagerV2Test
       val result = im.open(Set(tp0, tp1))
       result.isLeft shouldBe true
       im.acceptingWork shouldBe false
+    } finally im.close()
+  }
+
+  test("close() shuts down gcExecutor even when executorsStarted is false (leak safety net)") {
+    val si  = mock[StorageInterface[_]]
+    val cti = ConnectorTaskId("test-connector", 1, 0)
+
+    val im = new IndexManagerV2(
+      bucketAndPrefixFn,
+      oldIndexManager,
+      pendingOperationsProcessors,
+      indexesDirectoryName,
+      gcIntervalSeconds = Int.MaxValue,
+      gcSweepEnabled    = false,
+    )(si, cti)
+
+    val liveExecutor = java.util.concurrent.Executors.newSingleThreadScheduledExecutor()
+    try {
+      im.gcExecutor = Some(liveExecutor)
+      im.executorsStarted shouldBe false
+
+      im.close()
+
+      liveExecutor.isShutdown shouldBe true
+      im.gcExecutor shouldBe None
+    } finally {
+      if (!liveExecutor.isShutdown) { val _ = liveExecutor.shutdownNow() }
+    }
+  }
+
+  test("sweep does not write marker when sweepPartition throws") {
+    val tp              = Topic("topic1").withPartition(0)
+    val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
+    val si              = mock[StorageInterface[_]]
+    setupSweepMocks(si, tp, bucketAndPrefix)
+
+    // Make listFileMetaRecursive throw to simulate a sweepPartition failure
+    when(si.listFileMetaRecursive(anyString(), any[Option[String]]))
+      .thenThrow(new RuntimeException("storage failure"))
+
+    val im = createSweepTestManager(si)
+    try {
+      im.open(Set(tp))
+      // sweepOrphanedLocks catches NonFatal internally, so this should not throw
+      im.sweepOrphanedLocks()
+
+      // The marker should NOT have been written because the scan threw before reaching it
+      verify(si, never).writeBlobToFile[IndexManagerV2.SweepMarker](anyString(),
+                                                                    anyString(),
+                                                                    any[ObjectProtection[IndexManagerV2.SweepMarker]],
+      )(any[Encoder[IndexManagerV2.SweepMarker]])
     } finally im.close()
   }
 }
