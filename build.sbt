@@ -389,7 +389,7 @@ lazy val http = (project in file("kafka-connect-http"))
           "scala-.*\\.jar",
           "zookeeper-.*\\.jar",
         ),
-        Compile / PB.protocExecutable := file(Process("which protoc").!!.trim),
+        Compile / PB.protocVersion := Versions.googleProtobufVersion,
       ),
   )
   .configureAssembly(false)
@@ -439,7 +439,7 @@ lazy val jms = (project in file("kafka-connect-jms"))
         Compile / PB.targets := Seq(
           PB.gens.java(Versions.googleProtobufVersion) -> (Test / sourceManaged).value,
         ),
-        Compile / PB.protocExecutable := file(Process("which protoc").!!.trim),
+        Compile / PB.protocVersion := Versions.googleProtobufVersion,
       ),
   )
   .configureAssembly(true)
