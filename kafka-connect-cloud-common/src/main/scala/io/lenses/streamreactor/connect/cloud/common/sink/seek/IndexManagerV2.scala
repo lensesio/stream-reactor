@@ -38,6 +38,7 @@ import io.lenses.streamreactor.connect.cloud.common.storage.UploadError
 import java.time.Instant
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentLinkedQueue
+import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.TimeUnit
@@ -110,6 +111,7 @@ class IndexManagerV2(
   // the cache (containsKey) to check whether a scheduled-for-deletion key has been reclaimed
   // by a new writer. All mutating access occurs on the single Kafka Connect task thread.
   private val granularCache = new ConcurrentHashMap[TopicPartition, ConcurrentHashMap[String, GranularCacheEntry]]()
+  private val granularCacheSizeCounter = new AtomicInteger(0)
 
   private def gcGet(tp: TopicPartition, pk: String): Option[GranularCacheEntry] =
     Option(granularCache.get(tp)).flatMap(inner => Option(inner.get(pk)))
@@ -119,7 +121,8 @@ class IndexManagerV2(
                                   (_, inner) => {
                                     val map =
                                       if (inner == null) new ConcurrentHashMap[String, GranularCacheEntry]() else inner
-                                    map.put(pk, entry)
+                                    val prev = map.put(pk, entry)
+                                    if (prev == null) granularCacheSizeCounter.incrementAndGet()
                                     map
                                   },
     )
@@ -130,7 +133,8 @@ class IndexManagerV2(
                                   (_, inner) =>
                                     if (inner == null) null
                                     else {
-                                      inner.remove(pk)
+                                      val prev = inner.remove(pk)
+                                      if (prev != null) granularCacheSizeCounter.decrementAndGet()
                                       if (inner.isEmpty) null else inner
                                     },
     )
@@ -140,12 +144,12 @@ class IndexManagerV2(
     Option(granularCache.get(tp)).exists(_.containsKey(pk))
 
   private def gcRemoveAllForTp(tp: TopicPartition): Unit = {
-    val _ = granularCache.remove(tp)
+    val removed = granularCache.remove(tp)
+    if (removed != null) { val _ = granularCacheSizeCounter.addAndGet(-removed.size()) }
   }
 
   // Exposed for testing only; not part of the public API.
-  private[seek] def granularCacheSize: Int =
-    granularCache.values().asScala.map(_.size()).sum
+  private[seek] def granularCacheSize: Int = granularCacheSizeCounter.get()
 
   private val gcQueue: ConcurrentLinkedQueue[GcItem] = new ConcurrentLinkedQueue()
 
