@@ -29,8 +29,10 @@ import org.apache.kafka.common.serialization.StringSerializer;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Duration;
@@ -42,6 +44,7 @@ import java.util.concurrent.TimeUnit;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -104,10 +107,34 @@ class ReportSenderTest {
   }
 
   @Test
-  void testClose() throws InterruptedException {
+  void testCloseShutsDownExecutorBeforeAwaitingTermination() throws InterruptedException {
+    // S2: shutdown() must precede awaitTermination(), otherwise the await returns
+    // immediately because nothing initiated termination, and the scheduled threads
+    // outlive the connector.
+    when(mockExecutorService.awaitTermination(500, TimeUnit.MILLISECONDS)).thenReturn(true);
+
     reportSender.close();
 
-    verify(mockExecutorService, times(1)).awaitTermination(500, TimeUnit.MILLISECONDS);
+    InOrder inOrder = Mockito.inOrder(mockExecutorService);
+    inOrder.verify(mockExecutorService, times(1)).shutdown();
+    inOrder.verify(mockExecutorService, times(1)).awaitTermination(500, TimeUnit.MILLISECONDS);
+    verify(mockExecutorService, never()).shutdownNow();
+    verify(mockProducer, times(1)).close(Duration.ofMillis(500));
+  }
+
+  @Test
+  void testCloseCallsShutdownNowOnAwaitTimeout() throws InterruptedException {
+    // S2: when graceful termination times out, shutdownNow() must be invoked so
+    // queued tasks are dropped and worker threads are interrupted -- otherwise the
+    // pool can hold the JVM/connector classloader open indefinitely.
+    when(mockExecutorService.awaitTermination(500, TimeUnit.MILLISECONDS)).thenReturn(false);
+
+    reportSender.close();
+
+    InOrder inOrder = Mockito.inOrder(mockExecutorService);
+    inOrder.verify(mockExecutorService, times(1)).shutdown();
+    inOrder.verify(mockExecutorService, times(1)).awaitTermination(500, TimeUnit.MILLISECONDS);
+    inOrder.verify(mockExecutorService, times(1)).shutdownNow();
     verify(mockProducer, times(1)).close(Duration.ofMillis(500));
   }
 
