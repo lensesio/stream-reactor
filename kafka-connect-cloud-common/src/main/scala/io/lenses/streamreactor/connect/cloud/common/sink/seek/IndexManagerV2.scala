@@ -110,33 +110,35 @@ class IndexManagerV2(
   // Thread safety: ConcurrentHashMap is required because the background GC thread reads
   // the cache (containsKey) to check whether a scheduled-for-deletion key has been reclaimed
   // by a new writer. All mutating access occurs on the single Kafka Connect task thread.
-  private val granularCache = new ConcurrentHashMap[TopicPartition, ConcurrentHashMap[String, GranularCacheEntry]]()
+  private val granularCache            = new ConcurrentHashMap[TopicPartition, ConcurrentHashMap[String, GranularCacheEntry]]()
   private val granularCacheSizeCounter = new AtomicInteger(0)
 
   private def gcGet(tp: TopicPartition, pk: String): Option[GranularCacheEntry] =
     Option(granularCache.get(tp)).flatMap(inner => Option(inner.get(pk)))
 
   private def gcPut(tp: TopicPartition, pk: String, entry: GranularCacheEntry): Unit = {
-    val _ = granularCache.compute(tp,
-                                  (_, inner) => {
-                                    val map =
-                                      if (inner == null) new ConcurrentHashMap[String, GranularCacheEntry]() else inner
-                                    val prev = map.put(pk, entry)
-                                    if (prev == null) granularCacheSizeCounter.incrementAndGet()
-                                    map
-                                  },
+    val _ = granularCache.compute(
+      tp,
+      (_, inner) => {
+        val map =
+          if (inner == null) new ConcurrentHashMap[String, GranularCacheEntry]() else inner
+        val prev = map.put(pk, entry)
+        if (prev == null) granularCacheSizeCounter.incrementAndGet()
+        map
+      },
     )
   }
 
   private def gcRemove(tp: TopicPartition, pk: String): Unit = {
-    val _ = granularCache.compute(tp,
-                                  (_, inner) =>
-                                    if (inner == null) null
-                                    else {
-                                      val prev = inner.remove(pk)
-                                      if (prev != null) granularCacheSizeCounter.decrementAndGet()
-                                      if (inner.isEmpty) null else inner
-                                    },
+    val _ = granularCache.compute(
+      tp,
+      (_, inner) =>
+        if (inner == null) null
+        else {
+          val prev = inner.remove(pk)
+          if (prev != null) granularCacheSizeCounter.decrementAndGet()
+          if (inner.isEmpty) null else inner
+        },
     )
   }
 
@@ -185,18 +187,25 @@ class IndexManagerV2(
         )
         executor
       }
-      sweepExecutorOpt = Option.when(gcSweepEnabled) {
-        val executor = Executors.newSingleThreadScheduledExecutor { (r: Runnable) =>
-          val t = new Thread(r, s"sweep-${connectorTaskId.show}")
-          t.setDaemon(true)
-          t
+      try {
+        sweepExecutorOpt = Option.when(gcSweepEnabled) {
+          val executor = Executors.newSingleThreadScheduledExecutor { (r: Runnable) =>
+            val t = new Thread(r, s"sweep-${connectorTaskId.show}")
+            t.setDaemon(true)
+            t
+          }
+          executor.scheduleAtFixedRate(() => if (acceptingWork) sweepOrphanedLocks(),
+                                       gcSweepIntervalSeconds.toLong,
+                                       gcSweepIntervalSeconds.toLong,
+                                       TimeUnit.SECONDS,
+          )
+          executor
         }
-        executor.scheduleAtFixedRate(() => if (acceptingWork) sweepOrphanedLocks(),
-                                     gcSweepIntervalSeconds.toLong,
-                                     gcSweepIntervalSeconds.toLong,
-                                     TimeUnit.SECONDS,
-        )
-        executor
+      } catch {
+        case NonFatal(e) =>
+          gcExecutor.foreach(_.shutdownNow())
+          gcExecutor = None
+          throw e
       }
       executorsStarted = true
     }
@@ -929,14 +938,11 @@ class IndexManagerV2(
                 val bucket = loc.bucket
                 isSweepDueForPartition(bucket, tp, now) match {
                   case Some(protection) =>
-                    if (writeSweepMarkerForPartition(bucket, tp, protection)) {
-                      tpsScanned += 1
-                      val (enqueued, readsUsed) = sweepPartition(tp, masterOffset, ageThreshold, readsRemaining)
-                      totalEnqueued += enqueued
-                      readsRemaining -= readsUsed
-                    } else {
-                      tpsSkipped += 1
-                    }
+                    tpsScanned += 1
+                    val (enqueued, readsUsed) = sweepPartition(tp, masterOffset, ageThreshold, readsRemaining)
+                    totalEnqueued += enqueued
+                    readsRemaining -= readsUsed
+                    writeSweepMarkerForPartition(bucket, tp, protection)
                   case None =>
                     tpsSkipped += 1
                 }
@@ -1106,7 +1112,8 @@ class IndexManagerV2(
    * it bypasses the `acceptingWork` gate and runs regardless of the flag's value.
    */
   override def close(): Unit = {
-    if (!executorsStarted) {
+    val hadExecutors = executorsStarted || gcExecutor.isDefined || sweepExecutorOpt.isDefined
+    if (!hadExecutors) {
       logger.info(s"IndexManagerV2 closed for ${connectorTaskId.show} (executors were never started)")
       return
     }
