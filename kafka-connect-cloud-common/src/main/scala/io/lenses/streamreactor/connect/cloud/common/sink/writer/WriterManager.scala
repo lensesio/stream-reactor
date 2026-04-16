@@ -288,6 +288,18 @@ class WriterManager[SM <: FileMetadata](
     )
     val globalSafeOffset = math.max(calculatedSafeOffset, previousHighWatermark)
 
+    // Defensive invariants: today these are guaranteed by the math.max above, but a require()
+    // here means any future refactor that drops or reorders the max will fail fast in CI
+    // rather than silently regressing the globalSafeOffset and risking data loss.
+    require(
+      globalSafeOffset >= previousHighWatermark,
+      s"globalSafeOffset regression for $topicPartition: $globalSafeOffset < previousHWM $previousHighWatermark",
+    )
+    require(
+      globalSafeOffset >= calculatedSafeOffset,
+      s"globalSafeOffset below calculated floor for $topicPartition: $globalSafeOffset < $calculatedSafeOffset",
+    )
+
     val hasPartitionByWriters =
       writers.keys.exists(k => k.topicPartition == topicPartition && k.partitionValues.nonEmpty)
 
