@@ -174,39 +174,51 @@ class IndexManagerV2(
 
   private def startExecutors(): Unit =
     if (!executorsStarted) {
-      gcExecutor = Some {
-        val executor = Executors.newSingleThreadScheduledExecutor { (r: Runnable) =>
-          val t = new Thread(r, s"gc-${connectorTaskId.show}")
+      // Allocate each executor in two phases: create the pool, then schedule.
+      // If scheduleAtFixedRate throws (e.g. RejectedExecutionException, bad interval),
+      // we must shut the just-created pool down before rethrowing -- otherwise the
+      // outer assignment (gcExecutor = Some(...)) never happens and the daemon thread
+      // becomes unreachable and leaks.
+      val gcPool = Executors.newSingleThreadScheduledExecutor { (r: Runnable) =>
+        val t = new Thread(r, s"gc-${connectorTaskId.show}")
+        t.setDaemon(true)
+        t
+      }
+      try {
+        gcPool.scheduleAtFixedRate(() => if (acceptingWork) drainGcQueue(),
+                                   gcIntervalSeconds.toLong,
+                                   gcIntervalSeconds.toLong,
+                                   TimeUnit.SECONDS,
+        )
+      } catch {
+        case NonFatal(e) =>
+          val _ = gcPool.shutdownNow()
+          throw e
+      }
+      gcExecutor = Some(gcPool)
+
+      if (gcSweepEnabled) {
+        val sweepPool = Executors.newSingleThreadScheduledExecutor { (r: Runnable) =>
+          val t = new Thread(r, s"sweep-${connectorTaskId.show}")
           t.setDaemon(true)
           t
         }
-        executor.scheduleAtFixedRate(() => if (acceptingWork) drainGcQueue(),
-                                     gcIntervalSeconds.toLong,
-                                     gcIntervalSeconds.toLong,
-                                     TimeUnit.SECONDS,
-        )
-        executor
-      }
-      try {
-        sweepExecutorOpt = Option.when(gcSweepEnabled) {
-          val executor = Executors.newSingleThreadScheduledExecutor { (r: Runnable) =>
-            val t = new Thread(r, s"sweep-${connectorTaskId.show}")
-            t.setDaemon(true)
-            t
-          }
-          executor.scheduleAtFixedRate(() => if (acceptingWork) sweepOrphanedLocks(),
-                                       gcSweepIntervalSeconds.toLong,
-                                       gcSweepIntervalSeconds.toLong,
-                                       TimeUnit.SECONDS,
+        try {
+          sweepPool.scheduleAtFixedRate(() => if (acceptingWork) sweepOrphanedLocks(),
+                                        gcSweepIntervalSeconds.toLong,
+                                        gcSweepIntervalSeconds.toLong,
+                                        TimeUnit.SECONDS,
           )
-          executor
+        } catch {
+          case NonFatal(e) =>
+            val _ = sweepPool.shutdownNow()
+            gcExecutor.foreach(_.shutdownNow())
+            gcExecutor = None
+            throw e
         }
-      } catch {
-        case NonFatal(e) =>
-          gcExecutor.foreach(_.shutdownNow())
-          gcExecutor = None
-          throw e
+        sweepExecutorOpt = Some(sweepPool)
       }
+
       executorsStarted = true
     }
 
