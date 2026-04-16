@@ -612,6 +612,77 @@ class WriterManagerPreCommitTest
     wm.writerCount shouldBe 1
   }
 
+  // --- Defensive globalSafeOffset invariants (require checks in getOffsetAndMeta) ---
+
+  test("preCommit require does not fire on the normal path when calculatedSafeOffset < HWM") {
+    // Regression guard for the `require(globalSafeOffset >= previousHighWatermark)` invariant.
+    // When the high watermark sits well above the currently calculable safe offset (because a
+    // writer with a lower committedOffset has replaced a higher one), math.max keeps the
+    // globalSafeOffset on the watermark so the `require` must remain silent.
+    val indexManager = mock[IndexManager]
+    when(indexManager.getSeekedOffsetForTopicPartition(tp0)).thenReturn(None)
+    when(indexManager.updateMasterLock(any[TopicPartition], any[Offset])).thenReturn(Right(()))
+    when(indexManager.cleanUpObsoleteLocks(any[TopicPartition], any[Offset], any[Set[String]])).thenReturn(Right(()))
+
+    val wm = buildWriterManager(indexManager)
+
+    // Establish HWM at 500 by committing a writer with a high offset
+    val highWriter = writerInNoWriterState(tp0, Some(Offset(499)))
+    wm.putWriter(MapKey(tp0, dateA), highWriter)
+    wm.preCommit(currentOffsets(tp0, 1000))(tp0).offset() shouldBe 500L
+
+    // Replace with a writer whose calculatedSafeOffset would be 100 -- well below the HWM
+    highWriter.close()
+    val lowWriter = writerInWritingState(tp0,
+                                         committedOffset     = Some(Offset(50)),
+                                         firstBufferedOffset = Offset(100),
+                                         uncommittedOffset   = Offset(110),
+    )
+    wm.putWriter(MapKey(tp0, dateA), lowWriter)
+
+    // Must not throw from the `require`; must preserve monotonicity
+    noException should be thrownBy wm.preCommit(currentOffsets(tp0, 1000))
+    wm.preCommit(currentOffsets(tp0, 1000))(tp0).offset() shouldBe 500L
+  }
+
+  test("preCommit maintains monotone non-decreasing globalSafeOffset across a long sequence") {
+    // Exercises the `require` invariant across a multi-cycle sequence where writers with
+    // varying committed offsets come and go. The returned globalSafeOffset must never decrease
+    // within a single assignment (no cleanUp call).
+    val indexManager = mock[IndexManager]
+    when(indexManager.getSeekedOffsetForTopicPartition(tp0)).thenReturn(Some(Offset(9)))
+    when(indexManager.updateMasterLock(any[TopicPartition], any[Offset])).thenReturn(Right(()))
+    when(indexManager.cleanUpObsoleteLocks(any[TopicPartition], any[Offset], any[Set[String]])).thenReturn(Right(()))
+
+    val wm = buildWriterManager(indexManager)
+
+    def stepWithIdleWriter(committed: Long): Long = {
+      val w = writerInNoWriterState(tp0, Some(Offset(committed)))
+      wm.putWriter(MapKey(tp0, dateA), w)
+      val out = wm.preCommit(currentOffsets(tp0, 10000))(tp0).offset()
+      w.close()
+      out
+    }
+
+    // Sequence: [50, 120, 80, 200, 150, 30, 300]
+    // Master lock seeds HWM to 10 (Offset(9) + 1). Returned offsets must be monotone.
+    val observed = List(50L, 120L, 80L, 200L, 150L, 30L, 300L).map(stepWithIdleWriter)
+
+    // Pairwise monotone non-decreasing
+    observed.sliding(2).collect { case List(a, b) => (a, b) }.toList.foreach {
+      case (a, b) => a should be <= b
+    }
+
+    // First step: calc=51, HWM=10 -> 51
+    // Second step: calc=121, HWM=51 -> 121
+    // Third step: calc=81, HWM=121 -> 121
+    // Fourth step: calc=201, HWM=121 -> 201
+    // Fifth step: calc=151, HWM=201 -> 201
+    // Sixth step: calc=31, HWM=201 -> 201
+    // Seventh step: calc=301, HWM=201 -> 301
+    observed shouldBe List(51L, 121L, 121L, 201L, 201L, 201L, 301L)
+  }
+
   test("eviction is scoped to the target TopicPartition and does not evict idle writers from other partitions") {
     val indexManager = mock[IndexManager]
     val wm           = buildWriterManager(indexManager)
