@@ -175,7 +175,7 @@ When **no** writer has uncommitted data (all writers are in `NoWriter` state aft
 
 ### Monotonicity invariant on globalSafeOffset
 
-`globalSafeOffset` must be **monotonically non-decreasing** within the lifetime of a task instance. If it were allowed to regress (e.g. because an idle writer with a high committed offset was evicted from memory), the master lock and consumer offset would move backwards, and on crash recovery records that were already committed would be replayed. Combined with granular lock GC -- which deletes lock files below `globalSafeOffset` -- the deduplication data for those records may no longer exist, causing data duplication.
+`globalSafeOffset` must be **monotonically non-decreasing** within the lifetime of a task instance. If it were allowed to regress (e.g. because an idle writer with a high committed offset was evicted from memory), the master lock and consumer offset would move backwards, and on crash recovery records that were already committed would be replayed. Combined with granular lock GC -- which deletes lock files strictly below `masterOffset` (`globalSafeOffset - 1`) -- the deduplication data for those records may no longer exist, causing data duplication.
 
 `WriterManager` enforces monotonicity by maintaining a per-partition high-watermark (`safeOffsetHighWatermarks`). On each `preCommit` call the calculated offset is floored at the previous high-watermark:
 
@@ -189,22 +189,24 @@ The high-watermark is cleared when the partition is removed via `cleanUp` (rebal
 
 ### The exactly-once invariant
 
-Three properties combine to provide exactly-once semantics:
+Four properties combine to provide exactly-once semantics:
 
 1. **No data loss**: `globalSafeOffset ≤ min(firstBufferedOffset)` across all active writers. Kafka never advances past uncommitted data.
 2. **No duplication**: Each writer consults its own granular lock for deduplication. Records that were already committed to storage are skipped on replay.
 3. **Monotonicity**: `globalSafeOffset` never regresses within a task instance. The master lock and consumer offset can only advance, ensuring that GC decisions remain valid and crash recovery never replays a window whose deduplication state was already cleaned up.
+4. **One-record-overlap invariant**: Both GC (`cleanUpObsoleteLocks`) and the orphan sweep (`sweepOrphanedLocks`) use thresholds strictly below `masterOffset` (`globalSafeOffset - 1`). This preserves the granular lock at `masterOffset` -- the exact offset that `context.offset(tp, masterOffset)` will replay on restart. Without this lock, `shouldSkip` cannot deduplicate the replayed record, causing duplication.
 
 Together, every record is written to cloud storage **exactly once**.
 
 ### Master lock semantics
 
-The master lock stores `committedOffset = globalSafeOffset - 1`. This preserves the existing semantic that `committedOffset` means "the highest offset durably committed to storage." On startup, the consumer seeks to this offset, `shouldSkip` returns true for it (since it was already committed), and processing begins at the next offset.
+The master lock stores `committedOffset = globalSafeOffset - 1` when `globalSafeOffset > 0`, or `committedOffset = None` when `globalSafeOffset == 0` (nothing durably committed yet). The minus-one preserves the existing semantic that `committedOffset` means "the highest offset durably committed to storage." On startup, the consumer seeks to this offset, `shouldSkip` returns true for it (since it was already committed), and processing begins at the next offset. When `committedOffset` is `None`, `open()` does not call `context.offset()` and the consumer uses the consumer group position (which `preCommit` keeps at 0 while `globalSafeOffset == 0`).
 
-This is important for two reasons:
+This is important for three reasons:
 
 1. **Backward compatibility**: If old code reads a master lock written by new code, the value has the same semantic the old code expects. No data loss occurs.
-2. **Correctness**: The one-record-overlap-then-skip pattern that the existing `CloudSinkTask.open()` relies on is preserved exactly.
+2. **Correctness**: The one-record-overlap-then-skip pattern that the existing `CloudSinkTask.open()` relies on is preserved exactly. Both GC and the orphan sweep use thresholds strictly below `masterOffset` to ensure the granular lock at `masterOffset` is always preserved for deduplication on replay (the **one-record-overlap invariant**).
+3. **No false claims at offset 0**: When `globalSafeOffset == 0`, storing `None` avoids the false claim that offset 0 is durably committed. Storing `Some(Offset(0))` would inflate the high watermark on restart and mislead `shouldSkip` into treating offset 0 as already committed when it may still be buffered.
 
 ---
 
@@ -340,7 +342,7 @@ flowchart LR
 
 - **Idle writer eviction** keeps the writer map lean: when Writer B or C is created for a given `TopicPartition`, idle writers for that same partition are evicted.
 - **Coordinated commit** ensures all writers for a TopicPartition commit together when any one triggers a flush, keeping the `globalSafeOffset` computation correct.
-- **Granular lock GC** cleans up old date partition locks once their committed offset falls below `globalSafeOffset`.
+- **Granular lock GC** cleans up old date partition locks once their committed offset falls strictly below `masterOffset` (`globalSafeOffset - 1`), preserving the lock at `masterOffset` for one-record-overlap deduplication on replay.
 
 The number of concurrent writers is not the concern. Multiple writers are architecturally necessary for `PARTITIONBY` and the two-tier lock system handles them correctly. The concern is solely whether the partition key derivation is **deterministic across deliveries**.
 
@@ -378,7 +380,7 @@ Over time, granular lock files accumulate. GC is split into two phases: a synchr
 
 #### Enqueue phase (synchronous, inside `preCommit`)
 
-After a successful master lock update, `cleanUpObsoleteLocks` identifies obsolete granular locks -- those whose `committedOffset` is below the `globalSafeOffset` and that do not belong to an active writer. For each obsolete entry it:
+After a successful master lock update, `cleanUpObsoleteLocks` identifies obsolete granular locks -- those whose `committedOffset` is strictly below `masterOffset` (`globalSafeOffset - 1`) and that do not belong to an active writer. The threshold preserves the granular lock at `masterOffset` itself, which is needed by `shouldSkip` to deduplicate the one-record overlap on replay. For each obsolete entry it:
 
 1. Evicts the entry from the in-memory `granularCache` immediately.
 2. Enqueues the cloud storage path of the lock file onto a `ConcurrentLinkedQueue` (`gcQueue`).
@@ -420,7 +422,7 @@ To prevent this, `IndexManagerV2.open()` prunes stale state before processing th
 
 This is a **best-effort gate, not mutual exclusion**: the volatile flag cannot stop a background thread that has already entered `drainGcQueue()` or `sweepOrphanedLocks()` at the instant the flag is flipped. In-flight executions are benign:
 
-- **`drainGcQueue()`**: Processes items that were enqueued before the rebalance by `cleanUpObsoleteLocks`. Those items were correctly identified as obsolete (committed offset below `globalSafeOffset`, no active writer). Deleting them is safe regardless of which task now owns the partition -- the data they tracked is already durably committed, and if the new owner later needs a lock, `ensureGranularLock` recreates it with a fall-back to the master lock offset.
+- **`drainGcQueue()`**: Processes items that were enqueued before the rebalance by `cleanUpObsoleteLocks`. Those items were correctly identified as obsolete (committed offset strictly below `masterOffset`, no active writer). Deleting them is safe regardless of which task now owns the partition -- the data they tracked is already durably committed, and if the new owner later needs a lock, `ensureGranularLock` recreates it with a fall-back to the master lock offset.
 - **`sweepOrphanedLocks()`**: Issues read-only LIST and GET API calls on revoked partitions (wasteful but harmless -- no writes, no corruption). Any `GcItem`s it enqueues for those partitions will be discarded by the *next* `drainGcQueue()` run, because by then `open()` will have pruned `seekedOffsets` and the drain's `seekedOffsets.contains` check will return false.
 
 On the **shutdown path** (`close()` → `stop()`), the flag stays false. The final synchronous `drainGcQueue()` in `IndexManagerV2.close()` is called directly (not through the scheduled lambda), so it bypasses the gate and runs regardless of the flag's value.
@@ -438,7 +440,7 @@ To address this, a **periodic orphan sweep** runs on a separate `ScheduledExecut
 1. **Recency filter**: Files with `lastModified` newer than `gcSweepMinAgeSeconds` are skipped without a GET read (configured via `connect.<prefix>.indexes.gc.sweep.min.age.seconds`, default 86400 = 24h).
 2. **Cache exclusion**: Files whose partition key is already in `granularCache` are skipped (already tracked by regular GC).
 3. **GET cap**: A global budget of `gcSweepMaxReads` GET requests per sweep cycle across all partitions (configured via `connect.<prefix>.indexes.gc.sweep.max.reads`, default 1000). When exhausted, remaining partitions are deferred to the next cycle.
-4. **Offset comparison**: The lock file is read and its `committedOffset` is compared against the master lock offset (`seekedOffsets.get(tp)`). Only lock files with `committedOffset <= masterLockOffset` are enqueued as orphans. Since the master lock stores `globalSafeOffset - 1`, this is equivalent to `committedOffset < globalSafeOffset`, matching the threshold used by `cleanUpObsoleteLocks`.
+4. **Offset comparison**: The lock file is read and its `committedOffset` is compared against the master lock offset (`seekedOffsets.get(tp)`). Only lock files with `committedOffset` strictly below `masterLockOffset` are enqueued as orphans. The strict-less-than preserves the granular lock at `masterOffset` itself, which is needed by `shouldSkip` to deduplicate the one-record overlap on replay. This matches the threshold used by `cleanUpObsoleteLocks` (`committedOffset < globalSafeOffset - 1`).
 
 Lock files with no `committedOffset` (freshly created) are skipped. Partitions without a master lock offset in `seekedOffsets` (e.g. brand-new partitions that have never had a commit) are also skipped -- there is no safe baseline to compare against.
 
@@ -449,7 +451,7 @@ Lock files with no `committedOffset` (freshly created) are skipped. Partitions w
 - `connect.<prefix>.indexes.gc.sweep.min.age.seconds` -- minimum age (in seconds) a lock file must have before the sweep considers it for deletion (default 86400 = 24h).
 - `connect.<prefix>.indexes.gc.sweep.max.reads` -- per-cycle GET cap across all partitions (default 1000).
 
-**Exactly-once safety**: The sweep preserves exactly-once guarantees because (a) only lock files with `committedOffset` at or below the master lock's `committedOffset` (equivalently, below `globalSafeOffset`) are enqueued, meaning their data has already been committed; (b) `drainGcQueue` checks `granularCache.containsKey` before deleting, protecting any file reclaimed by a new writer; (c) if a deleted lock is later needed by a new writer, `ensureGranularLock` recreates it and the writer falls back to the master lock offset for deduplication; and (d) the sweep never writes to lock files, so writers' eTags are unaffected.
+**Exactly-once safety**: The sweep preserves exactly-once guarantees because (a) only lock files with `committedOffset` strictly below `masterOffset` are enqueued, meaning their data has already been committed and the lock at `masterOffset` itself is always preserved for one-record-overlap deduplication; (b) `drainGcQueue` checks `granularCache.containsKey` before deleting, protecting any file reclaimed by a new writer; (c) if a deleted lock is later needed by a new writer, `ensureGranularLock` recreates it and the writer falls back to the master lock offset for deduplication; and (d) the sweep never writes to lock files, so writers' eTags are unaffected.
 
 ### Zombie task and temp-upload fencing
 
@@ -574,7 +576,7 @@ Kafka Connect assigns each partition to exactly one task at a time. During a rol
 
 ### Rollback to old code
 
-Granular lock files become orphaned (old code ignores them). They consume negligible storage and can be manually cleaned up. The master lock written by new code uses `committedOffset = globalSafeOffset - 1`, which is semantically identical to what old code writes. Old code reads it and operates correctly.
+Granular lock files become orphaned (old code ignores them). They consume negligible storage and can be manually cleaned up. The master lock written by new code uses `committedOffset = globalSafeOffset - 1` (or `None` when `globalSafeOffset == 0`), which is semantically identical to what old code writes. Old code reads it and operates correctly; a `None` committed offset means old code treats the partition as fresh, which is the correct behavior when nothing has been committed.
 
 ### First restart after upgrade
 
@@ -669,7 +671,7 @@ When a zombie task's Phase 2 lock update fails after uploading to `.temp-upload/
 |----------|---------|
 | Crash after writer commit, before `preCommit` | Granular lock is up to date. Master lock may be stale. On restart, consumer re-reads from master lock offset. Granular locks deduplicate. **No data loss, possible replay (no duplication due to granular locks).** |
 | Crash during `preCommit` (master lock update) | eTag-based atomic write means the master lock either updated or didn't. On restart, the last successful state is read. **No corruption.** |
-| Crash during garbage collection | Items already enqueued in `gcQueue` but not yet drained are lost. Items already drained but whose batched delete was in flight may be partially deleted. In both cases the orphaned granular lock files are harmless -- they sit below the `globalSafeOffset` watermark and are either re-enqueued on the next run or cleaned up by the periodic orphan sweep. **No impact on correctness.** |
+| Crash during garbage collection | Items already enqueued in `gcQueue` but not yet drained are lost. Items already drained but whose batched delete was in flight may be partially deleted. In both cases the orphaned granular lock files are harmless -- they sit below the `masterOffset` watermark and are either re-enqueued on the next run or cleaned up by the periodic orphan sweep. **No impact on correctness.** |
 | Crash with `PendingState` on a granular lock | `PendingState` is detected and resolved during **lazy load**, when the writer first calls `getSeekedOffsetForPartitionKey` for that partition key. If the local staging file still exists, the pending upload is completed. If the staging file is gone (the common case after a crash), the pending operation is abandoned (`cancelPending=true`) and the records revert to "uncommitted". On replay from the master lock offset, these records are re-delivered and re-processed. The write is **re-done from scratch**, not resumed. **No data loss, no duplication.** |
 | Crash with `PendingState` on master lock | Existing behavior, unchanged. On restart, pending operations are completed. **No data loss.** |
 | Zombie task uploads to `.temp-upload/` but Phase 2 eTag update fails | Temp file is orphaned at `.temp-upload/...`. Final output path is unaffected. **No duplication.** Storage leak requires periodic sweep (see "Zombie task and temp-upload fencing"). |
@@ -688,7 +690,7 @@ When a zombie task's Phase 2 lock update fails after uploading to `.temp-upload/
 |---------|---------------------|----------------------|
 | **Duplication** | Writers overwrite each other's committed offset → offset regression → replayed records are re-written | Each writer has its own granular lock → no interference → `shouldSkip` is per-writer accurate |
 | **Data loss** | `preCommit` returns max committed offset → Kafka advances past uncommitted buffered data → crash loses records | `preCommit` returns `min(firstBufferedOffset)` → Kafka never advances past uncommitted data |
-| **Exactly-once** | Not guaranteed with PARTITIONBY | Guaranteed: no data loss (globalSafeOffset invariant) + no duplication (granular lock dedup) + monotonicity (globalSafeOffset never regresses) |
+| **Exactly-once** | Not guaranteed with PARTITIONBY | Guaranteed: no data loss (globalSafeOffset invariant) + no duplication (granular lock dedup) + monotonicity (globalSafeOffset never regresses) + one-record-overlap invariant (GC/sweep preserve lock at masterOffset) |
 | **Writer accumulation** | N/A (single writer per partition) | Idle writers eagerly evicted on every new writer creation; active writers pinned. Cache grows/shrinks in lockstep -- no desync. |
 | **Migration** | N/A | Fully transparent, zero-downtime upgrade |
 | **Rollback** | N/A | Safe: master lock is backward-compatible, granular locks are ignored by old code |
