@@ -343,9 +343,16 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
         indexManager.close()
         err
       }
+      // MBean registration is outside the `for`-yield rollback chain (initialize
+      // above is the last step that unwinds via left.map). A register failure
+      // would otherwise leave indexManager's background threads running with no
+      // owner. Wrap it so we explicitly close indexManager on failure.
+      _ <- Try(CloudSinkMetricsRegistrar.register(metrics, connectorTaskId)).toEither.left.map { err =>
+        indexManager.close()
+        err
+      }
     } yield {
       logMetrics = config.logMetrics
-      CloudSinkMetricsRegistrar.register(metrics, connectorTaskId)
       (indexManager, writerManager, config)
     }
 
