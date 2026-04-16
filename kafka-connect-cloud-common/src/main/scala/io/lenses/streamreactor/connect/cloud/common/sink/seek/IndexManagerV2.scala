@@ -717,12 +717,15 @@ class IndexManagerV2(
   }
 
   /**
-   * Writes the master lock with `globalSafeOffset - 1` as the committed offset.
+   * Writes the master lock with `globalSafeOffset - 1` as the committed offset, or `None`
+   * when `globalSafeOffset == 0` (nothing durably committed yet).
    *
    * The minus-one conversion preserves the existing semantic that `committedOffset` is the
    * highest offset durably in storage, ensuring backward compatibility with older code that
-   * may read this lock file. The eTag is deliberately NOT refreshed on write failure --
-   * this preserves fencing against zombie tasks (see architecture doc).
+   * may read this lock file. When `globalSafeOffset == 0`, `None` avoids the false claim
+   * that offset 0 is committed and prevents HWM inflation on restart. The eTag is
+   * deliberately NOT refreshed on write failure -- this preserves fencing against zombie
+   * tasks (see architecture doc).
    */
   override def updateMasterLock(
     topicPartition:   TopicPartition,
@@ -730,9 +733,13 @@ class IndexManagerV2(
   ): Either[SinkError, Unit] = {
     val path = generateLockFilePath(connectorTaskId, topicPartition, directoryFileName)
     // Store globalSafeOffset - 1 to preserve the "highest committed offset" semantic.
-    // Floor at 0 so that globalSafeOffset == 0 produces Some(Offset(0)) rather than None,
-    // ensuring the master lock always has a seek target for crash recovery.
-    val committedOffset = Some(Offset(math.max(0L, globalSafeOffset.value - 1L)))
+    // When globalSafeOffset == 0, nothing has been durably committed, so persist None
+    // rather than the misleading Some(Offset(0)). None means open() will not call
+    // context.offset(), and the consumer will use the consumer group position (which
+    // preCommit keeps at 0 while globalSafeOffset == 0).
+    val committedOffset =
+      if (globalSafeOffset.value == 0L) None
+      else Some(Offset(globalSafeOffset.value - 1L))
     for {
       bucketAndPrefix <- bucketAndPrefixFn(topicPartition)
       eTag <- topicPartitionToETags.get(topicPartition).toRight {
@@ -769,9 +776,15 @@ class IndexManagerV2(
 
   /**
    * Synchronous GC enqueue phase: scans the granular cache for this partition, identifies
-   * entries whose committed offset is below `globalSafeOffset` and that are NOT protected
-   * by an active writer, evicts them from the cache, and enqueues their cloud paths into
-   * `gcQueue` for asynchronous deletion by `drainGcQueue`. Performs no cloud I/O itself.
+   * entries whose committed offset is strictly below `globalSafeOffset - 1` (i.e., below
+   * `masterOffset`) and that are NOT protected by an active writer, evicts them from the
+   * cache, and enqueues their cloud paths into `gcQueue` for asynchronous deletion by
+   * `drainGcQueue`. Performs no cloud I/O itself.
+   *
+   * The threshold preserves the granular lock at `masterOffset` (`globalSafeOffset - 1`).
+   * On restart, `context.offset(tp, masterOffset)` replays that record, and the granular
+   * lock is needed by `shouldSkip` to deduplicate it (the one-record-overlap invariant).
+   * The threshold matches `readAndEnqueue` in `sweepOrphanedLocks`.
    */
   override def cleanUpObsoleteLocks(
     topicPartition:      TopicPartition,
@@ -784,7 +797,7 @@ class IndexManagerV2(
         // Collect partition keys eligible for GC: offset below threshold AND no active writer
         val keysToRemove = inner.entrySet().asScala.collect {
           case entry
-              if entry.getValue.offset.exists(_.value < globalSafeOffset.value) &&
+              if entry.getValue.offset.exists(_.value < globalSafeOffset.value - 1L) &&
                 !activePartitionKeys.contains(entry.getKey) =>
             entry.getKey
         }.toList
@@ -1038,12 +1051,16 @@ class IndexManagerV2(
   }
 
   /**
-   * GETs the lock file and enqueues it for deletion if its committedOffset is at or below the
-   * master lock's committedOffset. The master lock stores `globalSafeOffset - 1`, so
-   * `committedOffset <= masterOffset` is equivalent to `committedOffset < globalSafeOffset`,
+   * GETs the lock file and enqueues it for deletion if its committedOffset is strictly below
+   * the master lock's committedOffset. The master lock stores `masterOffset = globalSafeOffset - 1`,
+   * so `committedOffset < masterOffset` is equivalent to `committedOffset < globalSafeOffset - 1`,
    * matching the threshold used by `cleanUpObsoleteLocks`.
    *
-   * Lock files with PendingState are also safe to sweep when their committedOffset is at or
+   * The strict-less-than preserves the granular lock at `masterOffset` itself. On restart,
+   * `context.offset(tp, masterOffset)` replays that record, and the granular lock is needed
+   * by `shouldSkip` to deduplicate it (the one-record-overlap invariant).
+   *
+   * Lock files with PendingState are also safe to sweep when their committedOffset is
    * below the master: the master lock can only advance past an offset once all writers have
    * committed it.
    */
@@ -1059,7 +1076,7 @@ class IndexManagerV2(
         logger.warn(s"Sweep: failed to read lock file $path: ${err.message()}")
         false
       case Right(ObjectWithETag(IndexFile(_, Some(committedOffset), _), _))
-          if committedOffset.value <= masterOffset.value =>
+          if committedOffset.value < masterOffset.value =>
         gcQueue.add(GcItem(bucket, path, tp, partitionKey))
         true
       case _ =>

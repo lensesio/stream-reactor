@@ -705,7 +705,7 @@ class IndexManagerV2Test
     captured.wrappedObject.pendingState shouldBe None
   }
 
-  test("updateMasterLock writes committedOffset = Some(Offset(0)) when globalSafeOffset is 0") {
+  test("updateMasterLock writes committedOffset = None when globalSafeOffset is 0") {
     val tp              = Topic("topic1").withPartition(0)
     val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
     runOpenForOffset(Set(tp), bucketAndPrefix)
@@ -715,13 +715,13 @@ class IndexManagerV2Test
       storageInterface.writeBlobToFile[IndexFile](anyString(), anyString(), captor.capture())(
         ArgumentMatchers.eq(indexFileEncoder),
       ),
-    ).thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(0)), None), "new-etag")))
+    ).thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", None, None), "new-etag")))
 
     val result = indexManagerV2.updateMasterLock(tp, Offset(0))
     result shouldBe Right(())
 
     val captured = captor.getValue
-    captured.wrappedObject.committedOffset shouldBe Some(Offset(0))
+    captured.wrappedObject.committedOffset shouldBe None
     captured.wrappedObject.pendingState shouldBe None
   }
 
@@ -1495,6 +1495,63 @@ class IndexManagerV2Test
 
       verify(si, never).deleteFiles(anyString(), any[Seq[String]])
       im.granularCacheSize shouldBe 1
+    } finally {
+      im.close()
+    }
+  }
+
+  test("cleanUpObsoleteLocks preserves lock at masterOffset (one-record-overlap invariant)") {
+    val tp              = Topic("topic1").withPartition(0)
+    val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
+
+    val si = mock[StorageInterface[_]]
+    when(bucketAndPrefixFn(any[TopicPartition])).thenReturn(Right(bucketAndPrefix))
+    when(si.pathExists(anyString(), anyString())).thenReturn(Right(false))
+    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith("0.lock"))(
+      ArgumentMatchers.eq(indexFileDecoder),
+    ))
+      .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(100)), None), "etag")))
+
+    val im = new IndexManagerV2(
+      bucketAndPrefixFn,
+      oldIndexManager,
+      pendingOperationsProcessors,
+      indexesDirectoryName,
+      gcIntervalSeconds = Int.MaxValue,
+    )(si, connectorTaskId)
+
+    try {
+      im.open(Set(tp))
+
+      // pk-at-master has offset 99, which equals globalSafeOffset - 1 (masterOffset).
+      // pk-below has offset 98, which is strictly below masterOffset.
+      Seq("pk-at-master", "pk-below").zip(Seq(Offset(99), Offset(98))).foreach { case (pk, offset) =>
+        when(
+          si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains(s"/0/$pk.lock"))(
+            ArgumentMatchers.eq(indexFileDecoder),
+          ),
+        )
+          .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(offset), None), s"etag-$pk")))
+        im.getSeekedOffsetForPartitionKey(tp, pk) shouldBe Right(Some(offset))
+      }
+
+      im.granularCacheSize shouldBe 2
+
+      // globalSafeOffset = 100, so masterOffset = 99.
+      // pk-below (98) is strictly below masterOffset and should be GC'd.
+      // pk-at-master (99) equals masterOffset and must be preserved for dedup on replay.
+      val result = im.cleanUpObsoleteLocks(tp, Offset(100), Set.empty)
+      result shouldBe Right(())
+
+      im.granularCacheSize shouldBe 1
+
+      when(si.deleteFiles(anyString(), any[Seq[String]])).thenReturn(Right(()))
+      im.drainGcQueue()
+
+      verify(si).deleteFiles(anyString(), ArgumentMatchers.argThat[Seq[String]](_.exists(_.contains("pk-below"))))
+      verify(si, never).deleteFiles(anyString(),
+                                    ArgumentMatchers.argThat[Seq[String]](_.exists(_.contains("pk-at-master"))),
+      )
     } finally {
       im.close()
     }
@@ -2310,7 +2367,7 @@ class IndexManagerV2Test
     } finally im.close()
   }
 
-  test("sweep enqueues orphaned lock at exactly master offset (off-by-one regression)") {
+  test("sweep preserves orphaned lock at exactly master offset (one-record-overlap invariant)") {
     val tp              = Topic("topic1").withPartition(0)
     val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
     val si              = mock[StorageInterface[_]]
@@ -2325,8 +2382,50 @@ class IndexManagerV2Test
                                                                                            any[Option[String]],
     )
     // Orphan's committedOffset == master lock's committedOffset (both 100).
-    // Since seekedOffsets stores globalSafeOffset - 1, this is equivalent to
-    // granularOffset < globalSafeOffset, so the orphan should be swept.
+    // The sweep threshold is strictly less than masterOffset, so the lock at
+    // exactly masterOffset must be preserved for one-record-overlap dedup.
+    when(
+      si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("exact-key.lock"))(
+        ArgumentMatchers.eq(indexFileDecoder),
+      ),
+    )
+      .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(100)), None), "exact-etag")))
+
+    val im = createSweepTestManager(si)
+    try {
+      im.open(Set(tp))
+      im.sweepOrphanedLocks()
+      im.drainGcQueue()
+
+      verify(si, never).deleteFiles(anyString(), any[Seq[String]])
+    } finally im.close()
+  }
+
+  test("sweep deletes orphan one below masterOffset but preserves orphan at masterOffset") {
+    val tp              = Topic("topic1").withPartition(0)
+    val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
+    val si              = mock[StorageInterface[_]]
+    setupSweepMocks(si, tp, bucketAndPrefix)
+
+    val oldTime   = Instant.now().minusSeconds(7200)
+    val belowPath = s"$indexesDirectoryName/${connectorTaskId.name}/.locks/${tp.topic}/${tp.partition}/below-key.lock"
+    val exactPath = s"$indexesDirectoryName/${connectorTaskId.name}/.locks/${tp.topic}/${tp.partition}/exact-key.lock"
+    val belowMeta = TestFileMetadata(belowPath, oldTime)
+    val exactMeta = TestFileMetadata(exactPath, oldTime)
+    val listResponse =
+      ListOfMetadataResponse("bucket", Some("prefix"), Seq(belowMeta, exactMeta), exactMeta)
+
+    org.mockito.Mockito.doReturn(Right(Some(listResponse))).when(si).listFileMetaRecursive(anyString(),
+                                                                                           any[Option[String]],
+    )
+    // masterOffset = 100 (from setupSweepMocks). below-key at 99 is strictly below,
+    // exact-key at 100 equals masterOffset and must be preserved.
+    when(
+      si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("below-key.lock"))(
+        ArgumentMatchers.eq(indexFileDecoder),
+      ),
+    )
+      .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(99)), None), "below-etag")))
     when(
       si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("exact-key.lock"))(
         ArgumentMatchers.eq(indexFileDecoder),
@@ -2341,7 +2440,9 @@ class IndexManagerV2Test
       im.sweepOrphanedLocks()
       im.drainGcQueue()
 
-      verify(si, times(1)).deleteFiles(anyString(), any[Seq[String]])
+      verify(si, times(1)).deleteFiles(anyString(), ArgumentMatchers.argThat[Seq[String]](paths =>
+        paths.exists(_.contains("below-key")) && !paths.exists(_.contains("exact-key")),
+      ))
     } finally im.close()
   }
 
