@@ -40,6 +40,27 @@ trait StorageInterface[SM <: FileMetadata] extends ResultProcessors {
 
   def close(): Unit
 
+  /**
+   * Checks whether an object exists at exactly the given key in the specified bucket.
+   *
+   * This is an **exact-key** check, not a prefix/directory check. It returns `true` only if
+   * an object whose key is literally equal to `path` exists in `bucket`. It will return `false`
+   * if there is no object at that exact key, even if objects whose keys start with `path` exist
+   * (i.e., "virtual directory" children are not considered).
+   *
+   * All backend implementations (S3, GCS, Azure Data Lake) share this exact-key semantic:
+   *   - S3: `HeadObject` on the exact key
+   *   - GCS: `BlobId.of(bucket, path)` lookup
+   *   - Azure: `DataLakeFileClient(path).exists()`
+   *
+   * Callers that need to check whether a "directory" or path prefix contains any objects should
+   * use `listKeysRecursive` or `list` with the desired prefix instead.
+   *
+   * @param bucket the bucket (or container/filesystem) to check
+   * @param path   the exact object key to check for existence
+   * @return `Right(true)` if the object exists, `Right(false)` if it does not,
+   *         or `Left(PathError)` if the check fails due to a storage error
+   */
   def pathExists(bucket: String, path: String): Either[PathError, Boolean]
 
   def list(
