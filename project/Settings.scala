@@ -162,7 +162,6 @@ object Settings extends Dependencies {
     crossScalaVersions := Dependencies.supportedScalaVersions,
     excludeDependencies ++= globalExcludeDeps,
     headerLicense := Some(HeaderLicense.ALv2(s"2017-$currentYear", "Lenses.io Ltd")),
-    dependencyOverrides ++= Seq(googleProtobuf, googleProtobufJava),
   )
 
   implicit final class ParallelDestroyer(project: Project) {
