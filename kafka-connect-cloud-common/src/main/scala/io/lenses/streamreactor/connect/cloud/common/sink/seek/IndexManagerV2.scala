@@ -421,7 +421,9 @@ class IndexManagerV2(
 
   // Cache-first lookup: return the cached offset if present, otherwise fetch the granular lock
   // from cloud storage and populate the cache (lazy load). Returns Right(None) if the lock does
-  // not exist in storage yet -- callers fall back to the master lock offset in that case.
+  // not exist in storage yet -- callers must fall back to the master lock offset (via
+  // getSeekedOffsetForTopicPartition) in that case to provide a deduplication floor for
+  // shouldSkip. See WriterManager.createWriter for the fallback.
   // Returns Left(SinkError) on transient failures so callers can fail-fast rather than
   // silently falling back to a potentially stale master lock offset.
   override def getSeekedOffsetForPartitionKey(

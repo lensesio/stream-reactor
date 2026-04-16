@@ -207,7 +207,26 @@ class WriterManager[SM <: FileMetadata](
       _            <- partitionKey.fold(().asRight[SinkError])(pk => indexManager.ensureGranularLock(topicPartition, pk))
       lastSeekedOffset <- partitionKey match {
         case Some(pk) =>
-          indexManager.getSeekedOffsetForPartitionKey(topicPartition, pk)
+          // Granular-lock-first, master-lock-fallback: load the per-writer granular lock offset.
+          // If no granular lock exists (new partition key, or lock GC'd/swept), fall back to the
+          // master lock offset as a deduplication floor. This prevents data duplication when:
+          //  (a) a lock is legitimately deleted by GC/sweep and a new writer is later created
+          //      for the same partition key (e.g., the same date reappears in incoming data),
+          //  (b) an operator manually rewinds the consumer to reprocess historical data, or
+          //  (c) the GC threshold is accidentally loosened in a future change.
+          //
+          // When globalSafeOffset == 0, updateMasterLock stores None (not Some(Offset(0))), so
+          // getSeekedOffsetForTopicPartition returns None and the fallback produces
+          // None.orElse(None) = None -- no false skip of offset 0.
+          //
+          // History: this fallback was removed in f2e6906ad to work around a since-fixed bug
+          // where updateMasterLock stored Some(Offset(0)) when globalSafeOffset == 0, causing
+          // false skips. Commit 319b7be6f fixed the root cause (storing None instead), making
+          // the fallback safe again.
+          indexManager.getSeekedOffsetForPartitionKey(topicPartition, pk).map {
+            granularOffset =>
+              granularOffset.orElse(indexManager.getSeekedOffsetForTopicPartition(topicPartition))
+          }
         case None =>
           indexManager.getSeekedOffsetForTopicPartition(topicPartition).asRight[SinkError]
       }

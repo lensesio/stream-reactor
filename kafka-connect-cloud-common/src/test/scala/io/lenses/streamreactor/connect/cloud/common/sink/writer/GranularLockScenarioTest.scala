@@ -1263,4 +1263,259 @@ class GranularLockScenarioTest extends AnyFunSuiteLike with Matchers with Mockit
     offsets(topicPartition).offset() shouldBe 1001L
     masterLockOffsets.last shouldBe 1001L
   }
+
+  test("master lock fallback: writer created after granular lock GC'd uses master lock for dedup") {
+    val mockIM = mock[IndexManager]
+    when(mockIM.indexingEnabled).thenReturn(true)
+    when(mockIM.getSeekedOffsetForTopicPartition(any[TopicPartition])).thenReturn(Some(Offset(200)))
+    when(mockIM.ensureGranularLock(any[TopicPartition], any[String])).thenReturn(Right(()))
+    when(mockIM.getSeekedOffsetForPartitionKey(any[TopicPartition], any[String])).thenReturn(Right(None))
+    when(mockIM.evictAllGranularLocks(any[TopicPartition])).thenAnswer(())
+    when(
+      mockIM.cleanUpObsoleteLocks(any[TopicPartition], Offset(ArgumentMatchers.anyLong()), any[Set[String]]),
+    ).thenReturn(Right(()))
+    when(mockIM.updateForPartitionKey(any[TopicPartition], any[String], any[Option[Offset]], any[Option[PendingState]]))
+      .thenAnswer((_: TopicPartition, _: String, co: Option[Offset], _: Option[PendingState]) => Right(co))
+    when(mockIM.updateMasterLock(any[TopicPartition], Offset(ArgumentMatchers.anyLong()))).thenReturn(Right(()))
+
+    val pf = PartitionField(Seq("_value")).value
+
+    val mockKN = mock[KeyNamer]
+    when(mockKN.processPartitionValues(any[MessageDetail], any[TopicPartition]))
+      .thenReturn(Right(immutable.Map(pf -> "gc_d_key")))
+
+    val mockFW = mock[FormatWriter]
+    when(mockFW.write(any[MessageDetail])).thenReturn(Right(()))
+    when(mockFW.getPointer).thenReturn(100L)
+    when(mockFW.rolloverFileOnSchemaChange()).thenReturn(false)
+    when(mockFW.complete()).thenReturn(Right(()))
+    when(mockFW.close()).thenAnswer(())
+
+    val mockCP = mock[CommitPolicy]
+    when(mockCP.shouldFlush(any[CommitContext])).thenReturn(false)
+
+    val mockOKB = mock[ObjectKeyBuilder]
+    when(mockOKB.build(Offset(ArgumentMatchers.anyLong()), ArgumentMatchers.anyLong(), ArgumentMatchers.anyLong()))
+      .thenReturn(Right(CloudLocation("bucket", Some("prefix"), Some("prefix/file.parquet"))))
+
+    type IndexUpdateFn = (TopicPartition, Option[Offset], Option[PendingState]) => Either[SinkError, Option[Offset]]
+    val mockPOP = mock[PendingOperationsProcessors]
+    when(mockPOP.processPendingOperations(any[TopicPartition],
+                                          any[Option[Offset]],
+                                          any[PendingState],
+                                          any[IndexUpdateFn],
+    ))
+      .thenAnswer { (tp: TopicPartition, _: Option[Offset], ps: PendingState, fn: IndexUpdateFn) =>
+        fn(tp, Some(ps.pendingOffset), None)
+      }
+
+    val mockValue = mock[io.lenses.streamreactor.connect.cloud.common.sink.conversion.SinkData]
+    val mockKeySD = mock[io.lenses.streamreactor.connect.cloud.common.sink.conversion.SinkData]
+    when(mockValue.schema()).thenReturn(None)
+    when(mockKeySD.schema()).thenReturn(None)
+
+    def makeMockMsg(offset: Long): MessageDetail = {
+      val m = mock[MessageDetail]
+      when(m.topic).thenReturn(Topic("test-topic"))
+      when(m.partition).thenReturn(0)
+      when(m.offset).thenReturn(Offset(offset))
+      when(m.epochTimestamp).thenReturn(1000L)
+      when(m.value).thenReturn(mockValue)
+      when(m.key).thenReturn(mockKeySD)
+      when(m.headers).thenReturn(Map.empty)
+      m
+    }
+
+    val wm = new WriterManager[FileMetadata](
+      commitPolicyFn              = _ => Right(mockCP),
+      bucketAndPrefixFn           = _ => Right(CloudLocation("bucket", Some("prefix"))),
+      keyNamerFn                  = _ => Right(mockKN),
+      stagingFilenameFn           = (_, _) => Right(File.createTempFile("gc-fallback-test-", ".tmp")),
+      objKeyBuilderFn             = (_, _) => mockOKB,
+      formatWriterFn              = (_, _) => Right(mockFW),
+      indexManager                = mockIM,
+      transformerF                = m => Right(m),
+      schemaChangeDetector        = schemaChangeDetector,
+      skipNullValues              = false,
+      pendingOperationsProcessors = mockPOP,
+    )
+
+    // Granular lock returns None (simulates GC'd lock). Master lock is at 200.
+    // The fallback should provide Some(Offset(200)) as lastSeekedOffset.
+    // Offset 200 should be skipped (already committed), offset 201 should be written.
+    wm.write(topicPartition.withOffset(Offset(200)), makeMockMsg(200L)) shouldBe Right(())
+    verify(mockFW, never).write(any[MessageDetail])
+
+    wm.write(topicPartition.withOffset(Offset(201)), makeMockMsg(201L)) shouldBe Right(())
+    verify(mockFW, times(1)).write(any[MessageDetail])
+  }
+
+  test("master lock fallback: manual consumer rewind with GC'd granular locks skips records <= master offset") {
+    val mockIM = mock[IndexManager]
+    when(mockIM.indexingEnabled).thenReturn(true)
+    when(mockIM.getSeekedOffsetForTopicPartition(any[TopicPartition])).thenReturn(Some(Offset(500)))
+    when(mockIM.ensureGranularLock(any[TopicPartition], any[String])).thenReturn(Right(()))
+    when(mockIM.getSeekedOffsetForPartitionKey(any[TopicPartition], any[String])).thenReturn(Right(None))
+    when(mockIM.evictAllGranularLocks(any[TopicPartition])).thenAnswer(())
+    when(
+      mockIM.cleanUpObsoleteLocks(any[TopicPartition], Offset(ArgumentMatchers.anyLong()), any[Set[String]]),
+    ).thenReturn(Right(()))
+    when(mockIM.updateForPartitionKey(any[TopicPartition], any[String], any[Option[Offset]], any[Option[PendingState]]))
+      .thenAnswer((_: TopicPartition, _: String, co: Option[Offset], _: Option[PendingState]) => Right(co))
+    when(mockIM.updateMasterLock(any[TopicPartition], Offset(ArgumentMatchers.anyLong()))).thenReturn(Right(()))
+
+    val pf = PartitionField(Seq("_value")).value
+
+    val mockKN = mock[KeyNamer]
+    when(mockKN.processPartitionValues(any[MessageDetail], any[TopicPartition]))
+      .thenReturn(Right(immutable.Map(pf -> "rewind_key")))
+
+    val mockFW = mock[FormatWriter]
+    when(mockFW.write(any[MessageDetail])).thenReturn(Right(()))
+    when(mockFW.getPointer).thenReturn(100L)
+    when(mockFW.rolloverFileOnSchemaChange()).thenReturn(false)
+    when(mockFW.complete()).thenReturn(Right(()))
+    when(mockFW.close()).thenAnswer(())
+
+    val mockCP = mock[CommitPolicy]
+    when(mockCP.shouldFlush(any[CommitContext])).thenReturn(false)
+
+    val mockOKB = mock[ObjectKeyBuilder]
+    when(mockOKB.build(Offset(ArgumentMatchers.anyLong()), ArgumentMatchers.anyLong(), ArgumentMatchers.anyLong()))
+      .thenReturn(Right(CloudLocation("bucket", Some("prefix"), Some("prefix/file.parquet"))))
+
+    type IndexUpdateFn = (TopicPartition, Option[Offset], Option[PendingState]) => Either[SinkError, Option[Offset]]
+    val mockPOP = mock[PendingOperationsProcessors]
+    when(mockPOP.processPendingOperations(any[TopicPartition],
+                                          any[Option[Offset]],
+                                          any[PendingState],
+                                          any[IndexUpdateFn],
+    ))
+      .thenAnswer { (tp: TopicPartition, _: Option[Offset], ps: PendingState, fn: IndexUpdateFn) =>
+        fn(tp, Some(ps.pendingOffset), None)
+      }
+
+    val mockValue = mock[io.lenses.streamreactor.connect.cloud.common.sink.conversion.SinkData]
+    val mockKeySD = mock[io.lenses.streamreactor.connect.cloud.common.sink.conversion.SinkData]
+    when(mockValue.schema()).thenReturn(None)
+    when(mockKeySD.schema()).thenReturn(None)
+
+    def makeMockMsg(offset: Long): MessageDetail = {
+      val m = mock[MessageDetail]
+      when(m.topic).thenReturn(Topic("test-topic"))
+      when(m.partition).thenReturn(0)
+      when(m.offset).thenReturn(Offset(offset))
+      when(m.epochTimestamp).thenReturn(1000L)
+      when(m.value).thenReturn(mockValue)
+      when(m.key).thenReturn(mockKeySD)
+      when(m.headers).thenReturn(Map.empty)
+      m
+    }
+
+    val wm = new WriterManager[FileMetadata](
+      commitPolicyFn              = _ => Right(mockCP),
+      bucketAndPrefixFn           = _ => Right(CloudLocation("bucket", Some("prefix"))),
+      keyNamerFn                  = _ => Right(mockKN),
+      stagingFilenameFn           = (_, _) => Right(File.createTempFile("rewind-test-", ".tmp")),
+      objKeyBuilderFn             = (_, _) => mockOKB,
+      formatWriterFn              = (_, _) => Right(mockFW),
+      indexManager                = mockIM,
+      transformerF                = m => Right(m),
+      schemaChangeDetector        = schemaChangeDetector,
+      skipNullValues              = false,
+      pendingOperationsProcessors = mockPOP,
+    )
+
+    // Operator rewound consumer to offset 100. Master lock is at 500 (granular locks GC'd).
+    // All offsets 100-500 should be skipped; offset 501 should be the first written.
+    (100L to 500L).foreach { i =>
+      wm.write(topicPartition.withOffset(Offset(i)), makeMockMsg(i)) shouldBe Right(())
+    }
+    verify(mockFW, never).write(any[MessageDetail])
+
+    wm.write(topicPartition.withOffset(Offset(501L)), makeMockMsg(501L)) shouldBe Right(())
+    verify(mockFW, times(1)).write(any[MessageDetail])
+  }
+
+  test("master lock fallback: globalSafeOffset == 0 produces None, no false skip of offset 0") {
+    val mockIM = mock[IndexManager]
+    when(mockIM.indexingEnabled).thenReturn(true)
+    when(mockIM.getSeekedOffsetForTopicPartition(any[TopicPartition])).thenReturn(None)
+    when(mockIM.ensureGranularLock(any[TopicPartition], any[String])).thenReturn(Right(()))
+    when(mockIM.getSeekedOffsetForPartitionKey(any[TopicPartition], any[String])).thenReturn(Right(None))
+    when(mockIM.evictAllGranularLocks(any[TopicPartition])).thenAnswer(())
+    when(
+      mockIM.cleanUpObsoleteLocks(any[TopicPartition], Offset(ArgumentMatchers.anyLong()), any[Set[String]]),
+    ).thenReturn(Right(()))
+    when(mockIM.updateForPartitionKey(any[TopicPartition], any[String], any[Option[Offset]], any[Option[PendingState]]))
+      .thenAnswer((_: TopicPartition, _: String, co: Option[Offset], _: Option[PendingState]) => Right(co))
+    when(mockIM.updateMasterLock(any[TopicPartition], Offset(ArgumentMatchers.anyLong()))).thenReturn(Right(()))
+
+    val pf = PartitionField(Seq("_value")).value
+
+    val mockKN = mock[KeyNamer]
+    when(mockKN.processPartitionValues(any[MessageDetail], any[TopicPartition]))
+      .thenReturn(Right(immutable.Map(pf -> "fresh_key")))
+
+    val mockFW = mock[FormatWriter]
+    when(mockFW.write(any[MessageDetail])).thenReturn(Right(()))
+    when(mockFW.getPointer).thenReturn(100L)
+    when(mockFW.rolloverFileOnSchemaChange()).thenReturn(false)
+    when(mockFW.complete()).thenReturn(Right(()))
+    when(mockFW.close()).thenAnswer(())
+
+    val mockCP = mock[CommitPolicy]
+    when(mockCP.shouldFlush(any[CommitContext])).thenReturn(false)
+
+    val mockOKB = mock[ObjectKeyBuilder]
+    when(mockOKB.build(Offset(ArgumentMatchers.anyLong()), ArgumentMatchers.anyLong(), ArgumentMatchers.anyLong()))
+      .thenReturn(Right(CloudLocation("bucket", Some("prefix"), Some("prefix/file.parquet"))))
+
+    type IndexUpdateFn = (TopicPartition, Option[Offset], Option[PendingState]) => Either[SinkError, Option[Offset]]
+    val mockPOP = mock[PendingOperationsProcessors]
+    when(mockPOP.processPendingOperations(any[TopicPartition],
+                                          any[Option[Offset]],
+                                          any[PendingState],
+                                          any[IndexUpdateFn],
+    ))
+      .thenAnswer { (tp: TopicPartition, _: Option[Offset], ps: PendingState, fn: IndexUpdateFn) =>
+        fn(tp, Some(ps.pendingOffset), None)
+      }
+
+    val mockValue = mock[io.lenses.streamreactor.connect.cloud.common.sink.conversion.SinkData]
+    val mockKeySD = mock[io.lenses.streamreactor.connect.cloud.common.sink.conversion.SinkData]
+    when(mockValue.schema()).thenReturn(None)
+    when(mockKeySD.schema()).thenReturn(None)
+
+    def makeMockMsg(offset: Long): MessageDetail = {
+      val m = mock[MessageDetail]
+      when(m.topic).thenReturn(Topic("test-topic"))
+      when(m.partition).thenReturn(0)
+      when(m.offset).thenReturn(Offset(offset))
+      when(m.epochTimestamp).thenReturn(1000L)
+      when(m.value).thenReturn(mockValue)
+      when(m.key).thenReturn(mockKeySD)
+      when(m.headers).thenReturn(Map.empty)
+      m
+    }
+
+    val wm = new WriterManager[FileMetadata](
+      commitPolicyFn              = _ => Right(mockCP),
+      bucketAndPrefixFn           = _ => Right(CloudLocation("bucket", Some("prefix"))),
+      keyNamerFn                  = _ => Right(mockKN),
+      stagingFilenameFn           = (_, _) => Right(File.createTempFile("zero-offset-test-", ".tmp")),
+      objKeyBuilderFn             = (_, _) => mockOKB,
+      formatWriterFn              = (_, _) => Right(mockFW),
+      indexManager                = mockIM,
+      transformerF                = m => Right(m),
+      schemaChangeDetector        = schemaChangeDetector,
+      skipNullValues              = false,
+      pendingOperationsProcessors = mockPOP,
+    )
+
+    // Both granular lock and master lock return None (globalSafeOffset == 0).
+    // The fallback produces None.orElse(None) = None, so offset 0 must NOT be skipped.
+    wm.write(topicPartition.withOffset(Offset(0)), makeMockMsg(0L)) shouldBe Right(())
+    verify(mockFW, times(1)).write(any[MessageDetail])
+  }
 }
