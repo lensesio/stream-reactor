@@ -565,7 +565,7 @@ class WriterManagerPreCommitTest
     verify(indexManager).evictGranularLock(tp0, pkB)
   }
 
-  test("eviction does not evict non-PARTITIONBY writers (empty partitionValues)") {
+  test("eviction also evicts idle non-PARTITIONBY writers") {
     val indexManager = mock[IndexManager]
     val wm           = buildWriterManager(indexManager)
 
@@ -574,8 +574,10 @@ class WriterManagerPreCommitTest
     wm.putWriter(MapKey(tp0, emptyPartitionValues), writer)
 
     wm.evictIdleWritersNow(tp0)
-    wm.writerCount shouldBe 1
+    wm.writerCount shouldBe 0
 
+    // Non-PARTITIONBY writers have no granular partition key
+    // (`derivePartitionKey(Map.empty) == None`), so no granular lock eviction is expected.
     verify(indexManager, never).evictGranularLock(any[TopicPartition], any[String])
   }
 

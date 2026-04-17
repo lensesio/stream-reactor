@@ -188,7 +188,7 @@ class WriterManager[SM <: FileMetadata](
           createWriter(bucketAndPrefix, topicPartition, partitionValues)
             .map { w =>
               writers.put(key, w)
-              evictIdleWritersIfNeeded(key)
+              evictIdleWriters(key.topicPartition, Some(key))
               metrics.setWriterCount(writers.size)
               w
             }
@@ -360,9 +360,9 @@ class WriterManager[SM <: FileMetadata](
     indexManager.clearTopicPartitionState(topicPartition)
   }
 
-  private def evictIdleWritersIfNeeded(exclude: MapKey): Unit = {
+  private def evictIdleWriters(topicPartition: TopicPartition, exclude: Option[MapKey]): Unit = {
     val idleEntries = writers.iterator
-      .filter { case (k, writer) => k != exclude && k.topicPartition == exclude.topicPartition && writer.isIdle }
+      .filter { case (k, writer) => k.topicPartition == topicPartition && !exclude.contains(k) && writer.isIdle }
       .toList
     if (idleEntries.nonEmpty) {
       logger.debug(
@@ -385,7 +385,7 @@ class WriterManager[SM <: FileMetadata](
   private[writer] def putWriter(key: MapKey, writer: Writer[SM]): Unit = { val _ = writers.put(key, writer) }
 
   private[writer] def evictIdleWritersNow(topicPartition: TopicPartition): Unit =
-    evictIdleWritersIfNeeded(MapKey(topicPartition, immutable.Map.empty))
+    evictIdleWriters(topicPartition, None)
 
   def shouldSkipNullValues(): Boolean = skipNullValues
 
