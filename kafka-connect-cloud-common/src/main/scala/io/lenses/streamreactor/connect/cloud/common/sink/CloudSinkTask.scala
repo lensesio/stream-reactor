@@ -339,16 +339,24 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
       (indexManager, writerManager) <- Try(
         writerManagerCreator.from(config, metrics)(connectorTaskId, storageInterface),
       ).toEither
+      // Mirror the stop() shutdown order (writerManager first, then indexManager)
+      // and wrap each close in Try so a throw in one does not prevent the other
+      // from running, and so neither masks the original init failure.
+      closeOnFailure = () => {
+        Try(writerManager.close())
+        Try(indexManager.close())
+        ()
+      }
       _ <- initializeFromConfig(config).left.map { err =>
-        indexManager.close()
+        closeOnFailure()
         err
       }
       // MBean registration is outside the `for`-yield rollback chain (initialize
       // above is the last step that unwinds via left.map). A register failure
-      // would otherwise leave indexManager's background threads running with no
-      // owner. Wrap it so we explicitly close indexManager on failure.
+      // would otherwise leave indexManager's background threads and any
+      // writerManager-held resources with no owner, so we close both explicitly.
       _ <- Try(CloudSinkMetricsRegistrar.register(metrics, connectorTaskId)).toEither.left.map { err =>
-        indexManager.close()
+        closeOnFailure()
         err
       }
     } yield {
