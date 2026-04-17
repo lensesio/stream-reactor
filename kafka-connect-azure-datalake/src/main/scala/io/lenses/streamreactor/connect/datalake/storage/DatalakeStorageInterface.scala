@@ -113,7 +113,7 @@ class DatalakeStorageInterface(connectorTaskId: ConnectorTaskId, client: DataLak
 
   override def pathExists(bucket: String, path: String): Either[PathError, Boolean] =
     Try(client.getFileSystemClient(bucket).getFileClient(path).exists().booleanValue()).toEither.recover {
-      case ex: DataLakeStorageException if ex.getStatusCode.toString.startsWith("4") =>
+      case ex: DataLakeStorageException if ex.getStatusCode == 404 =>
         false
     }.leftMap(PathError(
       _,

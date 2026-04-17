@@ -417,6 +417,47 @@ class DatalakeStorageInterfaceTest
     result.left.getOrElse(throw new AssertionError("Expected Left")) should be(a[PathError])
   }
 
+  "pathExists" should "return Right(false) when DataLakeStorageException has 404 status" in {
+    val bucket = "test-bucket"
+    val path   = "missing-path"
+
+    when(client.getFileSystemClient(bucket).getFileClient(path).exists()).thenThrow(
+      new DataLakeStorageException("PathNotFound", mockHttpResponse(404), null),
+    )
+
+    val result = storageInterface.pathExists(bucket, path)
+
+    result should be(Right(false))
+  }
+
+  "pathExists" should "return Left(PathError) when DataLakeStorageException has 401 status" in {
+    val bucket = "test-bucket"
+    val path   = "unauthorised-path"
+
+    when(client.getFileSystemClient(bucket).getFileClient(path).exists()).thenThrow(
+      new DataLakeStorageException("AuthenticationFailed", mockHttpResponse(401), null),
+    )
+
+    val result = storageInterface.pathExists(bucket, path)
+
+    result.isLeft should be(true)
+    result.left.getOrElse(throw new AssertionError("Expected Left")) should be(a[PathError])
+  }
+
+  "pathExists" should "return Left(PathError) when DataLakeStorageException has 403 status" in {
+    val bucket = "test-bucket"
+    val path   = "forbidden-path"
+
+    when(client.getFileSystemClient(bucket).getFileClient(path).exists()).thenThrow(
+      new DataLakeStorageException("AuthorizationFailure", mockHttpResponse(403), null),
+    )
+
+    val result = storageInterface.pathExists(bucket, path)
+
+    result.isLeft should be(true)
+    result.left.getOrElse(throw new AssertionError("Expected Left")) should be(a[PathError])
+  }
+
   private def createTestFile = {
     val source = File.createTempFile("a-file", "")
     Files.writeString(source.toPath, "real file content", StandardOpenOption.WRITE)
