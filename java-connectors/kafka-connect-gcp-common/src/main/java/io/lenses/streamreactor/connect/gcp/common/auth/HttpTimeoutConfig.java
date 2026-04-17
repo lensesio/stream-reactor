@@ -24,6 +24,6 @@ import lombok.Data;
 @AllArgsConstructor
 public class HttpTimeoutConfig {
 
-  private Long socketTimeoutMillis;
-  private Long connectionTimeoutMillis;
+  private Integer socketTimeoutMillis;
+  private Integer connectionTimeoutMillis;
 }
