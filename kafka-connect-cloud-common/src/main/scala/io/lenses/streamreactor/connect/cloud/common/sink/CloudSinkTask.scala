@@ -303,22 +303,37 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
   }
 
   override def stop(): Unit = {
-    logger.debug("[{}] Stop", Option(connectorTaskId).map(_.show).getOrElse("Unnamed"))
+    val taskIdStr = Option(connectorTaskId).map(_.show).getOrElse("Unnamed")
+    logger.debug("[{}] Stop", taskIdStr)
+
+    // Each teardown step is wrapped in Try so a failure in one does not skip the
+    // remaining steps. In particular, an exception from writerManager.close() must
+    // not prevent indexManager.close() (which shuts down the GC/sweep
+    // ScheduledExecutorService threads) or CloudSinkMetricsRegistrar.unregister
+    // (which removes the MBean) from running. Mirrors the closeOnFailure pattern
+    // in createWriterMan.
 
     // Defensive: close writers in case stop() is called without a preceding close()
     // (e.g. during error recovery or non-standard Connect runtimes). WriterManager.close()
     // is idempotent -- on the normal close-then-stop path, writers are already closed and
-    // the map is empty, so this is a no-op. Removing this call saves no meaningful work
-    // but eliminates a safety net for edge cases.
-    Option(writerManager).foreach(_.close())
+    // the map is empty, so this is a no-op.
+    Try(Option(writerManager).foreach(_.close())).failed.foreach { t =>
+      logger.warn(s"[$taskIdStr] writerManager.close() failed during stop()", t)
+    }
     writerManager = null
+
     // indexManager.close() shuts down background executors and performs a final synchronous
     // drainGcQueue(). seekedOffsets is still populated (close() does not clear it), so the
     // drain correctly identifies owned partitions. The state is GC'd with the indexManager
     // reference immediately after.
-    Option(indexManager).foreach(_.close())
+    Try(Option(indexManager).foreach(_.close())).failed.foreach { t =>
+      logger.warn(s"[$taskIdStr] indexManager.close() failed during stop()", t)
+    }
     indexManager = null
-    Option(connectorTaskId).foreach(CloudSinkMetricsRegistrar.unregister)
+
+    Try(Option(connectorTaskId).foreach(CloudSinkMetricsRegistrar.unregister)).failed.foreach { t =>
+      logger.warn(s"[$taskIdStr] CloudSinkMetricsRegistrar.unregister failed during stop()", t)
+    }
   }
 
   def createClient(config: CC): Either[Throwable, CT]
