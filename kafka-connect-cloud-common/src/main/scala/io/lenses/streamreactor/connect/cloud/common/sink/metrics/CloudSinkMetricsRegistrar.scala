@@ -25,14 +25,20 @@ object CloudSinkMetricsRegistrar {
 
   private val Domain = "io.lenses.streamreactor.connect.cloud.sink"
 
+  private val MaxRegistrationAttempts = 3
+
   private def objectName(connectorTaskId: ConnectorTaskId): ObjectName =
     new ObjectName(s"$Domain:type=metrics,name=${connectorTaskId.name},task=${connectorTaskId.taskNo}")
 
-  def register(metrics: CloudSinkMetricsMBean, connectorTaskId: ConnectorTaskId): Unit = {
-    val mbs: MBeanServer = ManagementFactory.getPlatformMBeanServer
-    val name = objectName(connectorTaskId)
-    registerWithRetry(mbs, metrics, name)
-  }
+  def register(metrics: CloudSinkMetricsMBean, connectorTaskId: ConnectorTaskId): Unit =
+    register(ManagementFactory.getPlatformMBeanServer, metrics, connectorTaskId)
+
+  private[metrics] def register(
+    mbs:             MBeanServer,
+    metrics:         CloudSinkMetricsMBean,
+    connectorTaskId: ConnectorTaskId,
+  ): Unit =
+    registerWithRetry(mbs, metrics, objectName(connectorTaskId), MaxRegistrationAttempts)
 
   def unregister(connectorTaskId: ConnectorTaskId): Unit = {
     val mbs: MBeanServer = ManagementFactory.getPlatformMBeanServer
@@ -43,7 +49,12 @@ object CloudSinkMetricsRegistrar {
   }
 
   @annotation.tailrec
-  private def registerWithRetry(mbs: MBeanServer, metrics: CloudSinkMetricsMBean, name: ObjectName): Unit =
+  private def registerWithRetry(
+    mbs:               MBeanServer,
+    metrics:           CloudSinkMetricsMBean,
+    name:              ObjectName,
+    attemptsRemaining: Int,
+  ): Unit =
     try {
       if (mbs.isRegistered(name)) {
         mbs.unregisterMBean(name)
@@ -51,8 +62,15 @@ object CloudSinkMetricsRegistrar {
       mbs.registerMBean(metrics, name)
       ()
     } catch {
-      case _: javax.management.InstanceAlreadyExistsException =>
-        mbs.unregisterMBean(name)
-        registerWithRetry(mbs, metrics, name)
+      case e: javax.management.InstanceAlreadyExistsException =>
+        if (attemptsRemaining <= 1) {
+          throw new IllegalStateException(
+            s"Failed to register MBean $name after $MaxRegistrationAttempts attempts due to concurrent registration",
+            e,
+          )
+        }
+        try mbs.unregisterMBean(name)
+        catch { case _: javax.management.InstanceNotFoundException => () }
+        registerWithRetry(mbs, metrics, name, attemptsRemaining - 1)
     }
 }

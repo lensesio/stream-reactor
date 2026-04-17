@@ -843,10 +843,15 @@ class IndexManagerV2(
     Option(granularCache.get(topicPartition)).filterNot(_.isEmpty) match {
       case None        => ().asRight
       case Some(inner) =>
-        // Collect partition keys eligible for GC: offset below threshold AND no active writer
+        // Collect partition keys eligible for GC: (offset below threshold OR offset unset)
+        // AND no active writer. The offset.isEmpty branch handles cached entries seeded by
+        // ensureGranularLock that never received a commit; without it those empty locks
+        // would never be enqueued and would accumulate in cloud storage. Active writers
+        // are still protected by the activePartitionKeys check.
         val keysToRemove = inner.entrySet().asScala.collect {
           case entry
-              if entry.getValue.offset.exists(_.value < globalSafeOffset.value - 1L) &&
+              if (entry.getValue.offset.isEmpty ||
+                entry.getValue.offset.exists(_.value < globalSafeOffset.value - 1L)) &&
                 !activePartitionKeys.contains(entry.getKey) =>
             entry.getKey
         }.toList
@@ -987,7 +992,15 @@ class IndexManagerV2(
         val ageThreshold   = Instant.now().minusSeconds(gcSweepMinAgeSeconds.toLong)
         val now            = System.currentTimeMillis()
 
-        // Randomize partition order so no single partition monopolizes the GET budget
+        // Randomize partition order so no single partition monopolizes the GET budget.
+        //
+        // Note: when `globalSafeOffset == 0`, `updateMasterLock` stores a master lock
+        // with `committedOffset = None` and does NOT populate `seekedOffsets` for this
+        // TP. That case is handled by *absence* here -- the TP is not in
+        // `seekedOffsets.keys`, so it is skipped for this sweep cycle. This is correct:
+        // no record has been durably committed yet, so there are no granular locks
+        // that could be eligible for GC below `masterOffset`. The `.foreach` on
+        // `seekedOffsets.get(tp)` is therefore a no-op when `globalSafeOffset == 0`.
         for (tp <- Random.shuffle(seekedOffsets.keys.toList) if readsRemaining > 0) {
           seekedOffsets.get(tp).foreach { masterOffset =>
             bucketAndPrefixFn(tp) match {
@@ -1166,6 +1179,14 @@ class IndexManagerV2(
         false
       case Right(ObjectWithETag(IndexFile(_, Some(committedOffset), _), _))
           if committedOffset.value < masterOffset.value =>
+        gcQueue.add(GcItem(bucket, path, tp, partitionKey))
+        true
+      case Right(ObjectWithETag(IndexFile(_, None, None), _)) =>
+        // Empty lock created by ensureGranularLock but never committed to.
+        // classifyLockFile already enforced the age threshold and cache absence,
+        // so no active writer is using this file and it carries no durable data.
+        // Without this branch, empty locks accumulate indefinitely under
+        // high-cardinality PARTITIONBY with churning keys.
         gcQueue.add(GcItem(bucket, path, tp, partitionKey))
         true
       case _ =>
