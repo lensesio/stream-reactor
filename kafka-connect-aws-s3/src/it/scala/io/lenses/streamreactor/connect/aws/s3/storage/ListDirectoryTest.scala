@@ -24,8 +24,6 @@ class ListDirectoryTest
 
   implicit val cloudLocationValidator: CloudLocationValidator = S3LocationValidator
 
-  override def cleanUp(): Unit = ()
-
   override def setUpTestData(storageInterface: AwsS3StorageInterface): Either[Throwable, Unit] = {
     Seq("topic-1", "topic-2").foreach {
       topic =>

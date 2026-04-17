@@ -32,8 +32,6 @@ class S3SourceTaskXmlReaderWithGlacierStorageTest
   val PrefixName = "streamReactorBackups"
   val TopicName  = "myTopic"
 
-  override def cleanUp(): Unit = ()
-
   override def setUpTestData(storageInterface: AwsS3StorageInterface): Either[Throwable, Unit] = {
     val glacierFile = new File(getClass.getResource("/xml/employeedata0000-glacier.xml").toURI)
     val result = for {

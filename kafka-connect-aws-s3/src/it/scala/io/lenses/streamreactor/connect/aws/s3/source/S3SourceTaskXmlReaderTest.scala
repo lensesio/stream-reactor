@@ -30,8 +30,6 @@ class S3SourceTaskXmlReaderTest
   val PrefixName = "streamReactorBackups"
   val TopicName  = "myTopic"
 
-  override def cleanUp(): Unit = ()
-
   override def setUpTestData(storageInterface: AwsS3StorageInterface): Either[Throwable, Unit] = {
     val res = Seq("/xml/employeedata0001.xml", "/xml/employeedata0002.xml").traverse { f =>
       val file = new File(getClass.getResource(f).toURI)

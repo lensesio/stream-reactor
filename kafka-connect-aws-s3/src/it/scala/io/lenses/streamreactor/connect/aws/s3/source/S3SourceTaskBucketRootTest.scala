@@ -32,8 +32,6 @@ class S3SourceTaskBucketRootTest
 
   private val TopicName = "myTopic"
 
-  override def cleanUp(): Unit = ()
-
   "task" should "read files from root of bucket" in {
     forAll(formats) {
       (format, formatExtension, _) =>
