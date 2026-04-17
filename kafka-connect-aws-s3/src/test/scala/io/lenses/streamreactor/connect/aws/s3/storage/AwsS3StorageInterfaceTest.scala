@@ -31,6 +31,7 @@ import software.amazon.awssdk.services.s3.model.DeleteObjectResponse
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest
 import software.amazon.awssdk.services.s3.model.HeadObjectResponse
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException
+import software.amazon.awssdk.services.s3.model.S3Exception
 
 class AwsS3StorageInterfaceTest
     extends AnyFlatSpecLike
@@ -129,6 +130,56 @@ class AwsS3StorageInterfaceTest
 
     result.isLeft shouldBe true
     result.left.value shouldBe a[FileMoveError]
+    verify(s3Client, never).copyObject(any[CopyObjectRequest])
+    verify(s3Client, never).deleteObject(any[DeleteObjectRequest])
+  }
+
+  it should "return Right when source raises S3Exception(404) but destination exists (MinIO/LocalStack replay)" in {
+    // S3-compatible backends (MinIO, LocalStack, Ceph) often surface a missing object
+    // as a generic S3Exception with HTTP 404 rather than the typed NoSuchKeyException.
+    // The idempotent-replay contract must still hold on those backends.
+    val s3Client         = mock[S3Client]
+    val storageInterface = new AwsS3StorageInterface(mock[ConnectorTaskId], s3Client, batchDelete = false, None)
+
+    val sourceMatcher =
+      new org.mockito.ArgumentMatcher[HeadObjectRequest] {
+        override def matches(req: HeadObjectRequest): Boolean = req != null && req.key() == "oldPath"
+      }
+    val destMatcher =
+      new org.mockito.ArgumentMatcher[HeadObjectRequest] {
+        override def matches(req: HeadObjectRequest): Boolean = req != null && req.key() == "newPath"
+      }
+
+    org.mockito.Mockito.doThrow(
+      S3Exception.builder().statusCode(404).message("Not Found").build().asInstanceOf[Throwable],
+    )
+      .when(s3Client).headObject(org.mockito.ArgumentMatchers.argThat(sourceMatcher))
+    org.mockito.Mockito.doReturn(HeadObjectResponse.builder().build())
+      .when(s3Client).headObject(org.mockito.ArgumentMatchers.argThat(destMatcher))
+
+    val result = storageInterface.mvFile("oldBucket", "oldPath", "newBucket", "newPath", none)
+
+    result shouldBe Right(())
+    verify(s3Client, never).copyObject(any[CopyObjectRequest])
+    verify(s3Client, never).deleteObject(any[DeleteObjectRequest])
+  }
+
+  it should "return FileMoveError when both source and destination raise S3Exception(404)" in {
+    // Same both-missing contract as the NoSuchKeyException case, but via the generic
+    // S3Exception path produced by MinIO/LocalStack-style backends.
+    val s3Client         = mock[S3Client]
+    val storageInterface = new AwsS3StorageInterface(mock[ConnectorTaskId], s3Client, batchDelete = false, None)
+
+    org.mockito.Mockito.doThrow(
+      S3Exception.builder().statusCode(404).message("Not Found").build().asInstanceOf[Throwable],
+    )
+      .when(s3Client).headObject(any[HeadObjectRequest])
+
+    val result = storageInterface.mvFile("oldBucket", "oldPath", "newBucket", "newPath", none)
+
+    result.isLeft shouldBe true
+    result.left.value shouldBe a[FileMoveError]
+    result.left.value.exception shouldBe a[IllegalStateException]
     verify(s3Client, never).copyObject(any[CopyObjectRequest])
     verify(s3Client, never).deleteObject(any[DeleteObjectRequest])
   }

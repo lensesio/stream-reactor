@@ -179,11 +179,16 @@ class AwsS3StorageInterface(
         HeadObjectRequest.builder().bucket(bucket).key(path).build(),
       ),
     ).toEither match {
-      case Left(_: NoSuchKeyException) => false.asRight
-      case Left(ex: S3Exception) if ex.statusCode() == 404 => false.asRight
-      case Left(other) => PathError(other, path).asLeft
-      case Right(_)    => true.asRight
+      case Left(ex) if isNotFound(ex) => false.asRight
+      case Left(other)                => PathError(other, path).asLeft
+      case Right(_)                   => true.asRight
     }
+  }
+
+  private def isNotFound(ex: Throwable): Boolean = ex match {
+    case _:  NoSuchKeyException                    => true
+    case s3: S3Exception if s3.statusCode() == 404 => true
+    case _ => false
   }
 
   private def getBlobInner(bucket: String, path: String): ResponseInputStream[GetObjectResponse] = {
@@ -429,7 +434,7 @@ class AwsS3StorageInterface(
     val headObjectRequest = HeadObjectRequest.builder().bucket(oldBucket).key(oldPath)
     maybeEtag.foreach(headObjectRequest.ifMatch)
     Try(s3Client.headObject(headObjectRequest.build())) match {
-      case Failure(_: NoSuchKeyException) =>
+      case Failure(ex) if isNotFound(ex) =>
         // Source is gone. This can happen in two legitimate scenarios:
         //   1. A previous mvFile already succeeded (copy + delete-source both ran);
         //      the destination is present and the operation is idempotent -> Right.
@@ -449,7 +454,7 @@ class AwsS3StorageInterface(
               newPath,
             )
             ().asRight
-          case Failure(_: NoSuchKeyException) =>
+          case Failure(ex) if isNotFound(ex) =>
             logger.error(
               "mvFile: both source ({}/{}) and destination ({}/{}) are missing; cannot complete move",
               oldBucket,

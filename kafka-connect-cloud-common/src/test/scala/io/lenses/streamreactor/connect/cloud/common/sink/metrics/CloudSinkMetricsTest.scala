@@ -16,11 +16,19 @@
 package io.lenses.streamreactor.connect.cloud.common.sink.metrics
 
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
+import org.mockito.ArgumentMatchers.any
+import org.mockito.Mockito.doThrow
+import org.mockito.Mockito.mock
+import org.mockito.Mockito.times
+import org.mockito.Mockito.verify
+import org.mockito.Mockito.when
 import org.scalatest.funsuite.AnyFunSuiteLike
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.BeforeAndAfterEach
 
 import java.lang.management.ManagementFactory
+import javax.management.InstanceAlreadyExistsException
+import javax.management.MBeanServer
 import javax.management.ObjectName
 
 class CloudSinkMetricsTest extends AnyFunSuiteLike with Matchers with BeforeAndAfterEach {
@@ -148,5 +156,41 @@ class CloudSinkMetricsTest extends AnyFunSuiteLike with Matchers with BeforeAndA
       CloudSinkMetricsRegistrar.unregister(taskId)
     }
     mbs.isRegistered(name) shouldBe false
+  }
+
+  test("register throws IllegalStateException after exhausting retries on persistent InstanceAlreadyExistsException") {
+    val taskId = ConnectorTaskId("retry-exhaust", 1, 0)
+    val name =
+      new ObjectName("io.lenses.streamreactor.connect.cloud.sink:type=metrics,name=retry-exhaust,task=0")
+    val mbs = mock(classOf[MBeanServer])
+
+    when(mbs.isRegistered(name)).thenReturn(false)
+    doThrow(new InstanceAlreadyExistsException(name.toString))
+      .when(mbs).registerMBean(any[Object], any[ObjectName])
+
+    val thrown = intercept[IllegalStateException] {
+      CloudSinkMetricsRegistrar.register(mbs, metrics, taskId)
+    }
+
+    thrown.getMessage should include(name.toString)
+    thrown.getCause shouldBe a[InstanceAlreadyExistsException]
+    verify(mbs, times(3)).registerMBean(any[Object], any[ObjectName])
+  }
+
+  test("register succeeds on retry when registerMBean throws InstanceAlreadyExistsException once then succeeds") {
+    val taskId = ConnectorTaskId("retry-recover", 1, 0)
+    val name =
+      new ObjectName("io.lenses.streamreactor.connect.cloud.sink:type=metrics,name=retry-recover,task=0")
+    val mbs = mock(classOf[MBeanServer])
+
+    when(mbs.isRegistered(name)).thenReturn(false)
+    doThrow(new InstanceAlreadyExistsException(name.toString))
+      .doAnswer(_ => null)
+      .when(mbs).registerMBean(any[Object], any[ObjectName])
+
+    CloudSinkMetricsRegistrar.register(mbs, metrics, taskId)
+
+    verify(mbs, times(2)).registerMBean(any[Object], any[ObjectName])
+    verify(mbs, times(1)).unregisterMBean(name)
   }
 }
