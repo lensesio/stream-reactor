@@ -107,8 +107,9 @@ class S3CompressionTest
               eventually {
                 val files =
                   s3Client.listObjectsV2(ListObjectsV2Request.builder().bucket(bucketName).prefix(prefix).build())
-                assert(files.contents().size() == 1)
-                val firstFormatFile = files.contents().asScala.head
+                val dataFiles = files.contents().asScala.filterNot(_.key().endsWith("/"))
+                assert(dataFiles.size == 1)
+                val firstFormatFile = dataFiles.head
                 // avoid temporary files
                 firstFormatFile.key() should endWith(s".$format")
                 firstFormatFile

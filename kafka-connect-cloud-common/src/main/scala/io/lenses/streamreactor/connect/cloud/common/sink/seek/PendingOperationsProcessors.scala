@@ -241,6 +241,8 @@ class UploadOperationProcessor(storageInterface: StorageInterface[_]) extends Op
             NonFatalCloudSinkError(exception.getMessage, exception.some)
           case NonExistingFileError(filename) =>
             NonFatalCloudSinkError(s"non existing file $filename", none, cancelPending = true)
+          case other =>
+            NonFatalCloudSinkError(other.message(), other.toExceptionOption)
         }
 
     } yield uploadEtag.some
@@ -272,6 +274,7 @@ class DeleteOperationProcessor(storageInterface: StorageInterface[_]) extends Op
       _ <- storageInterface.deleteFile(op.bucket, op.source, op.eTag)
         .leftMap {
           case FileDeleteError(exception, _) => NonFatalCloudSinkError(exception.getMessage, exception.some)
+          case other                         => NonFatalCloudSinkError(other.message(), other.toExceptionOption)
         }
     } yield Option.empty
 }
@@ -297,6 +300,7 @@ class CopyOperationProcessor(storageInterface: StorageInterface[_]) extends Oper
       _ <- storageInterface.mvFile(op.bucket, op.source, op.bucket, op.destination, op.eTag.some)
         .leftMap {
           case FileMoveError(exception, _, _) => NonFatalCloudSinkError(exception.getMessage, exception.some)
+          case other                          => NonFatalCloudSinkError(other.message(), other.toExceptionOption)
         }
     } yield Option.empty
 

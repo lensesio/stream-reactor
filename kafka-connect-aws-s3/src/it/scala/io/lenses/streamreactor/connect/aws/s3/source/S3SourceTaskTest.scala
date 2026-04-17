@@ -63,7 +63,6 @@ class S3SourceTaskTest
   implicit val cloudLocationValidator: CloudLocationValidator = S3LocationValidator
   private var bucketSetupOpt:          Option[BucketSetup]    = None
   def bucketSetup:                     BucketSetup            = bucketSetupOpt.getOrElse(throw new IllegalStateException("Not initialised"))
-  override def cleanUp():              Unit                   = ()
   private val filesLimit = 1000
   val KCQL_CONFIG        = new KcqlSettings(javaConnectorPrefix).getKcqlSettingsKey
 

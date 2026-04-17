@@ -5,7 +5,6 @@ import com.github.stefanbirkner.fakesftpserver.lambda.FakeSftpServer.withSftpSer
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.source.SourceRecord
 import org.scalatest.BeforeAndAfter
-import org.scalatest.concurrent.Eventually.eventually
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
@@ -29,7 +28,7 @@ class SftpBySliceTest extends AnyFunSuite with Matchers with BeforeAndAfter with
         .updated(FtpSourceConfig.protocol, "sftp")
         .updated(FtpSourceConfig.User, "demo")
         .updated(FtpSourceConfig.Password, "password")
-        .updated(FtpSourceConfig.RefreshRate, "PT1S")
+        .updated(FtpSourceConfig.RefreshRate, "PT0S")
         .updated(FtpSourceConfig.MonitorTail, "/directory/:sftp_update_slice")
         .updated(FtpSourceConfig.MonitorSliceSize, "20480")
         .updated(FtpSourceConfig.FileMaxAge, "PT952302H53M5.962S")
@@ -54,8 +53,8 @@ class SftpBySliceTest extends AnyFunSuite with Matchers with BeforeAndAfter with
   def sftpPollUntilEnd(poller: FtpSourcePoller): Array[Byte] = {
     var cnt = 0
     logger.info("--------------------poll" + cnt + "-------------------------")
-    var slice        = waitForSlice(poller)
-    var allReadBytes = new Array[Byte](0)
+    var slice: Seq[SourceRecord] = poller.poll()
+    var allReadBytes             = new Array[Byte](0)
     while (slice.lengthCompare(1) == 0) {
       slice.head.topic shouldBe "sftp_update_slice"
       val bytes = slice.head.value().asInstanceOf[Array[Byte]]
@@ -63,19 +62,8 @@ class SftpBySliceTest extends AnyFunSuite with Matchers with BeforeAndAfter with
       logger.info(s"bytes.size=${bytes.length}")
       cnt += 1
       logger.info(s"--------------------poll$cnt-------------------------")
-      slice = waitForSlice(poller)
+      slice = poller.poll()
     }
     allReadBytes
-  }
-
-  private def waitForSlice(poller: FtpSourcePoller): Seq[SourceRecord] = {
-    var slice: Seq[SourceRecord] = poller.poll()
-    eventually {
-      Thread.sleep(100)
-      slice = poller.poll()
-      println(slice)
-      slice should not be null
-    }
-    slice
   }
 }

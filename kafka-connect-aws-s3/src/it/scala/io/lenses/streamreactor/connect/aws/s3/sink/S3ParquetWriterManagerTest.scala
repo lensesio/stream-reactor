@@ -74,7 +74,7 @@ class S3ParquetWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyC
   private val PathPrefix           = "streamReactorBackups"
   private val parquetFormatReader  = new ParquetFormatReader
 
-  private val bucketAndPrefix = CloudLocation(BucketName, PathPrefix.some)
+  private def bucketAndPrefix = CloudLocation(BucketName, PathPrefix.some)
   private def parquetConfig = S3SinkConfig(
     S3ConnectionConfig(
       None,
@@ -108,7 +108,7 @@ class S3ParquetWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyC
         dataStorage      = DataStorageSettings.disabled,
       ),
     ),
-    indexOptions = IndexOptions(5, ".indexes").some,
+    indexOptions = IndexOptions(5, ".indexes", 300, 1000).some,
     compressionCodec,
     batchDelete                 = true,
     errorPolicy                 = ErrorPolicy(ErrorPolicyEnum.THROW),

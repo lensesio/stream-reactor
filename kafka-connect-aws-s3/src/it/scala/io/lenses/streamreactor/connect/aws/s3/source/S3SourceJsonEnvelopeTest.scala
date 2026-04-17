@@ -49,10 +49,10 @@ class S3SourceJsonEnvelopeTest
   private val EnvelopeJson: String =
     """{"key":{"id":"1"},"value":{"id":"1","name":"John Smith","email":"js@johnsmith.com","card":"1234567890","ip":"192.168.0.2","country":"UK","currency":"GBP","timestamp":"2020-01-01T00:00:00.000Z"},"headers":{"header1":"value1","header2":123456789},"metadata":{"timestamp":1234567890,"topic":"myTopic","partition":3,"offset":0}}""".stripMargin
 
-  override def cleanUp(): Unit = ()
-
   "task" should "extract from json files containing the envelope" in {
     forAll(compressionCodecs) { codec =>
+      val existing = listBucketPath(BucketName, s"$MyPrefix/json/")
+      if (existing.nonEmpty) storageInterface.deleteFiles(BucketName, existing)
       uploadFile(codec)
 
       val task = new S3SourceTask()

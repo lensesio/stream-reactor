@@ -1,6 +1,5 @@
 package io.lenses.streamreactor.connect.gcp.storage.utils
 
-import cats.implicits.catsSyntaxApplicativeError
 import com.google.cloud.storage.BucketInfo
 import com.google.cloud.storage.Storage
 import com.typesafe.scalalogging.LazyLogging
@@ -86,14 +85,5 @@ trait GCPProxyContainerTest
       client.create(BucketInfo.of(BucketName))
       ()
     }.toEither
-
-  override def cleanUp(): Unit = {
-    for {
-      toDeleteArray <- listBucketPathEither(BucketName, "")
-      _ <- storageInterface.deleteFiles(BucketName, toDeleteArray)
-        .recover(err => logger.error(" _", err))
-    } yield ()
-    ()
-  }
 
 }

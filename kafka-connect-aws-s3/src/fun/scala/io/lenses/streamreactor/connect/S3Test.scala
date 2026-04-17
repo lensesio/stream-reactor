@@ -83,7 +83,9 @@ class S3Test
             val files =
               s3Client.listObjectsV2(ListObjectsV2Request.builder().bucket(bucketName).prefix("myfiles").build())
             logger.debug("files: {}", files)
-            assert(files.contents().size() == 1)
+            val dataFiles =
+              files.contents().stream().filter(!_.key().endsWith("/")).collect(java.util.stream.Collectors.toList())
+            assert(dataFiles.size() == 1)
           }
 
           readKeyToOrder(s3Client, bucketName, "myfiles/orders/0/000000000000_0_0.json")
