@@ -51,8 +51,6 @@ public class GCPSettings implements ConfigSettings<GCPConnectionConfig> {
   public static final Long HTTP_ERROR_RETRY_INTERVAL_DEFAULT = 500L;
   public static final Integer HTTP_NUMBER_OF_RETIRES_DEFAULT = 36;
   public static final Double HTTP_BACKOFF_RETRY_MULTIPLIER_DEFAULT = 3.0;
-  public static final Long HTTP_SOCKET_TIMEOUT_DEFAULT = 60000L;
-  public static final Long HTTP_CONNECTION_TIMEOUT_DEFAULT = 60000L;
 
   private final AuthModeSettings authModeSettings;
 
@@ -131,20 +129,22 @@ public class GCPSettings implements ConfigSettings<GCPConnectionConfig> {
                 httpErrorRetryTimeoutMultiplier)
             .define(
                 httpSocketTimeoutKey,
-                Type.LONG,
-                HTTP_SOCKET_TIMEOUT_DEFAULT,
+                Type.INT,
+                null,
                 ConfigDef.Importance.LOW,
-                "HTTP socket (read) timeout in milliseconds for GCP service calls.",
+                "HTTP socket (read) timeout in milliseconds for GCP service calls. "
+                    + "When unset, the GCP SDK default transport options apply.",
                 "Error",
                 5,
                 ConfigDef.Width.LONG,
                 httpSocketTimeoutKey)
             .define(
                 httpConnectionTimeoutKey,
-                Type.LONG,
-                HTTP_CONNECTION_TIMEOUT_DEFAULT,
+                Type.INT,
+                null,
                 ConfigDef.Importance.LOW,
-                "HTTP connection timeout in milliseconds for GCP service calls.",
+                "HTTP connection timeout in milliseconds for GCP service calls. "
+                    + "When unset, the GCP SDK default transport options apply.",
                 "Error",
                 6,
                 ConfigDef.Width.LONG,
@@ -176,9 +176,9 @@ public class GCPSettings implements ConfigSettings<GCPConnectionConfig> {
           val httpTimeoutConfig =
               HttpTimeoutConfig.builder()
                   .socketTimeoutMillis(
-                      configSource.getLong(httpSocketTimeoutKey).orElse(HTTP_SOCKET_TIMEOUT_DEFAULT))
+                      configSource.getInt(httpSocketTimeoutKey).orElse(null))
                   .connectionTimeoutMillis(
-                      configSource.getLong(httpConnectionTimeoutKey).orElse(HTTP_CONNECTION_TIMEOUT_DEFAULT))
+                      configSource.getInt(httpConnectionTimeoutKey).orElse(null))
                   .build();
           builder.timeouts(httpTimeoutConfig);
 

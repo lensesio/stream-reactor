@@ -88,6 +88,7 @@ class AwsS3StorageInterface(
         .asScala
         .filterNot(AwsS3StorageFilter.filterOut)
         .filter(_.size() > 0)
+        .filterNot(_.key().endsWith("/"))
         .map(o => S3FileMetadata(o.key(), o.lastModified()))
         .filter(md => extensionFilter.forall(_.filter(md)))
 

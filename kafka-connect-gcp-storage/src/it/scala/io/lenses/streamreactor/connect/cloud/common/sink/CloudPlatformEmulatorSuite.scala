@@ -79,6 +79,4 @@ trait CloudPlatformEmulatorSuite[
 
   def setUpTestData(storageInterface: SI): Either[Throwable, Unit] = ().asRight
 
-  def cleanUp(): Unit = ()
-
 }

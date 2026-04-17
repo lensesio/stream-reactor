@@ -76,10 +76,10 @@ public class GCPServiceBuilderConfigurer {
         .ifPresent(timeouts -> {
           val transportBuilder = HttpTransportOptions.newBuilder();
           if (timeouts.getSocketTimeoutMillis() != null) {
-            transportBuilder.setReadTimeout(timeouts.getSocketTimeoutMillis().intValue());
+            transportBuilder.setReadTimeout(timeouts.getSocketTimeoutMillis());
           }
           if (timeouts.getConnectionTimeoutMillis() != null) {
-            transportBuilder.setConnectTimeout(timeouts.getConnectionTimeoutMillis().intValue());
+            transportBuilder.setConnectTimeout(timeouts.getConnectionTimeoutMillis());
           }
           builder.setTransportOptions(transportBuilder.build());
         });
