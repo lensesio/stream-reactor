@@ -51,6 +51,28 @@ class MqttManagerTest extends AnyWordSpec with Matchers {
             MqttManager.replaceSlashes(kcql, source) should equal(expected)
         }
       }
+      "replace $ placeholder in a prefixed target with the sanitized MQTT topic" in {
+        val sources = Array(
+          "topic/my-device",
+          "topic/living_room/sensor",
+        )
+
+        val kcqls = Kcql.parseMultiple(
+          "INSERT INTO `prefix_$` SELECT * FROM topic/my-device; INSERT INTO `prefix_$` SELECT * FROM topic/living_room/sensor;",
+        )
+
+        val expectedTargets = Array(
+          "prefix_topic_my-device",
+          "prefix_topic_living_room_sensor",
+        )
+
+        val cases = kcqls.toArray.lazyZip(sources).lazyZip(expectedTargets)
+
+        cases.map {
+          case (kcql: Kcql, source: String, expected: String) =>
+            MqttManager.replaceSlashes(kcql, source) should equal(expected)
+        }
+      }
       "do nothing in other cases and return the actual targeted topic" in {
 
         val sources = Array("xyz", "zyx")

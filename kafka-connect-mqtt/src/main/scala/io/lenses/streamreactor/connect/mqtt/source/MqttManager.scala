@@ -69,7 +69,7 @@ class MqttManager(
     actualTopic.matches(
       subscribedTopic.replaceAll("\\$share/.*?/", "")
         .replaceAll("\\+", "[^/]+")
-        .replaceAll("#", ".+")
+        .replaceAll("#", ".*")
         .replace("$", ".+"),
     )
 
@@ -172,9 +172,12 @@ class MqttManager(
 }
 
 object MqttManager {
-  def replaceSlashes(kcql: Kcql, topic: String): String =
+  def replaceSlashes(kcql: Kcql, topic: String): String = {
+    val sanitizedTopic = topic.replaceFirst("^/", "").replaceAll("/+", "_").replaceAll("/", "_")
     kcql.getTarget match {
-      case "$"   => topic.replaceFirst("^/", "").replaceAll("/+", "_").replaceAll("/", "_")
-      case other => other
+      case "$"                          => sanitizedTopic
+      case other if other.contains("$") => other.replace("$", sanitizedTopic)
+      case other                        => other
     }
+  }
 }
