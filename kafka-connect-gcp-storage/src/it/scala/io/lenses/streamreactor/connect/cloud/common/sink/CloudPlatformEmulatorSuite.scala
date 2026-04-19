@@ -13,6 +13,7 @@ import org.scalatest.BeforeAndAfter
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.flatspec.AnyFlatSpec
 
+import java.util.UUID
 import scala.util.Try
 
 trait CloudPlatformEmulatorSuite[
@@ -30,7 +31,9 @@ trait CloudPlatformEmulatorSuite[
   def createSinkTask(): T
 
   val prefix: String
-  val BucketName = "testbucket"
+
+  private var _bucketName: String = "testbucket"
+  def BucketName:          String = _bucketName
 
   val container: PausableContainer
 
@@ -52,28 +55,28 @@ trait CloudPlatformEmulatorSuite[
 
     {
       for {
-        _      <- Try(container.start()).toEither
-        client <- createClient()
-        sI     <- createStorageInterface(client)
-        _      <- createBucket(client)
-        _      <- setUpTestData(sI)
+        _  <- Try(container.start()).toEither
+        c  <- createClient()
+        sI <- createStorageInterface(c)
       } yield {
         maybeStorageInterface = sI.some
-        maybeClient           = client.some
+        maybeClient           = c.some
       }
     }.leftMap(fail(_))
+    ()
+  }
+
+  before {
+    _bucketName = "test-" + UUID.randomUUID().toString.replace("-", "").take(20)
+    createBucket(client)
+      .flatMap(_ => setUpTestData(storageInterface))
+      .leftMap(fail(_))
     ()
   }
 
   override protected def afterAll(): Unit =
     container.stop()
 
-  after {
-    cleanUp()
-  }
-
   def setUpTestData(storageInterface: SI): Either[Throwable, Unit] = ().asRight
-
-  def cleanUp(): Unit = ()
 
 }

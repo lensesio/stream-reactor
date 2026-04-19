@@ -88,6 +88,7 @@ class AwsS3StorageInterface(
         .asScala
         .filterNot(AwsS3StorageFilter.filterOut)
         .filter(_.size() > 0)
+        .filterNot(_.key().endsWith("/"))
         .map(o => S3FileMetadata(o.key(), o.lastModified()))
         .filter(md => extensionFilter.forall(_.filter(md)))
 
@@ -137,6 +138,7 @@ class AwsS3StorageInterface(
         pagReq.iterator().asScala.flatMap(
           _.contents().asScala.filterNot(AwsS3StorageFilter.filterOut)
             .filter(_.size() > 0)
+            .filterNot(_.key().endsWith("/"))
             .toSeq.map(o => S3FileMetadata(o.key(), o.lastModified())).filter(md =>
               extensionFilter.forall(_.filter(md)),
             ),
@@ -174,14 +176,20 @@ class AwsS3StorageInterface(
     logger.debug(s"[{}] Path exists? {}:{}", connectorTaskId.show, bucket, path)
 
     Try(
-      s3Client.listObjectsV2(
-        ListObjectsV2Request.builder().bucket(bucket).prefix(path).build(),
-      ).keyCount().toInt,
+      s3Client.headObject(
+        HeadObjectRequest.builder().bucket(bucket).key(path).build(),
+      ),
     ).toEither match {
-      case Left(_: NoSuchKeyException) => false.asRight
-      case Left(other) => PathError(other, path).asLeft
-      case Right(keyCount: Int) => (keyCount > 0).asRight
+      case Left(ex) if isNotFound(ex) => false.asRight
+      case Left(other)                => PathError(other, path).asLeft
+      case Right(_)                   => true.asRight
     }
+  }
+
+  private def isNotFound(ex: Throwable): Boolean = ex match {
+    case _:  NoSuchKeyException                    => true
+    case s3: S3Exception if s3.statusCode() == 404 => true
+    case _ => false
   }
 
   private def getBlobInner(bucket: String, path: String): ResponseInputStream[GetObjectResponse] = {
@@ -427,9 +435,45 @@ class AwsS3StorageInterface(
     val headObjectRequest = HeadObjectRequest.builder().bucket(oldBucket).key(oldPath)
     maybeEtag.foreach(headObjectRequest.ifMatch)
     Try(s3Client.headObject(headObjectRequest.build())) match {
-      case Failure(ex: NoSuchKeyException) =>
-        logger.warn("Object ({}/{}) doesn't exist to move", oldBucket, oldPath, ex)
-        ().asRight
+      case Failure(ex) if isNotFound(ex) =>
+        // Source is gone. This can happen in two legitimate scenarios:
+        //   1. A previous mvFile already succeeded (copy + delete-source both ran);
+        //      the destination is present and the operation is idempotent -> Right.
+        //   2. The source was never created / was externally removed. The destination
+        //      is absent and the caller is being asked to copy nothing; returning
+        //      Right(()) here used to silently "succeed" and clear the pending
+        //      pipeline, producing silent data loss. Instead, return Left so the
+        //      CopyOperationProcessor fails loudly.
+        val destHead = HeadObjectRequest.builder().bucket(newBucket).key(newPath).build()
+        Try(s3Client.headObject(destHead)) match {
+          case Success(_) =>
+            logger.warn(
+              "Object ({}/{}) missing but destination ({}/{}) exists; treating mvFile as idempotent success",
+              oldBucket,
+              oldPath,
+              newBucket,
+              newPath,
+            )
+            ().asRight
+          case Failure(ex) if isNotFound(ex) =>
+            logger.error(
+              "mvFile: both source ({}/{}) and destination ({}/{}) are missing; cannot complete move",
+              oldBucket,
+              oldPath,
+              newBucket,
+              newPath,
+            )
+            FileMoveError(
+              new IllegalStateException(
+                s"Source $oldBucket/$oldPath and destination $newBucket/$newPath both missing",
+              ),
+              oldPath,
+              newPath,
+            ).asLeft
+          case Failure(ex) =>
+            logger.error("mvFile: failed to verify destination ({}/{}): {}", newBucket, newPath, ex)
+            FileMoveError(ex, oldPath, newPath).asLeft
+        }
       case Failure(ex) =>
         logger.error("Object ({}/{}) could not be retrieved", ex)
         FileMoveError(ex, oldPath, newPath).asLeft

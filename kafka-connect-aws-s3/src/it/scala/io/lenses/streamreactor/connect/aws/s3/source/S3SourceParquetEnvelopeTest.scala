@@ -70,8 +70,6 @@ class S3SourceParquetEnvelopeTest
     .name("metadata").`type`(MetadataSchema).noDefault()
     .endRecord()
 
-  override def cleanUp(): Unit = ()
-
   override def setUpTestData(storageInterface: AwsS3StorageInterface): Either[Throwable, Unit] = {
 
     val envelope = new org.apache.avro.generic.GenericData.Record(EnvelopeSchema)

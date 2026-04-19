@@ -16,9 +16,6 @@ import io.lenses.streamreactor.connect.testcontainers.S3Container
 import io.lenses.streamreactor.connect.testcontainers.TestContainersPausableContainer
 import software.amazon.awssdk.services.s3.S3Client
 import software.amazon.awssdk.services.s3.model.CreateBucketRequest
-import software.amazon.awssdk.services.s3.model.Delete
-import software.amazon.awssdk.services.s3.model.DeleteObjectsRequest
-import software.amazon.awssdk.services.s3.model.ObjectIdentifier
 
 import java.io.File
 import java.nio.file.Files
@@ -90,15 +87,5 @@ trait S3ProxyContainerTest
       client.createBucket(CreateBucketRequest.builder().bucket(BucketName).build())
       ()
     }.toEither
-
-  override def cleanUp(): Unit = {
-    Try {
-      val toDeleteArray = listBucketPath(BucketName, "")
-        .map(ObjectIdentifier.builder().key(_).build())
-      val delete = Delete.builder().objects(toDeleteArray: _*).build
-      client.deleteObjects(DeleteObjectsRequest.builder().bucket(BucketName).delete(delete).build())
-    }
-    ()
-  }
 
 }

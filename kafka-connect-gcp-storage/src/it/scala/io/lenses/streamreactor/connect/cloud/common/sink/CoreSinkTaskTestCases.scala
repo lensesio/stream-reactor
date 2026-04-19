@@ -32,6 +32,7 @@ import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.errors.RetriableException
 import org.apache.kafka.connect.header.ConnectHeaders
 import org.apache.kafka.connect.header.Header
+import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.connect.sink.SinkRecord
 import org.apache.kafka.connect.sink.SinkTask
 import org.apache.kafka.connect.sink.SinkTaskContext
@@ -275,6 +276,7 @@ abstract class CoreSinkTaskTestCases[
     val task = createTask(context, props)
     task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
     task.put(records.asJava)
+    task.preCommit(Map(new TopicPartition(TopicName, 1) -> new OffsetAndMetadata(0)).asJava)
     task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
     task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
     task.stop()
@@ -304,6 +306,7 @@ abstract class CoreSinkTaskTestCases[
     task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
     verify(context, never).offset(new TopicPartition("myTopic", 1), 0)
     task.put(records.asJava)
+    task.preCommit(Map(new TopicPartition(TopicName, 1) -> new OffsetAndMetadata(0)).asJava)
     task.close(Seq(new TopicPartition("myTopic", 1)).asJava)
     task.stop()
 
@@ -1159,12 +1162,15 @@ abstract class CoreSinkTaskTestCases[
     task.stop()
 
     val fileList = listBucketPath(BucketName, "")
-    fileList.size should be(4)
+    fileList.size should be(7)
 
     // the results do contain the index.  The sink always looks for the index at the root of the bucket when offset synching.
     // The source excludes the index files.
     fileList should contain allOf (
       ".indexes/gcpSinkTaskTest/.locks/Topic(myTopic)/1.lock",
+      ".indexes/gcpSinkTaskTest/.locks/Topic(myTopic)/1/name=sam_region=8.lock",
+      ".indexes/gcpSinkTaskTest/.locks/Topic(myTopic)/1/name=laura_region=5.lock",
+      ".indexes/gcpSinkTaskTest/.locks/Topic(myTopic)/1/name=tom_region=5.lock",
       "region=8/name=sam/myTopic(000000000001_000000000000).json",
       "region=5/name=laura/myTopic(000000000001_000000000001).json",
       "region=5/name=tom/myTopic(000000000001_000000000002).json"

@@ -113,7 +113,7 @@ class DatalakeStorageInterface(connectorTaskId: ConnectorTaskId, client: DataLak
 
   override def pathExists(bucket: String, path: String): Either[PathError, Boolean] =
     Try(client.getFileSystemClient(bucket).getFileClient(path).exists().booleanValue()).toEither.recover {
-      case ex: DataLakeStorageException if ex.getStatusCode.toString.startsWith("4") =>
+      case ex: DataLakeStorageException if ex.getStatusCode == 404 =>
         false
     }.leftMap(PathError(
       _,
@@ -124,7 +124,23 @@ class DatalakeStorageInterface(connectorTaskId: ConnectorTaskId, client: DataLak
     bucket: String,
     prefix: Option[String],
   ): Either[FileListError, Option[ListOfMetadataResponse[DatalakeFileMetadata]]] =
-    throw new NotImplementedError("Required for source")
+    Try {
+      val bucketClient     = client.getFileSystemClient(bucket)
+      val listPathsOptions = new ListPathsOptions().setRecursive(true)
+      prefix.foreach(listPathsOptions.setPath)
+      val iter    = bucketClient.listPaths(listPathsOptions, null)
+      val results = DatalakePageIterableAdaptor.getResults(iter)
+      processObjectsAsFileMeta(
+        bucket,
+        prefix,
+        results.map(pi => DatalakeFileMetadata(pi.getName, pi.getLastModified.toInstant, None)),
+      )
+    }.toEither.recover {
+      case ex: DataLakeStorageException if ex.getStatusCode == 404 =>
+        Option.empty
+    }.leftMap {
+      ex: Throwable => FileListError(ex, bucket, prefix)
+    }
 
   override def listKeysRecursive(
     bucket: String,
@@ -132,7 +148,7 @@ class DatalakeStorageInterface(connectorTaskId: ConnectorTaskId, client: DataLak
   ): Either[FileListError, Option[ListOfKeysResponse[DatalakeFileMetadata]]] =
     Try {
       val bucketClient     = client.getFileSystemClient(bucket)
-      val listPathsOptions = new ListPathsOptions()
+      val listPathsOptions = new ListPathsOptions().setRecursive(true)
       prefix.foreach(listPathsOptions.setPath)
       val iter = bucketClient.listPaths(listPathsOptions, null)
 
@@ -140,7 +156,7 @@ class DatalakeStorageInterface(connectorTaskId: ConnectorTaskId, client: DataLak
       toListOfKeys(bucket, prefix, none, results)
     }
       .toEither.recover {
-        case ex: DataLakeStorageException if ex.getStatusCode.toString.startsWith("4") =>
+        case ex: DataLakeStorageException if ex.getStatusCode == 404 =>
           Option.empty
       }.leftMap {
         ex: Throwable => FileListError(ex, bucket, prefix)

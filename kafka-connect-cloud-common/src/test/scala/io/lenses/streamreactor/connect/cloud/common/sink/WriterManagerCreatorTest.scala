@@ -27,6 +27,7 @@ import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodec
 import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodecName
 import io.lenses.streamreactor.connect.cloud.common.sink.config.CloudSinkBucketOptions
 import io.lenses.streamreactor.connect.cloud.common.sink.config.IndexOptions
+import io.lenses.streamreactor.connect.cloud.common.sink.metrics.CloudSinkMetrics
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexManagerV2
 import io.lenses.streamreactor.connect.cloud.common.sink.writer.WriterManager
 import io.lenses.streamreactor.connect.cloud.common.storage.FileMetadata
@@ -65,7 +66,7 @@ class WriterManagerCreatorTest extends AnyFunSuite with Matchers with MockitoSug
     val config = FakeCloudSinkConfig(
       connectionConfig            = FakeConnectionConfig(),
       bucketOptions               = Seq.empty,
-      indexOptions                = IndexOptions(maxIndexFiles = 10, ".indexes").some,
+      indexOptions                = IndexOptions(maxIndexFiles = 10, ".indexes", 300, 1000).some,
       compressionCodec            = CompressionCodecName.ZSTD.toCodec(),
       errorPolicy                 = NoopErrorPolicy(),
       connectorRetryConfig        = new RetryConfig(1, 1L, 1.0),
@@ -74,7 +75,7 @@ class WriterManagerCreatorTest extends AnyFunSuite with Matchers with MockitoSug
     )
 
     val writerManagerCreator          = new WriterManagerCreator[FakeFileMetadata, FakeCloudSinkConfig]()
-    val (indexManager, writerManager) = writerManagerCreator.from(config)
+    val (indexManager, writerManager) = writerManagerCreator.from(config, new CloudSinkMetrics())
     writerManager shouldBe a[WriterManager[_]]
     indexManager shouldBe an[IndexManagerV2]
   }

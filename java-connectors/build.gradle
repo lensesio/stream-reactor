@@ -209,8 +209,13 @@ allprojects {
     task fatJar(dependsOn: [test, jar, shadowJar])
 
     task collectFatJar(type: Copy, dependsOn: [fatJar]) {
-        from("${buildDir}/libs").include("kafka-connect-*.jar")
-                .exclude("*-common-*").into(libsDir)
+        from(shadowJar.archiveFile)
+        into(libsDir)
+        onlyIf {
+            project.name.startsWith('kafka-connect-') &&
+                    !project.name.endsWith('-common') &&
+                    !project.name.contains('-common-')
+        }
     }
 
     task collectDependencies(type: Copy) {

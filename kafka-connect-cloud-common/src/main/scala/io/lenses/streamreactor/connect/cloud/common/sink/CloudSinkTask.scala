@@ -33,6 +33,8 @@ import io.lenses.streamreactor.connect.cloud.common.sink.conversion.HeaderToSink
 import io.lenses.streamreactor.connect.cloud.common.sink.conversion.NullSinkData
 import io.lenses.streamreactor.connect.cloud.common.sink.conversion.ValueToSinkDataConverter
 import io.lenses.streamreactor.connect.cloud.common.sink.optimization.AttachLatestSchemaOptimizer
+import io.lenses.streamreactor.connect.cloud.common.sink.metrics.CloudSinkMetrics
+import io.lenses.streamreactor.connect.cloud.common.sink.metrics.CloudSinkMetricsRegistrar
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexManager
 import io.lenses.streamreactor.connect.cloud.common.sink.writer.WriterManager
 import io.lenses.streamreactor.connect.cloud.common.storage.FileMetadata
@@ -275,6 +277,13 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
    * Whenever close is called, the topics and partitions assigned to this task
    * may be changing, eg, in a re-balance. Therefore, we must commit our open files
    * for those (topic,partitions) to ensure no records are lost.
+   *
+   * seekedOffsets in IndexManagerV2 is deliberately NOT cleared here. During shutdown,
+   * Kafka Connect calls close(allPartitions) before stop(). If seekedOffsets were cleared
+   * here, the final drainGcQueue() in IndexManagerV2.close() (called from stop()) would
+   * discard every queued item as "partition no longer owned", and obsolete lock files would
+   * never be deleted. During rebalance (close + open without stop), stale seekedOffsets
+   * entries for revoked partitions are purged at the start of IndexManagerV2.open().
    */
   override def close(partitions: util.Collection[KafkaTopicPartition]): Unit = {
     logger.debug(
@@ -283,14 +292,48 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
       partitions.size(),
     )
 
+    // Suspend background GC/sweep threads before closing writers. This is a best-effort
+    // gate that prevents new scheduled invocations from starting during the close → open
+    // rebalance window. An already-running invocation is not interrupted but is benign
+    // (see architecture doc "Rebalance" section). On shutdown (close → stop), the flag
+    // stays false until the executors are shut down in IndexManagerV2.close(), which
+    // calls drainGcQueue() directly and bypasses the gate.
+    Option(indexManager).foreach(_.suspendBackgroundWork())
     Option(writerManager).foreach(_.close())
   }
 
   override def stop(): Unit = {
-    logger.debug("[{}] Stop", Option(connectorTaskId).map(_.show).getOrElse("Unnamed"))
+    val taskIdStr = Option(connectorTaskId).map(_.show).getOrElse("Unnamed")
+    logger.debug("[{}] Stop", taskIdStr)
 
-    Option(writerManager).foreach(_.close())
+    // Each teardown step is wrapped in Try so a failure in one does not skip the
+    // remaining steps. In particular, an exception from writerManager.close() must
+    // not prevent indexManager.close() (which shuts down the GC/sweep
+    // ScheduledExecutorService threads) or CloudSinkMetricsRegistrar.unregister
+    // (which removes the MBean) from running. Mirrors the closeOnFailure pattern
+    // in createWriterMan.
+
+    // Defensive: close writers in case stop() is called without a preceding close()
+    // (e.g. during error recovery or non-standard Connect runtimes). WriterManager.close()
+    // is idempotent -- on the normal close-then-stop path, writers are already closed and
+    // the map is empty, so this is a no-op.
+    Try(Option(writerManager).foreach(_.close())).failed.foreach { t =>
+      logger.warn(s"[$taskIdStr] writerManager.close() failed during stop()", t)
+    }
     writerManager = null
+
+    // indexManager.close() shuts down background executors and performs a final synchronous
+    // drainGcQueue(). seekedOffsets is still populated (close() does not clear it), so the
+    // drain correctly identifies owned partitions. The state is GC'd with the indexManager
+    // reference immediately after.
+    Try(Option(indexManager).foreach(_.close())).failed.foreach { t =>
+      logger.warn(s"[$taskIdStr] indexManager.close() failed during stop()", t)
+    }
+    indexManager = null
+
+    Try(Option(connectorTaskId).foreach(CloudSinkMetricsRegistrar.unregister)).failed.foreach { t =>
+      logger.warn(s"[$taskIdStr] CloudSinkMetricsRegistrar.unregister failed during stop()", t)
+    }
   }
 
   def createClient(config: CC): Either[Throwable, CT]
@@ -307,10 +350,30 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
       s3Client        <- createClient(config.connectionConfig)
       storageInterface = createStorageInterface(connectorTaskId, config, s3Client)
       _               <- setRetryInterval(config)
+      metrics          = new CloudSinkMetrics()
       (indexManager, writerManager) <- Try(
-        writerManagerCreator.from(config)(connectorTaskId, storageInterface),
+        writerManagerCreator.from(config, metrics)(connectorTaskId, storageInterface),
       ).toEither
-      _ <- initializeFromConfig(config)
+      // Mirror the stop() shutdown order (writerManager first, then indexManager)
+      // and wrap each close in Try so a throw in one does not prevent the other
+      // from running, and so neither masks the original init failure.
+      closeOnFailure = () => {
+        Try(writerManager.close())
+        Try(indexManager.close())
+        ()
+      }
+      _ <- initializeFromConfig(config).left.map { err =>
+        closeOnFailure()
+        err
+      }
+      // MBean registration is outside the `for`-yield rollback chain (initialize
+      // above is the last step that unwinds via left.map). A register failure
+      // would otherwise leave indexManager's background threads and any
+      // writerManager-held resources with no owner, so we close both explicitly.
+      _ <- Try(CloudSinkMetricsRegistrar.register(metrics, connectorTaskId)).toEither.left.map { err =>
+        closeOnFailure()
+        err
+      }
     } yield {
       logMetrics = config.logMetrics
       (indexManager, writerManager, config)

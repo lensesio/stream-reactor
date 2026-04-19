@@ -23,6 +23,7 @@ import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
 import io.lenses.streamreactor.connect.cloud.common.model.UploadableFile
 import io.lenses.streamreactor.connect.cloud.common.sink.NonFatalCloudSinkError
 import io.lenses.streamreactor.connect.cloud.common.storage.FileDeleteError
+import io.lenses.streamreactor.connect.cloud.common.storage.FileMoveError
 import io.lenses.streamreactor.connect.cloud.common.storage.NonExistingFileError
 import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
 import org.mockito.ArgumentMatchers.anyString
@@ -96,7 +97,9 @@ class PendingOperationsProcessorsTest
     inOrderVerifier.verify(fnIndexUpdate).apply(any[TopicPartition], any[Option[Offset]], any[Option[PendingState]])
   }
 
-  test("processPendingOperations should return no pending operations if upload fails due to missing files") {
+  test(
+    "processPendingOperations should clear pending state via fnIndexUpdate when last op upload fails due to missing files",
+  ) {
     val pendingState = PendingState(
       pendingOffset = Offset(100),
       pendingOperations = NonEmptyList.of(
@@ -118,18 +121,28 @@ class PendingOperationsProcessorsTest
 
     val inOrderVerifier = Mockito.inOrder(storageInterface, fnIndexUpdate)
     inOrderVerifier.verify(storageInterface).uploadFile(any[UploadableFile], anyString(), anyString())
+    // cancelPending on last op now clears pending state in storage via fnIndexUpdate
+    inOrderVerifier.verify(fnIndexUpdate).apply(topicPartition, Some(Offset(50)), None)
   }
 
-  test("processPendingOperations should return error if upload fails") {
+  test("processPendingOperations should NOT clear pending state when CopyOperation fails with both paths missing") {
+    // S1 contract: mvFile now returns Left(FileMoveError) when both source and
+    // destination are missing (instead of silently succeeding). The CopyOperation
+    // processor must propagate that Left and must NOT call fnIndexUpdate to clear
+    // the pending state -- otherwise the index would advance with no destination
+    // object having been written (silent data loss).
     val pendingState = PendingState(
       pendingOffset = Offset(100),
       pendingOperations = NonEmptyList.of(
-        UploadOperation("source1", tempLocalFile, "dest1"),
+        CopyOperation("bucket1", "missing-temp", "missing-dest", "etag-placeholder"),
+        DeleteOperation("bucket1", "missing-temp", "etag-placeholder"),
       ),
     )
 
-    when(storageInterface.uploadFile(any[UploadableFile], anyString(), anyString()))
-      .thenReturn(Left(NonExistingFileError(tempLocalFile)))
+    when(storageInterface.mvFile(anyString(), anyString(), anyString(), anyString(), any[Option[String]]))
+      .thenReturn(
+        Left(FileMoveError(new IllegalStateException("both missing"), "missing-temp", "missing-dest")),
+      )
 
     val result = pendingOperationsProcessors.processPendingOperations(
       topicPartition,
@@ -138,14 +151,9 @@ class PendingOperationsProcessorsTest
       fnIndexUpdate,
     )
 
-    result shouldBe Right(Some(Offset(50)))
-
-    val inOrderVerifier = Mockito.inOrder(storageInterface, fnIndexUpdate)
-    inOrderVerifier.verify(storageInterface).uploadFile(any[UploadableFile], anyString(), anyString())
-    inOrderVerifier.verify(fnIndexUpdate, times(0)).apply(any[TopicPartition],
-                                                          any[Option[Offset]],
-                                                          any[Option[PendingState]],
-    )
+    result.isLeft shouldBe true
+    verify(storageInterface).mvFile(anyString(), anyString(), anyString(), anyString(), any[Option[String]])
+    verifyNoInteractions(fnIndexUpdate)
   }
 
   test("processPendingOperations should skip further operations if delete fails") {

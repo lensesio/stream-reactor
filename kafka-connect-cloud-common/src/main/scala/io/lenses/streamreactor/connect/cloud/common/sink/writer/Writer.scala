@@ -44,6 +44,8 @@ import org.apache.kafka.connect.data.Schema
 import java.io.File
 import java.util.UUID
 import scala.math.Ordered.orderingToOrdered
+import scala.util.Failure
+import scala.util.Success
 import scala.util.Try
 
 class Writer[SM <: FileMetadata](
@@ -55,14 +57,17 @@ class Writer[SM <: FileMetadata](
   formatWriterFn:              File => Either[SinkError, FormatWriter],
   schemaChangeDetector:        SchemaChangeDetector,
   pendingOperationsProcessors: PendingOperationsProcessors,
+  partitionKey:                Option[String] = None,
+  lastSeekedOffset:            Option[Offset] = None,
 )(
   implicit
   connectorTaskId: ConnectorTaskId,
 ) extends LazyLogging {
 
-  private val lastSeekedOffset: Option[Offset] = indexManager.getSeekedOffsetForTopicPartition(topicPartition)
+  private var writeState: WriteState = NoWriter(CommitState(topicPartition, lastSeekedOffset))
 
-  var writeState: WriteState = NoWriter(CommitState(topicPartition, lastSeekedOffset))
+  private[writer] def forceWriteState(state: WriteState): Unit = writeState = state
+  private[writer] def currentWriteState: WriteState = writeState
 
   def write(messageDetail: MessageDetail): Either[SinkError, Unit] = {
 
@@ -131,10 +136,16 @@ class Writer[SM <: FileMetadata](
     writeState match {
       case uploadState @ Uploading(commitState,
                                    file,
+                                   _,
                                    uncommittedOffset,
                                    earliestRecordTimestamp,
                                    latestRecordTimestamp,
           ) =>
+        val fnIndexUpdate: (TopicPartition, Option[Offset], Option[PendingState]) => Either[SinkError, Option[Offset]] =
+          partitionKey match {
+            case Some(pk) => (tp, co, ps) => indexManager.updateForPartitionKey(tp, pk, co, ps)
+            case None     => (tp, co, ps) => indexManager.update(tp, co, ps)
+          }
         for {
           key  <- objectKeyBuilder.build(uncommittedOffset, earliestRecordTimestamp, latestRecordTimestamp)
           path <- key.path.toRight(NonFatalCloudSinkError("No path exists within cloud location"))
@@ -159,15 +170,29 @@ class Writer[SM <: FileMetadata](
             topicPartition,
             getCommittedOffset,
             PendingState(uncommittedOffset, pendingOperations),
-            indexManager.update,
+            fnIndexUpdate,
           )
-          stateReset <- Try {
+          _ = {
             logger.debug(s"[{}] Writer.resetState: Resetting state $writeState", connectorTaskId.show)
             writeState = uploadState.toNoWriter
-            file.delete()
+            // The cloud commit has already succeeded at this point. A failure to
+            // delete the local temp file is a hygiene issue (disk leak) -- not a
+            // correctness issue -- so we must not propagate it as a FatalCloudSinkError.
+            // Doing so would fail the task AFTER data was durably written, which risks
+            // re-running the upload on restart and violating at-most-once for the
+            // same record offsets.
+            Try(file.delete()) match {
+              case Success(_) =>
+              case Failure(e) =>
+                logger.warn(
+                  s"[${connectorTaskId.show}] Failed to delete temp file ${file.getAbsolutePath} after successful commit; " +
+                    s"continuing (the cloud commit already succeeded)",
+                  e,
+                )
+            }
             logger.debug(s"[{}] Writer.resetState: New state $writeState", connectorTaskId.show)
-          }.toEither.leftMap(e => FatalCloudSinkError(e.getMessage, commitState.topicPartition))
-        } yield stateReset
+          }
+        } yield ()
       case other =>
         FatalCloudSinkError(s"Other $other error detected, abort", topicPartition).asLeft
 
@@ -177,20 +202,33 @@ class Writer[SM <: FileMetadata](
   def close(): Unit =
     writeState = writeState match {
       case state @ NoWriter(_) => state
-      case Writing(commitState, formatWriter, file, _, _, _) =>
+      case Writing(commitState, formatWriter, file, _, _, _, _) =>
         Try(formatWriter.close())
         Try(file.delete())
         NoWriter(commitState.reset())
-      case Uploading(commitState, file, _, _, _) =>
+      case Uploading(commitState, file, _, _, _, _) =>
         Try(file.delete())
         NoWriter(commitState.reset())
     }
 
+  def isIdle: Boolean =
+    writeState match {
+      case NoWriter(_) => true
+      case _           => false
+    }
+
   def getCommittedOffset: Option[Offset] = writeState.getCommitState.committedOffset
+
+  def getFirstBufferedOffset: Option[Offset] =
+    writeState match {
+      case _: NoWriter  => None
+      case w: Writing   => Some(w.firstBufferedOffset)
+      case u: Uploading => Some(u.firstBufferedOffset)
+    }
 
   def shouldFlush: Boolean =
     writeState match {
-      case Writing(commitState, _, file, uncommittedOffset, _, _) => commitPolicy.shouldFlush(
+      case Writing(commitState, _, file, _, uncommittedOffset, _, _) => commitPolicy.shouldFlush(
           CloudCommitContext(
             topicPartition.withOffset(uncommittedOffset),
             commitState.recordCount,
@@ -247,9 +285,9 @@ class Writer[SM <: FileMetadata](
       writeState match {
         case NoWriter(commitState) =>
           shouldSkipInternal(currentOffset, commitState.committedOffset)
-        case Uploading(commitState, _, uncommittedOffset, _, _) =>
+        case Uploading(commitState, _, _, uncommittedOffset, _, _) =>
           shouldSkipInternal(currentOffset, Option(largestOffset(commitState.committedOffset, uncommittedOffset)))
-        case Writing(commitState, _, _, uncommittedOffset, _, _) =>
+        case Writing(commitState, _, _, _, uncommittedOffset, _, _) =>
           shouldSkipInternal(currentOffset, Option(largestOffset(commitState.committedOffset, uncommittedOffset)))
       }
     }

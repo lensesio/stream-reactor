@@ -21,6 +21,7 @@ import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.FormatWriter
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.MessageDetail
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.schema.SchemaChangeDetector
+import io.lenses.streamreactor.connect.cloud.common.model.Offset
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartitionOffset
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
@@ -29,6 +30,7 @@ import io.lenses.streamreactor.connect.cloud.common.sink.FatalCloudSinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.CommitPolicy
 import io.lenses.streamreactor.connect.cloud.common.sink.config.PartitionField
+import io.lenses.streamreactor.connect.cloud.common.sink.metrics.CloudSinkMetrics
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.KeyNamer
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.ObjectKeyBuilder
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexManager
@@ -38,6 +40,7 @@ import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.connect.data.Schema
 
 import java.io.File
+import java.net.URLEncoder
 import scala.collection.immutable
 import scala.collection.mutable
 
@@ -64,13 +67,19 @@ class WriterManager[SM <: FileMetadata](
   schemaChangeDetector:        SchemaChangeDetector,
   skipNullValues:              Boolean,
   pendingOperationsProcessors: PendingOperationsProcessors,
+  metrics:                     CloudSinkMetrics = new CloudSinkMetrics(),
 )(
   implicit
   connectorTaskId: ConnectorTaskId,
 ) extends StrictLogging {
 
-  private val writers             = mutable.Map.empty[MapKey, Writer[SM]]
+  private val writers             = mutable.LinkedHashMap.empty[MapKey, Writer[SM]]
   private val writerCommitManager = new WriterCommitManager[SM](() => writers.toMap)
+
+  // High-watermark per TopicPartition: the highest globalSafeOffset ever reported to Kafka Connect.
+  // Prevents regression when idle-writer eviction removes the writer that defined the previous
+  // high watermark (see "globalSafeOffset regression" in docs/exactly-once-partitionby.md).
+  private val safeOffsetHighWatermarks = mutable.Map.empty[TopicPartition, Long]
 
   def recommitPending(): Either[SinkError, Unit] = {
     logger.debug(s"[{}] Retry Pending", connectorTaskId.show)
@@ -86,8 +95,27 @@ class WriterManager[SM <: FileMetadata](
 
   def close(): Unit = {
     logger.debug(s"[{}] Received call to WriterManager.close", connectorTaskId.show)
+    val topicPartitions = writers.keys.map(_.topicPartition).toSet
     writers.values.foreach(_.close())
     writers.clear()
+    // Safe to clear all watermarks, including for retained partitions on rebalance:
+    // getOffsetAndMeta re-initializes each partition's watermark from the master lock's
+    // seeked offset (committedOffset + 1) on first preCommit after re-opening, which
+    // equals the previous globalSafeOffset. No regression is possible.
+    safeOffsetHighWatermarks.clear()
+    // After closing all writers, evict their granular lock cache entries so that no stale
+    // offsets or eTags linger in memory after the task stops. Writer.close() deliberately
+    // does NOT evict cache entries (they are left for cleanUpObsoleteLocks to GC), so this
+    // bulk eviction is the sole memory cleanup path on shutdown.
+    //
+    // NOTE: clearTopicPartitionState is deliberately NOT called here. It removes seekedOffsets
+    // entries, which are needed by IndexManagerV2.close() → drainGcQueue() to avoid discarding
+    // queued GC items as "partition no longer owned." Neither CloudSinkTask.close() nor stop()
+    // calls clearTopicPartitionState; the state is GC'd with the indexManager reference when
+    // stop() sets it to null.
+    topicPartitions.foreach { tp =>
+      indexManager.evictAllGranularLocks(tp)
+    }
   }
 
   def write(topicPartitionOffset: TopicPartitionOffset, messageDetail: MessageDetail): Either[SinkError, Unit] = {
@@ -160,6 +188,8 @@ class WriterManager[SM <: FileMetadata](
           createWriter(bucketAndPrefix, topicPartition, partitionValues)
             .map { w =>
               writers.put(key, w)
+              evictIdleWriters(key.topicPartition, Some(key))
+              metrics.setWriterCount(writers.size)
               w
             }
       }
@@ -171,8 +201,35 @@ class WriterManager[SM <: FileMetadata](
     partitionValues: Map[PartitionField, String],
   ): Either[SinkError, Writer[SM]] = {
     logger.debug(s"[${connectorTaskId.show}] Creating new writer for bucketAndPrefix:$bucketAndPrefix")
+    val partitionKey = WriterManager.derivePartitionKey(partitionValues)
     for {
       commitPolicy <- commitPolicyFn(topicPartition)
+      _            <- partitionKey.fold(().asRight[SinkError])(pk => indexManager.ensureGranularLock(topicPartition, pk))
+      lastSeekedOffset <- partitionKey match {
+        case Some(pk) =>
+          // Granular-lock-first, master-lock-fallback: load the per-writer granular lock offset.
+          // If no granular lock exists (new partition key, or lock GC'd/swept), fall back to the
+          // master lock offset as a deduplication floor. This prevents data duplication when:
+          //  (a) a lock is legitimately deleted by GC/sweep and a new writer is later created
+          //      for the same partition key (e.g., the same date reappears in incoming data),
+          //  (b) an operator manually rewinds the consumer to reprocess historical data, or
+          //  (c) the GC threshold is accidentally loosened in a future change.
+          //
+          // When globalSafeOffset == 0, updateMasterLock stores None (not Some(Offset(0))), so
+          // getSeekedOffsetForTopicPartition returns None and the fallback produces
+          // None.orElse(None) = None -- no false skip of offset 0.
+          //
+          // History: this fallback was removed in f2e6906ad to work around a since-fixed bug
+          // where updateMasterLock stored Some(Offset(0)) when globalSafeOffset == 0, causing
+          // false skips. Commit 319b7be6f fixed the root cause (storing None instead), making
+          // the fallback safe again.
+          indexManager.getSeekedOffsetForPartitionKey(topicPartition, pk).map {
+            granularOffset =>
+              granularOffset.orElse(indexManager.getSeekedOffsetForTopicPartition(topicPartition))
+          }
+        case None =>
+          indexManager.getSeekedOffsetForTopicPartition(topicPartition).asRight[SinkError]
+      }
     } yield {
       new Writer(
         topicPartition,
@@ -183,6 +240,8 @@ class WriterManager[SM <: FileMetadata](
         formatWriterFn.curried(topicPartition),
         schemaChangeDetector,
         pendingOperationsProcessors,
+        partitionKey,
+        lastSeekedOffset,
       )
     }
   }
@@ -195,32 +254,94 @@ class WriterManager[SM <: FileMetadata](
         getOffsetAndMeta(tp, offAndMeta).map(tp -> _)
       }
 
-  private def writerForTopicPartitionWithMaxOffset(topicPartition: TopicPartition): Option[Writer[SM]] =
-    // Collect writers for the topic-partition that have a committed offset, convert to Seq and
-    // pick the writer with the highest committed offset value using maxByOption (Scala 2.13)
+  private def writersForTopicPartition(topicPartition: TopicPartition): Seq[Writer[SM]] =
     writers
       .collect {
-        case (key, writer) if key.topicPartition == topicPartition && writer.getCommittedOffset.nonEmpty => writer
+        case (key, writer) if key.topicPartition == topicPartition => writer
       }
       .toSeq
-      .maxByOption(_.getCommittedOffset.get.value)
 
   private def getOffsetAndMeta(
     topicPartition:    TopicPartition,
     offsetAndMetadata: OffsetAndMetadata,
-  ): Option[OffsetAndMetadata] =
-    // Compose Options functionally: find the writer with max offset, then build the new OffsetAndMetadata
-    for {
-      writer    <- writerForTopicPartitionWithMaxOffset(topicPartition)
-      committed <- writer.getCommittedOffset
-    } yield new OffsetAndMetadata(
-      // kafka last offset for a partition is the last committed + 1
-      // Therefore the connector should report last committed + 1 or it will lead to a constant lag og 1
-      // which might confuse the users.
-      committed.value + 1,
+  ): Option[OffsetAndMetadata] = {
+    val tpWriters = writersForTopicPartition(topicPartition)
+    if (tpWriters.isEmpty) return None
+
+    val firstBufferedOffsets = tpWriters.flatMap(_.getFirstBufferedOffset)
+    val committedOffsets     = tpWriters.flatMap(_.getCommittedOffset)
+
+    if (committedOffsets.isEmpty) return None
+
+    val calculatedSafeOffset =
+      if (firstBufferedOffsets.nonEmpty) {
+        firstBufferedOffsets.map(_.value).min
+      } else {
+        committedOffsets.map(_.value).max + 1
+      }
+
+    val previousHighWatermark = safeOffsetHighWatermarks.getOrElseUpdate(
+      topicPartition,
+      indexManager.getSeekedOffsetForTopicPartition(topicPartition)
+        .map(_.value + 1)
+        .getOrElse(0L),
+    )
+    val globalSafeOffset = math.max(calculatedSafeOffset, previousHighWatermark)
+
+    // Defensive invariants: today these are guaranteed by the math.max above, but a require()
+    // here means any future refactor that drops or reorders the max will fail fast in CI
+    // rather than silently regressing the globalSafeOffset and risking data loss.
+    require(
+      globalSafeOffset >= previousHighWatermark,
+      s"globalSafeOffset regression for $topicPartition: $globalSafeOffset < previousHWM $previousHighWatermark",
+    )
+    require(
+      globalSafeOffset >= calculatedSafeOffset,
+      s"globalSafeOffset below calculated floor for $topicPartition: $globalSafeOffset < $calculatedSafeOffset",
+    )
+
+    val hasPartitionByWriters =
+      writers.keys.exists(k => k.topicPartition == topicPartition && k.partitionValues.nonEmpty)
+
+    if (hasPartitionByWriters) {
+      // PARTITIONBY mode: writers update granular locks, so the master lock needs a separate write.
+      indexManager.updateMasterLock(topicPartition, Offset(globalSafeOffset)) match {
+        case Left(err) =>
+          metrics.incrementMasterLockFailures()
+          logger.error(
+            s"[${connectorTaskId.show}] Master lock update failed for $topicPartition: ${err.message()}. " +
+              s"Returning no offset to prevent consumer advance.",
+          )
+          return None
+        case Right(_) =>
+          metrics.incrementMasterLockUpdates()
+          safeOffsetHighWatermarks.put(topicPartition, globalSafeOffset)
+          logger.debug(
+            s"[${connectorTaskId.show}] Updated master lock for $topicPartition with globalSafeOffset=$globalSafeOffset",
+          )
+          val activePartitionKeys: Set[String] = writers
+            .filter { case (key, _) => key.topicPartition == topicPartition }
+            .keys
+            .flatMap(key => WriterManager.derivePartitionKey(key.partitionValues))
+            .toSet
+          indexManager.cleanUpObsoleteLocks(topicPartition, Offset(globalSafeOffset), activePartitionKeys) match {
+            case Left(err) =>
+              logger.warn(s"[${connectorTaskId.show}] Best-effort GC failed for $topicPartition: ${err.message()}")
+            case Right(_) =>
+          }
+      }
+    } else {
+      // Non-PARTITIONBY mode: Writer.commit() already maintains the master lock via
+      // indexManager.update(), so skip the redundant cloud write.
+      safeOffsetHighWatermarks.put(topicPartition, globalSafeOffset)
+    }
+
+    Some(new OffsetAndMetadata(
+      globalSafeOffset,
       offsetAndMetadata.leaderEpoch(),
       offsetAndMetadata.metadata(),
-    )
+    ))
+  }
 
   def cleanUp(topicPartition: TopicPartition): Unit = {
     val keysToRemove = writers
@@ -231,8 +352,57 @@ class WriterManager[SM <: FileMetadata](
       writers.get(key).foreach(_.close())
       writers.remove(key)
     }
+    safeOffsetHighWatermarks.remove(topicPartition)
+    // Evict all remaining granular lock entries for this partition from the cache. This is
+    // necessary after a rebalance: if the partition is later re-assigned to this task, the
+    // new writers must load fresh lock state from storage rather than reading stale cached data.
+    indexManager.evictAllGranularLocks(topicPartition)
+    indexManager.clearTopicPartitionState(topicPartition)
   }
+
+  private def evictIdleWriters(topicPartition: TopicPartition, exclude: Option[MapKey]): Unit = {
+    val idleEntries = writers.iterator
+      .filter { case (k, writer) => k.topicPartition == topicPartition && !exclude.contains(k) && writer.isIdle }
+      .toList
+    if (idleEntries.nonEmpty) {
+      logger.debug(
+        s"[${connectorTaskId.show}] Evicting ${idleEntries.size} idle writer(s) (map size ${writers.size})",
+      )
+    }
+    idleEntries.foreach { case (key, writer) =>
+      writer.close()
+      writers.remove(key)
+      WriterManager.derivePartitionKey(key.partitionValues).foreach { pk =>
+        indexManager.evictGranularLock(key.topicPartition, pk)
+      }
+      metrics.incrementIdleWriterEvictions()
+    }
+    metrics.setWriterCount(writers.size)
+  }
+
+  private[writer] def writerCount: Int = writers.size
+
+  private[writer] def putWriter(key: MapKey, writer: Writer[SM]): Unit = { val _ = writers.put(key, writer) }
+
+  private[writer] def evictIdleWritersNow(topicPartition: TopicPartition): Unit =
+    evictIdleWriters(topicPartition, None)
 
   def shouldSkipNullValues(): Boolean = skipNullValues
 
+}
+
+object WriterManager {
+
+  def sanitize(value: String): String =
+    URLEncoder.encode(value, "UTF-8").replace("_", "%5F")
+
+  def derivePartitionKey(partitionValues: Map[PartitionField, String]): Option[String] =
+    if (partitionValues.isEmpty) None
+    else {
+      val key = partitionValues.toSeq
+        .sortBy(_._1.name())
+        .map { case (field, value) => s"${sanitize(field.name())}=${sanitize(value)}" }
+        .mkString("_")
+      Some(key)
+    }
 }
