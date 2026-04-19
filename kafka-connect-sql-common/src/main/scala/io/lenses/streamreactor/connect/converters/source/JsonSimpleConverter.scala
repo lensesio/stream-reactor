@@ -117,17 +117,20 @@ object JsonSimpleConverter extends StrictLogging {
       case JObject(values) => handleObject(name, values)
       case other           => throw new IllegalStateException(s"$other Not handled in match")
     }
-  private def handleArray(name: String, arr: List[_root_.org.json4s.JsonAST.JValue]) = {
-    val values = new util.ArrayList[AnyRef]()
-    val sv     = convert(name, arr.head)
-    values.add(sv.value())
-    arr.tail.foreach { v =>
-      values.add(convert(name, v).value())
+  private def handleArray(name: String, arr: List[_root_.org.json4s.JsonAST.JValue]) =
+    arr match {
+      case Nil =>
+        new SchemaAndValue(SchemaBuilder.array(Schema.OPTIONAL_STRING_SCHEMA).optional().build(), new util.ArrayList[AnyRef]())
+      case head :: tail =>
+        val values = new util.ArrayList[AnyRef]()
+        val sv     = convert(name, head)
+        values.add(sv.value())
+        tail.foreach { v =>
+          values.add(convert(name, v).value())
+        }
+        val schema = SchemaBuilder.array(sv.schema()).optional().build()
+        new SchemaAndValue(schema, values)
     }
-
-    val schema = SchemaBuilder.array(sv.schema()).optional().build()
-    new SchemaAndValue(schema, values)
-  }
   private def handleObject(name: String, values: List[(String, json4s.JValue)]) = {
     val builder = SchemaBuilder.struct().name(name.replace("/", "_"))
     val fields = values.map {
