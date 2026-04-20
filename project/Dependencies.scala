@@ -73,7 +73,7 @@ object Dependencies {
     val logbackVersion      = "1.5.18"
     val scalaLoggingVersion = "3.9.5"
 
-    val dnsJavaVersion  = "3.6.3"
+    val dnsJavaVersion  = "3.6.4"
     val wiremockVersion = "3.13.1"
     val parquetVersion  = "1.15.2"
 
