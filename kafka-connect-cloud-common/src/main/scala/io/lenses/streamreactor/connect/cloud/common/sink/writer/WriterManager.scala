@@ -362,8 +362,9 @@ class WriterManager[SM <: FileMetadata](
     // and the master-lock state in storage has not changed. Clearing seekedOffsets and the
     // master eTag would leave the next updateMasterLock with no eTag to fence on, and
     // PARTITIONBY preCommit would permanently fail with "Master index not found" until the
-    // next rebalance/restart. Partition revocation goes through open()'s stalePartitions
-    // branch, which is the only legitimate caller of clearTopicPartitionState.
+    // next rebalance/restart. Partition revocation goes through IndexManagerV2.open()
+    // (its stalePartitions and failure-rollback branches), which are the only legitimate
+    // callers of clearTopicPartitionState.
   }
 
   private def evictIdleWriters(topicPartition: TopicPartition, exclude: Option[MapKey]): Unit = {

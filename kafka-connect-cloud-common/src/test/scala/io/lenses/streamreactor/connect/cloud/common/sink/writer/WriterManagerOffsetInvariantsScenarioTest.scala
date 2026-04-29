@@ -24,6 +24,7 @@ import io.lenses.streamreactor.connect.cloud.common.model.Topic
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
+import io.lenses.streamreactor.connect.cloud.common.sink.FatalCloudSinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.CommitPolicy
 import io.lenses.streamreactor.connect.cloud.common.sink.config.PartitionField
@@ -126,20 +127,33 @@ class WriterManagerOffsetInvariantsScenarioTest
    * methods are provided to satisfy the trait and to let rebalance scenarios survive
    * a fresh WriterManager instance.
    *
-   * Semantics mirror `IndexManagerV2` on the success path only -- no eTag enforcement,
-   * no lock files, no storage I/O.
+   * The eTag cache is modelled coarsely as a "master state cleared" set so scenarios
+   * can exercise the `clearTopicPartitionState` -> `updateMasterLock` interaction that
+   * underpins the ZD-2451 regression: a partition flagged here returns the same
+   * `FatalCloudSinkError("Master index not found")` that `IndexManagerV2.updateMasterLock`
+   * raises when its cached eTag is missing. No real eTag enforcement, no lock files,
+   * no storage I/O.
    */
   final class StubIndexManager extends IndexManager {
 
     val master:   mutable.Map[TopicPartition, Long]           = mutable.Map.empty
     val granular: mutable.Map[(TopicPartition, String), Long] = mutable.Map.empty
 
+    /**
+     * Mirrors the `IndexManagerV2.topicPartitionToETags` cache eviction -- partitions
+     * here are missing their master eTag and `updateMasterLock` will refuse to write.
+     */
+    private val masterStateCleared: mutable.Set[TopicPartition] = mutable.Set.empty
+
     override def indexingEnabled: Boolean = true
 
     override def open(
       topicPartitions: Set[TopicPartition],
-    ): Either[SinkError, Map[TopicPartition, Option[Offset]]] =
+    ): Either[SinkError, Map[TopicPartition, Option[Offset]]] = {
+      // open() rebuilds the master eTag cache for every partition handled.
+      topicPartitions.foreach(masterStateCleared.remove)
       Right(topicPartitions.iterator.map(tp => tp -> master.get(tp).map(Offset(_))).toMap)
+    }
 
     override def update(
       topicPartition:  TopicPartition,
@@ -174,11 +188,14 @@ class WriterManagerOffsetInvariantsScenarioTest
     override def updateMasterLock(
       topicPartition:   TopicPartition,
       globalSafeOffset: Offset,
-    ): Either[SinkError, Unit] = {
-      // Mirrors IndexManagerV2: records `globalSafeOffset - 1` as the committedOffset.
-      master.put(topicPartition, globalSafeOffset.value - 1)
-      Right(())
-    }
+    ): Either[SinkError, Unit] =
+      if (masterStateCleared.contains(topicPartition)) {
+        Left(FatalCloudSinkError("Master index not found", topicPartition))
+      } else {
+        // Mirrors IndexManagerV2: records `globalSafeOffset - 1` as the committedOffset.
+        master.put(topicPartition, globalSafeOffset.value - 1)
+        Right(())
+      }
 
     override def cleanUpObsoleteLocks(
       topicPartition:      TopicPartition,
@@ -191,9 +208,11 @@ class WriterManagerOffsetInvariantsScenarioTest
       partitionKey:   String,
     ): Either[SinkError, Unit] = Right(())
 
-    override def evictGranularLock(topicPartition:        TopicPartition, partitionKey: String): Unit = ()
-    override def evictAllGranularLocks(topicPartition:    TopicPartition): Unit = ()
-    override def clearTopicPartitionState(topicPartition: TopicPartition): Unit = ()
+    override def evictGranularLock(topicPartition:     TopicPartition, partitionKey: String): Unit = ()
+    override def evictAllGranularLocks(topicPartition: TopicPartition): Unit = ()
+    override def clearTopicPartitionState(topicPartition: TopicPartition): Unit = {
+      val _ = masterStateCleared.add(topicPartition)
+    }
     override def suspendBackgroundWork(): Unit = ()
     override def close():                 Unit = ()
 
@@ -373,9 +392,10 @@ class WriterManagerOffsetInvariantsScenarioTest
         // for this partition is destroyed, but the partition is still owned by this task and
         // the master-lock state in storage is unchanged. Shadow entries for this tp are
         // cleared so subsequent Write ops re-seed from the stub master/granular state.
+        // currentAssignmentLastK is deliberately preserved -- monotonicity must hold across
+        // an in-place rollback because no rebalance has happened.
         wm.cleanUp(tp)
         shadow.filterInPlace { case ((t, _), _) => t != tp }
-        val _ = currentAssignmentLastK.remove(tp)
 
       case Rebalance =>
         val tps = shadow.keys.map(_._1).toSet
@@ -384,6 +404,11 @@ class WriterManagerOffsetInvariantsScenarioTest
         shadow.clear()
         currentAssignmentLastK.clear()
         wm = buildWriterManager(stub)
+        // Mirrors CloudSinkTask.open() invoking indexManager.open(partitions) after a
+        // rebalance: the master eTag cache is re-populated from storage for the new
+        // assignment, so any partitions previously cleared by clearTopicPartitionState
+        // become writable again.
+        val _ = stub.open(tps)
     }
   }
 
