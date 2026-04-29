@@ -453,7 +453,12 @@ class WriterManagerPreCommitTest
     wm.writerCount shouldBe 0
   }
 
-  test("cleanUp clears high watermark so re-assignment starts fresh from master lock") {
+  test("cleanUp closes writers and resets high watermark but preserves master-lock state") {
+    // cleanUp is called from CloudSinkTask.rollback when a put() surfaced a FatalCloudSinkError.
+    // The partition is still owned by this task -- only the writer state is invalidated.
+    // The master-lock state in storage has not changed, so seekedOffsets / topicPartitionToETags
+    // must remain populated; otherwise the next preCommit's updateMasterLock would permanently
+    // fail with "Master index not found" until the next rebalance/restart.
     val indexManager = mock[IndexManager]
     when(indexManager.getSeekedOffsetForTopicPartition(tp0)).thenReturn(None)
     when(indexManager.updateMasterLock(any[TopicPartition], any[Offset])).thenReturn(Right(()))
@@ -469,18 +474,43 @@ class WriterManagerPreCommitTest
     wm.cleanUp(tp0)
 
     verify(indexManager).evictAllGranularLocks(tp0)
-    verify(indexManager).clearTopicPartitionState(tp0)
+    verify(indexManager, never).clearTopicPartitionState(tp0)
+  }
 
-    // After cleanUp, re-add with lower offset
-    when(indexManager.getSeekedOffsetForTopicPartition(tp0)).thenReturn(Some(Offset(20)))
-    val writerA2 = writerInNoWriterState(tp0, Some(Offset(20)))
+  test("cleanUp followed by retried put + preCommit does not regress the master-lock high watermark") {
+    // Regression for ZD-2451: a transient GCS upload error rolls back the writer for tp0,
+    // Kafka Connect retries put(), and the next preCommit must continue to advance the
+    // master-lock offset rather than stalling with "Master index not found". This test
+    // pins the in-memory contract between WriterManager and IndexManager that makes that
+    // recovery possible: cleanUp leaves seekedOffsets intact, so the high watermark is
+    // re-initialised from the same master-lock offset on the first preCommit after cleanUp.
+    val indexManager = mock[IndexManager]
+    when(indexManager.getSeekedOffsetForTopicPartition(tp0)).thenReturn(Some(Offset(105)))
+    when(indexManager.updateMasterLock(any[TopicPartition], any[Offset])).thenReturn(Right(()))
+    when(indexManager.cleanUpObsoleteLocks(any[TopicPartition], any[Offset], any[Set[String]])).thenReturn(Right(()))
+
+    val wm      = buildWriterManager(indexManager)
+    val writerA = writerInNoWriterState(tp0, Some(Offset(150)))
+    wm.putWriter(MapKey(tp0, dateA), writerA)
+
+    val result1 = wm.preCommit(currentOffsets(tp0, 200))
+    result1(tp0).offset() shouldBe 151L
+
+    // Simulate the rollback path: cleanUp(tp0) then the same task retries with a fresh writer
+    // for the same partition. No re-open(), no rebalance -- this is the in-place retry that
+    // 11.7.0 broke when cleanUp cleared the master eTag cache.
+    wm.cleanUp(tp0)
+
+    val writerA2 = writerInNoWriterState(tp0, Some(Offset(160)))
     wm.putWriter(MapKey(tp0, dateA), writerA2)
 
     val result2 = wm.preCommit(currentOffsets(tp0, 200))
-    // previousHighWatermark re-initialized from master lock: 20 + 1 = 21
-    // calculatedSafeOffset = 20 + 1 = 21
-    // globalSafeOffset = max(21, 21) = 21
-    result2(tp0).offset() shouldBe 21L
+    // previousHighWatermark seed = master(105) + 1 = 106; calculatedSafeOffset = 160 + 1 = 161;
+    // globalSafeOffset = max(161, 106) = 161. The point is that this returns a Some offset at
+    // all -- with the buggy cleanUp, updateMasterLock would have returned Left and result2
+    // would be empty.
+    result2 should contain key tp0
+    result2(tp0).offset() shouldBe 161L
   }
 
   // --- non-PARTITIONBY writers have empty partitionValues, producing no partition key ---

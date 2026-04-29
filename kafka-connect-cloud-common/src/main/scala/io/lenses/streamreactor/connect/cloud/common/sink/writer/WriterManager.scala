@@ -353,11 +353,17 @@ class WriterManager[SM <: FileMetadata](
       writers.remove(key)
     }
     safeOffsetHighWatermarks.remove(topicPartition)
-    // Evict all remaining granular lock entries for this partition from the cache. This is
-    // necessary after a rebalance: if the partition is later re-assigned to this task, the
-    // new writers must load fresh lock state from storage rather than reading stale cached data.
+    // Evict the granular lock cache so a fresh writer for this partition reloads its
+    // dedup floor from storage rather than reading stale cached offsets.
     indexManager.evictAllGranularLocks(topicPartition)
-    indexManager.clearTopicPartitionState(topicPartition)
+    // NOTE: clearTopicPartitionState is deliberately NOT called here, mirroring the same
+    // decision in close(). cleanUp is invoked from CloudSinkTask.rollback when a put()
+    // surfaced a FatalCloudSinkError -- the partition is still owned by this task instance
+    // and the master-lock state in storage has not changed. Clearing seekedOffsets and the
+    // master eTag would leave the next updateMasterLock with no eTag to fence on, and
+    // PARTITIONBY preCommit would permanently fail with "Master index not found" until the
+    // next rebalance/restart. Partition revocation goes through open()'s stalePartitions
+    // branch, which is the only legitimate caller of clearTopicPartitionState.
   }
 
   private def evictIdleWriters(topicPartition: TopicPartition, exclude: Option[MapKey]): Unit = {

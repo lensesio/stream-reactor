@@ -52,6 +52,7 @@ object WriterManagerOffsetInvariantsScenarioTest {
   final case class Write(tp: TopicPartition, pk: Option[String], offset: Long) extends Op
   final case class Commit(tp: TopicPartition) extends Op
   final case class PreCommit(tp: TopicPartition, kafkaOffset: Long) extends Op
+  final case class Cleanup(tp: TopicPartition) extends Op
   case object Rebalance extends Op
 
   sealed trait ShadowState
@@ -367,6 +368,15 @@ class WriterManagerOffsetInvariantsScenarioTest
           }
         }
 
+      case Cleanup(tp) =>
+        // Mirrors CloudSinkTask.rollback(tp) -> WriterManager.cleanUp(tp): the writer state
+        // for this partition is destroyed, but the partition is still owned by this task and
+        // the master-lock state in storage is unchanged. Shadow entries for this tp are
+        // cleared so subsequent Write ops re-seed from the stub master/granular state.
+        wm.cleanUp(tp)
+        shadow.filterInPlace { case ((t, _), _) => t != tp }
+        val _ = currentAssignmentLastK.remove(tp)
+
       case Rebalance =>
         val tps = shadow.keys.map(_._1).toSet
         tps.foreach(tp => pendingRebalanceFloor.update(tp, stub.masterNextOffset(tp)))
@@ -478,6 +488,24 @@ class WriterManagerOffsetInvariantsScenarioTest
       Rebalance,
       Write(tp0, Some("pk-a"), 10), // new writer buffering from offset 10
       PreCommit(tp0, 500),          // K = 101 post-rebalance (master-derived floor)
+    )
+    val h = run(ops)
+    h.ks(tp0).toList shouldBe List(101L, 101L)
+  }
+
+  test("cleanUp + retry within the same assignment preserves the durable master and does not regress K") {
+    // ZD-2451 regression. cleanUp is invoked from CloudSinkTask.rollback when a put()
+    // surfaced a FatalCloudSinkError -- the partition is still owned by this task and
+    // the master lock in storage is unchanged. The retried put() must therefore see the
+    // same master-derived floor that was in effect before the failure, so K cannot
+    // regress below master + 1 even though safeOffsetHighWatermarks was reset.
+    val ops = List[Op](
+      Write(tp0, Some("pk-a"), 100),
+      Commit(tp0),
+      PreCommit(tp0, 500), // K = 101, master advanced to 100
+      Cleanup(tp0),
+      Write(tp0, Some("pk-a"), 10), // retried put with a lower firstBufferedOffset
+      PreCommit(tp0, 500),          // K = 101 (master-derived floor protects)
     )
     val h = run(ops)
     h.ks(tp0).toList shouldBe List(101L, 101L)
