@@ -223,6 +223,12 @@ object ToAvroDataConverter {
           case s: String => new GenericData.EnumSymbol(targetSchema, s)
           case other => other
         }
+      case Schema.Type.INT =>
+        value match {
+          case b: Byte  => b.toInt
+          case s: Short => s.toInt
+          case other    => other
+        }
       case _ => value
     }
 

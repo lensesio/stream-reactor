@@ -179,6 +179,64 @@ class ToAvroDataConverterTest extends AnyFunSuiteLike with Matchers {
     record.get("data") should be(42)
   }
 
+  test("nullable Avro INT should widen Connect INT8 Byte values") {
+    val avroSchemaJson =
+      """
+        |{
+        |  "type": "record",
+        |  "name": "TestRecord",
+        |  "namespace": "test",
+        |  "fields": [
+        |    {"name": "attempts", "type": ["null", {"type": "int", "connect.type": "int8"}], "default": null}
+        |  ]
+        |}
+        |""".stripMargin
+    val avroSchema = new Schema.Parser().parse(avroSchemaJson)
+
+    val connectSchema = SchemaBuilder.struct()
+      .name("test.TestRecord")
+      .field("attempts", org.apache.kafka.connect.data.Schema.OPTIONAL_INT8_SCHEMA)
+      .build()
+
+    val connectStruct = new Struct(connectSchema).put("attempts", 6.toByte)
+
+    val result = ToAvroDataConverter.convertToGenericRecordWithSchema(StructSinkData(connectStruct), avroSchema)
+
+    result shouldBe a[GenericRecord]
+    val record = result.asInstanceOf[GenericRecord]
+    record.get("attempts") shouldBe a[java.lang.Integer]
+    record.get("attempts") should be(6)
+  }
+
+  test("nullable Avro INT should widen Connect INT16 Short values") {
+    val avroSchemaJson =
+      """
+        |{
+        |  "type": "record",
+        |  "name": "TestRecord",
+        |  "namespace": "test",
+        |  "fields": [
+        |    {"name": "attempts", "type": ["null", {"type": "int", "connect.type": "int16"}], "default": null}
+        |  ]
+        |}
+        |""".stripMargin
+    val avroSchema = new Schema.Parser().parse(avroSchemaJson)
+
+    val connectSchema = SchemaBuilder.struct()
+      .name("test.TestRecord")
+      .field("attempts", org.apache.kafka.connect.data.Schema.OPTIONAL_INT16_SCHEMA)
+      .build()
+
+    val connectStruct = new Struct(connectSchema).put("attempts", 6.toShort)
+
+    val result = ToAvroDataConverter.convertToGenericRecordWithSchema(StructSinkData(connectStruct), avroSchema)
+
+    result shouldBe a[GenericRecord]
+    val record = result.asInstanceOf[GenericRecord]
+    record.get("attempts") shouldBe a[java.lang.Integer]
+    record.get("attempts") should be(6)
+  }
+
   test("union fallback should match Connect INT64 to Avro LONG") {
     val avroSchemaJson =
       """
