@@ -925,7 +925,7 @@ class DatalakeStorageInterfaceTest
     warnMessages.exists(msg => msg.contains(oldPath) && msg.contains(newPath)) shouldBe true
   }
 
-  "mvFile" should "fail loudly when both source and destination are missing" in {
+  "mvFile" should "return FileMoveError when rename fails and neither source nor destination exists" in {
     val oldBucket = "oldBucket"
     val oldPath   = "oldPath"
     val newBucket = "newBucket"
