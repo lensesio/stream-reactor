@@ -302,7 +302,9 @@ class ExactlyOnceScenarioTest extends AnyFunSuite with Matchers with BeforeAndAf
   }
 
   // (a) Copy/Delete pending recovery via getSeekedOffsetForPartitionKey (loadGranularLock)
-  test("PARTITIONBY: Copy/Delete pending recovery resolves via getSeekedOffsetForPartitionKey (loadGranularLock path)") {
+  test(
+    "PARTITIONBY: Copy/Delete pending recovery resolves via getSeekedOffsetForPartitionKey (loadGranularLock path)",
+  ) {
     // Crash after Upload (temp blob written, Copy fails). On reboot, LoadGranularLock
     // triggers getSeekedOffsetForPartitionKey -> loadGranularLock -> resolveAndCacheGranularLock,
     // which replays [Copy, Delete] from the still-present temp blob. Final blob arrives
@@ -313,10 +315,10 @@ class ExactlyOnceScenarioTest extends AnyFunSuite with Matchers with BeforeAndAf
     val ops = List[Op](
       Assign(Set(tp0)),
       Write(tp0, Some(pk), 20L),
-      InjectFailMove(tempPath),        // Copy will fail; lock records PendingState=[Copy, Delete]
-      Commit(tp0),                     // expected to fail
+      InjectFailMove(tempPath), // Copy will fail; lock records PendingState=[Copy, Delete]
+      Commit(tp0),              // expected to fail
       Crash,
-      LoadGranularLock(tp0, pk),       // triggers getSeekedOffsetForPartitionKey -> loadGranularLock
+      LoadGranularLock(tp0, pk), // triggers getSeekedOffsetForPartitionKey -> loadGranularLock
     )
     h.run(ops, expectCommitErrors = true)
     h.storage.pathExists(h.bucket, finalPath).getOrElse(false) shouldBe true
@@ -334,11 +336,11 @@ class ExactlyOnceScenarioTest extends AnyFunSuite with Matchers with BeforeAndAf
     val ops = List[Op](
       Assign(Set(tp0)),
       Write(tp0, Some(pk), 21L),
-      InjectFailMove(tempPath),        // Copy will fail
-      Commit(tp0),                     // fails mid-chain; temp blob still present in storage
+      InjectFailMove(tempPath), // Copy will fail
+      Commit(tp0),              // fails mid-chain; temp blob still present in storage
       Crash,
-      Write(tp0, Some(pk), 22L),      // new record; ensureGranularLock detects and resolves PendingState
-      Commit(tp0),                     // recovery + new commit both succeed
+      Write(tp0, Some(pk), 22L), // new record; ensureGranularLock detects and resolves PendingState
+      Commit(tp0),               // recovery + new commit both succeed
       PreCommit(tp0, 100L),
     )
     h.run(ops, expectCommitErrors = true)
@@ -383,8 +385,8 @@ class ExactlyOnceScenarioTest extends AnyFunSuite with Matchers with BeforeAndAf
           ),
         ),
       ),
-      Crash,                           // clear IndexManagerV2 cache so recovery re-reads storage
-      LoadGranularLock(tp0, pk),       // triggers loadGranularLock -> idempotent Copy + no-op Delete
+      Crash,                    // clear IndexManagerV2 cache so recovery re-reads storage
+      LoadGranularLock(tp0, pk),// triggers loadGranularLock -> idempotent Copy + no-op Delete
     )
     h.run(manipulateOps)
     // Final blob still present (idempotent Copy did not destroy it), temp still absent.
@@ -404,10 +406,10 @@ class ExactlyOnceScenarioTest extends AnyFunSuite with Matchers with BeforeAndAf
     val ops = List[Op](
       Assign(Set(tp0)),
       Write(tp0, None, 10L),
-      InjectFailMove(tempPath),        // Copy will fail (one-shot); temp blob remains in storage
-      Commit(tp0),                     // expected FatalCloudSinkError (Copy failure is fatal)
-      Crash,                           // open() reads master lock PendingState, replays Copy+Delete
-      PreCommit(tp0, 100L),            // drives master lock write after successful recovery
+      InjectFailMove(tempPath), // Copy will fail (one-shot); temp blob remains in storage
+      Commit(tp0),              // expected FatalCloudSinkError (Copy failure is fatal)
+      Crash,                    // open() reads master lock PendingState, replays Copy+Delete
+      PreCommit(tp0, 100L),     // drives master lock write after successful recovery
     )
     h.run(ops, expectCommitErrors = true)
     // Post-recovery: final blob present, no orphaned temp.

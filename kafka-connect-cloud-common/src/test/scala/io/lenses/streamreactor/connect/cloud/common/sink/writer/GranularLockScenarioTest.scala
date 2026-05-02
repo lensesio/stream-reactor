@@ -774,14 +774,17 @@ class GranularLockScenarioTest extends AnyFunSuiteLike with Matchers with Mockit
 
     val mockPOP = mock[PendingOperationsProcessors]
     type IndexUpdateFn = (TopicPartition, Option[Offset], Option[PendingState]) => Either[SinkError, Option[Offset]]
-    when(mockPOP.processPendingOperations(any[TopicPartition],
-                                          any[Option[Offset]],
-                                          any[PendingState],
-                                          any[IndexUpdateFn],
-                                          any[Boolean],
-                                          any[Option[String]],
-                                          any[Option[java.io.File]],
-    ))
+    when(
+      mockPOP.processPendingOperations(
+        any[TopicPartition],
+        any[Option[Offset]],
+        any[PendingState],
+        any[IndexUpdateFn],
+        any[Boolean],
+        any[Option[String]],
+        any[Option[java.io.File]],
+      ),
+    )
       .thenAnswer {
         (
           tp: TopicPartition,
@@ -880,14 +883,17 @@ class GranularLockScenarioTest extends AnyFunSuiteLike with Matchers with Mockit
 
     type IndexUpdateFn = (TopicPartition, Option[Offset], Option[PendingState]) => Either[SinkError, Option[Offset]]
     val mockPOP = mock[PendingOperationsProcessors]
-    when(mockPOP.processPendingOperations(any[TopicPartition],
-                                          any[Option[Offset]],
-                                          any[PendingState],
-                                          any[IndexUpdateFn],
-                                          any[Boolean],
-                                          any[Option[String]],
-                                          any[Option[java.io.File]],
-    ))
+    when(
+      mockPOP.processPendingOperations(
+        any[TopicPartition],
+        any[Option[Offset]],
+        any[PendingState],
+        any[IndexUpdateFn],
+        any[Boolean],
+        any[Option[String]],
+        any[Option[java.io.File]],
+      ),
+    )
       .thenAnswer {
         (
           tp: TopicPartition,
@@ -1053,14 +1059,17 @@ class GranularLockScenarioTest extends AnyFunSuiteLike with Matchers with Mockit
 
     type IndexUpdateFn = (TopicPartition, Option[Offset], Option[PendingState]) => Either[SinkError, Option[Offset]]
     val mockPOP = mock[PendingOperationsProcessors]
-    when(mockPOP.processPendingOperations(any[TopicPartition],
-                                          any[Option[Offset]],
-                                          any[PendingState],
-                                          any[IndexUpdateFn],
-                                          any[Boolean],
-                                          any[Option[String]],
-                                          any[Option[java.io.File]],
-    ))
+    when(
+      mockPOP.processPendingOperations(
+        any[TopicPartition],
+        any[Option[Offset]],
+        any[PendingState],
+        any[IndexUpdateFn],
+        any[Boolean],
+        any[Option[String]],
+        any[Option[java.io.File]],
+      ),
+    )
       .thenAnswer {
         (
           tp: TopicPartition,
@@ -1160,14 +1169,17 @@ class GranularLockScenarioTest extends AnyFunSuiteLike with Matchers with Mockit
 
     type IndexUpdateFn = (TopicPartition, Option[Offset], Option[PendingState]) => Either[SinkError, Option[Offset]]
     val mockPOP = mock[PendingOperationsProcessors]
-    when(mockPOP.processPendingOperations(any[TopicPartition],
-                                          any[Option[Offset]],
-                                          any[PendingState],
-                                          any[IndexUpdateFn],
-                                          any[Boolean],
-                                          any[Option[String]],
-                                          any[Option[java.io.File]],
-    ))
+    when(
+      mockPOP.processPendingOperations(
+        any[TopicPartition],
+        any[Option[Offset]],
+        any[PendingState],
+        any[IndexUpdateFn],
+        any[Boolean],
+        any[Option[String]],
+        any[Option[java.io.File]],
+      ),
+    )
       .thenAnswer {
         (
           tp: TopicPartition,
@@ -1259,14 +1271,17 @@ class GranularLockScenarioTest extends AnyFunSuiteLike with Matchers with Mockit
 
     type IndexUpdateFn = (TopicPartition, Option[Offset], Option[PendingState]) => Either[SinkError, Option[Offset]]
     val mockPOP = mock[PendingOperationsProcessors]
-    when(mockPOP.processPendingOperations(any[TopicPartition],
-                                          any[Option[Offset]],
-                                          any[PendingState],
-                                          any[IndexUpdateFn],
-                                          any[Boolean],
-                                          any[Option[String]],
-                                          any[Option[java.io.File]],
-    ))
+    when(
+      mockPOP.processPendingOperations(
+        any[TopicPartition],
+        any[Option[Offset]],
+        any[PendingState],
+        any[IndexUpdateFn],
+        any[Boolean],
+        any[Option[String]],
+        any[Option[java.io.File]],
+      ),
+    )
       .thenAnswer {
         (
           tp: TopicPartition,
@@ -1358,14 +1373,17 @@ class GranularLockScenarioTest extends AnyFunSuiteLike with Matchers with Mockit
 
     type IndexUpdateFn = (TopicPartition, Option[Offset], Option[PendingState]) => Either[SinkError, Option[Offset]]
     val mockPOP = mock[PendingOperationsProcessors]
-    when(mockPOP.processPendingOperations(any[TopicPartition],
-                                          any[Option[Offset]],
-                                          any[PendingState],
-                                          any[IndexUpdateFn],
-                                          any[Boolean],
-                                          any[Option[String]],
-                                          any[Option[java.io.File]],
-    ))
+    when(
+      mockPOP.processPendingOperations(
+        any[TopicPartition],
+        any[Option[Offset]],
+        any[PendingState],
+        any[IndexUpdateFn],
+        any[Boolean],
+        any[Option[String]],
+        any[Option[java.io.File]],
+      ),
+    )
       .thenAnswer {
         (
           tp: TopicPartition,
@@ -1456,14 +1474,17 @@ class GranularLockScenarioTest extends AnyFunSuiteLike with Matchers with Mockit
 
     type IndexUpdateFn = (TopicPartition, Option[Offset], Option[PendingState]) => Either[SinkError, Option[Offset]]
     val mockPOP = mock[PendingOperationsProcessors]
-    when(mockPOP.processPendingOperations(any[TopicPartition],
-                                          any[Option[Offset]],
-                                          any[PendingState],
-                                          any[IndexUpdateFn],
-                                          any[Boolean],
-                                          any[Option[String]],
-                                          any[Option[java.io.File]],
-    ))
+    when(
+      mockPOP.processPendingOperations(
+        any[TopicPartition],
+        any[Option[Offset]],
+        any[PendingState],
+        any[IndexUpdateFn],
+        any[Boolean],
+        any[Option[String]],
+        any[Option[java.io.File]],
+      ),
+    )
       .thenAnswer {
         (
           tp: TopicPartition,
@@ -1555,14 +1576,17 @@ class GranularLockScenarioTest extends AnyFunSuiteLike with Matchers with Mockit
 
     type IndexUpdateFn = (TopicPartition, Option[Offset], Option[PendingState]) => Either[SinkError, Option[Offset]]
     val mockPOP = mock[PendingOperationsProcessors]
-    when(mockPOP.processPendingOperations(any[TopicPartition],
-                                          any[Option[Offset]],
-                                          any[PendingState],
-                                          any[IndexUpdateFn],
-                                          any[Boolean],
-                                          any[Option[String]],
-                                          any[Option[java.io.File]],
-    ))
+    when(
+      mockPOP.processPendingOperations(
+        any[TopicPartition],
+        any[Option[Offset]],
+        any[PendingState],
+        any[IndexUpdateFn],
+        any[Boolean],
+        any[Option[String]],
+        any[Option[java.io.File]],
+      ),
+    )
       .thenAnswer {
         (
           tp: TopicPartition,

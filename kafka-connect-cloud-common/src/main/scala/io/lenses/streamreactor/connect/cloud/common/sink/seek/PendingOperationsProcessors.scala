@@ -239,11 +239,11 @@ class PendingOperationsProcessors(
      * gracefully clear it via the same code path), and returns `Left(FatalCloudSinkError)`.
      */
     def escalateLiveCancel(
-      tp:           TopicPartition,
-      upload:       UploadOperation,
-      missing:      File,
-      pending:      PendingState,
-      fnIndexUpdt:  (TopicPartition, Option[Offset], Option[PendingState]) => Either[SinkError, Option[Offset]],
+      tp:          TopicPartition,
+      upload:      UploadOperation,
+      missing:     File,
+      pending:     PendingState,
+      fnIndexUpdt: (TopicPartition, Option[Offset], Option[PendingState]) => Either[SinkError, Option[Offset]],
     ): Either[SinkError, Option[Offset]] = {
       val message = buildOperatorMessage(tp, missing, pending)
       logger.error(message)
@@ -265,10 +265,11 @@ class PendingOperationsProcessors(
       missing: File,
       pending: PendingState,
     ): String = {
-      val pkStr           = partitionKey.getOrElse("<none>")
-      val stagingPath     = stagingFile.map(_.getAbsolutePath).getOrElse(missing.getPath)
-      val parentExistsStr = stagingFile.flatMap(f => Option(f.getParentFile)).map(_.exists().toString).getOrElse("<unknown>")
-      val opsSummary      = pending.pendingOperations.toList.map(opSummary).mkString(" -> ")
+      val pkStr       = partitionKey.getOrElse("<none>")
+      val stagingPath = stagingFile.map(_.getAbsolutePath).getOrElse(missing.getPath)
+      val parentExistsStr =
+        stagingFile.flatMap(f => Option(f.getParentFile)).map(_.exists().toString).getOrElse("<unknown>")
+      val opsSummary = pending.pendingOperations.toList.map(opSummary).mkString(" -> ")
       s"[${connectorTaskId.show}] Local staging file disappeared mid-commit for ${tp.topic.value}-${tp.partition} " +
         s"(partitionKey=$pkStr, staging=$stagingPath, parentExists=$parentExistsStr, " +
         s"pendingOffset=${pending.pendingOffset.value}, ops=[$opsSummary]). " +
@@ -280,9 +281,9 @@ class PendingOperationsProcessors(
     }
 
     def opSummary(op: FileOperation): String = op match {
-      case UploadOperation(bucket, _, dest) => s"Upload(bucket=$bucket, dest=$dest)"
+      case UploadOperation(bucket, _, dest)    => s"Upload(bucket=$bucket, dest=$dest)"
       case CopyOperation(bucket, src, dest, _) => s"Copy(bucket=$bucket, src=$src, dest=$dest)"
-      case DeleteOperation(bucket, src, _) => s"Delete(bucket=$bucket, src=$src)"
+      case DeleteOperation(bucket, src, _)     => s"Delete(bucket=$bucket, src=$src)"
     }
 
     logger.trace(

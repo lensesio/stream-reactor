@@ -34,9 +34,9 @@ import org.scalatest.matchers.should.Matchers
  */
 class FatalConnectExceptionPolicyTest extends AnyFunSuite with Matchers {
 
-  private val cause      = new IllegalStateException("/tmp/staging/missing.tmp")
-  private val fatal      = new FatalConnectException("staging file disappeared", cause)
-  private val transient  = new RuntimeException("transient")
+  private val cause     = new IllegalStateException("/tmp/staging/missing.tmp")
+  private val fatal     = new FatalConnectException("staging file disappeared", cause)
+  private val transient = new RuntimeException("transient")
 
   test("RetryErrorPolicy rethrows FatalConnectException as-is (regardless of remaining retries)") {
     val policy = RetryErrorPolicy()

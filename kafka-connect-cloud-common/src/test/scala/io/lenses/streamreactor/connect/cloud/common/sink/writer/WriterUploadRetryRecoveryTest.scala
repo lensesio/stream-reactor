@@ -151,7 +151,7 @@ class WriterUploadRetryRecoveryTest
       indexManager,
       stagingFilenameFn = () => missingFile.asRight,
       objectKeyBuilder,
-      formatWriterFn    = _ => formatWriter.asRight,
+      formatWriterFn = _ => formatWriter.asRight,
       mock[SchemaChangeDetector],
       pop,
       partitionKey     = None,
@@ -172,7 +172,9 @@ class WriterUploadRetryRecoveryTest
     when(wmIdxMgr.getSeekedOffsetForTopicPartition(any[TopicPartition])).thenReturn(None)
     when(wmIdxMgr.updateMasterLock(any[TopicPartition], any[Offset])).thenReturn(Right(()))
     when(wmIdxMgr.cleanUpObsoleteLocks(any[TopicPartition], any[Offset], any[Set[String]])).thenReturn(Right(()))
-    when(wmIdxMgr.evictAllGranularLocks(any[TopicPartition])).thenAnswer((_: org.mockito.invocation.InvocationOnMock) => ())
+    when(wmIdxMgr.evictAllGranularLocks(any[TopicPartition])).thenAnswer((_: org.mockito.invocation.InvocationOnMock) =>
+      (),
+    )
 
     val wm = buildMinimalWriterManager(wmIdxMgr, pop)
     wm.putWriter(MapKey(topicPartition, Map.empty), writer)
@@ -225,8 +227,14 @@ class WriterUploadRetryRecoveryTest
     val formatWriter = mock[FormatWriter]
     when(formatWriter.complete()).thenReturn(().asRight)
 
-    val finalKeyPk1 = CloudLocation(bucket, path = Some(s"data/${topicPartition.topic.value}/${topicPartition.partition}/pk1-final.jsonl"))
-    val finalKeyPk2 = CloudLocation(bucket, path = Some(s"data/${topicPartition.topic.value}/${topicPartition.partition}/pk2-final.jsonl"))
+    val finalKeyPk1 =
+      CloudLocation(bucket,
+                    path = Some(s"data/${topicPartition.topic.value}/${topicPartition.partition}/pk1-final.jsonl"),
+      )
+    val finalKeyPk2 =
+      CloudLocation(bucket,
+                    path = Some(s"data/${topicPartition.topic.value}/${topicPartition.partition}/pk2-final.jsonl"),
+      )
 
     val okbPk1 = mock[ObjectKeyBuilder]
     when(okbPk1.build(any[Offset], any[Long], any[Long])).thenReturn(finalKeyPk1.asRight)
@@ -239,7 +247,7 @@ class WriterUploadRetryRecoveryTest
       idxMgr,
       stagingFilenameFn = () => missingFilePk1.asRight,
       okbPk1,
-      formatWriterFn    = _ => formatWriter.asRight,
+      formatWriterFn = _ => formatWriter.asRight,
       mock[SchemaChangeDetector],
       popPk1,
       partitionKey     = Some(pk1),
@@ -262,7 +270,7 @@ class WriterUploadRetryRecoveryTest
       idxMgr,
       stagingFilenameFn = () => tempFilePk2.asRight,
       okbPk2,
-      formatWriterFn    = _ => formatWriter.asRight,
+      formatWriterFn = _ => formatWriter.asRight,
       mock[SchemaChangeDetector],
       popPk2,
       partitionKey     = Some(pk2),
@@ -291,7 +299,9 @@ class WriterUploadRetryRecoveryTest
     when(wmIdxMgr.getSeekedOffsetForTopicPartition(any[TopicPartition])).thenReturn(None)
     when(wmIdxMgr.updateMasterLock(any[TopicPartition], any[Offset])).thenReturn(Right(()))
     when(wmIdxMgr.cleanUpObsoleteLocks(any[TopicPartition], any[Offset], any[Set[String]])).thenReturn(Right(()))
-    when(wmIdxMgr.evictAllGranularLocks(any[TopicPartition])).thenAnswer((_: org.mockito.invocation.InvocationOnMock) => ())
+    when(wmIdxMgr.evictAllGranularLocks(any[TopicPartition])).thenAnswer((_: org.mockito.invocation.InvocationOnMock) =>
+      (),
+    )
 
     // Use a shared InMemoryStorageInterface for the WriterManager-level pop (new writer creation
     // only; existing writers carry their own pop). Both are in-memory.
@@ -345,9 +355,8 @@ class WriterUploadRetryRecoveryTest
     //   4. A fresh `Writer` for pk-writing built with that lastSeekedOffset correctly
     //      dedups offsets <= committed via `shouldSkip` — closing the no-loss /
     //      no-duplication contract end-to-end.
-    val sharedStorage  = new SelectivelyMissingFileStorage(missingFile =
-      new File("/nonexistent/restart-test/pk1-staging.tmp"),
-    )
+    val sharedStorage = new SelectivelyMissingFileStorage(missingFile =
+      new File("/nonexistent/restart-test/pk1-staging.tmp"))
     val missingFilePk1 = sharedStorage.missingFile
     val tempFilePk2    = createTempFileWithPayload("restart-pk2-records")
     val pop            = new PendingOperationsProcessors(sharedStorage)
@@ -403,7 +412,7 @@ class WriterUploadRetryRecoveryTest
         realIm,
         stagingFilenameFn = () => missingFilePk1.asRight,
         okbPk1,
-        formatWriterFn    = _ => formatWriter.asRight,
+        formatWriterFn = _ => formatWriter.asRight,
         mock[SchemaChangeDetector],
         pop,
         partitionKey     = Some(pk1),
@@ -426,7 +435,7 @@ class WriterUploadRetryRecoveryTest
         realIm,
         stagingFilenameFn = () => tempFilePk2.asRight,
         okbPk2,
-        formatWriterFn    = _ => formatWriter.asRight,
+        formatWriterFn = _ => formatWriter.asRight,
         mock[SchemaChangeDetector],
         pop,
         partitionKey     = Some(pk2),
@@ -517,7 +526,7 @@ class WriterUploadRetryRecoveryTest
           shimIdxMgr,
           stagingFilenameFn = () => createTempFileWithPayload("shim").asRight,
           mock[ObjectKeyBuilder],
-          formatWriterFn    = _ => mock[FormatWriter].asRight,
+          formatWriterFn = _ => mock[FormatWriter].asRight,
           mock[SchemaChangeDetector],
           new PendingOperationsProcessors(new InMemoryStorageInterface()),
           partitionKey     = Some(pk2),
@@ -530,9 +539,8 @@ class WriterUploadRetryRecoveryTest
         freshWriterPk2.shouldSkip(uncommittedOffset) shouldBe true
         freshWriterPk2.shouldSkip(Offset(uncommittedOffset.value + 1)) shouldBe false
       } finally restartIm.close()
-    } finally
-      try realIm.close()
-      catch { case _: Throwable => () }
+    } finally try realIm.close()
+    catch { case _: Throwable => () }
   }
 
   private def runScenario(partitionKey: Option[String]): Unit = {
@@ -561,7 +569,7 @@ class WriterUploadRetryRecoveryTest
       Some(uncommittedOffset).asRight[SinkError],
     )
 
-    val formatWriter         = mock[FormatWriter]
+    val formatWriter = mock[FormatWriter]
     when(formatWriter.complete()).thenReturn(().asRight)
     val schemaChangeDetector = mock[SchemaChangeDetector]
     val commitPolicy         = mock[CommitPolicy]
@@ -575,7 +583,7 @@ class WriterUploadRetryRecoveryTest
       indexManager,
       stagingFilenameFn = () => tempFile.asRight,
       objectKeyBuilder,
-      formatWriterFn    = _ => formatWriter.asRight,
+      formatWriterFn = _ => formatWriter.asRight,
       schemaChangeDetector,
       pop,
       partitionKey     = partitionKey,
@@ -669,7 +677,7 @@ class WriterUploadRetryRecoveryTest
       Some(oldCommittedOffset).asRight[SinkError],
     )
 
-    val formatWriter         = mock[FormatWriter]
+    val formatWriter = mock[FormatWriter]
     when(formatWriter.complete()).thenReturn(().asRight)
     val schemaChangeDetector = mock[SchemaChangeDetector]
     val commitPolicy         = mock[CommitPolicy]
@@ -683,7 +691,7 @@ class WriterUploadRetryRecoveryTest
       indexManager,
       stagingFilenameFn = () => missingFile.asRight,
       objectKeyBuilder,
-      formatWriterFn    = _ => formatWriter.asRight,
+      formatWriterFn = _ => formatWriter.asRight,
       schemaChangeDetector,
       pop,
       partitionKey     = partitionKey,
@@ -731,9 +739,9 @@ class WriterUploadRetryRecoveryTest
    * a single-op [Upload] chain (which would silently drop records).
    */
   private def structuralEscalateOnCancelAssertion(partitionKey: Option[String]): Unit = {
-    val storage = new InMemoryStorageInterface()
-    val pop     = mock[PendingOperationsProcessors]
-    val tempFile = createTempFileWithPayload("payload")
+    val storage      = new InMemoryStorageInterface()
+    val pop          = mock[PendingOperationsProcessors]
+    val tempFile     = createTempFileWithPayload("payload")
     val indexManager = mock[IndexManager]
     when(indexManager.indexingEnabled).thenReturn(true)
 
@@ -741,7 +749,7 @@ class WriterUploadRetryRecoveryTest
     when(formatWriter.complete()).thenReturn(().asRight)
     val schemaChangeDetector = mock[SchemaChangeDetector]
     val commitPolicy         = mock[CommitPolicy]
-    val objectKeyBuilder = mock[ObjectKeyBuilder]
+    val objectKeyBuilder     = mock[ObjectKeyBuilder]
     when(objectKeyBuilder.build(any[Offset], any[Long], any[Long])).thenReturn(finalKeyLocation.asRight)
 
     when(
@@ -762,7 +770,7 @@ class WriterUploadRetryRecoveryTest
       indexManager,
       stagingFilenameFn = () => tempFile.asRight,
       objectKeyBuilder,
-      formatWriterFn    = _ => formatWriter.asRight,
+      formatWriterFn = _ => formatWriter.asRight,
       schemaChangeDetector,
       pop,
       partitionKey     = partitionKey,

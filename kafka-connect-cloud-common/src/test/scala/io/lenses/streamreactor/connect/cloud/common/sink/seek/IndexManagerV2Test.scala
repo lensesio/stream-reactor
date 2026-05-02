@@ -1306,7 +1306,11 @@ class IndexManagerV2Test
     // Granular lock: [Upload, Copy, Delete] with committedOffset=450, pendingOffset=500
     val pendingOps = NonEmptyList.of[FileOperation](
       UploadOperation("bucket", missingFile, ".temp-upload/topic1/0/uuid-dead-worker.avro"),
-      CopyOperation("bucket", ".temp-upload/topic1/0/uuid-dead-worker.avro", "prefix/topic1/0/000000000500.avro", "placeholder"),
+      CopyOperation("bucket",
+                    ".temp-upload/topic1/0/uuid-dead-worker.avro",
+                    "prefix/topic1/0/000000000500.avro",
+                    "placeholder",
+      ),
       DeleteOperation("bucket", ".temp-upload/topic1/0/uuid-dead-worker.avro", "placeholder"),
     )
     val granularIndexFile = IndexFile("owner", Some(Offset(450)), Some(PendingState(Offset(500), pendingOps)))
@@ -1322,7 +1326,10 @@ class IndexManagerV2Test
 
     // writeBlobToFile: called by updateForPartitionKey to clear the pending state
     when(
-      si.writeBlobToFile[IndexFile](anyString(), ArgumentMatchers.contains(s"/0/$pk.lock"), any[ObjectWithETag[IndexFile]])(
+      si.writeBlobToFile[IndexFile](anyString(),
+                                    ArgumentMatchers.contains(s"/0/$pk.lock"),
+                                    any[ObjectWithETag[IndexFile]],
+      )(
         ArgumentMatchers.eq(indexFileEncoder),
       ),
     ).thenReturn(Right(ObjectWithETag(IndexFile("owner", Some(Offset(450)), None), "cleared-etag")))
@@ -1341,9 +1348,9 @@ class IndexManagerV2Test
   test(
     "loadGranularLock (getSeekedOffsetForPartitionKey): NonExistingFileError on Upload gracefully clears PendingState (dead-worker recovery, escalateOnCancel=false)",
   ) {
-    val pk          = "my-pk"
+    val pk       = "my-pk"
     val (si, im) = buildDeadWorkerRecoveryFixture()
-    val tp = Topic("topic1").withPartition(0)
+    val tp       = Topic("topic1").withPartition(0)
 
     try {
       im.open(Set(tp)).isRight shouldBe true
@@ -1354,9 +1361,12 @@ class IndexManagerV2Test
 
       // The pending state was cleared in the granular lock (writeBlobToFile called with None pendingState)
       val captor = ArgumentCaptor.forClass(classOf[ObjectWithETag[IndexFile]])
-      import org.mockito.Mockito.{ times => mtimes, verify => mverify }
+      import org.mockito.Mockito.{ times => mtimes }
+      import org.mockito.Mockito.{ verify => mverify }
       mverify(si, mtimes(1)).writeBlobToFile[IndexFile](
-        anyString(), ArgumentMatchers.contains(s"/0/$pk.lock"), captor.capture(),
+        anyString(),
+        ArgumentMatchers.contains(s"/0/$pk.lock"),
+        captor.capture(),
       )(ArgumentMatchers.eq(indexFileEncoder))
       captor.getValue.wrappedObject.pendingState shouldBe None
       captor.getValue.wrappedObject.committedOffset shouldBe Some(Offset(450))
@@ -1370,7 +1380,8 @@ class IndexManagerV2Test
       cached shouldBe Right(Some(Offset(450)))
       // Only one getBlobAsObject call for the granular lock (no second read after recovery)
       mverify(si, mtimes(1)).getBlobAsObject[IndexFile](
-        anyString(), ArgumentMatchers.contains(s"/0/$pk.lock"),
+        anyString(),
+        ArgumentMatchers.contains(s"/0/$pk.lock"),
       )(ArgumentMatchers.eq(indexFileDecoder))
     } finally im.close()
   }
@@ -1380,7 +1391,7 @@ class IndexManagerV2Test
   ) {
     val pk       = "my-pk"
     val (si, im) = buildDeadWorkerRecoveryFixture()
-    val tp = Topic("topic1").withPartition(0)
+    val tp       = Topic("topic1").withPartition(0)
 
     try {
       im.open(Set(tp)).isRight shouldBe true
@@ -1392,9 +1403,12 @@ class IndexManagerV2Test
 
       // The granular lock was written with cleared pending state
       val captor = ArgumentCaptor.forClass(classOf[ObjectWithETag[IndexFile]])
-      import org.mockito.Mockito.{ times => mtimes, verify => mverify }
+      import org.mockito.Mockito.{ times => mtimes }
+      import org.mockito.Mockito.{ verify => mverify }
       mverify(si, mtimes(1)).writeBlobToFile[IndexFile](
-        anyString(), ArgumentMatchers.contains(s"/0/$pk.lock"), captor.capture(),
+        anyString(),
+        ArgumentMatchers.contains(s"/0/$pk.lock"),
+        captor.capture(),
       )(ArgumentMatchers.eq(indexFileEncoder))
       captor.getValue.wrappedObject.pendingState shouldBe None
       captor.getValue.wrappedObject.committedOffset shouldBe Some(Offset(450))
@@ -1408,7 +1422,8 @@ class IndexManagerV2Test
       seeked shouldBe Right(Some(Offset(450)))
       // No additional getBlobAsObject call for the granular lock
       mverify(si, mtimes(1)).getBlobAsObject[IndexFile](
-        anyString(), ArgumentMatchers.contains(s"/0/$pk.lock"),
+        anyString(),
+        ArgumentMatchers.contains(s"/0/$pk.lock"),
       )(ArgumentMatchers.eq(indexFileDecoder))
     } finally im.close()
   }

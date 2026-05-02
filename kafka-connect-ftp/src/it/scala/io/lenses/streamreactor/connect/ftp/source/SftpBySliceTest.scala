@@ -54,7 +54,7 @@ class SftpBySliceTest extends AnyFunSuite with Matchers with BeforeAndAfter with
     var cnt = 0
     logger.info("--------------------poll" + cnt + "-------------------------")
     var slice: Seq[SourceRecord] = poller.poll()
-    var allReadBytes             = new Array[Byte](0)
+    var allReadBytes = new Array[Byte](0)
     while (slice.lengthCompare(1) == 0) {
       slice.head.topic shouldBe "sftp_update_slice"
       val bytes = slice.head.value().asInstanceOf[Array[Byte]]

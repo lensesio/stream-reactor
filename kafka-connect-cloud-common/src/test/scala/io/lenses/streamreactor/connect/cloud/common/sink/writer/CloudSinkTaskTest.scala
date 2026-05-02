@@ -103,14 +103,18 @@ class CloudSinkTaskTest
   private val tpA    = Topic("topic-a").withPartition(0)
   private val tpB    = Topic("topic-b").withPartition(0)
 
-  test("live-commit NonExistingFileError throws FatalConnectException under error.policy=RETRY (not RetriableException)") {
+  test(
+    "live-commit NonExistingFileError throws FatalConnectException under error.policy=RETRY (not RetriableException)",
+  ) {
     val wm     = buildWMWithUploadingWriter(tpA, nonExistentFile())
     val thrown = runPut(wm, RetryErrorPolicy())
     thrown shouldBe a[FatalConnectException]
     thrown should not be a[RetriableException]
   }
 
-  test("live-commit NonExistingFileError throws FatalConnectException under error.policy=NOOP (not silently swallowed)") {
+  test(
+    "live-commit NonExistingFileError throws FatalConnectException under error.policy=NOOP (not silently swallowed)",
+  ) {
     val wm     = buildWMWithUploadingWriter(tpA, nonExistentFile())
     val thrown = runPut(wm, NoopErrorPolicy())
     thrown shouldBe a[FatalConnectException]
@@ -143,7 +147,7 @@ class CloudSinkTaskTest
     wm.putWriter(MapKey(tpA, Map.empty), writer)
     wm.writerCount shouldBe 1
 
-    intercept[FatalConnectException] { runPutThrow(wm, RetryErrorPolicy()) }
+    intercept[FatalConnectException](runPutThrow(wm, RetryErrorPolicy()))
 
     wm.writerCount shouldBe 0
     verify(im, times(1)).evictAllGranularLocks(tpA)
@@ -152,7 +156,7 @@ class CloudSinkTaskTest
   test("live-commit Fatal does NOT advance preCommit offset (indexes.enabled=true)") {
     val wm = buildWMWithUploadingWriter(tpA, nonExistentFile())
 
-    intercept[FatalConnectException] { runPutThrow(wm, RetryErrorPolicy()) }
+    intercept[FatalConnectException](runPutThrow(wm, RetryErrorPolicy()))
 
     val returned = wm.preCommit(Map(tpA -> new OffsetAndMetadata(200L)))
     returned.keySet should not contain tpA
@@ -166,7 +170,7 @@ class CloudSinkTaskTest
     val wm     = buildMinimalWriterManager(stubWmIndexManager())
     wm.putWriter(MapKey(tpA, Map.empty), writer)
 
-    intercept[FatalConnectException] { runPutThrow(wm, RetryErrorPolicy()) }
+    intercept[FatalConnectException](runPutThrow(wm, RetryErrorPolicy()))
 
     val returned = wm.preCommit(Map(tpA -> new OffsetAndMetadata(200L)))
     returned.keySet should not contain tpA
@@ -193,7 +197,7 @@ class CloudSinkTaskTest
     wm.putWriter(MapKey(tpB, Map.empty), writerB)
     wm.writerCount shouldBe 2
 
-    intercept[FatalConnectException] { runPutThrow(wm, RetryErrorPolicy()) }
+    intercept[FatalConnectException](runPutThrow(wm, RetryErrorPolicy()))
 
     // writerA evicted; writerB survives
     wm.writerCount shouldBe 1
@@ -253,8 +257,8 @@ class CloudSinkTaskTest
   ): Throwable = {
     val task = new ConcreteTestSinkTask
     task.initialize(maxRetries, policy)
-    task.writerManager    = wm              // private[sink] — subpackage access
-    task.connectorTaskId  = connectorTaskId // public
+    task.writerManager   = wm              // private[sink] — subpackage access
+    task.connectorTaskId = connectorTaskId // public
     var thrown: Throwable = null
     try {
       task.handleTry(Try {
@@ -302,7 +306,9 @@ class CloudSinkTaskTest
   ): Writer[FakeFileMetadata] = {
     val objectKeyBuilder = mock[ObjectKeyBuilder]
     when(objectKeyBuilder.build(any[Offset], any[Long], any[Long])).thenReturn(
-      CloudLocation(bucket, path = Some(s"data/${tp.topic.value}/${tp.partition}/final-${uncommittedOff.value}.jsonl")).asRight,
+      CloudLocation(bucket,
+                    path = Some(s"data/${tp.topic.value}/${tp.partition}/final-${uncommittedOff.value}.jsonl"),
+      ).asRight,
     )
     val formatWriter = mock[FormatWriter]
     when(formatWriter.complete()).thenReturn(().asRight)
@@ -313,7 +319,7 @@ class CloudSinkTaskTest
       idxMgr,
       stagingFilenameFn = () => file.asRight,
       objectKeyBuilder,
-      formatWriterFn    = _ => formatWriter.asRight,
+      formatWriterFn = _ => formatWriter.asRight,
       mock[SchemaChangeDetector],
       pop,
       partitionKey     = None,

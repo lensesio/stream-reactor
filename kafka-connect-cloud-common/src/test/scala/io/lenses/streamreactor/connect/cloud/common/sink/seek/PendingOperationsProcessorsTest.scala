@@ -228,10 +228,10 @@ class PendingOperationsProcessorsTest
     // Critical: no Copy or Delete are attempted, and the index is NOT updated --
     // the writer must remain in Uploading state for recommitPending to retry.
     verify(storageInterface, Mockito.never()).mvFile(anyString(),
-                                                    anyString(),
-                                                    anyString(),
-                                                    anyString(),
-                                                    any[Option[String]],
+                                                     anyString(),
+                                                     anyString(),
+                                                     anyString(),
+                                                     any[Option[String]],
     )
     verify(storageInterface, Mockito.never()).deleteFile(anyString(), anyString(), any[String])
     verifyNoInteractions(fnIndexUpdate)
@@ -271,10 +271,10 @@ class PendingOperationsProcessorsTest
     // Graceful clear of the stale PendingState; chain is abandoned with the OLD committedOffset preserved.
     inOrderVerifier.verify(fnIndexUpdate).apply(topicPartition, Some(Offset(50)), None)
     verify(storageInterface, Mockito.never()).mvFile(anyString(),
-                                                    anyString(),
-                                                    anyString(),
-                                                    anyString(),
-                                                    any[Option[String]],
+                                                     anyString(),
+                                                     anyString(),
+                                                     anyString(),
+                                                     any[Option[String]],
     )
     verify(storageInterface, Mockito.never()).deleteFile(anyString(), anyString(), any[String])
   }
@@ -351,7 +351,12 @@ class PendingOperationsProcessorsTest
 
     // best-effort PendingState clear
     verify(fnIndexUpdate).apply(topicPartition, Some(Offset(50)), None)
-    verify(storageInterface, Mockito.never()).mvFile(anyString(), anyString(), anyString(), anyString(), any[Option[String]])
+    verify(storageInterface, Mockito.never()).mvFile(anyString(),
+                                                     anyString(),
+                                                     anyString(),
+                                                     anyString(),
+                                                     any[Option[String]],
+    )
     verify(storageInterface, Mockito.never()).deleteFile(anyString(), anyString(), any[String])
   }
 
@@ -397,7 +402,12 @@ class PendingOperationsProcessorsTest
     // Only uploadFile was called (once, returning NonExistingFileError).
     verify(storageInterface, Mockito.times(1)).uploadFile(any[UploadableFile], anyString(), anyString())
     verify(storageInterface, Mockito.never()).getBlobAsStringAndEtag(anyString(), anyString())
-    verify(storageInterface, Mockito.never()).mvFile(anyString(), anyString(), anyString(), anyString(), any[Option[String]])
+    verify(storageInterface, Mockito.never()).mvFile(anyString(),
+                                                     anyString(),
+                                                     anyString(),
+                                                     anyString(),
+                                                     any[Option[String]],
+    )
     verify(storageInterface, Mockito.never()).deleteFile(anyString(), anyString(), any[String])
   }
 

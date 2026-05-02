@@ -326,7 +326,7 @@ class DatalakeStorageInterface(connectorTaskId: ConnectorTaskId, client: DataLak
     }
 
     first match {
-      case r @ Right(_) => r
+      case r @ Right(_)      => r
       case Left(originalErr) =>
         // Idempotence fallback (mirrors AwsS3StorageInterface.mvFile and
         // GCPStorageStorageInterface.mvFile). When the rename fails but the source is
@@ -349,11 +349,15 @@ class DatalakeStorageInterface(connectorTaskId: ConnectorTaskId, client: DataLak
             )
             ().asRight
           case Right(false) =>
-            Left(FileMoveError(
-              new IllegalStateException(s"Source $oldBucket/$oldPath and destination $newBucket/$newPath both missing"),
-              oldPath,
-              newPath,
-            ))
+            Left(
+              FileMoveError(
+                new IllegalStateException(
+                  s"Source $oldBucket/$oldPath and destination $newBucket/$newPath both missing",
+                ),
+                oldPath,
+                newPath,
+              ),
+            )
           case Left(_) =>
             // Best-effort verification failed -- preserve the original move error.
             Left(originalErr)

@@ -75,8 +75,8 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
 
   private var logMetrics = false
   private[sink] var writerManager: WriterManager[MD] = _
-  private var indexManager:  IndexManager      = _
-  private var config:        C                 = _
+  private var indexManager:        IndexManager      = _
+  private var config:              C                 = _
   private val attachLatestSchemaOptimizer = new AttachLatestSchemaOptimizer()
   implicit var connectorTaskId: ConnectorTaskId = _
 
@@ -117,7 +117,7 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
         val isFatal = error match {
           case _: FatalCloudSinkError => true
           case b: BatchCloudSinkError => b.fatal.nonEmpty
-          case _                      => false
+          case _ => false
         }
         if (isFatal) throw new FatalConnectException(error.message(), error.exception().orNull)
         else throw new ConnectException(error.message(), error.exception().orNull)
