@@ -36,6 +36,7 @@ import io.lenses.streamreactor.connect.cloud.common.storage.ListOfMetadataRespon
 import io.lenses.streamreactor.connect.cloud.common.storage.NonExistingFileError
 import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
 import io.lenses.streamreactor.connect.cloud.common.sink.FatalCloudSinkError
+import io.lenses.streamreactor.connect.cloud.common.sink.NonFatalCloudSinkError
 import io.lenses.streamreactor.connect.cloud.common.storage.PathError
 import io.lenses.streamreactor.connect.cloud.common.storage.FileCreateError
 import io.lenses.streamreactor.connect.cloud.common.storage.FileMoveError
@@ -3966,6 +3967,135 @@ class IndexManagerV2Test
       )(any[Encoder[IndexManagerV2.SweepMarker]])
       // The scan was attempted (and threw); the outer try/catch swallowed the error.
       verify(si, times(1)).listFileMetaRecursive(anyString(), any[Option[String]])
+    } finally im.close()
+  }
+
+  // ── Branch-classification pins: transient error → NonFatalCloudSinkError(swallowable=false) ──
+  //
+  // These tests pin the three IndexManagerV2 branches that must return unswallowable errors
+  // so that error.policy=NOOP does NOT silently advance past integrity-sensitive failures
+  // while error.policy=RETRY can wrap them in RetriableException for safe re-delivery.
+
+  test("loadGranularLock: transient getBlobAsObject failure returns NonFatalCloudSinkError(swallowable=false)") {
+    val tp              = Topic("topic1").withPartition(0)
+    val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
+
+    val si = mock[StorageInterface[_]]
+    when(bucketAndPrefixFn(any[TopicPartition])).thenReturn(Right(bucketAndPrefix))
+    when(si.pathExists(anyString(), anyString())).thenReturn(Right(false))
+    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith("0.lock"))(
+      ArgumentMatchers.eq(indexFileDecoder),
+    )).thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(50)), None), "master-etag")))
+
+    val im = new IndexManagerV2(
+      bucketAndPrefixFn,
+      oldIndexManager,
+      pendingOperationsProcessors,
+      indexesDirectoryName,
+      gcIntervalSeconds = Int.MaxValue,
+    )(si, connectorTaskId)
+
+    im.open(Set(tp))
+
+    // Granular lock read fails with a transient error (not FileNotFoundError)
+    when(
+      si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/pk-transient.lock"))(
+        ArgumentMatchers.eq(indexFileDecoder),
+      ),
+    ).thenReturn(Left(GeneralFileLoadError(new RuntimeException("transient read timeout"), "pk-transient.lock")))
+
+    try {
+      val result = im.getSeekedOffsetForPartitionKey(tp, "pk-transient")
+      result.isLeft shouldBe true
+      result.left.value shouldBe a[NonFatalCloudSinkError]
+      result.left.value.asInstanceOf[NonFatalCloudSinkError].swallowable shouldBe false
+    } finally im.close()
+  }
+
+  test("ensureGranularLock: outer transient tryOpen failure returns NonFatalCloudSinkError(swallowable=false)") {
+    val tp              = Topic("topic1").withPartition(0)
+    val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
+
+    val si = mock[StorageInterface[_]]
+    when(bucketAndPrefixFn(any[TopicPartition])).thenReturn(Right(bucketAndPrefix))
+    when(si.pathExists(anyString(), anyString())).thenReturn(Right(false))
+    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith("0.lock"))(
+      ArgumentMatchers.eq(indexFileDecoder),
+    )).thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(50)), None), "master-etag")))
+
+    val im = new IndexManagerV2(
+      bucketAndPrefixFn,
+      oldIndexManager,
+      pendingOperationsProcessors,
+      indexesDirectoryName,
+      gcIntervalSeconds = Int.MaxValue,
+    )(si, connectorTaskId)
+
+    im.open(Set(tp))
+
+    // tryOpen for the granular lock fails with a transient error (not FileNotFoundError)
+    when(
+      si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/pk-outer-transient.lock"))(
+        ArgumentMatchers.eq(indexFileDecoder),
+      ),
+    ).thenReturn(Left(GeneralFileLoadError(new RuntimeException("transient read timeout"), "pk-outer-transient.lock")))
+
+    try {
+      val result = im.ensureGranularLock(tp, "pk-outer-transient")
+      result.isLeft shouldBe true
+      result.left.value shouldBe a[NonFatalCloudSinkError]
+      result.left.value.asInstanceOf[NonFatalCloudSinkError].swallowable shouldBe false
+    } finally im.close()
+  }
+
+  test(
+    "ensureGranularLock: NoOverwrite fallback re-read transient failure returns NonFatalCloudSinkError(swallowable=false)",
+  ) {
+    val tp              = Topic("topic1").withPartition(0)
+    val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
+
+    val si = mock[StorageInterface[_]]
+    when(bucketAndPrefixFn(any[TopicPartition])).thenReturn(Right(bucketAndPrefix))
+    when(si.pathExists(anyString(), anyString())).thenReturn(Right(false))
+    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith("0.lock"))(
+      ArgumentMatchers.eq(indexFileDecoder),
+    )).thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(50)), None), "master-etag")))
+
+    val im = new IndexManagerV2(
+      bucketAndPrefixFn,
+      oldIndexManager,
+      pendingOperationsProcessors,
+      indexesDirectoryName,
+      gcIntervalSeconds = Int.MaxValue,
+    )(si, connectorTaskId)
+
+    im.open(Set(tp))
+
+    val notFound: Either[FileNotFoundError, ObjectWithETag[IndexFile]] =
+      Left(FileNotFoundError(new Exception("Not found"), "pk-nooverwrite-race.lock"))
+    val transientErr: Either[GeneralFileLoadError, ObjectWithETag[IndexFile]] =
+      Left(GeneralFileLoadError(new RuntimeException("transient on re-read"), "pk-nooverwrite-race.lock"))
+
+    // First getBlobAsObject: FileNotFoundError triggers the NoOverwrite create path
+    // Second getBlobAsObject (re-read after conflict): transient error
+    org.mockito.Mockito.doReturn(notFound, transientErr)
+      .when(si).getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/pk-nooverwrite-race.lock"))(
+        ArgumentMatchers.eq(indexFileDecoder),
+      )
+
+    // NoOverwrite write fails (conflict with another task)
+    when(
+      si.writeBlobToFile[IndexFile](anyString(),
+                                    ArgumentMatchers.contains("/0/pk-nooverwrite-race.lock"),
+                                    any[NoOverwriteExistingObject[IndexFile]],
+      )(ArgumentMatchers.eq(indexFileEncoder)),
+    ).thenReturn(Left(FileCreateError(new RuntimeException("conflict"), "pk-nooverwrite-race.lock")))
+
+    try {
+      val result = im.ensureGranularLock(tp, "pk-nooverwrite-race")
+      result.isLeft shouldBe true
+      result.left.value shouldBe a[NonFatalCloudSinkError]
+      result.left.value.asInstanceOf[NonFatalCloudSinkError].swallowable shouldBe false
     } finally im.close()
   }
 }

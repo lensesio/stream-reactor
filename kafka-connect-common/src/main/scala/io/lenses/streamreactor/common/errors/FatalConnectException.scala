@@ -31,3 +31,25 @@ import org.apache.kafka.connect.errors.ConnectException
 class FatalConnectException(message: String, cause: Throwable) extends ConnectException(message, cause) {
   def this(message: String) = this(message, null)
 }
+
+/**
+ * Marker subclass of `FatalConnectException` for integrity-sensitive transient errors.
+ *
+ * Unlike `FatalConnectException`, this class signals that Kafka Connect SHOULD re-deliver
+ * the same batch (via `RetriableException`) under `error.policy=RETRY` — the operation is
+ * safe to retry because no partial state was cached. Under `error.policy=NOOP` and
+ * `error.policy=THROW` it behaves identically to `FatalConnectException` (fail-fast),
+ * because silently advancing past the error would produce data loss.
+ *
+ * Concrete example: a transient cloud read-timeout while loading a granular lock prevents
+ * the connector from knowing the correct deduplication floor for the current partition key.
+ * Retrying the same `put()` is safe; swallowing the error and continuing is not.
+ *
+ * Policy handling:
+ *   - `RetryErrorPolicy`: wraps in `RetriableException` while retries remain; rethrows as-is when exhausted.
+ *   - `NoopErrorPolicy`: rethrows as-is (via the `FatalConnectException` case — no change needed).
+ *   - `ThrowErrorPolicy`: rethrows as-is (via the `FatalConnectException` case — no change needed).
+ */
+class RetriableIntegrityException(message: String, cause: Throwable) extends FatalConnectException(message, cause) {
+  def this(message: String) = this(message, null)
+}

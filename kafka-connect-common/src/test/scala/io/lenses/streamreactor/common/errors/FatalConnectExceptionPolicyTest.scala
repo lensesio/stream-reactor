@@ -103,4 +103,38 @@ class FatalConnectExceptionPolicyTest extends AnyFunSuite with Matchers {
     thrown shouldNot be(a[FatalConnectException])
     thrown.getCause should be theSameInstanceAs transient
   }
+
+  private val integrity = new RetriableIntegrityException("transient cloud read timeout", cause)
+
+  test("RetryErrorPolicy wraps RetriableIntegrityException in RetriableException when retries remain") {
+    val policy = RetryErrorPolicy()
+    val thrown = intercept[RetriableException] {
+      policy.handle(integrity, sink = true, retryCount = 3)
+    }
+    thrown.getCause should be theSameInstanceAs integrity
+  }
+
+  test("RetryErrorPolicy rethrows RetriableIntegrityException as-is when retries are exhausted") {
+    val policy = RetryErrorPolicy()
+    val thrown = intercept[RetriableIntegrityException] {
+      policy.handle(integrity, sink = true, retryCount = 0)
+    }
+    (thrown should be theSameInstanceAs integrity)
+  }
+
+  test("NoopErrorPolicy rethrows RetriableIntegrityException as-is (does NOT swallow integrity errors)") {
+    val policy = NoopErrorPolicy()
+    val thrown = intercept[RetriableIntegrityException] {
+      policy.handle(integrity)
+    }
+    (thrown should be theSameInstanceAs integrity)
+  }
+
+  test("ThrowErrorPolicy rethrows RetriableIntegrityException as-is (NOT wrapped in plain ConnectException)") {
+    val policy = ThrowErrorPolicy()
+    val thrown = intercept[RetriableIntegrityException] {
+      policy.handle(integrity)
+    }
+    (thrown should be theSameInstanceAs integrity)
+  }
 }

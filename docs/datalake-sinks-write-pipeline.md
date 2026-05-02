@@ -51,16 +51,19 @@ For each `SinkRecord`:
 
 **Step 3 -- empty-poll flush.** If the records collection is empty (Kafka returned nothing), `commitFlushableWriters()` still runs to flush any timed-out writers.
 
-If any step raises a `SinkError`, `CloudSinkTask.handleErrors` runs first:
+If any step raises a `SinkError`, `CloudSinkTask.handleErrors` runs first and applies a three-way classification:
 
-- `rollBack() == false` (a `NonFatalCloudSinkError`) → no cleanup is performed; `handleErrors` throws a plain `ConnectException` wrapping the underlying error.
-- `rollBack() == true` AND the error is **non-fatal** in aggregate (a `BatchCloudSinkError` with `fatal.isEmpty`) → `WriterManager.cleanUp(tp)` is called for each affected partition (closes writers, evicts granular caches, clears high-watermark; preserves master-lock state because the partition is still owned), then a plain `ConnectException` is thrown.
-- `rollBack() == true` AND the error **is fatal** (`FatalCloudSinkError`, or a `BatchCloudSinkError` with `fatal.nonEmpty`) → same cleanup as above, then a **`FatalConnectException`** (a `ConnectException` subclass) is thrown. `FatalConnectException` is a marker class: every `ErrorPolicy` implementation (`RETRY`, `NOOP`, `THROW`) re-throws it directly without wrapping it in a `RetriableException` and without logging-and-continuing. This guarantees that a live-commit fail-fast error **always** fails the task immediately, regardless of the configured error policy.
+- **`FatalCloudSinkError`** or a **`BatchCloudSinkError` with `fatal.nonEmpty`** → `WriterManager.cleanUp(tp)` is called for each affected partition (closes writers, evicts granular caches, clears high-watermark; preserves master-lock state because the partition is still owned), then a **`FatalConnectException`** is thrown. `FatalConnectException` is a marker class: every `ErrorPolicy` (`RETRY`, `NOOP`, `THROW`) re-throws it directly without wrapping in `RetriableException` and without logging-and-continuing. This guarantees a live-commit fail-fast error always fails the task immediately.
+- **`NonFatalCloudSinkError(swallowable=false)`** or a **`BatchCloudSinkError` with `hasUnswallowable`** (and no fatal errors) → no cleanup; `handleErrors` throws a **`RetriableIntegrityException`** (a `FatalConnectException` subclass). This classification is used by integrity-sensitive transient failures — for example, a cloud read-timeout while loading a granular lock — where it is safe to retry the same `put()` but silently advancing past the error would risk data loss or deduplication violations.
+- **`NonFatalCloudSinkError(swallowable=true)`** (the default) or a **`BatchCloudSinkError` with only swallowable non-fatals** → no cleanup; `handleErrors` throws a plain **`ConnectException`** wrapping the underlying error.
 
 The `Try { ... }` in `put()` catches the thrown exception, decrements the configured retry budget, and routes it through the active `ErrorPolicy`:
-- **`FatalConnectException`**: all three policies rethrow it unchanged. The retry budget is decremented by one (a known minor accounting quirk that is harmless because the task is failing anyway), the task fails, and Kafka Connect restarts it.
-- **Plain `ConnectException`** with `error.policy=RETRY` and remaining retries: rethrown as a `RetriableException`; Kafka Connect retries the same `put(records)` argument after the configured `connect.<prefix>.retry.interval`.
+- **`FatalConnectException`** (excluding `RetriableIntegrityException`): all three policies rethrow it unchanged. The task fails and Kafka Connect restarts it.
+- **`RetriableIntegrityException`** with `error.policy=RETRY` and remaining retries: `RetryErrorPolicy` wraps it in a `RetriableException`; Kafka Connect retries the same `put(records)` argument after the configured `connect.<prefix>.retry.interval`. On retry budget exhaustion, `RetriableIntegrityException` is rethrown as-is and the task fails.
+- **`RetriableIntegrityException`** with `error.policy=NOOP` or `error.policy=THROW`: rethrown as-is (both policies already rethrow any `FatalConnectException` subclass). The task fails immediately — integrity-sensitive errors are never silently swallowed.
+- **Plain `ConnectException`** with `error.policy=RETRY` and remaining retries: rethrown as a `RetriableException`; Kafka Connect retries the same `put(records)` argument.
 - **Plain `ConnectException`** when the budget is zero or `error.policy=THROW`: propagated unchanged; the task fails and Kafka Connect restarts it.
+- **Plain `ConnectException`** with `error.policy=NOOP`: logged at WARN level and swallowed; processing continues with the next `put()`. (Note: only genuinely swallowable non-fatal errors, e.g. a transient upload failure where the staging file is still on disk, reach this path.)
 
 ### `preCommit(currentOffsets)`
 
@@ -363,13 +366,15 @@ sequenceDiagram
     CST->>CST: throw FatalConnectException
 ```
 
-`FatalConnectException` is a marker `ConnectException` subclass. Every `ErrorPolicy` re-throws it directly:
+`FatalConnectException` is a marker `ConnectException` subclass. For the `FatalCloudSinkError` (unrecoverable, e.g. missing staging file) case, every `ErrorPolicy` re-throws it directly:
 
 | `error.policy` | Behaviour |
 |----------------|-----------|
 | `RETRY` | Rethrows `FatalConnectException` unchanged (NOT a `RetriableException`). Retry budget decremented once (harmless; task is failing). |
 | `NOOP` | Rethrows `FatalConnectException` unchanged (does NOT log-and-continue). |
 | `THROW` | Rethrows `FatalConnectException` unchanged. |
+
+Note: `RetriableIntegrityException` (also a `FatalConnectException` subclass, used for integrity-sensitive transient failures such as a cloud read-timeout while loading a granular lock) is handled differently by `RETRY`: while retries remain, it is wrapped in `RetriableException` and Kafka Connect re-delivers the same batch in-process. Under `NOOP` and `THROW` it behaves identically to a plain `FatalConnectException` — rethrown as-is, task fails immediately. See the `handleErrors` three-way classification above.
 
 The task fails immediately. Kafka Connect schedules a restart. On restart, `IndexManagerV2.open` reads the master lock and calls `context.offset(tp, committedOffset)` to seek the consumer back to `committedOffset`. Records at offsets 100-150 (the uncommitted batch) are re-delivered from Kafka and re-written with a new staging file.
 

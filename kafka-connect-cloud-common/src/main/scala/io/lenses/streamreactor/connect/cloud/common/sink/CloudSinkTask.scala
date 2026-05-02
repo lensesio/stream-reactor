@@ -20,6 +20,7 @@ import cats.implicits.toShow
 import io.lenses.streamreactor.common.config.base.intf.ConnectionConfig
 import io.lenses.streamreactor.common.errors.ErrorHandler
 import io.lenses.streamreactor.common.errors.FatalConnectException
+import io.lenses.streamreactor.common.errors.RetriableIntegrityException
 import io.lenses.streamreactor.common.errors.RetryErrorPolicy
 import io.lenses.streamreactor.common.util.AsciiArtPrinter.printAsciiHeader
 import io.lenses.streamreactor.common.util.JarManifest
@@ -114,13 +115,22 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
         if (error.rollBack()) {
           rollback(error.topicPartitions())
         }
-        val isFatal = error match {
-          case _: FatalCloudSinkError => true
-          case b: BatchCloudSinkError => b.fatal.nonEmpty
-          case _ => false
+        // Classification (evaluated in order — Fatal must pre-empt RetriableIntegrity):
+        //   Fatal             → FatalConnectException  (all policies fail fast, no retry)
+        //   RetriableIntegrity→ RetriableIntegrityException (RETRY re-delivers via KC; NOOP/THROW fail fast)
+        //   NonFatal          → ConnectException        (RETRY wraps in RetriableException; NOOP swallows)
+        error match {
+          case _: FatalCloudSinkError =>
+            throw new FatalConnectException(error.message(), error.exception().orNull)
+          case b: BatchCloudSinkError if b.fatal.nonEmpty =>
+            throw new FatalConnectException(error.message(), error.exception().orNull)
+          case n: NonFatalCloudSinkError if !n.swallowable =>
+            throw new RetriableIntegrityException(error.message(), error.exception().orNull)
+          case b: BatchCloudSinkError if b.hasUnswallowable =>
+            throw new RetriableIntegrityException(error.message(), error.exception().orNull)
+          case _ =>
+            throw new ConnectException(error.message(), error.exception().orNull)
         }
-        if (isFatal) throw new FatalConnectException(error.message(), error.exception().orNull)
-        else throw new ConnectException(error.message(), error.exception().orNull)
       case Right(_) =>
     }
 

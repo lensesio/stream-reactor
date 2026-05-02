@@ -79,6 +79,14 @@ case class RetryErrorPolicy() extends ErrorPolicy {
 
   override def handle(error: Throwable, sink: Boolean = true, retryCount: Int): Unit =
     error match {
+      // RetriableIntegrityException MUST be checked before FatalConnectException because it
+      // is a subclass.  Under RETRY we re-deliver via RetriableException while retries remain;
+      // on exhaustion we rethrow as-is so NOOP-style integrity guarantees are still upheld.
+      case ri: RetriableIntegrityException if retryCount > 0 =>
+        logger.warn(s"Error policy set to RETRY (integrity). Remaining attempts [$retryCount]")
+        throw new RetriableException(ri)
+      case ri: RetriableIntegrityException =>
+        throw ri
       case fatal: FatalConnectException =>
         // Fail-fast: never wrap in RetriableException; never schedule an in-process
         // retry attempt. Note: ErrorHandler.handleTry decrements the in-memory retry

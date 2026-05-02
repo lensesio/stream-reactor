@@ -51,10 +51,25 @@ case object FatalCloudSinkError {
  * The retry path depends on context: Upload failures are retried by `recommitPending`
  * from the still-on-disk local file.
  *
+ * When `swallowable = true` (the default), `NoopErrorPolicy` logs and continues — the
+ * error is genuinely transient and safe to ignore (e.g. an upload failure where the
+ * staging file is still on disk for `recommitPending` to retry).
+ *
+ * When `swallowable = false`, the error is integrity-sensitive (e.g. a transient cloud
+ * read failure while loading a granular lock prevents the connector from knowing the
+ * correct deduplication floor). In this case:
+ *   - `error.policy=RETRY` wraps it in `RetriableException` so Kafka Connect re-delivers
+ *     the same batch on the next `put()` call (see `RetryErrorPolicy`).
+ *   - `error.policy=NOOP` and `error.policy=THROW` fail fast — the error is surfaced as a
+ *     `RetriableIntegrityException` (a subclass of `FatalConnectException`) so NOOP does
+ *     NOT silently swallow it and `preCommit` does NOT advance past the affected offsets.
+ *
  * @param message       A descriptive message about the error.
  * @param exception     An optional exception associated with the error.
+ * @param swallowable   When false, NOOP/THROW fail fast and RETRY schedules a re-delivery.
  */
-case class NonFatalCloudSinkError(message: String, exception: Option[Throwable]) extends SinkError {
+case class NonFatalCloudSinkError(message: String, exception: Option[Throwable], swallowable: Boolean = true)
+    extends SinkError {
 
   override def rollBack(): Boolean = false
 
@@ -67,6 +82,10 @@ case object NonFatalCloudSinkError {
 
   def apply(exception: Throwable): NonFatalCloudSinkError =
     NonFatalCloudSinkError(exception.getMessage, exception.some)
+
+  /** Constructs a non-fatal error that must NOT be swallowed by NOOP or THROW. */
+  def unswallowable(message: String, exception: Option[Throwable]): NonFatalCloudSinkError =
+    NonFatalCloudSinkError(message, exception, swallowable = false)
 }
 
 case object BatchCloudSinkError {
@@ -120,4 +139,7 @@ case class BatchCloudSinkError(
   override def rollBack(): Boolean = fatal.nonEmpty
 
   override def topicPartitions(): Set[TopicPartition] = fatal.map(_.topicPartition)
+
+  /** True when the batch contains at least one non-fatal error that must not be swallowed. */
+  def hasUnswallowable: Boolean = nonFatal.exists(!_.swallowable)
 }

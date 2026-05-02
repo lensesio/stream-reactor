@@ -18,6 +18,7 @@ package io.lenses.streamreactor.connect.cloud.common.sink.writer
 import cats.implicits.catsSyntaxEitherId
 import io.lenses.streamreactor.common.config.base.intf.ConnectionConfig
 import io.lenses.streamreactor.common.errors._
+import io.lenses.streamreactor.common.errors.RetriableIntegrityException
 import io.lenses.streamreactor.common.util.JarManifest
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.config.traits.CloudSinkConfig
@@ -29,6 +30,7 @@ import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
 import io.lenses.streamreactor.connect.cloud.common.sink.CloudSinkTask
+import io.lenses.streamreactor.connect.cloud.common.sink.NonFatalCloudSinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.CloudCommitPolicy
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.CommitPolicy
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.KeyNamer
@@ -240,6 +242,59 @@ class CloudSinkTaskTest
     // Crash-recovery on restart will resume the chain from the persisted PendingState.
     val blobKeys = storage.snapshot(bucket).keys
     blobKeys.exists(_.contains(".temp-upload/")) shouldBe true
+  }
+
+  // ── Unswallowable (integrity-sensitive) error policy matrix ────────────────────────────────
+  //
+  // These tests pin the contract that a `NonFatalCloudSinkError(swallowable=false)` (as returned
+  // by `IndexManagerV2` transient branches) surfaces as `RetriableIntegrityException` through
+  // `handleErrors` and then is handled correctly by each error policy:
+  //   RETRY  → RetriableException(cause=RetriableIntegrityException)  — KC re-delivers the batch
+  //   NOOP   → RetriableIntegrityException re-thrown as-is             — fail-fast, no silent skip
+  //   THROW  → RetriableIntegrityException re-thrown as-is             — fail-fast
+
+  test("unswallowable IndexManager error under error.policy=RETRY wraps in RetriableException") {
+    val thrown = runHandleErrors(RetryErrorPolicy(), maxRetries = 5)
+    thrown shouldBe a[RetriableException]
+    Option(thrown.getCause) match {
+      case Some(_: RetriableIntegrityException) => succeed
+      case other => fail(s"Expected cause RetriableIntegrityException, got: $other")
+    }
+  }
+
+  test(
+    "unswallowable IndexManager error under error.policy=NOOP rethrows RetriableIntegrityException (not swallowed)",
+  ) {
+    val thrown = runHandleErrors(NoopErrorPolicy())
+    thrown shouldBe a[RetriableIntegrityException]
+  }
+
+  test(
+    "unswallowable IndexManager error under error.policy=THROW rethrows RetriableIntegrityException (not ConnectException)",
+  ) {
+    val thrown = runHandleErrors(ThrowErrorPolicy())
+    thrown shouldBe a[RetriableIntegrityException]
+  }
+
+  /**
+   * Drives a `Left(NonFatalCloudSinkError.unswallowable(...))` through the REAL production
+   * `CloudSinkTask.handleErrors` → `handleTry` → `ErrorPolicy` chain.
+   *
+   * Returns the exception rethrown by the error policy, or `null` if none.
+   */
+  private def runHandleErrors(policy: ErrorPolicy, maxRetries: Int = 5): Throwable = {
+    val task = new ConcreteTestSinkTask
+    task.initialize(maxRetries, policy)
+    task.connectorTaskId = connectorTaskId
+    val unswallowableErr =
+      Left(NonFatalCloudSinkError.unswallowable("simulated transient granular lock read timeout", None))
+    var thrown: Throwable = null
+    try {
+      task.handleTry(scala.util.Try {
+        task.handleErrors(unswallowableErr)
+      })
+    } catch { case t: Throwable => thrown = t }
+    thrown
   }
 
   /**

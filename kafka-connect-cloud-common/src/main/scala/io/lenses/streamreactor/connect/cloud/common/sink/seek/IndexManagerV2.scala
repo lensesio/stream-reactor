@@ -25,6 +25,7 @@ import io.lenses.streamreactor.connect.cloud.common.model.Offset
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.sink.FatalCloudSinkError
+import io.lenses.streamreactor.connect.cloud.common.sink.NonFatalCloudSinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.metrics.CloudSinkMetrics
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexManagerV2._
@@ -558,12 +559,12 @@ class IndexManagerV2(
         case Left(_: FileNotFoundError) =>
           Option.empty[Offset].asRight
 
-        // Transient cloud errors (network, throttling); fatal because a partially loaded state is unsafe
+        // Transient cloud errors (network, throttling): retried by Kafka Connect under RETRY;
+        // fail-fast under NOOP/THROW so partially loaded state is never silently swallowed.
         case Left(err) =>
-          val sinkError: SinkError = new FatalCloudSinkError(
+          val sinkError: SinkError = NonFatalCloudSinkError.unswallowable(
             s"Failed to lazy-load granular lock for $topicPartition/$partitionKey: ${err.message()}",
             err.toExceptionOption,
-            topicPartition,
           )
           logger.error(sinkError.message())
           sinkError.asLeft
@@ -727,17 +728,16 @@ class IndexManagerV2(
               tryOpen(bucketAndPrefix.bucket, path) match {
                 case Right(existing) =>
                   resolveAndCacheGranularLock(topicPartition, partitionKey, existing)
+                // Transient cloud error on re-read after NoOverwrite race: retried by Kafka Connect
+                // under RETRY; fail-fast under NOOP/THROW to avoid swallowing integrity state.
                 case Left(retryErr) =>
-                  (new FatalCloudSinkError(retryErr.message(),
-                                           retryErr.toExceptionOption,
-                                           topicPartition,
-                  ): SinkError).asLeft
+                  NonFatalCloudSinkError.unswallowable(retryErr.message(), retryErr.toExceptionOption).asLeft
               }
             }
 
-          // Transient storage error: propagate as fatal
+          // Transient storage error: retried by Kafka Connect under RETRY; fail-fast under NOOP/THROW.
           case Left(err) =>
-            (new FatalCloudSinkError(err.message(), err.toExceptionOption, topicPartition): SinkError).asLeft
+            NonFatalCloudSinkError.unswallowable(err.message(), err.toExceptionOption).asLeft
         }
       } yield ()
     }
