@@ -308,7 +308,7 @@ class DatalakeStorageInterface(connectorTaskId: ConnectorTaskId, client: DataLak
       ()
     }.toEither
 
-    tryRenamePath() match {
+    val first: Either[FileMoveError, Unit] = tryRenamePath() match {
       case Right(_) => Right(())
       case Left(dse: DataLakeStorageException)
           if dse.getStatusCode == 404 || Option(dse.getMessage).exists(
@@ -323,6 +323,41 @@ class DatalakeStorageInterface(connectorTaskId: ConnectorTaskId, client: DataLak
           case None => Left(FileMoveError(dse, oldPath, newPath))
         }
       case Left(other) => Left(FileMoveError(other, oldPath, newPath))
+    }
+
+    first match {
+      case r @ Right(_) => r
+      case Left(originalErr) =>
+        // Idempotence fallback (mirrors AwsS3StorageInterface.mvFile and
+        // GCPStorageStorageInterface.mvFile). When the rename fails but the source is
+        // verifiably absent and the destination is verifiably present, treat the call
+        // as an idempotent replay of an already-completed move. This is essential for
+        // crash-after-Copy-before-lock-update recovery: the recovery handler
+        // (PendingOperationsProcessors) will replay CopyOperation on restart, and
+        // without this branch the replay would escalate to FatalCloudSinkError and
+        // produce a deterministic restart loop on the affected partition.
+        val sourceMissing = pathExists(oldBucket, oldPath).fold(_ => false, !_)
+        if (!sourceMissing) Left(originalErr)
+        else pathExists(newBucket, newPath) match {
+          case Right(true) =>
+            logger.warn(
+              "Object ({}/{}) missing but destination ({}/{}) exists; treating mvFile as idempotent success",
+              oldBucket,
+              oldPath,
+              newBucket,
+              newPath,
+            )
+            ().asRight
+          case Right(false) =>
+            Left(FileMoveError(
+              new IllegalStateException(s"Source $oldBucket/$oldPath and destination $newBucket/$newPath both missing"),
+              oldPath,
+              newPath,
+            ))
+          case Left(_) =>
+            // Best-effort verification failed -- preserve the original move error.
+            Left(originalErr)
+        }
     }
   }
 

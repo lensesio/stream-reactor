@@ -27,7 +27,9 @@ import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.sink.ExactlyOnceScenarioTest._
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.CopyOperation
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.DeleteOperation
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexFile
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexManagerV2
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.ObjectWithETag
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.PendingOperationsProcessors
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.PendingState
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.UploadOperation
@@ -111,8 +113,6 @@ class ExactlyOnceScenarioTest extends AnyFunSuite with Matchers with BeforeAndAf
   }
 
   private def h: Harness = harnessOpt.getOrElse(throw new IllegalStateException("Harness not initialized"))
-
-  // ---------- scenarios ----------
 
   test("clean non-PARTITIONBY run: every delivered record lands exactly once") {
     // Three records on tp0. After commit + preCommit, K = 3 (last offset 2, +1).
@@ -300,15 +300,131 @@ class ExactlyOnceScenarioTest extends AnyFunSuite with Matchers with BeforeAndAf
     h.run(ops)
     h.persistedOffsetsForPk(tp0, Some("pk-a")) shouldBe Set(1L, 2L)
   }
+
+  // (a) Copy/Delete pending recovery via getSeekedOffsetForPartitionKey (loadGranularLock)
+  test("PARTITIONBY: Copy/Delete pending recovery resolves via getSeekedOffsetForPartitionKey (loadGranularLock path)") {
+    // Crash after Upload (temp blob written, Copy fails). On reboot, LoadGranularLock
+    // triggers getSeekedOffsetForPartitionKey -> loadGranularLock -> resolveAndCacheGranularLock,
+    // which replays [Copy, Delete] from the still-present temp blob. Final blob arrives
+    // at the expected path; no orphaned temp remains.
+    val pk        = "pk-load"
+    val tempPath  = h.predictTempPathFor(tp0, Some(pk), 20L)
+    val finalPath = h.expectedFinalPath(tp0, Some(pk), 20L)
+    val ops = List[Op](
+      Assign(Set(tp0)),
+      Write(tp0, Some(pk), 20L),
+      InjectFailMove(tempPath),        // Copy will fail; lock records PendingState=[Copy, Delete]
+      Commit(tp0),                     // expected to fail
+      Crash,
+      LoadGranularLock(tp0, pk),       // triggers getSeekedOffsetForPartitionKey -> loadGranularLock
+    )
+    h.run(ops, expectCommitErrors = true)
+    h.storage.pathExists(h.bucket, finalPath).getOrElse(false) shouldBe true
+    h.storage.pathExists(h.bucket, tempPath).getOrElse(true) shouldBe false
+    h.persistedOffsetsForPk(tp0, Some(pk)) shouldBe Set(20L)
+  }
+
+  // (b) Copy/Delete pending recovery via ensureGranularLock (resolveAndCacheGranularLock path)
+  test("PARTITIONBY: Copy/Delete pending recovery resolves via ensureGranularLock (resolveAndCacheGranularLock path)") {
+    // Same crash-after-Upload scenario as (a), but recovery is triggered by a subsequent
+    // commitOne call that exercises ensureGranularLock -> resolveAndCacheGranularLock,
+    // completing [Copy, Delete] for the old commit before processing the new one.
+    val pk       = "pk-ensure"
+    val tempPath = h.predictTempPathFor(tp0, Some(pk), 21L)
+    val ops = List[Op](
+      Assign(Set(tp0)),
+      Write(tp0, Some(pk), 21L),
+      InjectFailMove(tempPath),        // Copy will fail
+      Commit(tp0),                     // fails mid-chain; temp blob still present in storage
+      Crash,
+      Write(tp0, Some(pk), 22L),      // new record; ensureGranularLock detects and resolves PendingState
+      Commit(tp0),                     // recovery + new commit both succeed
+      PreCommit(tp0, 100L),
+    )
+    h.run(ops, expectCommitErrors = true)
+    h.persistedOffsetsForPk(tp0, Some(pk)) shouldBe Set(21L, 22L)
+    h.storage.pathExists(h.bucket, tempPath).getOrElse(true) shouldBe false
+  }
+
+  // (c) crash-after-Copy-before-lock-update idempotence (mvFile source absent + dest present)
+  test("PARTITIONBY: crash-after-Copy idempotence: recovery does not escalate when source absent and dest present") {
+    // Simulate the scenario where Copy already ran (final blob present, temp blob absent)
+    // but the lock still records PendingState=[Copy, Delete] because the lock write after
+    // Copy failed (CAS mismatch via CorruptETag). Recovery must NOT raise FatalCloudSinkError:
+    // it uses InMemoryStorageInterface.mvFile's idempotence (source absent + dest present -> Right(())).
+    val pk        = "pk-idempotent"
+    val tempPath  = h.predictTempPathFor(tp0, Some(pk), 5L)
+    val finalPath = h.expectedFinalPath(tp0, Some(pk), 5L)
+
+    // Normal commit creates final blob and clears the granular lock.
+    val setupOps = List[Op](
+      Assign(Set(tp0)),
+      Write(tp0, Some(pk), 5L),
+      Commit(tp0),
+    )
+    h.run(setupOps)
+    // Sanity: final blob exists, temp gone, lock committed.
+    h.storage.pathExists(h.bucket, finalPath).getOrElse(false) shouldBe true
+    h.storage.pathExists(h.bucket, tempPath).getOrElse(true) shouldBe false
+
+    // Manipulate the granular lock to simulate crash-after-Copy:
+    // final blob stays present, but lock is reset to PendingState=[Copy, Delete].
+    val manipulateOps = List[Op](
+      ManipulateGranularLock(
+        tp0,
+        pk,
+        Some(
+          PendingState(
+            Offset(5L),
+            NonEmptyList.of(
+              CopyOperation(h.bucket, tempPath, finalPath, "placeholder"),
+              DeleteOperation(h.bucket, tempPath, "placeholder"),
+            ),
+          ),
+        ),
+      ),
+      Crash,                           // clear IndexManagerV2 cache so recovery re-reads storage
+      LoadGranularLock(tp0, pk),       // triggers loadGranularLock -> idempotent Copy + no-op Delete
+    )
+    h.run(manipulateOps)
+    // Final blob still present (idempotent Copy did not destroy it), temp still absent.
+    h.storage.pathExists(h.bucket, finalPath).getOrElse(false) shouldBe true
+    h.storage.pathExists(h.bucket, tempPath).getOrElse(true) shouldBe false
+    h.persistedOffsetsForPk(tp0, Some(pk)) shouldBe Set(5L)
+  }
+
+  // (d) mid-chain Copy failure returns FatalCloudSinkError (not NonFatal) and leaves no orphan after recovery
+  test("non-PARTITIONBY: Copy failure returns FatalCloudSinkError and no temp blob is orphaned after recovery") {
+    // The Copy phase is mid-chain (not an UploadOperation), so its failure escalates to
+    // FatalCloudSinkError rather than NonFatalCloudSinkError. The PendingState=[Copy, Delete]
+    // is recorded in the master lock BEFORE Copy runs, so on restart IndexManagerV2.open
+    // replays the chain, deletes the temp blob, and leaves no orphan.
+    val tempPath  = h.predictTempPathFor(tp0, None, 10L)
+    val finalPath = h.expectedFinalPath(tp0, None, 10L)
+    val ops = List[Op](
+      Assign(Set(tp0)),
+      Write(tp0, None, 10L),
+      InjectFailMove(tempPath),        // Copy will fail (one-shot); temp blob remains in storage
+      Commit(tp0),                     // expected FatalCloudSinkError (Copy failure is fatal)
+      Crash,                           // open() reads master lock PendingState, replays Copy+Delete
+      PreCommit(tp0, 100L),            // drives master lock write after successful recovery
+    )
+    h.run(ops, expectCommitErrors = true)
+    // Post-recovery: final blob present, no orphaned temp.
+    h.storage.pathExists(h.bucket, finalPath).getOrElse(false) shouldBe true
+    h.storage.pathExists(h.bucket, tempPath).getOrElse(true) shouldBe false
+    h.persistedOffsets(tp0) shouldBe Set(10L)
+    // The commit error must have been Fatal, not NonFatal.
+    h.lastCommitError should not be empty
+    h.lastCommitError.get shouldBe a[FatalCloudSinkError]
+  }
 }
 
 object ExactlyOnceScenarioTest {
 
-  // ---------- topic partitions used across scenarios ----------
   val tp0: TopicPartition = Topic("topic-a").withPartition(0)
   val tp1: TopicPartition = Topic("topic-b").withPartition(0)
 
-  // ---------- Op DSL ----------
   sealed trait Op
   final case class Assign(tps: Set[TopicPartition]) extends Op
   final case class Write(tp: TopicPartition, pk: Option[String], offset: Long) extends Op
@@ -322,7 +438,19 @@ object ExactlyOnceScenarioTest {
   final case class InjectCorruptETag(path: String) extends Op
   final case class AgeBlobAt(path: String, lastModified: Instant) extends Op
 
-  // ---------- harness ----------
+  /** Calls `IndexManagerV2.getSeekedOffsetForPartitionKey` directly (cache miss → loadGranularLock). */
+  final case class LoadGranularLock(tp: TopicPartition, pk: String) extends Op
+
+  /**
+   * Directly overwrites the granular lock on storage with a new `pendingState`.
+   * `committedOffset` is set to `None` so the lock looks like a pre-commit write.
+   * Use this to simulate crash-after-Copy states without going through the normal commit flow.
+   */
+  final case class ManipulateGranularLock(
+    tp:           TopicPartition,
+    pk:           String,
+    pendingState: Option[PendingState],
+  ) extends Op
 
   /**
    * Wires a real `IndexManagerV2` + `PendingOperationsProcessors` against an in-memory fake.
@@ -371,6 +499,9 @@ object ExactlyOnceScenarioTest {
 
     private var assignment: Set[TopicPartition] = Set.empty
 
+    /** Last commit error captured from a failed `commitOne`. Used by tests to assert error type. */
+    var lastCommitError: Option[SinkError] = None
+
     def bootTask(): Unit = {
       val v1 = new IndexManagerV1(v1Filenames, bucketAndPrefix)
       im = new IndexManagerV2(
@@ -414,13 +545,12 @@ object ExactlyOnceScenarioTest {
         im = null
       }
 
-    // ---------- public op runner ----------
-
     def run(
       ops:                   List[Op],
       expectCommitErrors:    Boolean = false,
       expectPreCommitErrors: Boolean = false,
     ): Unit = {
+      lastCommitError = None
       ops.foreach(runOp(_, expectCommitErrors, expectPreCommitErrors))
       checkInvariants()
     }
@@ -498,9 +628,28 @@ object ExactlyOnceScenarioTest {
       case AgeBlobAt(path, instant) =>
         if (!storage.setLastModified(bucket, path, instant))
           throw new AssertionError(s"AgeBlobAt: no blob exists at $bucket/$path")
-    }
 
-    // ---------- synthetic writer (mimics Writer.commit) ----------
+      case LoadGranularLock(tp, pk) =>
+        im.getSeekedOffsetForPartitionKey(tp, pk) match {
+          case Right(maybeOffset) =>
+            // Mirror what WriterManager.createWriter does: if resolution returned a committed
+            // offset, update the harness committed map so PreCommit sees the right floor.
+            maybeOffset.foreach(off => committed((tp, Some(pk))) = off.value)
+          case Left(err) =>
+            throw new AssertionError(s"LoadGranularLock($tp, $pk) failed: ${err.message()}")
+        }
+
+      case ManipulateGranularLock(tp, pk, newPendingState) =>
+        val lockPath = granularLockPath(tp, pk)
+        val (_, currentETag) = storage.getBlobAsStringAndEtag(bucket, lockPath)
+          .getOrElse(throw new AssertionError(s"ManipulateGranularLock: lock not found at $bucket/$lockPath"))
+        // Rebuild lock owner using the same format IndexManagerV2 uses internally.
+        val lockOwner = s"${taskId.name} - ${taskId.taskNo + 1} of ${taskId.maxTasks}"
+        val newIdx    = IndexFile(lockOwner, None, newPendingState)
+        import IndexFile.indexFileEncoder
+        val _ = storage.writeBlobToFile(bucket, lockPath, ObjectWithETag(newIdx, currentETag))
+          .left.map(err => throw new AssertionError(s"ManipulateGranularLock write failed: ${err.message()}"))
+    }
 
     private def commitOne(tp: TopicPartition, pk: Option[String], offsets: List[Long]): Either[SinkError, Unit] = {
       val tempLocal       = writeLocalTempFile(offsets)
@@ -543,6 +692,7 @@ object ExactlyOnceScenarioTest {
           // In production a failure here would NOT advance the writer's committedOffset.
           // For invariant checking we still want to know which offsets the writer attempted
           // to commit so we can detect inadvertent persistence; deliveredAll captures that.
+          lastCommitError = Some(err)
           Left(err)
       }
     }
@@ -554,8 +704,6 @@ object ExactlyOnceScenarioTest {
       f.deleteOnExit()
       f
     }
-
-    // ---------- path helpers (deterministic so tests can predict them) ----------
 
     def expectedFinalPath(tp: TopicPartition, pk: Option[String], lastOffset: Long): String = {
       val pkSegment = pk.map(p => s"$p/").getOrElse("default/")
@@ -577,8 +725,6 @@ object ExactlyOnceScenarioTest {
 
     def granularLockPath(tp: TopicPartition, pk: String): String =
       s"$directoryFileName/${taskId.name}/.locks/${tp.topic}/${tp.partition}/$pk.lock"
-
-    // ---------- assertion helpers ----------
 
     /** All offsets persisted at final paths under tp (across all pks). */
     def persistedOffsets(tp: TopicPartition): Set[Long] =
@@ -609,8 +755,6 @@ object ExactlyOnceScenarioTest {
           n.toLongOption.toList
         } else Nil
       }
-
-    // ---------- post-run invariants ----------
 
     private def checkInvariants(): Unit = {
       // (a) No loss: each delivered offset that the synthetic writer successfully committed

@@ -77,6 +77,12 @@ import org.scalatest.OptionValues
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
+import ch.qos.logback.classic.{ Level => LogbackLevel }
+import ch.qos.logback.classic.{ Logger => LogbackLogger }
+import ch.qos.logback.classic.spi.ILoggingEvent
+import ch.qos.logback.core.read.ListAppender
+import org.slf4j.LoggerFactory
+
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.File
@@ -85,6 +91,7 @@ import java.nio.file.StandardOpenOption
 import java.time.Duration
 import java.time.Instant
 import scala.annotation.nowarn
+import scala.jdk.CollectionConverters.ListHasAsScala
 
 @nowarn
 class DatalakeStorageInterfaceTest
@@ -381,6 +388,9 @@ class DatalakeStorageInterfaceTest
 
     val res = storageInterface.mvFile(oldBucket, oldPath, newBucket, newPath, none)
     res should be(Right(()))
+    // Regression guard: the idempotence fallback must NOT execute when the parent-retry rename
+    // succeeds.  pathExists (which calls fileClient.exists()) must never be called here.
+    verify(fileClient, never).exists()
   }
 
   "pathExists" should "return Right(true) if the path exists" in {
@@ -831,6 +841,9 @@ class DatalakeStorageInterfaceTest
 
     result should be(Right(()))
     verify(fileClient).renameWithResponse(eqTo(newBucket), eqTo(newPath), any, any, any, any)
+    // Pins that the idempotence fallback is a true fall-through that NEVER runs on the success path:
+    // pathExists must NOT be called when renameWithResponse succeeds on the first attempt.
+    verify(fileClient, never).exists()
   }
 
   "mvFile" should "return a FileMoveError if rename fails" in {
@@ -863,6 +876,99 @@ class DatalakeStorageInterfaceTest
       mockHttpResponse(404),
       null,
     ))
+
+    val result = storageInterface.mvFile(oldBucket, oldPath, newBucket, newPath, none)
+
+    result.isLeft should be(true)
+    result.left.value should be(a[FileMoveError])
+  }
+
+  "mvFile" should "be idempotent when source is missing and destination is present" in {
+    // Pins parity with AwsS3StorageInterface.mvFile and GCPStorageStorageInterface.mvFile.
+    // Required for crash-after-Copy-before-lock-update recovery: without this branch the
+    // pending-CopyOperation replay on restart would escalate to FatalCloudSinkError and
+    // produce a deterministic restart loop on the affected partition.
+    val oldBucket = "oldBucket"
+    val oldPath   = "oldPath"
+    val newBucket = "newBucket"
+    val newPath   = "newPath"
+
+    val srcFileClient  = mock[DataLakeFileClient]
+    val destFileClient = mock[DataLakeFileClient]
+
+    when(client.getFileSystemClient(oldBucket).getFileClient(oldPath)).thenReturn(srcFileClient)
+    when(client.getFileSystemClient(newBucket).getFileClient(newPath)).thenReturn(destFileClient)
+
+    when(srcFileClient.renameWithResponse(eqTo(newBucket), eqTo(newPath), any, any, any, any)).thenThrow(
+      new DataLakeStorageException("Rename failed", mockHttpResponse(500), null),
+    )
+    when(srcFileClient.exists()).thenReturn(false)
+    when(destFileClient.exists()).thenReturn(true)
+
+    // Capture WARN logs emitted by DatalakeStorageInterface during the call.
+    val dsiLogger    = LoggerFactory.getLogger(classOf[DatalakeStorageInterface]).asInstanceOf[LogbackLogger]
+    val listAppender = new ListAppender[ILoggingEvent]()
+    listAppender.start()
+    dsiLogger.addAppender(listAppender)
+
+    val result =
+      try storageInterface.mvFile(oldBucket, oldPath, newBucket, newPath, none)
+      finally dsiLogger.detachAppender(listAppender)
+
+    result should be(Right(()))
+
+    // Must emit exactly one WARN containing both source and destination paths so operators
+    // have a clear signal that a crash-after-Copy recovery replay succeeded.
+    val warnMessages = listAppender.list.asScala
+      .filter(_.getLevel == LogbackLevel.WARN)
+      .map(_.getFormattedMessage)
+    warnMessages.exists(msg => msg.contains(oldPath) && msg.contains(newPath)) shouldBe true
+  }
+
+  "mvFile" should "fail loudly when both source and destination are missing" in {
+    val oldBucket = "oldBucket"
+    val oldPath   = "oldPath"
+    val newBucket = "newBucket"
+    val newPath   = "newPath"
+
+    val srcFileClient  = mock[DataLakeFileClient]
+    val destFileClient = mock[DataLakeFileClient]
+
+    when(client.getFileSystemClient(oldBucket).getFileClient(oldPath)).thenReturn(srcFileClient)
+    when(client.getFileSystemClient(newBucket).getFileClient(newPath)).thenReturn(destFileClient)
+
+    when(srcFileClient.renameWithResponse(eqTo(newBucket), eqTo(newPath), any, any, any, any)).thenThrow(
+      new DataLakeStorageException("Rename failed", mockHttpResponse(500), null),
+    )
+    when(srcFileClient.exists()).thenReturn(false)
+    when(destFileClient.exists()).thenReturn(false)
+
+    val result = storageInterface.mvFile(oldBucket, oldPath, newBucket, newPath, none)
+
+    result.isLeft should be(true)
+    result.left.value should be(a[FileMoveError])
+    val moveErr = result.left.value.asInstanceOf[FileMoveError]
+    moveErr.exception should be(a[IllegalStateException])
+    moveErr.exception.getMessage should include("both missing")
+  }
+
+  "mvFile" should "preserve original error when source presence check fails" in {
+    // Defensive case: if the best-effort pathExists check itself fails (e.g. transient
+    // auth error), the caller must see the ORIGINAL move error, not a fabricated one.
+    val oldBucket = "oldBucket"
+    val oldPath   = "oldPath"
+    val newBucket = "newBucket"
+    val newPath   = "newPath"
+
+    val srcFileClient = mock[DataLakeFileClient]
+
+    when(client.getFileSystemClient(oldBucket).getFileClient(oldPath)).thenReturn(srcFileClient)
+
+    when(srcFileClient.renameWithResponse(eqTo(newBucket), eqTo(newPath), any, any, any, any)).thenThrow(
+      new DataLakeStorageException("Rename failed", mockHttpResponse(500), null),
+    )
+    // pathExists returns Left -> pathExists.fold(_ => false, !_) yields false -> sourceMissing=false -> return original error
+    when(srcFileClient.exists()).thenThrow(new IllegalStateException("transient auth error"))
 
     val result = storageInterface.mvFile(oldBucket, oldPath, newBucket, newPath, none)
 

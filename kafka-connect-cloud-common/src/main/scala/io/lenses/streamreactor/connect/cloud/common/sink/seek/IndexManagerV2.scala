@@ -323,7 +323,7 @@ class IndexManagerV2(
             // processPendingOperations calls update() which already maintains topicPartitionToETags
             // with the correct eTag. We must NOT overwrite it with the stale original eTag.
             // Only ensure seekedOffsets is updated for cases where update() was not called
-            // (e.g. cancelPending on the last operation).
+            // (e.g. when the recovery path cleared a stale PendingState on the last operation).
             resolvedOffset.foreach(o => seekedOffsets.put(topicPartition, o))
             resolvedOffset
           }.leftMap { err =>

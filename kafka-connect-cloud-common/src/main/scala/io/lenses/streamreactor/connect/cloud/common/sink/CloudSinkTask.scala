@@ -19,6 +19,7 @@ import cats.implicits.toBifunctorOps
 import cats.implicits.toShow
 import io.lenses.streamreactor.common.config.base.intf.ConnectionConfig
 import io.lenses.streamreactor.common.errors.ErrorHandler
+import io.lenses.streamreactor.common.errors.FatalConnectException
 import io.lenses.streamreactor.common.errors.RetryErrorPolicy
 import io.lenses.streamreactor.common.util.AsciiArtPrinter.printAsciiHeader
 import io.lenses.streamreactor.common.util.JarManifest
@@ -73,7 +74,7 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
   private val writerManagerCreator = new WriterManagerCreator[MD, C]()
 
   private var logMetrics = false
-  private var writerManager: WriterManager[MD] = _
+  private[sink] var writerManager: WriterManager[MD] = _
   private var indexManager:  IndexManager      = _
   private var config:        C                 = _
   private val attachLatestSchemaOptimizer = new AttachLatestSchemaOptimizer()
@@ -107,13 +108,19 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
   private def rollback(topicPartitions: Set[TopicPartition]): Unit =
     topicPartitions.foreach(writerManager.cleanUp)
 
-  private def handleErrors(value: Either[SinkError, Unit]): Unit =
+  private[sink] def handleErrors(value: Either[SinkError, Unit]): Unit =
     value match {
       case Left(error: SinkError) =>
         if (error.rollBack()) {
           rollback(error.topicPartitions())
         }
-        throw new ConnectException(error.message(), error.exception().orNull)
+        val isFatal = error match {
+          case _: FatalCloudSinkError => true
+          case b: BatchCloudSinkError => b.fatal.nonEmpty
+          case _                      => false
+        }
+        if (isFatal) throw new FatalConnectException(error.message(), error.exception().orNull)
+        else throw new ConnectException(error.message(), error.exception().orNull)
       case Right(_) =>
     }
 
