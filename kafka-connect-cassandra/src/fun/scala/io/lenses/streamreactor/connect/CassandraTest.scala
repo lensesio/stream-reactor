@@ -45,22 +45,23 @@ class CassandraTest extends AsyncFlatSpec with AsyncIOSpec with StreamReactorCon
 
   it should "source records" in {
     val resources = for {
-      session  <- Resource.fromAutoCloseable(IO(container.cluster.connect()))
+      session <- Resource.fromAutoCloseable(IO(container.cluster.connect()))
+      _ = executeQueries(
+        session,
+        "CREATE KEYSPACE source WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor' : 1};",
+        "CREATE TABLE source.orders (id int, created timeuuid, product text, qty int, price float, PRIMARY KEY (id, created)) WITH CLUSTERING ORDER BY (created asc);",
+      )
       consumer <- Resource.fromAutoCloseable(IO(createConsumer()))
       _        <- createConnector(sourceConfig())
-    } yield {
-      (session, consumer)
-    }
+    } yield (session, consumer)
 
     resources.use {
       case (cassandraSession, consumer) =>
         IO {
 
-          // create table and insert data
+          // insert data
           executeQueries(
             cassandraSession,
-            "CREATE KEYSPACE source WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor' : 1};",
-            "CREATE TABLE source.orders (id int, created timeuuid, product text, qty int, price float, PRIMARY KEY (id, created)) WITH CLUSTERING ORDER BY (created asc);",
             "INSERT INTO source.orders (id, created, product, qty, price) VALUES (1, now(), 'OP-DAX-P-20150201-95.7', 100, 94.2);",
             "INSERT INTO source.orders (id, created, product, qty, price) VALUES (2, now(), 'OP-DAX-C-20150201-100', 100, 99.5);",
             "INSERT INTO source.orders (id, created, product, qty, price) VALUES (3, now(), 'FU-KOSPI-C-20150201-100', 200, 150);",
