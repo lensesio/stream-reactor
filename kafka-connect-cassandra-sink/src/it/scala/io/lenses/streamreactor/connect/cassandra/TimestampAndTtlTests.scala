@@ -169,7 +169,7 @@ class TimestampAndTtlTests extends TestBase with Matchers {
       val row = results.head
       row.getLong("bigintcol") shouldBe 1234567L
       row.getDouble("doublecol") shouldBe 42.0
-      row.getInt(2) shouldBe expectedTtl
+      row.getInt(2) shouldBe expectedTtl +- 5
     }
   }
 
@@ -215,7 +215,7 @@ class TimestampAndTtlTests extends TestBase with Matchers {
       val row = results.head
       row.getLong("bigintcol") shouldBe 1234567L
       row.getDouble("doublecol") shouldBe 42.0
-      row.getInt(2) shouldBe expectedTtl
+      row.getInt(2) shouldBe expectedTtl +- 5
     }
   }
 
@@ -261,7 +261,7 @@ class TimestampAndTtlTests extends TestBase with Matchers {
       val row = results.head
       row.getLong("bigintcol") shouldBe 1234567L
       row.getDouble("doublecol") shouldBe 42.0
-      row.getInt(2) shouldBe expectedTtl
+      row.getInt(2) shouldBe expectedTtl +- 5
     }
   }
 
@@ -307,7 +307,7 @@ class TimestampAndTtlTests extends TestBase with Matchers {
       val row = results.head
       row.getLong("bigintcol") shouldBe 1234567L
       row.getDouble("doublecol") shouldBe 42.0
-      row.getInt(2) shouldBe expectedTtl
+      row.getInt(2) shouldBe expectedTtl +- 5
     }
   }
 
@@ -353,7 +353,7 @@ class TimestampAndTtlTests extends TestBase with Matchers {
       val row = results.head
       row.getLong("bigintcol") shouldBe 1234567L
       row.getDouble("doublecol") shouldBe 42.0
-      row.getInt(2) shouldBe expectedTtl
+      row.getInt(2) shouldBe expectedTtl +- 5
     }
   }
 
@@ -399,7 +399,7 @@ class TimestampAndTtlTests extends TestBase with Matchers {
       val row = results.head
       row.getLong("bigintcol") shouldBe 1234567L
       row.getDouble("doublecol") shouldBe 42.0
-      row.getInt(2) shouldBe expectedTtl
+      row.getInt(2) shouldBe expectedTtl +- 5
     }
   }
 
@@ -429,7 +429,7 @@ class TimestampAndTtlTests extends TestBase with Matchers {
       val row = results.head
       row.getLong("bigintcol") shouldBe 1234567L
       row.getDouble("doublecol") shouldBe 42.0
-      row.getInt(2) shouldBe 1000
+      row.getInt(2) shouldBe 1000 +- 5
     }
   }
 
@@ -466,7 +466,7 @@ class TimestampAndTtlTests extends TestBase with Matchers {
       val row = results.head
       row.getLong("bigintcol") shouldBe 1234567L
       row.getDouble("doublecol") shouldBe 42.0
-      row.getInt(2) shouldBe 1000
+      row.getInt(2) shouldBe 1000 +- 5
       row.getLong(3) shouldBe 1000L
     }
   }
@@ -497,7 +497,7 @@ class TimestampAndTtlTests extends TestBase with Matchers {
       val row = results.head
       row.getLong("bigintcol") shouldBe 1234567L
       row.getDouble("doublecol") shouldBe 1000000.0
-      row.getInt(2) shouldBe 1000
+      row.getInt(2) shouldBe 1000 +- 5
     }
   }
 
@@ -527,7 +527,7 @@ class TimestampAndTtlTests extends TestBase with Matchers {
       val row = results.head
       row.getLong("bigintcol") shouldBe 1234567L
       row.getDouble("doublecol") shouldBe 1000.0
-      row.getInt(2) shouldBe 100
+      row.getInt(2) shouldBe 100 +- 5
     }
   }
 

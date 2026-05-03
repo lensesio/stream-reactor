@@ -166,15 +166,18 @@ class Writer[SM <: FileMetadata](
                 UploadOperation(key.bucket, file, path),
               )
 
-          _ <- pendingOperationsProcessors.processPendingOperations(
+          newOffset <- pendingOperationsProcessors.processPendingOperations(
             topicPartition,
             getCommittedOffset,
             PendingState(uncommittedOffset, pendingOperations),
             fnIndexUpdate,
+            escalateOnCancel = true,
+            partitionKey     = partitionKey,
+            stagingFile      = Some(file),
           )
           _ = {
             logger.debug(s"[{}] Writer.resetState: Resetting state $writeState", connectorTaskId.show)
-            writeState = uploadState.toNoWriter
+            writeState = uploadState.toNoWriter(newOffset)
             // The cloud commit has already succeeded at this point. A failure to
             // delete the local temp file is a hygiene issue (disk leak) -- not a
             // correctness issue -- so we must not propagate it as a FatalCloudSinkError.

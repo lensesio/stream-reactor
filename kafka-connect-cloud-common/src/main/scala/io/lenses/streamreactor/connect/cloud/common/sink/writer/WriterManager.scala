@@ -78,7 +78,7 @@ class WriterManager[SM <: FileMetadata](
 
   // High-watermark per TopicPartition: the highest globalSafeOffset ever reported to Kafka Connect.
   // Prevents regression when idle-writer eviction removes the writer that defined the previous
-  // high watermark (see "globalSafeOffset regression" in docs/exactly-once-partitionby.md).
+  // high watermark (see "globalSafeOffset regression" in docs/datalake-exactly-once-partitionby.md).
   private val safeOffsetHighWatermarks = mutable.Map.empty[TopicPartition, Long]
 
   def recommitPending(): Either[SinkError, Unit] = {

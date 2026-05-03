@@ -1,6 +1,8 @@
-# Exactly-Once Delivery with Custom Partitioning (PARTITIONBY)
+# Datalake Exactly-Once Delivery with Custom Partitioning (PARTITIONBY)
 
-This document explains how the cloud sink connectors (S3, GCS, Azure Data Lake) achieve exactly-once delivery semantics when records are repartitioned into cloud storage using the `PARTITIONBY` clause, and the architectural issues that existed before the two-tier lock system was introduced.
+This document explains how the datalake sink connectors (Amazon S3, Google Cloud Storage, Azure Data Lake Storage) achieve exactly-once delivery semantics when records are repartitioned into cloud storage using the `PARTITIONBY` clause, and the architectural issues that existed before the two-tier lock system was introduced.
+
+For the end-to-end record-write pipeline (staging file lifecycle, three-phase Upload → Copy → Delete chain, retry semantics, and error matrix), see [datalake-sinks-write-pipeline.md](datalake-sinks-write-pipeline.md).
 
 ---
 
@@ -518,6 +520,55 @@ This prevents data duplication at the final output path in all verified scenario
 
 **Residual gap -- orphaned temp files**: When a zombie's Phase 2 lock update fails, the uploaded temp file at `.temp-upload/...` is never cleaned up. No PendingState was recorded (the recording attempt failed), so no future task knows about it. These files accumulate silently. Operators should run a periodic sweep to delete `.temp-upload/` files older than a configurable threshold (e.g. 2x the longest expected task runtime).
 
+### Transient upload errors during commit
+
+When indexing is enabled (`connect.<sink>.exactly.once.enable=true`, the default), every `Writer.commit` builds a three-phase chain: `Upload → Copy → Delete`. The three phases have fundamentally different recovery semantics depending on where each operation's source data lives, which requires asymmetric error handling in `processPendingOperations`.
+
+#### Why each phase differs
+
+- **Upload (Phase 1)**: The source is the local staging file. No cloud-storage object has been created yet, and no `PendingState` has been recorded in the granular (or master) lock. A transient upload failure leaves the local file intact and on disk. The writer must stay in `Uploading` state so `recommitPending` can retry the upload from the same local file on the next `put()` call.
+- **Copy (Phase 2)**: The source is the cloud-resident temp object at `.temp-upload/<uuid>`. The `PendingState` referencing that UUID has already been written to the lock file. If the copy fails, the existing crash-recovery path takes over: `ensureGranularLock` → `resolveAndCacheGranularLock` (PARTITIONBY) or `IndexManagerV2.open` (non-PARTITIONBY) replays the `(Copy, Delete)` tail against the cloud-resident temp object.
+- **Delete (Phase 3)**: The last op in the chain. The `case None` branch already propagates any error as `NonFatal`, leaving the writer in `Uploading` so `recommitPending` re-runs the full chain on the next `put()`. The previously uploaded temp object is orphaned but the data is safe at the final path.
+
+#### Upload error behaviour
+
+`processPendingOperations` matches on both the operation type and the error type. When the head operation is an `UploadOperation` and the result is a transient `UploadFailedError` (staging file intact, cloud I/O error), the error is propagated as `NonFatalCloudSinkError` rather than being escalated to `FatalCloudSinkError`. This keeps the writer in `Uploading` state, prevents `CloudSinkTask.handleErrors` from invoking `WriterManager.cleanUp`, and preserves the local staging file. The next `put()` triggers `WriterManager.recommitPending` → `WriterCommitManager.commitPending` → `Writer.commit`, which re-runs the full chain from the same local file.
+
+If the Upload fails with a `NonExistingFileError` (the local staging file is gone), behaviour is split by the `escalateOnCancel` flag passed to `processPendingOperations`:
+
+- **`escalateOnCancel=true` (live-commit path, `Writer.commit`)**: `escalateLiveCancel` is invoked — a best-effort `fnIndexUpdate(committedOffset, None)` clears any existing `PendingState`, then `Left(FatalCloudSinkError)` is returned. `CloudSinkTask.handleErrors` calls `WriterManager.cleanUp(tp)`, closes the writer, and throws a `FatalConnectException`. All three error policies (`RETRY`, `NOOP`, `THROW`) rethrow `FatalConnectException` unchanged, so the task fails immediately and Connect restarts it. On restart, `IndexManagerV2.open` reads the master lock and seeks the consumer back.
+- **`escalateOnCancel=false` (dead-worker recovery, `IndexManagerV2.open`)**: `fnIndexUpdate(committedOffset, None)` clears the `PendingState` and `Right(oldCommittedOffset)` is returned. The writer transitions to `NoWriter(oldCommittedOffset)` gracefully, preserving the committed offset floor. Records are re-delivered from Kafka on the next poll and re-written from scratch.
+
+#### Why escalating Upload failures to fatal loses data
+
+A flush window accumulates records from many `consumer.poll()` calls — all written into the same local staging file. Kafka Connect's `RetriableException` retry contract only replays the **same `sinkRecords` argument** passed to the failing `put()` call — it does not rewind the consumer or replay earlier `put()` calls. This means:
+
+- Batches delivered across polls 1..N-1 are already out of the framework's hands (no reference retained, consumer position advanced).
+- The local staging file is the only durable copy of those records.
+- If `cleanUp` deletes the local file after escalation, those records cannot be recovered from Kafka without an explicit `context.offset` seek.
+
+A task restart would trigger `IndexManagerV2.open` → `context.offset(tp, committedOffset + 1)` → full consumer seek-back. But a single transient upload failure is not enough to exhaust `RetryErrorPolicy` and trigger a restart: the next `put()` (with only the last batch) succeeds, the retry counter resets, and the connector continues without restarting — leaving the lost records permanently absent from cloud storage.
+
+By keeping Upload failures as `NonFatal`, the writer retains the staging file and `recommitPending` recovers all records on the next `put()`, without a restart and without data loss.
+
+#### Copy and Delete error handling is unchanged
+
+Copy failures (mid-chain) still escalate to fatal. This is correct: the data is already at `.temp-upload/<uuid>` in cloud storage and the `PendingState` is recorded in the lock file. The existing crash-recovery path (`ensureGranularLock` → `resolveAndCacheGranularLock` / `IndexManagerV2.open`) can resume the `(Copy, Delete)` tail safely. Treating Copy as `NonFatal` would cause `Writer.commit` to regenerate a fresh `tempFileUuid` on retry, orphaning `.temp-upload/<uuid1>` permanently.
+
+Delete failures (last op) are already `NonFatal` via the `case None` branch and are unaffected by this handling.
+
+#### Persistent upload failures
+
+If every retry of the upload fails, each `put()` re-throws `RetriableException` and decrements the `RetryErrorPolicy` budget. On exhaustion the task fails, Connect restarts it, and `IndexManagerV2.open` reads the master lock and seeks the consumer back. The escalation timing changes from "first failure" to "Nth failure"; the restart-and-seek safety net is unchanged.
+
+#### Rebalance while in Uploading state
+
+If a rebalance occurs while a writer is stuck in `Uploading` due to repeated transient upload failures, `WriterManager.close()` → `Writer.close()` deletes the local staging file. However, the master lock `committedOffset` still points to the offset before the failed batch (no successful `preCommit` has advanced it). The new task owner calls `IndexManagerV2.open` → `context.offset(tp, committedOffset + 1)` and the consumer seeks back, re-delivering the lost batch from Kafka.
+
+#### Symmetry across PARTITIONBY and non-PARTITIONBY
+
+The 3-step chain is built by `Writer.commit` whenever indexing is enabled, regardless of whether a `PARTITIONBY` clause is present. In PARTITIONBY mode `fnIndexUpdate = updateForPartitionKey` (granular lock); in non-PARTITIONBY mode `fnIndexUpdate = update` (master lock). The Upload-NonFatal propagation path is identical in both modes.
+
 ### Lazy loading and in-memory cache
 
 Granular lock metadata (committed offsets and eTags) is held in an unbounded in-memory cache whose lifecycle is driven entirely by `Writer` objects. This section describes the full lifecycle of that cache.
@@ -643,6 +694,33 @@ All three extend `CloudSinkTask` and are wired through `WriterManagerCreator.fro
 
 ---
 
+## Provider parity: `mvFile` idempotence on the crash-after-Copy boundary
+
+The Copy phase of the commit chain (`Phase 2: Copy .temp-upload/<uuid> → final path`) is implemented by `StorageInterface.mvFile` on each provider. A crash between a successful Copy and the subsequent lock-file update (or Delete) leaves the final path populated but the granular lock still recording a `PendingState=[Delete]`. On the next restart, `ensureGranularLock` → `resolveAndCacheGranularLock` replays the `(Copy, Delete)` tail.
+
+**The critical invariant**: `mvFile` must be **idempotent** — if the destination already exists (because Copy completed before the crash), re-running Copy must succeed without error rather than raising a conflict.
+
+### Provider behaviour
+
+| Provider | `mvFile` implementation | Idempotence on pre-existing destination |
+|----------|------------------------|----------------------------------------|
+| **Amazon S3** | `S3StorageInterface`: `copyObject` + `deleteObject` | S3 `copyObject` overwrites an existing destination unconditionally. If `src == dest` (destination equals source), the call succeeds harmlessly. No special handling needed. |
+| **Google Cloud Storage** | `GCPStorageInterface`: `storage.copy(CopyRequest)` + `delete` | GCS `copy` also overwrites the destination unconditionally. Idempotent by default. |
+| **Azure Data Lake Storage** | `DatalakeStorageInterface`: `fileClient.renameWithResponse` | ADLS `rename` fails if the destination exists. `mvFile` catches `BlobStorageException` where the source is absent and the destination exists, and returns `Right(())` with a `WARN` log, making the operation idempotent. The logged warning includes both source and destination paths so operators can identify crash-after-Copy recovery replays. |
+| **In-memory (tests)** | `InMemoryStorageInterface`: map-based put/remove | The in-memory double mimics ADLS idempotence: if source is absent and destination is present, `mvFile` returns `Right(())` without modifying any state, allowing test scenarios to pre-seed a post-Copy world and verify recovery without hitting real cloud storage. |
+
+### Why idempotence matters for exactly-once
+
+Without idempotent Copy, a crash-after-Copy scenario would produce a spurious `FatalCloudSinkError` on the recovery replay (the provider would return a "destination already exists" error for the re-attempted Copy). This would:
+
+1. Trigger `cleanUp(tp)`, evicting the granular lock cache.
+2. Throw `FatalConnectException`, restarting the task.
+3. On restart, `IndexManagerV2.open` reads the master lock (NOT the granular lock, which was evicted) and seeks the consumer to `masterOffset`. If the granular lock's `committedOffset` was ahead of the master lock, all records between the two are re-delivered and **re-written** to cloud storage — a duplication.
+
+With idempotent `mvFile`, the recovery replay succeeds, the Delete phase runs, the lock is cleared, and the commit completes cleanly. No duplication, no spurious task restart.
+
+---
+
 ## Operational Constraints and Limits
 
 This section documents known non-functional constraints that operators should be aware of when running with `PARTITIONBY` under high cardinality.
@@ -717,10 +795,12 @@ When a zombie task's Phase 2 lock update fails after uploading to `.temp-upload/
 | Crash after writer commit, before `preCommit` | Granular lock is up to date. Master lock may be stale. On restart, consumer re-reads from master lock offset. Granular locks deduplicate. **No data loss, possible replay (no duplication due to granular locks).** |
 | Crash during `preCommit` (master lock update) | eTag-based atomic write means the master lock either updated or didn't. On restart, the last successful state is read. **No corruption.** |
 | Crash during garbage collection | Items already enqueued in `gcQueue` but not yet drained are lost. Items already drained but whose batched delete was in flight may be partially deleted. In both cases the orphaned granular lock files are harmless -- they sit below the `masterOffset` watermark and are either re-enqueued on the next run or cleaned up by the periodic orphan sweep. **No impact on correctness.** |
-| Crash with `PendingState` on a granular lock | `PendingState` is detected and resolved during **lazy load**, when the writer first calls `getSeekedOffsetForPartitionKey` for that partition key. If the local staging file still exists, the pending upload is completed. If the staging file is gone (the common case after a crash), the pending operation is abandoned (`cancelPending=true`) and the records revert to "uncommitted". On replay from the master lock offset, these records are re-delivered and re-processed. The write is **re-done from scratch**, not resumed. **No data loss, no duplication.** |
+| Crash with `PendingState` on a granular lock | `PendingState` is detected and resolved during **lazy load**, when the writer first calls `getSeekedOffsetForPartitionKey` for that partition key. If the local staging file still exists, the pending upload is completed. If the staging file is gone (the common case after a crash), `processPendingOperations` runs with `escalateOnCancel=false` (dead-worker recovery path): `fnIndexUpdate(committedOffset, None)` clears the `PendingState` and the records revert to "uncommitted". On replay from the master lock offset, these records are re-delivered and re-processed. The write is **re-done from scratch**, not resumed. **No data loss, no duplication.** |
 | Crash with `PendingState` on master lock | Existing behavior, unchanged. On restart, pending operations are completed. **No data loss.** |
 | Zombie task uploads to `.temp-upload/` but Phase 2 eTag update fails | Temp file is orphaned at `.temp-upload/...`. Final output path is unaffected. **No duplication.** Storage leak requires periodic sweep (see "Zombie task and temp-upload fencing"). |
 | Master lock update fails repeatedly at `preCommit` | `preCommit` returns no offset for the affected partition -- Kafka Connect does not advance the consumer offset. Master lock remains stale. GC is skipped (it only runs after a successful master lock update), so all granular locks are preserved. On crash, consumer replays from the stale offset. Granular locks deduplicate already-committed records. **No data loss, no duplication.** The eTag is not refreshed on failure -- for transient errors it remains valid and the next cycle succeeds; for eTag mismatches (fencing) repeated failure is the correct behavior, preventing a zombie task from advancing. |
+| Transient cloud read error while loading a granular lock (`ensureGranularLock` / `loadGranularLock`) | `IndexManagerV2` returns `NonFatalCloudSinkError(swallowable=false)`. `CloudSinkTask.handleErrors` throws `RetriableIntegrityException` (a `FatalConnectException` subclass). No writer cleanup is performed (`rollBack() == false`), so the local staging file is preserved. Under `error.policy=RETRY`, the error is wrapped in `RetriableException` while retries remain; Kafka Connect re-delivers the same `put(records)` batch in-process without a task restart. On retry exhaustion, `RetriableIntegrityException` is rethrown and the task fails; Connect restarts it and `IndexManagerV2.open` reads the master lock and seeks the consumer back. Under `error.policy=NOOP` or `THROW`, `RetriableIntegrityException` is rethrown as-is (fail-fast) — the error is never silently swallowed, preventing the consumer offset from advancing past records whose deduplication floor is unknown. **No data loss, no duplication.** |
+| Transient upload error during `Writer.commit` (cloud network error on Phase 1 of the `Upload → Copy → Delete` chain) | `processPendingOperations` propagates the `NonFatalCloudSinkError` as-is. Writer stays in `Uploading`, local staging file is preserved, `WriterManager.cleanUp` is **not** invoked. The next `put()` triggers `recommitPending` → `Writer.commit`, re-running the full chain from the same local file. **No data loss, no duplication.** Persistent failures eventually exhaust `RetryErrorPolicy`, the task is restarted, and `IndexManagerV2.open` seeks the consumer back to the last committed master lock offset. (Pre-fix: the first transient upload error was escalated to `FatalCloudSinkError`; `cleanUp` deleted the local staging file, causing permanent loss of all records accumulated across earlier `put()` calls -- `RetriableException` retries only the most recent batch.) |
 | Fatal `put()` error triggers in-place rollback; Kafka Connect retries `put()` without a rebalance | `CloudSinkTask.handleErrors` calls `WriterManager.cleanUp(tp)`: all writers for the partition are closed, `safeOffsetHighWatermarks(tp)` is cleared, and the granular cache is evicted. `seekedOffsets` and `topicPartitionToETags` are **preserved** (the partition is still assigned to this task and the master lock in storage is unchanged). The retried `put()` creates fresh writers; the first subsequent `preCommit` re-seeds the high-watermark from the preserved `seekedOffsets` floor and `updateMasterLock` uses the preserved eTag to write the master lock normally. Consumer offset advance resumes. **No stalled consumer lag, no data loss, no duplication.** (Pre-fix behaviour: `cleanUp` cleared the master eTag, every subsequent `preCommit` returned `Left("Master index not found")`, and consumer lag grew without bound while writes continued.) |
 | New record arrives for a previously evicted idle writer | The writer was in `NoWriter` state (committed, no buffered data) when evicted. A new writer is created, `ensureGranularLock` recreates the lock (or finds it still exists if GC hasn't run yet), and `getSeekedOffsetForPartitionKey` loads the offset from storage (or falls back to master lock offset if the lock was GC'd). `shouldSkip` correctly deduplicates already-committed records. **No data loss, no duplication.** |
 | Idle writer with highest committed offset is evicted | The `safeOffsetHighWatermarks` map prevents `globalSafeOffset` from regressing below the previously reported value. The master lock retains the high watermark. GC decisions made at the previous (higher) threshold remain valid. On crash recovery, the consumer seeks to the non-regressed master lock offset and does not replay records whose granular locks were deleted. **No data loss, no duplication.** |
