@@ -39,11 +39,18 @@ class NoIndexManagerTest extends AnyFunSuiteLike with Matchers {
     ))
   }
 
-  test("update should always return None for any topic partition") {
+  test("update should echo the committed offset back to the caller (Some case)") {
     val topicPartition = TopicPartition(Topic("topic1"), 0)
     val result         = noIndexManager.update(topicPartition, Some(Offset(100)), None)
 
-    result shouldBe Right(None)
+    result shouldBe Right(Some(Offset(100)))
+  }
+
+  test("updateForPartitionKey should echo the committed offset back to the caller (Some case)") {
+    val topicPartition = TopicPartition(Topic("topic1"), 0)
+    val result         = noIndexManager.updateForPartitionKey(topicPartition, "pk-a", Some(Offset(200)), None)
+
+    result shouldBe Right(Some(Offset(200)))
   }
 
   test("getSeekedOffsetForTopicPartition should always return None") {

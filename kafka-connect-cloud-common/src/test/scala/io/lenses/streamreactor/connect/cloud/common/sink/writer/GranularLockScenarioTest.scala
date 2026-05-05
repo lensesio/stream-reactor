@@ -518,8 +518,6 @@ class GranularLockScenarioTest extends AnyFunSuiteLike with Matchers with Mockit
     mockIM.updateMasterLock(topicPartition, Offset(globalSafeOffset)).isLeft shouldBe true
   }
 
-  // --- Idle writer exclusion and LRU eviction tests ---
-
   test("isIdle returns true for NoWriter, false for Writing and Uploading") {
     when(indexManager.indexingEnabled).thenReturn(true)
 
@@ -776,13 +774,28 @@ class GranularLockScenarioTest extends AnyFunSuiteLike with Matchers with Mockit
 
     val mockPOP = mock[PendingOperationsProcessors]
     type IndexUpdateFn = (TopicPartition, Option[Offset], Option[PendingState]) => Either[SinkError, Option[Offset]]
-    when(mockPOP.processPendingOperations(any[TopicPartition],
-                                          any[Option[Offset]],
-                                          any[PendingState],
-                                          any[IndexUpdateFn],
-    ))
-      .thenAnswer { (tp: TopicPartition, _: Option[Offset], ps: PendingState, fn: IndexUpdateFn) =>
-        fn(tp, Some(ps.pendingOffset), None)
+    when(
+      mockPOP.processPendingOperations(
+        any[TopicPartition],
+        any[Option[Offset]],
+        any[PendingState],
+        any[IndexUpdateFn],
+        any[Boolean],
+        any[Option[String]],
+        any[Option[java.io.File]],
+      ),
+    )
+      .thenAnswer {
+        (
+          tp: TopicPartition,
+          _:  Option[Offset],
+          ps: PendingState,
+          fn: IndexUpdateFn,
+          _:  Boolean,
+          _:  Option[String],
+          _:  Option[java.io.File],
+        ) =>
+          fn(tp, Some(ps.pendingOffset), None)
       }
 
     val mockValue = mock[io.lenses.streamreactor.connect.cloud.common.sink.conversion.SinkData]
@@ -870,13 +883,28 @@ class GranularLockScenarioTest extends AnyFunSuiteLike with Matchers with Mockit
 
     type IndexUpdateFn = (TopicPartition, Option[Offset], Option[PendingState]) => Either[SinkError, Option[Offset]]
     val mockPOP = mock[PendingOperationsProcessors]
-    when(mockPOP.processPendingOperations(any[TopicPartition],
-                                          any[Option[Offset]],
-                                          any[PendingState],
-                                          any[IndexUpdateFn],
-    ))
-      .thenAnswer { (tp: TopicPartition, _: Option[Offset], ps: PendingState, fn: IndexUpdateFn) =>
-        fn(tp, Some(ps.pendingOffset), None)
+    when(
+      mockPOP.processPendingOperations(
+        any[TopicPartition],
+        any[Option[Offset]],
+        any[PendingState],
+        any[IndexUpdateFn],
+        any[Boolean],
+        any[Option[String]],
+        any[Option[java.io.File]],
+      ),
+    )
+      .thenAnswer {
+        (
+          tp: TopicPartition,
+          _:  Option[Offset],
+          ps: PendingState,
+          fn: IndexUpdateFn,
+          _:  Boolean,
+          _:  Option[String],
+          _:  Option[java.io.File],
+        ) =>
+          fn(tp, Some(ps.pendingOffset), None)
       }
 
     val mockValue = mock[io.lenses.streamreactor.connect.cloud.common.sink.conversion.SinkData]
@@ -1031,13 +1059,28 @@ class GranularLockScenarioTest extends AnyFunSuiteLike with Matchers with Mockit
 
     type IndexUpdateFn = (TopicPartition, Option[Offset], Option[PendingState]) => Either[SinkError, Option[Offset]]
     val mockPOP = mock[PendingOperationsProcessors]
-    when(mockPOP.processPendingOperations(any[TopicPartition],
-                                          any[Option[Offset]],
-                                          any[PendingState],
-                                          any[IndexUpdateFn],
-    ))
-      .thenAnswer { (tp: TopicPartition, _: Option[Offset], ps: PendingState, fn: IndexUpdateFn) =>
-        fn(tp, Some(ps.pendingOffset), None)
+    when(
+      mockPOP.processPendingOperations(
+        any[TopicPartition],
+        any[Option[Offset]],
+        any[PendingState],
+        any[IndexUpdateFn],
+        any[Boolean],
+        any[Option[String]],
+        any[Option[java.io.File]],
+      ),
+    )
+      .thenAnswer {
+        (
+          tp: TopicPartition,
+          _:  Option[Offset],
+          ps: PendingState,
+          fn: IndexUpdateFn,
+          _:  Boolean,
+          _:  Option[String],
+          _:  Option[java.io.File],
+        ) =>
+          fn(tp, Some(ps.pendingOffset), None)
       }
 
     val mockValue = mock[io.lenses.streamreactor.connect.cloud.common.sink.conversion.SinkData]
@@ -1126,13 +1169,28 @@ class GranularLockScenarioTest extends AnyFunSuiteLike with Matchers with Mockit
 
     type IndexUpdateFn = (TopicPartition, Option[Offset], Option[PendingState]) => Either[SinkError, Option[Offset]]
     val mockPOP = mock[PendingOperationsProcessors]
-    when(mockPOP.processPendingOperations(any[TopicPartition],
-                                          any[Option[Offset]],
-                                          any[PendingState],
-                                          any[IndexUpdateFn],
-    ))
-      .thenAnswer { (tp: TopicPartition, _: Option[Offset], ps: PendingState, fn: IndexUpdateFn) =>
-        fn(tp, Some(ps.pendingOffset), None)
+    when(
+      mockPOP.processPendingOperations(
+        any[TopicPartition],
+        any[Option[Offset]],
+        any[PendingState],
+        any[IndexUpdateFn],
+        any[Boolean],
+        any[Option[String]],
+        any[Option[java.io.File]],
+      ),
+    )
+      .thenAnswer {
+        (
+          tp: TopicPartition,
+          _:  Option[Offset],
+          ps: PendingState,
+          fn: IndexUpdateFn,
+          _:  Boolean,
+          _:  Option[String],
+          _:  Option[java.io.File],
+        ) =>
+          fn(tp, Some(ps.pendingOffset), None)
       }
 
     def makeMockMsg(offset: Long): MessageDetail = {
@@ -1213,13 +1271,28 @@ class GranularLockScenarioTest extends AnyFunSuiteLike with Matchers with Mockit
 
     type IndexUpdateFn = (TopicPartition, Option[Offset], Option[PendingState]) => Either[SinkError, Option[Offset]]
     val mockPOP = mock[PendingOperationsProcessors]
-    when(mockPOP.processPendingOperations(any[TopicPartition],
-                                          any[Option[Offset]],
-                                          any[PendingState],
-                                          any[IndexUpdateFn],
-    ))
-      .thenAnswer { (tp: TopicPartition, _: Option[Offset], ps: PendingState, fn: IndexUpdateFn) =>
-        fn(tp, Some(ps.pendingOffset), None)
+    when(
+      mockPOP.processPendingOperations(
+        any[TopicPartition],
+        any[Option[Offset]],
+        any[PendingState],
+        any[IndexUpdateFn],
+        any[Boolean],
+        any[Option[String]],
+        any[Option[java.io.File]],
+      ),
+    )
+      .thenAnswer {
+        (
+          tp: TopicPartition,
+          _:  Option[Offset],
+          ps: PendingState,
+          fn: IndexUpdateFn,
+          _:  Boolean,
+          _:  Option[String],
+          _:  Option[java.io.File],
+        ) =>
+          fn(tp, Some(ps.pendingOffset), None)
       }
 
     val mockValue = mock[io.lenses.streamreactor.connect.cloud.common.sink.conversion.SinkData]
@@ -1300,13 +1373,28 @@ class GranularLockScenarioTest extends AnyFunSuiteLike with Matchers with Mockit
 
     type IndexUpdateFn = (TopicPartition, Option[Offset], Option[PendingState]) => Either[SinkError, Option[Offset]]
     val mockPOP = mock[PendingOperationsProcessors]
-    when(mockPOP.processPendingOperations(any[TopicPartition],
-                                          any[Option[Offset]],
-                                          any[PendingState],
-                                          any[IndexUpdateFn],
-    ))
-      .thenAnswer { (tp: TopicPartition, _: Option[Offset], ps: PendingState, fn: IndexUpdateFn) =>
-        fn(tp, Some(ps.pendingOffset), None)
+    when(
+      mockPOP.processPendingOperations(
+        any[TopicPartition],
+        any[Option[Offset]],
+        any[PendingState],
+        any[IndexUpdateFn],
+        any[Boolean],
+        any[Option[String]],
+        any[Option[java.io.File]],
+      ),
+    )
+      .thenAnswer {
+        (
+          tp: TopicPartition,
+          _:  Option[Offset],
+          ps: PendingState,
+          fn: IndexUpdateFn,
+          _:  Boolean,
+          _:  Option[String],
+          _:  Option[java.io.File],
+        ) =>
+          fn(tp, Some(ps.pendingOffset), None)
       }
 
     val mockValue = mock[io.lenses.streamreactor.connect.cloud.common.sink.conversion.SinkData]
@@ -1386,13 +1474,28 @@ class GranularLockScenarioTest extends AnyFunSuiteLike with Matchers with Mockit
 
     type IndexUpdateFn = (TopicPartition, Option[Offset], Option[PendingState]) => Either[SinkError, Option[Offset]]
     val mockPOP = mock[PendingOperationsProcessors]
-    when(mockPOP.processPendingOperations(any[TopicPartition],
-                                          any[Option[Offset]],
-                                          any[PendingState],
-                                          any[IndexUpdateFn],
-    ))
-      .thenAnswer { (tp: TopicPartition, _: Option[Offset], ps: PendingState, fn: IndexUpdateFn) =>
-        fn(tp, Some(ps.pendingOffset), None)
+    when(
+      mockPOP.processPendingOperations(
+        any[TopicPartition],
+        any[Option[Offset]],
+        any[PendingState],
+        any[IndexUpdateFn],
+        any[Boolean],
+        any[Option[String]],
+        any[Option[java.io.File]],
+      ),
+    )
+      .thenAnswer {
+        (
+          tp: TopicPartition,
+          _:  Option[Offset],
+          ps: PendingState,
+          fn: IndexUpdateFn,
+          _:  Boolean,
+          _:  Option[String],
+          _:  Option[java.io.File],
+        ) =>
+          fn(tp, Some(ps.pendingOffset), None)
       }
 
     val mockValue = mock[io.lenses.streamreactor.connect.cloud.common.sink.conversion.SinkData]
@@ -1473,13 +1576,28 @@ class GranularLockScenarioTest extends AnyFunSuiteLike with Matchers with Mockit
 
     type IndexUpdateFn = (TopicPartition, Option[Offset], Option[PendingState]) => Either[SinkError, Option[Offset]]
     val mockPOP = mock[PendingOperationsProcessors]
-    when(mockPOP.processPendingOperations(any[TopicPartition],
-                                          any[Option[Offset]],
-                                          any[PendingState],
-                                          any[IndexUpdateFn],
-    ))
-      .thenAnswer { (tp: TopicPartition, _: Option[Offset], ps: PendingState, fn: IndexUpdateFn) =>
-        fn(tp, Some(ps.pendingOffset), None)
+    when(
+      mockPOP.processPendingOperations(
+        any[TopicPartition],
+        any[Option[Offset]],
+        any[PendingState],
+        any[IndexUpdateFn],
+        any[Boolean],
+        any[Option[String]],
+        any[Option[java.io.File]],
+      ),
+    )
+      .thenAnswer {
+        (
+          tp: TopicPartition,
+          _:  Option[Offset],
+          ps: PendingState,
+          fn: IndexUpdateFn,
+          _:  Boolean,
+          _:  Option[String],
+          _:  Option[java.io.File],
+        ) =>
+          fn(tp, Some(ps.pendingOffset), None)
       }
 
     val mockValue = mock[io.lenses.streamreactor.connect.cloud.common.sink.conversion.SinkData]

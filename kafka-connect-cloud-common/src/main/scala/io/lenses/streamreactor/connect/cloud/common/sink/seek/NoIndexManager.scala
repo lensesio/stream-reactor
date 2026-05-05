@@ -38,20 +38,21 @@ class NoIndexManager extends IndexManager {
     topicPartitions.map(tp => tp -> Option.empty[Offset]).toMap.asRight
 
   /**
-   * Updates the state for a specific topic partition. This implementation
-   * always returns an empty offset.
+   * Updates the state for a specific topic partition. This implementation echoes the committed
+   * offset back to the caller, mirroring the contract of IndexManagerV2.update so that
+   * Writer.commit can use the return value to drive the Uploading -> NoWriter state transition.
    *
    * @param topicPartition  The `TopicPartition` to update.
    * @param committedOffset An optional committed offset.
    * @param pendingState    An optional pending state.
-   * @return An `Either` containing an empty `Option[Offset]`.
+   * @return An `Either` containing the committed offset that was passed in.
    */
   override def update(
     topicPartition:  TopicPartition,
     committedOffset: Option[Offset],
     pendingState:    Option[PendingState],
   ): Either[SinkError, Option[Offset]] =
-    Option.empty.asRight
+    committedOffset.asRight
 
   /**
    * Retrieves the seeked offset for a specific topic partition. This implementation
@@ -73,7 +74,7 @@ class NoIndexManager extends IndexManager {
     committedOffset: Option[Offset],
     pendingState:    Option[PendingState],
   ): Either[SinkError, Option[Offset]] =
-    Option.empty.asRight
+    committedOffset.asRight
 
   override def updateMasterLock(
     topicPartition:   TopicPartition,

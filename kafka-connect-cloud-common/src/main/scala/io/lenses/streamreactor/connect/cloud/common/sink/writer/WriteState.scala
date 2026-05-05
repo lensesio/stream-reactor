@@ -96,9 +96,9 @@ case class Uploading(
 ) extends WriteState(commitState)
     with LazyLogging {
 
-  def toNoWriter: NoWriter = {
+  def toNoWriter(newOffset: Option[Offset]): NoWriter = {
     logger.debug("state transition: Uploading => NoWriter")
-    NoWriter(commitState.withCommittedOffset(uncommittedOffset))
+    NoWriter(commitState.copy(committedOffset = newOffset.orElse(commitState.committedOffset)))
   }
 
 }

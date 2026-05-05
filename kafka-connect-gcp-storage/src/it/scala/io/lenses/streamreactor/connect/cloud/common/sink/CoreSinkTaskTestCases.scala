@@ -28,6 +28,7 @@ import org.apache.kafka.common.record.TimestampType
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaBuilder
 import org.apache.kafka.connect.data.Struct
+import io.lenses.streamreactor.common.errors.FatalConnectException
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.errors.RetriableException
 import org.apache.kafka.connect.header.ConnectHeaders
@@ -2034,7 +2035,18 @@ abstract class CoreSinkTaskTestCases[
 
   }
 
-  unitUnderTest should "continue processing records when a source file has been deleted" in {
+  /**
+   * Pins the fail-fast contract introduced in commit a28a0b35d: when a live commit finds its
+   * own staging file missing (e.g. tmpwatch, container RuntimeDirectory clean-up, manual rm),
+   * the connector MUST raise FatalConnectException with an actionable operator message rather
+   * than silently clearing PendingState and advancing past the affected records.
+   *
+   * Recovery contract: after the task fails, Kafka Connect restarts it; IndexManagerV2.open
+   * reads the master lock and seeks the consumer back so Kafka re-delivers the affected batch.
+   * That post-restart recovery path is verified by the "should recover after a failure" test
+   * and IndexManagerV2 unit tests; this test scope ends at the fail-fast assertion.
+   */
+  unitUnderTest should "fail fast when staging directory is deleted mid-commit" in {
 
     val task = createSinkTask()
     task.initialize(context)
@@ -2055,35 +2067,43 @@ abstract class CoreSinkTaskTestCases[
 
     task.start(props)
     task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
+
+    // Record 0 commits cleanly; its file lands durably in GCS.
     task.put(records.slice(0, 1).asJava)
 
-    // we need to stop the gcp-like-proxy to let records build up
+    // Pause GCS to simulate a transient cloud outage; the next put() leaves a writer in Uploading state.
     container.pause()
     val ex1 = intercept[RetriableException] {
       task.put(records.slice(1, 2).asJava)
     }
     ex1.getMessage should include("Read timed out")
 
+    // Simulate tmpwatch / container RuntimeDirectory wiping the staging directory while GCS was down.
     FileUtils.deleteDirectory(tmpDir)
     tmpDir.exists() should be(false)
 
     container.resume()
 
-    task.put(records.slice(0, 3).asJava)
+    // The next put() calls recommitPending, which detects the missing staging file mid-commit and
+    // raises FatalCloudSinkError -> FatalConnectException. Under error.policy=RETRY, FatalConnectException
+    // is rethrown unchanged (NOT wrapped in RetriableException) — the task must fail and be restarted
+    // by Connect so the consumer can be seeked back from the master lock.
+    val thrown = intercept[FatalConnectException] {
+      task.put(records.slice(0, 3).asJava)
+    }
+    thrown.getMessage should include("Local staging file disappeared mid-commit")
+    thrown.getMessage should include(s"$TopicName-1")
+    Option(thrown.getCause) match {
+      case Some(_: IllegalStateException) => succeed
+      case other => fail(s"Expected cause to be IllegalStateException, was: $other")
+    }
 
-    task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
     task.stop()
 
-    listBucketPath(BucketName, "streamReactorBackups/myTopic/000000000001/").size should be(3)
-
+    // Only the one record that was durably committed before the outage should be in GCS.
+    listBucketPath(BucketName, "streamReactorBackups/myTopic/000000000001/").size should be(1)
     remoteFileAsString(BucketName, "streamReactorBackups/myTopic/000000000001/000000000000_0_0.json") should be(
       """{"name":"sam","title":"mr","salary":100.43}""",
-    )
-    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/000000000001/000000000001_1_1.json") should be(
-      """{"name":"laura","title":"ms","salary":429.06}""",
-    )
-    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/000000000001/000000000002_2_2.json") should be(
-      """{"name":"tom","title":null,"salary":395.44}""",
     )
 
   }
