@@ -4126,8 +4126,10 @@ class IndexManagerV2Test
 
     // NoOverwrite write fails — another task created the lock first.
     when(
-      si.writeBlobToFile[IndexFile](anyString(), ArgumentMatchers.endsWith("0.lock"),
-                                    any[NoOverwriteExistingObject[IndexFile]])(
+      si.writeBlobToFile[IndexFile](anyString(),
+                                    ArgumentMatchers.endsWith("0.lock"),
+                                    any[NoOverwriteExistingObject[IndexFile]],
+      )(
         ArgumentMatchers.eq(indexFileEncoder),
       ),
     ).thenReturn(Left(FileCreateError(new RuntimeException("concurrent create"), "0.lock")))
@@ -4170,8 +4172,10 @@ class IndexManagerV2Test
 
     // NoOverwrite write fails for a genuine reason (e.g. auth error surfacing as FileCreateError).
     when(
-      si.writeBlobToFile[IndexFile](anyString(), ArgumentMatchers.endsWith("0.lock"),
-                                    any[NoOverwriteExistingObject[IndexFile]])(
+      si.writeBlobToFile[IndexFile](anyString(),
+                                    ArgumentMatchers.endsWith("0.lock"),
+                                    any[NoOverwriteExistingObject[IndexFile]],
+      )(
         ArgumentMatchers.eq(indexFileEncoder),
       ),
     ).thenReturn(Left(FileCreateError(new RuntimeException("auth error"), "0.lock")))

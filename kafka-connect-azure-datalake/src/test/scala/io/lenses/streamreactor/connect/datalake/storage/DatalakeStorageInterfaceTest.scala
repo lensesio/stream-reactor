@@ -1198,11 +1198,11 @@ class DatalakeStorageInterfaceTest
   // ── createDirectoryIfNotExists ────────────────────────────────────────────
 
   "createDirectoryIfNotExists" should "return Right(()) when the directory is created successfully" in {
-    val bucket       = "test-bucket"
-    val path         = "a/b/c"
-    val fsClient     = mock[DataLakeFileSystemClient]
-    val dirClient    = mock[DataLakeDirectoryClient]
-    val pathInfo     = mock[PathInfo]
+    val bucket    = "test-bucket"
+    val path      = "a/b/c"
+    val fsClient  = mock[DataLakeFileSystemClient]
+    val dirClient = mock[DataLakeDirectoryClient]
+    val pathInfo  = mock[PathInfo]
 
     when(client.getFileSystemClient(bucket)).thenReturn(fsClient)
     when(fsClient.getDirectoryClient(path)).thenReturn(dirClient)
@@ -1254,11 +1254,11 @@ class DatalakeStorageInterfaceTest
     val path     = "a/b/index.lock"
     val testData = TestIndexFile("owner-xyz", Some(42L))
 
-    val fileClient    = mock[DataLakeFileClient]
-    val fsClient      = mock[DataLakeFileSystemClient]
+    val fileClient      = mock[DataLakeFileClient]
+    val fsClient        = mock[DataLakeFileSystemClient]
     val directoryClient = mock[DataLakeDirectoryClient]
-    val pathInfo      = mock[PathInfo]
-    val eTag          = "retry-etag"
+    val pathInfo        = mock[PathInfo]
+    val eTag            = "retry-etag"
 
     when(pathInfo.getETag).thenReturn(eTag)
     when(client.getFileSystemClient(bucket)).thenReturn(fsClient)
