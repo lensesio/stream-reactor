@@ -786,6 +786,14 @@ When a zombie task's Phase 2 lock update fails after uploading to `.temp-upload/
 
 **Mitigation**: Operators should size `offset.flush.interval.ms` and commit thresholds (record count, file size) conservatively for high-cardinality workloads to avoid triggering bulk commits with many small files.
 
+### ADLS Gen2 startup 409 lock-storm with high tasks.max (Resolved)
+
+When the connector is deployed fresh against an Azure Data Lake Storage Gen2 container with `tasks.max >= 3`, multiple tasks start concurrently and each attempts to write its master lock file for the first time. The lock path parent directories (`.indexes/<connector>/.locks/<topic>/`) do not yet exist, so the Azure SDK returns `404 PathNotFound` and the code falls into a directory-creation recovery path. All tasks for the same topic share the same parent directory, so they race on `DataLakeDirectoryClient.createIfNotExists()`. The losing task(s) receive a `409 PathAlreadyExists` response from HNS. Prior to the fix this 409 propagated as a `FatalCloudSinkError`, killing the task before it could write its lock file.
+
+**Fix**: `DatalakeStorageInterface.createDirectoryIfNotExists` now treats a 409 from `createIfNotExists()` as success. The post-condition (the directory existing) is met by the winning task; the losing task proceeds to retry the file create. Non-409 exceptions still surface as `Left(FileCreateError)`.
+
+**Affected versions**: All releases up to and including `11.7.2`. Fixed in `11.7.3`.
+
 ---
 
 ## Crash Safety Guarantees

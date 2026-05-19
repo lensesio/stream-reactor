@@ -4098,4 +4098,5 @@ class IndexManagerV2Test
       result.left.value.asInstanceOf[NonFatalCloudSinkError].swallowable shouldBe false
     } finally im.close()
   }
+
 }
