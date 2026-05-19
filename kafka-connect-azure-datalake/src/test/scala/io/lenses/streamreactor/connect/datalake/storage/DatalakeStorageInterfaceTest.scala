@@ -1195,4 +1195,110 @@ class DatalakeStorageInterfaceTest
     verify(fileSystemClient, times(2)).createFile(path, false)
   }
 
+  // ── createDirectoryIfNotExists ────────────────────────────────────────────
+
+  "createDirectoryIfNotExists" should "return Right(()) when the directory is created successfully" in {
+    val bucket       = "test-bucket"
+    val path         = "a/b/c"
+    val fsClient     = mock[DataLakeFileSystemClient]
+    val dirClient    = mock[DataLakeDirectoryClient]
+    val pathInfo     = mock[PathInfo]
+
+    when(client.getFileSystemClient(bucket)).thenReturn(fsClient)
+    when(fsClient.getDirectoryClient(path)).thenReturn(dirClient)
+    when(dirClient.createIfNotExists()).thenReturn(pathInfo)
+
+    val result = storageInterface.createDirectoryIfNotExists(bucket, path)
+
+    result should be(Right(()))
+    verify(dirClient).createIfNotExists()
+  }
+
+  "createDirectoryIfNotExists" should "return Right(()) when createIfNotExists throws 409 (concurrent creation)" in {
+    val bucket    = "test-bucket"
+    val path      = "a/b/c"
+    val fsClient  = mock[DataLakeFileSystemClient]
+    val dirClient = mock[DataLakeDirectoryClient]
+
+    when(client.getFileSystemClient(bucket)).thenReturn(fsClient)
+    when(fsClient.getDirectoryClient(path)).thenReturn(dirClient)
+    when(dirClient.createIfNotExists()).thenThrow(
+      new DataLakeStorageException("PathAlreadyExists", mockHttpResponse(409), null),
+    )
+
+    val result = storageInterface.createDirectoryIfNotExists(bucket, path)
+
+    result should be(Right(()))
+  }
+
+  "createDirectoryIfNotExists" should "return Left(FileCreateError) when createIfNotExists throws a non-409 exception" in {
+    val bucket    = "test-bucket"
+    val path      = "a/b/c"
+    val fsClient  = mock[DataLakeFileSystemClient]
+    val dirClient = mock[DataLakeDirectoryClient]
+
+    when(client.getFileSystemClient(bucket)).thenReturn(fsClient)
+    when(fsClient.getDirectoryClient(path)).thenReturn(dirClient)
+    when(dirClient.createIfNotExists()).thenThrow(
+      new DataLakeStorageException("InternalError", mockHttpResponse(500), null),
+    )
+
+    val result = storageInterface.createDirectoryIfNotExists(bucket, path)
+
+    result.isLeft should be(true)
+    result.left.value should be(a[FileCreateError])
+  }
+
+  "writeBlobToFile" should "succeed when parent-directory createIfNotExists loses a concurrent 409 race then the file create retries" in {
+    val bucket   = "test-bucket"
+    val path     = "a/b/index.lock"
+    val testData = TestIndexFile("owner-xyz", Some(42L))
+
+    val fileClient    = mock[DataLakeFileClient]
+    val fsClient      = mock[DataLakeFileSystemClient]
+    val directoryClient = mock[DataLakeDirectoryClient]
+    val pathInfo      = mock[PathInfo]
+    val eTag          = "retry-etag"
+
+    when(pathInfo.getETag).thenReturn(eTag)
+    when(client.getFileSystemClient(bucket)).thenReturn(fsClient)
+
+    // createFile(path, false): first call throws 404 PathNotFound so the 404-recovery path fires;
+    // second call (after directory creation) succeeds.
+    val createInvocationCount = new java.util.concurrent.atomic.AtomicInteger(0)
+    when(fsClient.createFile(path, false)).thenAnswer { _: InvocationOnMock =>
+      if (createInvocationCount.getAndIncrement() == 0)
+        throw new DataLakeStorageException("PathNotFound", mockHttpResponse(404), null)
+      else fileClient
+    }
+
+    doAnswer((_: InvocationOnMock) => ()).when(fileClient).append(any[ByteArrayInputStream], anyLong, anyLong)
+
+    val flushResponse = mock[Response[PathInfo]]
+    when(flushResponse.getValue).thenReturn(pathInfo)
+    when(
+      fileClient.flushWithResponse(
+        anyLong,
+        anyBoolean,
+        anyBoolean,
+        any[PathHttpHeaders],
+        isNull[DataLakeRequestConditions],
+        isNull[java.time.Duration],
+        any[Context],
+      ),
+    ).thenReturn(flushResponse)
+
+    // Directory creation loses the race with a concurrent 409.
+    when(fsClient.getDirectoryClient(anyString())).thenReturn(directoryClient)
+    when(directoryClient.createIfNotExists()).thenThrow(
+      new DataLakeStorageException("PathAlreadyExists", mockHttpResponse(409), null),
+    )
+
+    val result = storageInterface.writeBlobToFile(bucket, path, NoOverwriteExistingObject(testData))
+
+    result.isRight should be(true)
+    result.value.wrappedObject should be(testData)
+    verify(fsClient, times(2)).createFile(path, false)
+  }
+
 }

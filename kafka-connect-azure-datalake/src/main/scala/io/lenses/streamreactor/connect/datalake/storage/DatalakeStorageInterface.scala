@@ -380,6 +380,13 @@ class DatalakeStorageInterface(connectorTaskId: ConnectorTaskId, client: DataLak
         val fsClient  = client.getFileSystemClient(bucket)
         val dirClient = fsClient.getDirectoryClient(normalizedPath)
         dirClient.createIfNotExists()
+        ()
+      }.recover {
+        // 409 Conflict: another task concurrently created this parent directory between
+        // our failed file-create attempt (404) and this directory-create call.
+        // The post-condition we need (the directory existing) is already met, so treat
+        // this as success and let the caller retry creating the file.
+        case e: DataLakeStorageException if e.getStatusCode == 409 => ()
       }.toEither.leftMap(e => FileCreateError(e, normalizedPath)).void
     }
   }
