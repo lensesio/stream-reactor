@@ -413,13 +413,30 @@ class IndexManagerV2(
         Option.empty,
       )
 
-      blobWrite <- storageInterface.writeBlobToFile(bucketAndPrefix.bucket, path, NoOverwriteExistingObject(idx))
-        .leftMap { err: UploadError =>
-          new FatalCloudSinkError(err.message(), err.toExceptionOption, topicPartition)
-        }
-    } yield {
-      blobWrite
-    }
+      blobWrite <- storageInterface.writeBlobToFile(bucketAndPrefix.bucket, path, NoOverwriteExistingObject(idx)) match {
+        case Right(ok) => ok.asRight[SinkError]
+
+        case Left(err: UploadError) =>
+          // The NoOverwriteExistingObject write failed. This can happen when another task
+          // (or this task's previous incarnation during a cooperative rebalance) already
+          // holds the lock. Re-read the existing lock to capture its current eTag and
+          // committed offset so we can participate in the eTag-fencing protocol.
+          // If the re-read also fails (file genuinely absent => real non-race failure),
+          // propagate the original upload error to avoid masking auth/quota problems.
+          tryOpen(bucketAndPrefix.bucket, path) match {
+            case Right(existing) =>
+              logger.warn(
+                s"[${connectorTaskId.show}] createNewIndexFileNoOverwrite for $topicPartition lost the " +
+                  s"create race at $path; adopting the existing lock. Subsequent writes remain eTag-conditional.",
+              )
+              existing.asRight[SinkError]
+            case Left(_: FileNotFoundError) =>
+              (new FatalCloudSinkError(err.message(), err.toExceptionOption, topicPartition): SinkError).asLeft
+            case Left(readErr) =>
+              (new FatalCloudSinkError(readErr.message(), readErr.toExceptionOption, topicPartition): SinkError).asLeft
+          }
+      }
+    } yield blobWrite
 
   /**
    * Attempts to open an index file from cloud storage.
