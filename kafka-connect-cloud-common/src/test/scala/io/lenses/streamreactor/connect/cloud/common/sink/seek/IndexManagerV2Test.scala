@@ -30,6 +30,7 @@ import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.deprecated.IndexManagerV1
 import io.lenses.streamreactor.connect.cloud.common.model.UploadableFile
+import io.lenses.streamreactor.connect.cloud.common.storage.EmptyFileError
 import io.lenses.streamreactor.connect.cloud.common.storage.FileNotFoundError
 import io.lenses.streamreactor.connect.cloud.common.storage.GeneralFileLoadError
 import io.lenses.streamreactor.connect.cloud.common.storage.ListOfMetadataResponse
@@ -4048,9 +4049,162 @@ class IndexManagerV2Test
     } finally im.close()
   }
 
+  // ── Bug A: migration probe re-probe logic ─────────────────────────────────
+
   test(
-    "ensureGranularLock: NoOverwrite fallback re-read transient failure returns NonFatalCloudSinkError(swallowable=false)",
+    "Bug A: first-probe Left(PathError) + re-probe Right(false) + new=false (fresh deployment) => open succeeds with warn, no FatalCloudSinkError",
   ) {
+    val topicPartition  = Topic("topic1").withPartition(0)
+    val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
+
+    val si = mock[StorageInterface[_]]
+    // pathExists called twice: first returns Left(PathError), re-probe returns Right(false)
+    org.mockito.Mockito.doReturn(
+      Left(PathError(new RuntimeException("transient 403"), ".locks/topic1/0.lock")),
+      Right(false).asInstanceOf[Any],
+    ).when(si).pathExists(anyString(), anyString())
+
+    // new path does not exist either (fresh deployment: scenario A)
+    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith("0.lock"))(
+      ArgumentMatchers.eq(indexFileDecoder),
+    )).thenReturn(Left(FileNotFoundError(new Exception("Not found"), "0.lock")))
+
+    when(oldIndexManager.seekOffsetsForTopicPartition(any[TopicPartition])).thenReturn(Right(None))
+    when(bucketAndPrefixFn(any[TopicPartition])).thenReturn(Right(bucketAndPrefix))
+    when(si.writeBlobToFile[IndexFile](anyString(), anyString(), any[NoOverwriteExistingObject[IndexFile]])(
+      ArgumentMatchers.eq(indexFileEncoder),
+    )).thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", None, None), "etag")))
+    when(si.listKeysRecursive(anyString(), any[Option[String]])).thenReturn(Right(None))
+
+    val im = new IndexManagerV2(bucketAndPrefixFn, oldIndexManager, pendingOperationsProcessors, indexesDirectoryName, gcIntervalSeconds = Int.MaxValue)(si, connectorTaskId)
+    try {
+      val result = im.open(Set(topicPartition))
+      result.isRight should be(true)
+    } finally im.close()
+  }
+
+  test(
+    "Bug A: first-probe Left(PathError) + re-probe Right(false) + new=true (established 10.x) => open succeeds with warn, no FatalCloudSinkError",
+  ) {
+    val topicPartition  = Topic("topic1").withPartition(0)
+    val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
+
+    val si = mock[StorageInterface[_]]
+    org.mockito.Mockito.doReturn(
+      Left(PathError(new RuntimeException("transient 403"), ".locks/topic1/0.lock")),
+      Right(false).asInstanceOf[Any],
+    ).when(si).pathExists(anyString(), anyString())
+
+    // new path EXISTS (established 10.x+: scenario B)
+    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith("0.lock"))(
+      ArgumentMatchers.eq(indexFileDecoder),
+    )).thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(50)), None), "etag")))
+
+    when(bucketAndPrefixFn(any[TopicPartition])).thenReturn(Right(bucketAndPrefix))
+    when(si.listKeysRecursive(anyString(), any[Option[String]])).thenReturn(Right(None))
+
+    val im = new IndexManagerV2(bucketAndPrefixFn, oldIndexManager, pendingOperationsProcessors, indexesDirectoryName, gcIntervalSeconds = Int.MaxValue)(si, connectorTaskId)
+    try {
+      val result = im.open(Set(topicPartition))
+      result.isRight should be(true)
+      result.value(topicPartition) should be(Some(Offset(50)))
+    } finally im.close()
+  }
+
+  test(
+    "Bug A: first-probe Left(PathError) + re-probe Right(true) => takes mvFile path (scenario C: genuine 9.x file)",
+  ) {
+    val topicPartition  = Topic("topic1").withPartition(0)
+    val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
+
+    val si = mock[StorageInterface[_]]
+    org.mockito.Mockito.doReturn(
+      Left(PathError(new RuntimeException("transient 403"), ".locks/topic1/0.lock")),
+      Right(true).asInstanceOf[Any],
+    ).when(si).pathExists(anyString(), anyString())
+
+    when(si.mvFile(anyString(), anyString(), anyString(), anyString(), any[Option[String]])).thenReturn(Right(()))
+
+    // After migration, new path exists
+    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith("0.lock"))(
+      ArgumentMatchers.eq(indexFileDecoder),
+    )).thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(10)), None), "etag")))
+
+    when(bucketAndPrefixFn(any[TopicPartition])).thenReturn(Right(bucketAndPrefix))
+    when(si.listKeysRecursive(anyString(), any[Option[String]])).thenReturn(Right(None))
+
+    val im = new IndexManagerV2(bucketAndPrefixFn, oldIndexManager, pendingOperationsProcessors, indexesDirectoryName, gcIntervalSeconds = Int.MaxValue)(si, connectorTaskId)
+    try {
+      val result = im.open(Set(topicPartition))
+      result.isRight should be(true)
+      verify(si).mvFile(anyString(), anyString(), anyString(), anyString(), any[Option[String]])
+    } finally im.close()
+  }
+
+  test(
+    "Bug A: first-probe Left(PathError) + re-probe Left(_) => FatalCloudSinkError (cloud genuinely unavailable)",
+  ) {
+    val topicPartition  = Topic("topic1").withPartition(0)
+    val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
+
+    val si = mock[StorageInterface[_]]
+    when(si.pathExists(anyString(), anyString())).thenReturn(
+      Left(PathError(new RuntimeException("cloud down"), "path")),
+    )
+
+    when(bucketAndPrefixFn(any[TopicPartition])).thenReturn(Right(bucketAndPrefix))
+    when(si.listKeysRecursive(anyString(), any[Option[String]])).thenReturn(Right(None))
+
+    val im = new IndexManagerV2(bucketAndPrefixFn, oldIndexManager, pendingOperationsProcessors, indexesDirectoryName, gcIntervalSeconds = Int.MaxValue)(si, connectorTaskId)
+    try {
+      val result = im.open(Set(topicPartition))
+      result.isLeft should be(true)
+      result.left.value should be(a[FatalCloudSinkError])
+    } finally im.close()
+  }
+
+  // ── Bug B.2: EmptyFileError call-site handling ────────────────────────────
+
+  test("ensureGranularLock: 0-byte poison blob => overwrites via ObjectWithETag(eTag), caches post-write eTag") {
+    val tp              = Topic("topic1").withPartition(0)
+    val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
+    val poisonETag      = "poison-etag"
+    val postWriteETag   = "post-write-etag"
+
+    val si = mock[StorageInterface[_]]
+    when(bucketAndPrefixFn(any[TopicPartition])).thenReturn(Right(bucketAndPrefix))
+    when(si.pathExists(anyString(), anyString())).thenReturn(Right(false))
+    // Master lock read succeeds
+    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith("0.lock"))(
+      ArgumentMatchers.eq(indexFileDecoder),
+    )).thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(50)), None), "master-etag")))
+
+    val im = new IndexManagerV2(bucketAndPrefixFn, oldIndexManager, pendingOperationsProcessors, indexesDirectoryName, gcIntervalSeconds = Int.MaxValue)(si, connectorTaskId)
+    im.open(Set(tp))
+
+    // Granular lock read returns EmptyFileError
+    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/poison-key.lock"))(
+      ArgumentMatchers.eq(indexFileDecoder),
+    )).thenReturn(Left(EmptyFileError("bucket/poison-key.lock", poisonETag)))
+
+    // ObjectWithETag write should succeed
+    when(si.writeBlobToFile[IndexFile](anyString(), anyString(), any[ObjectWithETag[IndexFile]])(
+      ArgumentMatchers.eq(indexFileEncoder),
+    )).thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", None, None), postWriteETag)))
+
+    try {
+      val result = im.ensureGranularLock(tp, "poison-key")
+      result.isRight should be(true)
+
+      // Verify ObjectWithETag write was called (not NoOverwriteExistingObject)
+      val captor = ArgumentCaptor.forClass(classOf[ObjectProtection[IndexFile]])
+      verify(si).writeBlobToFile[IndexFile](anyString(), anyString(), captor.capture())(ArgumentMatchers.eq(indexFileEncoder))
+      captor.getValue should be(a[ObjectWithETag[_]])
+      captor.getValue.asInstanceOf[ObjectWithETag[IndexFile]].eTag should be(poisonETag)
+    } finally im.close()
+  }
+
+  test("ensureGranularLock: NoOverwrite fallback re-read transient failure returns NonFatalCloudSinkError(swallowable=false)") {
     val tp              = Topic("topic1").withPartition(0)
     val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
 

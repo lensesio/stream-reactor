@@ -30,6 +30,7 @@ import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.metrics.CloudSinkMetrics
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexManagerV2._
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.deprecated.IndexManagerV1
+import io.lenses.streamreactor.connect.cloud.common.storage.EmptyFileError
 import io.lenses.streamreactor.connect.cloud.common.storage.FileLoadError
 import io.lenses.streamreactor.connect.cloud.common.storage.FileMetadata
 import io.lenses.streamreactor.connect.cloud.common.storage.FileNotFoundError
@@ -305,6 +306,26 @@ class IndexManagerV2(
           createNewIndexFileNoOverwrite(topicPartition, path, bucketAndPrefix)
             .map(updateDataReturnOffset(topicPartition, _))
 
+        case Left(EmptyFileError(_, eTag)) =>
+          // The master lock exists as a 0-byte poison blob — residue of Bug B's non-atomic write.
+          // A length-0 blob cannot carry committedOffset or PendingState by construction
+          // (the serialiser produces at minimum ~40 bytes for any non-null IndexFile).
+          // Take ownership via setIfMatch(eTag) instead of setIfNoneMatch("*") — the file
+          // exists, so a NoOverwrite write would always 412.
+          // NOTE: pendingOperationsProcessors is NOT invoked here — the 0-byte file proves
+          // no PendingState was ever durably recorded; the recovery write sets pendingState=None.
+          for {
+            tpo <- oldIndexManager.seekOffsetsForTopicPartition(topicPartition)
+            idx = IndexFile(lockOwner, tpo.map(_.offset), Option.empty)
+            blobWrite <- storageInterface.writeBlobToFile(bucketAndPrefix.bucket, path, ObjectWithETag(idx, eTag))
+              .leftMap { err: UploadError =>
+                new FatalCloudSinkError(err.message(), err.toExceptionOption, topicPartition)
+              }
+          } yield {
+            topicPartitionToETags.put(topicPartition, blobWrite.eTag)
+            updateDataReturnOffset(topicPartition, blobWrite)
+          }
+
         case Left(fileLoadError: FileLoadError) =>
           new FatalCloudSinkError(fileLoadError.message(), fileLoadError.toExceptionOption, topicPartition).asLeft[
             Option[Offset],
@@ -352,28 +373,60 @@ class IndexManagerV2(
     topicPartition:  TopicPartition,
   ): Either[FatalCloudSinkError, Unit] =
     storageInterface.pathExists(bucketAndPrefix.bucket, maybeOldPath) match {
-      case Left(error) =>
-        val fatalError = new FatalCloudSinkError(error.message(), error.toExceptionOption, topicPartition)
-        logger.error(
-          s"Failed to check existence of old index file for $topicPartition at $maybeOldPath: ${fatalError.message}",
-        )
-        fatalError.asLeft
+      case Left(firstProbeError) =>
+        // Transient cloud error on the first probe (e.g. 403, 5xx).
+        // Re-probe the OLD path to check whether migration is provably unnecessary.
+        // Safety predicate: "old path is positively absent" — that alone proves migration
+        // is not required regardless of the new-path state (new=false is the expected state
+        // for a fresh deployment, scenario A).
+        storageInterface.pathExists(bucketAndPrefix.bucket, maybeOldPath) match {
+          case Right(false) =>
+            // Old path is provably absent: migration is unnecessary. Warn and continue.
+            logger.warn(
+              s"Transient error checking old index path for $topicPartition at $maybeOldPath " +
+                s"(${firstProbeError.message()}), re-probe confirms old path absent — treating as benign",
+            )
+            ().asRight
+          case Right(true) =>
+            // Old path exists (scenario C: genuine 9.x → 10.x upgrade). Proceed to mvFile.
+            logger.info(
+              s"Re-probe confirmed old index path present for $topicPartition at $maybeOldPath — migrating",
+            )
+            mvOldToNewPath(bucketAndPrefix, maybeOldPath, path, topicPartition)
+          case Left(reProbeError) =>
+            // Cloud is genuinely unavailable. Surface original error as fatal.
+            // Do NOT mark probe done — next assignment retries once cloud clears.
+            val fatalError = new FatalCloudSinkError(firstProbeError.message(), firstProbeError.toExceptionOption, topicPartition)
+            logger.error(
+              s"Failed to check existence of old index file for $topicPartition at $maybeOldPath " +
+                s"(re-probe also failed: ${reProbeError.message()}): ${fatalError.message}",
+            )
+            fatalError.asLeft
+        }
       case Right(false) =>
         //old path does not exist, nothing to do
         ().asRight
       case Right(true) =>
         //old path exists, move to new path
-        storageInterface.mvFile(bucketAndPrefix.bucket, maybeOldPath, bucketAndPrefix.bucket, path, None) match {
-          case Left(err) =>
-            val error = new FatalCloudSinkError(err.message(), err.toExceptionOption, topicPartition)
-            logger.error(
-              s"Failed to move old index file for $topicPartition from $maybeOldPath to $path: ${error.message}",
-            )
-            error.asLeft
-          case Right(_) =>
-            logger.info(s"Migrated old index file for $topicPartition from $maybeOldPath to $path")
-            ().asRight
-        }
+        mvOldToNewPath(bucketAndPrefix, maybeOldPath, path, topicPartition)
+    }
+
+  private def mvOldToNewPath(
+    bucketAndPrefix: CloudLocation,
+    maybeOldPath:    String,
+    path:            String,
+    topicPartition:  TopicPartition,
+  ): Either[FatalCloudSinkError, Unit] =
+    storageInterface.mvFile(bucketAndPrefix.bucket, maybeOldPath, bucketAndPrefix.bucket, path, None) match {
+      case Left(err) =>
+        val error = new FatalCloudSinkError(err.message(), err.toExceptionOption, topicPartition)
+        logger.error(
+          s"Failed to move old index file for $topicPartition from $maybeOldPath to $path: ${error.message}",
+        )
+        error.asLeft
+      case Right(_) =>
+        logger.info(s"Migrated old index file for $topicPartition from $maybeOldPath to $path")
+        ().asRight
     }
 
   /**
@@ -559,6 +612,18 @@ class IndexManagerV2(
         case Left(_: FileNotFoundError) =>
           Option.empty[Offset].asRight
 
+        // 0-byte poison blob: residue of Bug B's non-atomic write.
+        // Return None offset AND cache the eTag so a subsequent updateForPartitionKey
+        // finds the eTag in cache and does not fatal on cache miss (resolveGranularETag
+        // would fail with FatalCloudSinkError if there were no cache entry at all).
+        // This is the cache-miss load-and-populate pattern — consistent with the existing
+        // Right(_) branches — not an exception to the no-re-read rule. The no-re-read rule
+        // applies to subsequent reads while a commit is in flight; those are unchanged.
+        case Left(EmptyFileError(_, eTag)) =>
+          logger.warn(s"Granular lock for $topicPartition/$partitionKey is a 0-byte poison blob (eTag=$eTag); caching eTag for recovery overwrite")
+          gcPut(topicPartition, partitionKey, GranularCacheEntry(None, eTag))
+          Option.empty[Offset].asRight
+
         // Transient cloud errors (network, throttling): retried by Kafka Connect under RETRY;
         // fail-fast under NOOP/THROW so partially loaded state is never silently swallowed.
         case Left(err) =>
@@ -730,6 +795,34 @@ class IndexManagerV2(
                   resolveAndCacheGranularLock(topicPartition, partitionKey, existing)
                 // Transient cloud error on re-read after NoOverwrite race: retried by Kafka Connect
                 // under RETRY; fail-fast under NOOP/THROW to avoid swallowing integrity state.
+                case Left(retryErr) =>
+                  NonFatalCloudSinkError.unswallowable(retryErr.message(), retryErr.toExceptionOption).asLeft
+              }
+            }
+
+          // 0-byte poison blob: residue of Bug B's non-atomic write.
+          // Use ObjectWithETag(eTag) so the atomic rename uses setIfMatch(eTag) on the
+          // DESTINATION slot — taking ownership of the existing poison file.
+          // Using NoOverwriteExistingObject here would always 412 (the file exists).
+          case Left(EmptyFileError(_, eTag)) =>
+            logger.warn(
+              s"Granular lock for $topicPartition/$partitionKey is a 0-byte poison blob (eTag=$eTag); " +
+                s"overwriting via setIfMatch to recover",
+            )
+            val idx = IndexFile(lockOwner, None, None)
+            storageInterface.writeBlobToFile(
+              bucketAndPrefix.bucket,
+              path,
+              ObjectWithETag(idx, eTag),
+            ).map { result =>
+              gcPut(topicPartition, partitionKey, GranularCacheEntry(None, result.eTag))
+              ()
+            }.left.flatMap { _: UploadError =>
+              // 412 on eTag-conditional overwrite: another task won the race and wrote real
+              // content into the previously-empty slot. Re-read to populate the cache.
+              tryOpen(bucketAndPrefix.bucket, path) match {
+                case Right(existing) =>
+                  resolveAndCacheGranularLock(topicPartition, partitionKey, existing)
                 case Left(retryErr) =>
                   NonFatalCloudSinkError.unswallowable(retryErr.message(), retryErr.toExceptionOption).asLeft
               }
@@ -1116,12 +1209,30 @@ class IndexManagerV2(
       }
     } yield {
       val files = listing.files.collect { case fm: FileMetadata => fm }
-      // Classify each file and GET-read only those that pass the filter chain, respecting the budget
+      // Sweep orphaned .lock.tmp.* blobs: GET-free, uses listing metadata only.
+      // The ageThreshold must remain generous (default 86400s) to exceed the worst-case
+      // rename round-trip + retry budget. Do NOT tighten without re-analysing rename latency.
+      files.foreach { fileMeta =>
+        val p = fileMeta.file
+        if (p.startsWith(prefix) && p.contains(".lock.tmp.") && !fileMeta.lastModified.isAfter(ageThreshold)) {
+          logger.debug(s"Sweep: enqueuing orphaned .tmp blob $p for deletion")
+          val partitionKey = {
+            val fileName = p.substring(p.lastIndexOf('/') + 1)
+            fileName.replaceAll("\\.lock\\.tmp\\..*$", "")
+          }
+          gcQueue.add(GcItem(bucket, p, tp, partitionKey))
+        }
+      }
+      // Classify each .lock file and GET-read only those that pass the filter chain, respecting the budget
       files.foldLeft((0, 0)) {
         case (acc @ (_, readsUsed), _) if readsUsed >= readsRemaining => acc
         case ((enqueued, readsUsed), fileMeta) =>
           classifyLockFile(tp, fileMeta, ageThreshold, prefix) match {
             case SweepSkip => (enqueued, readsUsed)
+            case SweepDeleteDirectly(partitionKey) =>
+              // size==0 from listing metadata: enqueue without GET (ADLS-only optimisation)
+              gcQueue.add(GcItem(bucket, fileMeta.file, tp, partitionKey))
+              (enqueued + 1, readsUsed)
             case SweepNeedsRead(partitionKey) =>
               val didEnqueue = readAndEnqueue(bucket, fileMeta.file, tp, partitionKey, masterOffset)
               (enqueued + (if (didEnqueue) 1 else 0), readsUsed + 1)
@@ -1134,6 +1245,8 @@ class IndexManagerV2(
   private sealed trait SweepClassification
   private case object SweepSkip extends SweepClassification
   private case class SweepNeedsRead(partitionKey: String) extends SweepClassification
+  // ADLS-only: listing metadata proves size==0; enqueue for deletion without a GET.
+  private case class SweepDeleteDirectly(partitionKey: String) extends SweepClassification
 
   /** Applies prefix-membership, extension, recency, and cache-presence filters to decide whether a lock file needs a GET read. */
   private def classifyLockFile(
@@ -1148,6 +1261,11 @@ class IndexManagerV2(
       val fileName     = path.substring(path.lastIndexOf('/') + 1)
       val partitionKey = fileName.stripSuffix(".lock")
       if (gcContainsKey(tp, partitionKey)) SweepSkip
+      // ADLS-only optimisation: if the listing metadata proves size==0 and the file is past
+      // the ageThreshold, enqueue for deletion without a GET. Prevents indefinite accumulation
+      // of 0-byte poison blobs from Bug B's non-atomic write. S3/GCP return size=None and
+      // fall through to the normal GET-based classification below.
+      else if (fileMeta.size.contains(0L)) SweepDeleteDirectly(partitionKey)
       else SweepNeedsRead(partitionKey)
     }
   }
@@ -1174,6 +1292,12 @@ class IndexManagerV2(
     masterOffset: Offset,
   ): Boolean =
     storageInterface.getBlobAsObject[IndexFile](bucket, path) match {
+      case Left(_: EmptyFileError) =>
+        // 0-byte blob: classifyLockFile has already enforced the ageThreshold filter,
+        // so this file is provably older than the worst-case create-flush window
+        // and cannot be a live writer's in-progress .tmp. Safe to delete without GET content.
+        gcQueue.add(GcItem(bucket, path, tp, partitionKey))
+        true
       case Left(err) =>
         logger.warn(s"Sweep: failed to read lock file $path: ${err.message()}")
         false

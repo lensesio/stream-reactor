@@ -828,3 +828,96 @@ When the connector is deployed fresh against an Azure Data Lake Storage Gen2 con
 | **Writer accumulation** | N/A (single writer per partition) | Idle writers eagerly evicted on every new writer creation; active writers pinned. Cache grows/shrinks in lockstep -- no desync. |
 | **Migration** | N/A | Fully transparent, zero-downtime upgrade |
 | **Rollback** | N/A | Safe: master lock is backward-compatible, granular locks are ignored by old code |
+
+---
+
+## Known Issues and Resolutions
+
+### A. Migration-probe transient-403 cascade (Resolved in 11.7.4)
+
+#### Background
+
+Connectors upgrading from **9.x → 10.x** have their master lock path automatically migrated on-the-fly by `IndexManagerV2.open()`. In 9.x the lock lived at `<indexDir>/.locks/<topic>/<partition>.lock`; 10.x moved it to `<indexDir>/<connector>/.locks/<topic>/<partition>.lock` to prevent two connectors on the same topic from sharing a lock. The migration is a single HEAD + rename per partition, triggered on every `CloudSinkTask.open()` callback.
+
+#### Root cause
+
+`migrateOldPathIfExists` checks whether the legacy path exists via `pathExists`. Any error other than HTTP 404 was immediately wrapped in `FatalCloudSinkError` and thrown, killing the task. Because `CloudSinkTask.open()` is invoked on every partition assignment (task startup, rebalance, partition recovery), a single transient cloud error during a rebalance window would kill every task as Kafka re-ran `open()` on survivors — producing a cascading 36/36 task failure.
+
+#### The one-sided idempotence gate
+
+The fix adds a re-probe on `Left(PathError)`. The safety predicate is **"old path is positively absent"** — that alone proves migration is unnecessary regardless of the new-path state:
+
+- `Right(false)` on the first probe → unchanged: fast path, no migration.
+- `Left(PathError)` on first probe → re-probe old path:
+  - Re-probe `Right(false)` → migration is unnecessary (old positively absent). Log warning, return success. This covers scenarios A (fresh deployment, new=false) and B (established 10.x+, new=true).
+  - Re-probe `Right(true)` → genuine 9.x file present (scenario C). Proceed to `mvFile` as normal.
+  - Re-probe `Left(_)` → cloud genuinely unavailable. Surface the original error as `FatalCloudSinkError`. The task will be retried by Kafka Connect on the next assignment once the cloud-side condition clears.
+
+This means transient 403s and 5xx errors during rebalance no longer cascade. For scenarios A and B (all established deployments), the re-probe returns `Right(false)` once the transient window clears and the cascade stops.
+
+#### Scope
+
+- All cloud providers (ADLS-observed; the probe code path is shared).
+- Customers running 9.x who upgrade directly: if a transient cloud error occurs on the very first `open()` (the one that would perform the actual migration), the task still fails with a `FatalCloudSinkError` — by design, because the alternative risks losing 9.x pending state. Recovery is a task restart once the cloud-side error clears.
+
+---
+
+### B. Non-atomic ADLS lock write — 0-byte poison file cascade (Resolved in 11.7.4)
+
+#### Root cause
+
+`DatalakeStorageInterface.writeBlobToFile` previously wrote lock files via three sequential REST calls: `createFile(path, overwrite=false)` → `append(bytes)` → `flush`. **Between steps 1 and 3 the lock file was publicly readable as a 0-byte blob.** If the writer died or was revoked between `createFile` and `flush` — kill signal, partition revocation, `RetriableIntegrityException`, JVM exit — the 0-byte blob stayed at the lock path permanently with no cleanup.
+
+This bug is **ADLS Gen2 only**. S3 and GCP use single-request put APIs (`putObject`, `storage.create`) which are atomic.
+
+#### How one 0-byte file killed 20+ tasks
+
+1. Any subsequent task reading the lock calls `getBlobAsObject` → reads 0-byte body → JSON decode fails → `RetriableIntegrityException` (unswallowable).
+2. Task failure triggers consumer-group rebalance → partition moves to a new task → same lock → same failure.
+3. Over enough rebalances, one poison file kills task after task. The customer's 20+ failed tasks from a single 0-byte blob matches this exactly.
+
+#### Fix B.1 — Atomic write via `.tmp` + `renameWithResponse`
+
+`writeBlobToFile` now writes via a per-task temp blob (`<path>.tmp.<lockUuid>`) and renames it atomically to the destination:
+
+1. Create `.tmp.<lockUuid>` with `overwrite=true` (task-owned, uncontended).
+2. `append` + `flush` into the temp blob.
+3. `renameWithResponse(bucket, finalPath, null, destinationConditions, null, context)` — rename is atomic in ADLS Gen2 HNS. The eTag/NoOverwrite precondition is applied to the **destination** slot (slot 4), not the source slot (slot 3).
+4. On any failure between steps 1-3, `deleteFileIfExists(tmpPath)` cleans up the temp blob. The orphan sweep (see below) is the safety net for hard crashes.
+
+The post-rename eTag is read from the rename **response headers** (`response.getHeaders.getValue("ETag")`), not from a subsequent property lookup, which eliminates an ambiguous-success window.
+
+The numeric precondition status code changes from 409 (old `createFile(false)`) to 412 (rename-based). All callers consume only the `Left(FileCreateError)` wrapper, not the underlying status code, so semantic parity is preserved.
+
+**HNS required**: Rename atomicity depends on Hierarchical Namespace (HNS) being enabled on the ADLS Gen2 account. HNS is a pre-existing requirement for exactly-once.
+
+#### Fix B.2 — Load-path recovery via EmptyFileError (no manual cleanup required)
+
+A new `EmptyFileError(path, eTag)` error type is returned by `getBlobAsObject` when the response body has **literal length 0** (non-zero corrupt JSON keeps today's `GeneralFileLoadError`/`FatalCloudSinkError` behaviour — it may contain committed state we cannot parse).
+
+`EmptyFileError` carries the destination eTag so callers can issue an `ObjectWithETag(idx, eTag)` conditional overwrite (`setIfMatch(eTag)` on the destination) — taking atomic ownership of the poison file. Using `NoOverwriteExistingObject` here would always 412 because the file exists.
+
+Call-site recovery:
+
+- **`ensureGranularLock`**: on `EmptyFileError`, overwrites via `ObjectWithETag(eTag)`. On 412 (concurrent take-over), re-reads and resolves normally.
+- **`loadGranularLock`**: on `EmptyFileError`, returns `None` offset **and** caches the eTag so `updateForPartitionKey` does not fatal on cache miss.
+- **`open()` master lock**: on `EmptyFileError`, writes `ObjectWithETag(IndexFile(lockOwner, prevOffset, None), eTag)` via `setIfMatch(eTag)`, populates `topicPartitionToETags` with the post-write eTag. `pendingOperationsProcessors` is **not** invoked — the 0-byte blob proves no `PendingState` was ever durably recorded.
+- **`readAndEnqueue` (sweep)**: on `EmptyFileError`, enqueues for deletion (ageThreshold already enforced by `classifyLockFile`).
+
+**For clusters running the fixed build, existing 0-byte poison files from before the upgrade are recovered automatically on the next read — no manual cleanup required.**
+
+#### Fix B.2b — Orphan `.tmp` sweep
+
+`sweepPartition` now enumerates and deletes files matching `<key>.lock.tmp.*` older than `ageThreshold` (default 86400 s = 24 h). GET-free; uses `listFileMetaRecursive` metadata only. Catches residue from tasks that died hard between temp create and rename. The threshold is intentionally generous to exceed the worst-case rename round-trip plus retry budget.
+
+#### Fix B.2c — Zero-byte `.lock` sweep (ADLS-only optimisation)
+
+`classifyLockFile` now short-circuits a `FileMetadata` with `size == Some(0L)` and `lastModified < ageThreshold` as a delete candidate **without a GET**, using the `size` field now populated from `PathItem.getContentLength` in `listFileMetaRecursive`. S3/GCP return `size=None` and fall through to the existing GET-based classification unchanged. This prevents indefinite accumulation of zero-byte blobs after an upgrade from a pre-fix build.
+
+#### Manual recovery (pre-upgrade clusters only — do not run mid-upgrade)
+
+For clusters **not yet on the fixed build**, delete `Content-Length == 0` blobs under `.indexes/<connector>/.locks/...` whose `lastModified` is older than the configured `connect.gc.sweep.minage.seconds` (default `86400` = 24 hours), then restart FAILED tasks.
+
+**Why the 24-hour threshold**: the same age bound protects against deleting a `.tmp` blob that an in-flight slow write was about to rename. "~30 seconds" is unsafe — shorter than the worst-case rename round-trip plus retry budget on a stressed ADLS account.
+
+**Mid-upgrade**: do **not** run the manual delete script while any task is running the fixed build. Either complete the upgrade across all tasks before running cleanup, or rely on the automatic recovery (recommended).
