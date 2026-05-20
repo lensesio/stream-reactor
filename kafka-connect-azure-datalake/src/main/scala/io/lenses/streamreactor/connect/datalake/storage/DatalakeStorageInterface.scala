@@ -488,44 +488,68 @@ class DatalakeStorageInterface(connectorTaskId: ConnectorTaskId, client: DataLak
       // Wrapped in Try so a 404 PathNotFound from createFile is also caught and routed to the
       // parent-directory recovery path in tryWriteViaRenameWithDirectoryRecovery.
       Try(fsClient.createFile(tmpPath, true)).toEither.flatMap { tmpClient =>
-        Try {
-          // Step 2: append + flush into the temp blob
-          Using.resource(new ByteArrayInputStream(bytes)) { bais =>
-            tmpClient.append(bais, 0, bytes.length.toLong)
-          }
-          tmpClient.flushWithResponse(
-            bytes.length.toLong,
-            true,  // retainUncommittedData
-            false, // close
-            new PathHttpHeaders(),
-            null, // unconditional flush of temp blob — create already established ownership
-            null, // timeout
-            Context.NONE,
-          )
-
-          // Step 3: atomic rename .tmp -> destination with precondition on DESTINATION.
-          // Read the post-rename eTag from response headers — NOT from a subsequent getProperties
-          // call, which would require an additional HEAD that could fail after the rename has
-          // already committed, producing an ambiguous-success state incompatible with fencing.
-          val renameResponse: com.azure.core.http.rest.Response[DataLakeFileClient] =
-            tmpClient.renameWithResponse(
-              bucket,               // destinationFileSystem
-              path,                 // destinationPath
-              null,                 // sourceRequestConditions (slot 3) — must remain null
-              destinationConditions, // destinationRequestConditions (slot 4) — eTag arbitration lands here
-              null,                 // timeout
+        // The rename attempt covers steps 2 (append+flush) and 3 (rename).
+        // recoverWith / deleteTmp MUST NOT run after the rename commits — at that point
+        // .tmp no longer exists at the source and the destination is durable.
+        val renameAttempt: Either[Throwable, com.azure.core.http.rest.Response[DataLakeFileClient]] =
+          Try {
+            // Step 2: append + flush into the temp blob
+            Using.resource(new ByteArrayInputStream(bytes)) { bais =>
+              tmpClient.append(bais, 0, bytes.length.toLong)
+            }
+            tmpClient.flushWithResponse(
+              bytes.length.toLong,
+              true,  // retainUncommittedData
+              false, // close
+              new PathHttpHeaders(),
+              null, // unconditional flush of temp blob — create already established ownership
+              null, // timeout
               Context.NONE,
             )
-          // Read eTag from rename response headers — not from a subsequent getProperties
-          // HEAD (which could fail after the rename has already committed).
-          val respHeaders: com.azure.core.http.HttpHeaders = renameResponse.getHeaders
-          val etagHeader:  com.azure.core.http.HttpHeader  = respHeaders.get(HttpHeaderName.fromString("ETag"))
-          etagHeader.getValue
-        }.recoverWith {
-          case ex =>
-            deleteTmp()
-            scala.util.Failure(ex)
-        }.toEither
+
+            // Step 3: atomic rename .tmp -> destination with precondition on DESTINATION.
+            tmpClient.renameWithResponse(
+              bucket,                // destinationFileSystem
+              path,                  // destinationPath
+              null,                  // sourceRequestConditions (slot 3) — must remain null
+              destinationConditions, // destinationRequestConditions (slot 4) — eTag arbitration lands here
+              null,                  // timeout
+              Context.NONE,
+            )
+          }.recoverWith {
+            case ex =>
+              deleteTmp()
+              scala.util.Failure(ex)
+          }.toEither
+
+        // Extract the post-rename eTag OUTSIDE the recoverWith scope.
+        // If the rename committed but the response carries no ETag header,
+        // HttpHeaders.get() returns null and calling .getValue would NPE.
+        // That NPE must NOT trigger deleteTmp() (the source .tmp is gone) and
+        // must NOT be silently swallowed — surface it as a clear Left so the
+        // caller can distinguish ambiguous-success from a genuine rename failure.
+        renameAttempt.flatMap(extractPostRenameETag(bucket, path, tmpPath))
+      }
+    }
+
+    def extractPostRenameETag(
+      destBucket:   String,
+      destPath:     String,
+      sourceTmpPath: String,
+    )(renameResponse: com.azure.core.http.rest.Response[DataLakeFileClient]): Either[Throwable, String] = {
+      val maybeETag = for {
+        headers <- Option(renameResponse.getHeaders)
+        header  <- Option(headers.get(HttpHeaderName.ETAG))
+        value   <- Option(header.getValue).filter(_.nonEmpty)
+      } yield value
+      maybeETag match {
+        case Some(eTag) => Right(eTag)
+        case None =>
+          Left(new IllegalStateException(
+            s"[${connectorTaskId.show}] renameWithResponse committed $sourceTmpPath -> $destBucket:$destPath " +
+              s"but the response contained no ETag header. The destination file is durable. " +
+              s"Manual recovery: restart the task to re-read the destination eTag via HEAD.",
+          ))
       }
     }
 

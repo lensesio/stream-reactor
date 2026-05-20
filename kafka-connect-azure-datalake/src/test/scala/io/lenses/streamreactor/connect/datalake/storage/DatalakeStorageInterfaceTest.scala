@@ -1258,6 +1258,73 @@ class DatalakeStorageInterfaceTest
     verify(fsClient).deleteFileIfExists(tmpPath)
   }
 
+  "writeBlobToFile" should "return FileCreateError (not NPE) when rename succeeds but response has no ETag header, and NOT call deleteTmp" in {
+    val bucket   = "test-bucket"
+    val path     = "test-path/index.lock"
+    val tmpPath  = s"$path.tmp.${connectorTaskId.lockUuid}"
+    val testData = TestIndexFile("owner-123", Some(100L))
+
+    val fsClient     = mock[DataLakeFileSystemClient]
+    val tmpClient    = mock[DataLakeFileClient]
+    val flushResp    = mock[Response[PathInfo]]
+    val pathInfo     = mock[PathInfo]
+    val renameResp   = mock[Response[DataLakeFileClient]]
+    // No ETag header set — simulates an ADLS response that omits the ETag field
+    val emptyHeaders = new HttpHeaders()
+
+    when(client.getFileSystemClient(bucket)).thenReturn(fsClient)
+    when(fsClient.createFile(tmpPath, true)).thenReturn(tmpClient)
+    doAnswer((_: InvocationOnMock) => ()).when(tmpClient).append(any[ByteArrayInputStream], anyLong, anyLong)
+    when(pathInfo.getETag).thenReturn("tmp-etag")
+    when(flushResp.getValue).thenReturn(pathInfo)
+    when(
+      tmpClient.flushWithResponse(anyLong, anyBoolean, anyBoolean, any[PathHttpHeaders], isNull[DataLakeRequestConditions], isNull[java.time.Duration], any[Context]),
+    ).thenReturn(flushResp)
+    when(renameResp.getHeaders).thenReturn(emptyHeaders)
+    when(tmpClient.renameWithResponse(eqTo(bucket), eqTo(path), any, any, any, any)).thenReturn(renameResp)
+
+    val result = storageInterface.writeBlobToFile(bucket, path, NoOverwriteExistingObject(testData))
+
+    result.isLeft should be(true)
+    result.left.value should be(a[FileCreateError])
+    // The rename committed — .tmp was moved to the destination, so deleteTmp MUST NOT be called
+    verify(fsClient, times(0)).deleteFileIfExists(tmpPath)
+  }
+
+  "writeBlobToFile" should "return FileCreateError when rename succeeds but ETag header value is empty, and NOT call deleteTmp" in {
+    val bucket   = "test-bucket"
+    val path     = "test-path/index.lock"
+    val tmpPath  = s"$path.tmp.${connectorTaskId.lockUuid}"
+    val testData = TestIndexFile("owner-123", Some(100L))
+
+    val fsClient     = mock[DataLakeFileSystemClient]
+    val tmpClient    = mock[DataLakeFileClient]
+    val flushResp    = mock[Response[PathInfo]]
+    val pathInfo     = mock[PathInfo]
+    val renameResp   = mock[Response[DataLakeFileClient]]
+    // ETag header present but empty
+    val emptyETagHeaders = new HttpHeaders()
+    emptyETagHeaders.set("ETag", "")
+
+    when(client.getFileSystemClient(bucket)).thenReturn(fsClient)
+    when(fsClient.createFile(tmpPath, true)).thenReturn(tmpClient)
+    doAnswer((_: InvocationOnMock) => ()).when(tmpClient).append(any[ByteArrayInputStream], anyLong, anyLong)
+    when(pathInfo.getETag).thenReturn("tmp-etag")
+    when(flushResp.getValue).thenReturn(pathInfo)
+    when(
+      tmpClient.flushWithResponse(anyLong, anyBoolean, anyBoolean, any[PathHttpHeaders], isNull[DataLakeRequestConditions], isNull[java.time.Duration], any[Context]),
+    ).thenReturn(flushResp)
+    when(renameResp.getHeaders).thenReturn(emptyETagHeaders)
+    when(tmpClient.renameWithResponse(eqTo(bucket), eqTo(path), any, any, any, any)).thenReturn(renameResp)
+
+    val result = storageInterface.writeBlobToFile(bucket, path, NoOverwriteExistingObject(testData))
+
+    result.isLeft should be(true)
+    result.left.value should be(a[FileCreateError])
+    // The rename committed — .tmp was moved to the destination, so deleteTmp MUST NOT be called
+    verify(fsClient, times(0)).deleteFileIfExists(tmpPath)
+  }
+
   "writeBlobToFile" should "create parent directory and retry .tmp create on PathNotFound" in {
     val bucket  = "test-bucket"
     val path    = "a/b/index.lock"
