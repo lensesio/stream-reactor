@@ -321,10 +321,7 @@ class IndexManagerV2(
               .leftMap { err: UploadError =>
                 new FatalCloudSinkError(err.message(), err.toExceptionOption, topicPartition)
               }
-          } yield {
-            topicPartitionToETags.put(topicPartition, blobWrite.eTag)
-            updateDataReturnOffset(topicPartition, blobWrite)
-          }
+          } yield updateDataReturnOffset(topicPartition, blobWrite)
 
         case Left(fileLoadError: FileLoadError) =>
           new FatalCloudSinkError(fileLoadError.message(), fileLoadError.toExceptionOption, topicPartition).asLeft[
