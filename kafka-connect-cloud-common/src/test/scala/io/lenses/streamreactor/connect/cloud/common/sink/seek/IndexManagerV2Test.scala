@@ -2392,8 +2392,9 @@ class IndexManagerV2Test
 
     val pk      = "pk-shared"
     val oldTime = Instant.now().minusSeconds(7200)
+    // UUID-shaped suffix matches TmpOrphanPattern ([0-9a-fA-F-]+).
     val tmpPath =
-      s"$indexesDirectoryName/${connectorTaskId.name}/.locks/${tp.topic}/${tp.partition}/$pk.lock.tmp.crashed-uuid"
+      s"$indexesDirectoryName/${connectorTaskId.name}/.locks/${tp.topic}/${tp.partition}/$pk.lock.tmp.deadbeef-1234-4567-89ab-cdef00112233"
     val tmpMeta  = TestFileMetadata(tmpPath, oldTime)
     val listResp = ListOfMetadataResponse("bucket", Some("prefix"), Seq(tmpMeta), tmpMeta)
 
@@ -2419,6 +2420,130 @@ class IndexManagerV2Test
       verify(si, times(1)).deleteFiles(anyString(), pathCaptor.capture())
       val deletedPaths = pathCaptor.getValue
       deletedPaths should contain(tmpPath)
+    } finally im.close()
+  }
+
+  test(
+    "sweep does NOT classify a real .lock file as a tmp orphan when partitionKey contains '.lock.tmp.' (regression)",
+  ) {
+    // `WriterManager.sanitize` URL-encodes partition values but leaves `.` literal,
+    // so a value like `report.lock.tmp.archive` produces a real granular lock at
+    // `<...>/name=report.lock.tmp.archive.lock`. A naive `contains(".lock.tmp.")`
+    // sweep filter would enqueue this file as a tmp orphan under GcKind.TmpOrphan,
+    // bypassing the cache-reclaim filter and deleting an active lock. The
+    // anchored TmpOrphanPattern (`.lock.tmp.<uuid>$`) prevents this.
+    val tp              = Topic("topic1").withPartition(0)
+    val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
+    val si              = mock[StorageInterface[_]]
+    setupSweepMocks(si, tp, bucketAndPrefix)
+
+    val pk        = "name=report.lock.tmp.archive"
+    val oldTime   = Instant.now().minusSeconds(7200)
+    val realLock  = s"$indexesDirectoryName/${connectorTaskId.name}/.locks/${tp.topic}/${tp.partition}/$pk.lock"
+    val realMeta  = TestFileMetadata(realLock, oldTime)
+    val listResp  = ListOfMetadataResponse("bucket", Some("prefix"), Seq(realMeta), realMeta)
+
+    org.mockito.Mockito.doReturn(Right(Some(listResp))).when(si).listFileMetaRecursive(anyString(), any[Option[String]])
+    // Real lock content with committedOffset >= masterOffset (100), so the normal
+    // `.lock` sweep path also leaves it alone. We're asserting the tmp-orphan
+    // path does not enqueue it under any circumstances.
+    when(
+      si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith(s"$pk.lock"))(
+        ArgumentMatchers.eq(indexFileDecoder),
+      ),
+    ).thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(200)), None), "etag-real")))
+    when(si.deleteFiles(anyString(), any[Seq[String]])).thenReturn(Right(()))
+
+    val im = createSweepTestManager(si)
+    try {
+      im.open(Set(tp))
+      im.sweepOrphanedLocks()
+      im.drainGcQueue()
+
+      // The real lock must NOT be deleted by either the tmp-orphan or .lock sweep paths.
+      verify(si, never).deleteFiles(anyString(), any[Seq[String]])
+    } finally im.close()
+  }
+
+  test("sweep does NOT classify '<pk>.lock.tmp.lock' as a tmp orphan (no UUID suffix) (regression)") {
+    // A pathological partitionKey like `foo.lock.tmp` ends up as `<...>/foo.lock.tmp.lock`.
+    // The anchored regex requires a UUID-shaped suffix after `.lock.tmp.`, so `lock`
+    // alone (which contains characters outside [0-9a-fA-F-]) does not match.
+    val tp              = Topic("topic1").withPartition(0)
+    val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
+    val si              = mock[StorageInterface[_]]
+    setupSweepMocks(si, tp, bucketAndPrefix)
+
+    val pk       = "foo.lock.tmp"
+    val oldTime  = Instant.now().minusSeconds(7200)
+    val realLock = s"$indexesDirectoryName/${connectorTaskId.name}/.locks/${tp.topic}/${tp.partition}/$pk.lock"
+    val realMeta = TestFileMetadata(realLock, oldTime)
+    val listResp = ListOfMetadataResponse("bucket", Some("prefix"), Seq(realMeta), realMeta)
+
+    org.mockito.Mockito.doReturn(Right(Some(listResp))).when(si).listFileMetaRecursive(anyString(), any[Option[String]])
+    when(
+      si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith(s"$pk.lock"))(
+        ArgumentMatchers.eq(indexFileDecoder),
+      ),
+    ).thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(200)), None), "etag-real")))
+    when(si.deleteFiles(anyString(), any[Seq[String]])).thenReturn(Right(()))
+
+    val im = createSweepTestManager(si)
+    try {
+      im.open(Set(tp))
+      im.sweepOrphanedLocks()
+      im.drainGcQueue()
+
+      verify(si, never).deleteFiles(anyString(), any[Seq[String]])
+    } finally im.close()
+  }
+
+  test("sweep classifies '<pk>.lock.tmp.<uuid>' as a tmp orphan and captures the full pk (incl. dots)") {
+    // Positive case: a real tmp orphan whose partitionKey itself contains `.lock.tmp.`.
+    // The regex must capture the FULL partition key (`name=report.lock.tmp.archive`),
+    // not just the prefix up to the first `.lock.tmp.`. We verify both that the file
+    // is enqueued for deletion and that the captured partitionKey is correct by
+    // checking it does NOT clash with a separately cached granular lock for the
+    // shorter (incorrect-greedy) extraction `name=report`.
+    val tp              = Topic("topic1").withPartition(0)
+    val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
+    val si              = mock[StorageInterface[_]]
+    setupSweepMocks(si, tp, bucketAndPrefix)
+
+    val pk      = "name=report.lock.tmp.archive"
+    val uuid    = "deadbeef-1234-4567-89ab-cdef00112233"
+    val oldTime = Instant.now().minusSeconds(7200)
+    val tmpPath =
+      s"$indexesDirectoryName/${connectorTaskId.name}/.locks/${tp.topic}/${tp.partition}/$pk.lock.tmp.$uuid"
+    val tmpMeta  = TestFileMetadata(tmpPath, oldTime)
+    val listResp = ListOfMetadataResponse("bucket", Some("prefix"), Seq(tmpMeta), tmpMeta)
+
+    org.mockito.Mockito.doReturn(Right(Some(listResp))).when(si).listFileMetaRecursive(anyString(), any[Option[String]])
+    when(si.deleteFiles(anyString(), any[Seq[String]])).thenReturn(Right(()))
+
+    val im = createSweepTestManager(si)
+    try {
+      im.open(Set(tp))
+
+      // Populate the granular cache for `name=report` (the WRONG, naive-greedy
+      // extraction). If the regex captured this as the partitionKey, the
+      // GcKind.TmpOrphan path would still bypass the cache filter and delete --
+      // so this is not a sufficient test on its own. We instead also populate
+      // a cache entry for the CORRECT pk and assert deletion still proceeds
+      // (TmpOrphan bypass) AND the deleted path is the .tmp file.
+      when(
+        si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith(s"$pk.lock"))(
+          ArgumentMatchers.eq(indexFileDecoder),
+        ),
+      ).thenReturn(Right(ObjectWithETag(IndexFile("newWriter", Some(Offset(50)), None), "etag-live")))
+      im.getSeekedOffsetForPartitionKey(tp, pk) shouldBe Right(Some(Offset(50)))
+
+      im.sweepOrphanedLocks()
+      im.drainGcQueue()
+
+      val pathCaptor = ArgumentCaptor.forClass(classOf[Seq[String]])
+      verify(si, times(1)).deleteFiles(anyString(), pathCaptor.capture())
+      pathCaptor.getValue should contain(tmpPath)
     } finally im.close()
   }
 

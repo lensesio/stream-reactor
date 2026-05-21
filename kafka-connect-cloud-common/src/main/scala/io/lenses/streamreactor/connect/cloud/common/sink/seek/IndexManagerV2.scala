@@ -1214,21 +1214,30 @@ class IndexManagerV2(
       }
     } yield {
       val files = listing.files.collect { case fm: FileMetadata => fm }
-      // Sweep orphaned .lock.tmp.* blobs: GET-free, uses listing metadata only.
+      // Sweep orphaned .lock.tmp.<uuid> blobs: GET-free, uses listing metadata only.
       // The ageThreshold must remain generous (default 86400s) to exceed the worst-case
       // rename round-trip + retry budget. Do NOT tighten without re-analysing rename latency.
+      //
+      // The match is anchored at the END of the basename and requires a UUID-shaped suffix
+      // ([0-9a-fA-F-]+) after `.lock.tmp.`. A naive `contains(".lock.tmp.")` would
+      // misclassify legitimate granular locks whose partitionKey itself contains
+      // `.lock.tmp.` (partition values are URL-encoded by `WriterManager.sanitize`, which
+      // preserves the literal `.` character) -- e.g. `name=report.lock.tmp.archive.lock`
+      // would otherwise be enqueued for deletion under GcKind.TmpOrphan, which bypasses
+      // the cache-reclaim filter in drainGcQueue.
       files.foreach { fileMeta =>
         val p = fileMeta.file
-        if (p.startsWith(prefix) && p.contains(".lock.tmp.") && !fileMeta.lastModified.isAfter(ageThreshold)) {
-          logger.debug(s"Sweep: enqueuing orphaned .tmp blob $p for deletion")
-          val partitionKey = {
-            val fileName = p.substring(p.lastIndexOf('/') + 1)
-            fileName.replaceAll("\\.lock\\.tmp\\..*$", "")
+        if (p.startsWith(prefix) && !fileMeta.lastModified.isAfter(ageThreshold)) {
+          val fileName = p.substring(p.lastIndexOf('/') + 1)
+          fileName match {
+            case TmpOrphanPattern(partitionKey) =>
+              logger.debug(s"Sweep: enqueuing orphaned .tmp blob $p for deletion")
+              // GcKind.TmpOrphan: bypass the cache-reclaim filter in drainGcQueue.
+              // A populated granularCache entry for `partitionKey` belongs to the
+              // active `.lock`, never to this stale `.tmp`. See GcKind comment.
+              gcQueue.add(GcItem(bucket, p, tp, partitionKey, GcKind.TmpOrphan))
+            case _ => ()
           }
-          // GcKind.TmpOrphan: bypass the cache-reclaim filter in drainGcQueue.
-          // A populated granularCache entry for `partitionKey` belongs to the
-          // active `.lock`, never to this stale `.tmp`. See GcKind comment.
-          gcQueue.add(GcItem(bucket, p, tp, partitionKey, GcKind.TmpOrphan))
         }
       }
       // Classify each .lock file and GET-read only those that pass the filter chain, respecting the budget
@@ -1402,6 +1411,18 @@ object IndexManagerV2 {
     kind:           GcKind = GcKind.Lock,
     retryCount:     Int    = 0,
   )
+
+  // Anchored at the END of the basename: `<partitionKey>.lock.tmp.<uuid>`.
+  // The UUID class matches the format produced by `UUID.randomUUID().toString`
+  // (see `ConnectorTaskId.lockUuid`) -- 32 hex chars + 4 dashes -- but is kept
+  // permissive (`[0-9a-fA-F-]+`) to avoid coupling to a specific UUID
+  // canonical form. The captured group is the true partition key, including
+  // any literal `.` characters preserved by `WriterManager.sanitize` (which
+  // URL-encodes but leaves `.` alone). A naive `contains(".lock.tmp.")` test
+  // would misclassify a real `.lock` whose partitionKey contains `.lock.tmp.`
+  // (e.g. `name=report.lock.tmp.archive.lock`) as a tmp orphan and delete it
+  // -- TmpOrphan items bypass the cache-reclaim filter in `drainGcQueue`.
+  private[seek] val TmpOrphanPattern = """^(.*)\.lock\.tmp\.[0-9a-fA-F-]+$""".r
 
   val MaxGcRetries: Int = 3
 
