@@ -316,7 +316,7 @@ class IndexManagerV2(
           // no PendingState was ever durably recorded; the recovery write sets pendingState=None.
           for {
             tpo <- oldIndexManager.seekOffsetsForTopicPartition(topicPartition)
-            idx = IndexFile(lockOwner, tpo.map(_.offset), Option.empty)
+            idx  = IndexFile(lockOwner, tpo.map(_.offset), Option.empty)
             blobWrite <- storageInterface.writeBlobToFile(bucketAndPrefix.bucket, path, ObjectWithETag(idx, eTag))
               .leftMap { err: UploadError =>
                 new FatalCloudSinkError(err.message(), err.toExceptionOption, topicPartition)
@@ -393,7 +393,8 @@ class IndexManagerV2(
           case Left(reProbeError) =>
             // Cloud is genuinely unavailable. Surface original error as fatal.
             // Do NOT mark probe done — next assignment retries once cloud clears.
-            val fatalError = new FatalCloudSinkError(firstProbeError.message(), firstProbeError.toExceptionOption, topicPartition)
+            val fatalError =
+              new FatalCloudSinkError(firstProbeError.message(), firstProbeError.toExceptionOption, topicPartition)
             logger.error(
               s"Failed to check existence of old index file for $topicPartition at $maybeOldPath " +
                 s"(re-probe also failed: ${reProbeError.message()}): ${fatalError.message}",
@@ -617,7 +618,9 @@ class IndexManagerV2(
         // Right(_) branches — not an exception to the no-re-read rule. The no-re-read rule
         // applies to subsequent reads while a commit is in flight; those are unchanged.
         case Left(EmptyFileError(_, eTag)) =>
-          logger.warn(s"Granular lock for $topicPartition/$partitionKey is a 0-byte poison blob (eTag=$eTag); caching eTag for recovery overwrite")
+          logger.warn(
+            s"Granular lock for $topicPartition/$partitionKey is a 0-byte poison blob (eTag=$eTag); caching eTag for recovery overwrite",
+          )
           gcPut(topicPartition, partitionKey, GranularCacheEntry(None, eTag))
           Option.empty[Offset].asRight
 
@@ -1225,7 +1228,7 @@ class IndexManagerV2(
         case (acc @ (_, readsUsed), _) if readsUsed >= readsRemaining => acc
         case ((enqueued, readsUsed), fileMeta) =>
           classifyLockFile(tp, fileMeta, ageThreshold, prefix) match {
-            case SweepSkip => (enqueued, readsUsed)
+            case SweepSkip                         => (enqueued, readsUsed)
             case SweepDeleteDirectly(partitionKey) =>
               // size==0 from listing metadata: enqueue without GET (ADLS-only optimisation)
               gcQueue.add(GcItem(bucket, fileMeta.file, tp, partitionKey))

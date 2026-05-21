@@ -108,8 +108,9 @@ trait StorageInterface[SM <: FileMetadata] extends ResultProcessors {
       // (NoOverwriteExistingObject), which would always 412 against the existing file.
       // Non-zero corrupt JSON keeps today's GeneralFileLoadError behaviour because we
       // cannot prove the file was content-free.
-      decoded <- if (s.length == 0) Left(EmptyFileError(path, eTag))
-                 else decode[O](s).leftMap(e => GeneralFileLoadError(e, path))
+      decoded <-
+        if (s.length == 0) Left(EmptyFileError(path, eTag))
+        else decode[O](s).leftMap(e => GeneralFileLoadError(e, path))
     } yield {
       ObjectWithETag[O](decoded, eTag)
     }

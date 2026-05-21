@@ -476,10 +476,11 @@ class DatalakeStorageInterface(connectorTaskId: ConnectorTaskId, client: DataLak
         null
     }
 
-    def deleteTmp(): Unit = {
+    def deleteTmp(): Unit =
       Try(client.getFileSystemClient(bucket).deleteFileIfExists(tmpPath))
-        .failed.foreach(ex => logger.warn(s"[${connectorTaskId.show}] Failed to clean up temp blob $tmpPath: ${ex.getMessage}"))
-    }
+        .failed.foreach(ex =>
+          logger.warn(s"[${connectorTaskId.show}] Failed to clean up temp blob $tmpPath: ${ex.getMessage}"),
+        )
 
     def tryWriteViaRename(): Either[Throwable, String] = {
       val fsClient = client.getFileSystemClient(bucket)
@@ -533,10 +534,11 @@ class DatalakeStorageInterface(connectorTaskId: ConnectorTaskId, client: DataLak
     }
 
     def extractPostRenameETag(
-      destBucket:   String,
-      destPath:     String,
-      sourceTmpPath: String,
-    )(renameResponse: com.azure.core.http.rest.Response[DataLakeFileClient]): Either[Throwable, String] = {
+      destBucket:     String,
+      destPath:       String,
+      sourceTmpPath:  String,
+    )(renameResponse: com.azure.core.http.rest.Response[DataLakeFileClient],
+    ): Either[Throwable, String] = {
       val maybeETag = for {
         headers <- Option(renameResponse.getHeaders)
         header  <- Option(headers.get(HttpHeaderName.ETAG))
@@ -545,11 +547,13 @@ class DatalakeStorageInterface(connectorTaskId: ConnectorTaskId, client: DataLak
       maybeETag match {
         case Some(eTag) => Right(eTag)
         case None =>
-          Left(new IllegalStateException(
-            s"[${connectorTaskId.show}] renameWithResponse committed $sourceTmpPath -> $destBucket:$destPath " +
-              s"but the response contained no ETag header. The destination file is durable. " +
-              s"Manual recovery: restart the task to re-read the destination eTag via HEAD.",
-          ))
+          Left(
+            new IllegalStateException(
+              s"[${connectorTaskId.show}] renameWithResponse committed $sourceTmpPath -> $destBucket:$destPath " +
+                s"but the response contained no ETag header. The destination file is durable. " +
+                s"Manual recovery: restart the task to re-read the destination eTag via HEAD.",
+            ),
+          )
       }
     }
 

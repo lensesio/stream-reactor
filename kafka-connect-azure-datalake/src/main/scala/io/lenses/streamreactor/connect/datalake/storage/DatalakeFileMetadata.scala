@@ -26,8 +26,8 @@ case class Continuation(
   lastContinuationToken: String,
 )
 case class DatalakeFileMetadata(
-  file:         String,
-  lastModified: Instant,
-  continuation: Option[Continuation],
+  file:              String,
+  lastModified:      Instant,
+  continuation:      Option[Continuation],
   override val size: Option[Long] = None,
 ) extends FileMetadata
