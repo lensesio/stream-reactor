@@ -995,7 +995,12 @@ class IndexManagerV2(
         )
         metrics.incrementGcLocksSkippedRevoked()
         false
-      } else if (gcContainsKey(item.topicPartition, item.partitionKey)) {
+      } else if (item.kind == GcKind.Lock && gcContainsKey(item.topicPartition, item.partitionKey)) {
+        // Only `.lock` items honour the cache-reclaim filter: a populated
+        // granularCache entry means a new writer has taken the live `.lock`
+        // path, so deleting it would clobber the active lock. `.tmp` orphans
+        // (GcKind.TmpOrphan) bypass this branch -- their path is distinct
+        // from the active `.lock`, and they are stale by definition.
         logger.debug(s"GC skipping ${item.topicPartition}/${item.partitionKey}: reclaimed by new writer")
         metrics.incrementGcLocksSkippedReclaimed()
         false
@@ -1220,7 +1225,10 @@ class IndexManagerV2(
             val fileName = p.substring(p.lastIndexOf('/') + 1)
             fileName.replaceAll("\\.lock\\.tmp\\..*$", "")
           }
-          gcQueue.add(GcItem(bucket, p, tp, partitionKey))
+          // GcKind.TmpOrphan: bypass the cache-reclaim filter in drainGcQueue.
+          // A populated granularCache entry for `partitionKey` belongs to the
+          // active `.lock`, never to this stale `.tmp`. See GcKind comment.
+          gcQueue.add(GcItem(bucket, p, tp, partitionKey, GcKind.TmpOrphan))
         }
       }
       // Classify each .lock file and GET-read only those that pass the filter chain, respecting the budget
@@ -1374,12 +1382,25 @@ object IndexManagerV2 {
 
   case class GranularCacheEntry(offset: Option[Offset], eTag: String)
 
+  // Discriminates between GC items targeting the live `.lock` blob and items
+  // targeting orphaned `.lock.tmp.<uuid>` residue from a crashed writer. The
+  // cache-reclaim filter in `drainGcQueue` is correct only for `Lock`: a `.tmp`
+  // path can never be the active lock for any writer, so a populated
+  // `granularCache[tp][pk]` (the dominant orphan-`.tmp` scenario) does not
+  // imply the `.tmp` is in use and must not block its deletion.
+  private[seek] sealed trait GcKind
+  private[seek] object GcKind {
+    case object Lock      extends GcKind
+    case object TmpOrphan extends GcKind
+  }
+
   private[seek] case class GcItem(
     bucket:         String,
     path:           String,
     topicPartition: TopicPartition,
     partitionKey:   String,
-    retryCount:     Int = 0,
+    kind:           GcKind = GcKind.Lock,
+    retryCount:     Int    = 0,
   )
 
   val MaxGcRetries: Int = 3

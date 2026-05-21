@@ -2401,6 +2401,50 @@ class IndexManagerV2Test
     }
   }
 
+  test("drainGcQueue deletes .tmp orphans even when granularCache holds the same partitionKey") {
+    // The dominant orphan-.tmp scenario: task A crashed mid-write (left a stale
+    // .lock.tmp.<uuid> blob), task B successfully wrote the real .lock for the
+    // same partition key and populated granularCache[tp][pk]. Before the fix,
+    // drainGcQueue's gcContainsKey filter saw the cache entry and skipped the
+    // .tmp delete forever -- a perpetual storage leak. After the fix the
+    // GcKind.TmpOrphan tag bypasses the cache-reclaim filter.
+    val tp              = Topic("topic1").withPartition(0)
+    val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
+    val si              = mock[StorageInterface[_]]
+    setupSweepMocks(si, tp, bucketAndPrefix)
+
+    val pk      = "pk-shared"
+    val oldTime = Instant.now().minusSeconds(7200)
+    val tmpPath =
+      s"$indexesDirectoryName/${connectorTaskId.name}/.locks/${tp.topic}/${tp.partition}/$pk.lock.tmp.crashed-uuid"
+    val tmpMeta  = TestFileMetadata(tmpPath, oldTime)
+    val listResp = ListOfMetadataResponse("bucket", Some("prefix"), Seq(tmpMeta), tmpMeta)
+
+    org.mockito.Mockito.doReturn(Right(Some(listResp))).when(si).listFileMetaRecursive(anyString(), any[Option[String]])
+    when(
+      si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains(s"/$pk.lock"))(
+        ArgumentMatchers.eq(indexFileDecoder),
+      ),
+    ).thenReturn(Right(ObjectWithETag(IndexFile("newWriter", Some(Offset(50)), None), "etag-live")))
+    when(si.deleteFiles(anyString(), any[Seq[String]])).thenReturn(Right(()))
+
+    val im = createSweepTestManager(si)
+    try {
+      im.open(Set(tp))
+
+      im.getSeekedOffsetForPartitionKey(tp, pk) shouldBe Right(Some(Offset(50)))
+      im.granularCacheSize shouldBe 1
+
+      im.sweepOrphanedLocks()
+      im.drainGcQueue()
+
+      val pathCaptor = ArgumentCaptor.forClass(classOf[Seq[String]])
+      verify(si, times(1)).deleteFiles(anyString(), pathCaptor.capture())
+      val deletedPaths = pathCaptor.getValue
+      deletedPaths should contain(tmpPath)
+    } finally im.close()
+  }
+
   test("drainGcQueue re-offers polled items when deleteFiles throws an unexpected exception") {
     // Unexpected exceptions (not a Left storage error) used to be caught by the
     // outer try/NonFatal and silently swallowed, dropping every polled item from
