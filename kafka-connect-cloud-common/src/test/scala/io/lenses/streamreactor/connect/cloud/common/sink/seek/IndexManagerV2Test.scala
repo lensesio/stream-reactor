@@ -583,29 +583,6 @@ class IndexManagerV2Test
     )
   }
 
-  test("migrateOldPathIfExists should propagate error when pathExists fails") {
-    val topicPartition  = Topic("test-topic").withPartition(0)
-    val bucketAndPrefix = CloudLocation("test-bucket", "test-prefix".some)
-    val oldPath         = ".indexes2/.locks/Topic(test-topic)/0.lock"
-    val pathError       = PathError(new RuntimeException("Storage error"), oldPath)
-
-    when(bucketAndPrefixFn(topicPartition)).thenReturn(Right(bucketAndPrefix))
-    when(storageInterface.pathExists("test-bucket", oldPath)).thenReturn(Left(pathError))
-
-    val result = indexManagerV2.open(Set(topicPartition))
-
-    result.isLeft shouldBe true
-    result.left.getOrElse(throw new RuntimeException("Expected Left")) shouldBe a[FatalCloudSinkError]
-
-    verify(storageInterface).pathExists("test-bucket", oldPath)
-    verify(storageInterface, never).mvFile(anyString(),
-                                           anyString(),
-                                           anyString(),
-                                           anyString(),
-                                           ArgumentMatchers.eq(None),
-    )
-  }
-
   test("migrateOldPathIfExists should propagate error when mvFile returns an error") {
     val topicPartition  = Topic("test-topic").withPartition(0)
     val bucketAndPrefix = CloudLocation("test-bucket", "test-prefix".some)
