@@ -30,6 +30,7 @@ import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.deprecated.IndexManagerV1
 import io.lenses.streamreactor.connect.cloud.common.model.UploadableFile
+import io.lenses.streamreactor.connect.cloud.common.storage.EmptyFileError
 import io.lenses.streamreactor.connect.cloud.common.storage.FileNotFoundError
 import io.lenses.streamreactor.connect.cloud.common.storage.GeneralFileLoadError
 import io.lenses.streamreactor.connect.cloud.common.storage.ListOfMetadataResponse
@@ -574,29 +575,6 @@ class IndexManagerV2Test
     verify(storageInterface).pathExists("test-bucket", oldPath)
 
     // Verify that mvFile was NOT called since old path doesn't exist
-    verify(storageInterface, never).mvFile(anyString(),
-                                           anyString(),
-                                           anyString(),
-                                           anyString(),
-                                           ArgumentMatchers.eq(None),
-    )
-  }
-
-  test("migrateOldPathIfExists should propagate error when pathExists fails") {
-    val topicPartition  = Topic("test-topic").withPartition(0)
-    val bucketAndPrefix = CloudLocation("test-bucket", "test-prefix".some)
-    val oldPath         = ".indexes2/.locks/Topic(test-topic)/0.lock"
-    val pathError       = PathError(new RuntimeException("Storage error"), oldPath)
-
-    when(bucketAndPrefixFn(topicPartition)).thenReturn(Right(bucketAndPrefix))
-    when(storageInterface.pathExists("test-bucket", oldPath)).thenReturn(Left(pathError))
-
-    val result = indexManagerV2.open(Set(topicPartition))
-
-    result.isLeft shouldBe true
-    result.left.getOrElse(throw new RuntimeException("Expected Left")) shouldBe a[FatalCloudSinkError]
-
-    verify(storageInterface).pathExists("test-bucket", oldPath)
     verify(storageInterface, never).mvFile(anyString(),
                                            anyString(),
                                            anyString(),
@@ -2400,6 +2378,175 @@ class IndexManagerV2Test
     }
   }
 
+  test("drainGcQueue deletes .tmp orphans even when granularCache holds the same partitionKey") {
+    // The dominant orphan-.tmp scenario: task A crashed mid-write (left a stale
+    // .lock.tmp.<uuid> blob), task B successfully wrote the real .lock for the
+    // same partition key and populated granularCache[tp][pk]. Before the fix,
+    // drainGcQueue's gcContainsKey filter saw the cache entry and skipped the
+    // .tmp delete forever -- a perpetual storage leak. After the fix the
+    // GcKind.TmpOrphan tag bypasses the cache-reclaim filter.
+    val tp              = Topic("topic1").withPartition(0)
+    val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
+    val si              = mock[StorageInterface[_]]
+    setupSweepMocks(si, tp, bucketAndPrefix)
+
+    val pk      = "pk-shared"
+    val oldTime = Instant.now().minusSeconds(7200)
+    // UUID-shaped suffix matches TmpOrphanPattern ([0-9a-fA-F-]+).
+    val tmpPath =
+      s"$indexesDirectoryName/${connectorTaskId.name}/.locks/${tp.topic}/${tp.partition}/$pk.lock.tmp.deadbeef-1234-4567-89ab-cdef00112233"
+    val tmpMeta  = TestFileMetadata(tmpPath, oldTime)
+    val listResp = ListOfMetadataResponse("bucket", Some("prefix"), Seq(tmpMeta), tmpMeta)
+
+    org.mockito.Mockito.doReturn(Right(Some(listResp))).when(si).listFileMetaRecursive(anyString(), any[Option[String]])
+    when(
+      si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains(s"/$pk.lock"))(
+        ArgumentMatchers.eq(indexFileDecoder),
+      ),
+    ).thenReturn(Right(ObjectWithETag(IndexFile("newWriter", Some(Offset(50)), None), "etag-live")))
+    when(si.deleteFiles(anyString(), any[Seq[String]])).thenReturn(Right(()))
+
+    val im = createSweepTestManager(si)
+    try {
+      im.open(Set(tp))
+
+      im.getSeekedOffsetForPartitionKey(tp, pk) shouldBe Right(Some(Offset(50)))
+      im.granularCacheSize shouldBe 1
+
+      im.sweepOrphanedLocks()
+      im.drainGcQueue()
+
+      val pathCaptor = ArgumentCaptor.forClass(classOf[Seq[String]])
+      verify(si, times(1)).deleteFiles(anyString(), pathCaptor.capture())
+      val deletedPaths = pathCaptor.getValue
+      deletedPaths should contain(tmpPath)
+    } finally im.close()
+  }
+
+  test(
+    "sweep does NOT classify a real .lock file as a tmp orphan when partitionKey contains '.lock.tmp.' (regression)",
+  ) {
+    // `WriterManager.sanitize` URL-encodes partition values but leaves `.` literal,
+    // so a value like `report.lock.tmp.archive` produces a real granular lock at
+    // `<...>/name=report.lock.tmp.archive.lock`. A naive `contains(".lock.tmp.")`
+    // sweep filter would enqueue this file as a tmp orphan under GcKind.TmpOrphan,
+    // bypassing the cache-reclaim filter and deleting an active lock. The
+    // anchored TmpOrphanPattern (`.lock.tmp.<uuid>$`) prevents this.
+    val tp              = Topic("topic1").withPartition(0)
+    val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
+    val si              = mock[StorageInterface[_]]
+    setupSweepMocks(si, tp, bucketAndPrefix)
+
+    val pk        = "name=report.lock.tmp.archive"
+    val oldTime   = Instant.now().minusSeconds(7200)
+    val realLock  = s"$indexesDirectoryName/${connectorTaskId.name}/.locks/${tp.topic}/${tp.partition}/$pk.lock"
+    val realMeta  = TestFileMetadata(realLock, oldTime)
+    val listResp  = ListOfMetadataResponse("bucket", Some("prefix"), Seq(realMeta), realMeta)
+
+    org.mockito.Mockito.doReturn(Right(Some(listResp))).when(si).listFileMetaRecursive(anyString(), any[Option[String]])
+    // Real lock content with committedOffset >= masterOffset (100), so the normal
+    // `.lock` sweep path also leaves it alone. We're asserting the tmp-orphan
+    // path does not enqueue it under any circumstances.
+    when(
+      si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith(s"$pk.lock"))(
+        ArgumentMatchers.eq(indexFileDecoder),
+      ),
+    ).thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(200)), None), "etag-real")))
+    when(si.deleteFiles(anyString(), any[Seq[String]])).thenReturn(Right(()))
+
+    val im = createSweepTestManager(si)
+    try {
+      im.open(Set(tp))
+      im.sweepOrphanedLocks()
+      im.drainGcQueue()
+
+      // The real lock must NOT be deleted by either the tmp-orphan or .lock sweep paths.
+      verify(si, never).deleteFiles(anyString(), any[Seq[String]])
+    } finally im.close()
+  }
+
+  test("sweep does NOT classify '<pk>.lock.tmp.lock' as a tmp orphan (no UUID suffix) (regression)") {
+    // A pathological partitionKey like `foo.lock.tmp` ends up as `<...>/foo.lock.tmp.lock`.
+    // The anchored regex requires a UUID-shaped suffix after `.lock.tmp.`, so `lock`
+    // alone (which contains characters outside [0-9a-fA-F-]) does not match.
+    val tp              = Topic("topic1").withPartition(0)
+    val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
+    val si              = mock[StorageInterface[_]]
+    setupSweepMocks(si, tp, bucketAndPrefix)
+
+    val pk       = "foo.lock.tmp"
+    val oldTime  = Instant.now().minusSeconds(7200)
+    val realLock = s"$indexesDirectoryName/${connectorTaskId.name}/.locks/${tp.topic}/${tp.partition}/$pk.lock"
+    val realMeta = TestFileMetadata(realLock, oldTime)
+    val listResp = ListOfMetadataResponse("bucket", Some("prefix"), Seq(realMeta), realMeta)
+
+    org.mockito.Mockito.doReturn(Right(Some(listResp))).when(si).listFileMetaRecursive(anyString(), any[Option[String]])
+    when(
+      si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith(s"$pk.lock"))(
+        ArgumentMatchers.eq(indexFileDecoder),
+      ),
+    ).thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(200)), None), "etag-real")))
+    when(si.deleteFiles(anyString(), any[Seq[String]])).thenReturn(Right(()))
+
+    val im = createSweepTestManager(si)
+    try {
+      im.open(Set(tp))
+      im.sweepOrphanedLocks()
+      im.drainGcQueue()
+
+      verify(si, never).deleteFiles(anyString(), any[Seq[String]])
+    } finally im.close()
+  }
+
+  test("sweep classifies '<pk>.lock.tmp.<uuid>' as a tmp orphan and captures the full pk (incl. dots)") {
+    // Positive case: a real tmp orphan whose partitionKey itself contains `.lock.tmp.`.
+    // The regex must capture the FULL partition key (`name=report.lock.tmp.archive`),
+    // not just the prefix up to the first `.lock.tmp.`. We verify both that the file
+    // is enqueued for deletion and that the captured partitionKey is correct by
+    // checking it does NOT clash with a separately cached granular lock for the
+    // shorter (incorrect-greedy) extraction `name=report`.
+    val tp              = Topic("topic1").withPartition(0)
+    val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
+    val si              = mock[StorageInterface[_]]
+    setupSweepMocks(si, tp, bucketAndPrefix)
+
+    val pk      = "name=report.lock.tmp.archive"
+    val uuid    = "deadbeef-1234-4567-89ab-cdef00112233"
+    val oldTime = Instant.now().minusSeconds(7200)
+    val tmpPath =
+      s"$indexesDirectoryName/${connectorTaskId.name}/.locks/${tp.topic}/${tp.partition}/$pk.lock.tmp.$uuid"
+    val tmpMeta  = TestFileMetadata(tmpPath, oldTime)
+    val listResp = ListOfMetadataResponse("bucket", Some("prefix"), Seq(tmpMeta), tmpMeta)
+
+    org.mockito.Mockito.doReturn(Right(Some(listResp))).when(si).listFileMetaRecursive(anyString(), any[Option[String]])
+    when(si.deleteFiles(anyString(), any[Seq[String]])).thenReturn(Right(()))
+
+    val im = createSweepTestManager(si)
+    try {
+      im.open(Set(tp))
+
+      // Populate the granular cache for `name=report` (the WRONG, naive-greedy
+      // extraction). If the regex captured this as the partitionKey, the
+      // GcKind.TmpOrphan path would still bypass the cache filter and delete --
+      // so this is not a sufficient test on its own. We instead also populate
+      // a cache entry for the CORRECT pk and assert deletion still proceeds
+      // (TmpOrphan bypass) AND the deleted path is the .tmp file.
+      when(
+        si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith(s"$pk.lock"))(
+          ArgumentMatchers.eq(indexFileDecoder),
+        ),
+      ).thenReturn(Right(ObjectWithETag(IndexFile("newWriter", Some(Offset(50)), None), "etag-live")))
+      im.getSeekedOffsetForPartitionKey(tp, pk) shouldBe Right(Some(Offset(50)))
+
+      im.sweepOrphanedLocks()
+      im.drainGcQueue()
+
+      val pathCaptor = ArgumentCaptor.forClass(classOf[Seq[String]])
+      verify(si, times(1)).deleteFiles(anyString(), pathCaptor.capture())
+      pathCaptor.getValue should contain(tmpPath)
+    } finally im.close()
+  }
+
   test("drainGcQueue re-offers polled items when deleteFiles throws an unexpected exception") {
     // Unexpected exceptions (not a Left storage error) used to be caught by the
     // outer try/NonFatal and silently swallowed, dropping every polled item from
@@ -4045,6 +4192,194 @@ class IndexManagerV2Test
       result.isLeft shouldBe true
       result.left.value shouldBe a[NonFatalCloudSinkError]
       result.left.value.asInstanceOf[NonFatalCloudSinkError].swallowable shouldBe false
+    } finally im.close()
+  }
+
+  // ── Bug A: migration probe re-probe logic ─────────────────────────────────
+
+  test(
+    "Bug A: first-probe Left(PathError) + re-probe Right(false) + new=false (fresh deployment) => open succeeds with warn, no FatalCloudSinkError",
+  ) {
+    val topicPartition  = Topic("topic1").withPartition(0)
+    val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
+
+    val si = mock[StorageInterface[_]]
+    // pathExists called twice: first returns Left(PathError), re-probe returns Right(false)
+    org.mockito.Mockito.doReturn(
+      Left(PathError(new RuntimeException("transient 403"), ".locks/topic1/0.lock")),
+      Right(false).asInstanceOf[Any],
+    ).when(si).pathExists(anyString(), anyString())
+
+    // new path does not exist either (fresh deployment: scenario A)
+    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith("0.lock"))(
+      ArgumentMatchers.eq(indexFileDecoder),
+    )).thenReturn(Left(FileNotFoundError(new Exception("Not found"), "0.lock")))
+
+    when(oldIndexManager.seekOffsetsForTopicPartition(any[TopicPartition])).thenReturn(Right(None))
+    when(bucketAndPrefixFn(any[TopicPartition])).thenReturn(Right(bucketAndPrefix))
+    when(
+      si.writeBlobToFile[IndexFile](anyString(), anyString(), any[NoOverwriteExistingObject[IndexFile]])(
+        ArgumentMatchers.eq(indexFileEncoder),
+      ),
+    ).thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", None, None), "etag")))
+    when(si.listKeysRecursive(anyString(), any[Option[String]])).thenReturn(Right(None))
+
+    val im = new IndexManagerV2(bucketAndPrefixFn,
+                                oldIndexManager,
+                                pendingOperationsProcessors,
+                                indexesDirectoryName,
+                                gcIntervalSeconds = Int.MaxValue,
+    )(si, connectorTaskId)
+    try {
+      val result = im.open(Set(topicPartition))
+      result.isRight should be(true)
+    } finally im.close()
+  }
+
+  test(
+    "Bug A: first-probe Left(PathError) + re-probe Right(false) + new=true (established 10.x) => open succeeds with warn, no FatalCloudSinkError",
+  ) {
+    val topicPartition  = Topic("topic1").withPartition(0)
+    val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
+
+    val si = mock[StorageInterface[_]]
+    org.mockito.Mockito.doReturn(
+      Left(PathError(new RuntimeException("transient 403"), ".locks/topic1/0.lock")),
+      Right(false).asInstanceOf[Any],
+    ).when(si).pathExists(anyString(), anyString())
+
+    // new path EXISTS (established 10.x+: scenario B)
+    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith("0.lock"))(
+      ArgumentMatchers.eq(indexFileDecoder),
+    )).thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(50)), None), "etag")))
+
+    when(bucketAndPrefixFn(any[TopicPartition])).thenReturn(Right(bucketAndPrefix))
+    when(si.listKeysRecursive(anyString(), any[Option[String]])).thenReturn(Right(None))
+
+    val im = new IndexManagerV2(bucketAndPrefixFn,
+                                oldIndexManager,
+                                pendingOperationsProcessors,
+                                indexesDirectoryName,
+                                gcIntervalSeconds = Int.MaxValue,
+    )(si, connectorTaskId)
+    try {
+      val result = im.open(Set(topicPartition))
+      result.isRight should be(true)
+      result.value(topicPartition) should be(Some(Offset(50)))
+    } finally im.close()
+  }
+
+  test(
+    "Bug A: first-probe Left(PathError) + re-probe Right(true) => takes mvFile path (scenario C: genuine 9.x file)",
+  ) {
+    val topicPartition  = Topic("topic1").withPartition(0)
+    val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
+
+    val si = mock[StorageInterface[_]]
+    org.mockito.Mockito.doReturn(
+      Left(PathError(new RuntimeException("transient 403"), ".locks/topic1/0.lock")),
+      Right(true).asInstanceOf[Any],
+    ).when(si).pathExists(anyString(), anyString())
+
+    when(si.mvFile(anyString(), anyString(), anyString(), anyString(), any[Option[String]])).thenReturn(Right(()))
+
+    // After migration, new path exists
+    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith("0.lock"))(
+      ArgumentMatchers.eq(indexFileDecoder),
+    )).thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(10)), None), "etag")))
+
+    when(bucketAndPrefixFn(any[TopicPartition])).thenReturn(Right(bucketAndPrefix))
+    when(si.listKeysRecursive(anyString(), any[Option[String]])).thenReturn(Right(None))
+
+    val im = new IndexManagerV2(bucketAndPrefixFn,
+                                oldIndexManager,
+                                pendingOperationsProcessors,
+                                indexesDirectoryName,
+                                gcIntervalSeconds = Int.MaxValue,
+    )(si, connectorTaskId)
+    try {
+      val result = im.open(Set(topicPartition))
+      result.isRight should be(true)
+      verify(si).mvFile(anyString(), anyString(), anyString(), anyString(), any[Option[String]])
+    } finally im.close()
+  }
+
+  test(
+    "Bug A: first-probe Left(PathError) + re-probe Left(_) => FatalCloudSinkError (cloud genuinely unavailable)",
+  ) {
+    val topicPartition  = Topic("topic1").withPartition(0)
+    val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
+
+    val si = mock[StorageInterface[_]]
+    when(si.pathExists(anyString(), anyString())).thenReturn(
+      Left(PathError(new RuntimeException("cloud down"), "path")),
+    )
+
+    when(bucketAndPrefixFn(any[TopicPartition])).thenReturn(Right(bucketAndPrefix))
+    when(si.listKeysRecursive(anyString(), any[Option[String]])).thenReturn(Right(None))
+
+    val im = new IndexManagerV2(bucketAndPrefixFn,
+                                oldIndexManager,
+                                pendingOperationsProcessors,
+                                indexesDirectoryName,
+                                gcIntervalSeconds = Int.MaxValue,
+    )(si, connectorTaskId)
+    try {
+      val result = im.open(Set(topicPartition))
+      result.isLeft should be(true)
+      result.left.value should be(a[FatalCloudSinkError])
+    } finally im.close()
+  }
+
+  // ── Bug B.2: EmptyFileError call-site handling ────────────────────────────
+
+  test("ensureGranularLock: 0-byte poison blob => overwrites via ObjectWithETag(eTag), caches post-write eTag") {
+    val tp              = Topic("topic1").withPartition(0)
+    val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
+    val poisonETag      = "poison-etag"
+    val postWriteETag   = "post-write-etag"
+
+    val si = mock[StorageInterface[_]]
+    when(bucketAndPrefixFn(any[TopicPartition])).thenReturn(Right(bucketAndPrefix))
+    when(si.pathExists(anyString(), anyString())).thenReturn(Right(false))
+    // Master lock read succeeds
+    when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith("0.lock"))(
+      ArgumentMatchers.eq(indexFileDecoder),
+    )).thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(50)), None), "master-etag")))
+
+    val im = new IndexManagerV2(bucketAndPrefixFn,
+                                oldIndexManager,
+                                pendingOperationsProcessors,
+                                indexesDirectoryName,
+                                gcIntervalSeconds = Int.MaxValue,
+    )(si, connectorTaskId)
+    im.open(Set(tp))
+
+    // Granular lock read returns EmptyFileError
+    when(
+      si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("/0/poison-key.lock"))(
+        ArgumentMatchers.eq(indexFileDecoder),
+      ),
+    ).thenReturn(Left(EmptyFileError("bucket/poison-key.lock", poisonETag)))
+
+    // ObjectWithETag write should succeed
+    when(
+      si.writeBlobToFile[IndexFile](anyString(), anyString(), any[ObjectWithETag[IndexFile]])(
+        ArgumentMatchers.eq(indexFileEncoder),
+      ),
+    ).thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", None, None), postWriteETag)))
+
+    try {
+      val result = im.ensureGranularLock(tp, "poison-key")
+      result.isRight should be(true)
+
+      // Verify ObjectWithETag write was called (not NoOverwriteExistingObject)
+      val captor = ArgumentCaptor.forClass(classOf[ObjectProtection[IndexFile]])
+      verify(si).writeBlobToFile[IndexFile](anyString(), anyString(), captor.capture())(
+        ArgumentMatchers.eq(indexFileEncoder),
+      )
+      captor.getValue should be(a[ObjectWithETag[_]])
+      captor.getValue.asInstanceOf[ObjectWithETag[IndexFile]].eTag should be(poisonETag)
     } finally im.close()
   }
 

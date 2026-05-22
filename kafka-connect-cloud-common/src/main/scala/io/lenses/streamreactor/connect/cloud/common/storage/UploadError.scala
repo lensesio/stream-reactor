@@ -81,6 +81,25 @@ trait FileLoadError extends UploadError {
 case class GeneralFileLoadError(exception: Throwable, fileName: String) extends FileLoadError
 case class FileNotFoundError(exception: Throwable, fileName: String) extends FileLoadError
 
+/**
+ * Returned when a blob is read successfully but has zero content bytes.
+ *
+ * Unlike FileNotFoundError, callers MUST take a conditional-overwrite path (setIfMatch(eTag))
+ * rather than a no-overwrite create path (setIfNoneMatch("*")), because the 0-byte file
+ * already exists at the destination and a NoOverwrite write would always 412.
+ *
+ * The eTag is the load-bearing field: it allows the caller to issue an atomic
+ * ObjectWithETag(idx, eTag) rename that takes ownership of the poison file.
+ *
+ * A length-0 blob cannot carry a committedOffset or PendingState by construction
+ * (the serialiser produces at minimum ~40 bytes for any non-null IndexFile),
+ * so treating it as recoverable is information-preserving.
+ */
+case class EmptyFileError(fileName: String, eTag: String) extends FileLoadError {
+  override val exception: Throwable = new RuntimeException(s"Empty file at $fileName (eTag=$eTag)")
+  override def message(): String    = s"empty lock file at $fileName (eTag=$eTag)"
+}
+
 case class FileNameParseError(exception: Throwable, fileName: String) extends UploadError {
   override def message() = s"error parsing file name ($fileName) ${exception.getMessage}"
 

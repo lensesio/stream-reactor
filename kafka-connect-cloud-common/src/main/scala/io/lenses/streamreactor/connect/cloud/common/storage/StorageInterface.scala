@@ -99,7 +99,18 @@ trait StorageInterface[SM <: FileMetadata] extends ResultProcessors {
   ): Either[FileLoadError, ObjectWithETag[O]] =
     for {
       (s, eTag) <- getBlobAsStringAndEtag(bucket, path)
-      decoded   <- decode[O](s).leftMap(e => GeneralFileLoadError(e, path))
+      // Short-circuit on literal empty body before invoking the decoder.
+      // A length-0 response cannot carry committed state (the serialiser produces
+      // at minimum ~40 bytes for any non-null IndexFile), so this is the residue of
+      // Bug B's non-atomic write between createFile (step 1) and flush (step 3).
+      // EmptyFileError carries the eTag so callers can issue a setIfMatch(eTag)
+      // conditional overwrite (ObjectWithETag) rather than a no-overwrite create
+      // (NoOverwriteExistingObject), which would always 412 against the existing file.
+      // Non-zero corrupt JSON keeps today's GeneralFileLoadError behaviour because we
+      // cannot prove the file was content-free.
+      decoded <-
+        if (s.length == 0) Left(EmptyFileError(path, eTag))
+        else decode[O](s).leftMap(e => GeneralFileLoadError(e, path))
     } yield {
       ObjectWithETag[O](decoded, eTag)
     }

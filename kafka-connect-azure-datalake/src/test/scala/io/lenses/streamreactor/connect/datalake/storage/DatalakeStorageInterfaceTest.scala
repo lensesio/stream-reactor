@@ -980,28 +980,35 @@ class DatalakeStorageInterfaceTest
   case class TestIndexFile(owner: String, offset: Option[Long])
   implicit val testIndexFileEncoder: io.circe.Encoder[TestIndexFile] = deriveEncoder[TestIndexFile]
 
-  "writeBlobToFile" should "successfully create file with NoOverwriteExistingObject when file does not exist" in {
-    val bucket = "test-bucket"
-    val path   = "test-path/index.lock"
+  // ── writeBlobToFile — atomic .tmp + rename implementation ────────────────
+  //
+  // The implementation writes via a per-task temp blob (.lock.tmp.<lockUuid>)
+  // and atomically renames it to the destination.  The eTag arbitration
+  // condition lands in the DESTINATION slot (slot 4) of renameWithResponse,
+  // never in the source slot (slot 3).
 
-    val testData = TestIndexFile("owner-123", Some(100L))
+  private def setupAtomicWriteHappyPath(
+    bucket:         String,
+    path:           String,
+    postRenameETag: String,
+  ): (DataLakeFileSystemClient, DataLakeFileClient, Response[DataLakeFileClient]) = {
+    val tmpPath       = s"$path.tmp.${connectorTaskId.lockUuid}"
+    val fsClient      = mock[DataLakeFileSystemClient]
+    val tmpClient     = mock[DataLakeFileClient]
+    val flushResp     = mock[Response[PathInfo]]
+    val pathInfo      = mock[PathInfo]
+    val renameResp    = mock[Response[DataLakeFileClient]]
+    val renameHeaders = new HttpHeaders()
+    renameHeaders.set("ETag", postRenameETag)
 
-    val fileClient       = mock[DataLakeFileClient]
-    val fileSystemClient = mock[DataLakeFileSystemClient]
-    val pathInfo         = mock[PathInfo]
-    val eTag             = "new-etag"
-
-    when(pathInfo.getETag).thenReturn(eTag)
-    when(client.getFileSystemClient(bucket)).thenReturn(fileSystemClient)
-    // NoOverwriteExistingObject should use overwrite=false
-    when(fileSystemClient.createFile(path, false)).thenReturn(fileClient)
-    doAnswer((_: InvocationOnMock) => ()).when(fileClient).append(any[ByteArrayInputStream], anyLong, anyLong)
-
-    val flushResponse = mock[Response[PathInfo]]
-    when(flushResponse.getValue).thenReturn(pathInfo)
-    // Flush should be called with null conditions (no If-Match)
+    when(client.getFileSystemClient(bucket)).thenReturn(fsClient)
+    // .tmp is always created with overwrite=true (task-owned, uncontended)
+    when(fsClient.createFile(tmpPath, true)).thenReturn(tmpClient)
+    doAnswer((_: InvocationOnMock) => ()).when(tmpClient).append(any[ByteArrayInputStream], anyLong, anyLong)
+    when(pathInfo.getETag).thenReturn("tmp-etag") // .tmp eTag (not returned to caller)
+    when(flushResp.getValue).thenReturn(pathInfo)
     when(
-      fileClient.flushWithResponse(
+      tmpClient.flushWithResponse(
         anyLong,
         anyBoolean,
         anyBoolean,
@@ -1010,78 +1017,176 @@ class DatalakeStorageInterfaceTest
         isNull[java.time.Duration],
         any[Context],
       ),
-    ).thenReturn(flushResponse)
+    ).thenReturn(flushResp)
+    when(renameResp.getHeaders).thenReturn(renameHeaders)
+
+    (fsClient, tmpClient, renameResp)
+  }
+
+  "writeBlobToFile" should "successfully create file with NoOverwriteExistingObject: uses .tmp + rename, eTag from headers" in {
+    val bucket        = "test-bucket"
+    val path          = "test-path/index.lock"
+    val tmpPath       = s"$path.tmp.${connectorTaskId.lockUuid}"
+    val postRenameTag = "post-rename-etag"
+    val testData      = TestIndexFile("owner-123", Some(100L))
+
+    val (fsClient, tmpClient, renameResp) = setupAtomicWriteHappyPath(bucket, path, postRenameTag)
+    when(
+      tmpClient.renameWithResponse(eqTo(bucket), eqTo(path), any, any, any, any),
+    ).thenReturn(renameResp)
 
     val result = storageInterface.writeBlobToFile(bucket, path, NoOverwriteExistingObject(testData))
 
     result.isRight should be(true)
     result.value.wrappedObject should be(testData)
-    result.value.eTag should be(eTag)
+    // eTag must come from rename response headers, not from flush response
+    result.value.eTag should be(postRenameTag)
 
-    // Verify createFile was called with overwrite=false
-    verify(fileSystemClient).createFile(path, false)
+    // Verify .tmp was created (overwrite=true) and rename was called
+    verify(fsClient).createFile(tmpPath, true)
+    verify(tmpClient).renameWithResponse(eqTo(bucket), eqTo(path), any, any, any, any)
   }
 
-  "writeBlobToFile" should "return FileCreateError when NoOverwriteExistingObject and file already exists (409 Conflict)" in {
-    val bucket = "test-bucket"
-    val path   = "test-path/index.lock"
+  "writeBlobToFile" should "NoOverwriteExistingObject: precondition lands in destination slot (slot 4), source slot (slot 3) is null" in {
+    val bucket        = "test-bucket"
+    val path          = "test-path/index.lock"
+    val postRenameTag = "post-rename-etag"
+    val testData      = TestIndexFile("owner-123", Some(100L))
 
+    val (_, tmpClient, renameResp) = setupAtomicWriteHappyPath(bucket, path, postRenameTag)
+
+    val srcConditionsCaptor  = ArgumentCaptor.forClass(classOf[DataLakeRequestConditions])
+    val destConditionsCaptor = ArgumentCaptor.forClass(classOf[DataLakeRequestConditions])
+
+    when(
+      tmpClient.renameWithResponse(anyString(), anyString(), any, any, any, any),
+    ).thenReturn(renameResp)
+
+    storageInterface.writeBlobToFile(bucket, path, NoOverwriteExistingObject(testData))
+
+    // Critical: verify 6-arg renameWithResponse and capture both condition slots
+    verify(tmpClient).renameWithResponse(
+      anyString(),
+      anyString(),
+      srcConditionsCaptor.capture(),  // slot 3 — must be null
+      destConditionsCaptor.capture(), // slot 4 — must carry setIfNoneMatch("*")
+      any,
+      any,
+    )
+
+    srcConditionsCaptor.getValue should be(null)
+    destConditionsCaptor.getValue should not be null
+    destConditionsCaptor.getValue.getIfNoneMatch should be("*")
+  }
+
+  "writeBlobToFile" should "return FileCreateError when NoOverwriteExistingObject and destination exists (412 from rename)" in {
+    val bucket   = "test-bucket"
+    val path     = "test-path/index.lock"
+    val tmpPath  = s"$path.tmp.${connectorTaskId.lockUuid}"
     val testData = TestIndexFile("owner-123", Some(100L))
 
-    val fileSystemClient = mock[DataLakeFileSystemClient]
+    val fsClient  = mock[DataLakeFileSystemClient]
+    val tmpClient = mock[DataLakeFileClient]
+    val flushResp = mock[Response[PathInfo]]
+    val pathInfo  = mock[PathInfo]
 
-    when(client.getFileSystemClient(bucket)).thenReturn(fileSystemClient)
-    // Simulate 409 Conflict when file already exists and overwrite=false
-    when(fileSystemClient.createFile(path, false)).thenThrow(
-      new DataLakeStorageException("PathAlreadyExists", mockHttpResponse(409), null),
+    when(client.getFileSystemClient(bucket)).thenReturn(fsClient)
+    when(fsClient.createFile(tmpPath, true)).thenReturn(tmpClient)
+    doAnswer((_: InvocationOnMock) => ()).when(tmpClient).append(any[ByteArrayInputStream], anyLong, anyLong)
+    when(pathInfo.getETag).thenReturn("tmp-etag")
+    when(flushResp.getValue).thenReturn(pathInfo)
+    when(
+      tmpClient.flushWithResponse(
+        anyLong,
+        anyBoolean,
+        anyBoolean,
+        any[PathHttpHeaders],
+        isNull[DataLakeRequestConditions],
+        isNull[java.time.Duration],
+        any[Context],
+      ),
+    ).thenReturn(flushResp)
+
+    // Rename fails with 412 (destination already exists — NoOverwrite condition not met)
+    when(tmpClient.renameWithResponse(eqTo(bucket), eqTo(path), any, any, any, any)).thenThrow(
+      new DataLakeStorageException("ConditionNotMet", mockHttpResponse(412), null),
     )
 
     val result = storageInterface.writeBlobToFile(bucket, path, NoOverwriteExistingObject(testData))
 
     result.isLeft should be(true)
     result.left.value should be(a[FileCreateError])
-
-    // Verify createFile was called with overwrite=false
-    verify(fileSystemClient).createFile(path, false)
   }
 
-  "writeBlobToFile" should "successfully update file with ObjectWithETag using If-Match condition on createFileWithResponse" in {
+  "writeBlobToFile" should "successfully update file with ObjectWithETag: rename with setIfMatch on destination slot" in {
+    val bucket        = "test-bucket"
+    val path          = "test-path/index.lock"
+    val existingTag   = "existing-etag"
+    val postRenameTag = "post-rename-etag"
+    val testData      = TestIndexFile("owner-123", Some(200L))
+
+    val (fsClient, tmpClient, renameResp) = setupAtomicWriteHappyPath(bucket, path, postRenameTag)
+    when(
+      tmpClient.renameWithResponse(eqTo(bucket), eqTo(path), any, any, any, any),
+    ).thenReturn(renameResp)
+
+    val result = storageInterface.writeBlobToFile(bucket, path, ObjectWithETag(testData, existingTag))
+
+    result.isRight should be(true)
+    result.value.wrappedObject should be(testData)
+    result.value.eTag should be(postRenameTag)
+  }
+
+  "writeBlobToFile" should "ObjectWithETag: setIfMatch(destETag) lands in destination slot (slot 4), source slot (slot 3) is null" in {
+    val bucket        = "test-bucket"
+    val path          = "test-path/index.lock"
+    val existingTag   = "existing-etag"
+    val postRenameTag = "post-rename-etag"
+    val testData      = TestIndexFile("owner-123", Some(200L))
+
+    val (_, tmpClient, renameResp) = setupAtomicWriteHappyPath(bucket, path, postRenameTag)
+
+    val srcConditionsCaptor  = ArgumentCaptor.forClass(classOf[DataLakeRequestConditions])
+    val destConditionsCaptor = ArgumentCaptor.forClass(classOf[DataLakeRequestConditions])
+
+    when(tmpClient.renameWithResponse(anyString(), anyString(), any, any, any, any)).thenReturn(renameResp)
+
+    storageInterface.writeBlobToFile(bucket, path, ObjectWithETag(testData, existingTag))
+
+    verify(tmpClient).renameWithResponse(
+      anyString(),
+      anyString(),
+      srcConditionsCaptor.capture(),  // slot 3 — must be null
+      destConditionsCaptor.capture(), // slot 4 — must carry setIfMatch(existingTag)
+      any,
+      any,
+    )
+
+    srcConditionsCaptor.getValue should be(null)
+    destConditionsCaptor.getValue should not be null
+    // eTag on destination conditions is the CURRENT DESTINATION eTag (existingTag), not the .tmp eTag
+    destConditionsCaptor.getValue.getIfMatch should be(existingTag)
+  }
+
+  "writeBlobToFile" should "return FileCreateError when ObjectWithETag and eTag mismatch (412 on rename)" in {
     val bucket      = "test-bucket"
     val path        = "test-path/index.lock"
-    val existingTag = "existing-etag"
-    val newTag      = "new-etag"
+    val existingTag = "old-etag"
+    val tmpPath     = s"$path.tmp.${connectorTaskId.lockUuid}"
+    val testData    = TestIndexFile("owner-123", Some(200L))
 
-    val testData = TestIndexFile("owner-123", Some(200L))
+    val fsClient  = mock[DataLakeFileSystemClient]
+    val tmpClient = mock[DataLakeFileClient]
+    val flushResp = mock[Response[PathInfo]]
+    val pathInfo  = mock[PathInfo]
 
-    val fileClient       = mock[DataLakeFileClient]
-    val fileSystemClient = mock[DataLakeFileSystemClient]
-    val pathInfo         = mock[PathInfo]
-
-    when(pathInfo.getETag).thenReturn(newTag)
-    when(client.getFileSystemClient(bucket)).thenReturn(fileSystemClient)
-
-    // ObjectWithETag should use createFileWithResponse with If-Match condition
-    val createResponse = mock[Response[DataLakeFileClient]]
-    when(createResponse.getValue).thenReturn(fileClient)
+    when(client.getFileSystemClient(bucket)).thenReturn(fsClient)
+    when(fsClient.createFile(tmpPath, true)).thenReturn(tmpClient)
+    doAnswer((_: InvocationOnMock) => ()).when(tmpClient).append(any[ByteArrayInputStream], anyLong, anyLong)
+    when(pathInfo.getETag).thenReturn("tmp-etag")
+    when(flushResp.getValue).thenReturn(pathInfo)
     when(
-      fileSystemClient.createFileWithResponse(
-        eqTo(path),
-        isNull[String],
-        isNull[String],
-        isNull[PathHttpHeaders],
-        isNull[java.util.Map[String, String]],
-        any[DataLakeRequestConditions],
-        isNull[java.time.Duration],
-        any[Context],
-      ),
-    ).thenReturn(createResponse)
-
-    doAnswer((_: InvocationOnMock) => ()).when(fileClient).append(any[ByteArrayInputStream], anyLong, anyLong)
-
-    val flushResponse = mock[Response[PathInfo]]
-    when(flushResponse.getValue).thenReturn(pathInfo)
-    when(
-      fileClient.flushWithResponse(
+      tmpClient.flushWithResponse(
         anyLong,
         anyBoolean,
         anyBoolean,
@@ -1090,50 +1195,9 @@ class DatalakeStorageInterfaceTest
         isNull[java.time.Duration],
         any[Context],
       ),
-    ).thenReturn(flushResponse)
+    ).thenReturn(flushResp)
 
-    val result = storageInterface.writeBlobToFile(bucket, path, ObjectWithETag(testData, existingTag))
-
-    result.isRight should be(true)
-    result.value.wrappedObject should be(testData)
-    result.value.eTag should be(newTag)
-
-    // Verify createFileWithResponse was called (not createFile)
-    verify(fileSystemClient).createFileWithResponse(
-      eqTo(path),
-      isNull[String],
-      isNull[String],
-      isNull[PathHttpHeaders],
-      isNull[java.util.Map[String, String]],
-      any[DataLakeRequestConditions],
-      isNull[java.time.Duration],
-      any[Context],
-    )
-  }
-
-  "writeBlobToFile" should "return FileCreateError when ObjectWithETag and eTag mismatch (412 Precondition Failed)" in {
-    val bucket      = "test-bucket"
-    val path        = "test-path/index.lock"
-    val existingTag = "old-etag"
-
-    val testData = TestIndexFile("owner-123", Some(200L))
-
-    val fileSystemClient = mock[DataLakeFileSystemClient]
-
-    when(client.getFileSystemClient(bucket)).thenReturn(fileSystemClient)
-    // Simulate 412 Precondition Failed when eTag doesn't match
-    when(
-      fileSystemClient.createFileWithResponse(
-        eqTo(path),
-        isNull[String],
-        isNull[String],
-        isNull[PathHttpHeaders],
-        isNull[java.util.Map[String, String]],
-        any[DataLakeRequestConditions],
-        isNull[java.time.Duration],
-        any[Context],
-      ),
-    ).thenThrow(
+    when(tmpClient.renameWithResponse(eqTo(bucket), eqTo(path), any, any, any, any)).thenThrow(
       new DataLakeStorageException("ConditionNotMet", mockHttpResponse(412), null),
     )
 
@@ -1143,35 +1207,42 @@ class DatalakeStorageInterfaceTest
     result.left.value should be(a[FileCreateError])
   }
 
-  "writeBlobToFile" should "create parent directory and retry on PathNotFound" in {
-    val bucket = "test-bucket"
-    val path   = "a/b/index.lock"
-
+  "writeBlobToFile" should "clean up .tmp on append failure" in {
+    val bucket   = "test-bucket"
+    val path     = "test-path/index.lock"
+    val tmpPath  = s"$path.tmp.${connectorTaskId.lockUuid}"
     val testData = TestIndexFile("owner-123", Some(100L))
 
-    val fileClient       = mock[DataLakeFileClient]
-    val fileSystemClient = mock[DataLakeFileSystemClient]
-    val directoryClient  = mock[DataLakeDirectoryClient]
-    val pathInfo         = mock[PathInfo]
-    val eTag             = "new-etag"
+    val fsClient  = mock[DataLakeFileSystemClient]
+    val tmpClient = mock[DataLakeFileClient]
 
-    when(pathInfo.getETag).thenReturn(eTag)
-    when(client.getFileSystemClient(bucket)).thenReturn(fileSystemClient)
+    when(client.getFileSystemClient(bucket)).thenReturn(fsClient)
+    when(fsClient.createFile(tmpPath, true)).thenReturn(tmpClient)
+    doAnswer((_: InvocationOnMock) => throw new RuntimeException("append failed"))
+      .when(tmpClient).append(any[ByteArrayInputStream], anyLong, anyLong)
 
-    // First call throws PathNotFound, second succeeds
-    val createInvocationCount = new java.util.concurrent.atomic.AtomicInteger(0)
-    when(fileSystemClient.createFile(path, false)).thenAnswer { _: InvocationOnMock =>
-      if (createInvocationCount.getAndIncrement() == 0)
-        throw new DataLakeStorageException("PathNotFound", mockHttpResponse(404), null)
-      else fileClient
-    }
+    val result = storageInterface.writeBlobToFile(bucket, path, NoOverwriteExistingObject(testData))
 
-    doAnswer((_: InvocationOnMock) => ()).when(fileClient).append(any[ByteArrayInputStream], anyLong, anyLong)
+    result.isLeft should be(true)
+    result.left.value should be(a[FileCreateError])
+    // .tmp cleanup must be attempted
+    verify(fsClient).deleteFileIfExists(tmpPath)
+  }
 
-    val flushResponse = mock[Response[PathInfo]]
-    when(flushResponse.getValue).thenReturn(pathInfo)
+  "writeBlobToFile" should "clean up .tmp on flush failure" in {
+    val bucket   = "test-bucket"
+    val path     = "test-path/index.lock"
+    val tmpPath  = s"$path.tmp.${connectorTaskId.lockUuid}"
+    val testData = TestIndexFile("owner-123", Some(100L))
+
+    val fsClient  = mock[DataLakeFileSystemClient]
+    val tmpClient = mock[DataLakeFileClient]
+
+    when(client.getFileSystemClient(bucket)).thenReturn(fsClient)
+    when(fsClient.createFile(tmpPath, true)).thenReturn(tmpClient)
+    doAnswer((_: InvocationOnMock) => ()).when(tmpClient).append(any[ByteArrayInputStream], anyLong, anyLong)
     when(
-      fileClient.flushWithResponse(
+      tmpClient.flushWithResponse(
         anyLong,
         anyBoolean,
         anyBoolean,
@@ -1180,19 +1251,191 @@ class DatalakeStorageInterfaceTest
         isNull[java.time.Duration],
         any[Context],
       ),
-    ).thenReturn(flushResponse)
+    ).thenThrow(new RuntimeException("flush failed"))
 
-    // Directory creation
-    when(fileSystemClient.getDirectoryClient(anyString())).thenReturn(directoryClient)
+    val result = storageInterface.writeBlobToFile(bucket, path, NoOverwriteExistingObject(testData))
+
+    result.isLeft should be(true)
+    result.left.value should be(a[FileCreateError])
+    verify(fsClient).deleteFileIfExists(tmpPath)
+  }
+
+  "writeBlobToFile" should "clean up .tmp on rename failure (non-412)" in {
+    val bucket   = "test-bucket"
+    val path     = "test-path/index.lock"
+    val tmpPath  = s"$path.tmp.${connectorTaskId.lockUuid}"
+    val testData = TestIndexFile("owner-123", Some(100L))
+
+    val fsClient  = mock[DataLakeFileSystemClient]
+    val tmpClient = mock[DataLakeFileClient]
+    val flushResp = mock[Response[PathInfo]]
+    val pathInfo  = mock[PathInfo]
+
+    when(client.getFileSystemClient(bucket)).thenReturn(fsClient)
+    when(fsClient.createFile(tmpPath, true)).thenReturn(tmpClient)
+    doAnswer((_: InvocationOnMock) => ()).when(tmpClient).append(any[ByteArrayInputStream], anyLong, anyLong)
+    when(pathInfo.getETag).thenReturn("tmp-etag")
+    when(flushResp.getValue).thenReturn(pathInfo)
+    when(
+      tmpClient.flushWithResponse(
+        anyLong,
+        anyBoolean,
+        anyBoolean,
+        any[PathHttpHeaders],
+        isNull[DataLakeRequestConditions],
+        isNull[java.time.Duration],
+        any[Context],
+      ),
+    ).thenReturn(flushResp)
+    when(tmpClient.renameWithResponse(eqTo(bucket), eqTo(path), any, any, any, any)).thenThrow(
+      new DataLakeStorageException("ServerError", mockHttpResponse(500), null),
+    )
+
+    val result = storageInterface.writeBlobToFile(bucket, path, NoOverwriteExistingObject(testData))
+
+    result.isLeft should be(true)
+    result.left.value should be(a[FileCreateError])
+    verify(fsClient).deleteFileIfExists(tmpPath)
+  }
+
+  "writeBlobToFile" should "return FileCreateError (not NPE) when rename succeeds but response has no ETag header, and NOT call deleteTmp" in {
+    val bucket   = "test-bucket"
+    val path     = "test-path/index.lock"
+    val tmpPath  = s"$path.tmp.${connectorTaskId.lockUuid}"
+    val testData = TestIndexFile("owner-123", Some(100L))
+
+    val fsClient   = mock[DataLakeFileSystemClient]
+    val tmpClient  = mock[DataLakeFileClient]
+    val flushResp  = mock[Response[PathInfo]]
+    val pathInfo   = mock[PathInfo]
+    val renameResp = mock[Response[DataLakeFileClient]]
+    // No ETag header set — simulates an ADLS response that omits the ETag field
+    val emptyHeaders = new HttpHeaders()
+
+    when(client.getFileSystemClient(bucket)).thenReturn(fsClient)
+    when(fsClient.createFile(tmpPath, true)).thenReturn(tmpClient)
+    doAnswer((_: InvocationOnMock) => ()).when(tmpClient).append(any[ByteArrayInputStream], anyLong, anyLong)
+    when(pathInfo.getETag).thenReturn("tmp-etag")
+    when(flushResp.getValue).thenReturn(pathInfo)
+    when(
+      tmpClient.flushWithResponse(
+        anyLong,
+        anyBoolean,
+        anyBoolean,
+        any[PathHttpHeaders],
+        isNull[DataLakeRequestConditions],
+        isNull[java.time.Duration],
+        any[Context],
+      ),
+    ).thenReturn(flushResp)
+    when(renameResp.getHeaders).thenReturn(emptyHeaders)
+    when(tmpClient.renameWithResponse(eqTo(bucket), eqTo(path), any, any, any, any)).thenReturn(renameResp)
+
+    val result = storageInterface.writeBlobToFile(bucket, path, NoOverwriteExistingObject(testData))
+
+    result.isLeft should be(true)
+    result.left.value should be(a[FileCreateError])
+    // The rename committed — .tmp was moved to the destination, so deleteTmp MUST NOT be called
+    verify(fsClient, times(0)).deleteFileIfExists(tmpPath)
+  }
+
+  "writeBlobToFile" should "return FileCreateError when rename succeeds but ETag header value is empty, and NOT call deleteTmp" in {
+    val bucket   = "test-bucket"
+    val path     = "test-path/index.lock"
+    val tmpPath  = s"$path.tmp.${connectorTaskId.lockUuid}"
+    val testData = TestIndexFile("owner-123", Some(100L))
+
+    val fsClient   = mock[DataLakeFileSystemClient]
+    val tmpClient  = mock[DataLakeFileClient]
+    val flushResp  = mock[Response[PathInfo]]
+    val pathInfo   = mock[PathInfo]
+    val renameResp = mock[Response[DataLakeFileClient]]
+    // ETag header present but empty
+    val emptyETagHeaders = new HttpHeaders()
+    emptyETagHeaders.set("ETag", "")
+
+    when(client.getFileSystemClient(bucket)).thenReturn(fsClient)
+    when(fsClient.createFile(tmpPath, true)).thenReturn(tmpClient)
+    doAnswer((_: InvocationOnMock) => ()).when(tmpClient).append(any[ByteArrayInputStream], anyLong, anyLong)
+    when(pathInfo.getETag).thenReturn("tmp-etag")
+    when(flushResp.getValue).thenReturn(pathInfo)
+    when(
+      tmpClient.flushWithResponse(
+        anyLong,
+        anyBoolean,
+        anyBoolean,
+        any[PathHttpHeaders],
+        isNull[DataLakeRequestConditions],
+        isNull[java.time.Duration],
+        any[Context],
+      ),
+    ).thenReturn(flushResp)
+    when(renameResp.getHeaders).thenReturn(emptyETagHeaders)
+    when(tmpClient.renameWithResponse(eqTo(bucket), eqTo(path), any, any, any, any)).thenReturn(renameResp)
+
+    val result = storageInterface.writeBlobToFile(bucket, path, NoOverwriteExistingObject(testData))
+
+    result.isLeft should be(true)
+    result.left.value should be(a[FileCreateError])
+    // The rename committed — .tmp was moved to the destination, so deleteTmp MUST NOT be called
+    verify(fsClient, times(0)).deleteFileIfExists(tmpPath)
+  }
+
+  "writeBlobToFile" should "create parent directory and retry .tmp create on PathNotFound" in {
+    val bucket   = "test-bucket"
+    val path     = "a/b/index.lock"
+    val tmpPath  = s"$path.tmp.${connectorTaskId.lockUuid}"
+    val testData = TestIndexFile("owner-123", Some(100L))
+
+    val fsClient        = mock[DataLakeFileSystemClient]
+    val tmpClient       = mock[DataLakeFileClient]
+    val directoryClient = mock[DataLakeDirectoryClient]
+    val pathInfo        = mock[PathInfo]
+    val postRenameTag   = "post-rename-etag"
+
+    when(client.getFileSystemClient(bucket)).thenReturn(fsClient)
+
+    val createInvocationCount = new java.util.concurrent.atomic.AtomicInteger(0)
+    when(fsClient.createFile(tmpPath, true)).thenAnswer { _: InvocationOnMock =>
+      if (createInvocationCount.getAndIncrement() == 0)
+        throw new DataLakeStorageException("PathNotFound", mockHttpResponse(404), null)
+      else tmpClient
+    }
+
+    doAnswer((_: InvocationOnMock) => ()).when(tmpClient).append(any[ByteArrayInputStream], anyLong, anyLong)
+    when(pathInfo.getETag).thenReturn("tmp-etag")
+    val flushResp = mock[Response[PathInfo]]
+    when(flushResp.getValue).thenReturn(pathInfo)
+    when(
+      tmpClient.flushWithResponse(
+        anyLong,
+        anyBoolean,
+        anyBoolean,
+        any[PathHttpHeaders],
+        isNull[DataLakeRequestConditions],
+        isNull[java.time.Duration],
+        any[Context],
+      ),
+    ).thenReturn(flushResp)
+
+    val renameResp    = mock[Response[DataLakeFileClient]]
+    val renameHeaders = new HttpHeaders()
+    renameHeaders.set("ETag", postRenameTag)
+    when(renameResp.getHeaders).thenReturn(renameHeaders)
+    when(tmpClient.renameWithResponse(eqTo(bucket), eqTo(path), any, any, any, any)).thenReturn(renameResp)
+
+    when(fsClient.getDirectoryClient(anyString())).thenReturn(directoryClient)
     when(directoryClient.createIfNotExists()).thenReturn(pathInfo)
 
     val result = storageInterface.writeBlobToFile(bucket, path, NoOverwriteExistingObject(testData))
 
     result.isRight should be(true)
     result.value.wrappedObject should be(testData)
+    result.value.eTag should be(postRenameTag)
 
-    // Verify createFile was called twice (once failed, once succeeded)
-    verify(fileSystemClient, times(2)).createFile(path, false)
+    // .tmp create was called twice: first attempt 404, second succeeds
+    verify(fsClient, times(2)).createFile(tmpPath, true)
+    verify(directoryClient).createIfNotExists()
   }
 
   // ── createDirectoryIfNotExists ────────────────────────────────────────────
@@ -1247,6 +1490,77 @@ class DatalakeStorageInterfaceTest
 
     result.isLeft should be(true)
     result.left.value should be(a[FileCreateError])
+  }
+
+  // ── getBlobAsObject — EmptyFileError short-circuit ────────────────────────
+
+  "getBlobAsObject" should "return Left(EmptyFileError) with eTag preserved when body is length-0" in {
+    import io.lenses.streamreactor.connect.cloud.common.storage.EmptyFileError
+    import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexFile
+    import io.circe.generic.semiauto.deriveDecoder
+    implicit val indexFileDecoder: io.circe.Decoder[IndexFile] = IndexFile.indexFileDecoder
+
+    val bucket = "test-bucket"
+    val path   = "test-path/index.lock"
+    val eTag   = "the-etag"
+
+    val fsClient    = mock[DataLakeFileSystemClient]
+    val fileClient  = mock[DataLakeFileClient]
+    val readResp    = mock[FileReadResponse]
+    val readHeaders = mock[FileReadHeaders]
+
+    when(client.getFileSystemClient(bucket)).thenReturn(fsClient)
+    when(fsClient.getFileClient(path)).thenReturn(fileClient)
+    when(readHeaders.getETag).thenReturn(eTag)
+    when(readResp.getDeserializedHeaders).thenReturn(readHeaders)
+
+    // readWithResponse writes empty bytes — simulates a 0-byte blob
+    doAnswer { inv: InvocationOnMock =>
+      val baos = inv.getArgument[ByteArrayOutputStream](0)
+      baos.write(Array.empty[Byte])
+      readResp
+    }.when(fileClient).readWithResponse(any[ByteArrayOutputStream], any, any, any, anyBoolean, any, any)
+
+    val result = storageInterface.getBlobAsObject[IndexFile](bucket, path)
+
+    result.isLeft should be(true)
+    val err = result.left.value
+    err should be(a[EmptyFileError])
+    err.asInstanceOf[EmptyFileError].fileName should be(path)
+    err.asInstanceOf[EmptyFileError].eTag should be(eTag)
+  }
+
+  "getBlobAsObject" should "fall through to decode for non-empty body (not treated as empty)" in {
+    import io.lenses.streamreactor.connect.cloud.common.storage.GeneralFileLoadError
+    import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexFile
+    implicit val indexFileDecoder: io.circe.Decoder[IndexFile] = IndexFile.indexFileDecoder
+
+    val bucket = "test-bucket"
+    val path   = "test-path/index.lock"
+    val eTag   = "the-etag"
+
+    val fsClient    = mock[DataLakeFileSystemClient]
+    val fileClient  = mock[DataLakeFileClient]
+    val readResp    = mock[FileReadResponse]
+    val readHeaders = mock[FileReadHeaders]
+
+    when(client.getFileSystemClient(bucket)).thenReturn(fsClient)
+    when(fsClient.getFileClient(path)).thenReturn(fileClient)
+    when(readHeaders.getETag).thenReturn(eTag)
+    when(readResp.getDeserializedHeaders).thenReturn(readHeaders)
+
+    // Whitespace-only body must NOT be treated as empty (length > 0)
+    doAnswer { inv: InvocationOnMock =>
+      val baos = inv.getArgument[ByteArrayOutputStream](0)
+      baos.write("   ".getBytes)
+      readResp
+    }.when(fileClient).readWithResponse(any[ByteArrayOutputStream], any, any, any, anyBoolean, any, any)
+
+    val result = storageInterface.getBlobAsObject[IndexFile](bucket, path)
+
+    // Falls through to decode which fails for invalid JSON — not EmptyFileError
+    result.isLeft should be(true)
+    result.left.value should be(a[GeneralFileLoadError])
   }
 
 }

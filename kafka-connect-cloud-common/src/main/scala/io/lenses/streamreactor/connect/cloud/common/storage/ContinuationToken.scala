@@ -20,4 +20,8 @@ import java.time.Instant
 trait FileMetadata {
   def file:         String
   def lastModified: Instant
+  // Content length in bytes. None if the backend did not populate it (S3/GCP default).
+  // ADLS populates this from PathItem.getContentLength so the sweep can short-circuit
+  // proven-empty (.lock, size==0) files without a GET.
+  def size: Option[Long] = None
 }

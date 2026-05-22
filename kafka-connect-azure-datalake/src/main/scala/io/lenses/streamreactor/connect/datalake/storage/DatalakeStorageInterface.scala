@@ -20,6 +20,7 @@ import com.azure.core.util.Context
 import com.azure.storage.common.ParallelTransferOptions
 import com.azure.storage.file.datalake.DataLakeFileClient
 import com.azure.storage.file.datalake.DataLakeServiceClient
+import com.azure.core.http.HttpHeaderName
 import com.azure.storage.file.datalake.models.DataLakeRequestConditions
 import com.azure.storage.file.datalake.models.DataLakeStorageException
 import com.azure.storage.file.datalake.models.FileReadResponse
@@ -133,7 +134,14 @@ class DatalakeStorageInterface(connectorTaskId: ConnectorTaskId, client: DataLak
       processObjectsAsFileMeta(
         bucket,
         prefix,
-        results.map(pi => DatalakeFileMetadata(pi.getName, pi.getLastModified.toInstant, None)),
+        results.map(pi =>
+          DatalakeFileMetadata(
+            file         = pi.getName,
+            lastModified = pi.getLastModified.toInstant,
+            continuation = None,
+            size         = Option(pi.getContentLength).map(_.longValue()),
+          ),
+        ),
       )
     }.toEither.recover {
       case ex: DataLakeStorageException if ex.getStatusCode == 404 =>
@@ -440,101 +448,154 @@ class DatalakeStorageInterface(connectorTaskId: ConnectorTaskId, client: DataLak
     )
 
     val content = objectProtection.wrappedObject.asJson.noSpaces
+    val bytes   = content.getBytes
 
-    // Determine create conditions based on protection type:
-    // - NoOverwriteExistingObject: use createFile with overwrite=false (fails if file exists with 409)
-    // - ObjectWithETag: use createFileWithResponse with If-Match condition (fails if eTag doesn't match with 412)
-    // - Other: use createFile with overwrite=true (always succeeds)
-    //
-    // The If-Match condition MUST be applied to the CREATE operation, not flush.
-    // This is because createFile overwrites the file and assigns a new eTag.
-    // If we applied If-Match to flush, it would always fail since the eTag changed after create.
+    // Per-task temp path: distinct lockUuid per task instance guarantees no cross-task collision.
+    // lockUuid is connectorTaskId.lockUuid = UUID.randomUUID().toString (see ConnectorTaskId.scala
+    // line 26 and ConnectorTaskIdTest.scala line 152 — 4 instances produce 4 distinct UUIDs).
+    // Do NOT derive lockUuid deterministically from taskId/topic/partition: that would re-introduce
+    // a cross-task collision on the same .tmp path.
+    val tmpPath = s"$path.tmp.${connectorTaskId.lockUuid}"
 
-    def tryWriteBlob(): Either[Throwable, String] = Try {
+    // Precondition applied to the DESTINATION slot (slot 4) of renameWithResponse.
+    // IMPORTANT: do NOT apply to the source slot (slot 3) — that would arbitrate on the
+    // task-owned .tmp blob (always matches/always absent) and would silently defeat
+    // zombie fencing. See plan section "Critical SDK detail — destination conditions slot."
+    val destinationConditions: DataLakeRequestConditions = objectProtection match {
+      case NoOverwriteExistingObject(_) =>
+        // Atomic arbitration: exactly one of N concurrent renames to the same destination
+        // wins; the rest get 412 Precondition Failed. The downstream Left(FileCreateError)
+        // contract is unchanged — the numeric 412 replaces the historical 409 from
+        // createFile(false), but all callers consume only the wrapper class.
+        new DataLakeRequestConditions().setIfNoneMatch("*")
+      case ObjectWithETag(_, eTag) =>
+        // eTag here is the eTag of the CURRENT DESTINATION (sourced from topicPartitionToETags /
+        // granularCache), not the eTag of the .tmp blob. Arbitration is on the destination.
+        new DataLakeRequestConditions().setIfMatch(eTag)
+      case _ =>
+        null
+    }
+
+    def deleteTmp(): Unit =
+      Try(client.getFileSystemClient(bucket).deleteFileIfExists(tmpPath))
+        .failed.foreach(ex =>
+          logger.warn(s"[${connectorTaskId.show}] Failed to clean up temp blob $tmpPath: ${ex.getMessage}"),
+        )
+
+    def tryWriteViaRename(): Either[Throwable, String] = {
       val fsClient = client.getFileSystemClient(bucket)
-      val bytes    = content.getBytes
 
-      // Create file with appropriate conditions
-      val createFileClient: DataLakeFileClient = objectProtection match {
-        case NoOverwriteExistingObject(_) =>
-          // overwrite=false: fails with 409 if file exists
-          fsClient.createFile(path, false)
+      // Step 1: create the temp blob (always overwrite=true — it is task-owned and uncontended)
+      // Wrapped in Try so a 404 PathNotFound from createFile is also caught and routed to the
+      // parent-directory recovery path in tryWriteViaRenameWithDirectoryRecovery.
+      Try(fsClient.createFile(tmpPath, true)).toEither.flatMap { tmpClient =>
+        // The rename attempt covers steps 2 (append+flush) and 3 (rename).
+        // recoverWith / deleteTmp MUST NOT run after the rename commits — at that point
+        // .tmp no longer exists at the source and the destination is durable.
+        val renameAttempt: Either[Throwable, com.azure.core.http.rest.Response[DataLakeFileClient]] =
+          Try {
+            // Step 2: append + flush into the temp blob
+            Using.resource(new ByteArrayInputStream(bytes)) { bais =>
+              tmpClient.append(bais, 0, bytes.length.toLong)
+            }
+            tmpClient.flushWithResponse(
+              bytes.length.toLong,
+              true,  // retainUncommittedData
+              false, // close
+              new PathHttpHeaders(),
+              null, // unconditional flush of temp blob — create already established ownership
+              null, // timeout
+              Context.NONE,
+            )
 
-        case ObjectWithETag(_, eTag) =>
-          // Apply If-Match condition on CREATE to verify we're updating the expected version
-          // This provides optimistic concurrency control during rebalance scenarios
-          val createConditions = new DataLakeRequestConditions().setIfMatch(eTag)
-          fsClient.createFileWithResponse(
-            path,
-            null, // permissions
-            null, // umask
-            null, // headers
-            null, // metadata
-            createConditions,
-            null, // timeout
-            Context.NONE,
-          ).getValue
+            // Step 3: atomic rename .tmp -> destination with precondition on DESTINATION.
+            tmpClient.renameWithResponse(
+              bucket,                // destinationFileSystem
+              path,                  // destinationPath
+              null,                  // sourceRequestConditions (slot 3) — must remain null
+              destinationConditions, // destinationRequestConditions (slot 4) — eTag arbitration lands here
+              null,                  // timeout
+              Context.NONE,
+            )
+          }.recoverWith {
+            case ex =>
+              deleteTmp()
+              scala.util.Failure(ex)
+          }.toEither
 
-        case _ =>
-          // No protection: overwrite=true
-          fsClient.createFile(path, true)
+        // Extract the post-rename eTag OUTSIDE the recoverWith scope.
+        // If the rename committed but the response carries no ETag header,
+        // HttpHeaders.get() returns null and calling .getValue would NPE.
+        // That NPE must NOT trigger deleteTmp() (the source .tmp is gone) and
+        // must NOT be silently swallowed — surface it as a clear Left so the
+        // caller can distinguish ambiguous-success from a genuine rename failure.
+        renameAttempt.flatMap(extractPostRenameETag(bucket, path, tmpPath))
+      }
+    }
+
+    def extractPostRenameETag(
+      destBucket:     String,
+      destPath:       String,
+      sourceTmpPath:  String,
+    )(renameResponse: com.azure.core.http.rest.Response[DataLakeFileClient],
+    ): Either[Throwable, String] = {
+      val maybeETag = for {
+        headers <- Option(renameResponse.getHeaders)
+        header  <- Option(headers.get(HttpHeaderName.ETAG))
+        value   <- Option(header.getValue).filter(_.nonEmpty)
+      } yield value
+      maybeETag match {
+        case Some(eTag) => Right(eTag)
+        case None =>
+          Left(
+            new IllegalStateException(
+              s"[${connectorTaskId.show}] renameWithResponse committed $sourceTmpPath -> $destBucket:$destPath " +
+                s"but the response contained no ETag header. The destination file is durable. " +
+                s"Manual recovery: restart the task to re-read the destination eTag via HEAD.",
+            ),
+          )
+      }
+    }
+
+    def tryWriteViaRenameWithDirectoryRecovery(): Either[UploadError, String] =
+      tryWriteViaRename() match {
+        case Right(eTag) => Right(eTag)
+
+        case Left(dse: DataLakeStorageException)
+            if dse.getStatusCode == 404 || Option(dse.getMessage).exists(_.contains("PathNotFound")) =>
+          // Parent directory doesn't exist — create it and retry against the .tmp path.
+          // The 404 recovery is preserved in the invisible namespace (.tmp), so a crash
+          // between create-directory and rename still leaves no 0-byte blob at the destination.
+          parentDirectory(path) match {
+            case Some(dir) =>
+              createDirectoryIfNotExists(bucket, dir) match {
+                case Left(err) => Left(FileCreateError(err.exception, content))
+                case Right(_)  => tryWriteViaRename().leftMap(ex => FileCreateError(ex, content))
+              }
+            case None => Left(FileCreateError(dse, content))
+          }
+
+        case Left(dse: DataLakeStorageException) if dse.getStatusCode == 412 =>
+          // 412 Precondition Failed: destination-slot condition not met.
+          // For NoOverwriteExistingObject: destination already exists.
+          // For ObjectWithETag: eTag mismatch (concurrent write by another task).
+          // Both surface as Left(FileCreateError) — callers only inspect the wrapper class.
+          logger.warn(
+            s"[${connectorTaskId.show}] Precondition failed (412) renaming $tmpPath -> $bucket:$path",
+          )
+          Left(FileCreateError(dse, content))
+
+        case Left(other) => Left(FileCreateError(other, content))
       }
 
-      // Append data
-      Using.resource(new ByteArrayInputStream(bytes)) { bais =>
-        createFileClient.append(bais, 0, bytes.length.toLong)
-      }
-
-      // Flush without conditions (the create operation already verified ownership)
-      val response = createFileClient.flushWithResponse(
-        bytes.length.toLong,
-        true,  // retainUncommittedData
-        false, // close
-        new PathHttpHeaders(),
-        null, // No conditions needed - create already verified
-        null, // timeout
-        Context.NONE,
-      )
-      response.getValue.getETag
-    }.toEither
-
-    tryWriteBlob() match {
+    tryWriteViaRenameWithDirectoryRecovery() match {
       case Right(eTag) =>
         logger.debug(
-          s"[${connectorTaskId.show}] Completed upload from data string ($content) to datalake $bucket:$path",
+          s"[${connectorTaskId.show}] Completed atomic upload ($content) to datalake $bucket:$path (post-rename eTag=$eTag)",
         )
         Right(new ObjectWithETag[O](objectProtection.wrappedObject, eTag))
 
-      case Left(dse: DataLakeStorageException)
-          if dse.getStatusCode == 404 || Option(dse.getMessage).exists(_.contains("PathNotFound")) =>
-        // Parent directory doesn't exist - create it and retry
-        parentDirectory(path) match {
-          case Some(dir) =>
-            createDirectoryIfNotExists(bucket, dir) match {
-              case Left(err) => Left(FileCreateError(err.exception, content))
-              case Right(_) => tryWriteBlob().leftMap(ex => FileCreateError(ex, content)).map(et =>
-                  new ObjectWithETag[O](objectProtection.wrappedObject, et),
-                )
-            }
-          case None => Left(FileCreateError(dse, content))
-        }
-
-      case Left(dse: DataLakeStorageException) if dse.getStatusCode == 409 =>
-        // 409 Conflict: file already exists (NoOverwriteExistingObject case)
-        logger.warn(
-          s"[${connectorTaskId.show}] File already exists at $bucket:$path (409 Conflict), cannot create with NoOverwriteExistingObject protection",
-        )
-        Left(FileCreateError(dse, content))
-
-      case Left(dse: DataLakeStorageException) if dse.getStatusCode == 412 =>
-        // 412 Precondition Failed: eTag doesn't match (ObjectWithETag case)
-        // This means another task/process modified the file - concurrent write detected
-        logger.warn(
-          s"[${connectorTaskId.show}] ETag mismatch at $bucket:$path (412 Precondition Failed), file was modified by another process",
-        )
-        Left(FileCreateError(dse, content))
-
-      case Left(other) => Left(FileCreateError(other, content))
+      case Left(err) => Left(err)
     }
   }
 
