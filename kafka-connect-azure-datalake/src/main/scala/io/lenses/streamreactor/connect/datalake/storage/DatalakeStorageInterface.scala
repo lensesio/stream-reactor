@@ -116,6 +116,14 @@ class DatalakeStorageInterface(connectorTaskId: ConnectorTaskId, client: DataLak
     Try(client.getFileSystemClient(bucket).getFileClient(path).exists().booleanValue()).toEither.recover {
       case ex: DataLakeStorageException if ex.getStatusCode == 404 =>
         false
+      case ex: DataLakeStorageException if ex.getStatusCode == 403 =>
+        logger.warn(
+          "ADLS returned 403 for pathExists on {}/{}; treating as absent " +
+            "(HNS with SharedKey auth returns 403 for non-existent paths)",
+          bucket,
+          path,
+        )
+        false
     }.leftMap(PathError(
       _,
       path,
