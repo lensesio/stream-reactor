@@ -454,7 +454,7 @@ class DatalakeStorageInterfaceTest
     result.left.getOrElse(throw new AssertionError("Expected Left")) should be(a[PathError])
   }
 
-  "pathExists" should "return Left(PathError) when DataLakeStorageException has 403 status" in {
+  "pathExists" should "return Right(false) when DataLakeStorageException has 403 status (ADLS HNS)" in {
     val bucket = "test-bucket"
     val path   = "forbidden-path"
 
@@ -464,8 +464,7 @@ class DatalakeStorageInterfaceTest
 
     val result = storageInterface.pathExists(bucket, path)
 
-    result.isLeft should be(true)
-    result.left.getOrElse(throw new AssertionError("Expected Left")) should be(a[PathError])
+    result should be(Right(false))
   }
 
   private def createTestFile = {
