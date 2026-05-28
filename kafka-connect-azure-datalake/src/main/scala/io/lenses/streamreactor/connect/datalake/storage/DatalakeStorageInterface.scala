@@ -344,39 +344,48 @@ class DatalakeStorageInterface(connectorTaskId: ConnectorTaskId, client: DataLak
     first match {
       case r @ Right(_)      => r
       case Left(originalErr) =>
-        // Idempotence fallback (mirrors AwsS3StorageInterface.mvFile and
-        // GCPStorageStorageInterface.mvFile). When the rename fails but the source is
-        // verifiably absent and the destination is verifiably present, treat the call
-        // as an idempotent replay of an already-completed move. This is essential for
-        // crash-after-Copy-before-lock-update recovery: the recovery handler
-        // (PendingOperationsProcessors) will replay CopyOperation on restart, and
-        // without this branch the replay would escalate to FatalCloudSinkError and
-        // produce a deterministic restart loop on the affected partition.
-        val sourceMissing = pathExists(oldBucket, oldPath).fold(_ => false, !_)
-        if (!sourceMissing) Left(originalErr)
-        else pathExists(newBucket, newPath) match {
-          case Right(true) =>
-            logger.warn(
-              "Object ({}/{}) missing but destination ({}/{}) exists; treating mvFile as idempotent success",
-              oldBucket,
-              oldPath,
-              newBucket,
-              newPath,
-            )
-            ().asRight
-          case Right(false) =>
-            Left(
-              FileMoveError(
-                new IllegalStateException(
-                  s"Source $oldBucket/$oldPath and destination $newBucket/$newPath both missing",
-                ),
-                oldPath,
-                newPath,
-              ),
-            )
-          case Left(_) =>
-            // Best-effort verification failed -- preserve the original move error.
+        // A 403 on the rename means the operation was auth-rejected, not completed.
+        // The source is still present — idempotence check is only meaningful for
+        // errors that could represent a crashed-after-commit scenario (e.g. network
+        // failure after a successful rename). Skip it entirely for 403.
+        originalErr.exception match {
+          case dse: DataLakeStorageException if dse.getStatusCode == 403 =>
             Left(originalErr)
+          case _ =>
+            // Idempotence fallback (mirrors AwsS3StorageInterface.mvFile and
+            // GCPStorageStorageInterface.mvFile). When the rename fails but the source is
+            // verifiably absent and the destination is verifiably present, treat the call
+            // as an idempotent replay of an already-completed move. This is essential for
+            // crash-after-Copy-before-lock-update recovery: the recovery handler
+            // (PendingOperationsProcessors) will replay CopyOperation on restart, and
+            // without this branch the replay would escalate to FatalCloudSinkError and
+            // produce a deterministic restart loop on the affected partition.
+            val sourceMissing = pathExists(oldBucket, oldPath).fold(_ => false, !_)
+            if (!sourceMissing) Left(originalErr)
+            else pathExists(newBucket, newPath) match {
+              case Right(true) =>
+                logger.warn(
+                  "Object ({}/{}) missing but destination ({}/{}) exists; treating mvFile as idempotent success",
+                  oldBucket,
+                  oldPath,
+                  newBucket,
+                  newPath,
+                )
+                ().asRight
+              case Right(false) =>
+                Left(
+                  FileMoveError(
+                    new IllegalStateException(
+                      s"Source $oldBucket/$oldPath and destination $newBucket/$newPath both missing",
+                    ),
+                    oldPath,
+                    newPath,
+                  ),
+                )
+              case Left(_) =>
+                // Best-effort verification failed -- preserve the original move error.
+                Left(originalErr)
+            }
         }
     }
   }
