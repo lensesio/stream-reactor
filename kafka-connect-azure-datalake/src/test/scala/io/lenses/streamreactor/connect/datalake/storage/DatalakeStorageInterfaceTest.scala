@@ -975,6 +975,142 @@ class DatalakeStorageInterfaceTest
     result.left.value should be(a[FileMoveError])
   }
 
+  // ADLS rename 403/409 non-masking guard tests
+  //
+  // The idempotence fallback in mvFile only applies when (a) the rename fails AND
+  // (b) the source object is verifiably absent AND (c) the destination is present.
+  // A 403 Forbidden or 409 Conflict response means the rename was actively rejected
+  // by the server; in these cases the source is typically still present, so the
+  // idempotence branch is NOT entered and the original error surfaces.
+  // These tests pin that contract to prevent future regressions where broader
+  // idempotence application could silently swallow genuine access/conflict errors.
+
+  "mvFile" should "surface 403 Forbidden as FileMoveError and NOT mask it as idempotent success" in {
+    // 403 = Forbidden (e.g. insufficient permission to rename the source path).
+    // Source IS still present, so idempotence check must NOT trigger.
+    val oldBucket = "oldBucket"
+    val oldPath   = "oldPath"
+    val newBucket = "newBucket"
+    val newPath   = "newPath"
+
+    val srcFileClient  = mock[DataLakeFileClient]
+    val destFileClient = mock[DataLakeFileClient]
+
+    when(client.getFileSystemClient(oldBucket).getFileClient(oldPath)).thenReturn(srcFileClient)
+    when(client.getFileSystemClient(newBucket).getFileClient(newPath)).thenReturn(destFileClient)
+
+    val forbiddenException =
+      new DataLakeStorageException("AuthorizationPermissionMismatch", mockHttpResponse(403), null)
+    when(srcFileClient.renameWithResponse(eqTo(newBucket), eqTo(newPath), any, any, any, any))
+      .thenThrow(forbiddenException)
+
+    val result = storageInterface.mvFile(oldBucket, oldPath, newBucket, newPath, none)
+
+    result.isLeft should be(true)
+    result.left.value should be(a[FileMoveError])
+    val moveErr = result.left.value.asInstanceOf[FileMoveError]
+    moveErr.exception should be(a[DataLakeStorageException])
+    moveErr.exception.asInstanceOf[DataLakeStorageException].getStatusCode should be(403)
+    // With the 403 short-circuit, neither source nor dest should be probed.
+    verify(srcFileClient, never).exists()
+    verify(destFileClient, never).exists()
+  }
+
+  "mvFile" should "surface original 403 error when rename fails 403 and source pathExists also returns 403 (HNS quirk)" in {
+    // Regression test: pathExists now treats 403 as absent (Right(false)) for the HNS+SharedKey quirk.
+    // Without the 403 guard in mvFile, a 403 rename failure followed by pathExists returning Right(false)
+    // (source "absent") and destFileClient.exists() returning true would cause a false idempotent success.
+    // The guard short-circuits before any existence probing.
+    val oldBucket = "oldBucket"
+    val oldPath   = "oldPath"
+    val newBucket = "newBucket"
+    val newPath   = "newPath"
+
+    val srcFileClient  = mock[DataLakeFileClient]
+    val destFileClient = mock[DataLakeFileClient]
+
+    when(client.getFileSystemClient(oldBucket).getFileClient(oldPath)).thenReturn(srcFileClient)
+    when(client.getFileSystemClient(newBucket).getFileClient(newPath)).thenReturn(destFileClient)
+
+    val forbiddenException =
+      new DataLakeStorageException("AuthorizationPermissionMismatch", mockHttpResponse(403), null)
+    when(srcFileClient.renameWithResponse(eqTo(newBucket), eqTo(newPath), any, any, any, any))
+      .thenThrow(forbiddenException)
+    // HNS quirk: exists() also throws 403 for a non-existent path under SharedKey auth.
+    when(srcFileClient.exists()).thenThrow(
+      new DataLakeStorageException("AuthorizationPermissionMismatch", mockHttpResponse(403), null),
+    )
+    // Destination is present — without the fix this would cause a false idempotent success.
+    when(destFileClient.exists()).thenReturn(true)
+
+    val result = storageInterface.mvFile(oldBucket, oldPath, newBucket, newPath, none)
+
+    result.isLeft should be(true)
+    result.left.value should be(a[FileMoveError])
+    val moveErr = result.left.value.asInstanceOf[FileMoveError]
+    moveErr.exception should be(a[DataLakeStorageException])
+    moveErr.exception.asInstanceOf[DataLakeStorageException].getStatusCode should be(403)
+    // The 403 guard short-circuits before any existence probing.
+    verify(srcFileClient, never).exists()
+    verify(destFileClient, never).exists()
+  }
+
+  "mvFile" should "surface 409 Conflict as FileMoveError and NOT mask it as idempotent success" in {
+    // 409 = Conflict (e.g. concurrent rename or lease conflict on ADLS).
+    // Source IS still present; idempotence must NOT trigger.
+    val oldBucket = "oldBucket"
+    val oldPath   = "oldPath"
+    val newBucket = "newBucket"
+    val newPath   = "newPath"
+
+    val srcFileClient  = mock[DataLakeFileClient]
+    val destFileClient = mock[DataLakeFileClient]
+
+    when(client.getFileSystemClient(oldBucket).getFileClient(oldPath)).thenReturn(srcFileClient)
+    when(client.getFileSystemClient(newBucket).getFileClient(newPath)).thenReturn(destFileClient)
+
+    val conflictException =
+      new DataLakeStorageException("LeaseIdMismatchWithBlobOperation", mockHttpResponse(409), null)
+    when(srcFileClient.renameWithResponse(eqTo(newBucket), eqTo(newPath), any, any, any, any))
+      .thenThrow(conflictException)
+    // Source file is still present — concurrent rename was rejected, not completed.
+    when(srcFileClient.exists()).thenReturn(true)
+
+    val result = storageInterface.mvFile(oldBucket, oldPath, newBucket, newPath, none)
+
+    result.isLeft should be(true)
+    result.left.value should be(a[FileMoveError])
+    val moveErr = result.left.value.asInstanceOf[FileMoveError]
+    moveErr.exception should be(a[DataLakeStorageException])
+    moveErr.exception.asInstanceOf[DataLakeStorageException].getStatusCode should be(409)
+    verify(destFileClient, never).exists()
+  }
+
+  "mvFile" should "surface 500 Internal Server Error as FileMoveError when source is still present" in {
+    // Defensive: a 500 during rename with source still present must not be swallowed.
+    val oldBucket = "oldBucket"
+    val oldPath   = "oldPath"
+    val newBucket = "newBucket"
+    val newPath   = "newPath"
+
+    val srcFileClient  = mock[DataLakeFileClient]
+    val destFileClient = mock[DataLakeFileClient]
+
+    when(client.getFileSystemClient(oldBucket).getFileClient(oldPath)).thenReturn(srcFileClient)
+    when(client.getFileSystemClient(newBucket).getFileClient(newPath)).thenReturn(destFileClient)
+
+    when(srcFileClient.renameWithResponse(eqTo(newBucket), eqTo(newPath), any, any, any, any)).thenThrow(
+      new DataLakeStorageException("InternalError", mockHttpResponse(500), null),
+    )
+    when(srcFileClient.exists()).thenReturn(true)
+
+    val result = storageInterface.mvFile(oldBucket, oldPath, newBucket, newPath, none)
+
+    result.isLeft should be(true)
+    result.left.value should be(a[FileMoveError])
+    verify(destFileClient, never).exists()
+  }
+
   // Test data case class for writeBlobToFile tests
   case class TestIndexFile(owner: String, offset: Option[Long])
   implicit val testIndexFileEncoder: io.circe.Encoder[TestIndexFile] = deriveEncoder[TestIndexFile]

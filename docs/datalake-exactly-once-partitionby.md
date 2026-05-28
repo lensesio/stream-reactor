@@ -847,13 +847,23 @@ Connectors upgrading from **9.x → 10.x** have their master lock path automatic
 
 The fix adds a re-probe on `Left(PathError)`. The safety predicate is **"old path is positively absent"** — that alone proves migration is unnecessary regardless of the new-path state:
 
-- `Right(false)` on the first probe → unchanged: fast path, no migration.
+- `Right(false)` on the first probe → fast path, no migration (migration is provably unnecessary). The old path is treated as absent and `migrateOldPathIfExists` returns success without re-probing.
 - `Left(PathError)` on first probe → re-probe old path:
   - Re-probe `Right(false)` → migration is unnecessary (old positively absent). Log warning, return success. This covers scenarios A (fresh deployment, new=false) and B (established 10.x+, new=true).
   - Re-probe `Right(true)` → genuine 9.x file present (scenario C). Proceed to `mvFile` as normal.
   - Re-probe `Left(_)` → cloud genuinely unavailable. Surface the original error as `FatalCloudSinkError`. The task will be retried by Kafka Connect on the next assignment once the cloud-side condition clears.
 
-This means transient 403s and 5xx errors during rebalance no longer cascade. For scenarios A and B (all established deployments), the re-probe returns `Right(false)` once the transient window clears and the cascade stops.
+This means transient 5xx errors during rebalance no longer cascade. For scenarios A and B (all established deployments), the re-probe returns `Right(false)` once the transient window clears and the cascade stops.
+
+#### ADLS HNS + SharedKey: 403 is consumed as "absent" before the re-probe gate
+
+On ADLS Gen2 accounts with Hierarchical Namespace and SharedKey auth, the storage layer returns **403** (not 404) for a non-existent path. `DatalakeStorageInterface.pathExists` therefore maps a 403 `DataLakeStorageException` to `Right(false)` (logged at WARN), the same as a 404. This changes the entry point for 403 on ADLS: a 403 on the old-path probe is now consumed at the **first-probe `Right(false)` arm above** — "old path provably absent ⇒ migration skipped" — and never reaches the `Left(PathError)` re-probe gate.
+
+The re-probe gate above still governs **genuine non-403 transient errors** (5xx, network timeouts), where `pathExists` returns `Left(PathError)`; the cascade mitigation it documents is unchanged for those. Only the 403 entry point moved.
+
+This is safe under the HNS model: 403 indicates non-existence, so an *existing* 9.x lock would not return 403, and skipping migration when the old path is absent is correct. The caveat is that 403-as-absent assumes 403 is used exclusively to mask non-existence — not as a genuine per-path authorization denial on an object that does exist. On master this behaviour arrived together with the `mvFile` 403 idempotence guard; on `release/11.7.5` the `pathExists` 403→absent mapping shipped earlier (PR #357) and the `mvFile` guard was backported separately.
+
+> **Provider scope:** the 403→absent mapping is ADLS-only. `AwsS3StorageInterface.pathExists` and `GCPStorageStorageInterface.pathExists` do not remap 403, so on S3/GCS a 403 still surfaces as `Left(PathError)` and flows through the re-probe gate exactly as described above.
 
 #### Scope
 
