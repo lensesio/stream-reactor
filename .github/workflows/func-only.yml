@@ -7,8 +7,7 @@ on:
 jobs:
   run-func-tests:
     timeout-minutes: 30
-    #runs-on: ubuntu-latest
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     strategy:
       matrix:
         module: ["http"]
@@ -22,6 +21,8 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
           cache: 'sbt'
+      - name: Set up sbt
+        uses: sbt/setup-sbt@af116cce31c00823d3903ce687f9cda3a4f19f1b # v1.2.1
       - name: Install protobuf compiler
         run: sudo apt-get update && sudo apt-get install -y protobuf-compiler
       - name: Get version

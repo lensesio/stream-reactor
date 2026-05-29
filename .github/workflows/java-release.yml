@@ -7,7 +7,7 @@ on:
 
 jobs:
   validate-tag:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       draft_release: ${{ steps.get_tag.outputs.draft_release }}
       tag: ${{ steps.get_tag.outputs.tag }}
@@ -44,7 +44,7 @@ jobs:
 
   antivirus-scan-initialization:
     timeout-minutes: 15
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - name: Install and Update Antivirus Software
@@ -69,7 +69,7 @@ jobs:
       - build
       - antivirus-scan-initialization
     timeout-minutes: 30
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       matrix:
         module: ${{fromJSON(needs.build.outputs.java_modules)}}
@@ -103,7 +103,7 @@ jobs:
             java-connectors/release/
 
   create-release:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       actions: read
       id-token: write
