@@ -17,8 +17,7 @@ on:
 jobs:
   initiate:
     timeout-minutes: 10
-    #runs-on: ubuntu-latest
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     outputs:
       matrix: ${{ steps.read-mods.outputs.matrix }}
       it_matrix: ${{ steps.read-mods.outputs.it-matrix }}
@@ -33,6 +32,8 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
           cache: 'sbt'
+      - name: Set up sbt
+        uses: sbt/setup-sbt@af116cce31c00823d3903ce687f9cda3a4f19f1b # v1.2.1
       - name: Install protobuf compiler
         run: sudo apt-get update && sudo apt-get install -y protobuf-compiler
       - name: Generate modules lists
@@ -56,8 +57,7 @@ jobs:
 
   scalafmt:
     timeout-minutes: 10
-    #runs-on: ubuntu-latest
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - name: Set up JDK 17
@@ -66,6 +66,8 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
           cache: 'sbt'
+      - name: Set up sbt
+        uses: sbt/setup-sbt@af116cce31c00823d3903ce687f9cda3a4f19f1b # v1.2.1
       - name: Install protobuf compiler
         run: sudo apt-get update && sudo apt-get install -y protobuf-compiler
       - name: Check the project
@@ -82,8 +84,7 @@ jobs:
       - initiate
       - scalafmt
     timeout-minutes: 10
-    #runs-on: ubuntu-latest
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     strategy:
       matrix:
         module: ${{fromJSON(needs.initiate.outputs.matrix)}}
@@ -95,6 +96,8 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
           cache: 'sbt'
+      - name: Set up sbt
+        uses: sbt/setup-sbt@af116cce31c00823d3903ce687f9cda3a4f19f1b # v1.2.1
       - name: Install protobuf compiler
         run: sudo apt-get update && sudo apt-get install -y protobuf-compiler
       - name: Run tests
@@ -115,8 +118,7 @@ jobs:
       - scalafmt
     timeout-minutes: 30
     continue-on-error: true
-    #runs-on: ubuntu-latest
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     strategy:
       matrix:
         module: ${{fromJSON(needs.initiate.outputs.it_matrix)}}
@@ -128,6 +130,8 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
           cache: 'sbt'
+      - name: Set up sbt
+        uses: sbt/setup-sbt@af116cce31c00823d3903ce687f9cda3a4f19f1b # v1.2.1
       - name: Install protobuf compiler
         run: sudo apt-get update && sudo apt-get install -y protobuf-compiler
       - name: Run tests
@@ -146,8 +150,7 @@ jobs:
     needs:
       - initiate
     timeout-minutes: 30
-    #runs-on: ubuntu-latest
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     strategy:
       matrix:
         module: ${{fromJSON(needs.initiate.outputs.matrix)}}
@@ -162,6 +165,8 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
           cache: 'sbt'
+      - name: Set up sbt
+        uses: sbt/setup-sbt@af116cce31c00823d3903ce687f9cda3a4f19f1b # v1.2.1
       - name: Install protobuf compiler
         run: sudo apt-get update && sudo apt-get install -y protobuf-compiler
       - name: Get version
@@ -189,8 +194,7 @@ jobs:
       - initiate
       - build-and-cache-assembly
     timeout-minutes: 30
-    #runs-on: ubuntu-latest
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     strategy:
       matrix:
         module: ${{fromJSON(needs.initiate.outputs.fun_matrix)}}
@@ -203,6 +207,8 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
           cache: 'sbt'
+      - name: Set up sbt
+        uses: sbt/setup-sbt@af116cce31c00823d3903ce687f9cda3a4f19f1b # v1.2.1
       - name: Install protobuf compiler
         run: sudo apt-get update && sudo apt-get install -y protobuf-compiler
       - name: Restore assembly
@@ -230,8 +236,7 @@ jobs:
       - initiate
       - build-and-cache-assembly
     timeout-minutes: 30
-    #runs-on: ubuntu-latest
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     strategy:
       matrix:
         module: ${{fromJSON(needs.initiate.outputs.dep_check_matrix)}}
@@ -268,8 +273,7 @@ jobs:
       - dependency-check
     if: ${{ needs.dependency-check.result == 'success' || needs.dependency-check.result == 'skipped' }}
     timeout-minutes: 30
-    #runs-on: ubuntu-latest
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     strategy:
       matrix:
         module: ${{fromJSON(needs.initiate.outputs.publish_matrix)}}
@@ -297,8 +301,7 @@ jobs:
 
   final-job:
     name: (Scala) Final Stage
-    #runs-on: ubuntu-latest
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     needs: upload-assembly
     steps:
       - name: Final Status Check
