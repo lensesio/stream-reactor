@@ -57,6 +57,7 @@ import io.lenses.streamreactor.connect.cloud.common.storage.FileMoveError
 import io.lenses.streamreactor.connect.cloud.common.storage.ListOfKeysResponse
 import io.lenses.streamreactor.connect.cloud.common.storage.ListOfMetadataResponse
 import io.lenses.streamreactor.connect.cloud.common.storage.NonExistingFileError
+import io.lenses.streamreactor.connect.cloud.common.storage.NonOverwriteFileExistsError
 import io.lenses.streamreactor.connect.cloud.common.storage.PathError
 import io.lenses.streamreactor.connect.cloud.common.storage.UploadFailedError
 import io.lenses.streamreactor.connect.cloud.common.storage.ZeroByteFileError
@@ -1214,12 +1215,13 @@ class DatalakeStorageInterfaceTest
     destConditionsCaptor.getValue.getIfNoneMatch should be("*")
   }
 
-  "writeBlobToFile" should "return FileCreateError when NoOverwriteExistingObject and destination exists (412 from rename)" in {
-    val bucket   = "test-bucket"
-    val path     = "test-path/index.lock"
-    val tmpPath  = s"$path.tmp.${connectorTaskId.lockUuid}"
-    val testData = TestIndexFile("owner-123", Some(100L))
-
+  // Sets up the .tmp create + flush mocks and makes the rename throw the supplied exception.
+  private def setupAtomicWriteRenameThrows(
+    bucket:    String,
+    path:      String,
+    exception: Throwable,
+  ): Unit = {
+    val tmpPath   = s"$path.tmp.${connectorTaskId.lockUuid}"
     val fsClient  = mock[DataLakeFileSystemClient]
     val tmpClient = mock[DataLakeFileClient]
     val flushResp = mock[Response[PathInfo]]
@@ -1241,13 +1243,71 @@ class DatalakeStorageInterfaceTest
         any[Context],
       ),
     ).thenReturn(flushResp)
+    when(tmpClient.renameWithResponse(eqTo(bucket), eqTo(path), any, any, any, any)).thenThrow(exception)
+  }
+
+  "writeBlobToFile" should "return NonOverwriteFileExistsError when NoOverwriteExistingObject and destination exists (412 from rename)" in {
+    val bucket   = "test-bucket"
+    val path     = "test-path/index.lock"
+    val testData = TestIndexFile("owner-123", Some(100L))
 
     // Rename fails with 412 (destination already exists — NoOverwrite condition not met)
-    when(tmpClient.renameWithResponse(eqTo(bucket), eqTo(path), any, any, any, any)).thenThrow(
-      new DataLakeStorageException("ConditionNotMet", mockHttpResponse(412), null),
+    setupAtomicWriteRenameThrows(bucket,
+                                 path,
+                                 new DataLakeStorageException("ConditionNotMet", mockHttpResponse(412), null),
     )
 
     val result = storageInterface.writeBlobToFile(bucket, path, NoOverwriteExistingObject(testData))
+
+    result.isLeft should be(true)
+    result.left.value should be(a[NonOverwriteFileExistsError])
+  }
+
+  "writeBlobToFile" should "return NonOverwriteFileExistsError when NoOverwriteExistingObject and destination exists (409 PathAlreadyExists from rename)" in {
+    val bucket   = "test-bucket"
+    val path     = "test-path/index.lock"
+    val testData = TestIndexFile("owner-123", Some(100L))
+
+    // ADLS Gen2 HNS surfaces the lost no-overwrite create race as 409 PathAlreadyExists on rename.
+    setupAtomicWriteRenameThrows(bucket,
+                                 path,
+                                 new DataLakeStorageException("PathAlreadyExists", mockHttpResponse(409), null),
+    )
+
+    val result = storageInterface.writeBlobToFile(bucket, path, NoOverwriteExistingObject(testData))
+
+    result.isLeft should be(true)
+    result.left.value should be(a[NonOverwriteFileExistsError])
+  }
+
+  "writeBlobToFile" should "return FileCreateError (not NonOverwriteFileExistsError) when ObjectWithETag and rename 412s — fencing must stay fatal" in {
+    val bucket   = "test-bucket"
+    val path     = "test-path/index.lock"
+    val testData = TestIndexFile("owner-123", Some(100L))
+
+    // 412 on an eTag-conditional write is a concurrent-write fence, NOT a lost create race.
+    setupAtomicWriteRenameThrows(bucket,
+                                 path,
+                                 new DataLakeStorageException("ConditionNotMet", mockHttpResponse(412), null),
+    )
+
+    val result = storageInterface.writeBlobToFile(bucket, path, ObjectWithETag(testData, "existing-etag"))
+
+    result.isLeft should be(true)
+    result.left.value should be(a[FileCreateError])
+  }
+
+  "writeBlobToFile" should "return FileCreateError (not NonOverwriteFileExistsError) when ObjectWithETag and rename 409s — 409 reclassification is NoOverwrite-only" in {
+    val bucket   = "test-bucket"
+    val path     = "test-path/index.lock"
+    val testData = TestIndexFile("owner-123", Some(100L))
+
+    setupAtomicWriteRenameThrows(bucket,
+                                 path,
+                                 new DataLakeStorageException("PathAlreadyExists", mockHttpResponse(409), null),
+    )
+
+    val result = storageInterface.writeBlobToFile(bucket, path, ObjectWithETag(testData, "existing-etag"))
 
     result.isLeft should be(true)
     result.left.value should be(a[FileCreateError])
