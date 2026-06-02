@@ -73,6 +73,12 @@ class IndexManagerV2Test
   private var indexManagerV2: IndexManagerV2 = _
 
   before {
+    // Defensive: a prior test (e.g. "drainGcQueue catches InterruptedException ...") can leave
+    // the current thread's interrupt flag set — close()'s final drainGcQueue / awaitTermination
+    // re-raises it after the test's own clear. cats-effect's unsafeRunSync() in open() returns
+    // None on an interrupted thread, which surfaces as NoSuchElementException: None.get. Clear any
+    // leaked interrupt state before each test so the flake cannot propagate between tests.
+    val _ = Thread.interrupted()
     reset(storageInterface, connectorTaskId, bucketAndPrefixFn, pendingOperationsProcessors)
 
     indexManagerV2 = new IndexManagerV2(
@@ -2287,11 +2293,11 @@ class IndexManagerV2Test
     val si              = mock[StorageInterface[_]]
     setupSweepMocks(si, tp, bucketAndPrefix)
 
-    val pk        = "name=report.lock.tmp.archive"
-    val oldTime   = Instant.now().minusSeconds(7200)
-    val realLock  = s"$indexesDirectoryName/${connectorTaskId.name}/.locks/${tp.topic}/${tp.partition}/$pk.lock"
-    val realMeta  = TestFileMetadata(realLock, oldTime)
-    val listResp  = ListOfMetadataResponse("bucket", Some("prefix"), Seq(realMeta), realMeta)
+    val pk       = "name=report.lock.tmp.archive"
+    val oldTime  = Instant.now().minusSeconds(7200)
+    val realLock = s"$indexesDirectoryName/${connectorTaskId.name}/.locks/${tp.topic}/${tp.partition}/$pk.lock"
+    val realMeta = TestFileMetadata(realLock, oldTime)
+    val listResp = ListOfMetadataResponse("bucket", Some("prefix"), Seq(realMeta), realMeta)
 
     org.mockito.Mockito.doReturn(Right(Some(listResp))).when(si).listFileMetaRecursive(anyString(), any[Option[String]])
     // Real lock content with committedOffset >= masterOffset (100), so the normal
@@ -4294,8 +4300,12 @@ class IndexManagerV2Test
       // Polled item was re-enqueued, not silently dropped.
       im.gcQueueSize shouldBe 1
     } finally {
-      Thread.interrupted() // clean up interrupt flag for subsequent tests
+      // Order matters: close() runs a final drainGcQueue() (with deleteFiles still stubbed to
+      // throw InterruptedException) and awaitTermination(), both of which RESTORE the interrupt
+      // flag. Clearing it must therefore happen AFTER close(), or the flag leaks into the next
+      // test and breaks its unsafeRunSync(). The defensive clear in `before` is the backstop.
       im.close()
+      val _ = Thread.interrupted() // clean up interrupt flag for subsequent tests
     }
   }
 
