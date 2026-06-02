@@ -1633,6 +1633,63 @@ class DatalakeStorageInterfaceTest
     verify(directoryClient).createIfNotExists()
   }
 
+  "writeBlobToFile" should "return NonOverwriteFileExistsError when the retry rename after 404 directory recovery loses the no-overwrite create race" in {
+    // Cold-start race: parent dir is missing so the first rename 404s and triggers directory
+    // recovery; by the time this task retries the rename, another task has already won the
+    // no-overwrite create, so the retry 409s. The loser must surface the RECOVERABLE
+    // NonOverwriteFileExistsError (→ LostCreateRaceError → re-read & adopt) and NOT a fatal
+    // FileCreateError that would kill the task — the very cold-start death this fix targets.
+    val bucket   = "test-bucket"
+    val path     = "a/b/index.lock"
+    val tmpPath  = s"$path.tmp.${connectorTaskId.lockUuid}"
+    val testData = TestIndexFile("owner-123", Some(100L))
+
+    val fsClient        = mock[DataLakeFileSystemClient]
+    val tmpClient       = mock[DataLakeFileClient]
+    val directoryClient = mock[DataLakeDirectoryClient]
+    val pathInfo        = mock[PathInfo]
+
+    when(client.getFileSystemClient(bucket)).thenReturn(fsClient)
+    when(fsClient.createFile(tmpPath, true)).thenReturn(tmpClient)
+
+    doAnswer((_: InvocationOnMock) => ()).when(tmpClient).append(any[ByteArrayInputStream], anyLong, anyLong)
+    val flushResp = mock[Response[PathInfo]]
+    when(flushResp.getValue).thenReturn(pathInfo)
+    when(
+      tmpClient.flushWithResponse(
+        anyLong,
+        anyBoolean,
+        anyBoolean,
+        any[PathHttpHeaders],
+        isNull[DataLakeRequestConditions],
+        isNull[java.time.Duration],
+        any[Context],
+      ),
+    ).thenReturn(flushResp)
+
+    // First rename 404s (parent dir missing); the retry after directory recovery 409s (lost race).
+    val renameInvocationCount = new java.util.concurrent.atomic.AtomicInteger(0)
+    when(tmpClient.renameWithResponse(eqTo(bucket), eqTo(path), any, any, any, any)).thenAnswer {
+      _: InvocationOnMock =>
+        if (renameInvocationCount.getAndIncrement() == 0)
+          throw new DataLakeStorageException("RenameDestinationParentPathNotFound", mockHttpResponse(404), null)
+        else
+          throw new DataLakeStorageException("PathAlreadyExists", mockHttpResponse(409), null)
+    }
+
+    when(fsClient.getDirectoryClient(anyString())).thenReturn(directoryClient)
+    when(directoryClient.createIfNotExists()).thenReturn(pathInfo)
+
+    val result = storageInterface.writeBlobToFile(bucket, path, NoOverwriteExistingObject(testData))
+
+    result.isLeft should be(true)
+    result.left.value should be(a[NonOverwriteFileExistsError])
+
+    // rename was attempted twice: first 404 → directory recovery, then 409 → lost race
+    verify(tmpClient, times(2)).renameWithResponse(eqTo(bucket), eqTo(path), any, any, any, any)
+    verify(directoryClient).createIfNotExists()
+  }
+
   // ── createDirectoryIfNotExists ────────────────────────────────────────────
 
   "createDirectoryIfNotExists" should "return Right(()) when the directory is created successfully" in {
