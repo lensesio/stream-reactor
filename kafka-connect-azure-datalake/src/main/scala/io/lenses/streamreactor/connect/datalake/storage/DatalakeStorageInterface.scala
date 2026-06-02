@@ -457,6 +457,21 @@ class DatalakeStorageInterface(
       }.toEither.leftMap(FileDeleteError(_, file))
     } yield ()
 
+  /**
+   * True when a failed rename represents a NoOverwriteExistingObject create losing the race —
+   * i.e. the destination already exists. ADLS surfaces this as 409 PathAlreadyExists or 412.
+   * Scoped to NoOverwrite: an ObjectWithETag 412 is an eTag mismatch (fencing) and must NOT
+   * be reclassified as recoverable.
+   */
+  private def isLostNoOverwriteRace[O](
+    objectProtection: ObjectProtection[O],
+    dse:              DataLakeStorageException,
+  ): Boolean =
+    objectProtection match {
+      case NoOverwriteExistingObject(_) => dse.getStatusCode == 409 || dse.getStatusCode == 412
+      case _                            => false
+    }
+
   override def writeBlobToFile[O](
     bucket:           String,
     path:             String,
@@ -486,9 +501,10 @@ class DatalakeStorageInterface(
     val destinationConditions: DataLakeRequestConditions = objectProtection match {
       case NoOverwriteExistingObject(_) =>
         // Atomic arbitration: exactly one of N concurrent renames to the same destination
-        // wins; the rest get 412 Precondition Failed. The downstream Left(FileCreateError)
-        // contract is unchanged — the numeric 412 replaces the historical 409 from
-        // createFile(false), but all callers consume only the wrapper class.
+        // wins; the losers fail with EITHER 409 PathAlreadyExists (observed in prod) OR 412
+        // Precondition Failed. Both are mapped to the recoverable NonOverwriteFileExistsError
+        // (see isLostNoOverwriteRace + tryWriteViaRenameWithDirectoryRecovery), so the loser
+        // re-reads and adopts the lock instead of failing the task.
         new DataLakeRequestConditions().setIfNoneMatch("*")
       case ObjectWithETag(_, eTag) =>
         // eTag here is the eTag of the CURRENT DESTINATION (sourced from topicPartitionToETags /
@@ -597,11 +613,22 @@ class DatalakeStorageInterface(
             case None => Left(FileCreateError(dse, content))
           }
 
+        case Left(dse: DataLakeStorageException) if isLostNoOverwriteRace(objectProtection, dse) =>
+          // NoOverwriteExistingObject lost the create race: the destination already exists.
+          // ADLS Gen2 HNS surfaces this as EITHER 409 PathAlreadyExists (observed in prod on the
+          // rename) OR 412 Precondition Failed (setIfNoneMatch("*") arbitration). Both mean
+          // "another task won". Recoverable: IndexManagerV2.open re-reads and adopts the lock.
+          // This is scoped to NoOverwrite only — an ObjectWithETag 412 (eTag mismatch) is the
+          // zombie-fencing signal and falls through to the fatal FileCreateError arm below.
+          logger.info(
+            s"[${connectorTaskId.show}] Lost no-overwrite create race renaming $tmpPath -> $bucket:$path " +
+              s"(status ${dse.getStatusCode}); surfacing recoverable NonOverwriteFileExistsError",
+          )
+          Left(NonOverwriteFileExistsError(dse, path))
+
         case Left(dse: DataLakeStorageException) if dse.getStatusCode == 412 =>
-          // 412 Precondition Failed: destination-slot condition not met.
-          // For NoOverwriteExistingObject: destination already exists.
-          // For ObjectWithETag: eTag mismatch (concurrent write by another task).
-          // Both surface as Left(FileCreateError) — callers only inspect the wrapper class.
+          // 412 Precondition Failed on an ObjectWithETag write: eTag mismatch (concurrent write
+          // by another task). This is the zombie-fencing mechanism and MUST stay fatal.
           logger.warn(
             s"[${connectorTaskId.show}] Precondition failed (412) renaming $tmpPath -> $bucket:$path",
           )

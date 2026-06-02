@@ -45,6 +45,7 @@ import io.lenses.streamreactor.connect.cloud.common.storage.FileLoadError
 import io.lenses.streamreactor.connect.cloud.common.storage.GeneralFileLoadError
 import io.lenses.streamreactor.connect.cloud.common.storage.FileMoveError
 import io.lenses.streamreactor.connect.cloud.common.storage.FileNotFoundError
+import io.lenses.streamreactor.connect.cloud.common.storage.NonOverwriteFileExistsError
 import io.lenses.streamreactor.connect.cloud.common.storage.ListOfKeysResponse
 import io.lenses.streamreactor.connect.cloud.common.storage.ListOfMetadataResponse
 import io.lenses.streamreactor.connect.cloud.common.storage.PathError
@@ -210,16 +211,29 @@ class GCPStorageStorageInterface(
         path,
       )
       new ObjectWithETag[O](objectProtection.wrappedObject, String.valueOf(created.getGeneration))
-    }.toEither.leftMap { ex: Throwable =>
-      logger.error(
-        s"[{}] Failed upload from data string ({}) to Storage {}:{}",
-        connectorTaskId.show,
-        objectProtection.wrappedObject,
-        bucket,
-        path,
-        ex,
-      )
-      FileCreateError(ex, content)
+    }.toEither.leftMap {
+      // NoOverwriteExistingObject lost the create race: the object already exists, so the
+      // generationMatch(0L) precondition fails with 412. Recoverable — the caller re-reads and
+      // adopts the lock. Scoped to NoOverwrite: an ObjectWithETag generationMatch mismatch also
+      // surfaces as 412 but is the zombie-fencing signal and MUST stay fatal.
+      case se: StorageException if objectProtection.isInstanceOf[NoOverwriteExistingObject[_]] && se.getCode == 412 =>
+        logger.info(
+          s"[{}] Lost no-overwrite create race uploading to Storage {}:{}",
+          connectorTaskId.show,
+          bucket,
+          path,
+        )
+        NonOverwriteFileExistsError(se, path)
+      case ex: Throwable =>
+        logger.error(
+          s"[{}] Failed upload from data string ({}) to Storage {}:{}",
+          connectorTaskId.show,
+          objectProtection.wrappedObject,
+          bucket,
+          path,
+          ex,
+        )
+        FileCreateError(ex, content)
     }
   }
 

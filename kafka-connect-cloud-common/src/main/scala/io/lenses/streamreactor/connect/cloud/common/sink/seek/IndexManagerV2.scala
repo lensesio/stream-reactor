@@ -33,6 +33,7 @@ import io.lenses.streamreactor.connect.cloud.common.storage.EmptyFileError
 import io.lenses.streamreactor.connect.cloud.common.storage.FileLoadError
 import io.lenses.streamreactor.connect.cloud.common.storage.FileMetadata
 import io.lenses.streamreactor.connect.cloud.common.storage.FileNotFoundError
+import io.lenses.streamreactor.connect.cloud.common.storage.NonOverwriteFileExistsError
 import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
 import io.lenses.streamreactor.connect.cloud.common.storage.UploadError
 
@@ -301,66 +302,119 @@ class IndexManagerV2(
     val path = generateLockFilePath(connectorTaskId, topicPartition, directoryFileName)
     for {
       bucketAndPrefix <- bucketAndPrefixFn(topicPartition)
-      offset <- tryOpen(bucketAndPrefix.bucket, path) match {
-
-        case Left(FileNotFoundError(_, _)) =>
-          createNewIndexFileNoOverwrite(topicPartition, path, bucketAndPrefix)
-            .map(updateDataReturnOffset(topicPartition, _))
-
-        case Left(EmptyFileError(_, eTag)) =>
-          // The master lock exists as a 0-byte poison blob — residue of Bug B's non-atomic write.
-          // A length-0 blob cannot carry committedOffset or PendingState by construction
-          // (the serialiser produces at minimum ~40 bytes for any non-null IndexFile).
-          // Take ownership via setIfMatch(eTag) instead of setIfNoneMatch("*") — the file
-          // exists, so a NoOverwrite write would always 412.
-          // NOTE: pendingOperationsProcessors is NOT invoked here — the 0-byte file proves
-          // no PendingState was ever durably recorded; the recovery write sets pendingState=None.
-          val idx = IndexFile(lockOwner, Option.empty, Option.empty)
-          storageInterface.writeBlobToFile(bucketAndPrefix.bucket, path, ObjectWithETag(idx, eTag))
-            .leftMap { err: UploadError =>
-              new FatalCloudSinkError(err.message(), err.toExceptionOption, topicPartition)
-            }
-            .map(updateDataReturnOffset(topicPartition, _))
-
-        case Left(fileLoadError: FileLoadError) =>
-          new FatalCloudSinkError(fileLoadError.message(), fileLoadError.toExceptionOption, topicPartition).asLeft[
-            Option[Offset],
-          ]
-
-        case Right(objectWithetag @ ObjectWithETag(
-              IndexFile(_, committedOffset, Some(PendingState(pendingOffset, pendingOperations))),
-              _,
-            )) =>
-          topicPartitionToETags.put(topicPartition, objectWithetag.eTag)
-          pendingOperationsProcessors.processPendingOperations(
-            topicPartition,
-            committedOffset,
-            PendingState(pendingOffset, pendingOperations),
-            update,
-          ).map { resolvedOffset =>
-            // processPendingOperations calls update() which already maintains topicPartitionToETags
-            // with the correct eTag. We must NOT overwrite it with the stale original eTag.
-            // Only ensure seekedOffsets is updated for cases where update() was not called
-            // (e.g. when the recovery path cleared a stale PendingState on the last operation).
-            resolvedOffset.foreach(o => seekedOffsets.put(topicPartition, o))
-            resolvedOffset
-          }.leftMap { err =>
-            // On failure, the eTag we seeded above may now be stale: an intermediate
-            // phase of processPendingOperations may have advanced the index file in
-            // storage before the final fnIndexUpdate failed. Drop the cached eTag so
-            // the next call re-reads the file and we never issue a conditional write
-            // with the wrong If-Match. Mirrors the gcRemove-on-failure pattern used
-            // when loading granular locks.
-            val _ = topicPartitionToETags.remove(topicPartition)
-            err
-          }
-
-        case Right(objectWithetag @ ObjectWithETag(IndexFile(_, _, _), _)) =>
-          updateDataReturnOffset(topicPartition, objectWithetag).asRight[SinkError]
-      }
+      offset <- decideOpen(
+        topicPartition,
+        path,
+        bucketAndPrefix,
+        tryOpen(bucketAndPrefix.bucket, path),
+        MaxOpenCreateRaceAttempts,
+      )
     } yield offset
 
   }
+
+  /**
+   * Decides how to open a master lock given the result of reading it, and is re-entrant so a
+   * lost NoOverwrite create race can re-read the now-existing lock and route it through the
+   * SAME arms (crucially, a re-read lock carrying a PendingState flows through
+   * `processPendingOperations`, not a naive eTag adoption — that is what makes recovery
+   * correct, see the architecture note on the reverted create-race adoption fix).
+   *
+   * @param tryOpenResult The result of `tryOpen` for this lock path.
+   * @param attemptsLeft  Bounded re-read budget for the lost-create-race cycle.
+   */
+  private def decideOpen(
+    topicPartition:  TopicPartition,
+    path:            String,
+    bucketAndPrefix: CloudLocation,
+    tryOpenResult:   Either[FileLoadError, ObjectWithETag[IndexFile]],
+    attemptsLeft:    Int,
+  ): Either[SinkError, Option[Offset]] =
+    tryOpenResult match {
+
+      case Left(FileNotFoundError(_, _)) =>
+        createNewIndexFileNoOverwrite(topicPartition, path, bucketAndPrefix) match {
+          case Right(written) =>
+            updateDataReturnOffset(topicPartition, written).asRight[SinkError]
+
+          case Left(_: LostCreateRaceError) if attemptsLeft > 1 =>
+            // Another task won the create. The lock now exists — re-read and re-decide through
+            // the same arms so the winner's offset (and any PendingState) is adopted/recovered.
+            logger.info(
+              s"[${connectorTaskId.show}] Lost master-lock create race for $topicPartition at $path; " +
+                s"re-reading existing lock (attempts left: ${attemptsLeft - 1})",
+            )
+            decideOpen(
+              topicPartition,
+              path,
+              bucketAndPrefix,
+              tryOpen(bucketAndPrefix.bucket, path),
+              attemptsLeft - 1,
+            )
+
+          case Left(_: LostCreateRaceError) =>
+            // Bounded retries exhausted: the lock oscillated absent/present. Fail fatally so
+            // Connect restarts the task and re-seeks from the durable lock — no worse than the
+            // pre-fix behaviour, but only after exhausting the bounded re-reads.
+            FatalCloudSinkError(
+              s"Exhausted master-lock create-race retries for $topicPartition at $path",
+              topicPartition,
+            ).asLeft[Option[Offset]]
+
+          case Left(other) => other.asLeft[Option[Offset]]
+        }
+
+      case Left(EmptyFileError(_, eTag)) =>
+        // The master lock exists as a 0-byte poison blob — residue of Bug B's non-atomic write.
+        // A length-0 blob cannot carry committedOffset or PendingState by construction
+        // (the serialiser produces at minimum ~40 bytes for any non-null IndexFile).
+        // Take ownership via setIfMatch(eTag) instead of setIfNoneMatch("*") — the file
+        // exists, so a NoOverwrite write would always 412.
+        // NOTE: pendingOperationsProcessors is NOT invoked here — the 0-byte file proves
+        // no PendingState was ever durably recorded; the recovery write sets pendingState=None.
+        val idx = IndexFile(lockOwner, Option.empty, Option.empty)
+        storageInterface.writeBlobToFile(bucketAndPrefix.bucket, path, ObjectWithETag(idx, eTag))
+          .leftMap { err: UploadError =>
+            new FatalCloudSinkError(err.message(), err.toExceptionOption, topicPartition)
+          }
+          .map(updateDataReturnOffset(topicPartition, _))
+
+      case Left(fileLoadError: FileLoadError) =>
+        new FatalCloudSinkError(fileLoadError.message(), fileLoadError.toExceptionOption, topicPartition).asLeft[
+          Option[Offset],
+        ]
+
+      case Right(objectWithetag @ ObjectWithETag(
+            IndexFile(_, committedOffset, Some(PendingState(pendingOffset, pendingOperations))),
+            _,
+          )) =>
+        topicPartitionToETags.put(topicPartition, objectWithetag.eTag)
+        pendingOperationsProcessors.processPendingOperations(
+          topicPartition,
+          committedOffset,
+          PendingState(pendingOffset, pendingOperations),
+          update,
+        ).map { resolvedOffset =>
+          // processPendingOperations calls update() which already maintains topicPartitionToETags
+          // with the correct eTag. We must NOT overwrite it with the stale original eTag.
+          // Only ensure seekedOffsets is updated for cases where update() was not called
+          // (e.g. when the recovery path cleared a stale PendingState on the last operation).
+          resolvedOffset.foreach(o => seekedOffsets.put(topicPartition, o))
+          resolvedOffset
+        }.leftMap { err =>
+          // On failure, the eTag we seeded above may now be stale: an intermediate
+          // phase of processPendingOperations may have advanced the index file in
+          // storage before the final fnIndexUpdate failed. Drop the cached eTag so
+          // the next call re-reads the file and we never issue a conditional write
+          // with the wrong If-Match. Mirrors the gcRemove-on-failure pattern used
+          // when loading granular locks.
+          val _ = topicPartitionToETags.remove(topicPartition)
+          err
+        }
+
+      case Right(objectWithetag @ ObjectWithETag(IndexFile(_, _, _), _)) =>
+        updateDataReturnOffset(topicPartition, objectWithetag).asRight[SinkError]
+    }
 
   /**
    * Updates internal maps with the latest offset and eTag for a topic partition.
@@ -393,8 +447,13 @@ class IndexManagerV2(
   ): Either[SinkError, ObjectWithETag[IndexFile]] = {
     val idx = IndexFile(lockOwner, Option.empty, Option.empty)
     storageInterface.writeBlobToFile(bucketAndPrefix.bucket, path, NoOverwriteExistingObject(idx))
-      .leftMap { err: UploadError =>
-        new FatalCloudSinkError(err.message(), err.toExceptionOption, topicPartition)
+      .leftMap {
+        // Lost the create race (another task created the lock first). Surface a recoverable
+        // signal so `decideOpen` re-reads and adopts the winner's lock instead of failing.
+        case _: NonOverwriteFileExistsError => LostCreateRaceError(topicPartition): SinkError
+        // Any other write failure (permissions, network, disk) is genuinely fatal.
+        case err: UploadError =>
+          new FatalCloudSinkError(err.message(), err.toExceptionOption, topicPartition): SinkError
       }
   }
 
@@ -1370,6 +1429,27 @@ object IndexManagerV2 {
   private[seek] val TmpOrphanPattern = """^(.*)\.lock\.tmp\.[0-9a-fA-F-]+$""".r
 
   val MaxGcRetries: Int = 3
+
+  /**
+   * Bounded re-read attempts when a master-lock NoOverwrite create loses the race. One re-read
+   * normally suffices — cloud storage is read-after-write consistent for the destination — so
+   * the cap only guards against a pathological absent/present flicker before surfacing a fatal
+   * error.
+   */
+  val MaxOpenCreateRaceAttempts: Int = 3
+
+  /**
+   * Internal, recoverable signal: a master-lock NoOverwrite create lost the race because the
+   * lock already exists. It NEVER escapes `IndexManagerV2.open` — `decideOpen` either resolves
+   * it with a bounded re-read (adopting the winner's lock, including any PendingState recovery)
+   * or converts it to a `FatalCloudSinkError` on exhaustion.
+   */
+  private[seek] case class LostCreateRaceError(topicPartition: TopicPartition) extends SinkError {
+    override def exception():       Option[Throwable]   = Option.empty
+    override def message():         String              = s"lost master-lock create race for $topicPartition"
+    override def rollBack():        Boolean             = false
+    override def topicPartitions(): Set[TopicPartition] = Set(topicPartition)
+  }
 
   private[seek] case class SweepMarker(lastRunEpochMillis: Long, nextRunEpochMillis: Long)
 

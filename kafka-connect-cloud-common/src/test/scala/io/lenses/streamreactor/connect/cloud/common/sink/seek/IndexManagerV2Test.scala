@@ -29,7 +29,9 @@ import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
 import io.lenses.streamreactor.connect.cloud.common.model.UploadableFile
 import io.lenses.streamreactor.connect.cloud.common.storage.EmptyFileError
+import io.lenses.streamreactor.connect.cloud.common.storage.FileLoadError
 import io.lenses.streamreactor.connect.cloud.common.storage.FileNotFoundError
+import io.lenses.streamreactor.connect.cloud.common.storage.NonOverwriteFileExistsError
 import io.lenses.streamreactor.connect.cloud.common.storage.GeneralFileLoadError
 import io.lenses.streamreactor.connect.cloud.common.storage.ListOfMetadataResponse
 import io.lenses.streamreactor.connect.cloud.common.storage.NonExistingFileError
@@ -121,6 +123,127 @@ class IndexManagerV2Test
     val result: Either[SinkError, Map[TopicPartition, Option[Offset]]] = runOpen(topicPartition, bucketAndPrefix, path)
 
     result shouldBe Right(Map(topicPartition -> None))
+  }
+
+  test("open should adopt the existing lock when the master-lock create loses the race (clean lock)") {
+    val topicPartition  = Topic("topic1").withPartition(0)
+    val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
+    val path            = ".indexes/.locks/topic1/0.lock"
+
+    when(bucketAndPrefixFn(topicPartition)).thenReturn(Right(bucketAndPrefix))
+    when(storageInterface.pathExists(anyString(), anyString())).thenReturn(Right(false))
+    when(storageInterface.listKeysRecursive(anyString(), any[Option[String]])).thenReturn(Right(None))
+
+    // First read: lock absent → create. Second read (after losing the race): the winner's lock.
+    val absent: Either[FileLoadError, ObjectWithETag[IndexFile]] =
+      Left(FileNotFoundError(new Exception("Not found"), path))
+    val winnerLock: Either[FileLoadError, ObjectWithETag[IndexFile]] =
+      Right(ObjectWithETag(IndexFile("winner", Some(Offset(100)), None), "winner-etag"))
+    when(storageInterface.getBlobAsObject[IndexFile](anyString(), anyString())(ArgumentMatchers.eq(indexFileDecoder)))
+      .thenReturn(absent, winnerLock)
+
+    // The NoOverwrite create loses the race.
+    when(
+      storageInterface.writeBlobToFile[IndexFile](anyString(), anyString(), any[ObjectWithETag[IndexFile]])(
+        ArgumentMatchers.eq(indexFileEncoder),
+      ),
+    ).thenReturn(Left(NonOverwriteFileExistsError(new Exception("exists"), path)))
+
+    val result = indexManagerV2.open(Set(topicPartition))
+
+    result shouldBe Right(Map(topicPartition -> Some(Offset(100))))
+    // The adopted eTag drives subsequent conditional commits.
+    indexManagerV2.getSeekedOffsetForTopicPartition(topicPartition) shouldBe Some(Offset(100))
+    verify(storageInterface, times(2))
+      .getBlobAsObject[IndexFile](anyString(), anyString())(ArgumentMatchers.eq(indexFileDecoder))
+    verify(storageInterface, times(1))
+      .writeBlobToFile[IndexFile](anyString(), anyString(), any[ObjectWithETag[IndexFile]])(
+        ArgumentMatchers.eq(indexFileEncoder),
+      )
+  }
+
+  test("open should resolve PendingState via processPendingOperations when the create loses the race") {
+    val topicPartition  = Topic("topic1").withPartition(0)
+    val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
+    val path            = ".indexes/.locks/topic1/0.lock"
+
+    val pendingOps = NonEmptyList.of[FileOperation](
+      CopyOperation("bucket", ".temp-upload/uuid/file.avro", "topic1/0/000000000060.avro", "copy-etag"),
+      DeleteOperation("bucket", ".temp-upload/uuid/file.avro", "copy-etag"),
+    )
+    val pendingState = PendingState(pendingOffset = Offset(60), pendingOperations = pendingOps)
+
+    when(bucketAndPrefixFn(topicPartition)).thenReturn(Right(bucketAndPrefix))
+    when(storageInterface.pathExists(anyString(), anyString())).thenReturn(Right(false))
+    when(storageInterface.listKeysRecursive(anyString(), any[Option[String]])).thenReturn(Right(None))
+
+    // First read: absent → create. Re-read after losing the race: winner's lock carrying a PendingState.
+    val absent: Either[FileLoadError, ObjectWithETag[IndexFile]] =
+      Left(FileNotFoundError(new Exception("Not found"), path))
+    val winnerPendingLock: Either[FileLoadError, ObjectWithETag[IndexFile]] =
+      Right(ObjectWithETag(IndexFile("winner", Some(Offset(50)), Some(pendingState)), "winner-etag"))
+    when(storageInterface.getBlobAsObject[IndexFile](anyString(), anyString())(ArgumentMatchers.eq(indexFileDecoder)))
+      .thenReturn(absent, winnerPendingLock)
+
+    when(
+      storageInterface.writeBlobToFile[IndexFile](anyString(), anyString(), any[ObjectWithETag[IndexFile]])(
+        ArgumentMatchers.eq(indexFileEncoder),
+      ),
+    ).thenReturn(Left(NonOverwriteFileExistsError(new Exception("exists"), path)))
+
+    // The re-read MUST flow through processPendingOperations (not a naive eTag adoption).
+    type FnIndexUpdate = (TopicPartition, Option[Offset], Option[PendingState]) => Either[SinkError, Option[Offset]]
+    when(
+      pendingOperationsProcessors.processPendingOperations(
+        any[TopicPartition],
+        any[Option[Offset]],
+        any[PendingState],
+        any[FnIndexUpdate],
+        any[Boolean],
+        any[Option[String]],
+        any[Option[java.io.File]],
+      ),
+    ).thenReturn(Right(Some(Offset(60))))
+
+    val result = indexManagerV2.open(Set(topicPartition))
+
+    result shouldBe Right(Map(topicPartition -> Some(Offset(60))))
+    verify(pendingOperationsProcessors).processPendingOperations(
+      eqTo(topicPartition),
+      eqTo(Some(Offset(50))),
+      eqTo(pendingState),
+      any[FnIndexUpdate],
+      any[Boolean],
+      any[Option[String]],
+      any[Option[java.io.File]],
+    )
+  }
+
+  test("open should fail fatally after exhausting bounded create-race retries") {
+    val topicPartition  = Topic("topic1").withPartition(0)
+    val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
+    val path            = ".indexes/.locks/topic1/0.lock"
+
+    when(bucketAndPrefixFn(topicPartition)).thenReturn(Right(bucketAndPrefix))
+    when(storageInterface.pathExists(anyString(), anyString())).thenReturn(Right(false))
+    when(storageInterface.listKeysRecursive(anyString(), any[Option[String]])).thenReturn(Right(None))
+
+    // The lock oscillates absent/present: every read says absent, every create loses the race.
+    when(storageInterface.getBlobAsObject[IndexFile](anyString(), anyString())(ArgumentMatchers.eq(indexFileDecoder)))
+      .thenReturn(Left(FileNotFoundError(new Exception("Not found"), path)))
+    when(
+      storageInterface.writeBlobToFile[IndexFile](anyString(), anyString(), any[ObjectWithETag[IndexFile]])(
+        ArgumentMatchers.eq(indexFileEncoder),
+      ),
+    ).thenReturn(Left(NonOverwriteFileExistsError(new Exception("exists"), path)))
+
+    val result = indexManagerV2.open(Set(topicPartition))
+
+    result.isLeft shouldBe true
+    result.left.value shouldBe a[FatalCloudSinkError]
+    // Exactly MaxOpenCreateRaceAttempts (3) reads before giving up.
+    verify(storageInterface, times(3))
+      .getBlobAsObject[IndexFile](anyString(), anyString())(ArgumentMatchers.eq(indexFileDecoder))
   }
 
   private def runOpen(topicPartition: TopicPartition, bucketAndPrefix: CloudLocation, path: String) = {
@@ -2287,11 +2410,11 @@ class IndexManagerV2Test
     val si              = mock[StorageInterface[_]]
     setupSweepMocks(si, tp, bucketAndPrefix)
 
-    val pk        = "name=report.lock.tmp.archive"
-    val oldTime   = Instant.now().minusSeconds(7200)
-    val realLock  = s"$indexesDirectoryName/${connectorTaskId.name}/.locks/${tp.topic}/${tp.partition}/$pk.lock"
-    val realMeta  = TestFileMetadata(realLock, oldTime)
-    val listResp  = ListOfMetadataResponse("bucket", Some("prefix"), Seq(realMeta), realMeta)
+    val pk       = "name=report.lock.tmp.archive"
+    val oldTime  = Instant.now().minusSeconds(7200)
+    val realLock = s"$indexesDirectoryName/${connectorTaskId.name}/.locks/${tp.topic}/${tp.partition}/$pk.lock"
+    val realMeta = TestFileMetadata(realLock, oldTime)
+    val listResp = ListOfMetadataResponse("bucket", Some("prefix"), Seq(realMeta), realMeta)
 
     org.mockito.Mockito.doReturn(Right(Some(listResp))).when(si).listFileMetaRecursive(anyString(), any[Option[String]])
     // Real lock content with committedOffset >= masterOffset (100), so the normal

@@ -38,10 +38,14 @@ import com.google.cloud.storage.BlobId
 import com.google.cloud.storage.BlobInfo
 import com.google.cloud.storage.Storage
 import com.google.cloud.storage.Storage.BlobListOption
+import com.google.cloud.storage.Storage.BlobTargetOption
+import com.google.cloud.storage.StorageException
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.config.ObjectMetadata
 import io.lenses.streamreactor.connect.cloud.common.model.UploadableFile
 import io.lenses.streamreactor.connect.cloud.common.model.UploadableString
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.NoOverwriteExistingObject
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.ObjectWithETag
 import io.lenses.streamreactor.connect.cloud.common.storage._
 import io.lenses.streamreactor.connect.gcp.storage.storage.GCPStorageFileMetadata
 import io.lenses.streamreactor.connect.gcp.storage.storage.GCPStorageStorageInterface
@@ -740,6 +744,45 @@ class GCPStorageStorageInterfaceTest
     val source = File.createTempFile("a-file", "")
     Files.writeString(source.toPath, "real file content", StandardOpenOption.WRITE)
     source
+  }
+
+  // ── writeBlobToFile — lost no-overwrite create race ──────────────────────
+
+  private case class TestIndexFile(owner: String, offset: Option[Long])
+  private implicit val testIndexFileEncoder: io.circe.Encoder[TestIndexFile] =
+    io.circe.generic.semiauto.deriveEncoder[TestIndexFile]
+
+  "writeBlobToFile" should "return NonOverwriteFileExistsError when NoOverwriteExistingObject loses the race (412)" in {
+    when(client.create(any[BlobInfo], any[Array[Byte]], any[BlobTargetOption]))
+      .thenThrow(new StorageException(412, "Precondition Failed"))
+
+    val result =
+      storageInterface.writeBlobToFile("bucket", "path", NoOverwriteExistingObject(TestIndexFile("o", Some(1L))))
+
+    result.isLeft should be(true)
+    result.left.value shouldBe a[NonOverwriteFileExistsError]
+  }
+
+  it should "return FileCreateError (not NonOverwriteFileExistsError) when ObjectWithETag and 412 — fencing must stay fatal" in {
+    when(client.create(any[BlobInfo], any[Array[Byte]], any[BlobTargetOption]))
+      .thenThrow(new StorageException(412, "Precondition Failed"))
+
+    val result =
+      storageInterface.writeBlobToFile("bucket", "path", ObjectWithETag(TestIndexFile("o", Some(1L)), "123"))
+
+    result.isLeft should be(true)
+    result.left.value shouldBe a[FileCreateError]
+  }
+
+  it should "return FileCreateError when NoOverwriteExistingObject fails with a non-412 error" in {
+    when(client.create(any[BlobInfo], any[Array[Byte]], any[BlobTargetOption]))
+      .thenThrow(new StorageException(500, "Internal Error"))
+
+    val result =
+      storageInterface.writeBlobToFile("bucket", "path", NoOverwriteExistingObject(TestIndexFile("o", Some(1L))))
+
+    result.isLeft should be(true)
+    result.left.value shouldBe a[FileCreateError]
   }
 
 }

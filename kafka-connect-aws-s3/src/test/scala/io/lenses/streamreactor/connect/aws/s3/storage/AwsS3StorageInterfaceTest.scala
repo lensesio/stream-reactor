@@ -16,14 +16,22 @@
 package io.lenses.streamreactor.connect.aws.s3.storage
 
 import cats.implicits.none
+import io.circe.Encoder
+import io.circe.generic.semiauto.deriveEncoder
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.NoOverwriteExistingObject
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.ObjectWithETag
+import io.lenses.streamreactor.connect.cloud.common.storage.FileCreateError
 import io.lenses.streamreactor.connect.cloud.common.storage.FileMoveError
+import io.lenses.streamreactor.connect.cloud.common.storage.NonOverwriteFileExistsError
 import org.mockito.ArgumentMatcher
 import org.mockito.ArgumentMatchers
 import org.mockito.Mockito
 import org.scalatest.EitherValues
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
+import software.amazon.awssdk.awscore.exception.AwsErrorDetails
+import software.amazon.awssdk.core.sync.RequestBody
 import software.amazon.awssdk.services.s3.S3Client
 import software.amazon.awssdk.services.s3.model.CopyObjectRequest
 import software.amazon.awssdk.services.s3.model.CopyObjectResponse
@@ -32,6 +40,7 @@ import software.amazon.awssdk.services.s3.model.DeleteObjectResponse
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest
 import software.amazon.awssdk.services.s3.model.HeadObjectResponse
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException
+import software.amazon.awssdk.services.s3.model.PutObjectRequest
 import software.amazon.awssdk.services.s3.model.S3Exception
 
 /**
@@ -216,5 +225,61 @@ class AwsS3StorageInterfaceTest extends AnyFlatSpecLike with Matchers with Eithe
 
     // Crucially: the destination head was NOT inspected (no idempotence bypass for 400 errors).
     Mockito.verify(s3Client, Mockito.times(1)).headObject(anyHeadObjectRequest())
+  }
+
+  // ── writeBlobToFile — lost no-overwrite create race ──────────────────────
+
+  private case class TestIndexFile(owner: String, offset: Option[Long])
+  private implicit val testIndexFileEncoder: Encoder[TestIndexFile] = deriveEncoder[TestIndexFile]
+
+  private def anyPutObjectRequest(): PutObjectRequest = ArgumentMatchers.any(classOf[PutObjectRequest])
+  private def anyRequestBody():      RequestBody      = ArgumentMatchers.any(classOf[RequestBody])
+
+  private def s3ExceptionWith(errorCode: String, status: Int): S3Exception =
+    S3Exception.builder()
+      .statusCode(status)
+      .awsErrorDetails(AwsErrorDetails.builder().errorCode(errorCode).build())
+      .build().asInstanceOf[S3Exception]
+
+  "writeBlobToFile" should "return NonOverwriteFileExistsError when NoOverwriteExistingObject loses the race (PreconditionFailed)" in {
+    val s3Client         = newMockS3Client()
+    val storageInterface = new AwsS3StorageInterface(newMockTaskId(), s3Client, batchDelete = false, None)
+
+    Mockito.doThrow(s3ExceptionWith("PreconditionFailed", 412))
+      .when(s3Client).putObject(anyPutObjectRequest(), anyRequestBody())
+
+    val result =
+      storageInterface.writeBlobToFile("bucket", "path", NoOverwriteExistingObject(TestIndexFile("o", Some(1L))))
+
+    result.isLeft shouldBe true
+    result.left.value shouldBe a[NonOverwriteFileExistsError]
+  }
+
+  it should "return FileCreateError (not NonOverwriteFileExistsError) when ObjectWithETag and PreconditionFailed — fencing must stay fatal" in {
+    val s3Client         = newMockS3Client()
+    val storageInterface = new AwsS3StorageInterface(newMockTaskId(), s3Client, batchDelete = false, None)
+
+    Mockito.doThrow(s3ExceptionWith("PreconditionFailed", 412))
+      .when(s3Client).putObject(anyPutObjectRequest(), anyRequestBody())
+
+    val result =
+      storageInterface.writeBlobToFile("bucket", "path", ObjectWithETag(TestIndexFile("o", Some(1L)), "etag"))
+
+    result.isLeft shouldBe true
+    result.left.value shouldBe a[FileCreateError]
+  }
+
+  it should "return FileCreateError when NoOverwriteExistingObject fails with a non-precondition error" in {
+    val s3Client         = newMockS3Client()
+    val storageInterface = new AwsS3StorageInterface(newMockTaskId(), s3Client, batchDelete = false, None)
+
+    Mockito.doThrow(s3ExceptionWith("InternalError", 500))
+      .when(s3Client).putObject(anyPutObjectRequest(), anyRequestBody())
+
+    val result =
+      storageInterface.writeBlobToFile("bucket", "path", NoOverwriteExistingObject(TestIndexFile("o", Some(1L))))
+
+    result.isLeft shouldBe true
+    result.left.value shouldBe a[FileCreateError]
   }
 }
