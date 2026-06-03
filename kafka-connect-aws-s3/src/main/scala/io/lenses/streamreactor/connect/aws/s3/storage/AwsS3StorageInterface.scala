@@ -34,6 +34,7 @@ import io.lenses.streamreactor.connect.cloud.common.storage.FileLoadError
 import io.lenses.streamreactor.connect.cloud.common.storage.GeneralFileLoadError
 import io.lenses.streamreactor.connect.cloud.common.storage.FileMoveError
 import io.lenses.streamreactor.connect.cloud.common.storage.FileNotFoundError
+import io.lenses.streamreactor.connect.cloud.common.storage.NonOverwriteFileExistsError
 import io.lenses.streamreactor.connect.cloud.common.storage.ListOfKeysResponse
 import io.lenses.streamreactor.connect.cloud.common.storage.ListOfMetadataResponse
 import io.lenses.streamreactor.connect.cloud.common.storage.ListResponse
@@ -401,7 +402,17 @@ class AwsS3StorageInterface(
       new ObjectWithETag[O](objectProtection.wrappedObject, putResponse.eTag())
     }.toEither
       .leftMap {
-        ex =>
+        // NoOverwriteExistingObject lost the create race: the object already exists, so the
+        // ifNoneMatch("*") precondition fails with PreconditionFailed. Recoverable — the caller
+        // re-reads and adopts the lock. Scoped to NoOverwrite: an ObjectWithETag ifMatch
+        // mismatch also surfaces as PreconditionFailed but is the zombie-fencing signal and
+        // MUST stay fatal. Mirrors the recovery clause in createDirectoryIfNotExists.
+        case ex: S3Exception
+            if objectProtection.isInstanceOf[NoOverwriteExistingObject[_]] &&
+              "PreconditionFailed".equals(ex.awsErrorDetails().errorCode()) =>
+          logger.info(s"[{}] Lost no-overwrite create race uploading to s3 {}:{}", connectorTaskId.show, bucket, path)
+          NonOverwriteFileExistsError(ex, path)
+        case ex =>
           logger.error(s"[{}] Failed upload from json object ({}) to s3 {}:{}",
                        connectorTaskId.show,
                        content,

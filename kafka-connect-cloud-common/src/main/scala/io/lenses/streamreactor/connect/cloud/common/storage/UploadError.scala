@@ -56,6 +56,23 @@ case class FileCreateError(exception: Throwable, data: String) extends UploadErr
   override def toExceptionOption: Option[Throwable] = exception.some
 }
 
+/**
+ * Returned ONLY when a `NoOverwriteExistingObject` create lost a concurrent create race —
+ * i.e. the destination object already exists (Azure 409 PathAlreadyExists / 412, S3
+ * PreconditionFailed, GCS 412 generation mismatch).
+ *
+ * Unlike `FileCreateError` this is a *recoverable* signal: the caller (IndexManagerV2.open)
+ * re-reads the now-existing lock and adopts/recovers it (routing any PendingState through the
+ * crash-recovery path) rather than failing the task. It is NEVER emitted for an
+ * `ObjectWithETag` write — an eTag mismatch there is the zombie-fencing mechanism and must
+ * remain a fatal `FileCreateError`.
+ */
+case class NonOverwriteFileExistsError(exception: Throwable, fileName: String) extends UploadError {
+  override def message() = s"file already exists, lost no-overwrite create race ($fileName) ${exception.getMessage}"
+
+  override def toExceptionOption: Option[Throwable] = exception.some
+}
+
 case class FileDeleteError(exception: Throwable, fileName: String) extends UploadError {
   override def message() = s"error deleting file ($fileName) ${exception.getMessage}"
 

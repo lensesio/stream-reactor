@@ -452,6 +452,21 @@ class DatalakeStorageInterface(connectorTaskId: ConnectorTaskId, client: DataLak
       }.toEither.leftMap(FileDeleteError(_, file))
     } yield ()
 
+  /**
+   * True when a failed rename represents a NoOverwriteExistingObject create losing the race —
+   * i.e. the destination already exists. ADLS surfaces this as 409 PathAlreadyExists or 412.
+   * Scoped to NoOverwrite: an ObjectWithETag 412 is an eTag mismatch (fencing) and must NOT
+   * be reclassified as recoverable.
+   */
+  private def isLostNoOverwriteRace[O](
+    objectProtection: ObjectProtection[O],
+    dse:              DataLakeStorageException,
+  ): Boolean =
+    objectProtection match {
+      case NoOverwriteExistingObject(_) => dse.getStatusCode == 409 || dse.getStatusCode == 412
+      case _                            => false
+    }
+
   override def writeBlobToFile[O](
     bucket:           String,
     path:             String,
@@ -481,9 +496,10 @@ class DatalakeStorageInterface(connectorTaskId: ConnectorTaskId, client: DataLak
     val destinationConditions: DataLakeRequestConditions = objectProtection match {
       case NoOverwriteExistingObject(_) =>
         // Atomic arbitration: exactly one of N concurrent renames to the same destination
-        // wins; the rest get 412 Precondition Failed. The downstream Left(FileCreateError)
-        // contract is unchanged — the numeric 412 replaces the historical 409 from
-        // createFile(false), but all callers consume only the wrapper class.
+        // wins; the losers fail with EITHER 409 PathAlreadyExists (observed in prod) OR 412
+        // Precondition Failed. Both are mapped to the recoverable NonOverwriteFileExistsError
+        // (see isLostNoOverwriteRace + tryWriteViaRenameWithDirectoryRecovery), so the loser
+        // re-reads and adopts the lock instead of failing the task.
         new DataLakeRequestConditions().setIfNoneMatch("*")
       case ObjectWithETag(_, eTag) =>
         // eTag here is the eTag of the CURRENT DESTINATION (sourced from topicPartitionToETags /
@@ -574,6 +590,35 @@ class DatalakeStorageInterface(connectorTaskId: ConnectorTaskId, client: DataLak
       }
     }
 
+    // Classifies a failed rename into the correct UploadError. Applied to EVERY rename attempt —
+    // including the retry after 404 directory recovery — so a lost no-overwrite create race that
+    // surfaces only on the retried rename is still mapped to the recoverable
+    // NonOverwriteFileExistsError instead of a fatal FileCreateError.
+    def classifyRenameFailure(ex: Throwable): UploadError = ex match {
+      case dse: DataLakeStorageException if isLostNoOverwriteRace(objectProtection, dse) =>
+        // NoOverwriteExistingObject lost the create race: the destination already exists.
+        // ADLS Gen2 HNS surfaces this as EITHER 409 PathAlreadyExists (observed in prod on the
+        // rename) OR 412 Precondition Failed (setIfNoneMatch("*") arbitration). Both mean
+        // "another task won". Recoverable: IndexManagerV2.open re-reads and adopts the lock.
+        // This is scoped to NoOverwrite only — an ObjectWithETag 412 (eTag mismatch) is the
+        // zombie-fencing signal and stays a fatal FileCreateError below.
+        logger.info(
+          s"[${connectorTaskId.show}] Lost no-overwrite create race renaming $tmpPath -> $bucket:$path " +
+            s"(status ${dse.getStatusCode}); surfacing recoverable NonOverwriteFileExistsError",
+        )
+        NonOverwriteFileExistsError(dse, path)
+
+      case dse: DataLakeStorageException if dse.getStatusCode == 412 =>
+        // 412 Precondition Failed on an ObjectWithETag write: eTag mismatch (concurrent write
+        // by another task). This is the zombie-fencing mechanism and MUST stay fatal.
+        logger.warn(
+          s"[${connectorTaskId.show}] Precondition failed (412) renaming $tmpPath -> $bucket:$path",
+        )
+        FileCreateError(dse, content)
+
+      case other => FileCreateError(other, content)
+    }
+
     def tryWriteViaRenameWithDirectoryRecovery(): Either[UploadError, String] =
       tryWriteViaRename() match {
         case Right(eTag) => Right(eTag)
@@ -583,26 +628,19 @@ class DatalakeStorageInterface(connectorTaskId: ConnectorTaskId, client: DataLak
           // Parent directory doesn't exist — create it and retry against the .tmp path.
           // The 404 recovery is preserved in the invisible namespace (.tmp), so a crash
           // between create-directory and rename still leaves no 0-byte blob at the destination.
+          // The retry is classified through classifyRenameFailure so a lost no-overwrite create
+          // race on the retried rename is reported as the recoverable NonOverwriteFileExistsError,
+          // not a fatal FileCreateError that would kill the losing task at cold start.
           parentDirectory(path) match {
             case Some(dir) =>
               createDirectoryIfNotExists(bucket, dir) match {
                 case Left(err) => Left(FileCreateError(err.exception, content))
-                case Right(_)  => tryWriteViaRename().leftMap(ex => FileCreateError(ex, content))
+                case Right(_)  => tryWriteViaRename().leftMap(classifyRenameFailure)
               }
             case None => Left(FileCreateError(dse, content))
           }
 
-        case Left(dse: DataLakeStorageException) if dse.getStatusCode == 412 =>
-          // 412 Precondition Failed: destination-slot condition not met.
-          // For NoOverwriteExistingObject: destination already exists.
-          // For ObjectWithETag: eTag mismatch (concurrent write by another task).
-          // Both surface as Left(FileCreateError) — callers only inspect the wrapper class.
-          logger.warn(
-            s"[${connectorTaskId.show}] Precondition failed (412) renaming $tmpPath -> $bucket:$path",
-          )
-          Left(FileCreateError(dse, content))
-
-        case Left(other) => Left(FileCreateError(other, content))
+        case Left(other) => Left(classifyRenameFailure(other))
       }
 
     tryWriteViaRenameWithDirectoryRecovery() match {
