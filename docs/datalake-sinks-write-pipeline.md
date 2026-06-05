@@ -275,6 +275,8 @@ sequenceDiagram
 
 | Phase | Error class | Writer state after | Recovery path | Data-loss outcome |
 |-------|-------------|-------------------|---------------|-------------------|
+| **Local write (IOException)** | `FormatWriter.write()` or `complete()` throws / wraps `IOException` (e.g. ENOSPC / disk full) → **`FatalCloudSinkError`** | `Writing` until `cleanUp(tp)` → `Writer.close()` deletes the corrupt staging file | Task fails immediately under all error policies. Connect restarts; `IndexManagerV2.open` reads master lock and seeks consumer back to `committedOffset`. Records re-delivered from Kafka and written to a fresh staging file. | No data loss (failure is pre-upload; master lock not advanced). Corrupt file never uploaded. |
+| **Local write (non-IOException)** | `FormatWriter.write()` returns non-IOException error (e.g. schema / conversion failure) → `NonFatalCloudSinkError` | `Writing` (preserved) | `error.policy=RETRY` wraps in `RetriableException` and retries; `error.policy=NOOP` logs-and-continues (poison record skip); `error.policy=THROW` fails task. Stream is NOT corrupted (error thrown before bytes reach the OutputStream). | No data loss |
 | Upload | `UploadFailedError` → `NonFatalCloudSinkError` (transient) | `Uploading` (preserved) | `recommitPending` on next `put()` re-attempts from the still-intact staging file | No data loss |
 | Upload (live commit) | `NonExistingFileError` + `escalateOnCancel=true` → `FatalCloudSinkError` → `FatalConnectException` | Writer stays `Uploading` until `cleanUp(tp)` → `close()` | Task fails immediately under all error policies. Connect restarts; `IndexManagerV2.open` reads master lock and seeks consumer back to `committedOffset`. Records re-delivered from Kafka. | No data loss (master lock not advanced) |
 | Upload (dead-worker recovery) | `NonExistingFileError` + `escalateOnCancel=false` → graceful clear | `NoWriter(oldCommittedOffset)` | Old committed offset preserved in memory. Records re-delivered from Kafka. | No data loss. Records re-written on re-delivery. |
@@ -285,6 +287,47 @@ sequenceDiagram
 | Task crash after commit, before `preCommit` | N/A | N/A (process dies) | Restart reads granular/master lock from cloud; deduplication via `shouldSkip` | No data loss, possible replay (no duplication) |
 | `preCommit` master lock write fails | N/A | No offset returned to Kafka Connect | Consumer offset frozen. Granular locks preserved (GC skipped). On crash, replay from stale master offset; granular locks deduplicate. | No data loss, no duplication |
 | `RetryErrorPolicy` exhausted | Any persistent error | Task fails | Connect restarts task. `IndexManagerV2.open` reads master lock, seeks consumer. Records re-delivered from Kafka. | No data loss |
+
+---
+
+## Local-write IOException recovery (disk full / ENOSPC)
+
+### The bug (pre-fix)
+
+When the local scratch space fills up (ENOSPC) or any `IOException` occurs while appending to the staging file, the underlying format writer (`DataFileWriter` for Avro, Parquet writer) is left in an **undefined / corrupt state**. Before the fix, `Writer.innerMessageWrite` treated this as `NonFatalCloudSinkError` (with `rollBack() == false`), so:
+
+1. `CloudSinkTask.handleErrors` did NOT call `cleanUp(tp)` — the corrupt writer and staging file were preserved.
+2. Under `error.policy=RETRY`, Kafka Connect wrapped the error in a `RetriableException` and re-delivered the same `put(records)` batch.
+3. On retry, `Writer.write` matched the existing `Writing` branch and reused the **same** `FormatWriter` — appending on top of the broken Avro/Parquet container produced a **silently corrupt cloud file**.
+
+The same corruption path applied when `FormatWriter.complete()` (called from `Writer.commit`) failed with an `IOException` (e.g. buffer flush at file-sealing time).
+
+### The fix
+
+`Writer` now classifies local write/flush failures by inspecting the throwable cause chain:
+
+- **Cause chain contains `IOException`** → escalated to **`FatalCloudSinkError`** (with `rollBack() == true`, `topicPartitions() = Set(tp)`).
+  - `CloudSinkTask.handleErrors` sees `rollBack() == true`, calls `WriterManager.cleanUp(tp)`, which invokes `Writer.close()`, which **deletes the corrupt staging file** and removes all writers for `tp`.
+  - A `FatalConnectException` is then thrown. Every `ErrorPolicy` (including `RETRY`) re-throws it without wrapping in `RetriableException`. The task fails.
+  - On restart, `IndexManagerV2.open` reads the master lock from cloud storage (which was **not** advanced — the failure was pre-upload), seeks the consumer back to the durable `committedOffset`, and re-delivers the buffered records to a fresh, clean staging file.
+
+- **Cause chain does NOT contain `IOException`** (e.g. schema / Avro record conversion error) → stays **`NonFatalCloudSinkError`** (existing behavior). These errors throw before any bytes reach the `OutputStream`, so the file is not corrupt. NOOP continues, RETRY re-delivers, THROW fails.
+
+### Why "fail the task" and not "silently discard and continue"
+
+The open staging file may contain uncommitted records from **earlier `put()` batches** (write cadence spans multiple polls). A `RetriableException` only re-delivers the **current** batch; those earlier records would be permanently lost if the writer is discarded in-process. Failing the task is the only mechanism that forces a consumer rewind to the durable floor, re-reading all buffered-but-not-uploaded records.
+
+### Operational note
+
+Vanilla Kafka Connect does **not** auto-restart a `FAILED` task. Ingestion is halted (never corrupted) until the task is restarted via the REST API (`POST /connectors/<name>/tasks/<id>/restart`) or operator automation. Recommend enabling automatic failed-task restart automation if disk-full events are anticipated. `error.policy=RETRY` continues to work seamlessly for transient **cloud upload** errors — those still go through `NonFatalCloudSinkError` → `recommitPending` and do not cause task restarts.
+
+### Invariants preserved
+
+| Guarantee | How |
+|-----------|-----|
+| No data loss | Failure is pre-upload; master lock in cloud storage is not advanced; `cleanUp` leaves `seekedOffsets` and the master eTag fence intact; restart reads from the durable floor. |
+| No duplication (exactly-once) | The corrupt staging file is deleted by `cleanUp` → `Writer.close()`. On restart, `shouldSkip` deduplicates via granular/master locks. No offset above the floor was ever durably written. |
+| Zombie safety | `cleanUp` evicts only the in-memory granular-lock cache and does NOT call `clearTopicPartitionState`, so the eTag CAS fence that prevents zombie tasks from advancing the master lock is preserved. |
 
 ---
 

@@ -17,12 +17,16 @@ package io.lenses.streamreactor.connect.cloud.common.sink.writer
 
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.FormatWriter
+import io.lenses.streamreactor.connect.cloud.common.formats.writer.MessageDetail
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.schema.SchemaChangeDetector
 import io.lenses.streamreactor.connect.cloud.common.model.Offset
 import io.lenses.streamreactor.connect.cloud.common.model.Topic
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
+import io.lenses.streamreactor.connect.cloud.common.sink.FatalCloudSinkError
+import io.lenses.streamreactor.connect.cloud.common.sink.NonFatalCloudSinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.CommitPolicy
+import io.lenses.streamreactor.connect.cloud.common.sink.conversion.NullSinkData
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.ObjectKeyBuilder
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexManager
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.PendingOperationsProcessors
@@ -31,12 +35,15 @@ import org.apache.kafka.connect.data.Schema
 import org.mockito.Answers
 import org.mockito.ArgumentMatchersSugar
 import org.mockito.MockitoSugar
+import org.scalatest.EitherValues
 import org.scalatest.funsuite.AnyFunSuiteLike
 import org.scalatest.matchers.should.Matchers
 
 import java.io.File
+import java.io.IOException
+import java.time.Instant
 
-class WriterTest extends AnyFunSuiteLike with Matchers with MockitoSugar with ArgumentMatchersSugar {
+class WriterTest extends AnyFunSuiteLike with Matchers with MockitoSugar with ArgumentMatchersSugar with EitherValues {
 
   private implicit val connectorTaskId: ConnectorTaskId = ConnectorTaskId("test-connector", 1, 1)
 
@@ -554,4 +561,156 @@ class WriterTest extends AnyFunSuiteLike with Matchers with MockitoSugar with Ar
     writer.close()
     verify(freshIndexer, never).evictGranularLock(any[TopicPartition], any[String])
   }
+
+  private def makeMessageDetail(tp: TopicPartition, offset: Offset): MessageDetail =
+    MessageDetail(
+      key       = NullSinkData(None),
+      value     = NullSinkData(None),
+      headers   = Map.empty,
+      timestamp = Some(Instant.ofEpochMilli(1000L)),
+      topic     = tp.topic,
+      partition = tp.partition,
+      offset    = offset,
+    )
+
+  test(
+    "REPRO: Writer.write with IOException from FormatWriter must return FatalCloudSinkError, not NonFatalCloudSinkError",
+  ) {
+    val ioException    = new IOException("No space left on device")
+    val ioFormatWriter = mock[FormatWriter]
+    when(ioFormatWriter.write(any[MessageDetail])).thenReturn(Left(ioException))
+    when(ioFormatWriter.getPointer).thenReturn(0L)
+    when(ioFormatWriter.rolloverFileOnSchemaChange()).thenReturn(false)
+
+    val tmpFile = File.createTempFile("writer-ioexception-repro-", ".tmp")
+    tmpFile.deleteOnExit()
+
+    val pendingOps   = mock[PendingOperationsProcessors]
+    val localIndexer = mock[IndexManager]
+    when(localIndexer.indexingEnabled).thenReturn(false)
+
+    val writer = new Writer[FileMetadata](
+      topicPartition,
+      commitPolicy,
+      localIndexer,
+      () => Right(tmpFile),
+      objectKeyBuilder,
+      _ => Right(ioFormatWriter),
+      schemaChangeDetector,
+      pendingOps,
+    )
+    writer.forceWriteState(
+      Writing(
+        CommitState(topicPartition, Some(Offset(99))),
+        ioFormatWriter,
+        tmpFile,
+        firstBufferedOffset     = Offset(100),
+        uncommittedOffset       = Offset(100),
+        earliestRecordTimestamp = 1L,
+        latestRecordTimestamp   = 1L,
+      ),
+    )
+
+    val result = writer.write(makeMessageDetail(topicPartition, Offset(101)))
+
+    result.isLeft shouldBe true
+    result.left.value shouldBe a[FatalCloudSinkError]
+    result.left.value.rollBack() shouldBe true
+    result.left.value.topicPartitions() should contain(topicPartition)
+  }
+
+  test(
+    "REPRO: Writer.write with non-IOException from FormatWriter must remain NonFatalCloudSinkError (no regression for poison records)",
+  ) {
+    val schemaError = new RuntimeException("incompatible schema: field 'id' missing")
+    val badFW       = mock[FormatWriter]
+    when(badFW.write(any[MessageDetail])).thenReturn(Left(schemaError))
+    when(badFW.getPointer).thenReturn(0L)
+    when(badFW.rolloverFileOnSchemaChange()).thenReturn(false)
+
+    val tmpFile = File.createTempFile("writer-nonio-repro-", ".tmp")
+    tmpFile.deleteOnExit()
+
+    val pendingOps   = mock[PendingOperationsProcessors]
+    val localIndexer = mock[IndexManager]
+    when(localIndexer.indexingEnabled).thenReturn(false)
+
+    val writer = new Writer[FileMetadata](
+      topicPartition,
+      commitPolicy,
+      localIndexer,
+      () => Right(tmpFile),
+      objectKeyBuilder,
+      _ => Right(badFW),
+      schemaChangeDetector,
+      pendingOps,
+    )
+    writer.forceWriteState(
+      Writing(
+        CommitState(topicPartition, Some(Offset(99))),
+        badFW,
+        tmpFile,
+        firstBufferedOffset     = Offset(100),
+        uncommittedOffset       = Offset(100),
+        earliestRecordTimestamp = 1L,
+        latestRecordTimestamp   = 1L,
+      ),
+    )
+
+    val result = writer.write(makeMessageDetail(topicPartition, Offset(101)))
+
+    // Non-IO failure must remain NonFatal so NOOP/RETRY poison-record handling is not regressed.
+    result.isLeft shouldBe true
+    result.left.value shouldBe a[NonFatalCloudSinkError]
+    result.left.value.rollBack() shouldBe false
+  }
+
+  test(
+    "REPRO: Writer.commit when formatWriter.complete() wraps an IOException must return FatalCloudSinkError",
+  ) {
+    val ioException   = new IOException("No space left on device")
+    val completeErrFW = mock[FormatWriter]
+    when(completeErrFW.complete()).thenReturn(
+      Left(NonFatalCloudSinkError("disk full on flush", Some(ioException))),
+    )
+    when(completeErrFW.getPointer).thenReturn(42L)
+    when(completeErrFW.rolloverFileOnSchemaChange()).thenReturn(false)
+
+    val tmpFile = File.createTempFile("writer-commit-ioexception-repro-", ".tmp")
+    tmpFile.deleteOnExit()
+
+    val pendingOps   = mock[PendingOperationsProcessors]
+    val localIndexer = mock[IndexManager]
+    when(localIndexer.indexingEnabled).thenReturn(false)
+
+    val writer = new Writer[FileMetadata](
+      topicPartition,
+      commitPolicy,
+      localIndexer,
+      () => Right(tmpFile),
+      objectKeyBuilder,
+      _ => Right(completeErrFW),
+      schemaChangeDetector,
+      pendingOps,
+    )
+    writer.forceWriteState(
+      Writing(
+        CommitState(topicPartition, Some(Offset(99))),
+        completeErrFW,
+        tmpFile,
+        firstBufferedOffset     = Offset(100),
+        uncommittedOffset       = Offset(105),
+        earliestRecordTimestamp = 1L,
+        latestRecordTimestamp   = 2L,
+      ),
+    )
+
+    val result = writer.commit
+
+    result.isLeft shouldBe true
+    result.left.value shouldBe a[FatalCloudSinkError]
+    result.left.value.rollBack() shouldBe true
+    result.left.value.topicPartitions() should contain(topicPartition)
+  }
+
 }

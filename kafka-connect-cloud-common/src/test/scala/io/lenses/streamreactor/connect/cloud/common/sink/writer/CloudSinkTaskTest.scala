@@ -30,7 +30,9 @@ import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
 import io.lenses.streamreactor.connect.cloud.common.sink.CloudSinkTask
+import io.lenses.streamreactor.connect.cloud.common.formats.writer.MessageDetail
 import io.lenses.streamreactor.connect.cloud.common.sink.NonFatalCloudSinkError
+import io.lenses.streamreactor.connect.cloud.common.sink.conversion.NullSinkData
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.CloudCommitPolicy
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.CommitPolicy
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.KeyNamer
@@ -52,9 +54,11 @@ import org.scalatest.funsuite.AnyFunSuiteLike
 import org.scalatest.matchers.should.Matchers
 
 import java.io.File
+import java.io.IOException
 import java.net.URL
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
+import java.time.Instant
 import scala.util.Try
 
 /**
@@ -478,6 +482,82 @@ class CloudSinkTaskTest
    * No methods; `ConnectionConfig` is a marker interface with no members.
    */
   private class StubCC extends ConnectionConfig
+
+  test(
+    "REPRO: IOException from FormatWriter.write throws FatalConnectException (not RetriableException) under error.policy=RETRY",
+  ) {
+    val ioException    = new IOException("No space left on device")
+    val ioFormatWriter = mock[FormatWriter]
+    when(ioFormatWriter.write(any[MessageDetail])).thenReturn(Left(ioException))
+    when(ioFormatWriter.getPointer).thenReturn(0L)
+    when(ioFormatWriter.rolloverFileOnSchemaChange()).thenReturn(false)
+    when(ioFormatWriter.complete()).thenReturn(().asRight)
+
+    val tmpFile = makeTempFile("repro-ioexception-write")
+    tmpFile.exists() shouldBe true
+
+    val idxMgr = stubWriterIndexManager()
+    val writer = new Writer[FakeFileMetadata](
+      tpA,
+      mock[CommitPolicy],
+      idxMgr,
+      stagingFilenameFn = () => tmpFile.asRight,
+      mock[ObjectKeyBuilder],
+      formatWriterFn = _ => ioFormatWriter.asRight,
+      mock[SchemaChangeDetector],
+      new PendingOperationsProcessors(new InMemoryStorageInterface()),
+      partitionKey     = None,
+      lastSeekedOffset = Some(Offset(99)),
+    )
+    writer.forceWriteState(
+      Writing(
+        CommitState(tpA, Some(Offset(99))),
+        ioFormatWriter,
+        tmpFile,
+        firstBufferedOffset     = Offset(100),
+        uncommittedOffset       = Offset(100),
+        earliestRecordTimestamp = 1L,
+        latestRecordTimestamp   = 1L,
+      ),
+    )
+
+    val im = stubWmIndexManager()
+    val wm = buildMinimalWriterManager(im)
+    wm.putWriter(MapKey(tpA, Map.empty), writer)
+    wm.writerCount shouldBe 1
+
+    val msgDetail = MessageDetail(
+      key       = NullSinkData(None),
+      value     = NullSinkData(None),
+      headers   = Map.empty,
+      timestamp = Some(Instant.ofEpochMilli(1000L)),
+      topic     = tpA.topic,
+      partition = tpA.partition,
+      offset    = Offset(101),
+    )
+
+    val task = new ConcreteTestSinkTask
+    task.initialize(5, RetryErrorPolicy())
+    task.writerManager   = wm
+    task.connectorTaskId = connectorTaskId
+
+    val thrown = {
+      var t: Throwable = null
+      try {
+        task.handleTry(Try {
+          task.handleErrors(writer.write(msgDetail))
+        })
+      } catch { case ex: Throwable => t = ex }
+      t
+    }
+
+    thrown shouldBe a[FatalConnectException]
+    thrown should not be a[RetriableException]
+
+    wm.writerCount shouldBe 0
+    verify(im, times(1)).evictAllGranularLocks(tpA)
+    val _ = tmpFile.delete()
+  }
 
   /**
    * Concrete `CloudSinkTask` whose abstract cloud-provider methods all throw

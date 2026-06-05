@@ -69,9 +69,30 @@ class Writer[SM <: FileMetadata](
   private[writer] def forceWriteState(state: WriteState): Unit = writeState = state
   private[writer] def currentWriteState: WriteState = writeState
 
+  /**
+   * Returns true if any cause in the throwable chain is an IOException.
+   *
+   * An IOException on the local write path (e.g. ENOSPC / disk full) leaves the underlying
+   * file descriptor and format-writer container (Avro DataFileWriter, Parquet writer) in an
+   * undefined state. Retrying a write on the same writer produces a corrupt file. We therefore
+   * escalate IOException-caused failures to FatalCloudSinkError so the existing cleanUp path
+   * deletes the staging file and the task restarts from the durable floor.
+   *
+   * Non-IOException throwables (e.g. schema/conversion errors) do NOT corrupt the stream
+   * (they throw before any bytes reach the underlying OutputStream), so those keep the
+   * existing NonFatalCloudSinkError behavior for NOOP/RETRY poison-record handling.
+   */
+  private def causedByIOException(t: Throwable): Boolean = {
+    def loop(current: Throwable, visited: Set[Throwable]): Boolean =
+      if (current == null || visited.contains(current)) false
+      else if (current.isInstanceOf[java.io.IOException]) true
+      else loop(current.getCause, visited + current)
+    loop(t, Set.empty)
+  }
+
   def write(messageDetail: MessageDetail): Either[SinkError, Unit] = {
 
-    def innerMessageWrite(writingState: Writing): Either[NonFatalCloudSinkError, Unit] =
+    def innerMessageWrite(writingState: Writing): Either[SinkError, Unit] =
       writingState.formatWriter.write(messageDetail) match {
         case Left(err: Throwable) =>
           // Use Try to safely convert schema - prevents secondary errors from masking the original
@@ -88,7 +109,10 @@ class Writer[SM <: FileMetadata](
               s"Headers: ${messageDetail.headers}.",
             err,
           )
-          NonFatalCloudSinkError(err.getMessage, err.some).asLeft
+          if (causedByIOException(err))
+            FatalCloudSinkError(err.getMessage, err.some, topicPartition).asLeft
+          else
+            NonFatalCloudSinkError(err.getMessage, err.some).asLeft
         case Right(_) =>
           writeState =
             writingState.update(messageDetail.offset, messageDetail.epochTimestamp, messageDetail.value.schema())
@@ -122,7 +146,14 @@ class Writer[SM <: FileMetadata](
     writeState match {
       case writingState: Writing =>
         writingState.formatWriter.complete() match {
-          case Left(ex) => return ex.asLeft
+          case Left(ex) =>
+            val escalated: SinkError = ex match {
+              case _: FatalCloudSinkError => ex
+              case _ if causedByIOException(ex.exception().orNull) =>
+                FatalCloudSinkError(ex.message(), ex.exception(), topicPartition)
+              case _ => ex
+            }
+            return escalated.asLeft
           case Right(_) =>
         }
         writeState = writingState.toUploading
