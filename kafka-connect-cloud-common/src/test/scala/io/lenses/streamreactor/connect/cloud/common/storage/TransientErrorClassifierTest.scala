@@ -67,15 +67,15 @@ class TransientErrorClassifierTest extends AnyFlatSpec with Matchers {
   }
 
   it should "walk the cause chain and classify as transient when cause is a SocketException" in {
-    val cause  = new SocketException("Connection reset")
+    val cause   = new SocketException("Connection reset")
     val wrapped = new RuntimeException("outer wrapper", cause)
     classifier.isTransient(wrapped) shouldBe true
   }
 
   it should "walk multi-level cause chain and classify as transient" in {
-    val root    = new EOFException("Unexpected end of file from server")
-    val middle  = new RuntimeException("middle", root)
-    val outer   = new RuntimeException("outer", middle)
+    val root   = new EOFException("Unexpected end of file from server")
+    val middle = new RuntimeException("middle", root)
+    val outer  = new RuntimeException("outer", middle)
     classifier.isTransient(outer) shouldBe true
   }
 

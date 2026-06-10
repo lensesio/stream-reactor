@@ -382,8 +382,9 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
       metrics             = new CloudSinkMetrics()
       rawStorageInterface = createStorageInterface(connectorTaskId, config, s3Client)
       retryClassifier     = commitRetryClassifier(config)
-      storageInterface    = new RetryingStorageInterface(rawStorageInterface, config.commitRetryConfig, retryClassifier, metrics)
-      _                  <- setRetryInterval(config)
+      storageInterface =
+        new RetryingStorageInterface(rawStorageInterface, config.commitRetryConfig, retryClassifier, metrics)
+      _ <- setRetryInterval(config)
       (indexManager, writerManager) <- Try(
         writerManagerCreator.from(config, metrics)(connectorTaskId, storageInterface),
       ).toEither

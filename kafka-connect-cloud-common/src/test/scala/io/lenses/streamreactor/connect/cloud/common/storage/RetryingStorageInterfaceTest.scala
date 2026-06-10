@@ -83,24 +83,45 @@ class RetryingStorageInterfaceTest extends AnyFunSuiteLike with Matchers with Be
       deleteResults.next()
     }
 
-    override def system():                   String = "stub"
-    override def close():                    Unit   = ()
+    override def system(): String = "stub"
+    override def close():  Unit   = ()
     override def uploadFile(s: UploadableFile, b: String, p: String): Either[UploadError, String] = Right("etag")
-    override def pathExists(b: String, p: String): Either[PathError, Boolean] = Right(false)
-    override def list(b: String, p: Option[String], l: Option[StubFileMetadata], n: Int): Either[FileListError, Option[ListOfKeysResponse[StubFileMetadata]]] = Right(None)
-    override def listFileMetaRecursive(b: String, p: Option[String]): Either[FileListError, Option[ListOfMetadataResponse[StubFileMetadata]]] = Right(None)
-    override def listKeysRecursive(b: String, p: Option[String]): Either[FileListError, Option[ListOfKeysResponse[StubFileMetadata]]] = Right(None)
+    override def pathExists(b: String, p:         String): Either[PathError, Boolean] = Right(false)
+    override def list(
+      b: String,
+      p: Option[String],
+      l: Option[StubFileMetadata],
+      n: Int,
+    ): Either[FileListError, Option[ListOfKeysResponse[StubFileMetadata]]] = Right(None)
+    override def listFileMetaRecursive(
+      b: String,
+      p: Option[String],
+    ): Either[FileListError, Option[ListOfMetadataResponse[StubFileMetadata]]] = Right(None)
+    override def listKeysRecursive(
+      b: String,
+      p: Option[String],
+    ): Either[FileListError, Option[ListOfKeysResponse[StubFileMetadata]]] = Right(None)
     override def seekToFile(b: String, f: String, lm: Option[Instant]): Option[StubFileMetadata] = None
-    override def getBlob(b: String, p: String): Either[FileLoadError, InputStream] = Right(InputStream.nullInputStream())
-    override def getBlobAsString(b: String, p: String): Either[FileLoadError, String] = Right("")
-    override def getBlobAsStringAndEtag(b: String, p: String): Either[FileLoadError, (String, String)] = Right(("", "etag"))
-    override def getMetadata(b: String, p: String): Either[FileLoadError, ObjectMetadata] = Right(ObjectMetadata(0L, Instant.EPOCH))
+    override def getBlob(b:    String, p: String): Either[FileLoadError, InputStream] =
+      Right(InputStream.nullInputStream())
+    override def getBlobAsString(b:        String, p: String): Either[FileLoadError, String] = Right("")
+    override def getBlobAsStringAndEtag(b: String, p: String): Either[FileLoadError, (String, String)] =
+      Right(("", "etag"))
+    override def getMetadata(b: String, p: String): Either[FileLoadError, ObjectMetadata] =
+      Right(ObjectMetadata(0L, Instant.EPOCH))
     override def writeStringToFile(b: String, p: String, d: UploadableString): Either[UploadError, Unit] = Right(())
-    override def writeBlobToFile[O](b: String, p: String, op: ObjectProtection[O])(implicit enc: io.circe.Encoder[O]): Either[UploadError, ObjectWithETag[O]] =
+    override def writeBlobToFile[O](
+      b:  String,
+      p:  String,
+      op: ObjectProtection[O],
+    )(
+      implicit
+      enc: io.circe.Encoder[O],
+    ): Either[UploadError, ObjectWithETag[O]] =
       Left(UploadFailedError(new RuntimeException("not implemented"), new File(".")))
-    override def deleteFiles(b: String, files: Seq[String]): Either[FileDeleteError, Unit] = Right(())
-    override def createDirectoryIfNotExists(b: String, p: String): Either[FileCreateError, Unit] = Right(())
-    override def touchFile(b: String, p: String): Either[FileTouchError, Unit] = Right(())
+    override def deleteFiles(b:                String, files: Seq[String]): Either[FileDeleteError, Unit] = Right(())
+    override def createDirectoryIfNotExists(b: String, p:     String):      Either[FileCreateError, Unit] = Right(())
+    override def touchFile(b:                  String, p:     String):      Either[FileTouchError, Unit]  = Right(())
   }
 
   private val transientMvError: FileMoveError =
@@ -137,7 +158,7 @@ class RetryingStorageInterfaceTest extends AnyFunSuiteLike with Matchers with Be
     val result = retrying.mvFile("b", "src", "b", "dst", None)
     result shouldBe Left(transientMvError)
     stub.mvCallCount.get() shouldBe 3
-    metrics.getCommitRetriesTotal shouldBe 2L  // 2 retries after the first attempt
+    metrics.getCommitRetriesTotal shouldBe 2L // 2 retries after the first attempt
   }
 
   test("mvFile: permanent error returns immediately with no retries") {
@@ -236,6 +257,6 @@ class RetryingStorageInterfaceTest extends AnyFunSuiteLike with Matchers with Be
     // CommitRetriesTotal is incremented before the sleep, so it counts the one aborted retry.
     metrics.getCommitRetriesTotal shouldBe 1L
     // The interrupt flag must have been restored by the handler.
-    Thread.interrupted() shouldBe true  // also clears the flag so it does not leak into other tests
+    Thread.interrupted() shouldBe true // also clears the flag so it does not leak into other tests
   }
 }

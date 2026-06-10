@@ -55,10 +55,10 @@ import java.time.Instant
  * @param metrics    Metrics sink; `incrementCommitRetriesTotal` is called per retry.
  */
 class RetryingStorageInterface[SM <: FileMetadata](
-  delegate:     StorageInterface[SM],
-  retryConfig:  CommitRetryConfig,
-  classifier:   TransientErrorClassifier,
-  metrics:      CloudSinkMetrics,
+  delegate:    StorageInterface[SM],
+  retryConfig: CommitRetryConfig,
+  classifier:  TransientErrorClassifier,
+  metrics:     CloudSinkMetrics,
 ) extends StorageInterface[SM]
     with LazyLogging {
 
