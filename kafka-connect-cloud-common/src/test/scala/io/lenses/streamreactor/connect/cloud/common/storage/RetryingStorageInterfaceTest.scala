@@ -215,4 +215,27 @@ class RetryingStorageInterfaceTest extends AnyFunSuiteLike with Matchers with Be
     stub.mvCallCount.get() shouldBe 1
     metrics.getCommitRetriesTotal shouldBe 0L
   }
+
+  test("aborts retries immediately when the thread is interrupted during backoff") {
+    // Use a real delay so Thread.sleep actually blocks and throws InterruptedException.
+    val retryWithDelay = CommitRetryConfig(maxAttempts = 5, baseDelayMs = 5000L, multiplier = 1.0, maxDelayMs = 5000L)
+    // All attempts return the same transient error so the loop would retry indefinitely if not interrupted.
+    val stub = new CountingStorageInterface(
+      mvResults     = Iterator.continually(Left(transientMvError)),
+      deleteResults = Iterator.empty,
+    )
+    val retrying = new RetryingStorageInterface(stub, retryWithDelay, alwaysTransient, metrics)
+
+    // Pre-set the interrupt flag so the first Thread.sleep throws InterruptedException immediately.
+    Thread.currentThread().interrupt()
+    val result = retrying.mvFile("b", "src", "b", "dst", None)
+
+    result shouldBe Left(transientMvError)
+    // Only the initial attempt was made — no extra cloud calls after cancellation.
+    stub.mvCallCount.get() shouldBe 1
+    // CommitRetriesTotal is incremented before the sleep, so it counts the one aborted retry.
+    metrics.getCommitRetriesTotal shouldBe 1L
+    // The interrupt flag must have been restored by the handler.
+    Thread.interrupted() shouldBe true  // also clears the flag so it does not leak into other tests
+  }
 }

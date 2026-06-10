@@ -89,10 +89,19 @@ class RetryingStorageInterface[SM <: FileMetadata](
               err.toExceptionOption.orNull,
             )
             metrics.incrementCommitRetriesTotal()
-            try Thread.sleep(delayMs)
-            catch { case _: InterruptedException => Thread.currentThread().interrupt() }
-            val nextDelay = (delayMs * retryConfig.multiplier).toLong.min(retryConfig.maxDelayMs)
-            loop(attempt + 1, nextDelay)
+            val interrupted =
+              try { Thread.sleep(delayMs); false }
+              catch { case _: InterruptedException => Thread.currentThread().interrupt(); true }
+            if (interrupted) {
+              logger.warn(
+                s"[$opName] Interrupted during commit-retry backoff; aborting retries to allow prompt " +
+                  s"shutdown/rebalance and avoid further cloud calls. Returning last error.",
+              )
+              result
+            } else {
+              val nextDelay = (delayMs * retryConfig.multiplier).toLong.min(retryConfig.maxDelayMs)
+              loop(attempt + 1, nextDelay)
+            }
           }
       }
     }
