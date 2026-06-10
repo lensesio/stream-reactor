@@ -20,6 +20,7 @@ import io.lenses.streamreactor.common.errors.ErrorPolicy
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.schema.SchemaChangeDetector
 import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodec
 import io.lenses.streamreactor.connect.cloud.common.sink.config.CloudSinkBucketOptions
+import io.lenses.streamreactor.connect.cloud.common.sink.config.CommitRetryConfig
 import io.lenses.streamreactor.connect.cloud.common.sink.config.IndexOptions
 import io.lenses.streamreactor.connect.cloud.common.source.config.CloudSourceBucketOptions
 import io.lenses.streamreactor.connect.cloud.common.source.config.EmptySourceBackoffSettings
@@ -68,6 +69,8 @@ trait CloudSinkConfig[CC] extends CloudConfig {
   def compressionCodec: CompressionCodec
 
   def connectorRetryConfig: RetryConfig
+
+  def commitRetryConfig: CommitRetryConfig
 
   def errorPolicy: ErrorPolicy
 

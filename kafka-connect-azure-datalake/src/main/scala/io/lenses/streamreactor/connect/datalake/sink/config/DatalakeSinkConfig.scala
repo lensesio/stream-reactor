@@ -24,6 +24,7 @@ import io.lenses.streamreactor.connect.cloud.common.formats.writer.schema.Schema
 import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodec
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
 import io.lenses.streamreactor.connect.cloud.common.sink.config.CloudSinkBucketOptions
+import io.lenses.streamreactor.connect.cloud.common.sink.config.CommitRetryConfig
 import io.lenses.streamreactor.connect.cloud.common.sink.config.IndexOptions
 import io.lenses.streamreactor.connect.datalake.config.AzureConnectionConfig
 import io.lenses.streamreactor.connect.datalake.config.AzureConfigSettings.LOG_METRICS_CONFIG
@@ -60,6 +61,7 @@ object DatalakeSinkConfig extends PropsToConfigConverter[DatalakeSinkConfig] {
       s3ConfigDefBuilder.getCompressionCodec(),
       s3ConfigDefBuilder.getErrorPolicyOrDefault,
       s3ConfigDefBuilder.getRetryConfig,
+      s3ConfigDefBuilder.getCommitRetryConfig,
       logMetrics,
       schemaChangeDetector,
       skipNullValues              = s3ConfigDefBuilder.skipNullValues(),
@@ -75,6 +77,7 @@ case class DatalakeSinkConfig(
   compressionCodec:            CompressionCodec,
   errorPolicy:                 ErrorPolicy,
   connectorRetryConfig:        RetryConfig,
+  commitRetryConfig:           CommitRetryConfig           = CommitRetryConfig.Default,
   logMetrics:                  Boolean,
   schemaChangeDetector:        SchemaChangeDetector,
   skipNullValues:              Boolean,

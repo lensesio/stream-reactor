@@ -27,6 +27,7 @@ trait CloudSinkConfigDefBuilder
     with PaddingStrategySettings
     with CompressionCodecSettings
     with IndexSettings
+    with CommitRetrySettings
     with SchemaChangeSettings
     with SkipNullSettings
     with EnableLatestSchemaOptimizationSettings {}

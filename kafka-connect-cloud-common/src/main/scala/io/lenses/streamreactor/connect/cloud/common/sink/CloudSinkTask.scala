@@ -39,8 +39,11 @@ import io.lenses.streamreactor.connect.cloud.common.sink.metrics.CloudSinkMetric
 import io.lenses.streamreactor.connect.cloud.common.sink.metrics.CloudSinkMetricsRegistrar
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexManager
 import io.lenses.streamreactor.connect.cloud.common.sink.writer.WriterManager
+import io.lenses.streamreactor.connect.cloud.common.storage.DefaultTransientErrorClassifier
 import io.lenses.streamreactor.connect.cloud.common.storage.FileMetadata
+import io.lenses.streamreactor.connect.cloud.common.storage.RetryingStorageInterface
 import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
+import io.lenses.streamreactor.connect.cloud.common.storage.TransientErrorClassifier
 import io.lenses.streamreactor.connect.cloud.common.utils.MapUtils
 import io.lenses.streamreactor.connect.cloud.common.utils.TimestampUtils
 import io.lenses.streamreactor.metrics.Metrics
@@ -359,15 +362,28 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
 
   def convertPropsToConfig(connectorTaskId: ConnectorTaskId, props: Map[String, String]): Either[Throwable, C]
 
+  /**
+   * Returns the [[TransientErrorClassifier]] to use for commit-chain Copy/Delete retries.
+   *
+   * The default is [[DefaultTransientErrorClassifier]], which covers JDK network exceptions.
+   * Cloud-specific task implementations (e.g. GCS) may override this to additionally inspect
+   * SDK-level error codes (e.g. `com.google.cloud.storage.StorageException` code 0 / 5xx).
+   */
+  def commitRetryClassifier(config: C): TransientErrorClassifier = DefaultTransientErrorClassifier
+
   private def createWriterMan(
     props: Map[String, String],
   ): Either[Throwable, (IndexManager, WriterManager[MD], C)] =
     for {
-      config          <- convertPropsToConfig(connectorTaskId, props)
-      s3Client        <- createClient(config.connectionConfig)
-      storageInterface = createStorageInterface(connectorTaskId, config, s3Client)
-      _               <- setRetryInterval(config)
-      metrics          = new CloudSinkMetrics()
+      config   <- convertPropsToConfig(connectorTaskId, props)
+      s3Client <- createClient(config.connectionConfig)
+      // metrics is created before storageInterface so it can be wired into the
+      // RetryingStorageInterface decorator for commit-retry counter increments.
+      metrics             = new CloudSinkMetrics()
+      rawStorageInterface = createStorageInterface(connectorTaskId, config, s3Client)
+      retryClassifier     = commitRetryClassifier(config)
+      storageInterface    = new RetryingStorageInterface(rawStorageInterface, config.commitRetryConfig, retryClassifier, metrics)
+      _                  <- setRetryInterval(config)
       (indexManager, writerManager) <- Try(
         writerManagerCreator.from(config, metrics)(connectorTaskId, storageInterface),
       ).toEither
