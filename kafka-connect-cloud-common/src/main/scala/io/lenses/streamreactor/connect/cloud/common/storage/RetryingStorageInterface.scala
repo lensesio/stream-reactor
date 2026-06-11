@@ -67,7 +67,7 @@ class RetryingStorageInterface[SM <: FileMetadata](
    * `Left` on permanent error or when attempts are exhausted.
    *
    * Sleep happens between attempts (not before the first). The delay sequence is:
-   *   baseDelay, baseDelay * multiplier, ..., up to maxDelay.
+   *   min(baseDelay, maxDelay), min(baseDelay * multiplier, maxDelay), ..., up to maxDelay.
    */
   private def withRetry[E <: UploadError, A](opName: String)(op: => Either[E, A]): Either[E, A] = {
     val maxAttempts = retryConfig.maxAttempts.max(1)
@@ -106,7 +106,7 @@ class RetryingStorageInterface[SM <: FileMetadata](
       }
     }
 
-    loop(1, retryConfig.baseDelayMs)
+    loop(1, retryConfig.baseDelayMs.min(retryConfig.maxDelayMs))
   }
 
   override def mvFile(

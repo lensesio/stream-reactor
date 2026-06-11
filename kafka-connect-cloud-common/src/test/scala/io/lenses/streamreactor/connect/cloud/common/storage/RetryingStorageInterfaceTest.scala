@@ -233,6 +233,22 @@ class RetryingStorageInterfaceTest extends AnyFunSuiteLike with Matchers with Be
     metrics.getCommitRetriesTotal shouldBe 0L
   }
 
+  test("first retry respects maxDelayMs even when baseDelayMs exceeds it") {
+    // baseDelayMs (5 s) > maxDelayMs (0 ms): the first sleep must be capped to 0 ms, not 5 s.
+    // Without the fix this test would block for ~5 seconds per retry and time out.
+    val cappedConfig = CommitRetryConfig(maxAttempts = 3, baseDelayMs = 5000L, multiplier = 1.0, maxDelayMs = 0L)
+    val stub = new CountingStorageInterface(
+      mvResults     = Iterator(Left(transientMvError), Left(transientMvError), Left(transientMvError)),
+      deleteResults = Iterator.empty,
+    )
+    val retrying = new RetryingStorageInterface(stub, cappedConfig, alwaysTransient, metrics)
+
+    val result = retrying.mvFile("b", "src", "b", "dst", None)
+    result shouldBe Left(transientMvError)
+    stub.mvCallCount.get() shouldBe 3
+    metrics.getCommitRetriesTotal shouldBe 2L
+  }
+
   test("aborts retries immediately when the thread is interrupted during backoff") {
     // Use a real delay so Thread.sleep actually blocks and throws InterruptedException.
     val retryWithDelay = CommitRetryConfig(maxAttempts = 5, baseDelayMs = 5000L, multiplier = 1.0, maxDelayMs = 5000L)
