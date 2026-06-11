@@ -77,7 +77,9 @@ trait CommitRetryConfigKeys extends WithConnectorPrefix {
 
   val COMMIT_RETRY_MULTIPLIER: String = s"$connectorPrefix.commit.retry.multiplier"
   private val COMMIT_RETRY_MULTIPLIER_DOC: String =
-    s"Exponential backoff multiplier applied to each successive inter-retry delay."
+    s"Exponential backoff multiplier applied to each successive inter-retry delay. Must be >= 1.0; " +
+      s"values below 1.0 cause shrinking delays that can degenerate into hot-retry loops or negative " +
+      s"sleep durations. Use 1.0 for a constant retry interval."
   private val COMMIT_RETRY_MULTIPLIER_DEFAULT: Double = CommitRetryConfig.DefaultMultiplier
 
   val COMMIT_RETRY_MAX_DELAY_MS: String = s"$connectorPrefix.commit.retry.max.delay.ms"
@@ -115,6 +117,7 @@ trait CommitRetryConfigKeys extends WithConnectorPrefix {
         COMMIT_RETRY_MULTIPLIER,
         Type.DOUBLE,
         COMMIT_RETRY_MULTIPLIER_DEFAULT,
+        ConfigDef.Range.atLeast(1.0),
         Importance.LOW,
         COMMIT_RETRY_MULTIPLIER_DOC,
         "Commit Retry",

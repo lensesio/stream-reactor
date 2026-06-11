@@ -52,8 +52,6 @@ class RetryingStorageInterfaceTest extends AnyFunSuiteLike with Matchers with Be
   private val alwaysTransient: TransientErrorClassifier = _ => true
   private val neverTransient:  TransientErrorClassifier = _ => false
 
-  // ---- minimal stub StorageInterface ----
-
   private class StubFileMetadata extends FileMetadata {
     override def file:         String  = "stub"
     override def lastModified: Instant = Instant.EPOCH
@@ -132,8 +130,6 @@ class RetryingStorageInterfaceTest extends AnyFunSuiteLike with Matchers with Be
 
   private val transientDeleteError: FileDeleteError =
     FileDeleteError(new SocketException("Connection reset"), "file")
-
-  // ---- tests ----
 
   test("mvFile: transient error on first attempt, success on second — no task failure") {
     val stub = new CountingStorageInterface(
