@@ -21,6 +21,7 @@ import io.lenses.streamreactor.connect.aws.s3.config.processors.kcql.Deprecation
 import io.lenses.streamreactor.connect.cloud.common.config.CloudConfigDef
 import io.lenses.streamreactor.connect.cloud.common.config.IndexConfigKeys
 import io.lenses.streamreactor.connect.cloud.common.sink.config._
+import io.lenses.streamreactor.connect.cloud.common.sink.config.CommitRetryConfigKeys
 import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.PaddingStrategyConfigKeys
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.Importance
@@ -32,6 +33,7 @@ object S3SinkConfigDef
     with LocalStagingAreaConfigKeys
     with PaddingStrategyConfigKeys
     with IndexConfigKeys
+    with CommitRetryConfigKeys
     with SchemaChangeConfigKeys
     with SkipNullConfigKeys
     with EnableLatestSchemaOptimizationConfigKeys {
@@ -51,6 +53,7 @@ object S3SinkConfigDef
     addLocalStagingAreaToConfigDef(configDef)
     addPaddingToConfigDef(configDef)
     addIndexSettingsToConfigDef(configDef)
+    addCommitRetrySettingsToConfigDef(configDef)
     withSchemaChangeConfig(configDef)
     withSkipNullConfig(configDef)
     withEnableLatestSchemaOptimizationConfig(configDef)

@@ -21,6 +21,7 @@ import io.lenses.streamreactor.common.util.JarManifest
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.sink.CloudSinkTask
 import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
+import io.lenses.streamreactor.connect.cloud.common.storage.TransientErrorClassifier
 
 import io.lenses.streamreactor.connect.gcp.common.auth.GCPConnectionConfig
 import io.lenses.streamreactor.connect.gcp.storage.auth.GCPStorageClientCreator
@@ -29,6 +30,7 @@ import io.lenses.streamreactor.connect.gcp.storage.model.location.GCPStorageLoca
 import io.lenses.streamreactor.connect.gcp.storage.sink.config.GCPStorageSinkConfig
 import io.lenses.streamreactor.connect.gcp.storage.storage.GCPStorageFileMetadata
 import io.lenses.streamreactor.connect.gcp.storage.storage.GCPStorageStorageInterface
+import io.lenses.streamreactor.connect.gcp.storage.storage.GCPTransientErrorClassifier
 
 object GCPStorageSinkTask {}
 class GCPStorageSinkTask
@@ -62,5 +64,8 @@ class GCPStorageSinkTask
     props:           Map[String, String],
   ): Either[Throwable, GCPStorageSinkConfig] =
     GCPStorageSinkConfig.fromProps(connectorTaskId, props)(GCPStorageLocationValidator)
+
+  override def commitRetryClassifier(config: GCPStorageSinkConfig): TransientErrorClassifier =
+    GCPTransientErrorClassifier
 
 }

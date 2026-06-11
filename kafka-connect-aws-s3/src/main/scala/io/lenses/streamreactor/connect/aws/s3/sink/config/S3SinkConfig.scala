@@ -26,6 +26,7 @@ import io.lenses.streamreactor.connect.cloud.common.formats.writer.schema.Schema
 import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodec
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
 import io.lenses.streamreactor.connect.cloud.common.sink.config.CloudSinkBucketOptions
+import io.lenses.streamreactor.connect.cloud.common.sink.config.CommitRetryConfig
 import io.lenses.streamreactor.connect.cloud.common.sink.config.IndexOptions
 
 import scala.util.Try
@@ -65,6 +66,7 @@ object S3SinkConfig extends PropsToConfigConverter[S3SinkConfig] {
       s3ConfigDefBuilder.batchDelete(),
       errorPolicy                 = s3ConfigDefBuilder.getErrorPolicyOrDefault,
       connectorRetryConfig        = s3ConfigDefBuilder.getRetryConfig,
+      commitRetryConfig           = s3ConfigDefBuilder.getCommitRetryConfig,
       logMetrics                  = logMetrics,
       schemaChangeDetector        = schemaChangeDetector,
       skipNullValues              = s3ConfigDefBuilder.skipNullValues(),
@@ -81,6 +83,7 @@ case class S3SinkConfig(
   batchDelete:                 Boolean,
   errorPolicy:                 ErrorPolicy,
   connectorRetryConfig:        RetryConfig,
+  commitRetryConfig:           CommitRetryConfig           = CommitRetryConfig.Default,
   logMetrics:                  Boolean,
   schemaChangeDetector:        SchemaChangeDetector,
   skipNullValues:              Boolean,

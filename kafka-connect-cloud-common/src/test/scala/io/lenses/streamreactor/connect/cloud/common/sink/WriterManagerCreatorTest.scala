@@ -26,6 +26,7 @@ import io.lenses.streamreactor.connect.cloud.common.formats.writer.schema.Schema
 import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodec
 import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodecName
 import io.lenses.streamreactor.connect.cloud.common.sink.config.CloudSinkBucketOptions
+import io.lenses.streamreactor.connect.cloud.common.sink.config.CommitRetryConfig
 import io.lenses.streamreactor.connect.cloud.common.sink.config.IndexOptions
 import io.lenses.streamreactor.connect.cloud.common.sink.metrics.CloudSinkMetrics
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexManagerV2
@@ -48,6 +49,7 @@ class WriterManagerCreatorTest extends AnyFunSuite with Matchers with MockitoSug
     indexOptions:                Option[IndexOptions],
     compressionCodec:            CompressionCodec,
     connectorRetryConfig:        RetryConfig,
+    commitRetryConfig:           CommitRetryConfig    = CommitRetryConfig.Default,
     errorPolicy:                 NoopErrorPolicy,
     logMetrics:                  Boolean              = false,
     schemaChangeDetector:        SchemaChangeDetector = DefaultSchemaChangeDetector,

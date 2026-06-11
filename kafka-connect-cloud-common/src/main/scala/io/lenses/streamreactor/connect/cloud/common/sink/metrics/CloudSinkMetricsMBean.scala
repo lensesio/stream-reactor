@@ -142,6 +142,16 @@ trait CloudSinkMetricsMBean {
    * consistently at the cap, increase the budget or shorten the sweep interval.
    */
   def getSweepGetBudgetUsed: Int
+
+  /**
+   * Cumulative in-process retry attempts for transient failures on the commit-chain
+   * Copy (`mvFile`) and Delete (`deleteFile`) steps inside `RetryingStorageInterface`.
+   * Each increment corresponds to one retry attempt (not the initial attempt).
+   *
+   * Kept distinct from upload retries so that Copy/Delete retries can be tracked
+   * separately on dashboards and alerts.
+   */
+  def getCommitRetriesTotal: Long
 }
 
 class CloudSinkMetrics() extends CloudSinkMetricsMBean {
@@ -163,6 +173,8 @@ class CloudSinkMetrics() extends CloudSinkMetricsMBean {
 
   private val masterLockUpdates  = new LongAdder()
   private val masterLockFailures = new LongAdder()
+
+  private val commitRetriesTotal = new LongAdder()
 
   private val sweepRuns            = new LongAdder()
   private val sweepOrphansEnqueued = new LongAdder()
@@ -192,6 +204,8 @@ class CloudSinkMetrics() extends CloudSinkMetricsMBean {
   override def getSweepOrphansEnqueued: Long = sweepOrphansEnqueued.sum()
   override def getSweepGetBudgetUsed:   Int  = sweepGetBudgetUsed.get()
 
+  override def getCommitRetriesTotal: Long = commitRetriesTotal.sum()
+
   // --- mutators (not exposed via JMX trait) ---
 
   def setWriterCount(count: Int): Unit = writerCount.set(count)
@@ -211,6 +225,8 @@ class CloudSinkMetrics() extends CloudSinkMetricsMBean {
 
   def incrementMasterLockUpdates():  Unit = masterLockUpdates.increment()
   def incrementMasterLockFailures(): Unit = masterLockFailures.increment()
+
+  def incrementCommitRetriesTotal(): Unit = commitRetriesTotal.increment()
 
   def incrementSweepRuns(): Unit = sweepRuns.increment()
   def incrementSweepOrphansEnqueued(count: Long): Unit = sweepOrphansEnqueued.add(count)

@@ -17,6 +17,7 @@ package io.lenses.streamreactor.connect.datalake.sink.config
 
 import io.lenses.streamreactor.connect.cloud.common.config.CloudConfigDef
 import io.lenses.streamreactor.connect.cloud.common.config.IndexConfigKeys
+import io.lenses.streamreactor.connect.cloud.common.sink.config.CommitRetryConfigKeys
 import io.lenses.streamreactor.connect.cloud.common.sink.config.EnableLatestSchemaOptimizationConfigKeys
 import io.lenses.streamreactor.connect.cloud.common.sink.config.FlushConfigKeys
 import io.lenses.streamreactor.connect.cloud.common.sink.config.LocalStagingAreaConfigKeys
@@ -35,6 +36,7 @@ object DatalakeSinkConfigDef
     with LocalStagingAreaConfigKeys
     with PaddingStrategyConfigKeys
     with IndexConfigKeys
+    with CommitRetryConfigKeys
     with SchemaChangeConfigKeys
     with SkipNullConfigKeys
     with EnableLatestSchemaOptimizationConfigKeys {
@@ -64,6 +66,7 @@ object DatalakeSinkConfigDef
     addLocalStagingAreaToConfigDef(configDef)
     addPaddingToConfigDef(configDef)
     addIndexSettingsToConfigDef(configDef)
+    addCommitRetrySettingsToConfigDef(configDef)
     withSchemaChangeConfig(configDef)
     withSkipNullConfig(configDef)
     withEnableLatestSchemaOptimizationConfig(configDef)
