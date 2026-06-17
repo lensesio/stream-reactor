@@ -79,6 +79,7 @@ object ResultReader extends LazyLogging {
     connectorTaskId:         ConnectorTaskId,
     storageInterface:        StorageInterface[SM],
     hasEnvelope:             Boolean,
+    topicFromEnvelope:       Boolean,
   ): CloudLocation => Either[Throwable, ResultReader] = { pathWithLine =>
     for {
       path   <- pathWithLine.path.toRight(new IllegalStateException("No path found"))
@@ -112,6 +113,7 @@ object ResultReader extends LazyLogging {
                 partition,
                 Topic(targetTopic),
                 SourceWatermark.partition(pathWithLine),
+                topicFromEnvelope,
               ),
             )
             _ <- pathWithLine.line match {

@@ -272,6 +272,7 @@ class LateArrivalTouchTaskTest extends AnyFlatSpec with Matchers with MockitoSug
       partitionExtractor    = None,
       orderingType          = mock[io.lenses.streamreactor.connect.cloud.common.source.config.OrderingType],
       hasEnvelope           = false,
+      topicFromEnvelope     = false,
       postProcessAction     = None,
       processLateArrival    = processLateArrival,
     )

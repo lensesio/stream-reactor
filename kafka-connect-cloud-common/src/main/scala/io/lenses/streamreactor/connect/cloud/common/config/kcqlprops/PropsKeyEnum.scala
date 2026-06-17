@@ -49,6 +49,8 @@ object PropsKeyEnum extends Enum[PropsKeyEntry] {
   case object StoreFileNamer        extends PropsKeyEntry(DataStorageSettings.StoreFileNamer)
   case object StoreFileNamerParam   extends PropsKeyEntry(DataStorageSettings.StoreFileNamerParam)
 
+  case object SourceTopicFromEnvelope extends PropsKeyEntry("source.topic.from.envelope")
+
   case object PaddingLength extends PropsKeyEntry("padding.length")
 
   case object PaddingCharacter extends PropsKeyEntry("padding.char")

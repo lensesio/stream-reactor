@@ -64,6 +64,7 @@ class ReaderManagerBuilderTest extends AsyncFlatSpec with AsyncIOSpec with Match
                                                        None,
                                                        OrderingType.LastModified,
                                                        false,
+                                                       false,
                                                        Option.empty,
                                                        false,
     )
@@ -110,6 +111,7 @@ class ReaderManagerBuilderTest extends AsyncFlatSpec with AsyncIOSpec with Match
                                                        100,
                                                        None,
                                                        OrderingType.LastModified,
+                                                       false,
                                                        false,
                                                        Option.empty,
                                                        false,
