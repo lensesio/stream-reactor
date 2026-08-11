@@ -20,6 +20,7 @@ import io.lenses.streamreactor.connect.cloud.common.config.DataStorageSettings
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.FlushCount
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.FlushInterval
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.FlushSize
+import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.KeySuffix
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.PartitionIncludeKeys
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.Count
@@ -284,6 +285,16 @@ class GCPStorageGCPStorageSinkConfigDefBuilderTest
     ).left.value.getMessage should startWith(
       s"${FlushCount.entryName} > 1 is not allowed for BYTES",
     )
+  }
+
+  // Mirrors S3SinkConfigDefBuilderTest's key.suffix reject to prove it fires per-connector.
+  "GCPSinkConfigDefBuilder" should "reject a key.suffix that begins with a digit at sink config time" in {
+    val props = Map(
+      "connect.gcpstorage.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `CSV` PROPERTIES('${KeySuffix.entryName}'='9foo')",
+    )
+
+    CloudSinkBucketOptions(connectorTaskId, GCPStorageSinkConfigDefBuilder(props)).left.value.getMessage should
+      (include(KeySuffix.entryName) and include("digit"))
   }
 
 }
