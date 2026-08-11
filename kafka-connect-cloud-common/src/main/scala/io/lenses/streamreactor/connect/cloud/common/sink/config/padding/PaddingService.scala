@@ -31,21 +31,22 @@ object PaddingService {
   val DefaultPaddingStrategy: PaddingType = LeftPad
   val DefaultPadLength:       Int         = 12
   val DefaultPadChar:         Char        = '0'
-  val DefaultPadFields:       Set[String] = Set("offset")
+  val OffsetField:            String      = "offset"
+  val DefaultPadFields:       Set[String] = Set(OffsetField)
 
   private trait PaddingConfigDetector[C] {
 
     def configApplied(config: C): Boolean
 
-    def processConfig(config: C): PaddingService
+    def processConfig(config: C): Either[Throwable, PaddingService]
 
   }
 
   private object ConfigDefPaddingConfigDetector extends PaddingConfigDetector[PaddingStrategySettings] {
     override def configApplied(config: PaddingStrategySettings): Boolean = config.getPaddingStrategy.nonEmpty
 
-    override def processConfig(config: PaddingStrategySettings): PaddingService =
-      config.getPaddingStrategy.map(ps => new PaddingService(Map("offset" -> ps))).get
+    override def processConfig(config: PaddingStrategySettings): Either[Throwable, PaddingService] =
+      config.getPaddingStrategy.map(ps => new PaddingService(Map(OffsetField -> ps))).get.asRight
   }
 
   private object KcqlPropsPaddingConfigDetector
@@ -53,12 +54,44 @@ object PaddingService {
     override def configApplied(config: KcqlProperties[PropsKeyEntry, PropsKeyEnum.type]): Boolean =
       config.containsKeyStartingWith("padding.")
 
-    override def processConfig(config: KcqlProperties[PropsKeyEntry, PropsKeyEnum.type]): PaddingService =
-      fromDefaults(
-        config.getOptionalChar(PaddingCharacter),
-        config.getOptionalMap[String, Int](PaddingLength, stringToString, stringToInt),
-        config.getEnumValue[PaddingType, PaddingType.type](PaddingType, PaddingSelection),
-      )
+    override def processConfig(
+      config: KcqlProperties[PropsKeyEntry, PropsKeyEnum.type],
+    ): Either[Throwable, PaddingService] = {
+      val maybeFields = config.getOptionalMap[String, Int](PaddingLength, stringToString, stringToInt)
+      val maybeType   = config.getEnumValue[PaddingType, PaddingType.type](PaddingType, PaddingSelection)
+      for {
+        _ <- requireOffsetWhenFieldsConfigured(maybeFields)
+        _ <- requireOffsetPaddingEnabled(maybeFields, maybeType)
+      } yield fromDefaults(config.getOptionalChar(PaddingCharacter), maybeFields, maybeType)
+    }
+
+    private def requireOffsetWhenFieldsConfigured(maybeFields: Option[Map[String, Int]]): Either[Throwable, Unit] =
+      maybeFields.fold(().asRight[Throwable]) {
+        fields =>
+          Either.cond(
+            fields.contains(OffsetField),
+            (),
+            new IllegalArgumentException(
+              s"KCQL property ${PaddingLength.entryName} must include an $OffsetField entry (for example ${PaddingLength.entryName}.$OffsetField=12); " +
+                s"got: ${fields.keys.mkString(", ")}.",
+            ),
+          )
+      }
+
+    private def requireOffsetPaddingEnabled(
+      maybeFields: Option[Map[String, Int]],
+      maybeType:   Option[PaddingType],
+    ): Either[Throwable, Unit] =
+      maybeFields.fold(().asRight[Throwable]) { _ =>
+        Either.cond(
+          !maybeType.contains(PaddingType.NoOp),
+          (),
+          new IllegalArgumentException(
+            s"KCQL property ${PaddingSelection.entryName}=${PaddingType.NoOp.entryName} disables $OffsetField padding " +
+              s"while a ${PaddingLength.entryName} map is configured; remove the map or choose a padding type that pads $OffsetField.",
+          ),
+        )
+      }
 
     private def fromDefaults(
       maybeChar:   Option[Char],
@@ -84,8 +117,8 @@ object PaddingService {
         new IllegalStateException(
           "Unable to process both padding Kafka Connect config properties and KCQL properties.  Please use one or the other.  We recommend KCQL properties for additional configuration ability.",
         ).asLeft
-      case (true, false) => ConfigDefPaddingConfigDetector.processConfig(confDef).asRight
-      case _             => KcqlPropsPaddingConfigDetector.processConfig(props).asRight
+      case (true, false) => ConfigDefPaddingConfigDetector.processConfig(confDef)
+      case _             => KcqlPropsPaddingConfigDetector.processConfig(props)
     }
 
   }

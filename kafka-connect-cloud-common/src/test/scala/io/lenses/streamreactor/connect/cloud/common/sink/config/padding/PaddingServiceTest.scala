@@ -18,6 +18,7 @@ package io.lenses.streamreactor.connect.cloud.common.sink.config.padding
 import cats.implicits.catsSyntaxOptionId
 import cats.implicits.none
 import io.lenses.streamreactor.connect.cloud.common.sink.config.kcqlprops.SinkPropsSchema
+import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.NoOpPaddingStrategy
 import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.PaddingService
 import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.PaddingStrategySettings
 import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.PaddingType
@@ -66,6 +67,7 @@ class PaddingServiceTest extends AnyFunSuite with Matchers with EitherValues {
   test("PaddingService should respect padding defined in KCQL properties") {
     val kcqlProps = SinkPropsSchema.schema.readProps(
       "padding.length.partition" -> "5",
+      "padding.length.offset"    -> "12",
       "padding.char"             -> "#",
       "padding.type"             -> "RightPad",
     )
@@ -74,6 +76,68 @@ class PaddingServiceTest extends AnyFunSuite with Matchers with EitherValues {
 
     paddingService.padderFor("partition").padString("123") shouldEqual "123##"
 
+  }
+
+  test("PaddingService should reject a padding.length map that omits offset") {
+    val kcqlProps = SinkPropsSchema.schema.readProps(
+      "padding.length.partition" -> "5",
+    )
+    val paddingService = PaddingService.fromConfig(mockConfigDefPadding(none), kcqlProps)
+
+    paddingService.left.value.getMessage should (include("padding.length") and include("offset"))
+  }
+
+  test("PaddingService should accept a padding.length map that includes offset") {
+    val kcqlProps = SinkPropsSchema.schema.readProps(
+      "padding.length.partition" -> "5",
+      "padding.length.offset"    -> "8",
+    )
+    val paddingService =
+      PaddingService.fromConfig(mockConfigDefPadding(none), kcqlProps).getOrElse(fail("No padding service found"))
+
+    paddingService.padderFor("offset").padString("123") shouldEqual "00000123"
+    paddingService.padderFor("partition").padString("123") shouldEqual "00123"
+  }
+
+  test("PaddingService should apply an active offset padder for an accepted padding.length map") {
+    val kcqlProps = SinkPropsSchema.schema.readProps(
+      "padding.length.partition" -> "5",
+      "padding.length.offset"    -> "8",
+    )
+    val paddingService =
+      PaddingService.fromConfig(mockConfigDefPadding(none), kcqlProps).getOrElse(fail("No padding service found"))
+
+    paddingService.padderFor("offset") should not be NoOpPaddingStrategy
+  }
+
+  test("PaddingService should accept a padding.length map configuring only offset") {
+    val kcqlProps = SinkPropsSchema.schema.readProps(
+      "padding.length.offset" -> "8",
+    )
+    val paddingService =
+      PaddingService.fromConfig(mockConfigDefPadding(none), kcqlProps).getOrElse(fail("No padding service found"))
+
+    paddingService.padderFor("offset").padString("123") shouldEqual "00000123"
+  }
+
+  test("PaddingService should reject a padding.length map when padding.type disables offset padding") {
+    val kcqlProps = SinkPropsSchema.schema.readProps(
+      "padding.length.offset" -> "12",
+      "padding.type"          -> "NoOp",
+    )
+    val paddingService = PaddingService.fromConfig(mockConfigDefPadding(none), kcqlProps)
+
+    paddingService.left.value.getMessage should (include("padding.type") and include("offset"))
+  }
+
+  test("PaddingService should accept padding.type NoOp when no padding.length map is supplied") {
+    val kcqlProps = SinkPropsSchema.schema.readProps(
+      "padding.type" -> "NoOp",
+    )
+    val paddingService =
+      PaddingService.fromConfig(mockConfigDefPadding(none), kcqlProps).getOrElse(fail("No padding service found"))
+
+    paddingService.padderFor("offset") shouldEqual NoOpPaddingStrategy
   }
 
   test("fromConfig should create a PaddingService from S3SinkConfigDefBuilder operating only on 'offset'") {
