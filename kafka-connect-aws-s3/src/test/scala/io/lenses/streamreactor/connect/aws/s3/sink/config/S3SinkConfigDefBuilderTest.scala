@@ -21,6 +21,7 @@ import io.lenses.streamreactor.connect.cloud.common.config.DataStorageSettings
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.FlushCount
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.FlushInterval
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.FlushSize
+import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.KeySuffix
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.PartitionIncludeKeys
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.Count
@@ -267,6 +268,25 @@ class S3SinkConfigDefBuilderTest extends AnyFlatSpec with MockitoSugar with Matc
     ).left.value.getMessage should startWith(
       s"${FlushCount.entryName} > 1 is not allowed for BYTES",
     )
+  }
+
+  // Exercises the full CloudSinkBucketOptions funnel, not just the KeySuffix helper, so a
+  // regression that stops wiring the reject into sink config validation is caught here too.
+  "S3SinkConfigDefBuilder" should "reject a key.suffix that begins with a digit at sink config time" in {
+    val props = Map(
+      "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `CSV` PROPERTIES('${KeySuffix.entryName}'='9foo')",
+    )
+
+    CloudSinkBucketOptions(connectorTaskId, S3SinkConfigDefBuilder(props)).left.value.getMessage should
+      (include(KeySuffix.entryName) and include("digit"))
+  }
+
+  "S3SinkConfigDefBuilder" should "accept a key.suffix that does not begin with a digit" in {
+    val props = Map(
+      "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `CSV` PROPERTIES('${KeySuffix.entryName}'='foo9')",
+    )
+
+    CloudSinkBucketOptions(connectorTaskId, S3SinkConfigDefBuilder(props)).isRight should be(true)
   }
 
 }

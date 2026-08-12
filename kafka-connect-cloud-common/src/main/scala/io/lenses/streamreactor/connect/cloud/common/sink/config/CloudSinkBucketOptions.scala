@@ -77,7 +77,7 @@ object CloudSinkBucketOptions extends LazyLogging {
         partitionSelection <- PartitionSelection(kcql, sinkProps)
         paddingService     <- PaddingService.fromConfig(config, sinkProps)
         storageSettings    <- DataStorageSettings.from(sinkProps)
-        fileNamerSuffix     = KeySuffix.fromKcql(kcql, SinkPropsSchema.schema)
+        fileNamerSuffix    <- KeySuffix.fromKcql(kcql, SinkPropsSchema.schema)
         objectKeyTemplate   = sinkProps.getString(ObjectKeyTemplate)
         fileNamer <- getFileNamer(storageSettings,
                                   fileExtension,

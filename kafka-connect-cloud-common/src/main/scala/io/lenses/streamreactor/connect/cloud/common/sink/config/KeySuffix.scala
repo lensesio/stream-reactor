@@ -15,6 +15,7 @@
  */
 package io.lenses.streamreactor.connect.cloud.common.sink.config
 
+import cats.implicits.toTraverseOps
 import io.lenses.kcql.Kcql
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEntry
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum
@@ -24,13 +25,28 @@ import scala.jdk.CollectionConverters.MapHasAsScala
 
 object KeySuffix {
 
-  def fromKcql(kcql: Kcql, kcqlPropsSchema: KcqlPropsSchema[PropsKeyEntry, PropsKeyEnum.type]): Option[String] =
+  def fromKcql(
+    kcql:            Kcql,
+    kcqlPropsSchema: KcqlPropsSchema[PropsKeyEntry, PropsKeyEnum.type],
+  ): Either[Throwable, Option[String]] =
     from(kcql.getProperties.asScala.toMap, kcqlPropsSchema)
 
   def from(
     properties:      Map[String, String],
     kcqlPropsSchema: KcqlPropsSchema[PropsKeyEntry, PropsKeyEnum.type],
-  ): Option[String] =
+  ): Either[Throwable, Option[String]] =
     kcqlPropsSchema.readPropsMap(properties)
       .getString(PropsKeyEnum.KeySuffix)
+      .traverse(rejectDigitLeading)
+
+  private def rejectDigitLeading(suffix: String): Either[Throwable, String] =
+    Either.cond(
+      !suffix.headOption.exists(_.isDigit),
+      suffix,
+      new IllegalArgumentException(
+        s"${PropsKeyEnum.KeySuffix.entryName} must not begin with a digit; got '$suffix'. " +
+          s"It is appended directly onto the record timestamp in the file name with no delimiter, " +
+          s"so a digit-leading suffix would merge into the timestamp field.",
+      ),
+    )
 }
