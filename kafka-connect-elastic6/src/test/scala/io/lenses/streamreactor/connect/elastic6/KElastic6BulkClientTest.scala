@@ -29,6 +29,7 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
 import scala.concurrent.Future
+import scala.concurrent.Promise
 
 class KElastic6BulkClientTest extends AnyWordSpec with Matchers with MockitoSugar with ArgumentMatchersSugar {
 
@@ -140,6 +141,19 @@ class KElastic6BulkClientTest extends AnyWordSpec with Matchers with MockitoSuga
       val result = client.bulk(sampleOps)
       result.isFailure shouldBe true
       result.failed.get.getMessage should include("transport error")
+    }
+
+    "time out the bulk Await in milliseconds, not seconds" in {
+      val elasticClient = mock[KElasticClient]
+      when(elasticClient.execute(any[BulkRequest])).thenReturn(Promise[Response[BulkResponse]]().future)
+
+      val client    = new KElastic6BulkClient(elasticClient, writeTimeoutMillis = 200)
+      val start     = System.nanoTime()
+      val result    = client.bulk(sampleOps)
+      val elapsedMs = (System.nanoTime() - start) / 1000000L
+
+      result.isFailure shouldBe true
+      elapsedMs should be < 5000L
     }
   }
 

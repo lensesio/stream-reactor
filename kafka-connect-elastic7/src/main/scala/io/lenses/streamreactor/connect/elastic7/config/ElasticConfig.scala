@@ -86,6 +86,7 @@ object ElasticConfig {
       ElasticConfigConstants.WRITE_TIMEOUT_CONFIG,
       Type.INT,
       ElasticConfigConstants.WRITE_TIMEOUT_DEFAULT,
+      ConfigDef.Range.atLeast(ElasticConfigConstants.WRITE_TIMEOUT_MIN),
       Importance.MEDIUM,
       ElasticConfigConstants.WRITE_TIMEOUT_DOC,
       "Connection",

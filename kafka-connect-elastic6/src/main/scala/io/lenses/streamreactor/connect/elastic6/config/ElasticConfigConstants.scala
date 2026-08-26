@@ -46,9 +46,12 @@ object ElasticConfigConstants {
 
   val WRITE_TIMEOUT_CONFIG = s"${CONNECTOR_PREFIX}.${WRITE_TIMEOUT_SUFFIX}"
   val WRITE_TIMEOUT_DOC =
-    "The time to wait in milliseconds for a bulk request to complete, also used as the HTTP connect/socket timeout. Default 300000 (5 minutes)."
+    io.lenses.streamreactor.connect.elastic.common.config.ElasticCommonConfigConstants.WRITE_TIMEOUT_DOC
   val WRITE_TIMEOUT_DISPLAY = "Write timeout"
-  val WRITE_TIMEOUT_DEFAULT = 300000
+  val WRITE_TIMEOUT_DEFAULT =
+    io.lenses.streamreactor.connect.elastic.common.config.ElasticCommonConfigConstants.WRITE_TIMEOUT_DEFAULT
+  val WRITE_TIMEOUT_MIN =
+    io.lenses.streamreactor.connect.elastic.common.config.ElasticCommonConfigConstants.WRITE_TIMEOUT_MIN
 
   val CLIENT_HTTP_BASIC_AUTH_USERNAME         = s"$CONNECTOR_PREFIX.use.http.username"
   val CLIENT_HTTP_BASIC_AUTH_USERNAME_DEFAULT = ""
@@ -104,7 +107,8 @@ object ElasticConfigConstants {
   val PK_JOINER_SEPARATOR_DOC     = "Separator used when have more that one field in PK"
   val PK_JOINER_SEPARATOR_DEFAULT = "-"
 
-  val BULK_STRICT_ITEM_ERRORS_KEY = s"$CONNECTOR_PREFIX.bulk.strict.item.errors"
+  val BULK_STRICT_ITEM_ERRORS_KEY =
+    s"$CONNECTOR_PREFIX.${io.lenses.streamreactor.connect.elastic.common.config.ElasticCommonConfigConstants.BULK_STRICT_ITEM_ERRORS_SUFFIX}"
   val BULK_STRICT_ITEM_ERRORS_DOC =
     io.lenses.streamreactor.connect.elastic.common.config.ElasticCommonConfigConstants.BULK_STRICT_ITEM_ERRORS_DOC
   val BULK_STRICT_ITEM_ERRORS_DEFAULT =

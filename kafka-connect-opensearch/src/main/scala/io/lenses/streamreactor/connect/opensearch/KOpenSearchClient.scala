@@ -18,12 +18,14 @@ package io.lenses.streamreactor.connect.opensearch
 import com.fasterxml.jackson.databind.JsonNode
 import com.typesafe.scalalogging.StrictLogging
 import io.lenses.streamreactor.connect.elastic.common.bulk.BulkItemError
+import io.lenses.streamreactor.connect.elastic.common.bulk.BulkItemErrorClassifier
 import io.lenses.streamreactor.connect.elastic.common.bulk.BulkOp
 import io.lenses.streamreactor.connect.elastic.common.bulk.BulkResult
 import io.lenses.streamreactor.connect.elastic.common.bulk.DeleteOp
 import io.lenses.streamreactor.connect.elastic.common.bulk.InsertOp
 import io.lenses.streamreactor.connect.elastic.common.bulk.KBulkClient
 import io.lenses.streamreactor.connect.elastic.common.bulk.UpsertOp
+import io.lenses.streamreactor.connect.elastic.common.config.ElasticCommonConfigConstants
 import io.lenses.streamreactor.connect.opensearch.config.OpenSearchSettings
 import org.apache.kafka.connect.errors.ConnectException
 import org.opensearch.client.opensearch.OpenSearchClient
@@ -126,6 +128,7 @@ class KOpenSearchClient(client: OpenSearchClient, settings: OpenSearchSettings) 
           .id(id)
           .document(json)
           .docAsUpsert(true)
+          .retryOnConflict(Int.box(ElasticCommonConfigConstants.UPSERT_RETRY_ON_CONFLICT))
           .build()
         new BulkOperation.Builder().update(updateOp).build()
 
@@ -154,16 +157,18 @@ class KOpenSearchClient(client: OpenSearchClient, settings: OpenSearchSettings) 
             id        = Option(item.id()).getOrElse(""),
             reason    = Option(item.error().reason()).getOrElse(""),
             errorType = Option(item.error().`type`()).getOrElse(""),
-            status    = Option(item.status()).map(_.intValue()).getOrElse(0),
+            status    = item.status(),
           ),
         )
         .toSeq
 
       if (settings.strictItemErrors) {
-        logger.error(s"Bulk write completed with ${itemErrors.size} item-level errors: $itemErrors")
+        logger.error(s"Bulk write completed with ${BulkItemErrorClassifier.formatItemErrors(itemErrors)}")
         BulkResult(took = tookMillis, errors = true, itemErrors = itemErrors)
       } else {
-        logger.warn(s"Bulk write completed with ${itemErrors.size} item-level errors (tolerant mode): $itemErrors")
+        logger.warn(
+          s"Bulk write completed with ${BulkItemErrorClassifier.formatItemErrors(itemErrors)} (tolerant mode)",
+        )
         BulkResult(took = tookMillis, errors = false, itemErrors = Seq.empty)
       }
     }

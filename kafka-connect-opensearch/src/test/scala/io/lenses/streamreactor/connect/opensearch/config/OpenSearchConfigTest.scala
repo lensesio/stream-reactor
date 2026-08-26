@@ -279,6 +279,11 @@ class OpenSearchConfigTest extends AnyFunSuite with Matchers {
     settings(BULK_STRICT_ITEM_ERRORS_KEY -> "false").strictItemErrors shouldBe false
   }
 
+  test("write.timeout below 1000 milliseconds is rejected") {
+    val ex = intercept[ConfigException](settings(WRITE_TIMEOUT -> "60"))
+    ex.getMessage.toLowerCase should include("write.timeout")
+  }
+
   // ---- KCQL splitter ----
 
   test("single KCQL statement parses correctly") {

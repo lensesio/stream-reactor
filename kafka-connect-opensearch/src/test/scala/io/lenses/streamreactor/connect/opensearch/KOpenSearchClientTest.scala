@@ -311,8 +311,8 @@ class KOpenSearchClientTest extends AnyFunSuite with Matchers {
     indexOp.pipeline() shouldBe null
   }
 
-  // B8: UPSERT action lines must NOT contain forbidden fields either
-  test("B8: UpsertOp serialised action line contains no routing/retryOnConflict fields beyond docAsUpsert") {
+  // B8: UPSERT sets retry_on_conflict so concurrent updates don't fail the task on first 409
+  test("B8: UpsertOp sets retryOnConflict and does not set routing") {
     val captor = ArgumentCaptor.forClass(classOf[BulkRequest])
     val client = makeClient(
       makeInfoResponse("opensearch", "2.13.0"),
@@ -328,7 +328,9 @@ class KOpenSearchClientTest extends AnyFunSuite with Matchers {
     op.isUpdate shouldBe true
     val updateOp = op.update()
     updateOp.routing() shouldBe null
-    updateOp.retryOnConflict() shouldBe null
+    updateOp.retryOnConflict() shouldBe Integer.valueOf(
+      io.lenses.streamreactor.connect.elastic.common.config.ElasticCommonConfigConstants.UPSERT_RETRY_ON_CONFLICT,
+    )
   }
 
   // A4: empty-id guard

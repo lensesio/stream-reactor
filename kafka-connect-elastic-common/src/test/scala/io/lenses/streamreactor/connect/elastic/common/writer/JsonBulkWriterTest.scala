@@ -635,4 +635,44 @@ class JsonBulkWriterTest
     thrown should not be a[RetriableIntegrityException]
     thrown should not be a[RetriableException]
   }
+
+  test("409 version conflict under RETRY surfaces as RetriableException") {
+    val writer = new JsonBulkWriter(
+      failingClient(
+        Seq(BulkItemError("idx", "1", "version conflict", "version_conflict_engine_exception", 409)),
+      ),
+      ElasticCommonSettings(
+        kcqls       = Seq(io.lenses.kcql.Kcql.parse("INSERT INTO idx SELECT * FROM topic")),
+        errorPolicy = RetryErrorPolicy(),
+        taskRetries = 20,
+        storesInfo  = defaultStoresInfo,
+      ),
+    )
+    val thrown = intercept[RetriableException](writer.write(Vector(record("topic", "k", struct(1, "x")))))
+    thrown.getCause shouldBe a[RetriableIntegrityException]
+  }
+
+  test("mapper error whose reason mentions rejected execution is still fatal under RETRY") {
+    val writer = new JsonBulkWriter(
+      failingClient(
+        Seq(
+          BulkItemError(
+            "idx",
+            "1",
+            "failed to parse field [foo]: Preview of field's value: 'rejected execution'",
+            "mapper_parsing_exception",
+            400,
+          ),
+        ),
+      ),
+      ElasticCommonSettings(
+        kcqls       = Seq(io.lenses.kcql.Kcql.parse("INSERT INTO idx SELECT * FROM topic")),
+        errorPolicy = RetryErrorPolicy(),
+        taskRetries = 20,
+        storesInfo  = defaultStoresInfo,
+      ),
+    )
+    val thrown = intercept[FatalConnectException](writer.write(Vector(record("topic", "k", struct(1, "x")))))
+    thrown should not be a[RetriableException]
+  }
 }

@@ -108,8 +108,9 @@ class OpenSearchParityContractTest extends AnyFunSuite with Matchers {
 
   // --- 5. write.timeout unit differs across connectors ---
 
-  test("PARITY-5: write.timeout default is 300000 milliseconds") {
+  test("PARITY-5: write.timeout default is 300000 milliseconds with a 1000ms floor") {
     import io.lenses.streamreactor.connect.elastic.common.config.ElasticCommonConfigConstants
     ElasticCommonConfigConstants.WRITE_TIMEOUT_DEFAULT shouldBe 300000
+    ElasticCommonConfigConstants.WRITE_TIMEOUT_MIN shouldBe 1000
   }
 }

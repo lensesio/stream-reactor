@@ -19,12 +19,14 @@ import com.sksamuel.elastic4s.Index
 import com.sksamuel.elastic4s.http.ElasticDsl
 import com.typesafe.scalalogging.StrictLogging
 import io.lenses.streamreactor.connect.elastic.common.bulk.BulkItemError
+import io.lenses.streamreactor.connect.elastic.common.bulk.BulkItemErrorClassifier
 import io.lenses.streamreactor.connect.elastic.common.bulk.BulkOp
 import io.lenses.streamreactor.connect.elastic.common.bulk.BulkResult
 import io.lenses.streamreactor.connect.elastic.common.bulk.DeleteOp
 import io.lenses.streamreactor.connect.elastic.common.bulk.InsertOp
 import io.lenses.streamreactor.connect.elastic.common.bulk.KBulkClient
 import io.lenses.streamreactor.connect.elastic.common.bulk.UpsertOp
+import io.lenses.streamreactor.connect.elastic.common.config.ElasticCommonConfigConstants
 import io.lenses.streamreactor.connect.elastic.common.config.ElasticCommonSettings
 
 import scala.concurrent.Await
@@ -78,6 +80,7 @@ class KElastic6BulkClient(
         update(id)
           .in(index / docType)
           .docAsUpsert(json.toString)
+          .retryOnConflict(ElasticCommonConfigConstants.UPSERT_RETRY_ON_CONFLICT)
 
       case DeleteOp(index, id, documentType) =>
         val docType = documentType.getOrElse(index)
@@ -107,10 +110,10 @@ class KElastic6BulkClient(
 
     if (itemErrors.nonEmpty) {
       if (strictItemErrors) {
-        logger.error(s"Bulk write completed with ${itemErrors.size} item-level errors: $itemErrors")
+        logger.error(s"Bulk write completed with ${BulkItemErrorClassifier.formatItemErrors(itemErrors)}")
       } else {
         logger.warn(
-          s"Bulk write completed with ${itemErrors.size} item-level errors (tolerant mode): $itemErrors",
+          s"Bulk write completed with ${BulkItemErrorClassifier.formatItemErrors(itemErrors)} (tolerant mode)",
         )
       }
     }
