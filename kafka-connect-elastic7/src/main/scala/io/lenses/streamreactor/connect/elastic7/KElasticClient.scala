@@ -58,7 +58,11 @@ object KElasticClient extends StrictLogging {
     val client: ElasticClient = ElasticClient(
       JavaClient(
         ElasticProperties(endpoints),
-        (requestConfigBuilder: Builder) => requestConfigBuilder,
+        (requestConfigBuilder: Builder) =>
+          requestConfigBuilder
+            .setConnectTimeout(settings.writeTimeout)
+            .setSocketTimeout(settings.writeTimeout)
+            .setConnectionRequestTimeout(settings.writeTimeout),
         (httpClientBuilder: HttpAsyncClientBuilder) => {
           maybeProvider.foreach(httpClientBuilder.setDefaultCredentialsProvider)
           unpackOrThrow(settings.storesInfo.toSslContext).map(httpClientBuilder.setSSLContext(_))

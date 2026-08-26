@@ -150,9 +150,11 @@ class KOpenSearchClient(client: OpenSearchClient, settings: OpenSearchSettings) 
         .filter(item => item.error() != null)
         .map(item =>
           BulkItemError(
-            index  = Option(item.index()).getOrElse(""),
-            id     = Option(item.id()).getOrElse(""),
-            reason = Option(item.error().reason()).getOrElse(""),
+            index     = Option(item.index()).getOrElse(""),
+            id        = Option(item.id()).getOrElse(""),
+            reason    = Option(item.error().reason()).getOrElse(""),
+            errorType = Option(item.error().`type`()).getOrElse(""),
+            status    = Option(item.status()).map(_.intValue()).getOrElse(0),
           ),
         )
         .toSeq

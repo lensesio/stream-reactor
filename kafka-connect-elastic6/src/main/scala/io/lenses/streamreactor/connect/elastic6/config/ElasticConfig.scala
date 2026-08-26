@@ -191,6 +191,17 @@ object ElasticConfig {
       ConfigDef.Width.MEDIUM,
       ElasticConfigConstants.PROGRESS_COUNTER_ENABLED_DISPLAY,
     )
+    .define(
+      ElasticConfigConstants.BULK_STRICT_ITEM_ERRORS_KEY,
+      Type.BOOLEAN,
+      ElasticConfigConstants.BULK_STRICT_ITEM_ERRORS_DEFAULT,
+      Importance.HIGH,
+      ElasticConfigConstants.BULK_STRICT_ITEM_ERRORS_DOC,
+      "Error",
+      4,
+      ConfigDef.Width.SHORT,
+      ElasticConfigConstants.BULK_STRICT_ITEM_ERRORS_KEY,
+    )
     .withClientSslSupport()
 }
 

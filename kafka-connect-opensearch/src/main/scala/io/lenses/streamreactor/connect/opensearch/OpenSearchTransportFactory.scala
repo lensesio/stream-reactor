@@ -185,10 +185,8 @@ object OpenSearchTransportFactory extends StrictLogging {
         },
       )
 
-      // (2) HTTP-layer timeouts.  Intentional unit divergence from elastic6/elastic7 (which
-      //     interpret `write.timeout` as seconds for pre-2026 backwards compatibility):
-      //     OpenSearch interprets the same value as milliseconds because the HC5 request-
-      //     config API takes millis.
+      // (2) HTTP-layer timeouts. `connect.opensearch.write.timeout` is milliseconds
+      //     (default 300000 = 5 minutes), matching ES6/ES7.
       val requestConfig = RequestConfig.custom()
         .setConnectionRequestTimeout(Timeout.ofMilliseconds(writeTimeoutMs))
         .setResponseTimeout(Timeout.ofMilliseconds(writeTimeoutMs))

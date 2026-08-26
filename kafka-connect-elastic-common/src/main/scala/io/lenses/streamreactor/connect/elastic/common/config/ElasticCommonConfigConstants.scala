@@ -46,7 +46,8 @@ object ElasticCommonConfigConstants {
   val KCQL_DOC    = "KCQL expression describing field selection and routes."
 
   val WRITE_TIMEOUT_SUFFIX_ = WRITE_TIMEOUT_SUFFIX
-  val WRITE_TIMEOUT_DOC     = "The time to wait in millis. Default is 5 minutes."
+  val WRITE_TIMEOUT_DOC =
+    "The time to wait in milliseconds for a bulk request (and the HTTP connect/socket timeout). Default 300000 (5 minutes)."
   val WRITE_TIMEOUT_DISPLAY = "Write timeout"
   val WRITE_TIMEOUT_DEFAULT = 300000
 
@@ -97,4 +98,14 @@ object ElasticCommonConfigConstants {
   val PK_JOINER_SEPARATOR_DEFAULT = "-"
 
   val BEHAVIOR_ON_NULL_VALUES_PROPERTY = "behavior.on.null.values"
+
+  val BULK_STRICT_ITEM_ERRORS_SUFFIX = "bulk.strict.item.errors"
+  val BULK_STRICT_ITEM_ERRORS_DOC =
+    """When true (default), any per-item bulk failure goes through ErrorPolicy.
+      |HTTP 429 / es_rejected_execution_exception (write-queue saturation) is classified as retriable
+      |and surfaces as RetriableIntegrityException: error.policy=RETRY re-delivers the batch; NOOP and THROW fail the task.
+      |Mapper conflicts and other permanent item errors surface as FatalConnectException (never retried, never swallowed).
+      |When false, only HTTP-transport errors are surfaced; per-item failures are logged at WARN and dropped.
+      |WARNING: Setting bulk.strict.item.errors=false swallows rejected documents and advances Kafka offsets past them.""".stripMargin
+  val BULK_STRICT_ITEM_ERRORS_DEFAULT = true
 }

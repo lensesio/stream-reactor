@@ -26,6 +26,19 @@ class ElasticConfigTest extends TestBase {
     config.getString(ElasticConfigConstants.KCQL) shouldBe QUERY
   }
 
+  "A ElasticConfig should default bulk.strict.item.errors to true and write.timeout to 300000" in {
+    val config = new ElasticConfig(getElasticSinkConfigProps())
+    config.getBoolean(ElasticConfigConstants.BULK_STRICT_ITEM_ERRORS_KEY) shouldBe true
+    config.getInt(ElasticConfigConstants.WRITE_TIMEOUT_CONFIG) shouldBe 300000
+  }
+
+  "A ElasticConfig should honour bulk.strict.item.errors=false" in {
+    val config = new ElasticConfig(
+      getElasticSinkConfigProps() + (ElasticConfigConstants.BULK_STRICT_ITEM_ERRORS_KEY -> "false"),
+    )
+    config.getBoolean(ElasticConfigConstants.BULK_STRICT_ITEM_ERRORS_KEY) shouldBe false
+  }
+
   "A ElasticConfig should return the http basic auth username and password when set" in {
     val config = new ElasticConfig(getElasticSinkConfigPropsHTTPClient(auth = true))
     config.getString(ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_USERNAME) shouldBe BASIC_AUTH_USERNAME

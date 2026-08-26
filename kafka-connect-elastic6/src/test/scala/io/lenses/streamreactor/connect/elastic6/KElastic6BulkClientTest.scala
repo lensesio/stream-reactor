@@ -47,7 +47,7 @@ class KElastic6BulkClientTest extends AnyWordSpec with Matchers with MockitoSuga
     "return errors=false and empty itemErrors when all items succeed" in {
       val (client, elasticClient) = setup()
 
-      val successItem = bulkResponseItem(id = "doc1", index = "myindex", error = None)
+      val successItem = bulkResponseItem(id = "doc1", index = "myindex", error = None, status = 201)
       val bulkResp =
         BulkResponse(took = 5L, errors = false, _items = Seq(BulkResponseItems(Some(successItem), None, None, None)))
       when(elasticClient.result).thenReturn(bulkResp)
@@ -58,8 +58,8 @@ class KElastic6BulkClientTest extends AnyWordSpec with Matchers with MockitoSuga
       result.get.itemErrors shouldBe empty
     }
 
-    "log item-level errors but return errors=false (ES6 tolerant mode / ES7 parity)" in {
-      val (client, elasticClient) = setup()
+    "return errors=true and populate itemErrors in strict mode" in {
+      val (client, elasticClient) = setup(strict = true)
 
       val err = BulkError(`type` = "mapper_parsing_exception",
                           reason     = "failed to parse field [foo]",
@@ -67,7 +67,7 @@ class KElastic6BulkClientTest extends AnyWordSpec with Matchers with MockitoSuga
                           shard      = 0,
                           index      = "myindex",
       )
-      val errItem = bulkResponseItem(id = "doc1", index = "myindex", error = Some(err))
+      val errItem = bulkResponseItem(id = "doc1", index = "myindex", error = Some(err), status = 400)
       val bulkResp =
         BulkResponse(took = 3L, errors = true, _items = Seq(BulkResponseItems(Some(errItem), None, None, None)))
       when(elasticClient.result).thenReturn(bulkResp)
@@ -75,36 +75,49 @@ class KElastic6BulkClientTest extends AnyWordSpec with Matchers with MockitoSuga
       val result = client.bulk(sampleOps)
       result.isSuccess shouldBe true
       val br = result.get
-      br.errors shouldBe false
-      br.itemErrors shouldBe empty
+      br.errors shouldBe true
+      br.itemErrors should have size 1
+      br.itemErrors.head.errorType shouldBe "mapper_parsing_exception"
+      br.itemErrors.head.status shouldBe 400
     }
 
-    "log multiple item-level errors but return errors=false regardless of transport errors flag" in {
-      val (client, elasticClient) = setup()
+    "return errors=false in tolerant mode even when items fail" in {
+      val (client, elasticClient) = setup(strict = false)
 
-      val err1 =
-        BulkError(`type` = "version_conflict", reason = "version conflict", index_uuid = "x", shard = 0, index = "idx")
-      val err2 = BulkError(`type` = "version_conflict",
-                           reason     = "version conflict 2",
-                           index_uuid = "x",
-                           shard      = 0,
-                           index      = "idx",
+      val err = BulkError(`type` = "mapper_parsing_exception",
+                          reason     = "failed to parse field [foo]",
+                          index_uuid = "abc",
+                          shard      = 0,
+                          index      = "myindex",
       )
-      val errItem1 = bulkResponseItem(id = "doc1", index = "idx", error = Some(err1))
-      val errItem2 = bulkResponseItem(id = "doc2", index = "idx", error = Some(err2))
-      val bulkResp = BulkResponse(
-        took   = 2L,
-        errors = false,
-        _items =
-          Seq(BulkResponseItems(Some(errItem1), None, None, None), BulkResponseItems(Some(errItem2), None, None, None)),
-      )
+      val errItem = bulkResponseItem(id = "doc1", index = "myindex", error = Some(err), status = 400)
+      val bulkResp =
+        BulkResponse(took = 3L, errors = true, _items = Seq(BulkResponseItems(Some(errItem), None, None, None)))
       when(elasticClient.result).thenReturn(bulkResp)
 
       val result = client.bulk(sampleOps)
       result.isSuccess shouldBe true
-      val br = result.get
-      br.errors shouldBe false
-      br.itemErrors shouldBe empty
+      result.get.errors shouldBe false
+      result.get.itemErrors shouldBe empty
+    }
+
+    "populate 429 item errors in strict mode" in {
+      val (client, elasticClient) = setup(strict = true)
+      val err = BulkError(`type` = "es_rejected_execution_exception",
+                          reason     = "rejected execution",
+                          index_uuid = "x",
+                          shard      = 0,
+                          index      = "idx",
+      )
+      val errItem = bulkResponseItem(id = "doc1", index = "idx", error = Some(err), status = 429)
+      val bulkResp =
+        BulkResponse(took = 1L, errors = true, _items = Seq(BulkResponseItems(Some(errItem), None, None, None)))
+      when(elasticClient.result).thenReturn(bulkResp)
+
+      val br = client.bulk(sampleOps).get
+      br.errors shouldBe true
+      br.itemErrors.head.status shouldBe 429
+      br.itemErrors.head.errorType shouldBe "es_rejected_execution_exception"
     }
 
     "surface a transport-level error as a Failure" in {
@@ -123,23 +136,28 @@ class KElastic6BulkClientTest extends AnyWordSpec with Matchers with MockitoSuga
         ),
       )
 
-      val client = new KElastic6BulkClient(elasticClient, writeTimeoutSeconds = 5000)
+      val client = new KElastic6BulkClient(elasticClient, writeTimeoutMillis = 5000)
       val result = client.bulk(sampleOps)
       result.isFailure shouldBe true
       result.failed.get.getMessage should include("transport error")
     }
   }
 
-  private def setup(): (KElastic6BulkClient, Response[BulkResponse]) = {
+  private def setup(strict: Boolean = true): (KElastic6BulkClient, Response[BulkResponse]) = {
     val elasticClient = mock[KElasticClient]
     val mockResp      = mock[Response[BulkResponse]]
     when(elasticClient.execute(any[BulkRequest])).thenReturn(Future.successful(mockResp))
     when(mockResp.isError).thenReturn(false)
-    val client = new KElastic6BulkClient(elasticClient, writeTimeoutSeconds = 5000)
+    val client = new KElastic6BulkClient(elasticClient, writeTimeoutMillis = 5000, strictItemErrors = strict)
     (client, mockResp)
   }
 
-  private def bulkResponseItem(id: String, index: String, error: Option[BulkError]): BulkResponseItem =
+  private def bulkResponseItem(
+    id:     String,
+    index:  String,
+    error:  Option[BulkError],
+    status: Int,
+  ): BulkResponseItem =
     BulkResponseItem(
       itemId        = 0,
       id            = id,
@@ -152,7 +170,7 @@ class KElastic6BulkClientTest extends AnyWordSpec with Matchers with MockitoSuga
       found         = false,
       created       = error.isEmpty,
       result        = if (error.isDefined) "error" else "created",
-      status        = if (error.isDefined) 400 else 201,
+      status        = status,
       error         = error,
       shards        = None,
     )

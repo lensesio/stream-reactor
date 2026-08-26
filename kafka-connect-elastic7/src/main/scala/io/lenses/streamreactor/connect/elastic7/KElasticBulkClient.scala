@@ -18,32 +18,44 @@ package io.lenses.streamreactor.connect.elastic7
 import com.sksamuel.elastic4s.ElasticDsl
 import com.sksamuel.elastic4s.Index
 import com.typesafe.scalalogging.StrictLogging
+import io.lenses.streamreactor.connect.elastic.common.bulk.BulkItemError
 import io.lenses.streamreactor.connect.elastic.common.bulk.BulkOp
 import io.lenses.streamreactor.connect.elastic.common.bulk.BulkResult
 import io.lenses.streamreactor.connect.elastic.common.bulk.DeleteOp
 import io.lenses.streamreactor.connect.elastic.common.bulk.InsertOp
 import io.lenses.streamreactor.connect.elastic.common.bulk.KBulkClient
 import io.lenses.streamreactor.connect.elastic.common.bulk.UpsertOp
+import io.lenses.streamreactor.connect.elastic.common.config.ElasticCommonSettings
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
 import scala.util.Try
 
 /**
- * Adapts the elastic4s-based [[KElasticClient]] to the [[KBulkClient]] trait used by the shared [[io.lenses.streamreactor.connect.elastic.common.writer.JsonBulkWriter]].
+ * Adapts the elastic4s-based [[KElasticClient]] to the [[KBulkClient]] trait used by the shared
+ * [[io.lenses.streamreactor.connect.elastic.common.writer.JsonBulkWriter]].
  *
- * Error handling preserves ES7 parity: HTTP-transport errors are surfaced via the returned `Try`; per-item
- * bulk errors (e.g. mapping conflicts) are silently dropped (logged at WARN) to match the original
- * [[ElasticJsonWriter]] behaviour.
+ * HTTP-transport errors are surfaced via the returned `Try`. Per-item bulk errors are controlled
+ * by [[strictItemErrors]] (config `connect.elastic.bulk.strict.item.errors`, default true):
+ *  - true: `BulkResult.errors=true` so JsonBulkWriter classifies 429 vs mapper errors
+ *  - false: logged at WARN and dropped (legacy tolerant mode)
  *
- * @param writeTimeoutSeconds timeout in **seconds**, preserving the pre-refactor ES7 interpretation of
- *                            `connect.elastic.write.timeout` (default 300000 ≈ 83 hours, effectively
- *                            unbounded). Despite the config doc historically claiming "millis", the old
- *                            `ElasticJsonWriter` always passed this value to `Await.result` as `.seconds`.
- *                            We preserve that here to avoid breaking existing deployments. OpenSearch uses
- *                            milliseconds instead (see OpenSearchTransportFactory).
+ * @param writeTimeoutMillis timeout in **milliseconds** for `Await.result` on the bulk Future.
+ *                           The same value is applied as the HTTP connect/socket timeout on
+ *                           [[KElasticClient.createHttpClient]]. Default 300000 = 5 minutes.
  */
-class KElasticBulkClient(client: KElasticClient, writeTimeoutSeconds: Int) extends KBulkClient with StrictLogging {
+class KElasticBulkClient(
+  client:             KElasticClient,
+  writeTimeoutMillis: Int,
+  strictItemErrors:   Boolean = true,
+) extends KBulkClient
+    with StrictLogging {
+
+  if (writeTimeoutMillis < 1000) {
+    logger.warn(
+      s"connect.elastic.write.timeout=$writeTimeoutMillis is less than 1 second. This setting is in milliseconds.",
+    )
+  }
 
   override def bulk(ops: Seq[BulkOp]): Try[BulkResult] = Try {
     import ElasticDsl._
@@ -62,7 +74,7 @@ class KElasticBulkClient(client: KElasticClient, writeTimeoutSeconds: Int) exten
         deleteById(new Index(index), id)
     }
 
-    val response = Await.result(client.execute(ElasticDsl.bulk(elasticRequests)), writeTimeoutSeconds.seconds)
+    val response = Await.result(client.execute(ElasticDsl.bulk(elasticRequests)), writeTimeoutMillis.millis)
 
     if (response.isError) {
       throw new RuntimeException(s"Elastic bulk transport error: ${response.error.reason}")
@@ -71,19 +83,34 @@ class KElasticBulkClient(client: KElasticClient, writeTimeoutSeconds: Int) exten
     val result     = response.result
     val tookMillis = result.took
 
-    // ES7 parity: item-level errors are logged at WARN but treated as non-fatal (tolerant mode).
-    val itemErrorMessages = result.items
-      .filter(_.error.isDefined)
-      .map(item => s"[${item.index}/${item.id}] ${item.error.map(_.reason).getOrElse("")}")
+    val itemErrors: Seq[BulkItemError] = result.items.collect {
+      case item if item.error.isDefined =>
+        val err = item.error.get
+        BulkItemError(
+          index     = item.index,
+          id        = item.id,
+          reason    = err.reason,
+          errorType = err.`type`,
+          status    = item.status,
+        )
+    }
 
-    if (itemErrorMessages.nonEmpty) {
-      logger.warn(
-        s"Bulk write completed with ${itemErrorMessages.size} item-level errors (ES7 tolerant mode): $itemErrorMessages",
-      )
+    if (itemErrors.nonEmpty) {
+      if (strictItemErrors) {
+        logger.error(s"Bulk write completed with ${itemErrors.size} item-level errors: $itemErrors")
+      } else {
+        logger.warn(
+          s"Bulk write completed with ${itemErrors.size} item-level errors (tolerant mode): $itemErrors",
+        )
+      }
     }
 
     logger.info(s"Bulk write completed: took=${tookMillis}ms, items=${result.items.size}")
-    BulkResult(took = tookMillis, errors = false, itemErrors = Seq.empty)
+    if (itemErrors.nonEmpty && strictItemErrors) {
+      BulkResult(took = tookMillis, errors = true, itemErrors = itemErrors)
+    } else {
+      BulkResult(took = tookMillis, errors = false, itemErrors = Seq.empty)
+    }
   }
 
   override def createIndex(name: String): Try[Unit] = Try {
@@ -91,4 +118,9 @@ class KElasticBulkClient(client: KElasticClient, writeTimeoutSeconds: Int) exten
   }
 
   override def close(): Unit = client.close()
+}
+
+object KElasticBulkClient {
+  def apply(client: KElasticClient, settings: ElasticCommonSettings): KElasticBulkClient =
+    new KElasticBulkClient(client, settings.writeTimeout, settings.strictItemErrors)
 }

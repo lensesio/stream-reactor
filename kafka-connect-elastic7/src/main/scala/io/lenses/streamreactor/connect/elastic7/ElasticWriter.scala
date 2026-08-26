@@ -40,9 +40,9 @@ object ElasticWriter {
     val settings = ElasticSettings(config)
 
     new JsonBulkWriter(
-      new KElasticBulkClient(
+      KElasticBulkClient(
         KElasticClient.createHttpClient(settings, endpoints(hostNames, protocol, port, prefix).toIndexedSeq),
-        settings.writeTimeout,
+        settings,
       ),
       settings,
     )

@@ -31,4 +31,10 @@ class ElasticConfigTest extends TestBase {
     config.getString(ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_USERNAME) shouldBe BASIC_AUTH_USERNAME
     config.getString(ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_PASSWORD) shouldBe BASIC_AUTH_PASSWORD
   }
+
+  "A ElasticConfig should default bulk.strict.item.errors to true and write.timeout to 300000" in {
+    val config = new ElasticConfig(getElasticSinkConfigProps())
+    config.getBoolean(ElasticConfigConstants.BULK_STRICT_ITEM_ERRORS_KEY) shouldBe true
+    config.getInt(ElasticConfigConstants.WRITE_TIMEOUT_CONFIG) shouldBe 300000
+  }
 }

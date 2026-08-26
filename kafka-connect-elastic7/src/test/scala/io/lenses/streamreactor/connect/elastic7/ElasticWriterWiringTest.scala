@@ -51,7 +51,7 @@ class ElasticWriterWiringTest extends AnyWordSpec with Matchers with MockitoSuga
       when(bulkResult.took).thenReturn(1L)
       when(bulkResult.items).thenReturn(Seq.empty)
 
-      val bulkClient = new KElasticBulkClient(elasticClient, writeTimeoutSeconds = 5000)
+      val bulkClient = new KElasticBulkClient(elasticClient, writeTimeoutMillis = 5000)
 
       val sourceTopic = "source"
       val targetIndex = "target"
@@ -81,7 +81,7 @@ class ElasticWriterWiringTest extends AnyWordSpec with Matchers with MockitoSuga
 
     "supportsDocumentType is false for ES7 (WITHDOCTYPE is silently ignored)" in {
       val elasticClient = mock[KElasticClient]
-      val bulkClient    = new KElasticBulkClient(elasticClient, writeTimeoutSeconds = 5000)
+      val bulkClient    = new KElasticBulkClient(elasticClient, writeTimeoutMillis = 5000)
       bulkClient.supportsDocumentType shouldBe false
     }
   }

@@ -47,7 +47,7 @@ class ElasticWriterSelectionTest extends ITBase with MockitoSugar {
 
     val settings = ElasticSettings(config)
     val writer =
-      new JsonBulkWriter(new KElasticBulkClient(new HttpKElasticClient(client), settings.writeTimeout), settings)
+      new JsonBulkWriter(KElasticBulkClient(new HttpKElasticClient(client), settings), settings)
     //write records to elastic
     writer.write(testRecords)
 
@@ -82,7 +82,7 @@ class ElasticWriterSelectionTest extends ITBase with MockitoSugar {
 
     val settings = ElasticSettings(config)
     val writer =
-      new JsonBulkWriter(new KElasticBulkClient(new HttpKElasticClient(client), settings.writeTimeout), settings)
+      new JsonBulkWriter(KElasticBulkClient(new HttpKElasticClient(client), settings), settings)
     //write records to elastic
     writer.write(testRecords)
 
@@ -114,7 +114,7 @@ class ElasticWriterSelectionTest extends ITBase with MockitoSugar {
     val client: ElasticClient = CreateLocalNodeClientUtil.createLocalNodeClient(localNode)
     val settings = ElasticSettings(config)
     val writer =
-      new JsonBulkWriter(new KElasticBulkClient(new HttpKElasticClient(client), settings.writeTimeout), settings)
+      new JsonBulkWriter(KElasticBulkClient(new HttpKElasticClient(client), settings), settings)
     //First run writes records to elastic
     writer.write(testRecords)
 
@@ -161,7 +161,7 @@ class ElasticWriterSelectionTest extends ITBase with MockitoSugar {
     val client: ElasticClient = CreateLocalNodeClientUtil.createLocalNodeClient(localNode)
     val settings = ElasticSettings(config)
     val writer =
-      new JsonBulkWriter(new KElasticBulkClient(new HttpKElasticClient(client), settings.writeTimeout), settings)
+      new JsonBulkWriter(KElasticBulkClient(new HttpKElasticClient(client), settings), settings)
     //First run writes records to elastic
     writer.write(testRecords)
 

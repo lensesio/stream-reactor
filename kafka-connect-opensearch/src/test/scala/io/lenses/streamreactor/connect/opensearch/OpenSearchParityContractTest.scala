@@ -30,9 +30,8 @@ import org.scalatest.matchers.should.Matchers
  *
  * === Intentional differences from ES7 ===
  *
- * 1. [[BULK_STRICT_ITEM_ERRORS_KEY]] defaults to `true` for OpenSearch (ES7 is always `false`).
- *    OpenSearch exposes per-item mapping errors through ErrorPolicy; ES7 swallows them for
- *    backward compatibility.
+ * 1. [[BULK_STRICT_ITEM_ERRORS_KEY]] defaults to `true` (same as ES6/ES7). Setting it `false`
+ *    restores legacy tolerant mode that swallows per-item bulk failures.
  *
  * 2. [[ES_PREFIX]] (tableprefix) is rejected. The HC5 transport has no path-prefix API.
  *
@@ -42,9 +41,7 @@ import org.scalatest.matchers.should.Matchers
  * 4. [[WITHDOCTYPE]] KCQL clause is silently ignored on OpenSearch (and ES7). It is NOT ignored
  *    on ES6, where `KElastic6BulkClient.supportsDocumentType == true` prevents the warning.
  *
- * 5. `write.timeout` unit differs by connector. ES6 and ES7 interpret it as **seconds** to preserve
- *    pre-refactor behaviour (default 300 000 ≈ 83h, effectively unbounded). OpenSearch interprets it
- *    as **milliseconds** (default 300 000 = 5 minutes), matching the HTTP-client request-timeout API.
+ * 5. `write.timeout` is milliseconds on ES6, ES7 and OpenSearch (default 300000 = 5 minutes).
  */
 class OpenSearchParityContractTest extends AnyFunSuite with Matchers {
 
@@ -59,11 +56,11 @@ class OpenSearchParityContractTest extends AnyFunSuite with Matchers {
 
   // --- 1. Bulk item-error strictness ---
 
-  test("PARITY-1: bulk.strict.item.errors defaults to true (stricter than ES7 tolerant-always-false)") {
+  test("PARITY-1: bulk.strict.item.errors defaults to true") {
     settings().strictItemErrors shouldBe true
   }
 
-  test("PARITY-1: bulk.strict.item.errors=false restores ES7-compatible tolerant mode") {
+  test("PARITY-1: bulk.strict.item.errors=false restores legacy tolerant mode") {
     settings(BULK_STRICT_ITEM_ERRORS_KEY -> "false").strictItemErrors shouldBe false
   }
 
@@ -111,10 +108,8 @@ class OpenSearchParityContractTest extends AnyFunSuite with Matchers {
 
   // --- 5. write.timeout unit differs across connectors ---
 
-  test("PARITY-5: write.timeout default is 300000 (seconds on ES6/ES7, millis on OpenSearch)") {
+  test("PARITY-5: write.timeout default is 300000 milliseconds") {
     import io.lenses.streamreactor.connect.elastic.common.config.ElasticCommonConfigConstants
     ElasticCommonConfigConstants.WRITE_TIMEOUT_DEFAULT shouldBe 300000
-    // ES6/ES7: 300_000.seconds ≈ 83h (legacy, unbounded-in-practice)
-    // OpenSearch: 300_000.millis = 5 minutes (intentional)
   }
 }

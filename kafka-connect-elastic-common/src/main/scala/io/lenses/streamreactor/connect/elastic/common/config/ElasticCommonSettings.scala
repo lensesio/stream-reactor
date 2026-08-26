@@ -33,4 +33,5 @@ case class ElasticCommonSettings(
   httpBasicAuthUsername: String     = ElasticCommonConfigConstants.CLIENT_HTTP_BASIC_AUTH_USERNAME_DEFAULT,
   httpBasicAuthPassword: String     = ElasticCommonConfigConstants.CLIENT_HTTP_BASIC_AUTH_PASSWORD_DEFAULT,
   storesInfo:            StoresInfo = new StoresInfo(COption.none(), COption.none(), COption.none()),
+  strictItemErrors:      Boolean    = ElasticCommonConfigConstants.BULK_STRICT_ITEM_ERRORS_DEFAULT,
 )
