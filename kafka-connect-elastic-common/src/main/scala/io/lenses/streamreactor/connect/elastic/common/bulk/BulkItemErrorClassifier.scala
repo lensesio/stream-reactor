@@ -99,6 +99,16 @@ object BulkItemErrorClassifier {
     }
   }
 
+  /**
+   * Bulk item `errorType` strings differ by connector implementation:
+   *  - ES6/ES7 ([[io.lenses.streamreactor.connect.elastic7.KElasticBulkClient]] via elastic4s): ES REST
+   *    returns snake_case, e.g. `es_rejected_execution_exception`.
+   *  - OpenSearch ([[io.lenses.streamreactor.connect.opensearch.KOpenSearchClient]] via opensearch-java):
+   *    may surface Java exception class names in camelCase, e.g. `EsRejectedExecutionException`.
+   *
+   * Both land here after [[normalize]]; we match snake_case directly and also the underscore-stripped
+   * form so camelCase inputs (which normalize to a single lowercase token) still hit the retriable set.
+   */
   private def typeIsRetriable(normalizedType: String): Boolean =
     retriableTypes.contains(normalizedType) ||
       retriableTypesCompact.contains(normalizedType.replace("_", ""))
@@ -109,6 +119,5 @@ object BulkItemErrorClassifier {
   }
 
   private def normalize(s: String): String =
-    Option(s).getOrElse("").toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", "_")
-      .stripPrefix("_").stripSuffix("_")
+    Option(s).getOrElse("").trim.toLowerCase(Locale.ROOT)
 }

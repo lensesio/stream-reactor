@@ -39,10 +39,18 @@ class ElasticConfigTest extends TestBase {
     config.getInt(ElasticConfigConstants.WRITE_TIMEOUT_CONFIG) shouldBe 300000
   }
 
-  "A ElasticConfig should reject write.timeout below 1000 milliseconds" in {
+  "A ElasticConfig should reject write.timeout values that look like pre-migration seconds" in {
     val ex = intercept[ConfigException] {
       new ElasticConfig(getElasticSinkConfigProps() + (ElasticConfigConstants.WRITE_TIMEOUT_CONFIG -> "60"))
     }
     ex.getMessage should include("write.timeout")
+    ex.getMessage should include("seconds")
+  }
+
+  "A ElasticConfig should accept write.timeout of 750 milliseconds" in {
+    val config = new ElasticConfig(
+      getElasticSinkConfigProps() + (ElasticConfigConstants.WRITE_TIMEOUT_CONFIG -> "750"),
+    )
+    config.getInt(ElasticConfigConstants.WRITE_TIMEOUT_CONFIG) shouldBe 750
   }
 }

@@ -48,12 +48,16 @@ object ElasticCommonConfigConstants {
   val WRITE_TIMEOUT_SUFFIX_ = WRITE_TIMEOUT_SUFFIX
   val WRITE_TIMEOUT_DOC =
     """The time to wait in milliseconds for a bulk request, also used as the HTTP connect/socket timeout.
-      |Minimum 1000. Default 300000 (5 minutes).
-      |Elasticsearch 6/7 connectors previously treated this value as seconds; a setting of 60 now means
-      |60 milliseconds and is rejected. Use 60000 for a one-minute timeout.""".stripMargin
+      |Minimum 1. Default 300000 (5 minutes).
+      |Elasticsearch 6/7 connectors previously treated this value as seconds; values from 1 to 120 are
+      |rejected as likely seconds (e.g. 60 must become 60000). Sub-second timeouts such as 750 are allowed.""".stripMargin
   val WRITE_TIMEOUT_DISPLAY = "Write timeout"
   val WRITE_TIMEOUT_DEFAULT = 300000
-  val WRITE_TIMEOUT_MIN     = 1000
+  val WRITE_TIMEOUT_MIN     = 1
+
+  /** Inclusive range of values that likely meant seconds before the milliseconds migration. */
+  val WRITE_TIMEOUT_SECONDS_TRAP_MIN = 1
+  val WRITE_TIMEOUT_SECONDS_TRAP_MAX = 120
 
   /** `retry_on_conflict` on UPSERT bulk ops. Exhausted conflicts still surface as HTTP 409 and are classified retriable. */
   val UPSERT_RETRY_ON_CONFLICT = 3

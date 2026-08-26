@@ -58,12 +58,6 @@ class KElastic6BulkClient(
 
   override def supportsDocumentType: Boolean = true
 
-  if (writeTimeoutMillis < 1000) {
-    logger.warn(
-      s"connect.elastic.write.timeout=$writeTimeoutMillis is less than 1 second. This setting is in milliseconds.",
-    )
-  }
-
   override def bulk(ops: Seq[BulkOp]): Try[BulkResult] = Try {
     import ElasticDsl._
 
@@ -108,22 +102,21 @@ class KElastic6BulkClient(
         )
     }
 
-    if (itemErrors.nonEmpty) {
-      if (strictItemErrors) {
+    val bulkResult =
+      if (itemErrors.nonEmpty && strictItemErrors) {
         logger.error(s"Bulk write completed with ${BulkItemErrorClassifier.formatItemErrors(itemErrors)}")
-      } else {
+        BulkResult(took = tookMillis, errors = true, itemErrors = itemErrors)
+      } else if (itemErrors.nonEmpty) {
         logger.warn(
           s"Bulk write completed with ${BulkItemErrorClassifier.formatItemErrors(itemErrors)} (tolerant mode)",
         )
+        BulkResult(took = tookMillis, errors = false, itemErrors = Seq.empty)
+      } else {
+        BulkResult(took = tookMillis, errors = false, itemErrors = Seq.empty)
       }
-    }
 
     logger.info(s"Bulk write completed: took=${tookMillis}ms, items=${result.items.size}")
-    if (itemErrors.nonEmpty && strictItemErrors) {
-      BulkResult(took = tookMillis, errors = true, itemErrors = itemErrors)
-    } else {
-      BulkResult(took = tookMillis, errors = false, itemErrors = Seq.empty)
-    }
+    bulkResult
   }
 
   override def createIndex(name: String): Try[Unit] = Try {
