@@ -53,7 +53,7 @@ class ElasticWriterWiringTest extends AnyWordSpec with Matchers with MockitoSuga
       when(bulkResult.took).thenReturn(1L)
       when(bulkResult.items).thenReturn(Seq.empty)
 
-      val bulkClient = new KElastic6BulkClient(elasticClient, writeTimeoutSeconds = 5000)
+      val bulkClient = new KElastic6BulkClient(elasticClient, writeTimeoutMillis = 5000)
 
       val sourceTopic = "source"
       val targetIndex = "target"
@@ -83,7 +83,7 @@ class ElasticWriterWiringTest extends AnyWordSpec with Matchers with MockitoSuga
 
     "supportsDocumentType is true for ES6 (WITHDOCTYPE is honoured — no warning emitted)" in {
       val elasticClient = mock[KElasticClient]
-      val bulkClient    = new KElastic6BulkClient(elasticClient, writeTimeoutSeconds = 5000)
+      val bulkClient    = new KElastic6BulkClient(elasticClient, writeTimeoutMillis = 5000)
       bulkClient.supportsDocumentType shouldBe true
     }
   }

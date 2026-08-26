@@ -15,6 +15,12 @@
  */
 package io.lenses.streamreactor.connect.elastic.common.bulk
 
-final case class BulkItemError(index: String, id: String, reason: String)
+final case class BulkItemError(
+  index:     String,
+  id:        String,
+  reason:    String,
+  errorType: String = "",
+  status:    Int    = 0,
+)
 
 final case class BulkResult(took: Long, errors: Boolean, itemErrors: Seq[BulkItemError])

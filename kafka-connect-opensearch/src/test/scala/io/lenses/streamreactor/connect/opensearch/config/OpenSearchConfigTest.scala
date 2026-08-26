@@ -279,6 +279,14 @@ class OpenSearchConfigTest extends AnyFunSuite with Matchers {
     settings(BULK_STRICT_ITEM_ERRORS_KEY -> "false").strictItemErrors shouldBe false
   }
 
+  test("write.timeout of 60 milliseconds is accepted (OpenSearch has always used milliseconds)") {
+    settings(WRITE_TIMEOUT -> "60").common.writeTimeout shouldBe 60
+  }
+
+  test("write.timeout of 750 milliseconds is accepted") {
+    settings(WRITE_TIMEOUT -> "750").common.writeTimeout shouldBe 750
+  }
+
   // ---- KCQL splitter ----
 
   test("single KCQL statement parses correctly") {

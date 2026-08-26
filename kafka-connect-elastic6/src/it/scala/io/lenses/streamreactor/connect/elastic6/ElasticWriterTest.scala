@@ -62,7 +62,7 @@ class ElasticWriterTest extends ITBase with MockitoSugar with BeforeAndAfterEach
 
       val settings = ElasticSettings(ElasticConfig(props))
       val writer =
-        new JsonBulkWriter(new KElastic6BulkClient(new HttpKElasticClient(client), settings.writeTimeout), settings)
+        new JsonBulkWriter(KElastic6BulkClient(new HttpKElasticClient(client), settings), settings)
 
       writer.write(TestRecords)
       (localNode, client, writer)

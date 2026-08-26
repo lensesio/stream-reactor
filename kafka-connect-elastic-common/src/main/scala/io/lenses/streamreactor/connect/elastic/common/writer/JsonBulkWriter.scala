@@ -27,6 +27,7 @@ import io.lenses.streamreactor.connect.elastic.common.KcqlValues
 import io.lenses.streamreactor.connect.elastic.common.NullValueBehavior
 import io.lenses.streamreactor.connect.elastic.common.Transform
 import io.lenses.streamreactor.connect.elastic.common.TransformAndExtractPK
+import io.lenses.streamreactor.connect.elastic.common.bulk.BulkItemErrorClassifier
 import io.lenses.streamreactor.connect.elastic.common.bulk.BulkOp
 import io.lenses.streamreactor.connect.elastic.common.bulk.DeleteOp
 import io.lenses.streamreactor.connect.elastic.common.bulk.InsertOp
@@ -35,7 +36,6 @@ import io.lenses.streamreactor.connect.elastic.common.bulk.UpsertOp
 import io.lenses.streamreactor.connect.elastic.common.config.ElasticCommonConfigConstants
 import io.lenses.streamreactor.connect.elastic.common.config.ElasticCommonSettings
 import io.lenses.streamreactor.connect.elastic.common.indexname.CreateIndex
-import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkRecord
 
 import java.util
@@ -148,9 +148,9 @@ class JsonBulkWriter(client: KBulkClient, val settings: ElasticCommonSettings) e
             if (ops.nonEmpty) {
               val bulkTry = client.bulk(ops).flatMap { result =>
                 if (result.errors) {
-                  val msg = s"Bulk request had ${result.itemErrors.size} item-level error(s): " +
-                    result.itemErrors.map(e => s"[index=${e.index} id=${e.id} reason=${e.reason}]").mkString(", ")
-                  Failure(new ConnectException(msg))
+                  // Permanent vs retriable item errors are classified here. Per-record DLQ via
+                  // ErrantRecordReporter is not implemented yet (lensesio-dev/stream-reactor#414).
+                  Failure(BulkItemErrorClassifier.exceptionFor(result.itemErrors))
                 } else {
                   Success(result)
                 }

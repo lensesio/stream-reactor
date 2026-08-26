@@ -265,6 +265,7 @@ object OpenSearchSettings extends StrictLogging {
       httpBasicAuthUsername = username,
       httpBasicAuthPassword = password,
       storesInfo            = storesInfo,
+      strictItemErrors      = strictItemErrors,
     )
 
     val jwtTokenSource =

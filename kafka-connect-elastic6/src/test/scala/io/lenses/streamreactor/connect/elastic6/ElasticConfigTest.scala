@@ -17,6 +17,7 @@ package io.lenses.streamreactor.connect.elastic6
 
 import io.lenses.streamreactor.connect.elastic6.config.ElasticConfig
 import io.lenses.streamreactor.connect.elastic6.config.ElasticConfigConstants
+import org.apache.kafka.common.config.ConfigException
 
 class ElasticConfigTest extends TestBase {
   "A ElasticConfig should return the client mode and hostnames" in {
@@ -30,5 +31,26 @@ class ElasticConfigTest extends TestBase {
     val config = new ElasticConfig(getElasticSinkConfigPropsHTTPClient(auth = true))
     config.getString(ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_USERNAME) shouldBe BASIC_AUTH_USERNAME
     config.getString(ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_PASSWORD) shouldBe BASIC_AUTH_PASSWORD
+  }
+
+  "A ElasticConfig should default bulk.strict.item.errors to true and write.timeout to 300000" in {
+    val config = new ElasticConfig(getElasticSinkConfigProps())
+    config.getBoolean(ElasticConfigConstants.BULK_STRICT_ITEM_ERRORS_KEY) shouldBe true
+    config.getInt(ElasticConfigConstants.WRITE_TIMEOUT_CONFIG) shouldBe 300000
+  }
+
+  "A ElasticConfig should reject write.timeout values that look like pre-migration seconds" in {
+    val ex = intercept[ConfigException] {
+      new ElasticConfig(getElasticSinkConfigProps() + (ElasticConfigConstants.WRITE_TIMEOUT_CONFIG -> "60"))
+    }
+    ex.getMessage should include("write.timeout")
+    ex.getMessage should include("seconds")
+  }
+
+  "A ElasticConfig should accept write.timeout of 750 milliseconds" in {
+    val config = new ElasticConfig(
+      getElasticSinkConfigProps() + (ElasticConfigConstants.WRITE_TIMEOUT_CONFIG -> "750"),
+    )
+    config.getInt(ElasticConfigConstants.WRITE_TIMEOUT_CONFIG) shouldBe 750
   }
 }

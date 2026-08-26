@@ -107,11 +107,14 @@ object OpenSearchConfigConstants {
   val AWS_SESSION_TOKEN_DEFAULT = ""
 
   // Strict bulk item errors
-  val BULK_STRICT_ITEM_ERRORS_KEY = s"$CONNECTOR_PREFIX.bulk.strict.item.errors"
+  val BULK_STRICT_ITEM_ERRORS_KEY = s"$CONNECTOR_PREFIX.$BULK_STRICT_ITEM_ERRORS_SUFFIX"
   val BULK_STRICT_ITEM_ERRORS_DOC =
     """When true (default), any per-item bulk failure goes through ErrorPolicy.
-      |When false, only HTTP-transport errors are surfaced, matching ES7 behaviour.
-      |WARNING: Setting bulk.strict.item.errors=false neutralises every other retry knob for per-item failures.""".stripMargin
+      |HTTP 429 / es_rejected_execution_exception and HTTP 409 / version_conflict_engine_exception
+      |are classified as retriable (RetriableIntegrityException);
+      |mapper conflicts and other permanent item errors are FatalConnectException.
+      |When false, only HTTP-transport errors are surfaced (legacy tolerant mode).
+      |WARNING: Setting bulk.strict.item.errors=false swallows rejected documents and advances Kafka offsets past them.""".stripMargin
   val BULK_STRICT_ITEM_ERRORS_DEFAULT = true
 
   // Connection pool tuning (REST / HC5 path only; SigV4 path uses AWS SDK defaults)
