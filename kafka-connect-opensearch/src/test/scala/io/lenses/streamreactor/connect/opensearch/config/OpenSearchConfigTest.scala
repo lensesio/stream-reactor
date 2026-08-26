@@ -279,10 +279,8 @@ class OpenSearchConfigTest extends AnyFunSuite with Matchers {
     settings(BULK_STRICT_ITEM_ERRORS_KEY -> "false").strictItemErrors shouldBe false
   }
 
-  test("write.timeout values that look like pre-migration seconds are rejected") {
-    val ex = intercept[ConfigException](settings(WRITE_TIMEOUT -> "60"))
-    ex.getMessage.toLowerCase should include("write.timeout")
-    ex.getMessage.toLowerCase should include("seconds")
+  test("write.timeout of 60 milliseconds is accepted (OpenSearch has always used milliseconds)") {
+    settings(WRITE_TIMEOUT -> "60").common.writeTimeout shouldBe 60
   }
 
   test("write.timeout of 750 milliseconds is accepted") {

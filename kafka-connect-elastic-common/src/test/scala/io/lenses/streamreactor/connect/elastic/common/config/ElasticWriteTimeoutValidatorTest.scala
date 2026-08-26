@@ -24,16 +24,16 @@ class ElasticWriteTimeoutValidatorTest extends AnyFunSuite with Matchers {
   private val configKey = "connect.elastic.write.timeout"
 
   test("rejects values in the pre-migration seconds trap range") {
-    val ex = intercept[ConfigException](ElasticWriteTimeoutValidator.validate(60, configKey))
+    val ex = intercept[ConfigException](ElasticWriteTimeoutValidator.validateElastic6Or7(60, configKey))
     ex.getMessage should include(configKey)
     ex.getMessage should include("seconds")
   }
 
   test("allows sub-second timeouts outside the seconds trap range") {
-    noException shouldBe thrownBy(ElasticWriteTimeoutValidator.validate(750, configKey))
+    noException shouldBe thrownBy(ElasticWriteTimeoutValidator.validateElastic6Or7(750, configKey))
   }
 
   test("allows values above the seconds trap range") {
-    noException shouldBe thrownBy(ElasticWriteTimeoutValidator.validate(60000, configKey))
+    noException shouldBe thrownBy(ElasticWriteTimeoutValidator.validateElastic6Or7(60000, configKey))
   }
 }

@@ -48,6 +48,9 @@ object ElasticCommonConfigConstants {
   val WRITE_TIMEOUT_SUFFIX_ = WRITE_TIMEOUT_SUFFIX
   val WRITE_TIMEOUT_DOC =
     """The time to wait in milliseconds for a bulk request, also used as the HTTP connect/socket timeout.
+      |Minimum 1. Default 300000 (5 minutes).""".stripMargin
+  val WRITE_TIMEOUT_ELASTIC6_7_DOC =
+    """The time to wait in milliseconds for a bulk request, also used as the HTTP connect/socket timeout.
       |Minimum 1. Default 300000 (5 minutes).
       |Elasticsearch 6/7 connectors previously treated this value as seconds; values from 1 to 120 are
       |rejected as likely seconds (e.g. 60 must become 60000). Sub-second timeouts such as 750 are allowed.""".stripMargin

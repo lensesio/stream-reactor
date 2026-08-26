@@ -46,7 +46,7 @@ object ElasticConfigConstants {
 
   val WRITE_TIMEOUT_CONFIG = s"${CONNECTOR_PREFIX}.${WRITE_TIMEOUT_SUFFIX}"
   val WRITE_TIMEOUT_DOC =
-    io.lenses.streamreactor.connect.elastic.common.config.ElasticCommonConfigConstants.WRITE_TIMEOUT_DOC
+    io.lenses.streamreactor.connect.elastic.common.config.ElasticCommonConfigConstants.WRITE_TIMEOUT_ELASTIC6_7_DOC
   val WRITE_TIMEOUT_DISPLAY = "Write timeout"
   val WRITE_TIMEOUT_DEFAULT =
     io.lenses.streamreactor.connect.elastic.common.config.ElasticCommonConfigConstants.WRITE_TIMEOUT_DEFAULT

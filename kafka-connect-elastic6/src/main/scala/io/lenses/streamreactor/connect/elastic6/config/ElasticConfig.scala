@@ -217,7 +217,7 @@ case class ElasticConfig(props: Map[String, String])
     with WriteTimeoutSettings
     with ErrorPolicySettings
     with NumberRetriesSettings {
-  ElasticWriteTimeoutValidator.validate(getWriteTimeout, writeTimeoutSettingsConst)
+  ElasticWriteTimeoutValidator.validateElastic6Or7(getWriteTimeout, writeTimeoutSettingsConst)
 
   val kcqlConstant: String = ElasticConfigConstants.KCQL
 

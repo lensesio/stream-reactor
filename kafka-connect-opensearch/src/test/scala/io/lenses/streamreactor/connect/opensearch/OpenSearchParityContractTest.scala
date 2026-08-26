@@ -42,6 +42,7 @@ import org.scalatest.matchers.should.Matchers
  *    on ES6, where `KElastic6BulkClient.supportsDocumentType == true` prevents the warning.
  *
  * 5. `write.timeout` is milliseconds on ES6, ES7 and OpenSearch (default 300000 = 5 minutes).
+ *    ES6/ES7 additionally reject 1..120 as likely pre-migration seconds; OpenSearch does not.
  */
 class OpenSearchParityContractTest extends AnyFunSuite with Matchers {
 
@@ -108,10 +109,14 @@ class OpenSearchParityContractTest extends AnyFunSuite with Matchers {
 
   // --- 5. write.timeout unit differs across connectors ---
 
-  test("PARITY-5: write.timeout default is 300000 milliseconds with a 1ms floor and seconds trap") {
+  test("PARITY-5: write.timeout default is 300000 milliseconds with a 1ms floor") {
     import io.lenses.streamreactor.connect.elastic.common.config.ElasticCommonConfigConstants
     ElasticCommonConfigConstants.WRITE_TIMEOUT_DEFAULT shouldBe 300000
     ElasticCommonConfigConstants.WRITE_TIMEOUT_MIN shouldBe 1
-    ElasticCommonConfigConstants.WRITE_TIMEOUT_SECONDS_TRAP_MAX shouldBe 120
+  }
+
+  test("PARITY-5b: write.timeout 1..120 is allowed on OpenSearch (no ES6/ES7 seconds trap)") {
+    settings(WRITE_TIMEOUT -> "60").common.writeTimeout shouldBe 60
+    settings(WRITE_TIMEOUT -> "120").common.writeTimeout shouldBe 120
   }
 }

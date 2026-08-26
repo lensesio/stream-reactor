@@ -19,7 +19,13 @@ import org.apache.kafka.common.config.ConfigException
 
 object ElasticWriteTimeoutValidator {
 
-  def validate(millis: Int, configKey: String): Unit =
+  /**
+   * Rejects values in [[ElasticCommonConfigConstants.WRITE_TIMEOUT_SECONDS_TRAP_MIN]]..max that likely
+   * meant seconds on ES6/ES7 before the milliseconds migration.
+   *
+   * Not used by OpenSearch — `connect.opensearch.write.timeout` has always been milliseconds.
+   */
+  def validateElastic6Or7(millis: Int, configKey: String): Unit =
     if (
       millis >= ElasticCommonConfigConstants.WRITE_TIMEOUT_SECONDS_TRAP_MIN &&
       millis <= ElasticCommonConfigConstants.WRITE_TIMEOUT_SECONDS_TRAP_MAX
