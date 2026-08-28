@@ -44,12 +44,12 @@ services:
       start_period: 20s
 
   # ---------------------------------------------------------------------------
-  # Kafka Connect 4.1 (Confluent CP 8.1.0 — Kafka 4.1 wire-compatible).
+  # Kafka Connect 4.1 (Confluent CP 8.1.5 — Kafka 4.1 wire-compatible).
   # Connector + SMT jars are mounted from ./connectors/.
   # GCS service-account JSON is mounted from ./secrets/.
   # ---------------------------------------------------------------------------
   connect:
-    image: confluentinc/cp-kafka-connect-base:8.1.0
+    image: confluentinc/cp-kafka-connect-base:8.1.5
     container_name: gcs-local-connect
     hostname: connect
     ports:
