@@ -168,7 +168,7 @@ object Dependencies {
       override val jnaVersion:           String = "5.17.0"
     }
 
-    val openSearchVersion               = "2.13.0"
+    val openSearchVersion               = "2.26.0"
     val openSearchTestcontainersVersion = "2.0.1"
     val httpclient5Version              = "5.2.1"
 
