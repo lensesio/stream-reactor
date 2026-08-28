@@ -60,7 +60,7 @@ object Dependencies {
     val catsEffectVersion     = "3.6.1"
     val `cats-effect-testing` = "1.6.0"
 
-    val antlr4Version: String = "4.7.1"
+    val antlr4Version: String = "4.7.2"
 
     val circeVersion              = "0.15.0-M1"
     val circeGenericExtrasVersion = "0.14.4"
