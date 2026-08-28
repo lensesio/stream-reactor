@@ -18,11 +18,13 @@ package io.lenses.streamreactor.connect.cloud.common.source.config
 import cats.implicits.toTraverseOps
 import io.lenses.kcql.Kcql
 import io.lenses.streamreactor.connect.cloud.common.config.FormatSelection
+import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
 import io.lenses.streamreactor.connect.cloud.common.source.config.kcqlprops.CloudSourceProps
 import io.lenses.streamreactor.connect.cloud.common.source.config.kcqlprops.CloudSourcePropsSchema
 import io.lenses.streamreactor.connect.cloud.common.storage.FileListError
+import org.apache.kafka.common.config.ConfigException
 import io.lenses.streamreactor.connect.cloud.common.storage.FileMetadata
 import io.lenses.streamreactor.connect.cloud.common.storage.ListOfKeysResponse
 import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
@@ -48,6 +50,16 @@ object CloudSourceBucketOptions {
           //extract the envelope. of not present default to false
           hasEnvelope <- config.extractEnvelope(sourceProps)
 
+          // when true, restore each record to the original topic stored in the envelope metadata
+          topicFromEnvelope <- sourceProps.getBooleanOrDefault(PropsKeyEnum.SourceTopicFromEnvelope, false)
+          _ <- Either.cond(
+            !topicFromEnvelope || hasEnvelope.getOrElse(false),
+            (),
+            new ConfigException(
+              s"`${PropsKeyEnum.SourceTopicFromEnvelope.entryName}` requires `${PropsKeyEnum.StoreEnvelope.entryName}` to be set to true.",
+            ),
+          )
+
           postProcessAction <- PostProcessAction(source.prefix, sourceProps)
 
           // Late arrival processing only applies when Move post-process action is configured with processLateArrival=true
@@ -65,6 +77,7 @@ object CloudSourceBucketOptions {
           partitionExtractor = partitionExtractor,
           orderingType       = config.extractOrderingType,
           hasEnvelope        = hasEnvelope.getOrElse(false),
+          topicFromEnvelope  = topicFromEnvelope,
           postProcessAction  = postProcessAction,
           processLateArrival = processLateArrival,
         )
@@ -81,6 +94,7 @@ case class CloudSourceBucketOptions[M <: FileMetadata](
   partitionExtractor:    Option[PartitionExtractor],
   orderingType:          OrderingType,
   hasEnvelope:           Boolean,
+  topicFromEnvelope:     Boolean,
   postProcessAction:     Option[PostProcessAction],
   processLateArrival:    Boolean,
 ) {

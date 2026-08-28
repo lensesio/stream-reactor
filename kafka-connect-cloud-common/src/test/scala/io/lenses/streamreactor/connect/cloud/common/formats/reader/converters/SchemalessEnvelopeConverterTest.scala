@@ -202,13 +202,53 @@ class SchemalessEnvelopeConverterTest extends AnyFunSuite with Matchers {
     actual.value() shouldBe "value".getBytes()
     assertHeaders(actual)
   }
-  private def createConverter(instantF: () => Instant = () => Instant.now()): SchemalessEnvelopeConverter =
+  test("topicFromEnvelope uses the topic stored in the envelope metadata") {
+    val json = Json.obj(
+      "key"      -> Json.fromString("key"),
+      "value"    -> Json.fromString("value"),
+      "metadata" -> createMetadata(),
+    )
+
+    val actual = createConverter(topicFromEnvelope = true).convert(json.noSpaces, 0, lastLine = false)
+    actual.topic() shouldBe SourceTopic
+    actual.kafkaPartition() shouldBe Partition
+  }
+
+  test("topicFromEnvelope falls back to the target topic when metadata is missing") {
+    val json = Json.obj(
+      "key"   -> Json.fromString("key"),
+      "value" -> Json.fromString("value"),
+    )
+
+    val actual = createConverter(topicFromEnvelope = true).convert(json.noSpaces, 0, lastLine = false)
+    actual.topic() shouldBe TargetTopic
+  }
+
+  test("topicFromEnvelope falls back to the target topic when metadata has no topic") {
+    val json = Json.obj(
+      "key"   -> Json.fromString("key"),
+      "value" -> Json.fromString("value"),
+      "metadata" -> Json.obj(
+        "timestamp" -> Json.fromLong(Timestamp),
+        "partition" -> Json.fromInt(Partition),
+      ),
+    )
+
+    val actual = createConverter(topicFromEnvelope = true).convert(json.noSpaces, 0, lastLine = false)
+    actual.topic() shouldBe TargetTopic
+  }
+
+  private def createConverter(
+    instantF:          () => Instant = () => Instant.now(),
+    topicFromEnvelope: Boolean       = false,
+  ): SchemalessEnvelopeConverter =
     new SchemalessEnvelopeConverter(Map("partition" -> "abc").asJava,
                                     Topic(TargetTopic),
                                     TargetPartition,
                                     location,
                                     LastModifiedTimestamp,
                                     instantF,
+                                    topicFromEnvelope,
     )
 
   private def assertOffsets(sourceRecord: SourceRecord): Assertion = {
