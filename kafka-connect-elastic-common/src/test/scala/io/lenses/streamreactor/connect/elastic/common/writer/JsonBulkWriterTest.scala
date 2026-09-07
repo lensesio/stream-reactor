@@ -33,6 +33,8 @@ import io.lenses.streamreactor.connect.elastic.common.bulk.KBulkClient
 import io.lenses.streamreactor.connect.elastic.common.bulk.UpsertOp
 import io.lenses.streamreactor.connect.elastic.common.bulk.BulkItemError
 import io.lenses.streamreactor.connect.elastic.common.config.ElasticCommonSettings
+import io.lenses.streamreactor.connect.elastic.common.config.ItemErrorDlqMode
+import io.lenses.streamreactor.connect.elastic.common.dlq.DlqGate
 import io.lenses.streamreactor.common.errors.FatalConnectException
 import io.lenses.streamreactor.common.errors.NoopErrorPolicy
 import io.lenses.streamreactor.common.errors.RetryErrorPolicy
@@ -43,6 +45,7 @@ import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaBuilder
 import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.errors.RetriableException
+import org.apache.kafka.connect.sink.ErrantRecordReporter
 import org.apache.kafka.connect.sink.SinkRecord
 import org.mockito.MockitoSugar
 import org.mockito.ArgumentMatchersSugar
@@ -52,8 +55,10 @@ import org.slf4j.LoggerFactory
 
 import java.util.Collections.emptyList
 import java.util.Collections.emptyMap
+import java.util.concurrent.CompletableFuture
 import scala.collection.mutable
 import scala.jdk.CollectionConverters.ListHasAsScala
+import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
 
@@ -674,5 +679,422 @@ class JsonBulkWriterTest
     )
     val thrown = intercept[FatalConnectException](writer.write(Vector(record("topic", "k", struct(1, "x")))))
     thrown should not be a[RetriableException]
+  }
+
+  // ---- Per-record DLQ (lensesio-dev/stream-reactor#414) ---------------------------------
+
+  /** Records every (record, cause) it was asked to report and always acknowledges immediately. */
+  class FakeReporter extends ErrantRecordReporter {
+    val received: mutable.Buffer[(SinkRecord, Throwable)] = mutable.Buffer.empty
+    override def report(record: SinkRecord, error: Throwable): java.util.concurrent.Future[Void] = {
+      received += (record -> error)
+      CompletableFuture.completedFuture[Void](null)
+    }
+  }
+
+  private def dlqGate(reporter: ErrantRecordReporter, dlqTopicConfigured: Boolean = true): DlqGate =
+    DlqGate(Some(reporter), dlqTopicConfigured)
+
+  /**
+   * A client that fails specific ops (by id) with a caller-supplied [[BulkItemError]], computing
+   * the correct `position`/`index`/`id` for each response item the same way a real client would.
+   * Ops whose id is not in `errorsByOpId` succeed.
+   */
+  class ScriptedBulkClient(errorsByOpId: Map[String, BulkItemError]) extends KBulkClient {
+    val calls: mutable.Buffer[Seq[BulkOp]] = mutable.Buffer.empty
+
+    override def bulk(ops: Seq[BulkOp]): Try[BulkResult] = {
+      calls += ops
+      val itemErrors = ops.zipWithIndex.flatMap {
+        case (op, idx) => errorsByOpId.get(op.id).map(_.copy(index = op.index, id = op.id, position = idx))
+      }
+      Success(BulkResult(took = 1L, errors = itemErrors.nonEmpty, itemErrors = itemErrors))
+    }
+    override def createIndex(name: String): Try[Unit] = Success(())
+    override def close(): Unit = ()
+  }
+
+  private def mapperError(reason: String = "failed to parse"): BulkItemError =
+    BulkItemError(index = "", id = "", reason = reason, errorType = "mapper_parsing_exception", status = 400)
+
+  private def rejectedError(): BulkItemError =
+    BulkItemError(index = "", id = "", reason = "rejected", errorType = "es_rejected_execution_exception", status = 429)
+
+  private def settingsWith(
+    kcqlExpr:  String,
+    mode:      ItemErrorDlqMode,
+    policy:    io.lenses.streamreactor.common.errors.ErrorPolicy = ThrowErrorPolicy(),
+    batchSize: Int                                               = 100,
+  ): ElasticCommonSettings = {
+    val kcqls = kcqlExpr.split(";").filter(_.nonEmpty).map(io.lenses.kcql.Kcql.parse).toSeq
+    ElasticCommonSettings(
+      kcqls            = kcqls,
+      errorPolicy      = policy,
+      taskRetries      = 20,
+      batchSize        = batchSize,
+      storesInfo       = defaultStoresInfo,
+      itemErrorDlqMode = mode,
+    )
+  }
+
+  test("skip mode with a DLQ available reports a permanent item error and does not throw; offsets can advance") {
+    val reporter = new FakeReporter
+    val client   = new ScriptedBulkClient(Map("1" -> mapperError()))
+    val writer = new JsonBulkWriter(
+      client,
+      settingsWith("INSERT INTO idx SELECT * FROM topic PK id", ItemErrorDlqMode.Skip),
+      dlqGate(reporter),
+    )
+
+    val r        = record("topic", "k", struct(1, "x"))
+    val reported = writer.write(Vector(r))
+
+    reported shouldBe Set(r)
+    reporter.received should have size 1
+    reporter.received.head._1 shouldBe r
+  }
+
+  test("fail mode (the default) still throws even when a DLQ is available — skip must be opted into") {
+    val reporter = new FakeReporter
+    val client   = new ScriptedBulkClient(Map("1" -> mapperError()))
+    val writer = new JsonBulkWriter(
+      client,
+      settingsWith("INSERT INTO idx SELECT * FROM topic PK id", ItemErrorDlqMode.Fail),
+      dlqGate(reporter),
+    )
+
+    intercept[FatalConnectException](writer.write(Vector(record("topic", "k", struct(1, "x")))))
+    reporter.received shouldBe empty
+  }
+
+  test("skip mode without a configured DLQ topic falls back to throwing (reporter alone is not enough)") {
+    val reporter = new FakeReporter
+    val client   = new ScriptedBulkClient(Map("1" -> mapperError()))
+    val writer = new JsonBulkWriter(
+      client,
+      settingsWith("INSERT INTO idx SELECT * FROM topic PK id", ItemErrorDlqMode.Skip),
+      dlqGate(reporter, dlqTopicConfigured = false),
+    )
+
+    intercept[FatalConnectException](writer.write(Vector(record("topic", "k", struct(1, "x")))))
+    reporter.received shouldBe empty
+  }
+
+  test("skip mode with no reporter at all (context never handed one out) falls back to throwing") {
+    val client = new ScriptedBulkClient(Map("1" -> mapperError()))
+    val writer = new JsonBulkWriter(
+      client,
+      settingsWith("INSERT INTO idx SELECT * FROM topic PK id", ItemErrorDlqMode.Skip),
+      DlqGate.disabled,
+    )
+
+    intercept[FatalConnectException](writer.write(Vector(record("topic", "k", struct(1, "x")))))
+  }
+
+  test("skip mode: a mixed batch reports the permanent error to the DLQ but still throws for the retriable remainder") {
+    val reporter = new FakeReporter
+    val client = new ScriptedBulkClient(
+      Map("1" -> rejectedError(), "2" -> mapperError()),
+    )
+    val writer = new JsonBulkWriter(
+      client,
+      settingsWith("INSERT INTO idx SELECT * FROM topic PK id", ItemErrorDlqMode.Skip),
+      dlqGate(reporter),
+    )
+
+    val poison = record("topic", "k2", struct(2, "bad"), offset = 1L)
+    val ok     = record("topic", "k1", struct(1, "transient"), offset = 0L)
+
+    val thrown = intercept[RetriableIntegrityException](writer.write(Vector(ok, poison)))
+    thrown.getMessage should include("es_rejected_execution_exception")
+    // The permanent error (mapper conflict) was reported even though the batch as a whole still
+    // throws for the retriable remainder (429) so Connect redelivers it.
+    reporter.received.map(_._1) shouldBe Seq(poison)
+  }
+
+  test("skip mode at batch size 1: the single poison document is reported, nothing else to confuse it with") {
+    val reporter = new FakeReporter
+    val client   = new ScriptedBulkClient(Map("1" -> mapperError()))
+    val writer = new JsonBulkWriter(
+      client,
+      settingsWith("INSERT INTO idx SELECT * FROM topic PK id", ItemErrorDlqMode.Skip, batchSize = 1),
+      dlqGate(reporter),
+    )
+
+    val r        = record("topic", "k", struct(1, "x"))
+    val reported = writer.write(Vector(r))
+
+    reported shouldBe Set(r)
+    client.calls should have size 1
+    client.calls.head should have size 1
+  }
+
+  test("skip mode at batch size N: exactly the poison record is reported, its batch-mates are written normally") {
+    val reporter = new FakeReporter
+    // Records 1..5 in one batch of 5; only id "3" is poison.
+    val client = new ScriptedBulkClient(Map("3" -> mapperError()))
+    val writer = new JsonBulkWriter(
+      client,
+      settingsWith("INSERT INTO idx SELECT * FROM topic PK id", ItemErrorDlqMode.Skip, batchSize = 5),
+      dlqGate(reporter),
+    )
+
+    val records  = (1 to 5).map(i => record("topic", s"k$i", struct(i, s"v$i"), offset = i.toLong)).toVector
+    val reported = writer.write(records)
+
+    reported shouldBe Set(records(2)) // id "3" is the 3rd record (index 2)
+    reporter.received.map(_._1) shouldBe Seq(records(2))
+    client.calls should have size 1
+    client.calls.head should have size 5 // the whole batch of 5 still went to the client in one bulk() call
+  }
+
+  test("skip mode: a writer-stage failure (FAIL tombstone) is reported to the DLQ instead of failing the task") {
+    val reporter = new FakeReporter
+    val client   = new ScriptedBulkClient(Map.empty)
+    val writer = new JsonBulkWriter(
+      client,
+      settingsWith(
+        "INSERT INTO idx SELECT * FROM topic PK id PROPERTIES('behavior.on.null.values'='FAIL')",
+        ItemErrorDlqMode.Skip,
+      ),
+      dlqGate(reporter),
+    )
+
+    val ts       = tombstone("topic", "k1", offset = 3L)
+    val reported = writer.write(Vector(ts))
+
+    reported shouldBe Set(ts)
+    reporter.received.map(_._1) shouldBe Seq(ts)
+    client.calls shouldBe empty // the tombstone never became a BulkOp at all
+  }
+
+  test("fail mode: a writer-stage failure (FAIL tombstone) still throws, DLQ or not") {
+    val reporter = new FakeReporter
+    val client   = new ScriptedBulkClient(Map.empty)
+    val writer = new JsonBulkWriter(
+      client,
+      settingsWith(
+        "INSERT INTO idx SELECT * FROM topic PK id PROPERTIES('behavior.on.null.values'='FAIL')",
+        ItemErrorDlqMode.Fail,
+      ),
+      dlqGate(reporter),
+    )
+
+    intercept[IllegalStateException](writer.write(Vector(tombstone("topic", "k1"))))
+    reporter.received shouldBe empty
+  }
+
+  test(
+    "a transport-level failure is reclassified as RetriableIntegrityException and is never reported to the DLQ, even in skip mode",
+  ) {
+    val reporter = new FakeReporter
+    val client = new KBulkClient {
+      override def bulk(ops:         Seq[BulkOp]): Try[BulkResult] = Failure(new RuntimeException("connection reset"))
+      override def createIndex(name: String):      Try[Unit]       = Success(())
+      override def close(): Unit = ()
+    }
+    val writer = new JsonBulkWriter(
+      client,
+      settingsWith("INSERT INTO idx SELECT * FROM topic", ItemErrorDlqMode.Skip, policy = NoopErrorPolicy()),
+      dlqGate(reporter),
+    )
+
+    // NOOP would have swallowed a bare RuntimeException before this feature; reclassifying as
+    // RetriableIntegrityException closes that hole regardless of DLQ mode.
+    val thrown = intercept[RetriableIntegrityException](writer.write(Vector(record("topic", "k", struct(1, "x")))))
+    thrown.getMessage should include("connection reset")
+    reporter.received shouldBe empty
+  }
+
+  test("a transport-level failure under RETRY is still retried while budget remains (not fatal)") {
+    val client = new KBulkClient {
+      override def bulk(ops:         Seq[BulkOp]): Try[BulkResult] = Failure(new RuntimeException("timeout"))
+      override def createIndex(name: String):      Try[Unit]       = Success(())
+      override def close(): Unit = ()
+    }
+    val writer = new JsonBulkWriter(
+      client,
+      settingsWith("INSERT INTO idx SELECT * FROM topic", ItemErrorDlqMode.Fail, policy = RetryErrorPolicy()),
+    )
+
+    val thrown = intercept[RetriableException](writer.write(Vector(record("topic", "k", struct(1, "x")))))
+    thrown.getCause shouldBe a[RetriableIntegrityException]
+  }
+
+  test("skip mode: multi-KCQL fanout reports the same record independently for each target it fails at") {
+    val reporter = new FakeReporter
+    val client   = new ScriptedBulkClient(Map("1" -> mapperError()))
+    val writer = new JsonBulkWriter(
+      client,
+      settingsWith(
+        "INSERT INTO idx-a SELECT * FROM fan-topic PK id;INSERT INTO idx-b SELECT * FROM fan-topic PK id",
+        ItemErrorDlqMode.Skip,
+      ),
+      dlqGate(reporter),
+    )
+
+    val r        = record("fan-topic", "k1", struct(1, "x"))
+    val reported = writer.write(Vector(r))
+
+    // The same SinkRecord fails at BOTH idx-a and idx-b (same op id "1" in each KCQL's batch) —
+    // both are genuine, independent failures and both must be reported, not deduplicated away.
+    reported shouldBe Set(r)
+    reporter.received should have size 2
+    reporter.received.foreach(_._1 shouldBe r)
+  }
+
+  // ---- Status-400 DLQ eligibility gate (review finding M4) ------------------------------
+
+  private def clusterBlockError(): BulkItemError =
+    BulkItemError(index = "", id = "", reason = "index blocked", errorType = "cluster_block_exception", status = 403)
+
+  private def indexNotFoundError(): BulkItemError =
+    BulkItemError(index = "", id = "", reason = "no such index", errorType = "index_not_found_exception", status = 404)
+
+  test("skip mode: a 403 cluster_block_exception is never diverted to the DLQ — the batch throws instead") {
+    val reporter = new FakeReporter
+    val client   = new ScriptedBulkClient(Map("1" -> clusterBlockError()))
+    val writer = new JsonBulkWriter(
+      client,
+      settingsWith("INSERT INTO idx SELECT * FROM topic PK id", ItemErrorDlqMode.Skip),
+      dlqGate(reporter),
+    )
+
+    val thrown = intercept[FatalConnectException](writer.write(Vector(record("topic", "k", struct(1, "x")))))
+    thrown.getMessage should include("cluster_block_exception")
+    reporter.received shouldBe empty
+  }
+
+  test("skip mode: a 404 index_not_found_exception is never diverted to the DLQ — the batch throws instead") {
+    val reporter = new FakeReporter
+    val client   = new ScriptedBulkClient(Map("1" -> indexNotFoundError()))
+    val writer = new JsonBulkWriter(
+      client,
+      settingsWith("INSERT INTO idx SELECT * FROM topic PK id", ItemErrorDlqMode.Skip),
+      dlqGate(reporter),
+    )
+
+    val thrown = intercept[FatalConnectException](writer.write(Vector(record("topic", "k", struct(1, "x")))))
+    thrown.getMessage should include("index_not_found_exception")
+    reporter.received shouldBe empty
+  }
+
+  test(
+    "skip mode: a batch mixing a 400 mapper error with a 403 cluster_block_exception diverts NOTHING — a batch-wide condition blocks the whole call",
+  ) {
+    val reporter = new FakeReporter
+    val client = new ScriptedBulkClient(
+      Map("1" -> mapperError(), "2" -> clusterBlockError()),
+    )
+    val writer = new JsonBulkWriter(
+      client,
+      settingsWith("INSERT INTO idx SELECT * FROM topic PK id", ItemErrorDlqMode.Skip),
+      dlqGate(reporter),
+    )
+
+    val good = record("topic", "k1", struct(1, "good"), offset = 0L)
+    val bad  = record("topic", "k2", struct(2, "bad"), offset = 1L)
+
+    // Even though "1" is a perfectly good DLQ candidate on its own, the presence of the 403 in
+    // the SAME response means the whole call is untrustworthy — see
+    // BulkItemErrorClassifier.isDlqEligible and JsonBulkWriter.handleBulkResult.
+    intercept[FatalConnectException](writer.write(Vector(good, bad)))
+    reporter.received shouldBe empty
+  }
+
+  // ---- Mixed-batch redelivery (review finding M3) ---------------------------------------
+
+  test(
+    "skip mode: redelivery of a mixed batch reports the same permanent error to the DLQ again on every attempt",
+  ) {
+    val reporter = new FakeReporter
+    // Simulates the SAME batch being redelivered by Connect after the retriable remainder
+    // fails the previous attempt: id "2" is permanently poison, id "1" is retriable every time.
+    val client = new ScriptedBulkClient(Map("1" -> rejectedError(), "2" -> mapperError()))
+    val writer = new JsonBulkWriter(
+      client,
+      settingsWith("INSERT INTO idx SELECT * FROM topic PK id", ItemErrorDlqMode.Skip),
+      dlqGate(reporter),
+    )
+
+    val poison = record("topic", "k2", struct(2, "bad"), offset = 1L)
+    val ok     = record("topic", "k1", struct(1, "transient"), offset = 0L)
+
+    // Attempt 1: fresh put() -> fresh reportedThisPut tracker.
+    intercept[RetriableIntegrityException](writer.write(Vector(ok, poison)))
+    // Attempt 2: Connect redelivers the identical batch (e.g. after RetriableException) ->
+    // JsonBulkWriter.write creates a NEW tracker, so the dedup does not survive the redelivery.
+    intercept[RetriableIntegrityException](writer.write(Vector(ok, poison)))
+
+    reporter.received.map(_._1) shouldBe Seq(poison, poison)
+  }
+
+  // ---- NotReported fallback paths (review finding 6 / M-adjacent) -----------------------
+
+  test(
+    "skip mode: when the client cannot trust positions (length mismatch -> position = -1), the whole batch throws and nothing is reported",
+  ) {
+    val reporter = new FakeReporter
+    // A client that mimics the real clients' length-mismatch guard: every item error comes
+    // back with position = -1 regardless of what ScriptedBulkClient would normally compute.
+    val client = new KBulkClient {
+      override def bulk(ops: Seq[BulkOp]): Try[BulkResult] =
+        Success(BulkResult(took = 1L, errors = true, itemErrors = Seq(mapperError().copy(position = -1))))
+      override def createIndex(name: String): Try[Unit] = Success(())
+      override def close(): Unit = ()
+    }
+    val writer = new JsonBulkWriter(
+      client,
+      settingsWith("INSERT INTO idx SELECT * FROM topic PK id", ItemErrorDlqMode.Skip),
+      dlqGate(reporter),
+    )
+
+    intercept[FatalConnectException](writer.write(Vector(record("topic", "k", struct(1, "x")))))
+    reporter.received shouldBe empty
+  }
+
+  // The "DLQ future never acknowledges" path (report() returns a Future that never completes)
+  // is deliberately NOT re-tested here at the JsonBulkWriter level: JsonBulkWriter always
+  // constructs its ErrantRecordHandler with the production 30-SECOND default reportTimeoutMs
+  // (no override point), so exercising a real timeout here would block the test suite for 30s.
+  // ErrantRecordHandlerTest already covers the timeout mechanics directly with a short bound,
+  // and the position=-1 test above already proves the writer's NotReported fallback works.
+
+  test("skip mode: reportOne returning false for a writer-stage failure still throws the original cause") {
+    class RefusingReporter extends ErrantRecordReporter {
+      override def report(record: SinkRecord, error: Throwable): java.util.concurrent.Future[Void] =
+        throw new RuntimeException("Tolerance exceeded in error handler")
+    }
+    val client = new ScriptedBulkClient(Map.empty)
+    val writer = new JsonBulkWriter(
+      client,
+      settingsWith(
+        "INSERT INTO idx SELECT * FROM topic PK id PROPERTIES('behavior.on.null.values'='FAIL')",
+        ItemErrorDlqMode.Skip,
+      ),
+      DlqGate(Some(new RefusingReporter), dlqTopicConfigured = true),
+    )
+
+    // The original IllegalStateException (not a generic DLQ-failure message) must still surface.
+    intercept[IllegalStateException](writer.write(Vector(tombstone("topic", "k1"))))
+  }
+
+  // ---- handleTransportFailure passthrough (review finding 5) ----------------------------
+
+  test("a transport failure that is already a FatalConnectException passes through unchanged, not double-wrapped") {
+    val original = new FatalConnectException("already fatal, do not touch")
+    val client = new KBulkClient {
+      override def bulk(ops:         Seq[BulkOp]): Try[BulkResult] = Failure(original)
+      override def createIndex(name: String):      Try[Unit]       = Success(())
+      override def close(): Unit = ()
+    }
+    val writer = new JsonBulkWriter(
+      client,
+      settingsWith("INSERT INTO idx SELECT * FROM topic", ItemErrorDlqMode.Fail, policy = ThrowErrorPolicy()),
+    )
+
+    val thrown = intercept[FatalConnectException](writer.write(Vector(record("topic", "k", struct(1, "x")))))
+    thrown shouldBe theSameInstanceAs(original)
+    thrown should not be a[RetriableIntegrityException]
   }
 }

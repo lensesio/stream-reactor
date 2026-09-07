@@ -19,6 +19,7 @@ import com.sksamuel.elastic4s.bulk.BulkRequest
 import com.sksamuel.elastic4s.http.Response
 import com.sksamuel.elastic4s.http.bulk.BulkResponse
 import io.lenses.streamreactor.common.errors.NoopErrorPolicy
+import io.lenses.streamreactor.common.errors.RetriableIntegrityException
 import io.lenses.streamreactor.connect.elastic.common.config.ElasticCommonSettings
 import io.lenses.streamreactor.connect.elastic.common.writer.JsonBulkWriter
 import io.lenses.kcql.Kcql
@@ -85,6 +86,43 @@ class ElasticWriterWiringTest extends AnyWordSpec with Matchers with MockitoSuga
       val elasticClient = mock[KElasticClient]
       val bulkClient    = new KElastic6BulkClient(elasticClient, writeTimeoutMillis = 5000)
       bulkClient.supportsDocumentType shouldBe true
+    }
+
+    // Regression test for review finding M1: JsonBulkWriter.handleTransportFailure is SHARED
+    // across ES6/ES7/OpenSearch. Before this feature, a bare RuntimeException from a transport
+    // failure was swallowed by NoopErrorPolicy with only a WARN log; it is now reclassified as
+    // RetriableIntegrityException, which NOOP must fail fast on instead of swallowing — this
+    // applies to ES6 too, even though ES6 ships none of the DLQ feature itself.
+    "a transport-level failure under NOOP fails the task instead of being silently swallowed (ES6 is affected by this shared-writer change)" in {
+      val elasticClient = mock[KElasticClient]
+      when(elasticClient.execute(any[BulkRequest])).thenReturn(Future.failed(new RuntimeException("connection reset")))
+
+      val bulkClient = new KElastic6BulkClient(elasticClient, writeTimeoutMillis = 5000)
+
+      val sourceTopic = "source"
+      val targetIndex = "target"
+      val kcql        = mock[Kcql]
+      when(kcql.getSource).thenReturn(sourceTopic)
+      when(kcql.getTargetType).thenReturn(
+        cyclops.control.Either.right[IllegalArgumentException, io.lenses.kcql.targettype.TargetType](
+          new io.lenses.kcql.targettype.StaticTargetType(targetIndex),
+        ),
+      )
+      when(kcql.getProperties).thenReturn(emptyMap)
+      when(kcql.getWriteMode).thenReturn(io.lenses.kcql.WriteModeEnum.INSERT)
+      when(kcql.getFields).thenReturn(emptyList())
+      when(kcql.getIgnoredFields).thenReturn(emptyList())
+
+      val record = mock[SinkRecord]
+      when(record.topic()).thenReturn(sourceTopic)
+      when(record.key()).thenReturn("k")
+      when(record.value()).thenReturn("""{"a":1}""")
+      when(record.valueSchema()).thenReturn(Schema.OPTIONAL_STRING_SCHEMA)
+
+      val writer = new JsonBulkWriter(bulkClient, ElasticCommonSettings(Seq(kcql), new NoopErrorPolicy))
+
+      val thrown = intercept[RetriableIntegrityException](writer.write(Vector(record)))
+      thrown.getMessage should include("connection reset")
     }
   }
 }

@@ -79,8 +79,26 @@ class KElasticBulkClient(
 
     val result     = response.result
     val tookMillis = result.took
+    // elastic4s's BulkResponse.items is a def that rebuilds (flatMap + zipWithIndex + map) its
+    // list on every access — capture it once rather than recomputing it on each reference below.
+    val items = result.items
 
-    val itemErrors: Seq[BulkItemError] = result.items.collect {
+    // elastic4s assigns `itemId` positionally via zipWithIndex over its own decoded item list
+    // (com.sksamuel.elastic4s.requests.bulk.BulkResponse.items). That list can differ in length
+    // from our request (e.g. a decode step silently drops an item shape it doesn't recognise),
+    // which would shift every later itemId. Guard it here: only trust positions when the response
+    // item count matches the request op count. On mismatch, disable position mapping for the
+    // whole batch (position = -1) rather than risk correlating an error to the wrong Kafka record.
+    val positionsTrustworthy = items.size == ops.size
+    if (!positionsTrustworthy) {
+      logger.warn(
+        s"Bulk response returned ${items.size} item(s) for a request of ${ops.size} op(s); " +
+          "cannot reliably correlate item errors to their originating records. Per-record DLQ " +
+          "mapping (if configured) is disabled for this batch.",
+      )
+    }
+
+    val itemErrors: Seq[BulkItemError] = items.collect {
       case item if item.error.isDefined =>
         val err = item.error.get
         BulkItemError(
@@ -89,6 +107,7 @@ class KElasticBulkClient(
           reason    = err.reason,
           errorType = err.`type`,
           status    = item.status,
+          position  = if (positionsTrustworthy) item.itemId else -1,
         )
     }
 
@@ -105,7 +124,7 @@ class KElasticBulkClient(
         BulkResult(took = tookMillis, errors = false, itemErrors = Seq.empty)
       }
 
-    logger.info(s"Bulk write completed: took=${tookMillis}ms, items=${result.items.size}")
+    logger.info(s"Bulk write completed: took=${tookMillis}ms, items=${items.size}")
     bulkResult
   }
 

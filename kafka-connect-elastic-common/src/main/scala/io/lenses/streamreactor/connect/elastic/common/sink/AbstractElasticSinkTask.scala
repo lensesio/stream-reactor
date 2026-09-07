@@ -21,6 +21,9 @@ import io.lenses.streamreactor.common.util.AsciiArtPrinter.printAsciiHeader
 import io.lenses.streamreactor.common.utils.JarManifestProvided
 import io.lenses.streamreactor.common.utils.ProgressCounter
 import io.lenses.streamreactor.connect.elastic.common.config.ElasticCommonConfigConstants
+import io.lenses.streamreactor.connect.elastic.common.config.ElasticCommonSettings
+import io.lenses.streamreactor.connect.elastic.common.config.ItemErrorDlqMode
+import io.lenses.streamreactor.connect.elastic.common.dlq.DlqGate
 import io.lenses.streamreactor.connect.elastic.common.writer.JsonBulkWriter
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
@@ -48,8 +51,12 @@ abstract class AbstractElasticSinkTask extends SinkTask with StrictLogging with 
    * Create the writer from the resolved config map. Also responsible for calling
    * `configDef.parse(conf)` BEFORE constructing settings — this surfaces missing
    * required keys as ConfigException at the start boundary.
+   *
+   * `dlqGate` reflects whether Kafka Connect has actually made a dead-letter queue available
+   * for this task (see [[DlqGate.enabled]]) — implementations should pass it through to the
+   * [[JsonBulkWriter]] they construct so permanently-failed bulk items can be reported to it.
    */
-  protected def createWriter(conf: Map[String, String]): JsonBulkWriter
+  protected def createWriter(conf: Map[String, String], dlqGate: DlqGate): JsonBulkWriter
 
   protected def errorRetryIntervalKey: String
   protected def progressEnabledKey:    String
@@ -60,7 +67,29 @@ abstract class AbstractElasticSinkTask extends SinkTask with StrictLogging with 
     val conf    = if (context.configs().isEmpty) props else context.configs()
     val confMap = conf.asScala.toMap
 
-    val w = createWriter(confMap)
+    // A non-null errantRecordReporter alone does not mean a DLQ exists — Connect hands one out
+    // whenever errors.deadletterqueue.topic.name is set OR errors.log.enable=true. DlqGate reads
+    // the DLQ topic name directly from this task's own config to distinguish the two. See
+    // DlqGate's scaladoc for the full reasoning.
+    //
+    // SinkTaskContext.errantRecordReporter() was added in Kafka Connect 2.6; on an older runtime
+    // it fails to link with NoSuchMethodError, a LinkageError — NOT caught by scala.util.Try
+    // (LinkageError is explicitly excluded from NonFatal), so it must be caught explicitly here.
+    val reporter =
+      try Option(context.errantRecordReporter())
+      catch {
+        case _: NoSuchMethodError =>
+          logger.debug(
+            "SinkTaskContext.errantRecordReporter() is unavailable on this Kafka Connect runtime " +
+              "(older than 2.6); per-record DLQ reporting is unavailable.",
+          )
+          None
+      }
+    val dlqGate = DlqGate.from(reporter, confMap)
+
+    val w = createWriter(confMap, dlqGate)
+
+    validateDlqConfiguration(confMap, dlqGate, w.settings)
 
     // Wire the retry interval into the context timeout when policy is RETRY
     w.settings.errorPolicy match {
@@ -76,13 +105,57 @@ abstract class AbstractElasticSinkTask extends SinkTask with StrictLogging with 
     writer         = Some(w)
   }
 
+  /**
+   * Warns at startup about `bulk.item.errors.dlq=skip` configurations that cannot actually take
+   * effect, so operators find out at start() rather than discovering it only when a poison
+   * document arrives and the connector still fails the task.
+   */
+  private def validateDlqConfiguration(
+    confMap:  Map[String, String],
+    dlqGate:  DlqGate,
+    settings: ElasticCommonSettings,
+  ): Unit =
+    if (settings.itemErrorDlqMode == ItemErrorDlqMode.Skip) {
+      if (!dlqGate.dlqTopicConfigured) {
+        logger.warn(
+          s"bulk.item.errors.dlq=skip is set but ${DlqGate.DlqTopicNameConfigKey} is not configured " +
+            "(or is empty); skip cannot take effect and the connector will behave as if set to fail.",
+        )
+      }
+      if (!settings.strictItemErrors) {
+        logger.warn(
+          "bulk.item.errors.dlq=skip is set together with bulk.strict.item.errors=false; in tolerant " +
+            "mode per-item bulk failures are never surfaced to the writer, so nothing will ever be " +
+            "reported to the dead-letter queue.",
+        )
+      }
+      // Kafka Connect's own default for errors.tolerance is "none" — an operator who sets
+      // errors.deadletterqueue.topic.name and bulk.item.errors.dlq=skip but simply omits
+      // errors.tolerance (the common case) is on the same footing as one who set it explicitly
+      // to "none", so an absent/blank key must be treated as "none" here too, not skipped.
+      val tolerance = confMap.get(DlqGate.ErrorsToleranceConfigKey)
+        .map(_.trim.toLowerCase)
+        .filter(_.nonEmpty)
+        .getOrElse("none")
+      if (tolerance == "none") {
+        logger.warn(
+          s"bulk.item.errors.dlq=skip is set together with ${DlqGate.ErrorsToleranceConfigKey}=none " +
+            s"(the default when ${DlqGate.ErrorsToleranceConfigKey} is unset); " +
+            "Kafka Connect throws out of the DLQ report call once tolerance is exceeded, so skip " +
+            "cannot keep the task running under this setting (the record still reaches the DLQ, but " +
+            s"the task then fails fast). Set ${DlqGate.ErrorsToleranceConfigKey}=all for skip to work.",
+        )
+      }
+    }
+
   override def put(records: util.Collection[SinkRecord]): Unit = {
     require(writer.nonEmpty, "Writer is not set!")
-    val seq = records.asScala.toVector
-    writer.foreach(_.write(seq))
+    val seq        = records.asScala.toVector
+    val dlqRecords = writer.map(_.write(seq)).getOrElse(Set.empty[SinkRecord])
 
     if (enableProgress) {
-      progressCounter.update(seq)
+      val delivered = if (dlqRecords.isEmpty) seq else seq.filterNot(dlqRecords.contains)
+      progressCounter.update(delivered)
     }
   }
 

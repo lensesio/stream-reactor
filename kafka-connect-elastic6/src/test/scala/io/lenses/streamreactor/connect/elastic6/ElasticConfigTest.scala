@@ -15,8 +15,10 @@
  */
 package io.lenses.streamreactor.connect.elastic6
 
+import io.lenses.streamreactor.connect.elastic.common.config.ItemErrorDlqMode
 import io.lenses.streamreactor.connect.elastic6.config.ElasticConfig
 import io.lenses.streamreactor.connect.elastic6.config.ElasticConfigConstants
+import io.lenses.streamreactor.connect.elastic6.config.ElasticSettings
 import org.apache.kafka.common.config.ConfigException
 
 class ElasticConfigTest extends TestBase {
@@ -52,5 +54,29 @@ class ElasticConfigTest extends TestBase {
       getElasticSinkConfigProps() + (ElasticConfigConstants.WRITE_TIMEOUT_CONFIG -> "750"),
     )
     config.getInt(ElasticConfigConstants.WRITE_TIMEOUT_CONFIG) shouldBe 750
+  }
+
+  // ---- ES6 is unaffected by the per-record DLQ feature (lensesio-dev/stream-reactor#414) ----
+  //
+  // ES6's ConfigDef never registers bulk.item.errors.dlq at all (unlike ES7/OpenSearch), and
+  // KElastic6BulkClient never populates BulkItemError.position — verify BOTH halves of that
+  // claim: the key is genuinely absent (a user setting it is silently ignored, not rejected,
+  // per Kafka Connect's own unknown-property handling), AND itemErrorDlqMode stays pinned to
+  // Fail regardless of what a user sets that (ignored) key to.
+
+  "A ElasticConfig should silently ignore an unknown bulk.item.errors.dlq property rather than reject or crash" in {
+    val unknownKey = s"${ElasticConfigConstants.CONNECTOR_PREFIX}.bulk.item.errors.dlq"
+    noException should be thrownBy new ElasticConfig(getElasticSinkConfigProps() + (unknownKey -> "skip"))
+  }
+
+  "ElasticSettings should stay pinned to ItemErrorDlqMode.Fail even when the (ignored) bulk.item.errors.dlq key is set to skip" in {
+    val unknownKey = s"${ElasticConfigConstants.CONNECTOR_PREFIX}.bulk.item.errors.dlq"
+    val config     = new ElasticConfig(getElasticSinkConfigProps() + (unknownKey -> "skip"))
+    ElasticSettings(config).itemErrorDlqMode shouldBe ItemErrorDlqMode.Fail
+  }
+
+  "ElasticSettings should default to ItemErrorDlqMode.Fail with no bulk.item.errors.dlq key set at all" in {
+    val config = new ElasticConfig(getElasticSinkConfigProps())
+    ElasticSettings(config).itemErrorDlqMode shouldBe ItemErrorDlqMode.Fail
   }
 }

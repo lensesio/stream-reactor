@@ -16,6 +16,7 @@
 package io.lenses.streamreactor.connect.elastic6
 
 import com.sksamuel.elastic4s.http.ElasticNodeEndpoint
+import io.lenses.streamreactor.connect.elastic.common.dlq.DlqGate
 import io.lenses.streamreactor.connect.elastic.common.writer.JsonBulkWriter
 import io.lenses.streamreactor.connect.elastic6.config.ElasticConfig
 import io.lenses.streamreactor.connect.elastic6.config.ElasticConfigConstants
@@ -27,7 +28,7 @@ import scala.util.Try
 
 object ElasticWriter {
 
-  def apply(config: ElasticConfig): JsonBulkWriter = {
+  def apply(config: ElasticConfig, dlqGate: DlqGate = DlqGate.disabled): JsonBulkWriter = {
     val hostNames = config.getString(ElasticConfigConstants.HOSTS).split(",")
     val protocol  = config.getString(ElasticConfigConstants.PROTOCOL)
     val port      = config.getInt(ElasticConfigConstants.ES_PORT)
@@ -45,6 +46,7 @@ object ElasticWriter {
         settings,
       ),
       settings,
+      dlqGate,
     )
   }
 

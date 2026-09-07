@@ -15,6 +15,7 @@
  */
 package io.lenses.streamreactor.connect.elastic6
 
+import io.lenses.streamreactor.connect.elastic.common.dlq.DlqGate
 import io.lenses.streamreactor.connect.elastic.common.sink.AbstractElasticSinkTask
 import io.lenses.streamreactor.connect.elastic.common.writer.JsonBulkWriter
 import io.lenses.streamreactor.connect.elastic6.config.ElasticConfig
@@ -30,8 +31,20 @@ class ElasticSinkTask extends AbstractElasticSinkTask {
 
   override protected def progressEnabledKey: String = ElasticConfigConstants.PROGRESS_COUNTER_ENABLED
 
-  override protected def createWriter(conf: Map[String, String]): JsonBulkWriter = {
+  // NB: ES6 does not register bulk.item.errors.dlq in its ConfigDef and KElastic6BulkClient never
+  // populates BulkItemError.position, so ElasticCommonSettings.itemErrorDlqMode stays at its Fail
+  // default here regardless of dlqGate — the DLQ feature itself is a no-op for ES6.
+  //
+  // RELEASE NOTE — ES6 IS affected by one side effect of this feature despite the above:
+  // JsonBulkWriter.handleTransportFailure (shared across ES6/ES7/OpenSearch) now reclassifies a
+  // bulk transport failure (connection reset, timeout, etc) as RetriableIntegrityException
+  // instead of a bare RuntimeException. Under connect.elastic.error.policy=NOOP this used to be
+  // swallowed with a WARN log, silently advancing offsets past unwritten records; it now fails
+  // the task instead (still retried under error.policy=RETRY while the retry budget remains).
+  // This closes a pre-existing silent-data-loss hole, but it is a genuine behaviour change for
+  // any ES6 deployment running with error.policy=NOOP that upgrades to this version.
+  override protected def createWriter(conf: Map[String, String], dlqGate: DlqGate): JsonBulkWriter = {
     ElasticConfig.config.parse(conf.asJava)
-    ElasticWriter(ElasticConfig(conf))
+    ElasticWriter(ElasticConfig(conf), dlqGate)
   }
 }

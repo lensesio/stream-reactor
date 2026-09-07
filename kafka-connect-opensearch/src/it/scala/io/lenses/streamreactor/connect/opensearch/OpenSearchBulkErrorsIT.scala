@@ -15,15 +15,21 @@
  */
 package io.lenses.streamreactor.connect.opensearch
 
+import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.node.JsonNodeFactory
 import io.lenses.streamreactor.connect.elastic.common.bulk.InsertOp
+import io.lenses.streamreactor.connect.elastic.common.dlq.DlqGate
 import io.lenses.streamreactor.connect.elastic.common.writer.JsonBulkWriter
 import io.lenses.streamreactor.connect.opensearch.config.OpenSearchConfigConstants._
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaBuilder
 import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.errors.ConnectException
+import org.apache.kafka.connect.sink.ErrantRecordReporter
 import org.apache.kafka.connect.sink.SinkRecord
+
+import java.util.concurrent.CompletableFuture
+import scala.collection.mutable
 
 /**
  * Integration tests for bulk error handling:
@@ -68,7 +74,7 @@ class OpenSearchBulkErrorsIT extends ITBase {
   }
 
   test("strict mode: item-level mapper_parsing_exception returns BulkResult with errors=true") {
-    val index   = "strict-test-mapping"
+    val index   = s"strict-test-mapping-${System.nanoTime()}"
     val kClient = makeKClient(baseProps(host, port, s"INSERT INTO $index SELECT * FROM topic"))
     createIndexWithIntegerMapping(index, kClient)
 
@@ -88,7 +94,7 @@ class OpenSearchBulkErrorsIT extends ITBase {
   }
 
   test("tolerant mode: item-level mapper_parsing_exception is swallowed, BulkResult.errors=false") {
-    val index = "tolerant-test-mapping"
+    val index = s"tolerant-test-mapping-${System.nanoTime()}"
     val kClient = makeKClient(baseProps(
       host,
       port,
@@ -107,7 +113,7 @@ class OpenSearchBulkErrorsIT extends ITBase {
   }
 
   test("write to a non-existent index succeeds when AUTOCREATE is used in KCQL") {
-    val index = "autocreate-test"
+    val index = s"autocreate-test-${System.nanoTime()}"
     val kClient = makeKClient(baseProps(
       host,
       port,
@@ -118,7 +124,7 @@ class OpenSearchBulkErrorsIT extends ITBase {
   }
 
   test("C9: strict-mode + error.policy=THROW throws ConnectException on item-level bulk failure via JsonBulkWriter") {
-    val index = "c9-throw-test"
+    val index = s"c9-throw-test-${System.nanoTime()}"
 
     // Step 1: create the index and fix the mapping via a NOOP client first
     val setupClient = makeKClient(baseProps(host, port, s"INSERT INTO $index SELECT * FROM topic"))
@@ -162,5 +168,216 @@ class OpenSearchBulkErrorsIT extends ITBase {
     // C9 assertion: the writer must throw ConnectException (THROW policy) on item-level errors
     val ex = intercept[ConnectException](writer.write(Vector(record)))
     ex.getMessage should include("item-level error")
+  }
+
+  // ---- Per-record DLQ against a real cluster (lensesio-dev/stream-reactor#414) -------------
+
+  /** Records every (record, cause) it was asked to report and always acknowledges immediately. */
+  private class CapturingReporter extends ErrantRecordReporter {
+    val received: mutable.Buffer[(SinkRecord, Throwable)] = mutable.Buffer.empty
+    override def report(record: SinkRecord, error: Throwable): java.util.concurrent.Future[Void] = {
+      received += (record -> error)
+      CompletableFuture.completedFuture[Void](null)
+    }
+  }
+
+  test(
+    "DLQ: skip mode reports the mapping-conflict record to the DLQ instead of throwing, and still indexes the good record",
+  ) {
+    val index = s"dlq-skip-test-${System.nanoTime()}"
+
+    val setupClient = makeKClient(baseProps(host, port, s"INSERT INTO $index SELECT * FROM topic"))
+    createIndexWithIntegerMapping(index, setupClient)
+
+    import io.lenses.streamreactor.connect.opensearch.config.OpenSearchConfig
+    import io.lenses.streamreactor.connect.opensearch.config.OpenSearchSettings
+    import org.opensearch.client.opensearch.OpenSearchClient
+    import org.opensearch.client.opensearch.core.GetRequest
+
+    val props = baseProps(
+      host,
+      port,
+      s"INSERT INTO $index SELECT * FROM topic PK id",
+      Map(
+        BULK_STRICT_ITEM_ERRORS_KEY -> "true",
+        BULK_ITEM_ERRORS_DLQ_KEY    -> "skip",
+      ),
+    )
+    val config    = OpenSearchConfig(props)
+    val settings  = OpenSearchSettings(config)
+    val transport = OpenSearchTransportFactory.create(settings)
+    val osClient  = new OpenSearchClient(transport)
+    val kClient   = new KOpenSearchClient(osClient, settings)
+    val reporter  = new CapturingReporter
+    val writer    = new JsonBulkWriter(kClient, settings.common, DlqGate(Some(reporter), dlqTopicConfigured = true))
+
+    val schema: Schema =
+      SchemaBuilder.struct()
+        .field("id", Schema.STRING_SCHEMA)
+        .field("field", Schema.STRING_SCHEMA)
+        .build()
+    val goodRecord =
+      new SinkRecord(
+        "topic",
+        0,
+        Schema.STRING_SCHEMA,
+        "k1",
+        schema,
+        new Struct(schema).put("id", "good").put("field", "123"),
+        0L,
+      )
+    val badRecord =
+      new SinkRecord(
+        "topic",
+        0,
+        Schema.STRING_SCHEMA,
+        "k2",
+        schema,
+        new Struct(schema).put("id", "bad").put("field", "not-a-number"),
+        1L,
+      )
+
+    val reported = writer.write(Vector(goodRecord, badRecord))
+
+    reported shouldBe Set(badRecord)
+    reporter.received.map(_._1) shouldBe Seq(badRecord)
+    reporter.received.head._2.getMessage.toLowerCase should (include("mapper") or include("mapping"))
+
+    // The good record in the same batch was actually written, not swept up by the failure.
+    val fetched = osClient.get(GetRequest.of(g => g.index(index).id("good")), classOf[JsonNode])
+    fetched.found shouldBe true
+
+    transport.close()
+  }
+
+  // ---- Position correlation through a write ALIAS (review finding M5) ---------------------
+  //
+  // OpenSearch resolves a write alias to its concrete backing index before writing, and echoes
+  // that CONCRETE index in the bulk response — never the alias name that was actually sent
+  // (confirmed against a real cluster below, matching the ES7 equivalent test). ErrantRecordHandler
+  // maps a response item back to its record by position, corroborated by `id` only — NOT
+  // `index` — precisely so this alias/concrete-index difference does not cause the mapping to
+  // be refused.
+  test(
+    "ALIAS: skip mode targeting a write alias correlates correctly by id and reports the mapping-conflict record to the DLQ",
+  ) {
+    val backingIndex = s"alias-backing-${System.nanoTime()}"
+    val aliasName    = s"alias-target-${System.nanoTime()}"
+
+    val setupClient = makeKClient(baseProps(host, port, s"INSERT INTO $backingIndex SELECT * FROM topic"))
+    createIndexWithIntegerMapping(backingIndex, setupClient)
+    client.indices().putAlias(b => b.index(backingIndex).name(aliasName))
+
+    import io.lenses.streamreactor.connect.opensearch.config.OpenSearchConfig
+    import io.lenses.streamreactor.connect.opensearch.config.OpenSearchSettings
+    import org.opensearch.client.opensearch.OpenSearchClient
+    import org.opensearch.client.opensearch.core.GetRequest
+
+    val props = baseProps(
+      host,
+      port,
+      s"INSERT INTO $aliasName SELECT * FROM topic PK id",
+      Map(BULK_STRICT_ITEM_ERRORS_KEY -> "true", BULK_ITEM_ERRORS_DLQ_KEY -> "skip"),
+    )
+    val config    = OpenSearchConfig(props)
+    val settings  = OpenSearchSettings(config)
+    val transport = OpenSearchTransportFactory.create(settings)
+    val osClient  = new OpenSearchClient(transport)
+    val kClient   = new KOpenSearchClient(osClient, settings)
+    val reporter  = new CapturingReporter
+    val writer    = new JsonBulkWriter(kClient, settings.common, DlqGate(Some(reporter), dlqTopicConfigured = true))
+
+    val schema: Schema =
+      SchemaBuilder.struct().field("id", Schema.STRING_SCHEMA).field("field", Schema.STRING_SCHEMA).build()
+    val goodRecord =
+      new SinkRecord("topic",
+                     0,
+                     Schema.STRING_SCHEMA,
+                     "k1",
+                     schema,
+                     new Struct(schema).put("id", "good").put("field", "123"),
+                     0L,
+      )
+    val badRecord =
+      new SinkRecord("topic",
+                     0,
+                     Schema.STRING_SCHEMA,
+                     "k2",
+                     schema,
+                     new Struct(schema).put("id", "bad").put("field", "not-a-number"),
+                     1L,
+      )
+
+    // Directly probe what the bulk API returns for `index` through the alias, independent of
+    // JsonBulkWriter, so a future reader of this test can see the raw evidence.
+    val probe = kClient.bulk(Seq(InsertOp(aliasName, "probe-bad", stringDoc("not-a-number"), None, None))).get
+    probe.errors shouldBe true
+    val reportedIndex = probe.itemErrors.head.index
+    info(s"Bulk response index through alias '$aliasName' (backing index '$backingIndex') was: '$reportedIndex'")
+    // Confirms the premise this test exists to guard against: OpenSearch reports the CONCRETE
+    // index, not the alias. If a future version changed this, the assertions below would still
+    // hold either way — id-based mapping works regardless of which index string comes back.
+    reportedIndex shouldBe backingIndex
+
+    val reported = writer.write(Vector(goodRecord, badRecord))
+
+    reported shouldBe Set(badRecord)
+    reporter.received.map(_._1) shouldBe Seq(badRecord)
+    reporter.received.head._2.getMessage.toLowerCase should (include("mapper") or include("mapping"))
+
+    // The good record in the same batch was actually written, not swept up by the failure.
+    val fetched = osClient.get(GetRequest.of(g => g.index(backingIndex).id("good")), classOf[JsonNode])
+    fetched.found shouldBe true
+
+    transport.close()
+  }
+
+  // ---- Batch-wide (non-400) errors are never diverted to the DLQ (review finding M4) ------
+
+  test(
+    "BLOCKED: skip mode against a write-blocked index fails the task instead of diverting anything to the DLQ",
+  ) {
+    val index       = s"blocked-${System.nanoTime()}"
+    val setupClient = makeKClient(baseProps(host, port, s"INSERT INTO $index SELECT * FROM topic"))
+    val _           = setupClient.createIndex(index)
+    client.indices().putSettings(b => b.index(index).settings(s => s.blocksWrite(true)))
+
+    import io.lenses.streamreactor.connect.opensearch.config.OpenSearchConfig
+    import io.lenses.streamreactor.connect.opensearch.config.OpenSearchSettings
+    import org.opensearch.client.opensearch.OpenSearchClient
+
+    val props = baseProps(
+      host,
+      port,
+      s"INSERT INTO $index SELECT * FROM topic PK id",
+      Map(BULK_STRICT_ITEM_ERRORS_KEY -> "true", BULK_ITEM_ERRORS_DLQ_KEY -> "skip"),
+    )
+    val config    = OpenSearchConfig(props)
+    val settings  = OpenSearchSettings(config)
+    val transport = OpenSearchTransportFactory.create(settings)
+    val osClient  = new OpenSearchClient(transport)
+    val kClient   = new KOpenSearchClient(osClient, settings)
+    val reporter  = new CapturingReporter
+    val writer    = new JsonBulkWriter(kClient, settings.common, DlqGate(Some(reporter), dlqTopicConfigured = true))
+
+    val schema: Schema =
+      SchemaBuilder.struct().field("id", Schema.STRING_SCHEMA).field("field", Schema.STRING_SCHEMA).build()
+    // A perfectly valid document — the block is on the INDEX, not the document.
+    val goodRecord =
+      new SinkRecord("topic",
+                     0,
+                     Schema.STRING_SCHEMA,
+                     "k1",
+                     schema,
+                     new Struct(schema).put("id", "good").put("field", "123"),
+                     0L,
+      )
+
+    val thrown = intercept[ConnectException](writer.write(Vector(goodRecord)))
+    thrown.getMessage.toLowerCase should include("cluster_block_exception")
+    // Nothing was diverted — a batch-wide condition must never partially divert a batch.
+    reporter.received shouldBe empty
+
+    transport.close()
   }
 }

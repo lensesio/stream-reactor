@@ -1,0 +1,29 @@
+/*
+ * Copyright 2017-2026 Lenses.io Ltd
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package io.lenses.streamreactor.connect.elastic.common.dlq
+
+/**
+ * Result of an [[ErrantRecordHandler]] report attempt. All-or-nothing per call: if any record in
+ * the attempt could not be confidently mapped, reported, or acknowledged, the whole call is
+ * [[ReportOutcome.NotReported]] and the caller must fall back to its normal failure path rather
+ * than partially advancing offsets.
+ */
+sealed trait ReportOutcome
+
+object ReportOutcome {
+  case object Reported    extends ReportOutcome
+  case object NotReported extends ReportOutcome
+}

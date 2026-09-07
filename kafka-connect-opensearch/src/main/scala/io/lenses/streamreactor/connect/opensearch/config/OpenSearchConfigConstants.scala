@@ -117,6 +117,13 @@ object OpenSearchConfigConstants {
       |WARNING: Setting bulk.strict.item.errors=false swallows rejected documents and advances Kafka offsets past them.""".stripMargin
   val BULK_STRICT_ITEM_ERRORS_DEFAULT = true
 
+  // Per-record DLQ for permanent bulk item errors
+  val BULK_ITEM_ERRORS_DLQ_KEY = s"$CONNECTOR_PREFIX.$BULK_ITEM_ERRORS_DLQ_SUFFIX"
+  val BULK_ITEM_ERRORS_DLQ_DOC =
+    io.lenses.streamreactor.connect.elastic.common.config.ElasticCommonConfigConstants.BULK_ITEM_ERRORS_DLQ_DOC
+  val BULK_ITEM_ERRORS_DLQ_DEFAULT =
+    io.lenses.streamreactor.connect.elastic.common.config.ElasticCommonConfigConstants.BULK_ITEM_ERRORS_DLQ_DEFAULT
+
   // Connection pool tuning (REST / HC5 path only; SigV4 path uses AWS SDK defaults)
   val MAX_CONNECTIONS_PER_ROUTE_KEY = s"$CONNECTOR_PREFIX.max.connections.per.route"
   val MAX_CONNECTIONS_PER_ROUTE_DOC =

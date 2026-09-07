@@ -21,6 +21,7 @@ import ch.qos.logback.classic.spi.ILoggingEvent
 import ch.qos.logback.core.read.ListAppender
 import io.lenses.streamreactor.common.errors.NoopErrorPolicy
 import io.lenses.streamreactor.connect.elastic.common.config.ElasticCommonSettings
+import io.lenses.streamreactor.connect.elastic.common.dlq.DlqGate
 import io.lenses.streamreactor.connect.elastic.common.writer.JsonBulkWriter
 import io.lenses.streamreactor.connect.opensearch.config.OpenSearchConfigConstants._
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
@@ -72,7 +73,7 @@ class OpenSearchSinkTaskTest extends AnyFunSuite with Matchers with MockitoSugar
    */
   class StubbedTask(writerStub: JsonBulkWriter) extends OpenSearchSinkTask {
     var capturedConf: Map[String, String] = Map.empty
-    override protected def createWriter(conf: Map[String, String]): JsonBulkWriter = {
+    override protected def createWriter(conf: Map[String, String], dlqGate: DlqGate): JsonBulkWriter = {
       capturedConf = conf
       writerStub
     }

@@ -90,6 +90,15 @@ object OpenSearchConfig {
             Importance.MEDIUM,
             BULK_STRICT_ITEM_ERRORS_DOC,
     )
+    // Per-record DLQ for permanent bulk item errors
+    .define(
+      BULK_ITEM_ERRORS_DLQ_KEY,
+      Type.STRING,
+      BULK_ITEM_ERRORS_DLQ_DEFAULT,
+      ConfigDef.CaseInsensitiveValidString.in("fail", "skip"),
+      Importance.HIGH,
+      BULK_ITEM_ERRORS_DLQ_DOC,
+    )
     // Connection pool tuning (REST path only)
     .define(MAX_CONNECTIONS_PER_ROUTE_KEY,
             Type.INT,

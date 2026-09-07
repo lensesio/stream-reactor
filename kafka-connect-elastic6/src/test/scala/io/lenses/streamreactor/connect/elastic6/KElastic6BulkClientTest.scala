@@ -102,6 +102,31 @@ class KElastic6BulkClientTest extends AnyWordSpec with Matchers with MockitoSuga
       result.get.itemErrors shouldBe empty
     }
 
+    // ---- ES6 is unaffected by the per-record DLQ feature (lensesio-dev/stream-reactor#414) ----
+    //
+    // Unlike KElasticBulkClient (ES7) and KOpenSearchClient, ES6's client never populates
+    // BulkItemError.position — it always uses the case class default (-1), so
+    // ErrantRecordHandler.resolvePositions always refuses to map any ES6 item error and skip
+    // mode can never take effect here even if a user somehow set it (see ElasticConfigTest).
+    "never populate BulkItemError.position — it always stays at the -1 default" in {
+      val (client, elasticClient) = setup(strict = true)
+
+      val err = BulkError(`type` = "mapper_parsing_exception",
+                          reason     = "failed to parse field [foo]",
+                          index_uuid = "abc",
+                          shard      = 0,
+                          index      = "myindex",
+      )
+      val errItem = bulkResponseItem(id = "doc1", index = "myindex", error = Some(err), status = 400)
+      val bulkResp =
+        BulkResponse(took = 3L, errors = true, _items = Seq(BulkResponseItems(Some(errItem), None, None, None)))
+      when(elasticClient.result).thenReturn(bulkResp)
+
+      val br = client.bulk(sampleOps).get
+      br.itemErrors should have size 1
+      br.itemErrors.head.position shouldBe -1
+    }
+
     "populate 429 item errors in strict mode" in {
       val (client, elasticClient) = setup(strict = true)
       val err = BulkError(`type` = "es_rejected_execution_exception",

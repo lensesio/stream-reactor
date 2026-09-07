@@ -96,81 +96,149 @@ class KOpenSearchClient(client: OpenSearchClient, settings: OpenSearchSettings) 
   /** Eagerly probes cluster compatibility at writer construction, surfacing misconfiguration at SinkTask.start. */
   override def start(): Try[Unit] = Try(probeClusterCompatibility())
 
-  private def validateOp(op: BulkOp): Unit = {
-    if (op.index.isEmpty)
-      throw new IllegalArgumentException(s"BulkOp index must be non-empty (id=${op.id})")
-    if (op.id.isEmpty)
-      throw new IllegalArgumentException("BulkOp id must be non-empty")
-    val idBytes = op.id.getBytes(StandardCharsets.UTF_8).length
-    if (idBytes > 512)
-      throw new IllegalArgumentException(
-        s"BulkOp id exceeds OpenSearch's 512-byte hard limit (got $idBytes bytes); " +
-          s"reduce topic name length, shorten PK fields, or set a smaller pk.separator. " +
-          s"Offending id prefix: ${op.id.take(64)}",
+  /**
+   * Structural violations (empty index/id, an id over OpenSearch's 512-byte hard limit) are
+   * permanent, per-document faults — the moral equivalent of an HTTP 400 `illegal_argument_exception`
+   * — not transport failures. They used to be thrown as a bare `IllegalArgumentException` before
+   * the request was ever sent, which [[io.lenses.streamreactor.connect.elastic.common.writer.JsonBulkWriter.handleTransportFailure]]
+   * then reclassified as a *retriable* transport failure: pointless under `error.policy=RETRY`
+   * (identical input, identical failure, every attempt) and unreportable to the DLQ. Returning
+   * them as ordinary [[BulkItemError]]s instead routes them through the same strict/tolerant and
+   * DLQ machinery as every other per-item bulk error.
+   */
+  private def validateOp(op: BulkOp): Either[BulkItemError, Unit] = {
+    def invalid(reason: String): Either[BulkItemError, Unit] =
+      Left(
+        BulkItemError(index     = op.index,
+                      id        = op.id,
+                      reason    = reason,
+                      errorType = "illegal_argument_exception",
+                      status    = 400,
+        ),
       )
+
+    if (op.index.isEmpty) {
+      invalid(s"BulkOp index must be non-empty (id=${op.id})")
+    } else if (op.id.isEmpty) {
+      invalid("BulkOp id must be non-empty")
+    } else {
+      val idBytes = op.id.getBytes(StandardCharsets.UTF_8).length
+      if (idBytes > 512) {
+        invalid(
+          s"BulkOp id exceeds OpenSearch's 512-byte hard limit (got $idBytes bytes); " +
+            s"reduce topic name length, shorten PK fields, or set a smaller pk.separator. " +
+            s"Offending id prefix: ${op.id.take(64)}",
+        )
+      } else {
+        Right(())
+      }
+    }
+  }
+
+  private def toBulkOperation(op: BulkOp): BulkOperation = op match {
+    case InsertOp(index, id, json, pipeline, _) =>
+      val indexOpBuilder = new IndexOperation.Builder[JsonNode]()
+        .index(index)
+        .id(id)
+        .document(json)
+      pipeline.foreach(p => indexOpBuilder.pipeline(p))
+      new BulkOperation.Builder().index(indexOpBuilder.build()).build()
+
+    case UpsertOp(index, id, json, _) =>
+      val updateOp = new UpdateOperation.Builder[JsonNode]()
+        .index(index)
+        .id(id)
+        .document(json)
+        .docAsUpsert(true)
+        .retryOnConflict(Int.box(ElasticCommonConfigConstants.UPSERT_RETRY_ON_CONFLICT))
+        .build()
+      new BulkOperation.Builder().update(updateOp).build()
+
+    case DeleteOp(index, id, _) =>
+      val deleteOp = new DeleteOperation.Builder()
+        .index(index)
+        .id(id)
+        .build()
+      new BulkOperation.Builder().delete(deleteOp).build()
   }
 
   override def bulk(ops: Seq[BulkOp]): Try[BulkResult] = Try {
-    ops.foreach(validateOp)
+    // Validate every op against its position in the ORIGINAL request before dropping any of
+    // them, so DLQ correlation (which trusts BulkItemError.position as an index into the
+    // original ops list) stays correct even when only a subset of ops is actually sent to the
+    // cluster.
+    val validated: IndexedSeq[Either[BulkItemError, BulkOp]] =
+      ops.zipWithIndex.map { case (op, idx) => validateOp(op).left.map(_.copy(position = idx)).map(_ => op) }
+        .toIndexedSeq
 
-    val bulkOps: java.util.List[BulkOperation] = ops.map {
-      case InsertOp(index, id, json, pipeline, _) =>
-        val indexOpBuilder = new IndexOperation.Builder[JsonNode]()
-          .index(index)
-          .id(id)
-          .document(json)
-        pipeline.foreach(p => indexOpBuilder.pipeline(p))
-        new BulkOperation.Builder().index(indexOpBuilder.build()).build()
+    val validationErrors: Seq[BulkItemError] = validated.collect { case Left(e) => e }
+    // (op, originalIndex) pairs for ops that passed local validation, in original order.
+    val validOpsWithIndex: IndexedSeq[(BulkOp, Int)] =
+      validated.zipWithIndex.collect { case (Right(op), idx) => op -> idx }
 
-      case UpsertOp(index, id, json, _) =>
-        val updateOp = new UpdateOperation.Builder[JsonNode]()
-          .index(index)
-          .id(id)
-          .document(json)
-          .docAsUpsert(true)
-          .retryOnConflict(Int.box(ElasticCommonConfigConstants.UPSERT_RETRY_ON_CONFLICT))
-          .build()
-        new BulkOperation.Builder().update(updateOp).build()
-
-      case DeleteOp(index, id, _) =>
-        val deleteOp = new DeleteOperation.Builder()
-          .index(index)
-          .id(id)
-          .build()
-        new BulkOperation.Builder().delete(deleteOp).build()
-    }.asJava
-
-    val request  = new BulkRequest.Builder().operations(bulkOps).build()
-    val response = client.bulk(request)
-
-    val tookMillis = response.took()
-    logger.info(s"Bulk write completed: took=${tookMillis}ms, items=${bulkOps.size()}")
-
-    if (!response.errors()) {
-      BulkResult(took = tookMillis, errors = false, itemErrors = Seq.empty)
-    } else {
-      val itemErrors: Seq[BulkItemError] = response.items().asScala
-        .filter(item => item.error() != null)
-        .map(item =>
-          BulkItemError(
-            index     = Option(item.index()).getOrElse(""),
-            id        = Option(item.id()).getOrElse(""),
-            reason    = Option(item.error().reason()).getOrElse(""),
-            errorType = Option(item.error().`type`()).getOrElse(""),
-            status    = item.status(),
-          ),
-        )
-        .toSeq
-
-      if (settings.strictItemErrors) {
-        logger.error(s"Bulk write completed with ${BulkItemErrorClassifier.formatItemErrors(itemErrors)}")
-        BulkResult(took = tookMillis, errors = true, itemErrors = itemErrors)
+    val (tookMillis, responseItemErrors) =
+      if (validOpsWithIndex.isEmpty) {
+        // Every op failed local validation — nothing left to send to the cluster.
+        (0L, Seq.empty[BulkItemError])
       } else {
-        logger.warn(
-          s"Bulk write completed with ${BulkItemErrorClassifier.formatItemErrors(itemErrors)} (tolerant mode)",
-        )
-        BulkResult(took = tookMillis, errors = false, itemErrors = Seq.empty)
+        val validOps = validOpsWithIndex.map(_._1)
+        val bulkOps: java.util.List[BulkOperation] = validOps.map(toBulkOperation).asJava
+        val request  = new BulkRequest.Builder().operations(bulkOps).build()
+        val response = client.bulk(request)
+
+        val took = response.took()
+        logger.info(s"Bulk write completed: took=${took}ms, items=${bulkOps.size()}")
+
+        if (!response.errors()) {
+          (took, Seq.empty[BulkItemError])
+        } else {
+          // opensearch-java's BulkResponseItem has no ordinal field — position is purely the
+          // item's index within response.items(), which we only trust if it lines up 1:1 with
+          // the ops actually sent. zipWithIndex MUST run before the filter, otherwise a dropped
+          // success item shifts every later index. On a length mismatch, disable DLQ mapping
+          // for the whole batch (position = -1) rather than risk correlating an error to the
+          // wrong Kafka record.
+          val responseItems        = response.items().asScala.toIndexedSeq
+          val positionsTrustworthy = responseItems.size == validOps.size
+          if (!positionsTrustworthy) {
+            logger.warn(
+              s"Bulk response returned ${responseItems.size} item(s) for a request of ${validOps.size} op(s); " +
+                "cannot reliably correlate item errors to their originating records. Per-record DLQ " +
+                "mapping (if configured) is disabled for this batch.",
+            )
+          }
+
+          val errs: Seq[BulkItemError] = responseItems.zipWithIndex
+            .collect {
+              case (item, idx) if item.error() != null =>
+                BulkItemError(
+                  index     = Option(item.index()).getOrElse(""),
+                  id        = Option(item.id()).getOrElse(""),
+                  reason    = Option(item.error().reason()).getOrElse(""),
+                  errorType = Option(item.error().`type`()).getOrElse(""),
+                  status    = item.status(),
+                  // Map the response-relative index back to the position in the ORIGINAL
+                  // request, since validation failures may have already been removed from
+                  // what was actually sent.
+                  position = if (positionsTrustworthy) validOpsWithIndex(idx)._2 else -1,
+                )
+            }
+          (took, errs)
+        }
       }
+
+    val itemErrors = validationErrors ++ responseItemErrors
+
+    if (itemErrors.isEmpty) {
+      BulkResult(took = tookMillis, errors = false, itemErrors = Seq.empty)
+    } else if (settings.strictItemErrors) {
+      logger.error(s"Bulk write completed with ${BulkItemErrorClassifier.formatItemErrors(itemErrors)}")
+      BulkResult(took = tookMillis, errors = true, itemErrors = itemErrors)
+    } else {
+      logger.warn(
+        s"Bulk write completed with ${BulkItemErrorClassifier.formatItemErrors(itemErrors)} (tolerant mode)",
+      )
+      BulkResult(took = tookMillis, errors = false, itemErrors = Seq.empty)
     }
   }
 

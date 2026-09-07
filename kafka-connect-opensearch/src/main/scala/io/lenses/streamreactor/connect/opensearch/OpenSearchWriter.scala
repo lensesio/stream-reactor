@@ -15,6 +15,7 @@
  */
 package io.lenses.streamreactor.connect.opensearch
 
+import io.lenses.streamreactor.connect.elastic.common.dlq.DlqGate
 import io.lenses.streamreactor.connect.elastic.common.writer.JsonBulkWriter
 import io.lenses.streamreactor.connect.opensearch.config.OpenSearchConfig
 import io.lenses.streamreactor.connect.opensearch.config.OpenSearchSettings
@@ -22,11 +23,11 @@ import org.opensearch.client.opensearch.OpenSearchClient
 
 object OpenSearchWriter {
 
-  def apply(config: OpenSearchConfig): JsonBulkWriter = {
+  def apply(config: OpenSearchConfig, dlqGate: DlqGate = DlqGate.disabled): JsonBulkWriter = {
     val settings  = OpenSearchSettings(config)
     val transport = OpenSearchTransportFactory.create(settings)
     val osClient  = new OpenSearchClient(transport)
     val kClient   = new KOpenSearchClient(osClient, settings)
-    new JsonBulkWriter(kClient, settings.common)
+    new JsonBulkWriter(kClient, settings.common, dlqGate)
   }
 }

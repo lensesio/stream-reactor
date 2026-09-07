@@ -34,4 +34,11 @@ case class ElasticCommonSettings(
   httpBasicAuthPassword: String     = ElasticCommonConfigConstants.CLIENT_HTTP_BASIC_AUTH_PASSWORD_DEFAULT,
   storesInfo:            StoresInfo = new StoresInfo(COption.none(), COption.none(), COption.none()),
   strictItemErrors:      Boolean    = ElasticCommonConfigConstants.BULK_STRICT_ITEM_ERRORS_DEFAULT,
+  // Not read from config on ES6 — that connector's bulk client does not populate BulkItemError.position
+  // (unverified whether elastic4s 6.7.8 exposes an equivalent ordinal), so ES6 is pinned to Fail: the
+  // key is never registered in ES6's ConfigDef. Note that Kafka Connect does NOT reject unknown
+  // properties — it silently ignores them (logged once as unused) — so a user who sets
+  // bulk.item.errors.dlq on ES6 gets a silent no-op, not a validation error, and itemErrorDlqMode
+  // stays at this Fail default regardless.
+  itemErrorDlqMode: ItemErrorDlqMode = ItemErrorDlqMode.Fail,
 )

@@ -15,6 +15,7 @@
  */
 package io.lenses.streamreactor.connect.opensearch
 
+import io.lenses.streamreactor.connect.elastic.common.config.ItemErrorDlqMode
 import io.lenses.streamreactor.connect.opensearch.config.OpenSearchConfig
 import io.lenses.streamreactor.connect.opensearch.config.OpenSearchConfigConstants._
 import io.lenses.streamreactor.connect.opensearch.config.OpenSearchSettings
@@ -43,6 +44,13 @@ import org.scalatest.matchers.should.Matchers
  *
  * 5. `write.timeout` is milliseconds on ES6, ES7 and OpenSearch (default 300000 = 5 minutes).
  *    ES6/ES7 additionally reject 1..120 as likely pre-migration seconds; OpenSearch does not.
+ *
+ * === Confirmed parity (not a difference) ===
+ *
+ * 6. `bulk.item.errors.dlq` (per-record DLQ for permanent bulk item errors, lensesio-dev/stream-reactor#414)
+ *    has the same suffix, same default (`fail`), and the same [[ItemErrorDlqMode]] semantics on
+ *    OpenSearch as on ES7. Unlike ES6 — which never populates `BulkItemError.position` and so
+ *    cannot support this feature — OpenSearch and ES7 are symmetric here.
  */
 class OpenSearchParityContractTest extends AnyFunSuite with Matchers {
 
@@ -118,5 +126,15 @@ class OpenSearchParityContractTest extends AnyFunSuite with Matchers {
   test("PARITY-5b: write.timeout 1..120 is allowed on OpenSearch (no ES6/ES7 seconds trap)") {
     settings(WRITE_TIMEOUT -> "60").common.writeTimeout shouldBe 60
     settings(WRITE_TIMEOUT -> "120").common.writeTimeout shouldBe 120
+  }
+
+  // --- 6. bulk.item.errors.dlq: confirmed parity with ES7 ---
+
+  test("PARITY-6: bulk.item.errors.dlq defaults to fail, matching ES7") {
+    settings().common.itemErrorDlqMode shouldBe ItemErrorDlqMode.Fail
+  }
+
+  test("PARITY-6b: bulk.item.errors.dlq=skip resolves to ItemErrorDlqMode.Skip, matching ES7") {
+    settings(BULK_ITEM_ERRORS_DLQ_KEY -> "skip").common.itemErrorDlqMode shouldBe ItemErrorDlqMode.Skip
   }
 }

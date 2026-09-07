@@ -16,6 +16,7 @@
 package io.lenses.streamreactor.connect.opensearch.config
 
 import io.lenses.streamreactor.connect.elastic.common.config.ElasticCommonConfigConstants
+import io.lenses.streamreactor.connect.elastic.common.config.ItemErrorDlqMode
 import io.lenses.streamreactor.connect.opensearch.config.OpenSearchConfigConstants._
 import org.apache.kafka.common.config.ConfigException
 import org.scalatest.funsuite.AnyFunSuite
@@ -277,6 +278,19 @@ class OpenSearchConfigTest extends AnyFunSuite with Matchers {
 
   test("strictItemErrors can be set to false") {
     settings(BULK_STRICT_ITEM_ERRORS_KEY -> "false").strictItemErrors shouldBe false
+  }
+
+  test("bulk.item.errors.dlq defaults to fail") {
+    settings().common.itemErrorDlqMode shouldBe ItemErrorDlqMode.Fail
+  }
+
+  test("bulk.item.errors.dlq can be set to skip") {
+    settings(BULK_ITEM_ERRORS_DLQ_KEY -> "skip").common.itemErrorDlqMode shouldBe ItemErrorDlqMode.Skip
+  }
+
+  test("bulk.item.errors.dlq rejects an invalid value") {
+    val ex = intercept[ConfigException](settings(BULK_ITEM_ERRORS_DLQ_KEY -> "maybe"))
+    ex.getMessage should include("bulk.item.errors.dlq")
   }
 
   test("write.timeout of 60 milliseconds is accepted (OpenSearch has always used milliseconds)") {

@@ -68,7 +68,11 @@ object ElasticConfigConstants {
   val ERROR_POLICY_DOC: String =
     """Specifies the action to be taken if an error occurs while inserting the data
       |There are two available options:
-      |NOOP - the error is swallowed
+      |NOOP - most errors are swallowed and processing continues; data-integrity errors are the
+      |exception — a bulk transport failure (e.g. connection reset, timeout) and a permanent
+      |per-item bulk error (under bulk.strict.item.errors=true) are always propagated and fail
+      |the task, because NOOP must never silently advance offsets past a record whose write
+      |outcome is unknown.
       |THROW - the error is allowed to propagate.
       |RETRY - The exception causes the Connect framework to retry the message. The number of retries is based on
       |The error will be logged automatically""".stripMargin
@@ -113,5 +117,12 @@ object ElasticConfigConstants {
     io.lenses.streamreactor.connect.elastic.common.config.ElasticCommonConfigConstants.BULK_STRICT_ITEM_ERRORS_DOC
   val BULK_STRICT_ITEM_ERRORS_DEFAULT =
     io.lenses.streamreactor.connect.elastic.common.config.ElasticCommonConfigConstants.BULK_STRICT_ITEM_ERRORS_DEFAULT
+
+  val BULK_ITEM_ERRORS_DLQ_KEY =
+    s"$CONNECTOR_PREFIX.${io.lenses.streamreactor.connect.elastic.common.config.ElasticCommonConfigConstants.BULK_ITEM_ERRORS_DLQ_SUFFIX}"
+  val BULK_ITEM_ERRORS_DLQ_DOC =
+    io.lenses.streamreactor.connect.elastic.common.config.ElasticCommonConfigConstants.BULK_ITEM_ERRORS_DLQ_DOC
+  val BULK_ITEM_ERRORS_DLQ_DEFAULT =
+    io.lenses.streamreactor.connect.elastic.common.config.ElasticCommonConfigConstants.BULK_ITEM_ERRORS_DLQ_DEFAULT
 
 }

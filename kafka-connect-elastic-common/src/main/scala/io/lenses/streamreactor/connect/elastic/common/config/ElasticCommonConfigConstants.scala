@@ -81,7 +81,11 @@ object ElasticCommonConfigConstants {
   val ERROR_POLICY_DOC: String =
     """Specifies the action to be taken if an error occurs while inserting the data
       |There are two available options:
-      |NOOP - the error is swallowed
+      |NOOP - most errors are swallowed and processing continues; data-integrity errors are the
+      |exception — a bulk transport failure (e.g. connection reset, timeout) and a permanent
+      |per-item bulk error (under bulk.strict.item.errors=true) are always propagated and fail
+      |the task, because NOOP must never silently advance offsets past a record whose write
+      |outcome is unknown.
       |THROW - the error is allowed to propagate.
       |RETRY - The exception causes the Connect framework to retry the message. The number of retries is based on
       |The error will be logged automatically""".stripMargin
@@ -123,4 +127,36 @@ object ElasticCommonConfigConstants {
       |When false, only HTTP-transport errors are surfaced; per-item failures are logged at WARN and dropped.
       |WARNING: Setting bulk.strict.item.errors=false swallows rejected documents and advances Kafka offsets past them.""".stripMargin
   val BULK_STRICT_ITEM_ERRORS_DEFAULT = true
+
+  val BULK_ITEM_ERRORS_DLQ_SUFFIX = "bulk.item.errors.dlq"
+  val BULK_ITEM_ERRORS_DLQ_DOC =
+    """Controls what happens to a bulk item that fails with a permanent error (e.g. a mapper
+      |conflict) once a real Kafka Connect dead-letter queue is available.
+      |fail (default): the connector throws. Kafka Connect kills the task with offsets
+      |uncommitted, so the whole batch is redelivered on restart. No data is lost, but the
+      |connector stops running until restarted.
+      |skip: the failing record(s) are reported to the dead-letter queue and the batch is
+      |treated as handled so offsets advance past them, keeping the task running.
+      |skip only takes effect when ALL of the following hold; otherwise it is ignored and the
+      |connector behaves as fail:
+      |  - errors.deadletterqueue.topic.name is set to a non-empty topic name.
+      |  - errors.tolerance=all. Under errors.tolerance=none, Kafka Connect throws out of the
+      |    report call once the record has been handed to the DLQ producer, so skip cannot keep
+      |    the task running (the record still reaches the DLQ, but the task then fails fast).
+      |  - bulk.strict.item.errors=true (the default). In tolerant mode, per-item bulk failures
+      |    are never surfaced, so there is nothing to report.
+      |skip only diverts per-document rejections (HTTP 400, e.g. a mapper conflict). Batch-wide
+      |conditions such as a write-blocked index, a missing index, or an authorization failure
+      |still fail the task even in skip mode: they are not caused by the content of any one
+      |record, so diverting them to the DLQ would discard good records while the task kept
+      |running and reported itself healthy. skip means "a poison document does not kill the
+      |task", not "the task can never fail".
+      |A record that fans out to more than one KCQL target may be committed successfully to one
+      |index and reported to the DLQ for another; anything consuming the DLQ should expect to
+      |see records that were also partially written.
+      |DLQ delivery is at-least-once: if a batch mixes a permanent (DLQ-eligible) error with a
+      |retriable one, the permanent record(s) are reported and the batch still fails for the
+      |retriable remainder, so the same permanent record(s) are reported again on every
+      |redelivery attempt until the retriable remainder clears.""".stripMargin
+  val BULK_ITEM_ERRORS_DLQ_DEFAULT = "fail"
 }
