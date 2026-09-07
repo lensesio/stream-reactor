@@ -82,7 +82,6 @@ class JsonBulkWriterTest
     with MockitoSugar
     with ArgumentMatchersSugar {
 
-  // ---- Test helpers ----
 
   /** Accumulates bulk ops received by the writer. */
   class RecordingBulkClient extends KBulkClient {
@@ -135,7 +134,6 @@ class JsonBulkWriterTest
   private def tombstone(topic: String, key: String, offset: Long = 0L): SinkRecord =
     new SinkRecord(topic, 0, Schema.STRING_SCHEMA, key, null, null, offset)
 
-  // ---- Tests ----
 
   test("INSERT SELECT * routes document to the correct index") {
     val recording = new RecordingBulkClient
@@ -310,7 +308,6 @@ class JsonBulkWriterTest
     op.pipeline shouldBe None
   }
 
-  // ---- Parity-contract: fetchNullValueBehaviorProperty absent-key default -----------------------
   // When the KCQL PROPERTIES map does NOT contain behavior.on.null.values, the lookup returns
   // null → NullValueBehavior.fromString(null) → IGNORE.
   // A tombstone must therefore be silently dropped (the preserved default).
@@ -325,7 +322,6 @@ class JsonBulkWriterTest
     recording.allOps shouldBe empty
   }
 
-  // ---- Parity-contract: PK stringification (mkString) ----------------------------------
 
   test("INT64 PK field stringifies to decimal string") {
     val int64Schema = SchemaBuilder.struct()
@@ -381,7 +377,6 @@ class JsonBulkWriterTest
     capturing.lastOps.head.asInstanceOf[InsertOp].id shouldBe "123.eu-west-1"
   }
 
-  // ---- Parity-contract: AUTOCREATE filter + non-static target fast-fail ----------------
 
   test("AUTOCREATE calls createIndex at construction (deduplication test)") {
     val recording = new RecordingBulkClient
@@ -394,7 +389,6 @@ class JsonBulkWriterTest
     recording.created.count(_ == "idx1") shouldBe 1
   }
 
-  // ---- Parity-row 44: WITHDOCTYPE warning — exactly once at construction, never per record ----
   // When a Kcql has a non-empty docType and the client does not support document types,
   // JsonBulkWriter emits exactly one WARN at construction time.
   // Writing N records must not produce any additional WARN lines about WITHDOCTYPE.
@@ -457,7 +451,6 @@ class JsonBulkWriterTest
     }
   }
 
-  // ---- Bug 1 regression: case-insensitive null-value behavior ----------------------------
 
   test("tombstone with lowercase 'delete' behavior produces a DeleteOp (case-insensitive)") {
     val recording = new RecordingBulkClient
@@ -491,7 +484,6 @@ class JsonBulkWriterTest
     intercept[Exception](writer.write(Vector(tombstone("ts-mc-topic", "k1"))))
   }
 
-  // ---- Bug 2 regression: nested IGNORE field removal ---------------------------------
 
   private val nestedSchema: Schema = SchemaBuilder.struct()
     .field("id", Schema.INT32_SCHEMA)
@@ -530,7 +522,6 @@ class JsonBulkWriterTest
     op.json.has("id") shouldBe true
   }
 
-  // ---- Parity-contract: dynamic index resolution runs before tombstone branch -----------
 
   test("dynamic index (WITHINDEXSUFFIX) is resolved before tombstone branch — DeleteOp carries resolved index") {
     import java.time.LocalDate
@@ -557,7 +548,6 @@ class JsonBulkWriterTest
     deleteOps.head.index shouldBe expected
   }
 
-  // ---- Item-level error classification (429 vs mapper) ---------------------------------
 
   private def failingClient(itemErrors: Seq[BulkItemError]): KBulkClient = new KBulkClient {
     override def bulk(ops: Seq[BulkOp]): Try[BulkResult] =
@@ -681,7 +671,6 @@ class JsonBulkWriterTest
     thrown should not be a[RetriableException]
   }
 
-  // ---- Per-record DLQ (lensesio-dev/stream-reactor#414) ---------------------------------
 
   /** Records every (record, cause) it was asked to report and always acknowledges immediately. */
   class FakeReporter extends ErrantRecordReporter {
@@ -943,7 +932,6 @@ class JsonBulkWriterTest
     reporter.received.foreach(_._1 shouldBe r)
   }
 
-  // ---- Status-400 DLQ eligibility gate (review finding M4) ------------------------------
 
   private def clusterBlockError(): BulkItemError =
     BulkItemError(index = "", id = "", reason = "index blocked", errorType = "cluster_block_exception", status = 403)
@@ -1014,7 +1002,6 @@ class JsonBulkWriterTest
     reporter.received shouldBe empty
   }
 
-  // ---- Batch-wide HTTP 400 faults are never diverted, even when the whole response is 400 ----
   // Regression: isDivertible previously treated every non-retriable 400 as per-document, so an
   // all-400 response of a batch-wide fault (closed index / missing pipeline) slipped past the
   // handleBulkResult backstop (which only trips on a mixed-in non-400) and was fully diverted —
@@ -1077,7 +1064,6 @@ class JsonBulkWriterTest
     reporter.received shouldBe empty
   }
 
-  // ---- Mixed-batch redelivery (review finding M3) ---------------------------------------
 
   test(
     "dlq mode: redelivery of a mixed batch reports the same permanent error to the DLQ again on every attempt",
@@ -1104,7 +1090,6 @@ class JsonBulkWriterTest
     reporter.received.map(_._1) shouldBe Seq(poison, poison)
   }
 
-  // ---- NotReported fallback paths (review finding 6 / M-adjacent) -----------------------
 
   test(
     "dlq mode: when the client cannot trust positions (length mismatch -> position = -1), the whole batch throws and nothing is reported",
@@ -1154,9 +1139,7 @@ class JsonBulkWriterTest
     intercept[IllegalStateException](writer.write(Vector(tombstone("topic", "k1"))))
   }
 
-  // ---- handleTransportFailure passthrough (review finding 5) ----------------------------
 
-  // ---- Per-record DROP (no DLQ required) — lensesio-dev/stream-reactor#414 follow-up -----
 
   test("drop mode diverts a permanent item error without any DLQ configured; offsets can advance") {
     val client = new ScriptedBulkClient(Map("1" -> mapperError()))

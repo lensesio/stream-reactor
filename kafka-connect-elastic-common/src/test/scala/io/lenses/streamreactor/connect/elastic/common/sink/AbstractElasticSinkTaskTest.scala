@@ -93,7 +93,6 @@ class AbstractElasticSinkTaskTest extends AnyFunSuite with Matchers with Mockito
     ctx
   }
 
-  // ---- DlqGate wiring through start() ----------------------------------------------------
 
   test(
     "start() builds an enabled DlqGate and passes it to createWriter when a reporter and DLQ topic are both present",
@@ -136,7 +135,6 @@ class AbstractElasticSinkTaskTest extends AnyFunSuite with Matchers with Mockito
     task.capturedConf.get("some.key") shouldBe Some("some.value")
   }
 
-  // ---- validateDlqConfiguration warnings -------------------------------------------------
 
   // StrictLogging resolves `logger` from the RUNTIME class (getClass), not the class that
   // declares the logging call — since CapturingTask is a subclass of AbstractElasticSinkTask,
@@ -266,7 +264,6 @@ class AbstractElasticSinkTaskTest extends AnyFunSuite with Matchers with Mockito
     warnings shouldBe empty
   }
 
-  // ---- drop mode warnings -----------------------------------------------------------------
 
   test("warns that drop discards records, unconditionally, as soon as drop is set") {
     val task = new CapturingTask(writerStub(dropSettings()))
@@ -303,7 +300,6 @@ class AbstractElasticSinkTaskTest extends AnyFunSuite with Matchers with Mockito
     warnings.exists(_.contains("bulk.strict.item.errors=false")) shouldBe false
   }
 
-  // ---- put() progress-counter exclusion ---------------------------------------------------
 
   private def sinkRecord(topic: String, offset: Long): SinkRecord =
     new SinkRecord(topic, 0, Schema.STRING_SCHEMA, "k", Schema.STRING_SCHEMA, "v", offset)

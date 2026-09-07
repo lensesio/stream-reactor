@@ -101,7 +101,6 @@ class ErrantRecordHandlerTest extends AnyFunSuite with Matchers with LoneElement
   private def gateWith(reporter: ErrantRecordReporter): DlqGate =
     DlqGate(Some(reporter), dlqTopicConfigured = true)
 
-  // ---- divertPermanent(Dlq): happy path -------------------------------------------------
 
   test("divertPermanent(Dlq) maps a permanent error to its record by position and reports it") {
     val reporter = new FakeReporter()
@@ -147,7 +146,6 @@ class ErrantRecordHandlerTest extends AnyFunSuite with Matchers with LoneElement
     reporter.received shouldBe empty
   }
 
-  // ---- position / identity verification (shared by Drop and Dlq) -----------------------
 
   test("divertPermanent(Dlq) refuses the whole call when a position is out of range") {
     val reporter = new FakeReporter()
@@ -239,7 +237,6 @@ class ErrantRecordHandlerTest extends AnyFunSuite with Matchers with LoneElement
     reporter.received shouldBe empty
   }
 
-  // ---- dedup (shared by Drop and Dlq) ---------------------------------------------------
 
   test("divertPermanent(Dlq) does not re-report a key already present in the tracker") {
     val reporter = new FakeReporter()
@@ -255,7 +252,6 @@ class ErrantRecordHandlerTest extends AnyFunSuite with Matchers with LoneElement
     reporter.received shouldBe empty // already reported earlier this put() — not sent again
   }
 
-  // ---- report() throwing (errors.tolerance=none) — Dlq only ------------------------------
 
   test("divertPermanent(Dlq) catches a throw from report() and returns NotDiverted") {
     val reporter = new FakeReporter(ReporterBehaviour.ThrowImmediately)
@@ -266,7 +262,6 @@ class ErrantRecordHandlerTest extends AnyFunSuite with Matchers with LoneElement
     handler.divertPermanent(Seq(error), ops, ItemErrorMode.Dlq, mutable.Map.empty) shouldBe DivertOutcome.NotDiverted
   }
 
-  // ---- future acknowledgement — Dlq only -------------------------------------------------
 
   test("divertPermanent(Dlq) returns NotDiverted when the DLQ future resolves exceptionally") {
     val reporter = new FakeReporter(ReporterBehaviour.FutureFails)
@@ -315,7 +310,6 @@ class ErrantRecordHandlerTest extends AnyFunSuite with Matchers with LoneElement
     }
   }
 
-  // ---- divertOne(Dlq) (writer-stage failures) --------------------------------------------
 
   test("divertOne(Dlq) reports a single writer-stage failure and tracks it") {
     val reporter = new FakeReporter()
@@ -367,7 +361,6 @@ class ErrantRecordHandlerTest extends AnyFunSuite with Matchers with LoneElement
     ) shouldBe false
   }
 
-  // ---- drop mode: what is unique to ItemErrorMode.Drop -----------------------------------
   // Drop never touches dlqGate/the reporter at all — these tests deliberately use a disabled
   // gate (no reporter, no DLQ topic) to prove diversion works without any DLQ machinery.
 
@@ -416,7 +409,6 @@ class ErrantRecordHandlerTest extends AnyFunSuite with Matchers with LoneElement
     tracked.size shouldBe 1
   }
 
-  // ---- drop mode log volume ---------------------------------------------------------------
   // A batch-wide cause (e.g. a field type change) makes every document in the batch a 400, so
   // per-record WARN logging would emit up to batch.size lines per bulk call, each carrying a
   // document preview in `reason`.

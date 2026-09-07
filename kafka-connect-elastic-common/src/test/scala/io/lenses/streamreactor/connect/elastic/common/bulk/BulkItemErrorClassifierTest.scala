@@ -146,8 +146,6 @@ class BulkItemErrorClassifierTest extends AnyFunSuite with Matchers {
     ex should not be a[RetriableIntegrityException]
   }
 
-  // ---- isDivertible: only per-document HTTP 400 rejections are divertible ----------------
-
   test("mapper_parsing_exception (per-document 400) is divertible") {
     BulkItemErrorClassifier.isDivertible(
       item("failed to parse field [foo]", errorType = "mapper_parsing_exception", status = 400),
