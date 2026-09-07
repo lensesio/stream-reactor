@@ -252,11 +252,11 @@ class JsonBulkWriter(
    * Classifies a successful bulk response and, when diversion is active, diverts divertible
    * permanent item errors per [[effectiveMode]].
    *
-   *  - Permanent errors split into divertible (HTTP 400, see
-   *    [[BulkItemErrorClassifier.isDivertible]]) and not-divertible (403/404/5xx, batch-wide).
-   *    Any not-divertible error blocks diversion for the whole batch — throws for the full
-   *    error set.
-   *  - Otherwise the divertible set is diverted; a retriable remainder still throws for
+   *  - Permanent errors split into per-document rejections (HTTP 400, see
+   *    [[BulkItemErrorClassifier.isDivertible]]) and batch-wide failures (403/404/5xx and the
+   *    batch-wide 400s). Any batch-wide failure blocks diversion for the whole batch — throws
+   *    for the full error set.
+   *  - Otherwise the per-document set is diverted; a retriable remainder still throws for
    *    redelivery, re-diverting the same set each attempt (at-least-once; see [[DlqKey]]).
    */
   private def handleBulkResult(
@@ -267,19 +267,25 @@ class JsonBulkWriter(
     if (!result.errors) {
       Success(result)
     } else {
-      val (retriable, permanent)      = result.itemErrors.partition(BulkItemErrorClassifier.isRetriable)
-      val (divertible, notDivertible) = permanent.partition(BulkItemErrorClassifier.isDivertible)
-      if (divertible.isEmpty || notDivertible.nonEmpty || !divertActive) {
+      val (retriable, nonRetriable) = result.itemErrors.partition(BulkItemErrorClassifier.isRetriable)
+      val (perDocumentRejections, batchWideFailures) =
+        nonRetriable.partition(BulkItemErrorClassifier.isDivertible)
+      if (perDocumentRejections.isEmpty || batchWideFailures.nonEmpty || !divertActive) {
         // Nothing divertible, a batch-wide error is present, or diversion is inactive: throw
         // for the full error set (pre-diversion behaviour).
         Failure(BulkItemErrorClassifier.exceptionFor(result.itemErrors))
       } else {
-        errantRecordHandler.divertPermanent(divertible, opsWithRecords, effectiveMode, reportedThisPut) match {
+        errantRecordHandler.divertPermanent(
+          perDocumentRejections,
+          opsWithRecords,
+          effectiveMode,
+          reportedThisPut,
+        ) match {
           case DivertOutcome.Diverted if retriable.isEmpty =>
             Success(result)
           case DivertOutcome.Diverted =>
             logger.warn(
-              s"Diverted ${divertible.size} permanently-failed record(s) (bulk.item.errors=${modeConfigValue}); " +
+              s"Diverted ${perDocumentRejections.size} permanently-failed record(s) (bulk.item.errors=${modeConfigValue}); " +
                 s"${retriable.size} retriable error(s) remain in this batch and will fail it for re-delivery.",
             )
             Failure(BulkItemErrorClassifier.exceptionFor(retriable))
