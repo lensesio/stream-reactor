@@ -346,12 +346,13 @@ class ErrantRecordHandlerTest extends AnyFunSuite with Matchers with LoneElement
     // report() is issued for every record (index 2's future just never completes) — a PARTIAL
     // ACK, not a partial issue. futures.forall short-circuits AWAITING at the first failure, but
     // by then all three report() calls already happened.
-    val reporter = new SelectiveReporter(idx => if (idx == 2) ReporterBehaviour.NeverCompletes else ReporterBehaviour.Succeed)
-    val handler  = new ErrantRecordHandler(gateWith(reporter), reportTimeoutMs = 100L)
-    val r0       = record(offset = 0L)
-    val r1       = record(offset = 1L)
-    val r2       = record(offset = 2L)
-    val ops      = IndexedSeq(op(id = "0") -> r0, op(id = "1") -> r1, op(id = "2") -> r2)
+    val reporter =
+      new SelectiveReporter(idx => if (idx == 2) ReporterBehaviour.NeverCompletes else ReporterBehaviour.Succeed)
+    val handler = new ErrantRecordHandler(gateWith(reporter), reportTimeoutMs = 100L)
+    val r0      = record(offset = 0L)
+    val r1      = record(offset = 1L)
+    val r2      = record(offset = 2L)
+    val ops     = IndexedSeq(op(id = "0") -> r0, op(id = "1") -> r1, op(id = "2") -> r2)
     val errors = Seq(
       BulkItemError(index = "idx", id = "0", reason = "boom", position = 0),
       BulkItemError(index = "idx", id = "1", reason = "boom", position = 1),

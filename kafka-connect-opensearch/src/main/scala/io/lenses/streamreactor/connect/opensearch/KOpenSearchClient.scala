@@ -189,7 +189,7 @@ class KOpenSearchClient(client: OpenSearchClient, settings: OpenSearchSettings) 
           case Right(())   => validOpsWithIndexBuilder += op -> idx
         }
     }
-    val validationErrors: Seq[BulkItemError]         = validationErrorsBuilder.toSeq
+    val validationErrors:  Seq[BulkItemError]        = validationErrorsBuilder.toSeq
     val validOpsWithIndex: IndexedSeq[(BulkOp, Int)] = validOpsWithIndexBuilder.result()
 
     val (tookMillis, responseItemErrors) =

@@ -94,8 +94,8 @@ class KElasticBulkClientTest extends AnyWordSpec with Matchers with MockitoSugar
         InsertOp(index = "myindex", id = "doc0", json = JsonNodeFactory.instance.objectNode(), pipeline = None),
         InsertOp(index = "myindex", id = "doc1", json = JsonNodeFactory.instance.objectNode(), pipeline = None),
       )
-      val err     = bulkError("mapper_parsing_exception", "failed to parse field [foo]")
-      val okItem  = bulkItem(id = "doc0", index = "myindex", status = 201, error = None, itemId = 99)
+      val err    = bulkError("mapper_parsing_exception", "failed to parse field [foo]")
+      val okItem = bulkItem(id = "doc0", index = "myindex", status = 201, error = None, itemId = 99)
       // itemId deliberately set to a value that does NOT match its positional index (1) — if
       // production ever read item.itemId instead of its own zipWithIndex, this would report
       // position 42 instead of 1, proving which one it actually uses.

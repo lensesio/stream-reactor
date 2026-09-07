@@ -156,7 +156,7 @@ object BulkItemErrorClassifier {
    */
   private def reasonLooksBatchWide(errorType: String, reason: String): Boolean =
     normalize(errorType) == "illegal_argument_exception" &&
-    normalize(reason).startsWith("pipeline with id")
+      normalize(reason).startsWith("pipeline with id")
 
   def formatItemErrors(itemErrors: Seq[BulkItemError]): String = {
     val shown = itemErrors.take(MaxErrorsInMessage)

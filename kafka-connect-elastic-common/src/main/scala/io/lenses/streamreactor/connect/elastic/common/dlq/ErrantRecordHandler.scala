@@ -244,7 +244,7 @@ class ErrantRecordHandler(
         }
 
       issued match {
-        case None => DivertOutcome.NotDiverted
+        case None          => DivertOutcome.NotDiverted
         case Some(futures) =>
           // ONE deadline for this whole call, computed once — NOT `reportTimeoutMs` restarted
           // for each future in `futures`. Sequentially awaiting N futures, each given the full

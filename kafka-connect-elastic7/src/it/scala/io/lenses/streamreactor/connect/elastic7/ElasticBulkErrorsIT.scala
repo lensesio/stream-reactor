@@ -212,11 +212,23 @@ class ElasticBulkErrorsIT extends ITBase with BeforeAndAfterAll {
           .field("field", Schema.STRING_SCHEMA)
           .build()
       val goodRecord =
-        new SinkRecord("topic", 0, Schema.STRING_SCHEMA, "k1", schema,
-                       new Struct(schema).put("id", "good").put("field", "123"), 0L)
+        new SinkRecord("topic",
+                       0,
+                       Schema.STRING_SCHEMA,
+                       "k1",
+                       schema,
+                       new Struct(schema).put("id", "good").put("field", "123"),
+                       0L,
+        )
       val badRecord =
-        new SinkRecord("topic", 0, Schema.STRING_SCHEMA, "k2", schema,
-                       new Struct(schema).put("id", "bad").put("field", "not-a-number"), 1L)
+        new SinkRecord("topic",
+                       0,
+                       Schema.STRING_SCHEMA,
+                       "k2",
+                       schema,
+                       new Struct(schema).put("id", "bad").put("field", "not-a-number"),
+                       1L,
+        )
 
       val reported = writer.write(Vector(goodRecord, badRecord))
 

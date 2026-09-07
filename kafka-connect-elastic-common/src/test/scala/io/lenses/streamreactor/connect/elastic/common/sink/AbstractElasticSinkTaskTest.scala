@@ -73,7 +73,7 @@ class AbstractElasticSinkTaskTest extends AnyFunSuite with Matchers with Mockito
     var capturedConf: Map[String, String] = Map.empty
     var capturedGate: DlqGate             = DlqGate.disabled
 
-    override protected def asciiArtResource:         String = "/does-not-exist.txt"
+    override protected def asciiArtResource:          String = "/does-not-exist.txt"
     override protected def errorRetryIntervalKey:     String = RetryKey
     override protected def progressEnabledKey:        String = ProgressKey
     override protected def itemErrorModeConfigKey:    String = ItemErrorModeKey
@@ -198,9 +198,9 @@ class AbstractElasticSinkTaskTest extends AnyFunSuite with Matchers with Mockito
     name:     String,
     settings: ElasticCommonSettings,
     configs:  Map[String, String],
-    reporter: Boolean         = true,
-    expect:   Seq[String]     = Seq.empty,
-    forbid:   Seq[String]     = Seq.empty,
+    reporter: Boolean     = true,
+    expect:   Seq[String] = Seq.empty,
+    forbid:   Seq[String] = Seq.empty,
   )
 
   private val warnCases: Seq[WarnCase] = Seq(
@@ -213,7 +213,10 @@ class AbstractElasticSinkTaskTest extends AnyFunSuite with Matchers with Mockito
     WarnCase(
       "does not warn about a missing DLQ topic when one is actually configured",
       dlqSettings(),
-      Map(ItemErrorModeKey -> "dlq", DlqGate.DlqTopicNameConfigKey -> "my-dlq-topic", DlqGate.ErrorsToleranceConfigKey -> "all"),
+      Map(ItemErrorModeKey                 -> "dlq",
+          DlqGate.DlqTopicNameConfigKey    -> "my-dlq-topic",
+          DlqGate.ErrorsToleranceConfigKey -> "all",
+      ),
       forbid = Seq(DlqGate.DlqTopicNameConfigKey),
     ),
     WarnCase(
@@ -230,13 +233,19 @@ class AbstractElasticSinkTaskTest extends AnyFunSuite with Matchers with Mockito
     WarnCase(
       "does not warn about bulk.strict.item.errors when it is true (the default)",
       dlqSettings(strictItemErrors = true),
-      Map(ItemErrorModeKey -> "dlq", DlqGate.DlqTopicNameConfigKey -> "my-dlq-topic", DlqGate.ErrorsToleranceConfigKey -> "all"),
+      Map(ItemErrorModeKey                 -> "dlq",
+          DlqGate.DlqTopicNameConfigKey    -> "my-dlq-topic",
+          DlqGate.ErrorsToleranceConfigKey -> "all",
+      ),
       forbid = Seq("bulk.strict.item.errors=false"),
     ),
     WarnCase(
       "warns when dlq is set and errors.tolerance is explicitly none",
       dlqSettings(),
-      Map(ItemErrorModeKey -> "dlq", DlqGate.DlqTopicNameConfigKey -> "my-dlq-topic", DlqGate.ErrorsToleranceConfigKey -> "none"),
+      Map(ItemErrorModeKey                 -> "dlq",
+          DlqGate.DlqTopicNameConfigKey    -> "my-dlq-topic",
+          DlqGate.ErrorsToleranceConfigKey -> "none",
+      ),
       expect = Seq(DlqGate.ErrorsToleranceConfigKey),
     ),
     // Regression case for the fix: Kafka Connect's own default for errors.tolerance is "none" —
@@ -251,7 +260,10 @@ class AbstractElasticSinkTaskTest extends AnyFunSuite with Matchers with Mockito
     WarnCase(
       "does not warn about errors.tolerance when it is explicitly set to all",
       dlqSettings(),
-      Map(ItemErrorModeKey -> "dlq", DlqGate.DlqTopicNameConfigKey -> "my-dlq-topic", DlqGate.ErrorsToleranceConfigKey -> "all"),
+      Map(ItemErrorModeKey                 -> "dlq",
+          DlqGate.DlqTopicNameConfigKey    -> "my-dlq-topic",
+          DlqGate.ErrorsToleranceConfigKey -> "all",
+      ),
       forbid = Seq(DlqGate.ErrorsToleranceConfigKey),
     ),
     WarnCase(
@@ -259,7 +271,11 @@ class AbstractElasticSinkTaskTest extends AnyFunSuite with Matchers with Mockito
       ElasticCommonSettings(kcqls = Seq.empty, errorPolicy = new NoopErrorPolicy),
       Map.empty,
       reporter = false,
-      forbid   = Seq(DlqGate.DlqTopicNameConfigKey, DlqGate.ErrorsToleranceConfigKey, "bulk.item.errors=drop", "bulk.strict.item.errors=false"),
+      forbid = Seq(DlqGate.DlqTopicNameConfigKey,
+                   DlqGate.ErrorsToleranceConfigKey,
+                   "bulk.item.errors=drop",
+                   "bulk.strict.item.errors=false",
+      ),
     ),
     WarnCase(
       "warns that drop discards records, unconditionally, as soon as drop is set",
@@ -300,8 +316,12 @@ class AbstractElasticSinkTaskTest extends AnyFunSuite with Matchers with Mockito
       ))
 
       val warnings = captureWarnings(task)(task.start(emptyMap[String, String]()))
-      c.expect.foreach(s => withClue(s"expected a WARN containing '$s': ")(warnings.exists(_.contains(s)) shouldBe true))
-      c.forbid.foreach(s => withClue(s"did not expect any WARN containing '$s': ")(warnings.exists(_.contains(s)) shouldBe false))
+      c.expect.foreach(s =>
+        withClue(s"expected a WARN containing '$s': ")(warnings.exists(_.contains(s)) shouldBe true),
+      )
+      c.forbid.foreach(s =>
+        withClue(s"did not expect any WARN containing '$s': ")(warnings.exists(_.contains(s)) shouldBe false),
+      )
     }
   }
 
@@ -319,7 +339,13 @@ class AbstractElasticSinkTaskTest extends AnyFunSuite with Matchers with Mockito
       calls += ops
       val errors = ops.zipWithIndex.collect {
         case (op, idx) if poisonIds(op.id) =>
-          BulkItemError(index = op.index, id = op.id, reason = "boom", errorType = "mapper_parsing_exception", status = 400, position = idx)
+          BulkItemError(index     = op.index,
+                        id        = op.id,
+                        reason    = "boom",
+                        errorType = "mapper_parsing_exception",
+                        status    = 400,
+                        position  = idx,
+          )
       }
       Success(BulkResult(took = 1L, errors = errors.nonEmpty, itemErrors = errors))
     }
@@ -347,15 +373,16 @@ class AbstractElasticSinkTaskTest extends AnyFunSuite with Matchers with Mockito
     val poisonId = s"$dlqTopic-0-0"
     val client   = new PoisonIdBulkClient(Set(poisonId))
     val settings = ElasticCommonSettings(
-      kcqls         = Seq(io.lenses.kcql.Kcql.parse(s"INSERT INTO idx SELECT * FROM $goodTopic"),
-                           io.lenses.kcql.Kcql.parse(s"INSERT INTO idx SELECT * FROM $dlqTopic"),
+      kcqls = Seq(
+        io.lenses.kcql.Kcql.parse(s"INSERT INTO idx SELECT * FROM $goodTopic"),
+        io.lenses.kcql.Kcql.parse(s"INSERT INTO idx SELECT * FROM $dlqTopic"),
       ),
       errorPolicy   = new NoopErrorPolicy,
       itemErrorMode = ItemErrorMode.Dlq,
     )
 
     class RealWriterTask extends AbstractElasticSinkTask {
-      override protected def asciiArtResource:         String = "/does-not-exist.txt"
+      override protected def asciiArtResource:          String = "/does-not-exist.txt"
       override protected def errorRetryIntervalKey:     String = RetryKey
       override protected def progressEnabledKey:        String = ProgressKey
       override protected def itemErrorModeConfigKey:    String = ItemErrorModeKey
@@ -365,18 +392,20 @@ class AbstractElasticSinkTaskTest extends AnyFunSuite with Matchers with Mockito
     }
 
     val task = new RealWriterTask
-    task.initialize(mockContext(
-      // ProgressKey must be here, not just in the props passed to start(): context.configs()
-      // takes precedence over props whenever non-empty (see the "context.configs() takes
-      // precedence" test above), and this mockContext already carries the DLQ-related keys.
-      configs = Map(
-        ItemErrorModeKey                 -> "dlq",
-        DlqGate.DlqTopicNameConfigKey    -> "my-dlq-topic",
-        DlqGate.ErrorsToleranceConfigKey -> "all",
-        ProgressKey                      -> "true",
+    task.initialize(
+      mockContext(
+        // ProgressKey must be here, not just in the props passed to start(): context.configs()
+        // takes precedence over props whenever non-empty (see the "context.configs() takes
+        // precedence" test above), and this mockContext already carries the DLQ-related keys.
+        configs = Map(
+          ItemErrorModeKey                 -> "dlq",
+          DlqGate.DlqTopicNameConfigKey    -> "my-dlq-topic",
+          DlqGate.ErrorsToleranceConfigKey -> "all",
+          ProgressKey                      -> "true",
+        ),
+        reporter = Some(new AlwaysAckReporter),
       ),
-      reporter = Some(new AlwaysAckReporter),
-    ))
+    )
     // ProgressCounter logs a "Delivered [n] records for [topic]" line the first time update()
     // is called with a non-empty collection (its internal timestamp starts at 0, so the very
     // first elapsed-time check always trips) — a convenient black-box observation point without

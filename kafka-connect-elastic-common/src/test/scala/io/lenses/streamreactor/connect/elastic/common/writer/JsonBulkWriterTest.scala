@@ -1081,7 +1081,7 @@ class JsonBulkWriterTest
             ops.zipWithIndex.flatMap {
               case (op, idx) if op.id == "1" => Some(rejectedError().copy(index = op.index, id = op.id, position = idx))
               case (op, idx) if op.id == "2" => Some(mapperError().copy(index = op.index, id = op.id, position = idx))
-              case _ => None
+              case _                         => None
             }
           } else {
             ops.zipWithIndex.collect {
