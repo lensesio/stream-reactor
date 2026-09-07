@@ -18,6 +18,7 @@ package io.lenses.streamreactor.connect.elastic.common.dlq
 import com.fasterxml.jackson.databind.node.JsonNodeFactory
 import io.lenses.streamreactor.connect.elastic.common.bulk.BulkItemError
 import io.lenses.streamreactor.connect.elastic.common.bulk.InsertOp
+import io.lenses.streamreactor.connect.elastic.common.config.ItemErrorMode
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.sink.ErrantRecordReporter
 import org.apache.kafka.connect.sink.SinkRecord
@@ -32,11 +33,16 @@ import scala.collection.mutable
  *
  * Covers the correctness guarantees the handler is responsible for:
  *  - refusing to map a [[BulkItemError]] whose position is out of range or whose index/id does
- *    not match the op at that position (all-or-nothing per call — never partially report)
- *  - deduplicating reports within the tracker passed in
- *  - catching a throw from `report()` itself (the `errors.tolerance=none` case)
+ *    not match the op at that position (all-or-nothing per call — never partially divert)
+ *  - deduplicating diverts within the tracker passed in
+ *  - catching a throw from `report()` itself (the `errors.tolerance=none` case, [[ItemErrorMode.Dlq]] only)
  *  - waiting on the returned future and treating both a timeout and an execution failure as
- *    "not reported" rather than silently skipping
+ *    "not diverted" rather than silently skipping ([[ItemErrorMode.Dlq]] only)
+ *  - [[ItemErrorMode.Drop]] diverting without ever touching the reporter
+ *
+ * Most tests here exercise [[ItemErrorMode.Dlq]] (the DLQ-reporting path, which shares the
+ * position/id resolution and dedup logic with [[ItemErrorMode.Drop]]); the "drop mode" section
+ * near the bottom covers what is unique to [[ItemErrorMode.Drop]].
  */
 class ErrantRecordHandlerTest extends AnyFunSuite with Matchers {
 
@@ -86,9 +92,9 @@ class ErrantRecordHandlerTest extends AnyFunSuite with Matchers {
   private def gateWith(reporter: ErrantRecordReporter): DlqGate =
     DlqGate(Some(reporter), dlqTopicConfigured = true)
 
-  // ---- reportPermanent: happy path ------------------------------------------------------
+  // ---- divertPermanent(Dlq): happy path -------------------------------------------------
 
-  test("reportPermanent maps a permanent error to its record by position and reports it") {
+  test("divertPermanent(Dlq) maps a permanent error to its record by position and reports it") {
     val reporter = new FakeReporter()
     val handler  = new ErrantRecordHandler(gateWith(reporter))
     val r        = record(offset = 42L)
@@ -96,55 +102,79 @@ class ErrantRecordHandlerTest extends AnyFunSuite with Matchers {
     val error    = BulkItemError(index = "idx", id = "1", reason = "boom", position = 0)
     val tracked  = mutable.Map.empty[DlqKey, SinkRecord]
 
-    val outcome = handler.reportPermanent(Seq(error), ops, tracked)
+    val outcome = handler.divertPermanent(Seq(error), ops, ItemErrorMode.Dlq, tracked)
 
-    outcome shouldBe ReportOutcome.Reported
+    outcome shouldBe DivertOutcome.Diverted
     reporter.received should have size 1
     reporter.received.head._1 shouldBe r
     tracked.values.toSet shouldBe Set(r)
   }
 
-  test("reportPermanent with an empty error list is trivially Reported without calling the reporter") {
+  test("divertPermanent(Dlq) with an empty error list is trivially Diverted without calling the reporter") {
     val reporter = new FakeReporter()
     val handler  = new ErrantRecordHandler(gateWith(reporter))
-    val outcome  = handler.reportPermanent(Seq.empty, IndexedSeq.empty, mutable.Map.empty)
+    val outcome  = handler.divertPermanent(Seq.empty, IndexedSeq.empty, ItemErrorMode.Dlq, mutable.Map.empty)
 
-    outcome shouldBe ReportOutcome.Reported
+    outcome shouldBe DivertOutcome.Diverted
     reporter.received shouldBe empty
   }
 
-  test("reportPermanent returns NotReported when no reporter is present (gate disabled)") {
+  test("divertPermanent(Dlq) returns NotDiverted when no reporter is present (gate disabled)") {
     val handler = new ErrantRecordHandler(DlqGate.disabled)
     val r       = record()
     val ops     = IndexedSeq(op() -> r)
     val error   = BulkItemError(index = "idx", id = "1", reason = "boom", position = 0)
 
-    handler.reportPermanent(Seq(error), ops, mutable.Map.empty) shouldBe ReportOutcome.NotReported
+    handler.divertPermanent(Seq(error), ops, ItemErrorMode.Dlq, mutable.Map.empty) shouldBe DivertOutcome.NotDiverted
   }
 
-  // ---- position / identity verification -------------------------------------------------
+  test("divertPermanent(Fail) always returns NotDiverted defensively, even with a working reporter") {
+    val reporter = new FakeReporter()
+    val handler  = new ErrantRecordHandler(gateWith(reporter))
+    val ops      = IndexedSeq(op() -> record())
+    val error    = BulkItemError(index = "idx", id = "1", reason = "boom", position = 0)
 
-  test("reportPermanent refuses the whole call when a position is out of range") {
+    handler.divertPermanent(Seq(error), ops, ItemErrorMode.Fail, mutable.Map.empty) shouldBe DivertOutcome.NotDiverted
+    reporter.received shouldBe empty
+  }
+
+  // ---- position / identity verification (shared by Drop and Dlq) -----------------------
+
+  test("divertPermanent(Dlq) refuses the whole call when a position is out of range") {
     val reporter = new FakeReporter()
     val handler  = new ErrantRecordHandler(gateWith(reporter))
     val ops      = IndexedSeq(op() -> record())
     val error    = BulkItemError(index = "idx", id = "1", reason = "boom", position = 5) // only position 0 exists
 
-    handler.reportPermanent(Seq(error), ops, mutable.Map.empty) shouldBe ReportOutcome.NotReported
+    handler.divertPermanent(Seq(error), ops, ItemErrorMode.Dlq, mutable.Map.empty) shouldBe DivertOutcome.NotDiverted
     reporter.received shouldBe empty
   }
 
-  test("reportPermanent refuses the whole call when position = -1 (unknown / disabled upstream)") {
+  test("divertPermanent(Dlq) refuses the whole call when position = -1 (unknown / disabled upstream)") {
     val reporter = new FakeReporter()
     val handler  = new ErrantRecordHandler(gateWith(reporter))
     val ops      = IndexedSeq(op() -> record())
     val error    = BulkItemError(index = "idx", id = "1", reason = "boom", position = -1)
 
-    handler.reportPermanent(Seq(error), ops, mutable.Map.empty) shouldBe ReportOutcome.NotReported
+    handler.divertPermanent(Seq(error), ops, ItemErrorMode.Dlq, mutable.Map.empty) shouldBe DivertOutcome.NotDiverted
     reporter.received shouldBe empty
   }
 
-  test("reportPermanent refuses the whole call when the response item's id does not match the op at that position") {
+  test(
+    "divertPermanent(Drop) also refuses the whole call when position = -1 — untrustworthy responses are never dropped either",
+  ) {
+    val handler = new ErrantRecordHandler(DlqGate.disabled)
+    val ops     = IndexedSeq(op() -> record())
+    val error   = BulkItemError(index = "idx", id = "1", reason = "boom", position = -1)
+    val tracked = mutable.Map.empty[DlqKey, SinkRecord]
+
+    handler.divertPermanent(Seq(error), ops, ItemErrorMode.Drop, tracked) shouldBe DivertOutcome.NotDiverted
+    tracked shouldBe empty
+  }
+
+  test(
+    "divertPermanent(Dlq) refuses the whole call when the response item's id does not match the op at that position",
+  ) {
     val reporter = new FakeReporter()
     val handler  = new ErrantRecordHandler(gateWith(reporter))
     val ops      = IndexedSeq(op(index = "idx-a", id = "1") -> record())
@@ -153,12 +183,12 @@ class ErrantRecordHandlerTest extends AnyFunSuite with Matchers {
     // the id check from the alias-tolerance case covered below.
     val error = BulkItemError(index = "idx-a", id = "2", reason = "boom", position = 0)
 
-    handler.reportPermanent(Seq(error), ops, mutable.Map.empty) shouldBe ReportOutcome.NotReported
+    handler.divertPermanent(Seq(error), ops, ItemErrorMode.Dlq, mutable.Map.empty) shouldBe DivertOutcome.NotDiverted
     reporter.received shouldBe empty
   }
 
   test(
-    "reportPermanent trusts the mapping when only the index differs but the id matches (write-alias resolved to its concrete backing index)",
+    "divertPermanent(Dlq) trusts the mapping when only the index differs but the id matches (write-alias resolved to its concrete backing index)",
   ) {
     val reporter = new FakeReporter()
     val handler  = new ErrantRecordHandler(gateWith(reporter))
@@ -171,15 +201,15 @@ class ErrantRecordHandlerTest extends AnyFunSuite with Matchers {
     val ops   = IndexedSeq(op(index = "logs", id = "42") -> r)
     val error = BulkItemError(index = "logs-000001", id = "42", reason = "boom", position = 0)
 
-    val outcome = handler.reportPermanent(Seq(error), ops, mutable.Map.empty)
+    val outcome = handler.divertPermanent(Seq(error), ops, ItemErrorMode.Dlq, mutable.Map.empty)
 
-    outcome shouldBe ReportOutcome.Reported
+    outcome shouldBe DivertOutcome.Diverted
     reporter.received should have size 1
     reporter.received.head._1 shouldBe r
   }
 
   test(
-    "reportPermanent is all-or-nothing: one unresolvable error blocks the whole batch, even if others resolve fine",
+    "divertPermanent(Dlq) is all-or-nothing: one unresolvable error blocks the whole batch, even if others resolve fine",
   ) {
     val reporter  = new FakeReporter()
     val handler   = new ErrantRecordHandler(gateWith(reporter))
@@ -189,15 +219,20 @@ class ErrantRecordHandlerTest extends AnyFunSuite with Matchers {
     val goodError = BulkItemError(index = "idx", id = "0", reason = "boom", position = 0)
     val badError  = BulkItemError(index = "idx", id = "1", reason = "boom", position = 9) // out of range
 
-    handler.reportPermanent(Seq(goodError, badError), ops, mutable.Map.empty) shouldBe ReportOutcome.NotReported
+    handler.divertPermanent(
+      Seq(goodError, badError),
+      ops,
+      ItemErrorMode.Dlq,
+      mutable.Map.empty,
+    ) shouldBe DivertOutcome.NotDiverted
     // Neither record should have been sent to the DLQ — a partial report would advance offsets
     // for r0 while the exception for badError still fails the batch, double-counting r0.
     reporter.received shouldBe empty
   }
 
-  // ---- dedup ------------------------------------------------------------------------------
+  // ---- dedup (shared by Drop and Dlq) ---------------------------------------------------
 
-  test("reportPermanent does not re-report a key already present in the tracker") {
+  test("divertPermanent(Dlq) does not re-report a key already present in the tracker") {
     val reporter = new FakeReporter()
     val handler  = new ErrantRecordHandler(gateWith(reporter))
     val r        = record(offset = 7L)
@@ -205,55 +240,55 @@ class ErrantRecordHandlerTest extends AnyFunSuite with Matchers {
     val error    = BulkItemError(index = "idx", id = "1", reason = "boom", position = 0)
     val tracked  = mutable.Map(DlqKey.forOp(op(index = "idx", id = "1"), r) -> r)
 
-    val outcome = handler.reportPermanent(Seq(error), ops, tracked)
+    val outcome = handler.divertPermanent(Seq(error), ops, ItemErrorMode.Dlq, tracked)
 
-    outcome shouldBe ReportOutcome.Reported
+    outcome shouldBe DivertOutcome.Diverted
     reporter.received shouldBe empty // already reported earlier this put() — not sent again
   }
 
-  // ---- report() throwing (errors.tolerance=none) -----------------------------------------
+  // ---- report() throwing (errors.tolerance=none) — Dlq only ------------------------------
 
-  test("reportPermanent catches a throw from report() and returns NotReported") {
+  test("divertPermanent(Dlq) catches a throw from report() and returns NotDiverted") {
     val reporter = new FakeReporter(ReporterBehaviour.ThrowImmediately)
     val handler  = new ErrantRecordHandler(gateWith(reporter))
     val ops      = IndexedSeq(op() -> record())
     val error    = BulkItemError(index = "idx", id = "1", reason = "boom", position = 0)
 
-    handler.reportPermanent(Seq(error), ops, mutable.Map.empty) shouldBe ReportOutcome.NotReported
+    handler.divertPermanent(Seq(error), ops, ItemErrorMode.Dlq, mutable.Map.empty) shouldBe DivertOutcome.NotDiverted
   }
 
-  // ---- future acknowledgement -------------------------------------------------------------
+  // ---- future acknowledgement — Dlq only -------------------------------------------------
 
-  test("reportPermanent returns NotReported when the DLQ future resolves exceptionally") {
+  test("divertPermanent(Dlq) returns NotDiverted when the DLQ future resolves exceptionally") {
     val reporter = new FakeReporter(ReporterBehaviour.FutureFails)
     val handler  = new ErrantRecordHandler(gateWith(reporter))
     val ops      = IndexedSeq(op() -> record())
     val error    = BulkItemError(index = "idx", id = "1", reason = "boom", position = 0)
 
-    handler.reportPermanent(Seq(error), ops, mutable.Map.empty) shouldBe ReportOutcome.NotReported
+    handler.divertPermanent(Seq(error), ops, ItemErrorMode.Dlq, mutable.Map.empty) shouldBe DivertOutcome.NotDiverted
   }
 
-  test("reportPermanent returns NotReported when the DLQ future times out") {
+  test("divertPermanent(Dlq) returns NotDiverted when the DLQ future times out") {
     val reporter = new FakeReporter(ReporterBehaviour.NeverCompletes)
     // Short timeout so the test runs quickly rather than waiting the production 30s default.
     val handler = new ErrantRecordHandler(gateWith(reporter), reportTimeoutMs = 100L)
     val ops     = IndexedSeq(op() -> record())
     val error   = BulkItemError(index = "idx", id = "1", reason = "boom", position = 0)
 
-    handler.reportPermanent(Seq(error), ops, mutable.Map.empty) shouldBe ReportOutcome.NotReported
+    handler.divertPermanent(Seq(error), ops, ItemErrorMode.Dlq, mutable.Map.empty) shouldBe DivertOutcome.NotDiverted
   }
 
-  test("reportPermanent returns NotReported when the DLQ future was cancelled") {
+  test("divertPermanent(Dlq) returns NotDiverted when the DLQ future was cancelled") {
     val reporter = new FakeReporter(ReporterBehaviour.Cancelled)
     val handler  = new ErrantRecordHandler(gateWith(reporter))
     val ops      = IndexedSeq(op() -> record())
     val error    = BulkItemError(index = "idx", id = "1", reason = "boom", position = 0)
 
-    handler.reportPermanent(Seq(error), ops, mutable.Map.empty) shouldBe ReportOutcome.NotReported
+    handler.divertPermanent(Seq(error), ops, ItemErrorMode.Dlq, mutable.Map.empty) shouldBe DivertOutcome.NotDiverted
   }
 
   test(
-    "reportPermanent returns NotReported and restores the interrupt flag when interrupted while awaiting the DLQ future",
+    "divertPermanent(Dlq) returns NotDiverted and restores the interrupt flag when interrupted while awaiting the DLQ future",
   ) {
     val reporter = new FakeReporter(ReporterBehaviour.NeverCompletes)
     val handler  = new ErrantRecordHandler(gateWith(reporter), reportTimeoutMs = 10000L)
@@ -262,7 +297,7 @@ class ErrantRecordHandlerTest extends AnyFunSuite with Matchers {
 
     Thread.currentThread().interrupt()
     try {
-      handler.reportPermanent(Seq(error), ops, mutable.Map.empty) shouldBe ReportOutcome.NotReported
+      handler.divertPermanent(Seq(error), ops, ItemErrorMode.Dlq, mutable.Map.empty) shouldBe DivertOutcome.NotDiverted
     } finally {
       // Thread.interrupted() checks AND clears the flag — asserting true here proves awaitAck
       // restored it (interruption must never be silently swallowed), and clears it so it
@@ -271,41 +306,104 @@ class ErrantRecordHandlerTest extends AnyFunSuite with Matchers {
     }
   }
 
-  // ---- reportOne (writer-stage failures) --------------------------------------------------
+  // ---- divertOne(Dlq) (writer-stage failures) --------------------------------------------
 
-  test("reportOne reports a single writer-stage failure and tracks it") {
+  test("divertOne(Dlq) reports a single writer-stage failure and tracks it") {
     val reporter = new FakeReporter()
     val handler  = new ErrantRecordHandler(gateWith(reporter))
     val r        = record(offset = 3L)
     val cause    = new IllegalStateException("KCQL mapping is configured to fail on tombstone records")
     val tracked  = mutable.Map.empty[DlqKey, SinkRecord]
 
-    handler.reportOne(r, "my-kcql-target", cause, tracked) shouldBe true
+    handler.divertOne(r, "my-kcql-target", cause, ItemErrorMode.Dlq, tracked) shouldBe true
     reporter.received should have size 1
     reporter.received.head shouldBe (r -> cause)
     tracked.values.toSet shouldBe Set(r)
   }
 
-  test("reportOne returns false when no reporter is present") {
+  test("divertOne(Dlq) returns false when no reporter is present") {
     val handler = new ErrantRecordHandler(DlqGate.disabled)
     val r       = record()
-    handler.reportOne(r, "target", new RuntimeException("x"), mutable.Map.empty) shouldBe false
+    handler.divertOne(r, "target", new RuntimeException("x"), ItemErrorMode.Dlq, mutable.Map.empty) shouldBe false
   }
 
-  test("reportOne short-circuits to true without re-invoking the reporter when already tracked") {
+  test("divertOne(Fail) always returns false defensively, even with a working reporter") {
+    val reporter = new FakeReporter()
+    val handler  = new ErrantRecordHandler(gateWith(reporter))
+    val r        = record()
+    handler.divertOne(r, "target", new RuntimeException("x"), ItemErrorMode.Fail, mutable.Map.empty) shouldBe false
+    reporter.received shouldBe empty
+  }
+
+  test("divertOne(Dlq) short-circuits to true without re-invoking the reporter when already tracked") {
     val reporter = new FakeReporter()
     val handler  = new ErrantRecordHandler(gateWith(reporter))
     val r        = record(offset = 9L)
     val key      = DlqKey.forTarget(r, "target")
     val tracked  = mutable.Map(key -> r)
 
-    handler.reportOne(r, "target", new RuntimeException("x"), tracked) shouldBe true
+    handler.divertOne(r, "target", new RuntimeException("x"), ItemErrorMode.Dlq, tracked) shouldBe true
     reporter.received shouldBe empty
   }
 
-  test("reportOne returns false when report() throws") {
+  test("divertOne(Dlq) returns false when report() throws") {
     val reporter = new FakeReporter(ReporterBehaviour.ThrowImmediately)
     val handler  = new ErrantRecordHandler(gateWith(reporter))
-    handler.reportOne(record(), "target", new RuntimeException("x"), mutable.Map.empty) shouldBe false
+    handler.divertOne(
+      record(),
+      "target",
+      new RuntimeException("x"),
+      ItemErrorMode.Dlq,
+      mutable.Map.empty,
+    ) shouldBe false
+  }
+
+  // ---- drop mode: what is unique to ItemErrorMode.Drop -----------------------------------
+  // Drop never touches dlqGate/the reporter at all — these tests deliberately use a disabled
+  // gate (no reporter, no DLQ topic) to prove diversion works without any DLQ machinery.
+
+  test("divertPermanent(Drop) diverts a permanent error without ever calling a reporter, using a disabled gate") {
+    val handler = new ErrantRecordHandler(DlqGate.disabled)
+    val r       = record(offset = 11L)
+    val ops     = IndexedSeq(op(index = "idx", id = "1") -> r)
+    val error   = BulkItemError(index = "idx", id = "1", reason = "boom", position = 0)
+    val tracked = mutable.Map.empty[DlqKey, SinkRecord]
+
+    val outcome = handler.divertPermanent(Seq(error), ops, ItemErrorMode.Drop, tracked)
+
+    outcome shouldBe DivertOutcome.Diverted
+    tracked.values.toSet shouldBe Set(r)
+  }
+
+  test("divertPermanent(Drop) does not re-drop a key already present in the tracker") {
+    val handler = new ErrantRecordHandler(DlqGate.disabled)
+    val r       = record(offset = 12L)
+    val ops     = IndexedSeq(op(index = "idx", id = "1") -> r)
+    val error   = BulkItemError(index = "idx", id = "1", reason = "boom", position = 0)
+    val key     = DlqKey.forOp(op(index = "idx", id = "1"), r)
+    val tracked = mutable.Map(key -> r)
+
+    handler.divertPermanent(Seq(error), ops, ItemErrorMode.Drop, tracked) shouldBe DivertOutcome.Diverted
+    tracked.size shouldBe 1
+  }
+
+  test("divertOne(Drop) drops a single writer-stage failure without ever calling a reporter, using a disabled gate") {
+    val handler = new ErrantRecordHandler(DlqGate.disabled)
+    val r       = record(offset = 13L)
+    val cause   = new IllegalStateException("KCQL mapping is configured to fail on tombstone records")
+    val tracked = mutable.Map.empty[DlqKey, SinkRecord]
+
+    handler.divertOne(r, "my-kcql-target", cause, ItemErrorMode.Drop, tracked) shouldBe true
+    tracked.values.toSet shouldBe Set(r)
+  }
+
+  test("divertOne(Drop) short-circuits to true without re-tracking when already tracked") {
+    val handler = new ErrantRecordHandler(DlqGate.disabled)
+    val r       = record(offset = 14L)
+    val key     = DlqKey.forTarget(r, "target")
+    val tracked = mutable.Map(key -> r)
+
+    handler.divertOne(r, "target", new RuntimeException("x"), ItemErrorMode.Drop, tracked) shouldBe true
+    tracked.size shouldBe 1
   }
 }

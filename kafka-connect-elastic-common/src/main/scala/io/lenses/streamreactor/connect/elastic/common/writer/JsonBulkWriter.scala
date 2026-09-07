@@ -38,11 +38,11 @@ import io.lenses.streamreactor.connect.elastic.common.bulk.KBulkClient
 import io.lenses.streamreactor.connect.elastic.common.bulk.UpsertOp
 import io.lenses.streamreactor.connect.elastic.common.config.ElasticCommonConfigConstants
 import io.lenses.streamreactor.connect.elastic.common.config.ElasticCommonSettings
-import io.lenses.streamreactor.connect.elastic.common.config.ItemErrorDlqMode
+import io.lenses.streamreactor.connect.elastic.common.config.ItemErrorMode
+import io.lenses.streamreactor.connect.elastic.common.dlq.DivertOutcome
 import io.lenses.streamreactor.connect.elastic.common.dlq.DlqGate
 import io.lenses.streamreactor.connect.elastic.common.dlq.DlqKey
 import io.lenses.streamreactor.connect.elastic.common.dlq.ErrantRecordHandler
-import io.lenses.streamreactor.connect.elastic.common.dlq.ReportOutcome
 import io.lenses.streamreactor.connect.elastic.common.indexname.CreateIndex
 import org.apache.kafka.connect.sink.SinkRecord
 
@@ -56,14 +56,14 @@ import scala.jdk.CollectionConverters._
 object JsonBulkWriter {
 
   /**
-   * Shared, immutable-in-practice empty DLQ tracker used on the non-skip path.
+   * Shared, immutable-in-practice empty divert tracker used on the `fail` path.
    *
    * It is threaded through `insert`/`handleBulkResult` only so the signatures stay uniform; it is
-   * NEVER written to, because every write into the tracker (`ErrantRecordHandler.reportOne` /
-   * `reportPermanent`) is guarded by `skipModeActive`, which is false whenever this sentinel is
-   * used. Reusing a single instance avoids allocating a throwaway map on every `put()` when the
-   * DLQ feature is off (the common case). Safe to share across tasks precisely because it is only
-   * ever read on this path.
+   * NEVER written to, because every write into the tracker (`ErrantRecordHandler.divertOne` /
+   * `divertPermanent`) is guarded by `divertActive`, which is false whenever this sentinel is
+   * used. Reusing a single instance avoids allocating a throwaway map on every `put()` when
+   * diversion (`drop`/`dlq`) is off (the common case). Safe to share across tasks precisely
+   * because it is only ever read on this path.
    */
   private val NoReports: mutable.Map[DlqKey, SinkRecord] = mutable.Map.empty
 }
@@ -82,13 +82,23 @@ class JsonBulkWriter(
   private val errantRecordHandler = new ErrantRecordHandler(dlqGate)
 
   /**
-   * True only when a real DLQ is available (see [[DlqGate.enabled]]) AND the connector is
-   * configured to use it for permanently-failed items. When false, behaviour is byte-for-byte
-   * identical to the pre-DLQ code path: any item error (permanent or, if unresolved, retriable)
-   * throws via [[io.lenses.streamreactor.connect.elastic.common.bulk.BulkItemErrorClassifier]].
+   * The mode actually in effect, resolved once at construction. [[ItemErrorMode.Dlq]] degrades to
+   * [[ItemErrorMode.Fail]] when no real DLQ is available (see [[DlqGate.enabled]]) — a non-null
+   * `ErrantRecordReporter` alone is not sufficient, see `DlqGate`'s scaladoc. [[ItemErrorMode.Drop]]
+   * never depends on a DLQ and is never degraded.
    */
-  private def skipModeActive: Boolean =
-    dlqGate.enabled && settings.itemErrorDlqMode == ItemErrorDlqMode.Skip
+  private val effectiveMode: ItemErrorMode = settings.itemErrorMode match {
+    case ItemErrorMode.Dlq if !dlqGate.enabled => ItemErrorMode.Fail
+    case other                                 => other
+  }
+
+  /**
+   * True only when [[effectiveMode]] is [[ItemErrorMode.Drop]] or [[ItemErrorMode.Dlq]]. When
+   * false, behaviour is byte-for-byte identical to the pre-diversion code path: any item error
+   * (permanent or, if unresolved, retriable) throws via
+   * [[io.lenses.streamreactor.connect.elastic.common.bulk.BulkItemErrorClassifier]].
+   */
+  private def divertActive: Boolean = effectiveMode != ItemErrorMode.Fail
 
   // Eagerly invoke the client's start lifecycle hook so any cluster-compatibility
   // failures (e.g. pointing at an Elasticsearch cluster) are surfaced at SinkTask.start,
@@ -161,14 +171,14 @@ class JsonBulkWriter(
   def close(): Unit = client.close()
 
   /**
-   * Writes a batch of records. Returns the subset of `records` that were reported to the
-   * dead-letter queue instead of being written — callers (e.g. progress/metrics counters)
-   * should exclude these from "successfully delivered" accounting.
+   * Writes a batch of records. Returns the subset of `records` that were diverted (dropped or
+   * reported to the dead-letter queue) instead of being written — callers (e.g. progress/metrics
+   * counters) should exclude these from "successfully delivered" accounting.
    *
    * The returned set, and the internal dedup tracking that produces it, are scoped to this
    * single call: a fresh tracker is created per `write()`, so it does not suppress duplicate
-   * DLQ reports across a redelivered `put()` (Kafka Connect's own DLQ semantics are
-   * at-least-once; see [[DlqKey]]).
+   * diversions across a redelivered `put()` (Kafka Connect's own DLQ semantics are at-least-once,
+   * and `drop` matches that for consistency; see [[DlqKey]]).
    */
   def write(records: Vector[SinkRecord]): Set[SinkRecord] =
     if (records.isEmpty) {
@@ -177,19 +187,27 @@ class JsonBulkWriter(
     } else {
       logger.debug(s"Received ${records.size} records.")
       val grouped = records.groupBy(_.topic())
-      // Only allocate a per-put() DLQ tracker when skip mode is actually active. On every other
-      // configuration nothing is ever reported (both report paths in `insert` are guarded by
-      // `skipModeActive`), so we thread a shared, never-written empty map instead of allocating
-      // one per put(). This keeps the non-DLQ path allocation-free and byte-for-byte as before.
+      // Only allocate a per-put() divert tracker when diversion is actually active. On every
+      // other configuration nothing is ever diverted (both divert paths in `insert` are guarded
+      // by `divertActive`), so we thread a shared, never-written empty map instead of allocating
+      // one per put(). This keeps the fail-mode path allocation-free and byte-for-byte as before.
       val reportedThisPut =
-        if (skipModeActive) mutable.LinkedHashMap.empty[DlqKey, SinkRecord]
+        if (divertActive) mutable.LinkedHashMap.empty[DlqKey, SinkRecord]
         else JsonBulkWriter.NoReports
       insert(grouped, reportedThisPut)
       if (reportedThisPut.nonEmpty) {
-        logger.info(s"Reported ${reportedThisPut.size} record(s) to the dead-letter queue during this put().")
+        logger.info(
+          s"Diverted ${reportedThisPut.size} record(s) (bulk.item.errors=${modeConfigValue}) during this put().",
+        )
       }
       reportedThisPut.values.toSet
     }
+
+  private def modeConfigValue: String = effectiveMode match {
+    case ItemErrorMode.Fail => "fail"
+    case ItemErrorMode.Drop => "drop"
+    case ItemErrorMode.Dlq  => "dlq"
+  }
 
   private def insert(
     records:         Map[String, Vector[SinkRecord]],
@@ -214,12 +232,18 @@ class JsonBulkWriter(
                   case Success(opt) => opt.map(_ -> r)
                   case Failure(e) =>
                     if (
-                      skipModeActive &&
-                      errantRecordHandler.reportOne(r, Option(kcql.getTarget).getOrElse(topic), e, reportedThisPut)
+                      divertActive &&
+                      errantRecordHandler.divertOne(
+                        r,
+                        Option(kcql.getTarget).getOrElse(topic),
+                        e,
+                        effectiveMode,
+                        reportedThisPut,
+                      )
                     ) {
                       logger.warn(
                         s"Writer-stage failure for ${r.topic()}-${r.kafkaPartition()}-${r.kafkaOffset()} " +
-                          s"reported to the dead-letter queue instead of failing the task: ${e.getMessage}",
+                          s"diverted (bulk.item.errors=${modeConfigValue}) instead of failing the task: ${e.getMessage}",
                       )
                       None
                     } else {
@@ -241,25 +265,25 @@ class JsonBulkWriter(
   }
 
   /**
-   * Classifies a successful (non-transport-failed) bulk response and, in skip mode, attempts to
-   * divert DLQ-eligible permanent item errors to the DLQ.
+   * Classifies a successful (non-transport-failed) bulk response and, when diversion is active,
+   * attempts to divert divertible permanent item errors (drop or DLQ, per [[effectiveMode]]).
    *
-   * Permanent (non-retriable) errors are further split into DLQ-eligible (HTTP 400 — a
-   * per-document rejection, see [[BulkItemErrorClassifier.isDlqEligible]]) and everything else
-   * ("not eligible": 403/404/5xx conditions that affect the whole batch regardless of content,
+   * Permanent (non-retriable) errors are further split into divertible (HTTP 400 — a
+   * per-document rejection, see [[BulkItemErrorClassifier.isDivertible]]) and everything else
+   * ("not divertible": 403/404/5xx conditions that affect the whole batch regardless of content,
    * e.g. `cluster_block_exception`, `security_exception`, `index_not_found_exception`). If ANY
-   * not-eligible error is present, nothing in the batch is diverted — the whole call throws for
+   * not-divertible error is present, nothing in the batch is diverted — the whole call throws for
    * the full error set, exactly as it did before this feature existed, because a batch-wide
    * condition means the other "failures" in the same response are not safe to attribute to
    * individual documents.
    *
-   * Once there is at least one DLQ-eligible error and no not-eligible error, the eligible set is
-   * reported and only a genuinely retriable remainder (429/409/etc — left on the retry path)
+   * Once there is at least one divertible error and no not-divertible error, the divertible set
+   * is diverted and only a genuinely retriable remainder (429/409/etc — left on the retry path)
    * causes a throw for redelivery of the batch. Because the dedup tracker (`reportedThisPut`) is
    * scoped to a single `put()` call, a retriable remainder that triggers redelivery means the
-   * SAME DLQ-eligible errors will be reported to the DLQ again on each redelivery attempt, until
-   * the retriable remainder clears or the retry budget is exhausted — DLQ delivery here is
-   * at-least-once, matching Kafka Connect's own DLQ semantics (see [[DlqKey]]).
+   * SAME divertible errors will be diverted again on each redelivery attempt, until the retriable
+   * remainder clears or the retry budget is exhausted — diversion here is at-least-once, matching
+   * Kafka Connect's own DLQ semantics (see [[DlqKey]]).
    */
   private def handleBulkResult(
     result:          BulkResult,
@@ -269,25 +293,25 @@ class JsonBulkWriter(
     if (!result.errors) {
       Success(result)
     } else {
-      val (retriable, permanent)     = result.itemErrors.partition(BulkItemErrorClassifier.isRetriable)
-      val (dlqEligible, notEligible) = permanent.partition(BulkItemErrorClassifier.isDlqEligible)
-      if (dlqEligible.isEmpty || notEligible.nonEmpty || !skipModeActive) {
+      val (retriable, permanent)      = result.itemErrors.partition(BulkItemErrorClassifier.isRetriable)
+      val (divertible, notDivertible) = permanent.partition(BulkItemErrorClassifier.isDivertible)
+      if (divertible.isEmpty || notDivertible.nonEmpty || !divertActive) {
         // Either nothing to divert (a pure-retriable batch, left on the retry path), a
         // batch-wide non-400 condition is present (never partially divert a batch — see
-        // BulkItemErrorClassifier.isDlqEligible), or skip mode is not active: identical to the
-        // pre-DLQ behaviour, throw for the full error set.
+        // BulkItemErrorClassifier.isDivertible), or diversion is not active: identical to the
+        // pre-diversion behaviour, throw for the full error set.
         Failure(BulkItemErrorClassifier.exceptionFor(result.itemErrors))
       } else {
-        errantRecordHandler.reportPermanent(dlqEligible, opsWithRecords, reportedThisPut) match {
-          case ReportOutcome.Reported if retriable.isEmpty =>
+        errantRecordHandler.divertPermanent(divertible, opsWithRecords, effectiveMode, reportedThisPut) match {
+          case DivertOutcome.Diverted if retriable.isEmpty =>
             Success(result)
-          case ReportOutcome.Reported =>
+          case DivertOutcome.Diverted =>
             logger.warn(
-              s"Reported ${dlqEligible.size} permanently-failed record(s) to the DLQ; " +
+              s"Diverted ${divertible.size} permanently-failed record(s) (bulk.item.errors=${modeConfigValue}); " +
                 s"${retriable.size} retriable error(s) remain in this batch and will fail it for re-delivery.",
             )
             Failure(BulkItemErrorClassifier.exceptionFor(retriable))
-          case ReportOutcome.NotReported =>
+          case DivertOutcome.NotDiverted =>
             Failure(BulkItemErrorClassifier.exceptionFor(result.itemErrors))
         }
       }
@@ -310,11 +334,11 @@ class JsonBulkWriter(
    *    connection reset) is the common case here and is usually safe and likely to succeed on
    *    retry; promoting it to a plain `FatalConnectException` would have silently disabled that
    *    retry behaviour.
-   *  - Deliberately NOT reported to the DLQ, even in skip mode: unlike a per-item bulk error, a
-   *    whole-call transport failure gives no information about which (if any) individual
-   *    documents are actually bad. Treating a transient network error as "these are all poison"
-   *    would dump perfectly good documents into the DLQ when a cheap retry would have written
-   *    them cleanly.
+   *  - Deliberately NEVER diverted (dropped or DLQ'd), even when diversion is active: unlike a
+   *    per-item bulk error, a whole-call transport failure gives no information about which (if
+   *    any) individual documents are actually bad. Treating a transient network error as "these
+   *    are all poison" would discard or dump perfectly good documents when a cheap retry would
+   *    have written them cleanly.
    */
   private def handleTransportFailure(error: Throwable): Try[BulkResult] = {
     val classified = error match {

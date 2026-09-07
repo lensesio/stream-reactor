@@ -22,7 +22,7 @@ import io.lenses.streamreactor.common.utils.JarManifestProvided
 import io.lenses.streamreactor.common.utils.ProgressCounter
 import io.lenses.streamreactor.connect.elastic.common.config.ElasticCommonConfigConstants
 import io.lenses.streamreactor.connect.elastic.common.config.ElasticCommonSettings
-import io.lenses.streamreactor.connect.elastic.common.config.ItemErrorDlqMode
+import io.lenses.streamreactor.connect.elastic.common.config.ItemErrorMode
 import io.lenses.streamreactor.connect.elastic.common.dlq.DlqGate
 import io.lenses.streamreactor.connect.elastic.common.writer.JsonBulkWriter
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
@@ -89,7 +89,7 @@ abstract class AbstractElasticSinkTask extends SinkTask with StrictLogging with 
 
     val w = createWriter(confMap, dlqGate)
 
-    validateDlqConfiguration(confMap, dlqGate, w.settings)
+    validateItemErrorConfiguration(confMap, dlqGate, w.settings)
 
     // Wire the retry interval into the context timeout when policy is RETRY
     w.settings.errorPolicy match {
@@ -106,46 +106,63 @@ abstract class AbstractElasticSinkTask extends SinkTask with StrictLogging with 
   }
 
   /**
-   * Warns at startup about `bulk.item.errors.dlq=skip` configurations that cannot actually take
-   * effect, so operators find out at start() rather than discovering it only when a poison
-   * document arrives and the connector still fails the task.
+   * Warns at startup about `bulk.item.errors=drop`/`dlq` configurations that cannot actually
+   * take effect (or, for `drop`, about the deliberate data-discarding behaviour it enables), so
+   * operators find out at start() rather than discovering it only when a poison document
+   * arrives.
    */
-  private def validateDlqConfiguration(
+  private def validateItemErrorConfiguration(
     confMap:  Map[String, String],
     dlqGate:  DlqGate,
     settings: ElasticCommonSettings,
   ): Unit =
-    if (settings.itemErrorDlqMode == ItemErrorDlqMode.Skip) {
-      if (!dlqGate.dlqTopicConfigured) {
+    settings.itemErrorMode match {
+      case ItemErrorMode.Fail => // silent — identical to the pre-diversion behaviour
+      case ItemErrorMode.Drop =>
         logger.warn(
-          s"bulk.item.errors.dlq=skip is set but ${DlqGate.DlqTopicNameConfigKey} is not configured " +
-            "(or is empty); skip cannot take effect and the connector will behave as if set to fail.",
+          "bulk.item.errors=drop is set: permanently-failed bulk items (HTTP 400, e.g. a mapper " +
+            "conflict) will be discarded and offsets will advance past them. This is a deliberate " +
+            "data-loss trade-off in exchange for keeping the task running; use bulk.item.errors=dlq " +
+            "instead if you need a durable record of what was discarded.",
         )
-      }
-      if (!settings.strictItemErrors) {
-        logger.warn(
-          "bulk.item.errors.dlq=skip is set together with bulk.strict.item.errors=false; in tolerant " +
-            "mode per-item bulk failures are never surfaced to the writer, so nothing will ever be " +
-            "reported to the dead-letter queue.",
-        )
-      }
-      // Kafka Connect's own default for errors.tolerance is "none" — an operator who sets
-      // errors.deadletterqueue.topic.name and bulk.item.errors.dlq=skip but simply omits
-      // errors.tolerance (the common case) is on the same footing as one who set it explicitly
-      // to "none", so an absent/blank key must be treated as "none" here too, not skipped.
-      val tolerance = confMap.get(DlqGate.ErrorsToleranceConfigKey)
-        .map(_.trim.toLowerCase)
-        .filter(_.nonEmpty)
-        .getOrElse("none")
-      if (tolerance == "none") {
-        logger.warn(
-          s"bulk.item.errors.dlq=skip is set together with ${DlqGate.ErrorsToleranceConfigKey}=none " +
-            s"(the default when ${DlqGate.ErrorsToleranceConfigKey} is unset); " +
-            "Kafka Connect throws out of the DLQ report call once tolerance is exceeded, so skip " +
-            "cannot keep the task running under this setting (the record still reaches the DLQ, but " +
-            s"the task then fails fast). Set ${DlqGate.ErrorsToleranceConfigKey}=all for skip to work.",
-        )
-      }
+        if (!settings.strictItemErrors) {
+          logger.warn(
+            "bulk.item.errors=drop is set together with bulk.strict.item.errors=false; in tolerant " +
+              "mode per-item bulk failures are never surfaced to the writer, so nothing will ever be " +
+              "dropped by this setting (bulk.strict.item.errors=false already discards them itself).",
+          )
+        }
+      case ItemErrorMode.Dlq =>
+        if (!dlqGate.dlqTopicConfigured) {
+          logger.warn(
+            s"bulk.item.errors=dlq is set but ${DlqGate.DlqTopicNameConfigKey} is not configured " +
+              "(or is empty); dlq cannot take effect and the connector will behave as if set to fail.",
+          )
+        }
+        if (!settings.strictItemErrors) {
+          logger.warn(
+            "bulk.item.errors=dlq is set together with bulk.strict.item.errors=false; in tolerant " +
+              "mode per-item bulk failures are never surfaced to the writer, so nothing will ever be " +
+              "reported to the dead-letter queue.",
+          )
+        }
+        // Kafka Connect's own default for errors.tolerance is "none" — an operator who sets
+        // errors.deadletterqueue.topic.name and bulk.item.errors=dlq but simply omits
+        // errors.tolerance (the common case) is on the same footing as one who set it explicitly
+        // to "none", so an absent/blank key must be treated as "none" here too, not skipped.
+        val tolerance = confMap.get(DlqGate.ErrorsToleranceConfigKey)
+          .map(_.trim.toLowerCase)
+          .filter(_.nonEmpty)
+          .getOrElse("none")
+        if (tolerance == "none") {
+          logger.warn(
+            s"bulk.item.errors=dlq is set together with ${DlqGate.ErrorsToleranceConfigKey}=none " +
+              s"(the default when ${DlqGate.ErrorsToleranceConfigKey} is unset); " +
+              "Kafka Connect throws out of the DLQ report call once tolerance is exceeded, so dlq " +
+              "cannot keep the task running under this setting (the record still reaches the DLQ, but " +
+              s"the task then fails fast). Set ${DlqGate.ErrorsToleranceConfigKey}=all for dlq to work.",
+          )
+        }
     }
 
   override def put(records: util.Collection[SinkRecord]): Unit = {

@@ -16,7 +16,7 @@
 package io.lenses.streamreactor.connect.opensearch.config
 
 import io.lenses.streamreactor.connect.elastic.common.config.ElasticCommonConfigConstants
-import io.lenses.streamreactor.connect.elastic.common.config.ItemErrorDlqMode
+import io.lenses.streamreactor.connect.elastic.common.config.ItemErrorMode
 import io.lenses.streamreactor.connect.opensearch.config.OpenSearchConfigConstants._
 import org.apache.kafka.common.config.ConfigException
 import org.scalatest.funsuite.AnyFunSuite
@@ -280,17 +280,26 @@ class OpenSearchConfigTest extends AnyFunSuite with Matchers {
     settings(BULK_STRICT_ITEM_ERRORS_KEY -> "false").strictItemErrors shouldBe false
   }
 
-  test("bulk.item.errors.dlq defaults to fail") {
-    settings().common.itemErrorDlqMode shouldBe ItemErrorDlqMode.Fail
+  test("bulk.item.errors defaults to fail") {
+    settings().common.itemErrorMode shouldBe ItemErrorMode.Fail
   }
 
-  test("bulk.item.errors.dlq can be set to skip") {
-    settings(BULK_ITEM_ERRORS_DLQ_KEY -> "skip").common.itemErrorDlqMode shouldBe ItemErrorDlqMode.Skip
+  test("bulk.item.errors can be set to drop") {
+    settings(BULK_ITEM_ERRORS_KEY -> "drop").common.itemErrorMode shouldBe ItemErrorMode.Drop
   }
 
-  test("bulk.item.errors.dlq rejects an invalid value") {
-    val ex = intercept[ConfigException](settings(BULK_ITEM_ERRORS_DLQ_KEY -> "maybe"))
-    ex.getMessage should include("bulk.item.errors.dlq")
+  test("bulk.item.errors can be set to dlq") {
+    settings(BULK_ITEM_ERRORS_KEY -> "dlq").common.itemErrorMode shouldBe ItemErrorMode.Dlq
+  }
+
+  test("bulk.item.errors rejects the old skip value — the config was renamed with no alias") {
+    val ex = intercept[ConfigException](settings(BULK_ITEM_ERRORS_KEY -> "skip"))
+    ex.getMessage should include("bulk.item.errors")
+  }
+
+  test("bulk.item.errors rejects an invalid value") {
+    val ex = intercept[ConfigException](settings(BULK_ITEM_ERRORS_KEY -> "maybe"))
+    ex.getMessage should include("bulk.item.errors")
   }
 
   test("write.timeout of 60 milliseconds is accepted (OpenSearch has always used milliseconds)") {

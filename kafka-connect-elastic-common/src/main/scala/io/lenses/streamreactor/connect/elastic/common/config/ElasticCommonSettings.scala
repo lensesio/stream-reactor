@@ -38,7 +38,7 @@ case class ElasticCommonSettings(
   // (unverified whether elastic4s 6.7.8 exposes an equivalent ordinal), so ES6 is pinned to Fail: the
   // key is never registered in ES6's ConfigDef. Note that Kafka Connect does NOT reject unknown
   // properties — it silently ignores them (logged once as unused) — so a user who sets
-  // bulk.item.errors.dlq on ES6 gets a silent no-op, not a validation error, and itemErrorDlqMode
+  // bulk.item.errors on ES6 gets a silent no-op, not a validation error, and itemErrorMode
   // stays at this Fail default regardless.
-  itemErrorDlqMode: ItemErrorDlqMode = ItemErrorDlqMode.Fail,
+  itemErrorMode: ItemErrorMode = ItemErrorMode.Fail,
 )

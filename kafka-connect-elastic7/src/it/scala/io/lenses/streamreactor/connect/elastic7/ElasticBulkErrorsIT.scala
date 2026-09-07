@@ -18,7 +18,7 @@ package io.lenses.streamreactor.connect.elastic7
 import com.fasterxml.jackson.databind.node.JsonNodeFactory
 import com.sksamuel.elastic4s.ElasticDsl._
 import io.lenses.streamreactor.connect.elastic.common.bulk.InsertOp
-import io.lenses.streamreactor.connect.elastic.common.config.ItemErrorDlqMode
+import io.lenses.streamreactor.connect.elastic.common.config.ItemErrorMode
 import io.lenses.streamreactor.connect.elastic.common.dlq.DlqGate
 import io.lenses.streamreactor.connect.elastic.common.writer.JsonBulkWriter
 import io.lenses.streamreactor.connect.elastic7.config.ElasticConfig
@@ -142,12 +142,12 @@ class ElasticBulkErrorsIT extends ITBase with BeforeAndAfterAll {
     }
   }
 
-  "JsonBulkWriter in skip mode with a DLQ available" should {
+  "JsonBulkWriter in dlq mode with a DLQ available" should {
     "report the mapping-conflict record to the DLQ instead of throwing, and still index the good record" in {
       val index = s"writer-skip-${System.nanoTime()}"
       createIndexWithIntegerMapping(index)
 
-      val settings = settingsFor(index).copy(itemErrorDlqMode = ItemErrorDlqMode.Skip)
+      val settings = settingsFor(index).copy(itemErrorMode = ItemErrorMode.Dlq)
       val reporter = new CapturingReporter
       val writer = new JsonBulkWriter(
         KElasticBulkClient(new HttpKElasticClient(client), settings),
@@ -203,7 +203,7 @@ class ElasticBulkErrorsIT extends ITBase with BeforeAndAfterAll {
   // response item back to its record by position, corroborated by `id` only — NOT `index` —
   // precisely so this alias/concrete-index difference does not cause the mapping to be
   // refused. See ErrantRecordHandler.scala's scaladoc for the full reasoning.
-  "JsonBulkWriter in skip mode targeting a write ALIAS" should {
+  "JsonBulkWriter in dlq mode targeting a write ALIAS" should {
     "correlate correctly by id and report the mapping-conflict record to the DLQ, even though the response reports the concrete backing index, not the alias" in {
       val backingIndex = s"alias-backing-${System.nanoTime()}"
       val aliasName    = s"alias-target-${System.nanoTime()}"
@@ -217,7 +217,7 @@ class ElasticBulkErrorsIT extends ITBase with BeforeAndAfterAll {
         ERROR_POLICY_CONFIG         -> "THROW",
         BULK_STRICT_ITEM_ERRORS_KEY -> "true",
       )
-      val settings = ElasticSettings(ElasticConfig(props)).copy(itemErrorDlqMode = ItemErrorDlqMode.Skip)
+      val settings = ElasticSettings(ElasticConfig(props)).copy(itemErrorMode = ItemErrorMode.Dlq)
       val reporter = new CapturingReporter
       val writer = new JsonBulkWriter(
         KElasticBulkClient(new HttpKElasticClient(client), settings),
@@ -276,7 +276,7 @@ class ElasticBulkErrorsIT extends ITBase with BeforeAndAfterAll {
 
   // ---- Batch-wide (non-400) errors are never diverted to the DLQ (review finding M4) ------
 
-  "JsonBulkWriter in skip mode against a write-blocked index" should {
+  "JsonBulkWriter in dlq mode against a write-blocked index" should {
     "fail the task instead of diverting anything to the DLQ, even for otherwise-valid documents" in {
       val index  = s"blocked-${System.nanoTime()}"
       val create = client.execute(createIndex(index)).await
@@ -292,7 +292,7 @@ class ElasticBulkErrorsIT extends ITBase with BeforeAndAfterAll {
         ERROR_POLICY_CONFIG         -> "THROW",
         BULK_STRICT_ITEM_ERRORS_KEY -> "true",
       )
-      val settings = ElasticSettings(ElasticConfig(props)).copy(itemErrorDlqMode = ItemErrorDlqMode.Skip)
+      val settings = ElasticSettings(ElasticConfig(props)).copy(itemErrorMode = ItemErrorMode.Dlq)
       val reporter = new CapturingReporter
       val writer = new JsonBulkWriter(
         KElasticBulkClient(new HttpKElasticClient(client), settings),

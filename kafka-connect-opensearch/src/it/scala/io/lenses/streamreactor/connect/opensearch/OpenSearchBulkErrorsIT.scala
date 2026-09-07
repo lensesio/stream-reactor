@@ -182,7 +182,7 @@ class OpenSearchBulkErrorsIT extends ITBase {
   }
 
   test(
-    "DLQ: skip mode reports the mapping-conflict record to the DLQ instead of throwing, and still indexes the good record",
+    "DLQ: dlq mode reports the mapping-conflict record to the DLQ instead of throwing, and still indexes the good record",
   ) {
     val index = s"dlq-skip-test-${System.nanoTime()}"
 
@@ -200,7 +200,7 @@ class OpenSearchBulkErrorsIT extends ITBase {
       s"INSERT INTO $index SELECT * FROM topic PK id",
       Map(
         BULK_STRICT_ITEM_ERRORS_KEY -> "true",
-        BULK_ITEM_ERRORS_DLQ_KEY    -> "skip",
+        BULK_ITEM_ERRORS_KEY        -> "dlq",
       ),
     )
     val config    = OpenSearchConfig(props)
@@ -259,7 +259,7 @@ class OpenSearchBulkErrorsIT extends ITBase {
   // `index` — precisely so this alias/concrete-index difference does not cause the mapping to
   // be refused.
   test(
-    "ALIAS: skip mode targeting a write alias correlates correctly by id and reports the mapping-conflict record to the DLQ",
+    "ALIAS: dlq mode targeting a write alias correlates correctly by id and reports the mapping-conflict record to the DLQ",
   ) {
     val backingIndex = s"alias-backing-${System.nanoTime()}"
     val aliasName    = s"alias-target-${System.nanoTime()}"
@@ -277,7 +277,7 @@ class OpenSearchBulkErrorsIT extends ITBase {
       host,
       port,
       s"INSERT INTO $aliasName SELECT * FROM topic PK id",
-      Map(BULK_STRICT_ITEM_ERRORS_KEY -> "true", BULK_ITEM_ERRORS_DLQ_KEY -> "skip"),
+      Map(BULK_STRICT_ITEM_ERRORS_KEY -> "true", BULK_ITEM_ERRORS_KEY -> "dlq"),
     )
     val config    = OpenSearchConfig(props)
     val settings  = OpenSearchSettings(config)
@@ -335,7 +335,7 @@ class OpenSearchBulkErrorsIT extends ITBase {
   // ---- Batch-wide (non-400) errors are never diverted to the DLQ (review finding M4) ------
 
   test(
-    "BLOCKED: skip mode against a write-blocked index fails the task instead of diverting anything to the DLQ",
+    "BLOCKED: dlq mode against a write-blocked index fails the task instead of diverting anything to the DLQ",
   ) {
     val index       = s"blocked-${System.nanoTime()}"
     val setupClient = makeKClient(baseProps(host, port, s"INSERT INTO $index SELECT * FROM topic"))
@@ -350,7 +350,7 @@ class OpenSearchBulkErrorsIT extends ITBase {
       host,
       port,
       s"INSERT INTO $index SELECT * FROM topic PK id",
-      Map(BULK_STRICT_ITEM_ERRORS_KEY -> "true", BULK_ITEM_ERRORS_DLQ_KEY -> "skip"),
+      Map(BULK_STRICT_ITEM_ERRORS_KEY -> "true", BULK_ITEM_ERRORS_KEY -> "dlq"),
     )
     val config    = OpenSearchConfig(props)
     val settings  = OpenSearchSettings(config)

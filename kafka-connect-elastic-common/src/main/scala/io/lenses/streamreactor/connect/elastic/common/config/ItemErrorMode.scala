@@ -18,30 +18,38 @@ package io.lenses.streamreactor.connect.elastic.common.config
 import org.apache.kafka.common.config.ConfigException
 
 /**
- * Controls what happens to a bulk item that fails with a *permanent* error (e.g. a mapper conflict)
- * once a real Kafka Connect dead-letter queue is available (see `DlqGate`).
+ * Controls what happens to a bulk item that fails with a *permanent*, per-document error
+ * (HTTP 400, e.g. a mapper conflict).
  *
  *  - [[Fail]] (default): the connector throws. Kafka Connect kills the task with offsets
  *    uncommitted, so the whole batch is redelivered on restart. No data is lost, but the
  *    connector stops.
- *  - [[Skip]]: the failing record(s) are reported to the dead-letter queue and the batch is
+ *  - [[Drop]]: the failing record(s) are discarded (logged at WARN) and the batch is treated as
+ *    handled so offsets advance past them, keeping the task running. No dead-letter queue is
+ *    required.
+ *  - [[Dlq]]: the failing record(s) are reported to the dead-letter queue and the batch is
  *    treated as handled so offsets advance past them, keeping the task running. Only takes
  *    effect when a DLQ is actually configured (see `DlqGate.enabled`); otherwise behaves as
  *    [[Fail]].
+ *
+ * [[Drop]] and [[Dlq]] never divert batch-wide conditions (403/404) or retriable errors
+ * (429/409) — only per-document HTTP 400 rejections. See `BulkItemErrorClassifier.isDivertible`.
  */
-sealed trait ItemErrorDlqMode
+sealed trait ItemErrorMode
 
-object ItemErrorDlqMode {
-  case object Fail extends ItemErrorDlqMode
-  case object Skip extends ItemErrorDlqMode
+object ItemErrorMode {
+  case object Fail extends ItemErrorMode
+  case object Drop extends ItemErrorMode
+  case object Dlq  extends ItemErrorMode
 
-  def fromString(value: String): ItemErrorDlqMode =
+  def fromString(value: String): ItemErrorMode =
     Option(value).map(_.trim.toLowerCase) match {
       case Some("fail") => Fail
-      case Some("skip") => Skip
+      case Some("drop") => Drop
+      case Some("dlq")  => Dlq
       case other =>
         throw new ConfigException(
-          s"Invalid value '${other.getOrElse("")}' for bulk.item.errors.dlq; expected 'fail' or 'skip'",
+          s"Invalid value '${other.getOrElse("")}' for bulk.item.errors; expected 'fail', 'drop' or 'dlq'",
         )
     }
 }

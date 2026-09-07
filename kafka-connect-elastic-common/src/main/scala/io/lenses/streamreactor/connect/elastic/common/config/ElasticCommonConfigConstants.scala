@@ -128,15 +128,17 @@ object ElasticCommonConfigConstants {
       |WARNING: Setting bulk.strict.item.errors=false swallows rejected documents and advances Kafka offsets past them.""".stripMargin
   val BULK_STRICT_ITEM_ERRORS_DEFAULT = true
 
-  val BULK_ITEM_ERRORS_DLQ_SUFFIX = "bulk.item.errors.dlq"
-  val BULK_ITEM_ERRORS_DLQ_DOC =
+  val BULK_ITEM_ERRORS_SUFFIX = "bulk.item.errors"
+  val BULK_ITEM_ERRORS_DOC =
     """Controls what happens to a bulk item that fails with a permanent, per-document error
       |(HTTP 400, e.g. a mapper conflict).
       |fail (default): the connector throws and the task stops with offsets uncommitted (no data loss).
-      |skip: the failing record(s) are reported to the dead-letter queue and offsets advance, keeping the task running.
-      |skip takes effect only when errors.deadletterqueue.topic.name is set, errors.tolerance=all and
-      |bulk.strict.item.errors=true; otherwise it behaves as fail. Only per-document HTTP 400 rejections are
-      |diverted - batch-wide failures (write-blocked/missing index, auth errors) still fail the task.
-      |DLQ delivery is at-least-once.""".stripMargin
-  val BULK_ITEM_ERRORS_DLQ_DEFAULT = "fail"
+      |drop: the failing record(s) are discarded (logged at WARN) and offsets advance, keeping the task
+      |running. No dead-letter queue is required.
+      |dlq: the failing record(s) are reported to the dead-letter queue and offsets advance, keeping the
+      |task running. Takes effect only when errors.deadletterqueue.topic.name is set, errors.tolerance=all
+      |and bulk.strict.item.errors=true; otherwise it behaves as fail.
+      |Both drop and dlq only divert per-document HTTP 400 rejections - batch-wide failures
+      |(write-blocked/missing index, auth errors) still fail the task. DLQ delivery is at-least-once.""".stripMargin
+  val BULK_ITEM_ERRORS_DEFAULT = "fail"
 }

@@ -15,7 +15,7 @@
  */
 package io.lenses.streamreactor.connect.opensearch
 
-import io.lenses.streamreactor.connect.elastic.common.config.ItemErrorDlqMode
+import io.lenses.streamreactor.connect.elastic.common.config.ItemErrorMode
 import io.lenses.streamreactor.connect.opensearch.config.OpenSearchConfig
 import io.lenses.streamreactor.connect.opensearch.config.OpenSearchConfigConstants._
 import io.lenses.streamreactor.connect.opensearch.config.OpenSearchSettings
@@ -47,10 +47,11 @@ import org.scalatest.matchers.should.Matchers
  *
  * === Confirmed parity (not a difference) ===
  *
- * 6. `bulk.item.errors.dlq` (per-record DLQ for permanent bulk item errors, lensesio-dev/stream-reactor#414)
- *    has the same suffix, same default (`fail`), and the same [[ItemErrorDlqMode]] semantics on
- *    OpenSearch as on ES7. Unlike ES6 — which never populates `BulkItemError.position` and so
- *    cannot support this feature — OpenSearch and ES7 are symmetric here.
+ * 6. `bulk.item.errors` (per-record drop/DLQ diversion for permanent bulk item errors,
+ *    lensesio-dev/stream-reactor#414) has the same suffix, same default (`fail`), and the same
+ *    [[ItemErrorMode]] semantics on OpenSearch as on ES7. Unlike ES6 — which never populates
+ *    `BulkItemError.position` and so cannot support this feature — OpenSearch and ES7 are
+ *    symmetric here.
  */
 class OpenSearchParityContractTest extends AnyFunSuite with Matchers {
 
@@ -128,13 +129,17 @@ class OpenSearchParityContractTest extends AnyFunSuite with Matchers {
     settings(WRITE_TIMEOUT -> "120").common.writeTimeout shouldBe 120
   }
 
-  // --- 6. bulk.item.errors.dlq: confirmed parity with ES7 ---
+  // --- 6. bulk.item.errors: confirmed parity with ES7 ---
 
-  test("PARITY-6: bulk.item.errors.dlq defaults to fail, matching ES7") {
-    settings().common.itemErrorDlqMode shouldBe ItemErrorDlqMode.Fail
+  test("PARITY-6: bulk.item.errors defaults to fail, matching ES7") {
+    settings().common.itemErrorMode shouldBe ItemErrorMode.Fail
   }
 
-  test("PARITY-6b: bulk.item.errors.dlq=skip resolves to ItemErrorDlqMode.Skip, matching ES7") {
-    settings(BULK_ITEM_ERRORS_DLQ_KEY -> "skip").common.itemErrorDlqMode shouldBe ItemErrorDlqMode.Skip
+  test("PARITY-6b: bulk.item.errors=drop resolves to ItemErrorMode.Drop, matching ES7") {
+    settings(BULK_ITEM_ERRORS_KEY -> "drop").common.itemErrorMode shouldBe ItemErrorMode.Drop
+  }
+
+  test("PARITY-6c: bulk.item.errors=dlq resolves to ItemErrorMode.Dlq, matching ES7") {
+    settings(BULK_ITEM_ERRORS_KEY -> "dlq").common.itemErrorMode shouldBe ItemErrorMode.Dlq
   }
 }

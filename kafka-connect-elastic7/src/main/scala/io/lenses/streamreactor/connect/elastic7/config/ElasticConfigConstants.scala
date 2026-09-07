@@ -118,11 +118,11 @@ object ElasticConfigConstants {
   val BULK_STRICT_ITEM_ERRORS_DEFAULT =
     io.lenses.streamreactor.connect.elastic.common.config.ElasticCommonConfigConstants.BULK_STRICT_ITEM_ERRORS_DEFAULT
 
-  val BULK_ITEM_ERRORS_DLQ_KEY =
-    s"$CONNECTOR_PREFIX.${io.lenses.streamreactor.connect.elastic.common.config.ElasticCommonConfigConstants.BULK_ITEM_ERRORS_DLQ_SUFFIX}"
-  val BULK_ITEM_ERRORS_DLQ_DOC =
-    io.lenses.streamreactor.connect.elastic.common.config.ElasticCommonConfigConstants.BULK_ITEM_ERRORS_DLQ_DOC
-  val BULK_ITEM_ERRORS_DLQ_DEFAULT =
-    io.lenses.streamreactor.connect.elastic.common.config.ElasticCommonConfigConstants.BULK_ITEM_ERRORS_DLQ_DEFAULT
+  val BULK_ITEM_ERRORS_KEY =
+    s"$CONNECTOR_PREFIX.${io.lenses.streamreactor.connect.elastic.common.config.ElasticCommonConfigConstants.BULK_ITEM_ERRORS_SUFFIX}"
+  val BULK_ITEM_ERRORS_DOC =
+    io.lenses.streamreactor.connect.elastic.common.config.ElasticCommonConfigConstants.BULK_ITEM_ERRORS_DOC
+  val BULK_ITEM_ERRORS_DEFAULT =
+    io.lenses.streamreactor.connect.elastic.common.config.ElasticCommonConfigConstants.BULK_ITEM_ERRORS_DEFAULT
 
 }

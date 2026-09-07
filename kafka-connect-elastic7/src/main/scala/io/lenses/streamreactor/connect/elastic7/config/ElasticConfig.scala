@@ -205,16 +205,16 @@ object ElasticConfig {
       ElasticConfigConstants.BULK_STRICT_ITEM_ERRORS_KEY,
     )
     .define(
-      ElasticConfigConstants.BULK_ITEM_ERRORS_DLQ_KEY,
+      ElasticConfigConstants.BULK_ITEM_ERRORS_KEY,
       Type.STRING,
-      ElasticConfigConstants.BULK_ITEM_ERRORS_DLQ_DEFAULT,
-      ConfigDef.CaseInsensitiveValidString.in("fail", "skip"),
+      ElasticConfigConstants.BULK_ITEM_ERRORS_DEFAULT,
+      ConfigDef.CaseInsensitiveValidString.in("fail", "drop", "dlq"),
       Importance.HIGH,
-      ElasticConfigConstants.BULK_ITEM_ERRORS_DLQ_DOC,
+      ElasticConfigConstants.BULK_ITEM_ERRORS_DOC,
       "Error",
       5,
       ConfigDef.Width.SHORT,
-      ElasticConfigConstants.BULK_ITEM_ERRORS_DLQ_KEY,
+      ElasticConfigConstants.BULK_ITEM_ERRORS_KEY,
     )
     .withClientSslSupport()
 }

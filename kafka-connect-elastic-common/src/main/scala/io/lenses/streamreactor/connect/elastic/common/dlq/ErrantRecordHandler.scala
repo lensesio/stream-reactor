@@ -19,6 +19,7 @@ import com.typesafe.scalalogging.StrictLogging
 import io.lenses.streamreactor.connect.elastic.common.bulk.BulkItemError
 import io.lenses.streamreactor.connect.elastic.common.bulk.BulkItemErrorClassifier
 import io.lenses.streamreactor.connect.elastic.common.bulk.BulkOp
+import io.lenses.streamreactor.connect.elastic.common.config.ItemErrorMode
 import org.apache.kafka.connect.sink.ErrantRecordReporter
 import org.apache.kafka.connect.sink.SinkRecord
 
@@ -31,37 +32,43 @@ import scala.collection.mutable
 import scala.util.control.NonFatal
 
 /**
- * Reports permanently-failed bulk items (and writer-stage failures) to Kafka Connect's
- * dead-letter queue via [[ErrantRecordReporter]], modelled on the in-repo
- * `com.wepay.kafka.connect.bigquery.ErrantRecordHandler` (kcbq-connector) but hardened:
+ * Diverts permanently-failed bulk items (and writer-stage failures) away from failing the task —
+ * either by dropping them (`bulk.item.errors=drop`) or by reporting them to Kafka Connect's
+ * dead-letter queue via [[ErrantRecordReporter]] (`bulk.item.errors=dlq`, modelled on the in-repo
+ * `com.wepay.kafka.connect.bigquery.ErrantRecordHandler` (kcbq-connector) but hardened):
  *
  *  - Maps a [[BulkItemError]] to a record by `position`, refusing the mapping unless `position`
  *    is in range AND the response item's `id` matches the op at that position. A length
  *    mismatch already disables positions upstream (`position = -1`); an id mismatch at an
  *    in-range position means the Bulk API did not return items in request order, and guessing
- *    would silently DLQ the wrong Kafka record while committing the actually-bad one as
+ *    would silently divert the wrong Kafka record while committing the actually-bad one as
  *    successful — the only way this feature could lose data. On any doubt the whole call is
- *    refused ([[ReportOutcome.NotReported]]) rather than partially reported.
+ *    refused ([[DivertOutcome.NotDiverted]]) rather than partially diverted. This applies equally
+ *    to `drop` and `dlq` — an untrustworthy response is never diverted, only failed.
  *  - Deliberately does NOT also require the response item's `index` to match the request op's
  *    `index`. When the KCQL target is a write alias, Elasticsearch/OpenSearch resolve it to the
  *    concrete backing index before writing and echo that concrete index in the response — never
  *    the alias that was actually sent — so an index equality check would refuse every batch
  *    routed through an alias. `id` alone is sufficient corroboration that the response is in
- *    request order; `DlqKey.forOp` still keys the DLQ report on the op's (KCQL-resolved) index,
+ *    request order; `DlqKey.forOp` still keys the divert on the op's (KCQL-resolved) index,
  *    so this does not change dedup semantics or misattribute a Kafka record.
- *  - Waits on every `Future[Void]` returned by `report()` under a short bound before treating a
- *    batch as reported. This is a correctness requirement, not an optimisation: Kafka Connect
- *    provides no other signal that a DLQ write failed while `errors.tolerance=all` —
+ *  - For `dlq`, waits on every `Future[Void]` returned by `report()` under a short bound before
+ *    treating a batch as reported. This is a correctness requirement, not an optimisation: Kafka
+ *    Connect provides no other signal that a DLQ write failed while `errors.tolerance=all` —
  *    `WorkerErrantRecordReporter.maybeThrowAsyncError()` only throws outside tolerance limits,
- *    so it is inert in exactly the mode `skip` requires.
- *  - Catches throws from `report()` itself. Under `errors.tolerance=none`,
+ *    so it is inert in exactly the mode `dlq` requires.
+ *  - For `dlq`, catches throws from `report()` itself. Under `errors.tolerance=none`,
  *    `RetryWithToleranceOperator.executeFailed` issues the report and THEN throws
  *    (`ConnectException("Tolerance exceeded in error handler", ...)`), so the record still
  *    reaches the DLQ even though the call throws. The throw is caught here and surfaced as
- *    [[ReportOutcome.NotReported]] so the writer falls back to its own classified exception
+ *    [[DivertOutcome.NotDiverted]] so the writer falls back to its own classified exception
  *    (carrying index/id/type/status/reason) instead of a generic tolerance message — net effect
  *    under `none`: the record is in the DLQ AND the task fails fast, which is correct, since
- *    `skip` requires `errors.tolerance=all` to have any effect.
+ *    `dlq` requires `errors.tolerance=all` to have any effect.
+ *  - For `drop`, none of the DLQ machinery above applies — no reporter, no ack wait, no
+ *    tolerance interaction. A dropped record has no other durable trace, so (unlike `dlq`, where
+ *    the record lives on in the DLQ topic) each drop is logged individually at WARN with the
+ *    error detail that caused it.
  */
 class ErrantRecordHandler(
   dlqGate: DlqGate,
@@ -74,57 +81,121 @@ class ErrantRecordHandler(
 ) extends StrictLogging {
 
   /**
-   * Reports permanent (non-retriable) item errors, mapping each back to its originating
-   * `SinkRecord` by position. `errors` must already be filtered to permanent errors only —
-   * retriable errors (429/409) are never reported here; they are left on the retry path.
+   * Diverts permanent (non-retriable) item errors, mapping each back to its originating
+   * `SinkRecord` by position. `errors` must already be filtered to permanent, divertible errors
+   * only — retriable errors (429/409) are never diverted here; they are left on the retry path.
+   *
+   * `mode` must be [[ItemErrorMode.Drop]] or [[ItemErrorMode.Dlq]]; [[ItemErrorMode.Fail]] always
+   * returns [[DivertOutcome.NotDiverted]] defensively (callers should not invoke this method at
+   * all when diversion is inactive, but this method must be safe on its own for any future
+   * caller).
    */
-  def reportPermanent(
+  def divertPermanent(
     errors:          Seq[BulkItemError],
     opsWithRecords:  IndexedSeq[(BulkOp, SinkRecord)],
+    mode:            ItemErrorMode,
     reportedThisPut: mutable.Map[DlqKey, SinkRecord],
-  ): ReportOutcome =
-    // Gated on dlqGate.enabled, NOT dlqGate.reporter alone — a non-null reporter with no DLQ
-    // topic configured (errors.log.enable=true on its own, see DlqGate's scaladoc) must behave
-    // identically to no reporter at all. JsonBulkWriter already enforces this via
-    // skipModeActive before ever calling this method, but the handler must not rely on that:
-    // it is public API and must be safe on its own for any future caller.
-    (dlqGate.enabled, dlqGate.reporter) match {
-      case _ if errors.isEmpty => ReportOutcome.Reported
-      case (true, Some(reporter)) =>
-        resolvePositions(errors, opsWithRecords) match {
-          case None => ReportOutcome.NotReported
-          case Some(mapped) =>
-            val toSend = mapped
-              .filterNot { case (key, _, _) => reportedThisPut.contains(key) }
-              .map { case (key, record, error) => (key, record, BulkItemErrorClassifier.exceptionFor(Seq(error))) }
-            reportAndAwait(reporter, toSend, reportedThisPut)
-        }
-      case _ => ReportOutcome.NotReported
+  ): DivertOutcome =
+    if (errors.isEmpty) {
+      DivertOutcome.Diverted
+    } else {
+      mode match {
+        case ItemErrorMode.Drop =>
+          resolvePositions(errors, opsWithRecords) match {
+            case None => DivertOutcome.NotDiverted
+            case Some(mapped) =>
+              dropAll(mapped, reportedThisPut)
+              DivertOutcome.Diverted
+          }
+        case ItemErrorMode.Dlq =>
+          // Gated on dlqGate.enabled, NOT dlqGate.reporter alone — a non-null reporter with no DLQ
+          // topic configured (errors.log.enable=true on its own, see DlqGate's scaladoc) must behave
+          // identically to no reporter at all. JsonBulkWriter already enforces this via
+          // divertActive before ever calling this method, but the handler must not rely on that:
+          // it is public API and must be safe on its own for any future caller.
+          (dlqGate.enabled, dlqGate.reporter) match {
+            case (true, Some(reporter)) =>
+              resolvePositions(errors, opsWithRecords) match {
+                case None => DivertOutcome.NotDiverted
+                case Some(mapped) =>
+                  val toSend = mapped
+                    .filterNot { case (key, _, _) => reportedThisPut.contains(key) }
+                    .map { case (key, record, error) =>
+                      (key, record, BulkItemErrorClassifier.exceptionFor(Seq(error)))
+                    }
+                  reportAndAwait(reporter, toSend, reportedThisPut)
+              }
+            case _ => DivertOutcome.NotDiverted
+          }
+        case ItemErrorMode.Fail => DivertOutcome.NotDiverted
+      }
     }
 
   /**
-   * Reports a single writer-stage failure — a record that never made it into a `BulkOp` (e.g. a
+   * Diverts a single writer-stage failure — a record that never made it into a `BulkOp` (e.g. a
    * `NullValueBehavior.FAIL` tombstone, a primary-key extraction failure, or an unsupported write
    * mode). There is no resolved index to correlate against here, so `target` (typically the KCQL
    * target pattern) stands in for dedup purposes only.
    */
-  def reportOne(
+  def divertOne(
+    record:          SinkRecord,
+    target:          String,
+    cause:           Throwable,
+    mode:            ItemErrorMode,
+    reportedThisPut: mutable.Map[DlqKey, SinkRecord],
+  ): Boolean =
+    mode match {
+      case ItemErrorMode.Drop =>
+        val key = DlqKey.forTarget(record, target)
+        if (!reportedThisPut.contains(key)) {
+          dropOne(key, record, target, cause, reportedThisPut)
+        }
+        true
+      case ItemErrorMode.Dlq =>
+        // See divertPermanent — gated on dlqGate.enabled, not dlqGate.reporter alone.
+        (dlqGate.enabled, dlqGate.reporter) match {
+          case (true, Some(reporter)) =>
+            val key = DlqKey.forTarget(record, target)
+            if (reportedThisPut.contains(key)) {
+              true
+            } else {
+              reportAndAwait(reporter, Vector((key, record, cause)), reportedThisPut) == DivertOutcome.Diverted
+            }
+          case _ => false
+        }
+      case ItemErrorMode.Fail => false
+    }
+
+  private def dropAll(
+    mapped:          Seq[(DlqKey, SinkRecord, BulkItemError)],
+    reportedThisPut: mutable.Map[DlqKey, SinkRecord],
+  ): Unit =
+    mapped
+      .filterNot { case (key, _, _) => reportedThisPut.contains(key) }
+      .foreach {
+        case (key, record, error) =>
+          reportedThisPut.put(key, record)
+          logger.warn(
+            s"bulk.item.errors=drop: discarding ${record.topic()}-${record.kafkaPartition()}-${record.kafkaOffset()} " +
+              s"(index=${error.index} id=${error.id} status=${error.status} reason=${error.reason}); " +
+              "offsets will advance past this record and it is not sent anywhere else.",
+          )
+      }
+
+  private def dropOne(
+    key:             DlqKey,
     record:          SinkRecord,
     target:          String,
     cause:           Throwable,
     reportedThisPut: mutable.Map[DlqKey, SinkRecord],
-  ): Boolean =
-    // See reportPermanent — gated on dlqGate.enabled, not dlqGate.reporter alone.
-    (dlqGate.enabled, dlqGate.reporter) match {
-      case (true, Some(reporter)) =>
-        val key = DlqKey.forTarget(record, target)
-        if (reportedThisPut.contains(key)) {
-          true
-        } else {
-          reportAndAwait(reporter, Vector((key, record, cause)), reportedThisPut) == ReportOutcome.Reported
-        }
-      case _ => false
-    }
+  ): Unit = {
+    reportedThisPut.put(key, record)
+    logger.warn(
+      s"bulk.item.errors=drop: discarding ${record.topic()}-${record.kafkaPartition()}-${record.kafkaOffset()} " +
+        s"(target=$target) after a writer-stage failure: ${cause.getMessage}; " +
+        "offsets will advance past this record and it is not sent anywhere else.",
+    )
+  }
 
   private def resolvePositions(
     errors:         Seq[BulkItemError],
@@ -135,7 +206,7 @@ class ErrantRecordHandler(
         logger.error(
           s"Bulk item error at position ${error.position} is out of range for a request of " +
             s"${opsWithRecords.size} op(s) (index=${error.index} id=${error.id}); " +
-            "refusing to report to the DLQ as the position cannot be trusted.",
+            "refusing to divert as the position cannot be trusted.",
         )
         None
       } else {
@@ -153,7 +224,7 @@ class ErrantRecordHandler(
               s"Bulk response item at position ${error.position} reported index '${error.index}' " +
                 s"but the request op targeted '${op.index}' (id=${op.id}); treating this as alias " +
                 "resolution (the target is a write alias resolved to its concrete backing index) " +
-                "and mapping by id. The DLQ report will use the KCQL-resolved target, not the " +
+                "and mapping by id. The divert will use the KCQL-resolved target, not the " +
                 "concrete index reported by the cluster.",
             )
           }
@@ -162,8 +233,7 @@ class ErrantRecordHandler(
           logger.error(
             s"Bulk response item at position ${error.position} (id=${error.id}) does not match the " +
               s"request op at that position (id=${op.id}); the Bulk API may not have returned items " +
-              "in request order. Refusing to report to the DLQ for this batch as the mapping cannot " +
-              "be trusted.",
+              "in request order. Refusing to divert for this batch as the mapping cannot be trusted.",
           )
           None
         }
@@ -176,9 +246,9 @@ class ErrantRecordHandler(
     reporter:        ErrantRecordReporter,
     toSend:          Seq[(DlqKey, SinkRecord, Throwable)],
     reportedThisPut: mutable.Map[DlqKey, SinkRecord],
-  ): ReportOutcome =
+  ): DivertOutcome =
     if (toSend.isEmpty) {
-      ReportOutcome.Reported
+      DivertOutcome.Diverted
     } else {
       val issued: Option[Seq[(DlqKey, SinkRecord, JFuture[Void])]] =
         try {
@@ -195,14 +265,14 @@ class ErrantRecordHandler(
         }
 
       issued match {
-        case None => ReportOutcome.NotReported
+        case None => DivertOutcome.NotDiverted
         case Some(futures) =>
           val allAcknowledged = futures.forall { case (_, _, future) => awaitAck(future) }
           if (allAcknowledged) {
             futures.foreach { case (key, record, _) => reportedThisPut.put(key, record) }
-            ReportOutcome.Reported
+            DivertOutcome.Diverted
           } else {
-            ReportOutcome.NotReported
+            DivertOutcome.NotDiverted
           }
       }
     }

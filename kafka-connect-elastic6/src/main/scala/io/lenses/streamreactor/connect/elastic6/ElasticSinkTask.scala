@@ -31,9 +31,9 @@ class ElasticSinkTask extends AbstractElasticSinkTask {
 
   override protected def progressEnabledKey: String = ElasticConfigConstants.PROGRESS_COUNTER_ENABLED
 
-  // NB: ES6 does not register bulk.item.errors.dlq in its ConfigDef and KElastic6BulkClient never
-  // populates BulkItemError.position, so ElasticCommonSettings.itemErrorDlqMode stays at its Fail
-  // default here regardless of dlqGate — the DLQ feature itself is a no-op for ES6.
+  // NB: ES6 does not register bulk.item.errors in its ConfigDef and KElastic6BulkClient never
+  // populates BulkItemError.position, so ElasticCommonSettings.itemErrorMode stays at its Fail
+  // default here regardless of dlqGate — the drop/dlq diversion feature itself is a no-op for ES6.
   //
   // RELEASE NOTE — ES6 IS affected by one side effect of this feature despite the above:
   // JsonBulkWriter.handleTransportFailure (shared across ES6/ES7/OpenSearch) now reclassifies a

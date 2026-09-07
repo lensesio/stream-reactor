@@ -81,17 +81,18 @@ object BulkItemErrorClassifier {
     }
 
   /**
-   * Whether a permanent (non-retriable) item error may be diverted to the dead-letter queue in
-   * `bulk.item.errors.dlq=skip` mode. Restricted to HTTP 400 — per-document rejections
-   * (`mapper_parsing_exception`, `illegal_argument_exception`, `strict_dynamic_mapping_exception`,
-   * and friends) are always 400 on both Elasticsearch and OpenSearch.
+   * Whether a permanent (non-retriable) item error may be diverted — dropped or reported to the
+   * dead-letter queue, per `bulk.item.errors=drop`/`dlq` — instead of failing the task. Restricted
+   * to HTTP 400 — per-document rejections (`mapper_parsing_exception`, `illegal_argument_exception`,
+   * `strict_dynamic_mapping_exception`, and friends) are always 400 on both Elasticsearch and
+   * OpenSearch.
    *
    * Deliberately NOT a type allow-list: a status check survives new or renamed document-level
    * error types (e.g. a future `document_parsing_exception`) without a connector release,
    * whereas a type list would silently stop covering them. Batch-wide conditions that also
    * happen to be permanent are excluded because they are HTTP 403/404, not 400 —
    * `cluster_block_exception` / `security_exception` (403), `index_not_found_exception` (404).
-   * Those affect every op in the request regardless of content; DLQ-ing them would discard
+   * Those affect every op in the request regardless of content; diverting them would discard
    * good records while the task kept running and reported itself healthy. They fail the task
    * instead, exactly as they did before this feature existed.
    *
@@ -99,7 +100,7 @@ object BulkItemErrorClassifier {
    * Accepted for now; see [[io.lenses.streamreactor.connect.elastic.common.writer.JsonBulkWriter.handleBulkResult]]
    * for the batch-level backstop that limits the blast radius of any such gap.
    */
-  def isDlqEligible(error: BulkItemError): Boolean =
+  def isDivertible(error: BulkItemError): Boolean =
     !isRetriable(error) && error.status == 400
 
   def formatItemErrors(itemErrors: Seq[BulkItemError]): String = {
