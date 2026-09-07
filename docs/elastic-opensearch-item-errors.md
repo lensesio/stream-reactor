@@ -61,9 +61,15 @@ running and reported itself healthy. These include:
 - write-blocked index (403, `cluster_block_exception`)
 - authorization failure (403, `security_exception`)
 - missing index (404, `index_not_found_exception`)
+- closed index (400, `index_closed_exception`)
+- missing ingest pipeline (400, `illegal_argument_exception` — "pipeline with id [x] does not exist")
 
-Status (not error type) is what is checked, so a renamed/new document-level error type stays
-divertible without a connector release.
+Status (not error type) is the primary check, so a renamed/new document-level error type stays
+divertible without a connector release. The last two above are HTTP 400 but nonetheless
+batch-wide, so they are excluded explicitly: `index_closed_exception` by error type, and the
+missing-pipeline case by its reason (its `illegal_argument_exception` type overlaps with genuine
+per-document rejections). Note these are excluded per item, so even a response where *every* item
+carries one of these batch-wide 400s fails the task rather than diverting the whole batch.
 
 ## "If a batch of 100 records fails, do all 100 get diverted?"
 

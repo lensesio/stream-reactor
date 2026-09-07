@@ -146,6 +146,56 @@ class BulkItemErrorClassifierTest extends AnyFunSuite with Matchers {
     ex should not be a[RetriableIntegrityException]
   }
 
+  // ---- isDivertible: only per-document HTTP 400 rejections are divertible ----------------
+
+  test("mapper_parsing_exception (per-document 400) is divertible") {
+    BulkItemErrorClassifier.isDivertible(
+      item("failed to parse field [foo]", errorType = "mapper_parsing_exception", status = 400),
+    ) shouldBe true
+  }
+
+  test("a per-document illegal_argument_exception (not a pipeline fault) is divertible") {
+    BulkItemErrorClassifier.isDivertible(
+      item("Limit of total fields [1000] has been exceeded", errorType = "illegal_argument_exception", status = 400),
+    ) shouldBe true
+  }
+
+  test("index_closed_exception (batch-wide 400) is NOT divertible") {
+    BulkItemErrorClassifier.isDivertible(
+      item("closed", errorType = "index_closed_exception", status = 400),
+    ) shouldBe false
+  }
+
+  test("camelCase IndexClosedException type is NOT divertible") {
+    BulkItemErrorClassifier.isDivertible(
+      item("closed", errorType = "IndexClosedException", status = 400),
+    ) shouldBe false
+  }
+
+  test("a missing ingest pipeline (illegal_argument_exception, batch-wide) is NOT divertible") {
+    BulkItemErrorClassifier.isDivertible(
+      item("pipeline with id [my-pipeline] does not exist", errorType = "illegal_argument_exception", status = 400),
+    ) shouldBe false
+  }
+
+  test("403 cluster_block_exception is NOT divertible") {
+    BulkItemErrorClassifier.isDivertible(
+      item("blocked", errorType = "cluster_block_exception", status = 403),
+    ) shouldBe false
+  }
+
+  test("404 index_not_found_exception is NOT divertible") {
+    BulkItemErrorClassifier.isDivertible(
+      item("no such index", errorType = "index_not_found_exception", status = 404),
+    ) shouldBe false
+  }
+
+  test("a retriable 429 is NOT divertible") {
+    BulkItemErrorClassifier.isDivertible(
+      item("rejected", errorType = "es_rejected_execution_exception", status = 429),
+    ) shouldBe false
+  }
+
   test("empty itemErrors with errors=true is fatal") {
     val ex = BulkItemErrorClassifier.exceptionFor(Seq.empty)
     ex shouldBe a[FatalConnectException]

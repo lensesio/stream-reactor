@@ -951,6 +951,18 @@ class JsonBulkWriterTest
   private def indexNotFoundError(): BulkItemError =
     BulkItemError(index = "", id = "", reason = "no such index", errorType = "index_not_found_exception", status = 404)
 
+  private def indexClosedError(): BulkItemError =
+    BulkItemError(index = "", id = "", reason = "closed", errorType = "index_closed_exception", status = 400)
+
+  private def missingPipelineError(): BulkItemError =
+    BulkItemError(
+      index     = "",
+      id        = "",
+      reason    = "pipeline with id [my-pipeline] does not exist",
+      errorType = "illegal_argument_exception",
+      status    = 400,
+    )
+
   test("dlq mode: a 403 cluster_block_exception is never diverted to the DLQ — the batch throws instead") {
     val reporter = new FakeReporter
     val client   = new ScriptedBulkClient(Map("1" -> clusterBlockError()))
@@ -999,6 +1011,69 @@ class JsonBulkWriterTest
     // the SAME response means the whole call is untrustworthy — see
     // BulkItemErrorClassifier.isDivertible and JsonBulkWriter.handleBulkResult.
     intercept[FatalConnectException](writer.write(Vector(good, bad)))
+    reporter.received shouldBe empty
+  }
+
+  // ---- Batch-wide HTTP 400 faults are never diverted, even when the whole response is 400 ----
+  // Regression: isDivertible previously treated every non-retriable 400 as per-document, so an
+  // all-400 response of a batch-wide fault (closed index / missing pipeline) slipped past the
+  // handleBulkResult backstop (which only trips on a mixed-in non-400) and was fully diverted —
+  // silent data loss under drop, DLQ flooding under dlq.
+
+  test("dlq mode: an all-400 index_closed_exception batch diverts NOTHING and throws (batch-wide)") {
+    val reporter = new FakeReporter
+    val client   = new ScriptedBulkClient(Map("1" -> indexClosedError(), "2" -> indexClosedError()))
+    val writer = new JsonBulkWriter(
+      client,
+      settingsWith("INSERT INTO idx SELECT * FROM topic PK id", ItemErrorMode.Dlq),
+      dlqGate(reporter),
+    )
+
+    val thrown = intercept[FatalConnectException](
+      writer.write(Vector(record("topic", "k1", struct(1, "a")), record("topic", "k2", struct(2, "b"), offset = 1L))),
+    )
+    thrown.getMessage should include("index_closed_exception")
+    reporter.received shouldBe empty
+  }
+
+  test("drop mode: an all-400 index_closed_exception batch drops NOTHING and throws (no silent data loss)") {
+    val client = new ScriptedBulkClient(Map("1" -> indexClosedError(), "2" -> indexClosedError()))
+    val writer = new JsonBulkWriter(
+      client,
+      settingsWith("INSERT INTO idx SELECT * FROM topic PK id", ItemErrorMode.Drop),
+    )
+
+    val reported = intercept[FatalConnectException](
+      writer.write(Vector(record("topic", "k1", struct(1, "a")), record("topic", "k2", struct(2, "b"), offset = 1L))),
+    )
+    reported.getMessage should include("index_closed_exception")
+  }
+
+  test("drop mode: an all-400 missing-ingest-pipeline batch drops NOTHING and throws (batch-wide)") {
+    val client = new ScriptedBulkClient(Map("1" -> missingPipelineError(), "2" -> missingPipelineError()))
+    val writer = new JsonBulkWriter(
+      client,
+      settingsWith("INSERT INTO idx SELECT * FROM topic PK id", ItemErrorMode.Drop),
+    )
+
+    val thrown = intercept[FatalConnectException](
+      writer.write(Vector(record("topic", "k1", struct(1, "a")), record("topic", "k2", struct(2, "b"), offset = 1L))),
+    )
+    thrown.getMessage should include("pipeline with id")
+  }
+
+  test("dlq mode: a batch mixing a genuine 400 mapper error with a batch-wide 400 (closed index) diverts NOTHING") {
+    val reporter = new FakeReporter
+    val client   = new ScriptedBulkClient(Map("1" -> mapperError(), "2" -> indexClosedError()))
+    val writer = new JsonBulkWriter(
+      client,
+      settingsWith("INSERT INTO idx SELECT * FROM topic PK id", ItemErrorMode.Dlq),
+      dlqGate(reporter),
+    )
+
+    intercept[FatalConnectException](
+      writer.write(Vector(record("topic", "k1", struct(1, "a")), record("topic", "k2", struct(2, "b"), offset = 1L))),
+    )
     reporter.received shouldBe empty
   }
 

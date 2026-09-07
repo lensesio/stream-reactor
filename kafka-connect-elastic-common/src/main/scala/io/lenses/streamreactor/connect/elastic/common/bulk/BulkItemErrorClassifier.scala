@@ -82,12 +82,54 @@ object BulkItemErrorClassifier {
    *    without a connector release.
    *  - Excludes 403 (`cluster_block_exception`, `security_exception`) and 404
    *    (`index_not_found_exception`) — batch-wide, not per-document.
-   *  - Known gap: `index_closed_exception` is HTTP 400 but batch-wide. See
+   *  - Also excludes the HTTP 400 faults that are batch-wide despite the per-item status code
+   *    (see [[isBatchWide]]): a closed index and a missing ingest pipeline. Every document
+   *    routed to a closed index / through a missing pipeline fails identically, so diverting
+   *    them would discard perfectly-good records while the task reported itself healthy — the
+   *    exact silent-data-loss case the 403/404 exclusions guard against. The
    *    [[io.lenses.streamreactor.connect.elastic.common.writer.JsonBulkWriter.handleBulkResult]]
-   *    for the batch-level backstop.
+   *    backstop only trips when a *non*-divertible error is mixed in, so an all-400 response of
+   *    these faults must be caught here rather than there.
    */
   def isDivertible(error: BulkItemError): Boolean =
-    !isRetriable(error) && error.status == 400
+    !isRetriable(error) && error.status == 400 && !isBatchWide(error)
+
+  /**
+   * HTTP 400 error types that are batch-wide (caused by index/cluster state, not the content of
+   * any single document) and therefore must never be diverted:
+   *
+   *  - `index_closed_exception`: every write to a closed index fails; the fix is reopening the
+   *    index, not dropping records.
+   */
+  private val batchWide400Types: Set[String] = Set(
+    "index_closed_exception",
+  )
+
+  private val batchWide400TypesCompact: Set[String] = batchWide400Types.map(_.replace("_", ""))
+
+  /**
+   * Whether an HTTP 400 item error is really batch-wide. Detected two ways:
+   *
+   *  - by `errorType`, for types that are unambiguously batch-wide ([[batchWide400Types]]);
+   *  - by `reason`, for a missing ingest pipeline, whose `errorType` (`illegal_argument_exception`)
+   *    collides with genuine per-document rejections. Elasticsearch/OpenSearch report it as
+   *    "pipeline with id [x] does not exist", which is batch-wide because the pipeline is absent
+   *    for every document routed through it, not just this one.
+   *
+   * The reason check is a conservative fail-safe: at worst it pins an oddly-worded per-document
+   * rejection to `fail` (never data loss).
+   */
+  private def isBatchWide(error: BulkItemError): Boolean = {
+    val t = normalize(error.errorType)
+    batchWide400Types.contains(t) ||
+    batchWide400TypesCompact.contains(t.replace("_", "")) ||
+    reasonLooksBatchWide(error.reason)
+  }
+
+  private def reasonLooksBatchWide(reason: String): Boolean = {
+    val lower = normalize(reason)
+    lower.contains("pipeline with id") && lower.contains("does not exist")
+  }
 
   def formatItemErrors(itemErrors: Seq[BulkItemError]): String = {
     val shown = itemErrors.take(MaxErrorsInMessage)
