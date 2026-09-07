@@ -18,6 +18,7 @@ package io.lenses.streamreactor.connect.opensearch
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock._
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
+import io.lenses.streamreactor.common.errors.RetriableIntegrityException
 import io.lenses.streamreactor.connect.elastic.common.writer.JsonBulkWriter
 import io.lenses.streamreactor.connect.opensearch.config.OpenSearchConfig
 import io.lenses.streamreactor.connect.opensearch.config.OpenSearchConfigConstants._
@@ -38,7 +39,9 @@ import org.scalatest.matchers.should.Matchers
  *
  * Uses WireMock to inject transport-level failures:
  *  - RETRY policy: WireMock returns HTTP 503 → `RetriableException` propagates from the writer.
- *  - NOOP policy: Writer points at a closed port → exception is silently swallowed.
+ *  - NOOP policy: WireMock returns HTTP 503 → the transport failure is reclassified as a
+ *    `RetriableIntegrityException` (a `FatalConnectException`) and rethrown fail-fast rather than
+ *    silently swallowed, so offsets never advance past a batch that was never written.
  *  - THROW policy: WireMock returns HTTP 503 → `ConnectException` propagates.
  */
 class OpenSearchErrorPolicyIT extends AnyFunSuite with Matchers with BeforeAndAfterAll {
@@ -134,7 +137,7 @@ class OpenSearchErrorPolicyIT extends AnyFunSuite with Matchers with BeforeAndAf
     intercept[RetriableException](writer.write(Vector(sinkRecord("topic", "id-2"))))
   }
 
-  test("NOOP policy: transport error from WireMock 503 is silently swallowed — write returns without exception") {
+  test("NOOP policy: transport error from WireMock 503 is reclassified and rethrown fail-fast") {
     wireMock.resetAll()
     wireMock.stubFor(
       get(urlEqualTo("/")).willReturn(
@@ -148,7 +151,10 @@ class OpenSearchErrorPolicyIT extends AnyFunSuite with Matchers with BeforeAndAf
       ),
     )
 
+    // A whole-call transport failure is reclassified as RetriableIntegrityException, which is a
+    // FatalConnectException. NOOP must NOT swallow it: swallowing would advance offsets past a
+    // batch that was never written (silent data loss).
     val writer = makeWriter("localhost", wireMock.port(), "INSERT INTO idx SELECT * FROM topic PK id", "NOOP")
-    noException should be thrownBy writer.write(Vector(sinkRecord("topic", "id-3")))
+    intercept[RetriableIntegrityException](writer.write(Vector(sinkRecord("topic", "id-3"))))
   }
 }
