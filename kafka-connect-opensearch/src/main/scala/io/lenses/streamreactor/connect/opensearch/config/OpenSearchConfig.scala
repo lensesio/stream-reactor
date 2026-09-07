@@ -99,6 +99,14 @@ object OpenSearchConfig {
       Importance.HIGH,
       BULK_ITEM_ERRORS_DOC,
     )
+    .define(
+      BULK_ITEM_ERRORS_DLQ_TIMEOUT_MS_KEY,
+      Type.LONG,
+      BULK_ITEM_ERRORS_DLQ_TIMEOUT_MS_DEFAULT,
+      ConfigDef.Range.atLeast(1L),
+      Importance.LOW,
+      BULK_ITEM_ERRORS_DLQ_TIMEOUT_MS_DOC,
+    )
     // Connection pool tuning (REST path only)
     .define(MAX_CONNECTIONS_PER_ROUTE_KEY,
             Type.INT,

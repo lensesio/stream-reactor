@@ -67,9 +67,30 @@ running and reported itself healthy. These include:
 Status (not error type) is the primary check, so a renamed/new document-level error type stays
 divertible without a connector release. The last two above are HTTP 400 but nonetheless
 batch-wide, so they are excluded explicitly: `index_closed_exception` by error type, and the
-missing-pipeline case by its reason (its `illegal_argument_exception` type overlaps with genuine
-per-document rejections). Note these are excluded per item, so even a response where *every* item
-carries one of these batch-wide 400s fails the task rather than diverting the whole batch.
+missing-pipeline case by its reason, matched as a PREFIX after confirming the error type is
+`illegal_argument_exception` (a plain substring match is satisfiable by a crafted document, since
+a mapper error's `reason` embeds a preview of the rejected document verbatim). Note these are
+excluded per item, so even a response where *every* item carries one of these batch-wide 400s
+fails the task rather than diverting the whole batch.
+
+### Two more things that are never divertible, regardless of mode
+
+- **Structural violations the connector detects itself** before a request is ever sent — an
+  empty index/id, or an id over the cluster's 512-byte hard limit. These are reported as ordinary
+  `BulkItemError`s (HTTP 400, error type `connector_op_validation_exception`) so they go through
+  the same strict/tolerant machinery as a genuine cluster rejection, but they are systemic (every
+  record hitting the same KCQL/PK misconfiguration fails identically) rather than a one-off
+  cluster rejection, so `isDivertible` excludes them explicitly. They also always surface even
+  under `bulk.strict.item.errors=false` — unlike genuine cluster item errors, tolerant mode never
+  swallows them, because doing so would silently discard every record on the topic rather than
+  logging a rejected document at WARN.
+- **Writer-stage failures that are not a property of the individual record.** A failure before a
+  record ever becomes a bulk operation (PK extraction failing, an unsupported write mode, a
+  `CreateIndex` resolution failure) is almost always caused by a KCQL/schema/config problem
+  affecting every record on the topic, not by the content of the one record that happened to hit
+  it first. Only one such failure is genuinely per-record and therefore divertible: a tombstone
+  arriving under `behavior.on.null.values=FAIL` (whether a given record is a tombstone is a
+  property of that record alone). Everything else always fails the task, in every mode.
 
 ## "If a batch of 100 records fails, do all 100 get diverted?"
 
@@ -84,9 +105,10 @@ with a per-document HTTP 400 — never a whole batch wholesale. For a 100-record
   The whole batch is thrown and redelivered — nothing is diverted.
 - **3 rejected with HTTP 400, rest fine** (`drop` or `dlq`): **only those 3 are diverted**
   (dropped or DLQ'd), are removed from the batch, and the other 97 are written normally.
-- **3 rejected with 400 + some 429 (retriable) in the same response**: the 3 are diverted, and
-  the batch still throws for the 429 remainder → redelivered. On redelivery the same 3 are
-  diverted again (at-least-once; dedup is per-`put()`).
+- **3 rejected with 400 + some 429 (retriable) in the same response**: **0 are diverted.**
+  Diversion is deferred whenever a retriable error is present anywhere in the same response —
+  see "At-least-once semantics and mixed batches" below — so the full error set throws and the
+  batch is redelivered with nothing diverted on this attempt.
 
 The only way a large number of records is diverted is if the cluster genuinely rejected each of
 them individually with a 400 — the intended "poison record" case. A single infrastructure blip or
@@ -94,15 +116,38 @@ a batch-wide misconfiguration never floods a DLQ topic or discards a whole batch
 
 ## At-least-once semantics and mixed batches
 
-Diversion (both `drop` and `dlq`) is at-least-once. If a batch mixes a permanent (divertible)
-error with a retriable one, the permanent record(s) are diverted and the batch still fails for the
-retriable remainder, so the same permanent record(s) are diverted again on every redelivery
-attempt until the retriable remainder clears. This matches Kafka Connect's own DLQ semantics, and
-`drop` mirrors it for consistency even though it has no Connect-level DLQ machinery of its own.
+Diversion (both `drop` and `dlq`) is at-least-once, but scoped to a whole redelivered `put()`, not
+to a retriable sub-attempt within one. Concretely: **a bulk response mixing a divertible
+permanent error with a retriable one (e.g. a 400 alongside a 429) diverts nothing at all** — the
+full error set throws for the whole batch, exactly like `fail` mode, and the batch is redelivered.
+
+This is deliberate, not a missed case. The alternative — diverting the permanent subset
+immediately and throwing only for the retriable remainder — would mean the same permanent
+record(s) get diverted again on *every* redelivery attempt while the retriable condition
+persists: N redeliveries produce N DLQ reports (or N drop log lines) for the same record, an
+unbounded amplification bounded only by the connector's retry budget. Deferring means a mixed
+batch diverts **at most once** — on whichever attempt eventually comes back with only divertible
+errors (the retriable condition having cleared) — and in the pathological case where the
+retriable condition never clears, the task fails on retry-budget exhaustion having diverted
+nothing, which is the same outcome `fail` mode always had for that batch.
 
 The dedup that prevents double-diverting within one attempt is scoped to a single `put()` (a fresh
 tracker is created per `write()`), keyed by `(topic, partition, offset, target)`. It deliberately
-does **not** survive across a redelivered `put()`.
+does **not** survive across a redelivered `put()` — so at-least-once here means "at most once per
+distinct whole-`put()` redelivery", not "once per retriable sub-attempt".
+
+## `bulk.item.errors.dlq.timeout.ms`
+
+Bounds, per `dlq` report call, how long to wait for Kafka Connect's DLQ producer to acknowledge a
+diverted record before giving up and failing the batch instead (the batch is then redelivered).
+Default 30000 (30 seconds). Not registered on ES6 (`dlq` can never take effect there).
+
+The bound applies **once per group of records reported together** — e.g. all the permanent errors
+resolved from a single bulk response — not once per individual record: N records reported in the
+same call share one deadline rather than each getting the full timeout in sequence, so a single
+`dlq` report call cannot block for longer than this value regardless of how many records it
+covers. Keep it well below `max.poll.interval.ms`: a `bulk.item.errors=dlq` batch can still block
+for up to this long once per `put()`.
 
 ## Fan-out to multiple KCQL targets
 
@@ -110,7 +155,34 @@ A record that fans out to more than one KCQL target may be committed successfull
 diverted for another; anything consuming diverted records (the WARN logs for `drop`, or the DLQ
 topic for `dlq`) should expect to see records that were also partially written.
 
+This also affects the `connect.progress.enabled` counter: it counts by Kafka coordinates
+(`topic`/`partition`/`offset`), not by KCQL target, so a record diverted at even ONE of its
+targets is excluded from the delivered-record count entirely — even though it was genuinely
+written at every OTHER target it fanned out to. The counter is a coarse liveness signal, not a
+per-target delivery audit; use the WARN logs (`drop`) or the DLQ topic (`dlq`) for that.
+
 ## Elasticsearch 6
 
 ES6 does not register `bulk.item.errors` and its bulk client never populates
 `BulkItemError.position`, so the mode stays pinned to `fail`.
+
+## Upgrade note: `error.policy=NOOP` behaviour change
+
+This feature closes a pre-existing silent-data-loss path shared by all three connectors
+(ES6, ES7, OpenSearch), which is a behavioural change independent of whether you use
+`bulk.item.errors` at all:
+
+- **Before:** under `error.policy=NOOP`, a bulk transport failure (connection reset, timeout —
+  no per-item response received at all) or a permanent per-item bulk error (under
+  `bulk.strict.item.errors=true`) was logged at WARN and swallowed. The task kept running and
+  Kafka offsets advanced past records whose write outcome was unknown or known-failed.
+- **After:** both now fail the task (transport failures via `RetriableIntegrityException`,
+  permanent item errors via `FatalConnectException`) instead of being swallowed. `error.policy
+  =RETRY` still retries a transport failure while budget remains; `error.policy=THROW` was
+  already unaffected.
+
+If you run `error.policy=NOOP` today specifically to keep the task alive through occasional
+poison records, use `bulk.item.errors=drop` (no DLQ needed) or `bulk.item.errors=dlq` instead —
+those are scoped to genuine per-document rejections only, unlike NOOP's previous blanket
+swallow-everything behaviour, which also silently ate transport-level failures that had nothing
+to do with any specific record.

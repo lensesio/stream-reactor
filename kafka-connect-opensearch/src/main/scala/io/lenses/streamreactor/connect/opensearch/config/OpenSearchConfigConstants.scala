@@ -124,6 +124,12 @@ object OpenSearchConfigConstants {
   val BULK_ITEM_ERRORS_DEFAULT =
     io.lenses.streamreactor.connect.elastic.common.config.ElasticCommonConfigConstants.BULK_ITEM_ERRORS_DEFAULT
 
+  val BULK_ITEM_ERRORS_DLQ_TIMEOUT_MS_KEY = s"$CONNECTOR_PREFIX.$BULK_ITEM_ERRORS_DLQ_TIMEOUT_MS_SUFFIX"
+  val BULK_ITEM_ERRORS_DLQ_TIMEOUT_MS_DOC =
+    io.lenses.streamreactor.connect.elastic.common.config.ElasticCommonConfigConstants.BULK_ITEM_ERRORS_DLQ_TIMEOUT_MS_DOC
+  val BULK_ITEM_ERRORS_DLQ_TIMEOUT_MS_DEFAULT =
+    io.lenses.streamreactor.connect.elastic.common.config.ElasticCommonConfigConstants.BULK_ITEM_ERRORS_DLQ_TIMEOUT_MS_DEFAULT
+
   // Connection pool tuning (REST / HC5 path only; SigV4 path uses AWS SDK defaults)
   val MAX_CONNECTIONS_PER_ROUTE_KEY = s"$CONNECTOR_PREFIX.max.connections.per.route"
   val MAX_CONNECTIONS_PER_ROUTE_DOC =

@@ -84,8 +84,9 @@ object OpenSearchSettings extends StrictLogging {
     val username = config.getString(CLIENT_HTTP_BASIC_AUTH_USERNAME)
     val password = config.getPassword(CLIENT_HTTP_BASIC_AUTH_PASSWORD).value()
 
-    val strictItemErrors = config.getBoolean(BULK_STRICT_ITEM_ERRORS_KEY)
-    val itemErrorMode    = ItemErrorMode.fromString(config.getString(BULK_ITEM_ERRORS_KEY))
+    val strictItemErrors   = config.getBoolean(BULK_STRICT_ITEM_ERRORS_KEY)
+    val itemErrorMode      = ItemErrorMode.fromString(config.getString(BULK_ITEM_ERRORS_KEY))
+    val dlqReportTimeoutMs = config.getLong(BULK_ITEM_ERRORS_DLQ_TIMEOUT_MS_KEY).longValue()
 
     // --- Validations ---
 
@@ -269,6 +270,7 @@ object OpenSearchSettings extends StrictLogging {
       storesInfo            = storesInfo,
       strictItemErrors      = strictItemErrors,
       itemErrorMode         = itemErrorMode,
+      dlqReportTimeoutMs    = dlqReportTimeoutMs,
     )
 
     val jwtTokenSource =

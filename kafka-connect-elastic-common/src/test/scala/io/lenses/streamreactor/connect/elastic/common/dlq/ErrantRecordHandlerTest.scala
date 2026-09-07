@@ -101,7 +101,6 @@ class ErrantRecordHandlerTest extends AnyFunSuite with Matchers with LoneElement
   private def gateWith(reporter: ErrantRecordReporter): DlqGate =
     DlqGate(Some(reporter), dlqTopicConfigured = true)
 
-
   test("divertPermanent(Dlq) maps a permanent error to its record by position and reports it") {
     val reporter = new FakeReporter()
     val handler  = new ErrantRecordHandler(gateWith(reporter))
@@ -145,7 +144,6 @@ class ErrantRecordHandlerTest extends AnyFunSuite with Matchers with LoneElement
     handler.divertPermanent(Seq(error), ops, ItemErrorMode.Fail, mutable.Map.empty) shouldBe DivertOutcome.NotDiverted
     reporter.received shouldBe empty
   }
-
 
   test("divertPermanent(Dlq) refuses the whole call when a position is out of range") {
     val reporter = new FakeReporter()
@@ -237,7 +235,6 @@ class ErrantRecordHandlerTest extends AnyFunSuite with Matchers with LoneElement
     reporter.received shouldBe empty
   }
 
-
   test("divertPermanent(Dlq) does not re-report a key already present in the tracker") {
     val reporter = new FakeReporter()
     val handler  = new ErrantRecordHandler(gateWith(reporter))
@@ -252,7 +249,6 @@ class ErrantRecordHandlerTest extends AnyFunSuite with Matchers with LoneElement
     reporter.received shouldBe empty // already reported earlier this put() — not sent again
   }
 
-
   test("divertPermanent(Dlq) catches a throw from report() and returns NotDiverted") {
     val reporter = new FakeReporter(ReporterBehaviour.ThrowImmediately)
     val handler  = new ErrantRecordHandler(gateWith(reporter))
@@ -261,7 +257,6 @@ class ErrantRecordHandlerTest extends AnyFunSuite with Matchers with LoneElement
 
     handler.divertPermanent(Seq(error), ops, ItemErrorMode.Dlq, mutable.Map.empty) shouldBe DivertOutcome.NotDiverted
   }
-
 
   test("divertPermanent(Dlq) returns NotDiverted when the DLQ future resolves exceptionally") {
     val reporter = new FakeReporter(ReporterBehaviour.FutureFails)
@@ -295,9 +290,14 @@ class ErrantRecordHandlerTest extends AnyFunSuite with Matchers with LoneElement
     "divertPermanent(Dlq) returns NotDiverted and restores the interrupt flag when interrupted while awaiting the DLQ future",
   ) {
     val reporter = new FakeReporter(ReporterBehaviour.NeverCompletes)
-    val handler  = new ErrantRecordHandler(gateWith(reporter), reportTimeoutMs = 10000L)
-    val ops      = IndexedSeq(op() -> record())
-    val error    = BulkItemError(index = "idx", id = "1", reason = "boom", position = 0)
+    // A short bound, not the production 30s default: the interrupt is set BEFORE the blocking
+    // call, so `Future.get` normally throws InterruptedException immediately without blocking
+    // at all. This timeout only matters as a worst-case cap if awaitAck ever regresses and stops
+    // honouring the interrupt — capped low so that regression fails fast instead of stalling
+    // the suite for the old 10s bound.
+    val handler = new ErrantRecordHandler(gateWith(reporter), reportTimeoutMs = 2000L)
+    val ops     = IndexedSeq(op() -> record())
+    val error   = BulkItemError(index = "idx", id = "1", reason = "boom", position = 0)
 
     Thread.currentThread().interrupt()
     try {
@@ -310,6 +310,104 @@ class ErrantRecordHandlerTest extends AnyFunSuite with Matchers with LoneElement
     }
   }
 
+  /** Behaves per-call according to `behaviourFor(callIndex)` (0-based, in `report()` call order). */
+  class SelectiveReporter(behaviourFor: Int => ReporterBehaviour) extends ErrantRecordReporter {
+    val received: mutable.Buffer[(SinkRecord, Throwable)] = mutable.Buffer.empty
+    private var callCount = 0
+
+    override def report(record: SinkRecord, error: Throwable): java.util.concurrent.Future[Void] = {
+      val idx = callCount
+      callCount += 1
+      behaviourFor(idx) match {
+        case ReporterBehaviour.ThrowImmediately =>
+          throw new RuntimeException("Tolerance exceeded in error handler")
+        case other =>
+          received += (record -> error)
+          other match {
+            case ReporterBehaviour.Succeed => CompletableFuture.completedFuture[Void](null)
+            case ReporterBehaviour.FutureFails =>
+              val f = new CompletableFuture[Void]()
+              f.completeExceptionally(new RuntimeException("producer send failed"))
+              f
+            case ReporterBehaviour.NeverCompletes => new CompletableFuture[Void]()
+            case ReporterBehaviour.Cancelled =>
+              val f = new CompletableFuture[Void]()
+              f.cancel(true)
+              f
+            case ReporterBehaviour.ThrowImmediately => throw new IllegalStateException("unreachable")
+          }
+      }
+    }
+  }
+
+  test(
+    "divertPermanent(Dlq) with N records: one future timing out makes the WHOLE call NotDiverted, even though the others acked",
+  ) {
+    // report() is issued for every record (index 2's future just never completes) — a PARTIAL
+    // ACK, not a partial issue. futures.forall short-circuits AWAITING at the first failure, but
+    // by then all three report() calls already happened.
+    val reporter = new SelectiveReporter(idx => if (idx == 2) ReporterBehaviour.NeverCompletes else ReporterBehaviour.Succeed)
+    val handler  = new ErrantRecordHandler(gateWith(reporter), reportTimeoutMs = 100L)
+    val r0       = record(offset = 0L)
+    val r1       = record(offset = 1L)
+    val r2       = record(offset = 2L)
+    val ops      = IndexedSeq(op(id = "0") -> r0, op(id = "1") -> r1, op(id = "2") -> r2)
+    val errors = Seq(
+      BulkItemError(index = "idx", id = "0", reason = "boom", position = 0),
+      BulkItemError(index = "idx", id = "1", reason = "boom", position = 1),
+      BulkItemError(index = "idx", id = "2", reason = "boom", position = 2),
+    )
+    val tracked = mutable.Map.empty[DlqKey, SinkRecord]
+
+    handler.divertPermanent(errors, ops, ItemErrorMode.Dlq, tracked) shouldBe DivertOutcome.NotDiverted
+
+    reporter.received.map(_._1) should contain theSameElementsAs Seq(r0, r1, r2)
+    // Nothing is tracked as diverted — a partial ack must not partially advance offsets. The
+    // batch throws and JsonBulkWriter's redelivery (a fresh tracker per put()) re-attempts all
+    // three; r0/r1 landing on the DLQ twice is a harmless duplicate, unlike losing r2.
+    tracked shouldBe empty
+  }
+
+  /** Throws on the `throwAtIndex`-th `report()` call (0-based); every earlier call succeeds normally. */
+  class ThrowsOnNthCallReporter(throwAtIndex: Int) extends ErrantRecordReporter {
+    val received: mutable.Buffer[(SinkRecord, Throwable)] = mutable.Buffer.empty
+    private var callCount = 0
+
+    override def report(record: SinkRecord, error: Throwable): java.util.concurrent.Future[Void] = {
+      val idx = callCount
+      callCount += 1
+      if (idx == throwAtIndex) throw new RuntimeException("Tolerance exceeded in error handler")
+      received += (record -> error)
+      CompletableFuture.completedFuture[Void](null)
+    }
+  }
+
+  test(
+    "divertPermanent(Dlq) with N records: report() throwing on the SECOND call aborts issuing the rest and returns NotDiverted",
+  ) {
+    val reporter = new ThrowsOnNthCallReporter(throwAtIndex = 1) // throws on the 2nd call (0-based)
+    val handler  = new ErrantRecordHandler(gateWith(reporter))
+    val r0       = record(offset = 0L)
+    val r1       = record(offset = 1L)
+    val r2       = record(offset = 2L)
+    val ops      = IndexedSeq(op(id = "0") -> r0, op(id = "1") -> r1, op(id = "2") -> r2)
+    val errors = Seq(
+      BulkItemError(index = "idx", id = "0", reason = "boom", position = 0),
+      BulkItemError(index = "idx", id = "1", reason = "boom", position = 1),
+      BulkItemError(index = "idx", id = "2", reason = "boom", position = 2),
+    )
+    val tracked = mutable.Map.empty[DlqKey, SinkRecord]
+
+    handler.divertPermanent(errors, ops, ItemErrorMode.Dlq, tracked) shouldBe DivertOutcome.NotDiverted
+
+    // r0's report() call succeeded — the record may already be durably on the DLQ before the
+    // throw on r1 (see ErrantRecordHandler.reportAndAwait's own scaladoc on this). r2's report()
+    // is never even attempted: the underlying `toSend.map` aborts at the exception on r1.
+    reporter.received.map(_._1) shouldBe Seq(r0)
+    // Not tracked despite r0 (probably) having reached the DLQ — the batch throws and is
+    // redelivered, so r0 is diverted again on retry: a harmless duplicate, never a loss.
+    tracked shouldBe empty
+  }
 
   test("divertOne(Dlq) reports a single writer-stage failure and tracks it") {
     val reporter = new FakeReporter()
@@ -441,8 +539,10 @@ class ErrantRecordHandlerTest extends AnyFunSuite with Matchers with LoneElement
   }
 
   test("divertPermanent(Drop) emits ONE summary WARN per batch, not one per record") {
-    val handler       = new ErrantRecordHandler(DlqGate.disabled)
-    val (errors, ops) = dropScenario(250)
+    val handler = new ErrantRecordHandler(DlqGate.disabled)
+    // 12 is enough to prove "one summary line, not N" — it only needs to exceed 1; it doesn't
+    // need to be anywhere near a realistic batch size to make that point.
+    val (errors, ops) = dropScenario(12)
     val tracked       = mutable.Map.empty[DlqKey, SinkRecord]
 
     val warnings = captureLogs(LogbackLevel.WARN) {
@@ -450,8 +550,8 @@ class ErrantRecordHandlerTest extends AnyFunSuite with Matchers with LoneElement
     }
 
     warnings should have size 1
-    warnings.head should include("discarding 250 record(s)")
-    tracked should have size 250
+    warnings.head should include("discarding 12 record(s)")
+    tracked should have size 12
   }
 
   test("divertPermanent(Drop) caps the WARN detail and reports the remaining count") {

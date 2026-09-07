@@ -17,6 +17,7 @@ package io.lenses.streamreactor.connect.opensearch
 
 import com.fasterxml.jackson.databind.node.JsonNodeFactory
 import io.lenses.streamreactor.connect.elastic.common.bulk.BulkItemError
+import io.lenses.streamreactor.connect.elastic.common.bulk.BulkItemErrorClassifier
 import io.lenses.streamreactor.connect.elastic.common.bulk.BulkOp
 import io.lenses.streamreactor.connect.elastic.common.bulk.BulkResult
 import io.lenses.streamreactor.connect.elastic.common.bulk.DeleteOp
@@ -222,8 +223,6 @@ class KOpenSearchClientTest extends AnyFunSuite with Matchers {
     result.get.itemErrors shouldBe empty
   }
 
-  // ---- DLQ position mapping (lensesio-dev/stream-reactor#414) ------------------------
-  //
   // opensearch-java's BulkResponseItem has no ordinal field — position is purely the item's
   // index within response.items(), zipped BEFORE filtering to failures. It is only trusted
   // when response.items().size() matches the request op count.
@@ -387,11 +386,14 @@ class KOpenSearchClientTest extends AnyFunSuite with Matchers {
     )
   }
 
-  // A4: empty-id guard — now a per-item BulkItemError (HTTP 400, illegal_argument_exception)
-  // rather than a thrown IllegalArgumentException, so it is routed through the same
-  // strict/tolerant and DLQ machinery as every other per-item bulk error (see
-  // KOpenSearchClient.validateOp) instead of being misclassified as a retriable transport
-  // failure by JsonBulkWriter.handleTransportFailure.
+  // A4: empty-id guard — a per-item BulkItemError (HTTP 400,
+  // BulkItemErrorClassifier.ConnectorValidationErrorType) rather than a thrown
+  // IllegalArgumentException, so it is routed through the same strict/tolerant machinery as
+  // every other per-item bulk error (see KOpenSearchClient.validateOp) instead of being
+  // misclassified as a retriable transport failure by JsonBulkWriter.handleTransportFailure.
+  // Deliberately NOT "illegal_argument_exception": that type is what the CLUSTER reports for a
+  // genuine per-document rejection, and per-document rejections ARE divertible — a connector-
+  // synthesized validation failure must never be (see BulkItemErrorClassifier.isDivertible).
   test("A4: bulk with empty id returns a permanent (400) item error instead of throwing") {
     val client  = makeClient(makeInfoResponse("opensearch", "2.13.0"), makeBulkResponse(false))
     val kClient = new KOpenSearchClient(client, settings())
@@ -401,7 +403,8 @@ class KOpenSearchClientTest extends AnyFunSuite with Matchers {
     result.get.errors shouldBe true
     result.get.itemErrors should have size 1
     result.get.itemErrors.head.status shouldBe 400
-    result.get.itemErrors.head.errorType shouldBe "illegal_argument_exception"
+    result.get.itemErrors.head.errorType shouldBe BulkItemErrorClassifier.ConnectorValidationErrorType
+    BulkItemErrorClassifier.isDivertible(result.get.itemErrors.head) shouldBe false
     result.get.itemErrors.head.position shouldBe 0
     result.get.itemErrors.head.reason should include("id must be non-empty")
     // Nothing was actually sent to the cluster — every op failed local validation.
@@ -418,7 +421,7 @@ class KOpenSearchClientTest extends AnyFunSuite with Matchers {
     result.get.errors shouldBe true
     result.get.itemErrors should have size 1
     result.get.itemErrors.head.status shouldBe 400
-    result.get.itemErrors.head.errorType shouldBe "illegal_argument_exception"
+    result.get.itemErrors.head.errorType shouldBe BulkItemErrorClassifier.ConnectorValidationErrorType
     result.get.itemErrors.head.reason should include("index must be non-empty")
   }
 
@@ -433,8 +436,22 @@ class KOpenSearchClientTest extends AnyFunSuite with Matchers {
     result.get.errors shouldBe true
     result.get.itemErrors should have size 1
     result.get.itemErrors.head.status shouldBe 400
-    result.get.itemErrors.head.errorType shouldBe "illegal_argument_exception"
+    result.get.itemErrors.head.errorType shouldBe BulkItemErrorClassifier.ConnectorValidationErrorType
     result.get.itemErrors.head.reason should include("512-byte")
+  }
+
+  // A validation error must always surface, even in tolerant mode: it's never divertible and,
+  // pre-diversion, this exact input was an unconditional throw — bulk.strict.item.errors=false
+  // silently discarding it would be a NEW, PR-introduced data-loss path with no opt-out.
+  test("A4: a validation failure surfaces even under bulk.strict.item.errors=false (tolerant mode)") {
+    val client  = makeClient(makeInfoResponse("opensearch", "2.13.0"), makeBulkResponse(false))
+    val kClient = new KOpenSearchClient(client, settings(BULK_STRICT_ITEM_ERRORS_KEY -> "false"))
+    val result  = kClient.bulk(Seq(InsertOp("idx", "", simpleDoc, None, None)))
+
+    result.isSuccess shouldBe true
+    result.get.errors shouldBe true
+    result.get.itemErrors should have size 1
+    result.get.itemErrors.head.errorType shouldBe BulkItemErrorClassifier.ConnectorValidationErrorType
   }
 
   // A4: mixed batch — the valid op is still sent and still succeeds; only the invalid op is
@@ -463,7 +480,7 @@ class KOpenSearchClientTest extends AnyFunSuite with Matchers {
     result.get.errors shouldBe true
     result.get.itemErrors should have size 1
     result.get.itemErrors.head.position shouldBe 0
-    result.get.itemErrors.head.errorType shouldBe "illegal_argument_exception"
+    result.get.itemErrors.head.errorType shouldBe BulkItemErrorClassifier.ConnectorValidationErrorType
 
     // Only the valid op was actually sent to the cluster.
     val captor = ArgumentCaptor.forClass(classOf[BulkRequest])

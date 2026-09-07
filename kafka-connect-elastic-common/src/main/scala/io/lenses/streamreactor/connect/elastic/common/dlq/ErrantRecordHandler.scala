@@ -44,9 +44,12 @@ import scala.util.control.NonFatal
  *    response, so `op.index` (alias) never equals `error.index` (concrete) even when the
  *    mapping is correct. `id` alone corroborates ordering; `DlqKey.forOp` keys on the op's
  *    (KCQL-resolved) index.
- *  - `dlq`: awaits every `report()` future under `reportTimeoutMs` before treating a batch as
- *    diverted. `WorkerErrantRecordReporter.maybeThrowAsyncError()` only throws outside
- *    tolerance limits, so it gives no signal under `errors.tolerance=all`.
+ *  - `dlq`: awaits every `report()` future issued by ONE [[divertPermanent]]/[[divertOne]] call
+ *    against a SINGLE shared deadline (`reportTimeoutMs` from the start of that call), not
+ *    `reportTimeoutMs` restarted per future — otherwise N records reported together could block
+ *    for N * `reportTimeoutMs` before the batch is failed. `WorkerErrantRecordReporter
+ *    .maybeThrowAsyncError()` only throws outside tolerance limits, so it gives no signal under
+ *    `errors.tolerance=all`.
  *  - `dlq`: catches throws from `report()` itself. Under `errors.tolerance=none`,
  *    `RetryWithToleranceOperator.executeFailed` reports, then throws
  *    (`ConnectException("Tolerance exceeded in error handler", ...)`). Caught here and surfaced
@@ -243,7 +246,14 @@ class ErrantRecordHandler(
       issued match {
         case None => DivertOutcome.NotDiverted
         case Some(futures) =>
-          val allAcknowledged = futures.forall { case (_, _, future) => awaitAck(future) }
+          // ONE deadline for this whole call, computed once — NOT `reportTimeoutMs` restarted
+          // for each future in `futures`. Sequentially awaiting N futures, each given the full
+          // `reportTimeoutMs`, would let a single call block for up to N * reportTimeoutMs
+          // (e.g. a batch-size-4000 drop-mode... no, dlq-mode response with many divertible
+          // items in one group), risking max.poll.interval.ms. A shared deadline instead bounds
+          // the whole call at reportTimeoutMs regardless of how many records are in `toSend`.
+          val deadlineNanos   = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(reportTimeoutMs)
+          val allAcknowledged = futures.forall { case (_, _, future) => awaitAck(future, deadlineNanos) }
           if (allAcknowledged) {
             futures.foreach { case (key, record, _) => reportedThisPut.put(key, record) }
             DivertOutcome.Diverted
@@ -253,24 +263,37 @@ class ErrantRecordHandler(
       }
     }
 
-  private def awaitAck(future: JFuture[Void]): Boolean =
-    try {
-      future.get(reportTimeoutMs, TimeUnit.MILLISECONDS)
-      true
-    } catch {
-      case _: TimeoutException =>
-        logger.error(s"Timed out after ${reportTimeoutMs}ms waiting for a DLQ write to be acknowledged.")
-        false
-      case e: ExecutionException =>
-        logger.error(s"DLQ write failed: ${Option(e.getCause).map(_.getMessage).getOrElse(e.getMessage)}", e.getCause)
-        false
-      case e: CancellationException =>
-        // Not a subtype of ExecutionException. Treated as unacknowledged.
-        logger.error("DLQ write future was cancelled before it could be acknowledged.", e)
-        false
-      case e: InterruptedException =>
-        Thread.currentThread().interrupt()
-        logger.error("Interrupted while waiting for a DLQ write to be acknowledged.", e)
-        false
+  private def awaitAck(future: JFuture[Void], deadlineNanos: Long): Boolean = {
+    val remainingMs = TimeUnit.NANOSECONDS.toMillis(deadlineNanos - System.nanoTime())
+    if (remainingMs <= 0) {
+      // The shared deadline was already exhausted by earlier futures in this same call.
+      logger.error(
+        s"Timed out after ${reportTimeoutMs}ms (shared across this report call) waiting for a DLQ write to be acknowledged.",
+      )
+      false
+    } else {
+      try {
+        future.get(remainingMs, TimeUnit.MILLISECONDS)
+        true
+      } catch {
+        case _: TimeoutException =>
+          logger.error(s"Timed out after ${reportTimeoutMs}ms waiting for a DLQ write to be acknowledged.")
+          false
+        case e: ExecutionException =>
+          logger.error(
+            s"DLQ write failed: ${Option(e.getCause).map(_.getMessage).getOrElse(e.getMessage)}",
+            e.getCause,
+          )
+          false
+        case e: CancellationException =>
+          // Not a subtype of ExecutionException. Treated as unacknowledged.
+          logger.error("DLQ write future was cancelled before it could be acknowledged.", e)
+          false
+        case e: InterruptedException =>
+          Thread.currentThread().interrupt()
+          logger.error("Interrupted while waiting for a DLQ write to be acknowledged.", e)
+          false
+      }
     }
+  }
 }

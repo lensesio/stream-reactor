@@ -38,6 +38,8 @@ object ElasticSettings {
     val strictItemErrors      = config.getBoolean(ElasticConfigConstants.BULK_STRICT_ITEM_ERRORS_KEY)
     val itemErrorMode =
       ItemErrorMode.fromString(config.getString(ElasticConfigConstants.BULK_ITEM_ERRORS_KEY))
+    val dlqReportTimeoutMs =
+      config.getLong(ElasticConfigConstants.BULK_ITEM_ERRORS_DLQ_TIMEOUT_MS_KEY).longValue()
 
     ElasticCommonSettings(
       kcqls                 = kcql,
@@ -51,6 +53,7 @@ object ElasticSettings {
       storesInfo            = unpackOrThrow(StoresInfo.fromConfig(config)),
       strictItemErrors      = strictItemErrors,
       itemErrorMode         = itemErrorMode,
+      dlqReportTimeoutMs    = dlqReportTimeoutMs,
     )
   }
 }

@@ -15,7 +15,6 @@
  */
 package io.lenses.streamreactor.connect.opensearch
 
-import io.lenses.streamreactor.connect.elastic.common.config.ItemErrorMode
 import io.lenses.streamreactor.connect.opensearch.config.OpenSearchConfig
 import io.lenses.streamreactor.connect.opensearch.config.OpenSearchConfigConstants._
 import io.lenses.streamreactor.connect.opensearch.config.OpenSearchSettings
@@ -45,13 +44,13 @@ import org.scalatest.matchers.should.Matchers
  * 5. `write.timeout` is milliseconds on ES6, ES7 and OpenSearch (default 300000 = 5 minutes).
  *    ES6/ES7 additionally reject 1..120 as likely pre-migration seconds; OpenSearch does not.
  *
- * === Confirmed parity (not a difference) ===
- *
- * 6. `bulk.item.errors` (per-record drop/DLQ diversion for permanent bulk item errors,
- *    lensesio-dev/stream-reactor#414) has the same suffix, same default (`fail`), and the same
- *    [[ItemErrorMode]] semantics on OpenSearch as on ES7. Unlike ES6 — which never populates
- *    `BulkItemError.position` and so cannot support this feature — OpenSearch and ES7 are
- *    symmetric here.
+ * `bulk.item.errors` resolution (fail/drop/dlq -> [[ItemErrorMode]]) is intentionally NOT
+ * covered here: this module doesn't depend on kafka-connect-elastic7, so there is no way for a
+ * test in this file to actually exercise ES7's resolution and compare it against OpenSearch's —
+ * doing so would just be two independent assertions with "matching ES7" in the test name and
+ * nothing enforcing that they stay in sync. See `OpenSearchConfigTest` for OpenSearch's own
+ * `bulk.item.errors` resolution coverage, and `ElasticConfigTest` (kafka-connect-elastic7) for
+ * ES7's.
  */
 class OpenSearchParityContractTest extends AnyFunSuite with Matchers {
 
@@ -127,19 +126,5 @@ class OpenSearchParityContractTest extends AnyFunSuite with Matchers {
   test("PARITY-5b: write.timeout 1..120 is allowed on OpenSearch (no ES6/ES7 seconds trap)") {
     settings(WRITE_TIMEOUT -> "60").common.writeTimeout shouldBe 60
     settings(WRITE_TIMEOUT -> "120").common.writeTimeout shouldBe 120
-  }
-
-  // --- 6. bulk.item.errors: confirmed parity with ES7 ---
-
-  test("PARITY-6: bulk.item.errors defaults to fail, matching ES7") {
-    settings().common.itemErrorMode shouldBe ItemErrorMode.Fail
-  }
-
-  test("PARITY-6b: bulk.item.errors=drop resolves to ItemErrorMode.Drop, matching ES7") {
-    settings(BULK_ITEM_ERRORS_KEY -> "drop").common.itemErrorMode shouldBe ItemErrorMode.Drop
-  }
-
-  test("PARITY-6c: bulk.item.errors=dlq resolves to ItemErrorMode.Dlq, matching ES7") {
-    settings(BULK_ITEM_ERRORS_KEY -> "dlq").common.itemErrorMode shouldBe ItemErrorMode.Dlq
   }
 }

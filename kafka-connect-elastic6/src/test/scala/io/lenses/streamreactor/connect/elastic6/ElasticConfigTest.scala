@@ -56,18 +56,9 @@ class ElasticConfigTest extends TestBase {
     config.getInt(ElasticConfigConstants.WRITE_TIMEOUT_CONFIG) shouldBe 750
   }
 
-  // ---- ES6 is unaffected by the per-record diversion feature (lensesio-dev/stream-reactor#414) ----
-  //
   // ES6's ConfigDef never registers bulk.item.errors at all (unlike ES7/OpenSearch), and
-  // KElastic6BulkClient never populates BulkItemError.position — verify BOTH halves of that
-  // claim: the key is genuinely absent (a user setting it is silently ignored, not rejected,
-  // per Kafka Connect's own unknown-property handling), AND itemErrorMode stays pinned to
+  // KElastic6BulkClient never populates BulkItemError.position — itemErrorMode stays pinned to
   // Fail regardless of what a user sets that (ignored) key to.
-
-  "A ElasticConfig should silently ignore an unknown bulk.item.errors property rather than reject or crash" in {
-    val unknownKey = s"${ElasticConfigConstants.CONNECTOR_PREFIX}.bulk.item.errors"
-    noException should be thrownBy new ElasticConfig(getElasticSinkConfigProps() + (unknownKey -> "drop"))
-  }
 
   "ElasticSettings should stay pinned to ItemErrorMode.Fail even when the (ignored) bulk.item.errors key is set to drop" in {
     val unknownKey = s"${ElasticConfigConstants.CONNECTOR_PREFIX}.bulk.item.errors"

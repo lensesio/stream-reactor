@@ -21,9 +21,9 @@ import io.lenses.streamreactor.common.util.AsciiArtPrinter.printAsciiHeader
 import io.lenses.streamreactor.common.utils.JarManifestProvided
 import io.lenses.streamreactor.common.utils.ProgressCounter
 import io.lenses.streamreactor.connect.elastic.common.config.ElasticCommonConfigConstants
-import io.lenses.streamreactor.connect.elastic.common.config.ElasticCommonSettings
 import io.lenses.streamreactor.connect.elastic.common.config.ItemErrorMode
 import io.lenses.streamreactor.connect.elastic.common.dlq.DlqGate
+import io.lenses.streamreactor.connect.elastic.common.dlq.RecordRef
 import io.lenses.streamreactor.connect.elastic.common.writer.JsonBulkWriter
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
@@ -61,6 +61,23 @@ abstract class AbstractElasticSinkTask extends SinkTask with StrictLogging with 
   protected def errorRetryIntervalKey: String
   protected def progressEnabledKey:    String
 
+  /**
+   * Full config key for `bulk.item.errors` (connector-prefixed, e.g.
+   * `connect.elastic.bulk.item.errors` / `connect.opensearch.bulk.item.errors`). ES6 has no
+   * registered key for this (its bulk client never populates `BulkItemError.position`, so the
+   * mode always stays [[ItemErrorMode.Fail]]) — return any string; an absent key in `confMap`
+   * resolves to the `fail` default either way, which matches ES6's actual pinned behaviour.
+   *
+   * Read directly from `confMap` here (not via a parsed `ElasticCommonSettings`) so
+   * [[validateItemErrorConfiguration]] can run, and its warnings can fire, BEFORE
+   * [[createWriter]] — which connects to the cluster and can throw before those warnings would
+   * otherwise ever be seen.
+   */
+  protected def itemErrorModeConfigKey: String
+
+  /** Full config key for `bulk.strict.item.errors` (connector-prefixed). See [[itemErrorModeConfigKey]]. */
+  protected def strictItemErrorsConfigKey: String
+
   override def start(props: util.Map[String, String]): Unit = {
     printAsciiHeader(manifest, asciiArtResource)
 
@@ -83,10 +100,22 @@ abstract class AbstractElasticSinkTask extends SinkTask with StrictLogging with 
           None
       }
     val dlqGate = DlqGate.from(reporter, confMap)
+    logger.info(
+      s"DlqGate resolved: reporter=${dlqGate.reporter.isDefined} " +
+        s"dlqTopicConfigured=${dlqGate.dlqTopicConfigured} enabled=${dlqGate.enabled}",
+    )
+
+    // Config-only: reads confMap/dlqGate alone, so it runs — and its WARN(s) are guaranteed to
+    // be seen — BEFORE createWriter, which connects to the cluster and can throw. Previously
+    // this ran after createWriter, so any misconfiguration warning went unseen whenever the
+    // cluster was unreachable at start().
+    validateItemErrorConfiguration(confMap, dlqGate)
 
     val w = createWriter(confMap, dlqGate)
-
-    validateItemErrorConfiguration(confMap, dlqGate, w.settings)
+    logger.info(
+      s"bulk.item.errors=${w.settings.itemErrorMode} resolved to effective mode " +
+        s"${w.effectiveItemErrorMode} (see WARN(s) above if these differ).",
+    )
 
     // Wire the retry interval into the context timeout when policy is RETRY
     w.settings.errorPolicy match {
@@ -102,13 +131,26 @@ abstract class AbstractElasticSinkTask extends SinkTask with StrictLogging with 
     writer         = Some(w)
   }
 
-  /** Warns at start() about drop/dlq misconfigurations, rather than at the first poison record. */
-  private def validateItemErrorConfiguration(
-    confMap:  Map[String, String],
-    dlqGate:  DlqGate,
-    settings: ElasticCommonSettings,
-  ): Unit =
-    settings.itemErrorMode match {
+  /**
+   * Warns at start() about drop/dlq misconfigurations, rather than at the first poison record.
+   *
+   * Reads `bulk.item.errors`/`bulk.strict.item.errors` directly from `confMap` via
+   * [[itemErrorModeConfigKey]]/[[strictItemErrorsConfigKey]] rather than from a parsed
+   * `ElasticCommonSettings`, specifically so this can run — and its warnings be guaranteed
+   * visible — before [[createWriter]], which connects to the cluster and can throw. Mirrors
+   * [[io.lenses.streamreactor.connect.elastic.common.config.ItemErrorMode.fromString]] /
+   * `ElasticCommonConfigConstants.BULK_ITEM_ERRORS_DEFAULT` / `BULK_STRICT_ITEM_ERRORS_DEFAULT`
+   * for the same defaulting behaviour a real `ConfigDef.parse` would apply.
+   */
+  private def validateItemErrorConfiguration(confMap: Map[String, String], dlqGate: DlqGate): Unit = {
+    val itemErrorMode = ItemErrorMode.fromString(
+      confMap.getOrElse(itemErrorModeConfigKey, ElasticCommonConfigConstants.BULK_ITEM_ERRORS_DEFAULT),
+    )
+    val strictItemErrors = confMap.get(strictItemErrorsConfigKey)
+      .map(_.toBoolean)
+      .getOrElse(ElasticCommonConfigConstants.BULK_STRICT_ITEM_ERRORS_DEFAULT)
+
+    itemErrorMode match {
       case ItemErrorMode.Fail => // silent — identical to the pre-diversion behaviour
       case ItemErrorMode.Drop =>
         logger.warn(
@@ -117,7 +159,7 @@ abstract class AbstractElasticSinkTask extends SinkTask with StrictLogging with 
             "data-loss trade-off in exchange for keeping the task running; use bulk.item.errors=dlq " +
             "instead if you need a durable record of what was discarded.",
         )
-        if (!settings.strictItemErrors) {
+        if (!strictItemErrors) {
           logger.warn(
             "bulk.item.errors=drop is set together with bulk.strict.item.errors=false; in tolerant " +
               "mode per-item bulk failures are never surfaced to the writer, so nothing will ever be " +
@@ -131,7 +173,7 @@ abstract class AbstractElasticSinkTask extends SinkTask with StrictLogging with 
               "(or is empty); dlq cannot take effect and the connector will behave as if set to fail.",
           )
         }
-        if (!settings.strictItemErrors) {
+        if (!strictItemErrors) {
           logger.warn(
             "bulk.item.errors=dlq is set together with bulk.strict.item.errors=false; in tolerant " +
               "mode per-item bulk failures are never surfaced to the writer, so nothing will ever be " +
@@ -154,14 +196,19 @@ abstract class AbstractElasticSinkTask extends SinkTask with StrictLogging with 
           )
         }
     }
+  }
 
   override def put(records: util.Collection[SinkRecord]): Unit = {
     require(writer.nonEmpty, "Writer is not set!")
-    val seq        = records.asScala.toVector
-    val dlqRecords = writer.map(_.write(seq)).getOrElse(Set.empty[SinkRecord])
+    val seq = records.asScala.toVector
+    // Set[RecordRef] (topic/partition/offset), not Set[SinkRecord]: SinkRecord.hashCode/equals
+    // recurse through the whole payload Struct and Schema, and this set is checked once per
+    // record in the batch below, on every put(). See RecordRef.
+    val divertedRefs = writer.map(_.write(seq)).getOrElse(Set.empty[RecordRef])
 
     if (enableProgress) {
-      val delivered = if (dlqRecords.isEmpty) seq else seq.filterNot(dlqRecords.contains)
+      val delivered =
+        if (divertedRefs.isEmpty) seq else seq.filterNot(r => divertedRefs.contains(RecordRef.of(r)))
       progressCounter.update(delivered)
     }
   }

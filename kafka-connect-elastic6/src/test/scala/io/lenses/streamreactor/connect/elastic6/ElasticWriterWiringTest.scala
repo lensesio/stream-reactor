@@ -88,12 +88,7 @@ class ElasticWriterWiringTest extends AnyWordSpec with Matchers with MockitoSuga
       bulkClient.supportsDocumentType shouldBe true
     }
 
-    // Regression test for review finding M1: JsonBulkWriter.handleTransportFailure is SHARED
-    // across ES6/ES7/OpenSearch. Before this feature, a bare RuntimeException from a transport
-    // failure was swallowed by NoopErrorPolicy with only a WARN log; it is now reclassified as
-    // RetriableIntegrityException, which NOOP must fail fast on instead of swallowing — this
-    // applies to ES6 too, even though ES6 ships none of the DLQ feature itself.
-    "a transport-level failure under NOOP fails the task instead of being silently swallowed (ES6 is affected by this shared-writer change)" in {
+    "a transport-level failure under NOOP fails the task instead of being silently swallowed" in {
       val elasticClient = mock[KElasticClient]
       when(elasticClient.execute(any[BulkRequest])).thenReturn(Future.failed(new RuntimeException("connection reset")))
 

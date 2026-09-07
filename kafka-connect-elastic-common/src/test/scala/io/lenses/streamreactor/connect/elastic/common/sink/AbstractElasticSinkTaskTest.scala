@@ -20,9 +20,14 @@ import ch.qos.logback.classic.{ Level => LogbackLevel }
 import ch.qos.logback.classic.spi.ILoggingEvent
 import ch.qos.logback.core.read.ListAppender
 import io.lenses.streamreactor.common.errors.NoopErrorPolicy
+import io.lenses.streamreactor.connect.elastic.common.bulk.BulkItemError
+import io.lenses.streamreactor.connect.elastic.common.bulk.BulkOp
+import io.lenses.streamreactor.connect.elastic.common.bulk.BulkResult
+import io.lenses.streamreactor.connect.elastic.common.bulk.KBulkClient
 import io.lenses.streamreactor.connect.elastic.common.config.ElasticCommonSettings
 import io.lenses.streamreactor.connect.elastic.common.config.ItemErrorMode
 import io.lenses.streamreactor.connect.elastic.common.dlq.DlqGate
+import io.lenses.streamreactor.connect.elastic.common.dlq.RecordRef
 import io.lenses.streamreactor.connect.elastic.common.writer.JsonBulkWriter
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.connect.data.Schema
@@ -36,7 +41,11 @@ import org.scalatest.matchers.should.Matchers
 import org.slf4j.LoggerFactory
 
 import java.util.Collections.emptyMap
+import java.util.concurrent.CompletableFuture
+import scala.collection.mutable
 import scala.jdk.CollectionConverters._
+import scala.util.Success
+import scala.util.Try
 
 /**
  * Unit tests for the item-error-diversion behaviour of [[AbstractElasticSinkTask]]:
@@ -57,13 +66,18 @@ class AbstractElasticSinkTaskTest extends AnyFunSuite with Matchers with Mockito
    * Minimal concrete subclass that captures what would have been passed to createWriter,
    * without requiring any real Elasticsearch/OpenSearch config parsing.
    */
+  private val ItemErrorModeKey    = "test.bulk.item.errors"
+  private val StrictItemErrorsKey = "test.bulk.strict.item.errors"
+
   private class CapturingTask(writerStub: JsonBulkWriter) extends AbstractElasticSinkTask {
     var capturedConf: Map[String, String] = Map.empty
     var capturedGate: DlqGate             = DlqGate.disabled
 
-    override protected def asciiArtResource:      String = "/does-not-exist.txt"
-    override protected def errorRetryIntervalKey: String = RetryKey
-    override protected def progressEnabledKey:    String = ProgressKey
+    override protected def asciiArtResource:         String = "/does-not-exist.txt"
+    override protected def errorRetryIntervalKey:     String = RetryKey
+    override protected def progressEnabledKey:        String = ProgressKey
+    override protected def itemErrorModeConfigKey:    String = ItemErrorModeKey
+    override protected def strictItemErrorsConfigKey: String = StrictItemErrorsKey
 
     override protected def createWriter(conf: Map[String, String], dlqGate: DlqGate): JsonBulkWriter = {
       capturedConf = conf
@@ -92,7 +106,6 @@ class AbstractElasticSinkTaskTest extends AnyFunSuite with Matchers with Mockito
     when(ctx.errantRecordReporter()).thenReturn(reporter.orNull)
     ctx
   }
-
 
   test(
     "start() builds an enabled DlqGate and passes it to createWriter when a reporter and DLQ topic are both present",
@@ -135,7 +148,6 @@ class AbstractElasticSinkTaskTest extends AnyFunSuite with Matchers with Mockito
     task.capturedConf.get("some.key") shouldBe Some("some.value")
   }
 
-
   // StrictLogging resolves `logger` from the RUNTIME class (getClass), not the class that
   // declares the logging call — since CapturingTask is a subclass of AbstractElasticSinkTask,
   // its WARN logs are emitted under CapturingTask's logger name, not AbstractElasticSinkTask's.
@@ -168,142 +180,162 @@ class AbstractElasticSinkTaskTest extends AnyFunSuite with Matchers with Mockito
       itemErrorMode    = ItemErrorMode.Drop,
     )
 
-  test("warns when dlq is set but no DLQ topic is configured") {
-    val task = new CapturingTask(writerStub(dlqSettings()))
-    task.initialize(mockContext(reporter = Some(mock[ErrantRecordReporter])))
+  // NOTE: validateItemErrorConfiguration (the source of every warning tested below) now reads
+  // bulk.item.errors/bulk.strict.item.errors directly from confMap via itemErrorModeConfigKey /
+  // strictItemErrorsConfigKey — NOT from the writer's (already-parsed) settings — specifically
+  // so it can run, and its warnings be guaranteed visible, BEFORE createWriter (see
+  // AbstractElasticSinkTask.start). `configs` in each [[WarnCase]] below is therefore the thing
+  // that actually drives these warnings; `settings` is kept in sync with it purely so w.settings
+  // (used elsewhere in start(), e.g. errorPolicy) agrees with what confMap says.
 
-    val warnings = captureWarnings(task)(task.start(emptyMap[String, String]()))
-    warnings.exists(_.contains(DlqGate.DlqTopicNameConfigKey)) shouldBe true
-  }
+  /**
+   * One row of the startup-warning matrix. `expect`/`forbid` are substrings that MUST/must-NOT
+   * appear in some captured WARN line — every substring here is a stable identifier (a
+   * `DlqGate` config-key constant, or the fixed `key=value` token the production code emits),
+   * never free-form prose, so a copy-edit of the surrounding sentence can't break these.
+   */
+  private case class WarnCase(
+    name:     String,
+    settings: ElasticCommonSettings,
+    configs:  Map[String, String],
+    reporter: Boolean         = true,
+    expect:   Seq[String]     = Seq.empty,
+    forbid:   Seq[String]     = Seq.empty,
+  )
 
-  test("does not warn about a missing DLQ topic when one is actually configured") {
-    val task = new CapturingTask(writerStub(dlqSettings()))
-    task.initialize(
-      mockContext(
-        configs  = Map(DlqGate.DlqTopicNameConfigKey -> "my-dlq-topic", DlqGate.ErrorsToleranceConfigKey -> "all"),
-        reporter = Some(mock[ErrantRecordReporter]),
+  private val warnCases: Seq[WarnCase] = Seq(
+    WarnCase(
+      "warns when dlq is set but no DLQ topic is configured",
+      dlqSettings(),
+      Map(ItemErrorModeKey -> "dlq"),
+      expect = Seq(DlqGate.DlqTopicNameConfigKey),
+    ),
+    WarnCase(
+      "does not warn about a missing DLQ topic when one is actually configured",
+      dlqSettings(),
+      Map(ItemErrorModeKey -> "dlq", DlqGate.DlqTopicNameConfigKey -> "my-dlq-topic", DlqGate.ErrorsToleranceConfigKey -> "all"),
+      forbid = Seq(DlqGate.DlqTopicNameConfigKey),
+    ),
+    WarnCase(
+      "warns when dlq is set together with bulk.strict.item.errors=false",
+      dlqSettings(strictItemErrors = false),
+      Map(
+        ItemErrorModeKey                 -> "dlq",
+        StrictItemErrorsKey              -> "false",
+        DlqGate.DlqTopicNameConfigKey    -> "my-dlq-topic",
+        DlqGate.ErrorsToleranceConfigKey -> "all",
       ),
-    )
+      expect = Seq("bulk.strict.item.errors=false"),
+    ),
+    WarnCase(
+      "does not warn about bulk.strict.item.errors when it is true (the default)",
+      dlqSettings(strictItemErrors = true),
+      Map(ItemErrorModeKey -> "dlq", DlqGate.DlqTopicNameConfigKey -> "my-dlq-topic", DlqGate.ErrorsToleranceConfigKey -> "all"),
+      forbid = Seq("bulk.strict.item.errors=false"),
+    ),
+    WarnCase(
+      "warns when dlq is set and errors.tolerance is explicitly none",
+      dlqSettings(),
+      Map(ItemErrorModeKey -> "dlq", DlqGate.DlqTopicNameConfigKey -> "my-dlq-topic", DlqGate.ErrorsToleranceConfigKey -> "none"),
+      expect = Seq(DlqGate.ErrorsToleranceConfigKey),
+    ),
+    // Regression case for the fix: Kafka Connect's own default for errors.tolerance is "none" —
+    // an operator who sets the DLQ topic and dlq but simply OMITS errors.tolerance is on exactly
+    // the same footing as one who set it to "none" explicitly, and must get the same warning.
+    WarnCase(
+      "warns when dlq is set and errors.tolerance is left UNSET (defaults to none)",
+      dlqSettings(),
+      Map(ItemErrorModeKey -> "dlq", DlqGate.DlqTopicNameConfigKey -> "my-dlq-topic"),
+      expect = Seq(DlqGate.ErrorsToleranceConfigKey),
+    ),
+    WarnCase(
+      "does not warn about errors.tolerance when it is explicitly set to all",
+      dlqSettings(),
+      Map(ItemErrorModeKey -> "dlq", DlqGate.DlqTopicNameConfigKey -> "my-dlq-topic", DlqGate.ErrorsToleranceConfigKey -> "all"),
+      forbid = Seq(DlqGate.ErrorsToleranceConfigKey),
+    ),
+    WarnCase(
+      "emits no item-error warnings at all when itemErrorMode is Fail (the default)",
+      ElasticCommonSettings(kcqls = Seq.empty, errorPolicy = new NoopErrorPolicy),
+      Map.empty,
+      reporter = false,
+      forbid   = Seq(DlqGate.DlqTopicNameConfigKey, DlqGate.ErrorsToleranceConfigKey, "bulk.item.errors=drop", "bulk.strict.item.errors=false"),
+    ),
+    WarnCase(
+      "warns that drop discards records, unconditionally, as soon as drop is set",
+      dropSettings(),
+      Map(ItemErrorModeKey -> "drop"),
+      reporter = false,
+      expect   = Seq("bulk.item.errors=drop"),
+    ),
+    WarnCase(
+      "drop mode does not warn about the DLQ topic or errors.tolerance — neither applies to drop",
+      dropSettings(),
+      Map(ItemErrorModeKey -> "drop"),
+      reporter = false,
+      forbid   = Seq(DlqGate.DlqTopicNameConfigKey, DlqGate.ErrorsToleranceConfigKey),
+    ),
+    WarnCase(
+      "drop mode warns about bulk.strict.item.errors=false too — nothing would ever surface to drop",
+      dropSettings(strictItemErrors = false),
+      Map(ItemErrorModeKey -> "drop", StrictItemErrorsKey -> "false"),
+      reporter = false,
+      expect   = Seq("bulk.strict.item.errors=false"),
+    ),
+    WarnCase(
+      "drop mode does not warn about bulk.strict.item.errors when it is true (the default)",
+      dropSettings(strictItemErrors = true),
+      Map(ItemErrorModeKey -> "drop"),
+      reporter = false,
+      forbid   = Seq("bulk.strict.item.errors=false"),
+    ),
+  )
 
-    val warnings = captureWarnings(task)(task.start(emptyMap[String, String]()))
-    warnings.exists(_.contains(DlqGate.DlqTopicNameConfigKey)) shouldBe false
+  warnCases.foreach { c =>
+    test(c.name) {
+      val task = new CapturingTask(writerStub(c.settings))
+      task.initialize(mockContext(
+        configs  = c.configs,
+        reporter = if (c.reporter) Some(mock[ErrantRecordReporter]) else None,
+      ))
+
+      val warnings = captureWarnings(task)(task.start(emptyMap[String, String]()))
+      c.expect.foreach(s => withClue(s"expected a WARN containing '$s': ")(warnings.exists(_.contains(s)) shouldBe true))
+      c.forbid.foreach(s => withClue(s"did not expect any WARN containing '$s': ")(warnings.exists(_.contains(s)) shouldBe false))
+    }
   }
 
-  test("warns when dlq is set together with bulk.strict.item.errors=false") {
-    val task = new CapturingTask(writerStub(dlqSettings(strictItemErrors = false)))
-    task.initialize(
-      mockContext(
-        configs  = Map(DlqGate.DlqTopicNameConfigKey -> "my-dlq-topic", DlqGate.ErrorsToleranceConfigKey -> "all"),
-        reporter = Some(mock[ErrantRecordReporter]),
-      ),
-    )
-
-    val warnings = captureWarnings(task)(task.start(emptyMap[String, String]()))
-    warnings.exists(_.contains("bulk.strict.item.errors=false")) shouldBe true
-  }
-
-  test("does not warn about bulk.strict.item.errors when it is true (the default)") {
-    val task = new CapturingTask(writerStub(dlqSettings(strictItemErrors = true)))
-    task.initialize(
-      mockContext(
-        configs  = Map(DlqGate.DlqTopicNameConfigKey -> "my-dlq-topic", DlqGate.ErrorsToleranceConfigKey -> "all"),
-        reporter = Some(mock[ErrantRecordReporter]),
-      ),
-    )
-
-    val warnings = captureWarnings(task)(task.start(emptyMap[String, String]()))
-    warnings.exists(_.contains("bulk.strict.item.errors=false")) shouldBe false
-  }
-
-  test("warns when dlq is set and errors.tolerance is explicitly none") {
-    val task = new CapturingTask(writerStub(dlqSettings()))
-    task.initialize(
-      mockContext(
-        configs  = Map(DlqGate.DlqTopicNameConfigKey -> "my-dlq-topic", DlqGate.ErrorsToleranceConfigKey -> "none"),
-        reporter = Some(mock[ErrantRecordReporter]),
-      ),
-    )
-
-    val warnings = captureWarnings(task)(task.start(emptyMap[String, String]()))
-    warnings.exists(_.contains(DlqGate.ErrorsToleranceConfigKey)) shouldBe true
-  }
-
-  // Regression test for the fix: Kafka Connect's own default for errors.tolerance is "none" —
-  // an operator who sets the DLQ topic and dlq but simply OMITS errors.tolerance is on exactly
-  // the same footing as one who set it to "none" explicitly, and must get the same warning.
-  test("warns when dlq is set and errors.tolerance is left UNSET (defaults to none)") {
-    val task = new CapturingTask(writerStub(dlqSettings()))
-    task.initialize(mockContext(
-      configs  = Map(DlqGate.DlqTopicNameConfigKey -> "my-dlq-topic"),
-      reporter = Some(mock[ErrantRecordReporter]),
-    ))
-
-    val warnings = captureWarnings(task)(task.start(emptyMap[String, String]()))
-    warnings.exists(_.contains(DlqGate.ErrorsToleranceConfigKey)) shouldBe true
-  }
-
-  test("does not warn about errors.tolerance when it is explicitly set to all") {
-    val task = new CapturingTask(writerStub(dlqSettings()))
-    task.initialize(
-      mockContext(
-        configs  = Map(DlqGate.DlqTopicNameConfigKey -> "my-dlq-topic", DlqGate.ErrorsToleranceConfigKey -> "all"),
-        reporter = Some(mock[ErrantRecordReporter]),
-      ),
-    )
-
-    val warnings = captureWarnings(task)(task.start(emptyMap[String, String]()))
-    warnings.exists(_.contains(DlqGate.ErrorsToleranceConfigKey)) shouldBe false
-  }
-
-  test("emits no item-error warnings at all when itemErrorMode is Fail (the default)") {
-    val failSettings = ElasticCommonSettings(kcqls = Seq.empty, errorPolicy = new NoopErrorPolicy)
-    val task         = new CapturingTask(writerStub(failSettings))
-    task.initialize(mockContext())
-
-    val warnings = captureWarnings(task)(task.start(emptyMap[String, String]()))
-    warnings shouldBe empty
-  }
-
-
-  test("warns that drop discards records, unconditionally, as soon as drop is set") {
-    val task = new CapturingTask(writerStub(dropSettings()))
-    task.initialize(mockContext())
-
-    val warnings = captureWarnings(task)(task.start(emptyMap[String, String]()))
-    warnings.exists(_.contains("bulk.item.errors=drop")) shouldBe true
-  }
-
-  test("drop mode does not warn about the DLQ topic or errors.tolerance — neither applies to drop") {
-    val task = new CapturingTask(writerStub(dropSettings()))
-    // Deliberately no DLQ topic, no errantRecordReporter, no errors.tolerance configured — none
-    // of that should matter for drop, unlike dlq.
-    task.initialize(mockContext())
-
-    val warnings = captureWarnings(task)(task.start(emptyMap[String, String]()))
-    warnings.exists(_.contains(DlqGate.DlqTopicNameConfigKey)) shouldBe false
-    warnings.exists(_.contains(DlqGate.ErrorsToleranceConfigKey)) shouldBe false
-  }
-
-  test("drop mode warns about bulk.strict.item.errors=false too — nothing would ever surface to drop") {
-    val task = new CapturingTask(writerStub(dropSettings(strictItemErrors = false)))
-    task.initialize(mockContext())
-
-    val warnings = captureWarnings(task)(task.start(emptyMap[String, String]()))
-    warnings.exists(_.contains("bulk.strict.item.errors=false")) shouldBe true
-  }
-
-  test("drop mode does not warn about bulk.strict.item.errors when it is true (the default)") {
-    val task = new CapturingTask(writerStub(dropSettings(strictItemErrors = true)))
-    task.initialize(mockContext())
-
-    val warnings = captureWarnings(task)(task.start(emptyMap[String, String]()))
-    warnings.exists(_.contains("bulk.strict.item.errors=false")) shouldBe false
-  }
-
-
+  // Value must be valid, NON-EMPTY JSON (schema-less string path goes straight to
+  // Transform/Jackson, and an empty object is treated as a tombstone by processRecord) — used
+  // both by mocked-writer tests (content irrelevant) and the real-JsonBulkWriter test below
+  // (content must actually parse to a non-empty document).
   private def sinkRecord(topic: String, offset: Long): SinkRecord =
-    new SinkRecord(topic, 0, Schema.STRING_SCHEMA, "k", Schema.STRING_SCHEMA, "v", offset)
+    new SinkRecord(topic, 0, Schema.STRING_SCHEMA, "k", Schema.STRING_SCHEMA, """{"v":1}""", offset)
 
+  /** A [[KBulkClient]] that fails the given op ids with a permanent (400) item error; everything else succeeds. */
+  private class PoisonIdBulkClient(poisonIds: Set[String]) extends KBulkClient {
+    val calls: mutable.Buffer[Seq[BulkOp]] = mutable.Buffer.empty
+    override def bulk(ops: Seq[BulkOp]): Try[BulkResult] = {
+      calls += ops
+      val errors = ops.zipWithIndex.collect {
+        case (op, idx) if poisonIds(op.id) =>
+          BulkItemError(index = op.index, id = op.id, reason = "boom", errorType = "mapper_parsing_exception", status = 400, position = idx)
+      }
+      Success(BulkResult(took = 1L, errors = errors.nonEmpty, itemErrors = errors))
+    }
+    override def createIndex(name: String): Try[Unit] = Success(())
+    override def close(): Unit = ()
+  }
+
+  private class AlwaysAckReporter extends ErrantRecordReporter {
+    override def report(record: SinkRecord, error: Throwable): java.util.concurrent.Future[Void] =
+      CompletableFuture.completedFuture[Void](null)
+  }
+
+  // Drives this through a REAL JsonBulkWriter (dlq mode) backed by a scripted KBulkClient,
+  // rather than mocking JsonBulkWriter.write directly — the point of this test is that put()
+  // correctly excludes whatever the writer ACTUALLY diverted, not that put() can filter
+  // whatever a mock is told to return.
   test("put() excludes DLQ'd records from the progress counter") {
     val goodTopic = "good-topic"
     val dlqTopic  = "dlq-topic"
@@ -311,12 +343,40 @@ class AbstractElasticSinkTaskTest extends AnyFunSuite with Matchers with Mockito
     val good2     = sinkRecord(goodTopic, 1L)
     val dlqd      = sinkRecord(dlqTopic, 0L)
 
-    val stub = mock[JsonBulkWriter]
-    when(stub.settings).thenReturn(ElasticCommonSettings(kcqls = Seq.empty, errorPolicy = new NoopErrorPolicy))
-    when(stub.write(any[Vector[SinkRecord]])).thenReturn(Set(dlqd))
+    // INSERT with no PK -> autoGenId = topic.partition.offset, joined with the default "-".
+    val poisonId = s"$dlqTopic-0-0"
+    val client   = new PoisonIdBulkClient(Set(poisonId))
+    val settings = ElasticCommonSettings(
+      kcqls         = Seq(io.lenses.kcql.Kcql.parse(s"INSERT INTO idx SELECT * FROM $goodTopic"),
+                           io.lenses.kcql.Kcql.parse(s"INSERT INTO idx SELECT * FROM $dlqTopic"),
+      ),
+      errorPolicy   = new NoopErrorPolicy,
+      itemErrorMode = ItemErrorMode.Dlq,
+    )
 
-    val task = new CapturingTask(stub)
-    task.initialize(mockContext())
+    class RealWriterTask extends AbstractElasticSinkTask {
+      override protected def asciiArtResource:         String = "/does-not-exist.txt"
+      override protected def errorRetryIntervalKey:     String = RetryKey
+      override protected def progressEnabledKey:        String = ProgressKey
+      override protected def itemErrorModeConfigKey:    String = ItemErrorModeKey
+      override protected def strictItemErrorsConfigKey: String = StrictItemErrorsKey
+      override protected def createWriter(conf: Map[String, String], dlqGate: DlqGate): JsonBulkWriter =
+        new JsonBulkWriter(client, settings, dlqGate)
+    }
+
+    val task = new RealWriterTask
+    task.initialize(mockContext(
+      // ProgressKey must be here, not just in the props passed to start(): context.configs()
+      // takes precedence over props whenever non-empty (see the "context.configs() takes
+      // precedence" test above), and this mockContext already carries the DLQ-related keys.
+      configs = Map(
+        ItemErrorModeKey                 -> "dlq",
+        DlqGate.DlqTopicNameConfigKey    -> "my-dlq-topic",
+        DlqGate.ErrorsToleranceConfigKey -> "all",
+        ProgressKey                      -> "true",
+      ),
+      reporter = Some(new AlwaysAckReporter),
+    ))
     // ProgressCounter logs a "Delivered [n] records for [topic]" line the first time update()
     // is called with a non-empty collection (its internal timestamp starts at 0, so the very
     // first elapsed-time check always trips) — a convenient black-box observation point without
@@ -347,7 +407,7 @@ class AbstractElasticSinkTaskTest extends AnyFunSuite with Matchers with Mockito
 
     val stub = mock[JsonBulkWriter]
     when(stub.settings).thenReturn(ElasticCommonSettings(kcqls = Seq.empty, errorPolicy = new NoopErrorPolicy))
-    when(stub.write(any[Vector[SinkRecord]])).thenReturn(Set.empty[SinkRecord])
+    when(stub.write(any[Vector[SinkRecord]])).thenReturn(Set.empty[RecordRef])
 
     val task = new CapturingTask(stub)
     task.initialize(mockContext())
@@ -375,7 +435,7 @@ class AbstractElasticSinkTaskTest extends AnyFunSuite with Matchers with Mockito
 
     val stub = mock[JsonBulkWriter]
     when(stub.settings).thenReturn(ElasticCommonSettings(kcqls = Seq.empty, errorPolicy = new NoopErrorPolicy))
-    when(stub.write(any[Vector[SinkRecord]])).thenReturn(Set.empty[SinkRecord])
+    when(stub.write(any[Vector[SinkRecord]])).thenReturn(Set.empty[RecordRef])
 
     val task = new CapturingTask(stub)
     task.initialize(mockContext())

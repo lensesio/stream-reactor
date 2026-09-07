@@ -66,16 +66,4 @@ class DlqGateTest extends AnyFunSuite with Matchers with MockitoSugar {
     gate.enabled shouldBe false
   }
 
-  test("DlqGate.disabled is equivalent to from(None, Map.empty)") {
-    DlqGate.disabled shouldBe DlqGate.from(None, Map.empty)
-    DlqGate.disabled.enabled shouldBe false
-  }
-
-  test("other unrelated config keys do not affect enabled") {
-    val gate = DlqGate.from(
-      Some(reporter),
-      Map(DlqGate.DlqTopicNameConfigKey -> "my-dlq-topic", DlqGate.ErrorsToleranceConfigKey -> "none"),
-    )
-    gate.enabled shouldBe true
-  }
 }

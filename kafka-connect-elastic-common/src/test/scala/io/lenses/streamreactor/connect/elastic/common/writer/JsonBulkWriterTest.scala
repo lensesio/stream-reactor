@@ -35,6 +35,7 @@ import io.lenses.streamreactor.connect.elastic.common.bulk.BulkItemError
 import io.lenses.streamreactor.connect.elastic.common.config.ElasticCommonSettings
 import io.lenses.streamreactor.connect.elastic.common.config.ItemErrorMode
 import io.lenses.streamreactor.connect.elastic.common.dlq.DlqGate
+import io.lenses.streamreactor.connect.elastic.common.dlq.RecordRef
 import io.lenses.streamreactor.common.errors.FatalConnectException
 import io.lenses.streamreactor.common.errors.NoopErrorPolicy
 import io.lenses.streamreactor.common.errors.RetryErrorPolicy
@@ -81,7 +82,6 @@ class JsonBulkWriterTest
     with StrictLogging
     with MockitoSugar
     with ArgumentMatchersSugar {
-
 
   /** Accumulates bulk ops received by the writer. */
   class RecordingBulkClient extends KBulkClient {
@@ -133,7 +133,6 @@ class JsonBulkWriterTest
 
   private def tombstone(topic: String, key: String, offset: Long = 0L): SinkRecord =
     new SinkRecord(topic, 0, Schema.STRING_SCHEMA, key, null, null, offset)
-
 
   test("INSERT SELECT * routes document to the correct index") {
     val recording = new RecordingBulkClient
@@ -322,7 +321,6 @@ class JsonBulkWriterTest
     recording.allOps shouldBe empty
   }
 
-
   test("INT64 PK field stringifies to decimal string") {
     val int64Schema = SchemaBuilder.struct()
       .field("id", Schema.INT64_SCHEMA)
@@ -376,7 +374,6 @@ class JsonBulkWriterTest
 
     capturing.lastOps.head.asInstanceOf[InsertOp].id shouldBe "123.eu-west-1"
   }
-
 
   test("AUTOCREATE calls createIndex at construction (deduplication test)") {
     val recording = new RecordingBulkClient
@@ -451,7 +448,6 @@ class JsonBulkWriterTest
     }
   }
 
-
   test("tombstone with lowercase 'delete' behavior produces a DeleteOp (case-insensitive)") {
     val recording = new RecordingBulkClient
     val writer = new JsonBulkWriter(
@@ -483,7 +479,6 @@ class JsonBulkWriterTest
 
     intercept[Exception](writer.write(Vector(tombstone("ts-mc-topic", "k1"))))
   }
-
 
   private val nestedSchema: Schema = SchemaBuilder.struct()
     .field("id", Schema.INT32_SCHEMA)
@@ -522,7 +517,6 @@ class JsonBulkWriterTest
     op.json.has("id") shouldBe true
   }
 
-
   test("dynamic index (WITHINDEXSUFFIX) is resolved before tombstone branch — DeleteOp carries resolved index") {
     import java.time.LocalDate
 
@@ -547,7 +541,6 @@ class JsonBulkWriterTest
     deleteOps should not be empty
     deleteOps.head.index shouldBe expected
   }
-
 
   private def failingClient(itemErrors: Seq[BulkItemError]): KBulkClient = new KBulkClient {
     override def bulk(ops: Seq[BulkOp]): Try[BulkResult] =
@@ -671,7 +664,6 @@ class JsonBulkWriterTest
     thrown should not be a[RetriableException]
   }
 
-
   /** Records every (record, cause) it was asked to report and always acknowledges immediately. */
   class FakeReporter extends ErrantRecordReporter {
     val received: mutable.Buffer[(SinkRecord, Throwable)] = mutable.Buffer.empty
@@ -738,7 +730,7 @@ class JsonBulkWriterTest
     val r        = record("topic", "k", struct(1, "x"))
     val reported = writer.write(Vector(r))
 
-    reported shouldBe Set(r)
+    reported shouldBe Set(RecordRef.of(r))
     reporter.received should have size 1
     reporter.received.head._1 shouldBe r
   }
@@ -780,7 +772,9 @@ class JsonBulkWriterTest
     intercept[FatalConnectException](writer.write(Vector(record("topic", "k", struct(1, "x")))))
   }
 
-  test("dlq mode: a mixed batch reports the permanent error to the DLQ but still throws for the retriable remainder") {
+  test(
+    "dlq mode: a mixed batch (permanent + retriable in the SAME response) diverts NOTHING — diversion is deferred until a clean attempt",
+  ) {
     val reporter = new FakeReporter
     val client = new ScriptedBulkClient(
       Map("1" -> rejectedError(), "2" -> mapperError()),
@@ -794,28 +788,14 @@ class JsonBulkWriterTest
     val poison = record("topic", "k2", struct(2, "bad"), offset = 1L)
     val ok     = record("topic", "k1", struct(1, "transient"), offset = 0L)
 
-    val thrown = intercept[RetriableIntegrityException](writer.write(Vector(ok, poison)))
+    // Diverting the mapper conflict here, then throwing for the retriable remainder, would mean
+    // it gets diverted AGAIN on every redelivery while the 429 persists — unbounded
+    // amplification. So a retriable remainder in the SAME response defers diversion entirely:
+    // the full error set throws, and nothing is reported.
+    val thrown = intercept[FatalConnectException](writer.write(Vector(ok, poison)))
     thrown.getMessage should include("es_rejected_execution_exception")
-    // The permanent error (mapper conflict) was reported even though the batch as a whole still
-    // throws for the retriable remainder (429) so Connect redelivers it.
-    reporter.received.map(_._1) shouldBe Seq(poison)
-  }
-
-  test("dlq mode at batch size 1: the single poison document is reported, nothing else to confuse it with") {
-    val reporter = new FakeReporter
-    val client   = new ScriptedBulkClient(Map("1" -> mapperError()))
-    val writer = new JsonBulkWriter(
-      client,
-      settingsWith("INSERT INTO idx SELECT * FROM topic PK id", ItemErrorMode.Dlq, batchSize = 1),
-      dlqGate(reporter),
-    )
-
-    val r        = record("topic", "k", struct(1, "x"))
-    val reported = writer.write(Vector(r))
-
-    reported shouldBe Set(r)
-    client.calls should have size 1
-    client.calls.head should have size 1
+    thrown.getMessage should include("mapper_parsing_exception")
+    reporter.received shouldBe empty
   }
 
   test("dlq mode at batch size N: exactly the poison record is reported, its batch-mates are written normally") {
@@ -831,7 +811,7 @@ class JsonBulkWriterTest
     val records  = (1 to 5).map(i => record("topic", s"k$i", struct(i, s"v$i"), offset = i.toLong)).toVector
     val reported = writer.write(records)
 
-    reported shouldBe Set(records(2)) // id "3" is the 3rd record (index 2)
+    reported shouldBe Set(RecordRef.of(records(2))) // id "3" is the 3rd record (index 2)
     reporter.received.map(_._1) shouldBe Seq(records(2))
     client.calls should have size 1
     client.calls.head should have size 5 // the whole batch of 5 still went to the client in one bulk() call
@@ -852,7 +832,7 @@ class JsonBulkWriterTest
     val ts       = tombstone("topic", "k1", offset = 3L)
     val reported = writer.write(Vector(ts))
 
-    reported shouldBe Set(ts)
+    reported shouldBe Set(RecordRef.of(ts))
     reporter.received.map(_._1) shouldBe Seq(ts)
     client.calls shouldBe empty // the tombstone never became a BulkOp at all
   }
@@ -888,8 +868,7 @@ class JsonBulkWriterTest
       dlqGate(reporter),
     )
 
-    // NOOP would have swallowed a bare RuntimeException before this feature; reclassifying as
-    // RetriableIntegrityException closes that hole regardless of DLQ mode.
+    // Transport failures are reclassified as RetriableIntegrityException regardless of DLQ mode.
     val thrown = intercept[RetriableIntegrityException](writer.write(Vector(record("topic", "k", struct(1, "x")))))
     thrown.getMessage should include("connection reset")
     reporter.received shouldBe empty
@@ -927,11 +906,12 @@ class JsonBulkWriterTest
 
     // The same SinkRecord fails at BOTH idx-a and idx-b (same op id "1" in each KCQL's batch) —
     // both are genuine, independent failures and both must be reported, not deduplicated away.
-    reported shouldBe Set(r)
+    // (Diverted at both idx-a and idx-b, but RecordRef has no `target` field, so the SET
+    // collapses to size 1 — the assertion below on reporter.received is what proves both fired.)
+    reported shouldBe Set(RecordRef.of(r))
     reporter.received should have size 2
     reporter.received.foreach(_._1 shouldBe r)
   }
-
 
   private def clusterBlockError(): BulkItemError =
     BulkItemError(index = "", id = "", reason = "index blocked", errorType = "cluster_block_exception", status = 403)
@@ -1002,11 +982,6 @@ class JsonBulkWriterTest
     reporter.received shouldBe empty
   }
 
-  // Regression: isDivertible previously treated every non-retriable 400 as per-document, so an
-  // all-400 response of a batch-wide fault (closed index / missing pipeline) slipped past the
-  // handleBulkResult backstop (which only trips on a mixed-in non-400) and was fully diverted —
-  // silent data loss under drop, DLQ flooding under dlq.
-
   test("dlq mode: an all-400 index_closed_exception batch diverts NOTHING and throws (batch-wide)") {
     val reporter = new FakeReporter
     val client   = new ScriptedBulkClient(Map("1" -> indexClosedError(), "2" -> indexClosedError()))
@@ -1064,13 +1039,12 @@ class JsonBulkWriterTest
     reporter.received shouldBe empty
   }
 
-
   test(
-    "dlq mode: redelivery of a mixed batch reports the same permanent error to the DLQ again on every attempt",
+    "dlq mode: redelivery of a PERSISTENTLY mixed batch never diverts anything, on any attempt",
   ) {
     val reporter = new FakeReporter
     // Simulates the SAME batch being redelivered by Connect after the retriable remainder
-    // fails the previous attempt: id "2" is permanently poison, id "1" is retriable every time.
+    // fails every previous attempt: id "2" is permanently poison, id "1" is retriable every time.
     val client = new ScriptedBulkClient(Map("1" -> rejectedError(), "2" -> mapperError()))
     val writer = new JsonBulkWriter(
       client,
@@ -1081,15 +1055,62 @@ class JsonBulkWriterTest
     val poison = record("topic", "k2", struct(2, "bad"), offset = 1L)
     val ok     = record("topic", "k1", struct(1, "transient"), offset = 0L)
 
-    // Attempt 1: fresh put() -> fresh reportedThisPut tracker.
-    intercept[RetriableIntegrityException](writer.write(Vector(ok, poison)))
-    // Attempt 2: Connect redelivers the identical batch (e.g. after RetriableException) ->
-    // JsonBulkWriter.write creates a NEW tracker, so the dedup does not survive the redelivery.
-    intercept[RetriableIntegrityException](writer.write(Vector(ok, poison)))
+    // Attempt 1: mixed response -> diversion deferred, nothing reported, full set thrown.
+    intercept[FatalConnectException](writer.write(Vector(ok, poison)))
+    // Attempt 2: Connect redelivers the identical batch; the retriable condition still hasn't
+    // cleared, so it's STILL a mixed response -> still deferred, still nothing reported. If the
+    // old "divert-then-throw-for-the-remainder" behaviour were still in place, "2" would have
+    // been reported twice by now; instead it is never reported while "1" keeps failing.
+    intercept[FatalConnectException](writer.write(Vector(ok, poison)))
 
-    reporter.received.map(_._1) shouldBe Seq(poison, poison)
+    reporter.received shouldBe empty
   }
 
+  test(
+    "dlq mode: once the retriable condition clears on a later attempt, the previously-stuck permanent error is diverted exactly once",
+  ) {
+    val reporter = new FakeReporter
+    // A mutable script: attempt 1 is mixed (429 + 400); the retriable op then "clears" and
+    // attempt 2 comes back with only the divertible 400.
+    var attempt = 0
+    val client = new KBulkClient {
+      override def bulk(ops: Seq[BulkOp]): Try[BulkResult] = {
+        attempt += 1
+        val errors =
+          if (attempt == 1) {
+            ops.zipWithIndex.flatMap {
+              case (op, idx) if op.id == "1" => Some(rejectedError().copy(index = op.index, id = op.id, position = idx))
+              case (op, idx) if op.id == "2" => Some(mapperError().copy(index = op.index, id = op.id, position = idx))
+              case _ => None
+            }
+          } else {
+            ops.zipWithIndex.collect {
+              case (op, idx) if op.id == "2" => mapperError().copy(index = op.index, id = op.id, position = idx)
+            }
+          }
+        Success(BulkResult(took = 1L, errors = errors.nonEmpty, itemErrors = errors))
+      }
+      override def createIndex(name: String): Try[Unit] = Success(())
+      override def close(): Unit = ()
+    }
+    val writer = new JsonBulkWriter(
+      client,
+      settingsWith("INSERT INTO idx SELECT * FROM topic PK id", ItemErrorMode.Dlq),
+      dlqGate(reporter),
+    )
+
+    val poison = record("topic", "k2", struct(2, "bad"), offset = 1L)
+    val ok     = record("topic", "k1", struct(1, "transient"), offset = 0L)
+
+    // Attempt 1: mixed -> deferred, nothing reported, full set thrown.
+    intercept[FatalConnectException](writer.write(Vector(ok, poison)))
+    reporter.received shouldBe empty
+
+    // Attempt 2: only the divertible 400 remains (the 429 "cleared") -> diverted, not thrown.
+    val reported = writer.write(Vector(ok, poison))
+    reported shouldBe Set(RecordRef.of(poison))
+    reporter.received.map(_._1) shouldBe Seq(poison)
+  }
 
   test(
     "dlq mode: when the client cannot trust positions (length mismatch -> position = -1), the whole batch throws and nothing is reported",
@@ -1139,8 +1160,6 @@ class JsonBulkWriterTest
     intercept[IllegalStateException](writer.write(Vector(tombstone("topic", "k1"))))
   }
 
-
-
   test("drop mode diverts a permanent item error without any DLQ configured; offsets can advance") {
     val client = new ScriptedBulkClient(Map("1" -> mapperError()))
     // No DlqGate at all — JsonBulkWriter's default constructor param is DlqGate.disabled — proving
@@ -1153,10 +1172,12 @@ class JsonBulkWriterTest
     val r        = record("topic", "k", struct(1, "x"))
     val reported = writer.write(Vector(r))
 
-    reported shouldBe Set(r)
+    reported shouldBe Set(RecordRef.of(r))
   }
 
-  test("drop mode: a mixed batch drops the permanent error but still throws for the retriable remainder") {
+  test(
+    "drop mode: a mixed batch (permanent + retriable in the SAME response) drops NOTHING — diversion is deferred until a clean attempt",
+  ) {
     val client = new ScriptedBulkClient(Map("1" -> rejectedError(), "2" -> mapperError()))
     val writer = new JsonBulkWriter(
       client,
@@ -1166,8 +1187,11 @@ class JsonBulkWriterTest
     val poison = record("topic", "k2", struct(2, "bad"), offset = 1L)
     val ok     = record("topic", "k1", struct(1, "transient"), offset = 0L)
 
-    val thrown = intercept[RetriableIntegrityException](writer.write(Vector(ok, poison)))
+    // See the equivalent dlq-mode test above: dropping "2" here, then throwing for "1", would
+    // mean "2" gets dropped AGAIN on every redelivery while "1" keeps failing.
+    val thrown = intercept[FatalConnectException](writer.write(Vector(ok, poison)))
     thrown.getMessage should include("es_rejected_execution_exception")
+    thrown.getMessage should include("mapper_parsing_exception")
   }
 
   test("drop mode: a writer-stage failure (FAIL tombstone) is dropped instead of failing the task") {
@@ -1183,8 +1207,49 @@ class JsonBulkWriterTest
     val ts       = tombstone("topic", "k1", offset = 3L)
     val reported = writer.write(Vector(ts))
 
-    reported shouldBe Set(ts)
+    reported shouldBe Set(RecordRef.of(ts))
     client.calls shouldBe empty // the tombstone never became a BulkOp at all
+  }
+
+  // Regression lock for the writer-stage diversion allow-list (PerRecordWriterFailure): a
+  // writer-stage failure caused by a KCQL/config-level problem — here, a PK path referencing a
+  // header absent from EVERY record on the topic — is a property of the whole topic, not of any
+  // one record. It must NEVER be diverted, even in drop/dlq mode, or the entire stream would be
+  // silently discarded one record at a time while the task reported itself healthy.
+  test(
+    "drop mode: a writer-stage failure from a missing header (topic-wide, not per-record) is NEVER diverted — the task still fails",
+  ) {
+    val client = new ScriptedBulkClient(Map.empty)
+    val writer = new JsonBulkWriter(
+      client,
+      settingsWith("INSERT INTO idx SELECT * FROM topic PK _header.tenant_id", ItemErrorMode.Drop),
+    )
+
+    // Every record on "topic" is missing the tenant_id header (none of these records carry any
+    // headers at all) — this is not a "which record happened to be poison" situation.
+    val r1 = record("topic", "k1", struct(1, "a"))
+    val r2 = record("topic", "k2", struct(2, "b"), offset = 1L)
+
+    val thrown = intercept[IllegalArgumentException](writer.write(Vector(r1, r2)))
+    thrown.getMessage should include("tenant_id")
+    client.calls shouldBe empty // never even reached the bulk client — thrown before any op was built
+  }
+
+  test(
+    "dlq mode: a writer-stage failure from a missing header (topic-wide, not per-record) is NEVER diverted — the task still fails",
+  ) {
+    val reporter = new FakeReporter
+    val client   = new ScriptedBulkClient(Map.empty)
+    val writer = new JsonBulkWriter(
+      client,
+      settingsWith("INSERT INTO idx SELECT * FROM topic PK _header.tenant_id", ItemErrorMode.Dlq),
+      dlqGate(reporter),
+    )
+
+    val r1 = record("topic", "k1", struct(1, "a"))
+
+    intercept[IllegalArgumentException](writer.write(Vector(r1)))
+    reporter.received shouldBe empty
   }
 
   test("drop mode: a 403 cluster_block_exception is never dropped — the batch throws instead") {

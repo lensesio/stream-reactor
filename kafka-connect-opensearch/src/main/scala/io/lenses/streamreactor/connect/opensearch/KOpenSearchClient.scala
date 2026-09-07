@@ -38,6 +38,7 @@ import org.opensearch.client.opensearch.core.bulk.UpdateOperation
 
 import java.nio.charset.StandardCharsets
 import java.util.concurrent.atomic.AtomicBoolean
+import scala.collection.mutable
 import scala.jdk.CollectionConverters._
 import scala.util.Failure
 import scala.util.Success
@@ -105,6 +106,13 @@ class KOpenSearchClient(client: OpenSearchClient, settings: OpenSearchSettings) 
    * (identical input, identical failure, every attempt) and unreportable to the DLQ. Returning
    * them as ordinary [[BulkItemError]]s instead routes them through the same strict/tolerant and
    * DLQ machinery as every other per-item bulk error.
+   *
+   * Tagged with [[BulkItemErrorClassifier.ConnectorValidationErrorType]], NOT
+   * `illegal_argument_exception`: these are systemic (every record hitting the same
+   * KCQL/PK/index misconfiguration fails identically), so — unlike a genuine cluster-reported
+   * `illegal_argument_exception` — they must never be divertible under `bulk.item.errors=drop`
+   * or `dlq` (see [[BulkItemErrorClassifier.isDivertible]]), and must always surface even under
+   * `bulk.strict.item.errors=false` (see the tolerant-mode handling in [[bulk]] below).
    */
   private def validateOp(op: BulkOp): Either[BulkItemError, Unit] = {
     def invalid(reason: String): Either[BulkItemError, Unit] =
@@ -112,7 +120,7 @@ class KOpenSearchClient(client: OpenSearchClient, settings: OpenSearchSettings) 
         BulkItemError(index     = op.index,
                       id        = op.id,
                       reason    = reason,
-                      errorType = "illegal_argument_exception",
+                      errorType = BulkItemErrorClassifier.ConnectorValidationErrorType,
                       status    = 400,
         ),
       )
@@ -163,22 +171,34 @@ class KOpenSearchClient(client: OpenSearchClient, settings: OpenSearchSettings) 
   }
 
   override def bulk(ops: Seq[BulkOp]): Try[BulkResult] = Try {
-    // Validate every op against its position in the ORIGINAL request before dropping any of
-    // them, so DLQ correlation (which trusts BulkItemError.position as an index into the
-    // original ops list) stays correct even when only a subset of ops is actually sent to the
-    // cluster.
-    val validated: IndexedSeq[Either[BulkItemError, BulkOp]] =
-      ops.zipWithIndex.map { case (op, idx) => validateOp(op).left.map(_.copy(position = idx)).map(_ => op) }
-        .toIndexedSeq
-
-    val validationErrors: Seq[BulkItemError] = validated.collect { case Left(e) => e }
-    // (op, originalIndex) pairs for ops that passed local validation, in original order.
-    val validOpsWithIndex: IndexedSeq[(BulkOp, Int)] =
-      validated.zipWithIndex.collect { case (Right(op), idx) => op -> idx }
+    // Single pass over `ops`, not validate-then-partition-then-partition-again: a
+    // validate-all-into-Either, then `collect` the lefts, then `collect` the rights (each its
+    // own traversal plus an intermediate `IndexedSeq[Either[...]]`) costs three traversals and
+    // two throwaway collections on every call, for a validation failure that essentially never
+    // fires in steady-state operation. Still calls validateOp exactly once per op either way —
+    // the fast path is fewer traversals of the result, not fewer validations.
+    val validationErrorsBuilder  = mutable.ListBuffer.empty[BulkItemError]
+    val validOpsWithIndexBuilder = IndexedSeq.newBuilder[(BulkOp, Int)]
+    ops.zipWithIndex.foreach {
+      case (op, idx) =>
+        validateOp(op) match {
+          // Position set relative to the ORIGINAL request before any op is dropped, so DLQ
+          // correlation (which trusts BulkItemError.position as an index into the original ops
+          // list) stays correct even when only a subset of ops is actually sent to the cluster.
+          case Left(error) => validationErrorsBuilder += error.copy(position = idx)
+          case Right(())   => validOpsWithIndexBuilder += op -> idx
+        }
+    }
+    val validationErrors: Seq[BulkItemError]         = validationErrorsBuilder.toSeq
+    val validOpsWithIndex: IndexedSeq[(BulkOp, Int)] = validOpsWithIndexBuilder.result()
 
     val (tookMillis, responseItemErrors) =
       if (validOpsWithIndex.isEmpty) {
-        // Every op failed local validation — nothing left to send to the cluster.
+        // Every op failed local validation — nothing left to send to the cluster. `took=0` is
+        // NOT "the cluster responded in 0ms" (no request was ever sent).
+        logger.info(
+          s"All ${ops.size} op(s) failed local validation; no bulk request was sent to the cluster.",
+        )
         (0L, Seq.empty[BulkItemError])
       } else {
         val validOps = validOpsWithIndex.map(_._1)
@@ -227,18 +247,24 @@ class KOpenSearchClient(client: OpenSearchClient, settings: OpenSearchSettings) 
         }
       }
 
-    val itemErrors = validationErrors ++ responseItemErrors
+    // bulk.strict.item.errors=false only ever applied to genuine CLUSTER item errors (legacy
+    // tolerant mode: log and drop). It must NOT swallow a connector-side validation error —
+    // those are never divertible (see validateOp) and were an unconditional throw before this
+    // PR, so silently discarding them under tolerant mode would be a new, PR-introduced data
+    // loss path with no way to opt out.
+    if (responseItemErrors.nonEmpty && !settings.strictItemErrors) {
+      logger.warn(
+        s"Bulk write completed with ${BulkItemErrorClassifier.formatItemErrors(responseItemErrors)} (tolerant mode)",
+      )
+    }
+    val clusterErrorsToSurface = if (settings.strictItemErrors) responseItemErrors else Seq.empty
+    val itemErrors             = validationErrors ++ clusterErrorsToSurface
 
     if (itemErrors.isEmpty) {
       BulkResult(took = tookMillis, errors = false, itemErrors = Seq.empty)
-    } else if (settings.strictItemErrors) {
+    } else {
       logger.error(s"Bulk write completed with ${BulkItemErrorClassifier.formatItemErrors(itemErrors)}")
       BulkResult(took = tookMillis, errors = true, itemErrors = itemErrors)
-    } else {
-      logger.warn(
-        s"Bulk write completed with ${BulkItemErrorClassifier.formatItemErrors(itemErrors)} (tolerant mode)",
-      )
-      BulkResult(took = tookMillis, errors = false, itemErrors = Seq.empty)
     }
   }
 

@@ -88,7 +88,14 @@ object ElasticCommonConfigConstants {
       |outcome is unknown.
       |THROW - the error is allowed to propagate.
       |RETRY - The exception causes the Connect framework to retry the message. The number of retries is based on
-      |The error will be logged automatically""".stripMargin
+      |The error will be logged automatically
+      |UPGRADE NOTE: on connector versions before per-record bulk.item.errors diversion, NOOP
+      |swallowed a bulk transport failure and a permanent per-item bulk error with only a WARN,
+      |advancing offsets past a batch that may never have been written. Both now fail the task
+      |instead. This closes a silent data-loss path but is a behavioural change for existing
+      |NOOP deployments upgrading past that version — review error.policy=NOOP usage, and
+      |consider bulk.item.errors=drop or dlq if the goal was "keep the task running through a
+      |poison record" rather than "never fail the task".""".stripMargin
   val ERROR_POLICY_DEFAULT = "THROW"
 
   val BATCH_SIZE_SUFFIX = BATCH_SIZE_PROP_SUFFIX
@@ -141,4 +148,14 @@ object ElasticCommonConfigConstants {
       |Both drop and dlq only divert per-document HTTP 400 rejections - batch-wide failures
       |(write-blocked/missing index, auth errors) still fail the task. DLQ delivery is at-least-once.""".stripMargin
   val BULK_ITEM_ERRORS_DEFAULT = "fail"
+
+  val BULK_ITEM_ERRORS_DLQ_TIMEOUT_MS_SUFFIX = "bulk.item.errors.dlq.timeout.ms"
+  val BULK_ITEM_ERRORS_DLQ_TIMEOUT_MS_DOC =
+    """Bound, per bulk.item.errors=dlq report call, on how long to wait for Kafka Connect's DLQ
+      |producer to acknowledge a diverted record before giving up and failing the batch instead
+      |(the batch is then redelivered — see bulk.item.errors). Applies once per group of records
+      |reported together, not once per individual record.
+      |Keep well below max.poll.interval.ms: a bulk.item.errors=dlq batch can block for up to
+      |this long once per put(). Default 30000 (30 seconds).""".stripMargin
+  val BULK_ITEM_ERRORS_DLQ_TIMEOUT_MS_DEFAULT: Long = 30000L
 }

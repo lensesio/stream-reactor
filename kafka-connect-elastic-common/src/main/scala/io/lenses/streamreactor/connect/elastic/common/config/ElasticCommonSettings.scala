@@ -38,4 +38,6 @@ case class ElasticCommonSettings(
   // Unknown properties are silently ignored by Kafka Connect, so itemErrorMode stays Fail
   // regardless of what a user sets.
   itemErrorMode: ItemErrorMode = ItemErrorMode.Fail,
+  // ES6: not registered either — irrelevant when itemErrorMode can never be Dlq.
+  dlqReportTimeoutMs: Long = ElasticCommonConfigConstants.BULK_ITEM_ERRORS_DLQ_TIMEOUT_MS_DEFAULT,
 )

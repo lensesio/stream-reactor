@@ -65,17 +65,10 @@ object ElasticConfigConstants {
   val NBR_OF_RETIRES_DEFAULT = 20
 
   val ERROR_POLICY_CONFIG = s"${CONNECTOR_PREFIX}.${ERROR_POLICY_PROP_SUFFIX}"
+  // Single source of truth for the doc text (including the NOOP upgrade-behaviour note) so ES6,
+  // ES7 and OpenSearch never drift out of sync — all three share JsonBulkWriter.handleTransportFailure.
   val ERROR_POLICY_DOC: String =
-    """Specifies the action to be taken if an error occurs while inserting the data
-      |There are two available options:
-      |NOOP - most errors are swallowed and processing continues; data-integrity errors are the
-      |exception — a bulk transport failure (e.g. connection reset, timeout) and a permanent
-      |per-item bulk error (under bulk.strict.item.errors=true) are always propagated and fail
-      |the task, because NOOP must never silently advance offsets past a record whose write
-      |outcome is unknown.
-      |THROW - the error is allowed to propagate.
-      |RETRY - The exception causes the Connect framework to retry the message. The number of retries is based on
-      |The error will be logged automatically""".stripMargin
+    io.lenses.streamreactor.connect.elastic.common.config.ElasticCommonConfigConstants.ERROR_POLICY_DOC
   val ERROR_POLICY_DEFAULT = "THROW"
 
   val BATCH_SIZE_CONFIG = s"$CONNECTOR_PREFIX.$BATCH_SIZE_PROP_SUFFIX"

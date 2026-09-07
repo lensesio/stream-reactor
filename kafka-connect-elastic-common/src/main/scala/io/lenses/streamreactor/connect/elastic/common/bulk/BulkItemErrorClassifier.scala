@@ -90,9 +90,26 @@ object BulkItemErrorClassifier {
    *    [[io.lenses.streamreactor.connect.elastic.common.writer.JsonBulkWriter.handleBulkResult]]
    *    backstop only trips when a *non*-divertible error is mixed in, so an all-400 response of
    *    these faults must be caught here rather than there.
+   *  - Also excludes connector-synthesized validation errors (see [[isConnectorSynthesized]]):
+   *    a structural violation the connector itself detected before ever sending the request
+   *    (empty index/id, an id over the 512-byte hard limit). These are systemic — driven by a
+   *    KCQL/PK misconfiguration or a field that grew too long for every record on the topic —
+   *    not a one-off rejection by the cluster, so they must always fail the task rather than
+   *    being diverted one record at a time.
    */
   def isDivertible(error: BulkItemError): Boolean =
-    !isRetriable(error) && error.status == 400 && !isBatchWide(error)
+    !isRetriable(error) && error.status == 400 && !isBatchWide(error) && !isConnectorSynthesized(error)
+
+  /**
+   * `errorType` used by [[io.lenses.streamreactor.connect.opensearch.KOpenSearchClient.validateOp]]
+   * and [[io.lenses.streamreactor.connect.elastic7.KElasticBulkClient.validateOp]] for a
+   * structural violation caught locally, before any request reaches the cluster. Never
+   * divertible and never discarded by `bulk.strict.item.errors=false` — see the callers.
+   */
+  val ConnectorValidationErrorType: String = "connector_op_validation_exception"
+
+  private def isConnectorSynthesized(error: BulkItemError): Boolean =
+    normalize(error.errorType) == ConnectorValidationErrorType
 
   /**
    * HTTP 400 error types that are batch-wide (caused by index/cluster state, not the content of
@@ -123,13 +140,23 @@ object BulkItemErrorClassifier {
     val t = normalize(error.errorType)
     batchWide400Types.contains(t) ||
     batchWide400TypesCompact.contains(t.replace("_", "")) ||
-    reasonLooksBatchWide(error.reason)
+    reasonLooksBatchWide(error.errorType, error.reason)
   }
 
-  private def reasonLooksBatchWide(reason: String): Boolean = {
-    val lower = normalize(reason)
-    lower.contains("pipeline with id") && lower.contains("does not exist")
-  }
+  /**
+   * Matched as an errorType check plus a `reason` PREFIX (not `contains`): a bare `contains`
+   * check on "pipeline with id" ... "does not exist" is satisfiable by a crafted document, since
+   * a mapper error's `reason` embeds a preview of the rejected document verbatim (see
+   * [[isRetriable]]'s docs). A document containing that literal text — entirely plausible in a
+   * free-text field — would misclassify a genuine per-document rejection as batch-wide and
+   * (via [[io.lenses.streamreactor.connect.elastic.common.writer.JsonBulkWriter.handleBulkResult]])
+   * block diversion for the whole response, not just that one record. Requiring the errorType to
+   * be `illegal_argument_exception` AND the reason to START WITH the fixed prefix (which
+   * Elasticsearch/OpenSearch always emit first, before any document content) closes that gap.
+   */
+  private def reasonLooksBatchWide(errorType: String, reason: String): Boolean =
+    normalize(errorType) == "illegal_argument_exception" &&
+    normalize(reason).startsWith("pipeline with id")
 
   def formatItemErrors(itemErrors: Seq[BulkItemError]): String = {
     val shown = itemErrors.take(MaxErrorsInMessage)

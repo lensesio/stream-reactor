@@ -34,6 +34,10 @@ class OpenSearchSinkTask extends AbstractElasticSinkTask with StrictLogging {
 
   override protected def progressEnabledKey: String = ElasticCommonConfigConstants.PROGRESS_COUNTER_ENABLED
 
+  override protected def itemErrorModeConfigKey: String = OpenSearchConfigConstants.BULK_ITEM_ERRORS_KEY
+
+  override protected def strictItemErrorsConfigKey: String = OpenSearchConfigConstants.BULK_STRICT_ITEM_ERRORS_KEY
+
   override protected def createWriter(conf: Map[String, String], dlqGate: DlqGate): JsonBulkWriter = {
     OpenSearchConfig.config.parse(conf.asJava)
     val osConfig = OpenSearchConfig(conf.asJava)

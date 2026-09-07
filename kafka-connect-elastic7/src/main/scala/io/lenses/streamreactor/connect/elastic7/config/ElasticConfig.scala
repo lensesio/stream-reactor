@@ -216,6 +216,18 @@ object ElasticConfig {
       ConfigDef.Width.SHORT,
       ElasticConfigConstants.BULK_ITEM_ERRORS_KEY,
     )
+    .define(
+      ElasticConfigConstants.BULK_ITEM_ERRORS_DLQ_TIMEOUT_MS_KEY,
+      Type.LONG,
+      ElasticConfigConstants.BULK_ITEM_ERRORS_DLQ_TIMEOUT_MS_DEFAULT,
+      ConfigDef.Range.atLeast(1L),
+      Importance.LOW,
+      ElasticConfigConstants.BULK_ITEM_ERRORS_DLQ_TIMEOUT_MS_DOC,
+      "Error",
+      6,
+      ConfigDef.Width.SHORT,
+      ElasticConfigConstants.BULK_ITEM_ERRORS_DLQ_TIMEOUT_MS_KEY,
+    )
     .withClientSslSupport()
 }
 

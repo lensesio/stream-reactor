@@ -102,8 +102,6 @@ class KElastic6BulkClientTest extends AnyWordSpec with Matchers with MockitoSuga
       result.get.itemErrors shouldBe empty
     }
 
-    // ---- ES6 is unaffected by the per-record DLQ feature (lensesio-dev/stream-reactor#414) ----
-    //
     // Unlike KElasticBulkClient (ES7) and KOpenSearchClient, ES6's client never populates
     // BulkItemError.position — it always uses the case class default (-1), so
     // ErrantRecordHandler.resolvePositions always refuses to map any ES6 item error and skip
