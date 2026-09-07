@@ -53,6 +53,21 @@ import scala.util.Success
 import scala.util.Try
 import scala.jdk.CollectionConverters._
 
+object JsonBulkWriter {
+
+  /**
+   * Shared, immutable-in-practice empty DLQ tracker used on the non-skip path.
+   *
+   * It is threaded through `insert`/`handleBulkResult` only so the signatures stay uniform; it is
+   * NEVER written to, because every write into the tracker (`ErrantRecordHandler.reportOne` /
+   * `reportPermanent`) is guarded by `skipModeActive`, which is false whenever this sentinel is
+   * used. Reusing a single instance avoids allocating a throwaway map on every `put()` when the
+   * DLQ feature is off (the common case). Safe to share across tasks precisely because it is only
+   * ever read on this path.
+   */
+  private val NoReports: mutable.Map[DlqKey, SinkRecord] = mutable.Map.empty
+}
+
 class JsonBulkWriter(
   client:       KBulkClient,
   val settings: ElasticCommonSettings,
@@ -161,8 +176,14 @@ class JsonBulkWriter(
       Set.empty
     } else {
       logger.debug(s"Received ${records.size} records.")
-      val grouped         = records.groupBy(_.topic())
-      val reportedThisPut = mutable.LinkedHashMap.empty[DlqKey, SinkRecord]
+      val grouped = records.groupBy(_.topic())
+      // Only allocate a per-put() DLQ tracker when skip mode is actually active. On every other
+      // configuration nothing is ever reported (both report paths in `insert` are guarded by
+      // `skipModeActive`), so we thread a shared, never-written empty map instead of allocating
+      // one per put(). This keeps the non-DLQ path allocation-free and byte-for-byte as before.
+      val reportedThisPut =
+        if (skipModeActive) mutable.LinkedHashMap.empty[DlqKey, SinkRecord]
+        else JsonBulkWriter.NoReports
       insert(grouped, reportedThisPut)
       if (reportedThisPut.nonEmpty) {
         logger.info(s"Reported ${reportedThisPut.size} record(s) to the dead-letter queue during this put().")
