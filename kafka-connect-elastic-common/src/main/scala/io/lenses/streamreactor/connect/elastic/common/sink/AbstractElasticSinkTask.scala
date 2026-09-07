@@ -67,14 +67,11 @@ abstract class AbstractElasticSinkTask extends SinkTask with StrictLogging with 
     val conf    = if (context.configs().isEmpty) props else context.configs()
     val confMap = conf.asScala.toMap
 
-    // A non-null errantRecordReporter alone does not mean a DLQ exists — Connect hands one out
-    // whenever errors.deadletterqueue.topic.name is set OR errors.log.enable=true. DlqGate reads
-    // the DLQ topic name directly from this task's own config to distinguish the two. See
-    // DlqGate's scaladoc for the full reasoning.
+    // Non-null errantRecordReporter alone doesn't mean a DLQ exists (see DlqGate).
     //
-    // SinkTaskContext.errantRecordReporter() was added in Kafka Connect 2.6; on an older runtime
-    // it fails to link with NoSuchMethodError, a LinkageError — NOT caught by scala.util.Try
-    // (LinkageError is explicitly excluded from NonFatal), so it must be caught explicitly here.
+    // SinkTaskContext.errantRecordReporter() was added in Kafka Connect 2.6. On older runtimes
+    // it throws NoSuchMethodError (a LinkageError, not caught by scala.util.Try/NonFatal) —
+    // caught explicitly.
     val reporter =
       try Option(context.errantRecordReporter())
       catch {
@@ -105,12 +102,7 @@ abstract class AbstractElasticSinkTask extends SinkTask with StrictLogging with 
     writer         = Some(w)
   }
 
-  /**
-   * Warns at startup about `bulk.item.errors=drop`/`dlq` configurations that cannot actually
-   * take effect (or, for `drop`, about the deliberate data-discarding behaviour it enables), so
-   * operators find out at start() rather than discovering it only when a poison document
-   * arrives.
-   */
+  /** Warns at start() about drop/dlq misconfigurations, rather than at the first poison record. */
   private def validateItemErrorConfiguration(
     confMap:  Map[String, String],
     dlqGate:  DlqGate,
@@ -146,10 +138,8 @@ abstract class AbstractElasticSinkTask extends SinkTask with StrictLogging with 
               "reported to the dead-letter queue.",
           )
         }
-        // Kafka Connect's own default for errors.tolerance is "none" — an operator who sets
-        // errors.deadletterqueue.topic.name and bulk.item.errors=dlq but simply omits
-        // errors.tolerance (the common case) is on the same footing as one who set it explicitly
-        // to "none", so an absent/blank key must be treated as "none" here too, not skipped.
+        // errors.tolerance defaults to "none" when unset — treat absent/blank the same as
+        // explicit "none".
         val tolerance = confMap.get(DlqGate.ErrorsToleranceConfigKey)
           .map(_.trim.toLowerCase)
           .filter(_.nonEmpty)

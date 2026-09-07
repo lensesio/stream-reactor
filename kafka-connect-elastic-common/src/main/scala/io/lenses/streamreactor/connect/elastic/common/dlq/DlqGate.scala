@@ -18,11 +18,10 @@ package io.lenses.streamreactor.connect.elastic.common.dlq
 import org.apache.kafka.connect.sink.ErrantRecordReporter
 
 /**
- * Resolves whether a real Kafka Connect dead-letter queue is available for this task.
+ * Resolves whether a real Kafka Connect DLQ is available for this task.
  *
- * A non-null [[ErrantRecordReporter]] alone is NOT sufficient to conclude a DLQ exists. Kafka
- * hands a sink task a non-null reporter whenever `errors.deadletterqueue.topic.name` is set
- * **OR** `errors.log.enable=true`:
+ * A non-null [[ErrantRecordReporter]] alone is not sufficient: Connect hands out a reporter
+ * whenever `errors.deadletterqueue.topic.name` is set **OR** `errors.log.enable=true`:
  *
  * {{{
  * // org.apache.kafka.connect.runtime.SinkConnectorConfig
@@ -32,12 +31,8 @@ import org.apache.kafka.connect.sink.ErrantRecordReporter
  * }
  * }}}
  *
- * So `errors.log.enable=true` on its own produces a non-null reporter with no DLQ topic behind
- * it. Reporting in that state would write only a log line, then advance offsets past a document
- * that was never durably persisted anywhere — exactly the silent loss closed by
- * [[https://github.com/lensesio-dev/stream-reactor/pull/415 #415]]. [[enabled]] therefore requires
- * both signals: a non-null reporter AND a non-empty `errors.deadletterqueue.topic.name` read
- * directly from the task's own config map.
+ * [[enabled]] requires both: a non-null reporter AND a non-empty
+ * `errors.deadletterqueue.topic.name` read from the task's config.
  */
 final case class DlqGate(reporter: Option[ErrantRecordReporter], dlqTopicConfigured: Boolean) {
   def enabled: Boolean = reporter.isDefined && dlqTopicConfigured

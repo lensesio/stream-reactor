@@ -24,19 +24,12 @@ import java.util.Locale
 /**
  * Classifies per-item Elasticsearch/OpenSearch bulk failures.
  *
- * Classification uses HTTP `status` and `errorType` only. The item `reason` is consulted
- * solely when `errorType` is empty, and only as a prefix match — mapper errors embed a
- * preview of the rejected document in `reason`, so a substring match would treat a
- * permanent 400 as write-queue saturation.
- *
- * Write-queue saturation (HTTP 429 / `es_rejected_execution_exception`) and version
- * conflicts (HTTP 409 / `version_conflict_engine_exception`) are transient: the batch is
- * safe to re-deliver. Mapping conflicts and other document-level rejections are permanent:
- * retrying the same document cannot succeed, so they must fail the task rather than burn the
- * retry budget or silently drop records.
- *
- * Mixed batches (any permanent error alongside retriable ones) are treated as permanent — a
- * poison-pill document would otherwise loop until `max.retries` is exhausted.
+ *  - Uses HTTP `status` and `errorType`. `reason` is checked only when `errorType` is empty,
+ *    as a prefix match (mapper errors embed the rejected document in `reason`).
+ *  - Retriable: HTTP 429 (`es_rejected_execution_exception`), HTTP 409
+ *    (`version_conflict_engine_exception`).
+ *  - Permanent: mapping conflicts and other document-level rejections.
+ *  - Mixed batch (permanent + retriable) is classified permanent.
  */
 object BulkItemErrorClassifier {
 
@@ -81,24 +74,17 @@ object BulkItemErrorClassifier {
     }
 
   /**
-   * Whether a permanent (non-retriable) item error may be diverted — dropped or reported to the
-   * dead-letter queue, per `bulk.item.errors=drop`/`dlq` — instead of failing the task. Restricted
-   * to HTTP 400 — per-document rejections (`mapper_parsing_exception`, `illegal_argument_exception`,
-   * `strict_dynamic_mapping_exception`, and friends) are always 400 on both Elasticsearch and
-   * OpenSearch.
+   * Whether a permanent item error is divertible under `bulk.item.errors=drop`/`dlq`.
    *
-   * Deliberately NOT a type allow-list: a status check survives new or renamed document-level
-   * error types (e.g. a future `document_parsing_exception`) without a connector release,
-   * whereas a type list would silently stop covering them. Batch-wide conditions that also
-   * happen to be permanent are excluded because they are HTTP 403/404, not 400 —
-   * `cluster_block_exception` / `security_exception` (403), `index_not_found_exception` (404).
-   * Those affect every op in the request regardless of content; diverting them would discard
-   * good records while the task kept running and reported itself healthy. They fail the task
-   * instead, exactly as they did before this feature existed.
-   *
-   * Known gap: `index_closed_exception` is HTTP 400 but is also batch-wide, not per-document.
-   * Accepted for now; see [[io.lenses.streamreactor.connect.elastic.common.writer.JsonBulkWriter.handleBulkResult]]
-   * for the batch-level backstop that limits the blast radius of any such gap.
+   *  - HTTP 400 only. Per-document rejections (`mapper_parsing_exception`,
+   *    `illegal_argument_exception`, `strict_dynamic_mapping_exception`, etc) are always 400.
+   *  - Status-based, not a type allow-list: covers renamed/new document-level error types
+   *    without a connector release.
+   *  - Excludes 403 (`cluster_block_exception`, `security_exception`) and 404
+   *    (`index_not_found_exception`) — batch-wide, not per-document.
+   *  - Known gap: `index_closed_exception` is HTTP 400 but batch-wide. See
+   *    [[io.lenses.streamreactor.connect.elastic.common.writer.JsonBulkWriter.handleBulkResult]]
+   *    for the batch-level backstop.
    */
   def isDivertible(error: BulkItemError): Boolean =
     !isRetriable(error) && error.status == 400
@@ -123,14 +109,13 @@ object BulkItemErrorClassifier {
   }
 
   /**
-   * Bulk item `errorType` strings differ by connector implementation:
-   *  - ES6/ES7 ([[io.lenses.streamreactor.connect.elastic7.KElasticBulkClient]] via elastic4s): ES REST
-   *    returns snake_case, e.g. `es_rejected_execution_exception`.
-   *  - OpenSearch ([[io.lenses.streamreactor.connect.opensearch.KOpenSearchClient]] via opensearch-java):
-   *    may surface Java exception class names in camelCase, e.g. `EsRejectedExecutionException`.
+   * `errorType` format differs by connector:
+   *  - ES6/ES7 ([[io.lenses.streamreactor.connect.elastic7.KElasticBulkClient]]): snake_case,
+   *    e.g. `es_rejected_execution_exception`.
+   *  - OpenSearch ([[io.lenses.streamreactor.connect.opensearch.KOpenSearchClient]]): camelCase
+   *    class names, e.g. `EsRejectedExecutionException`.
    *
-   * Both land here after [[normalize]]; we match snake_case directly and also the underscore-stripped
-   * form so camelCase inputs (which normalize to a single lowercase token) still hit the retriable set.
+   * Matched after [[normalize]] against both snake_case and the underscore-stripped form.
    */
   private def typeIsRetriable(normalizedType: String): Boolean =
     retriableTypes.contains(normalizedType) ||

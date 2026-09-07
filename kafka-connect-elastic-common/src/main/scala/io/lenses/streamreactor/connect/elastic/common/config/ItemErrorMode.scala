@@ -18,22 +18,15 @@ package io.lenses.streamreactor.connect.elastic.common.config
 import org.apache.kafka.common.config.ConfigException
 
 /**
- * Controls what happens to a bulk item that fails with a *permanent*, per-document error
- * (HTTP 400, e.g. a mapper conflict).
+ * Controls handling of a *permanent*, per-document bulk item error (HTTP 400).
  *
- *  - [[Fail]] (default): the connector throws. Kafka Connect kills the task with offsets
- *    uncommitted, so the whole batch is redelivered on restart. No data is lost, but the
- *    connector stops.
- *  - [[Drop]]: the failing record(s) are discarded (logged at WARN) and the batch is treated as
- *    handled so offsets advance past them, keeping the task running. No dead-letter queue is
- *    required.
- *  - [[Dlq]]: the failing record(s) are reported to the dead-letter queue and the batch is
- *    treated as handled so offsets advance past them, keeping the task running. Only takes
- *    effect when a DLQ is actually configured (see `DlqGate.enabled`); otherwise behaves as
- *    [[Fail]].
+ *  - [[Fail]] (default): throws. Task stops, offsets uncommitted, batch redelivered on restart.
+ *  - [[Drop]]: discards the record (WARN-logged), offsets advance. No DLQ required.
+ *  - [[Dlq]]: reports the record to the DLQ, offsets advance. Requires a DLQ configured
+ *    (`DlqGate.enabled`); otherwise behaves as [[Fail]].
  *
- * [[Drop]] and [[Dlq]] never divert batch-wide conditions (403/404) or retriable errors
- * (429/409) — only per-document HTTP 400 rejections. See `BulkItemErrorClassifier.isDivertible`.
+ * [[Drop]]/[[Dlq]] never divert batch-wide (403/404) or retriable (429/409) errors — only
+ * per-document HTTP 400. See `BulkItemErrorClassifier.isDivertible`.
  */
 sealed trait ItemErrorMode
 

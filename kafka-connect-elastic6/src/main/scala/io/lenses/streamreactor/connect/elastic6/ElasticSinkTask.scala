@@ -31,18 +31,12 @@ class ElasticSinkTask extends AbstractElasticSinkTask {
 
   override protected def progressEnabledKey: String = ElasticConfigConstants.PROGRESS_COUNTER_ENABLED
 
-  // NB: ES6 does not register bulk.item.errors in its ConfigDef and KElastic6BulkClient never
-  // populates BulkItemError.position, so ElasticCommonSettings.itemErrorMode stays at its Fail
-  // default here regardless of dlqGate — the drop/dlq diversion feature itself is a no-op for ES6.
+  // ES6: bulk.item.errors not registered (KElastic6BulkClient doesn't populate
+  // BulkItemError.position) — itemErrorMode stays Fail regardless of dlqGate.
   //
-  // RELEASE NOTE — ES6 IS affected by one side effect of this feature despite the above:
-  // JsonBulkWriter.handleTransportFailure (shared across ES6/ES7/OpenSearch) now reclassifies a
-  // bulk transport failure (connection reset, timeout, etc) as RetriableIntegrityException
-  // instead of a bare RuntimeException. Under connect.elastic.error.policy=NOOP this used to be
-  // swallowed with a WARN log, silently advancing offsets past unwritten records; it now fails
-  // the task instead (still retried under error.policy=RETRY while the retry budget remains).
-  // This closes a pre-existing silent-data-loss hole, but it is a genuine behaviour change for
-  // any ES6 deployment running with error.policy=NOOP that upgrades to this version.
+  // Side effect: JsonBulkWriter.handleTransportFailure (shared) reclassifies transport failures
+  // as RetriableIntegrityException instead of a bare RuntimeException. NOOP no longer swallows
+  // them (previously WARN-logged, offsets advanced); RETRY still retries them.
   override protected def createWriter(conf: Map[String, String], dlqGate: DlqGate): JsonBulkWriter = {
     ElasticConfig.config.parse(conf.asJava)
     ElasticWriter(ElasticConfig(conf), dlqGate)

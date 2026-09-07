@@ -19,19 +19,15 @@ import io.lenses.streamreactor.connect.elastic.common.bulk.BulkOp
 import org.apache.kafka.connect.sink.SinkRecord
 
 /**
- * Identifies a single (record, target) DLQ report within one `put()` call, used to avoid
- * reporting the same record twice as `JsonBulkWriter.insert` walks multiple batches / KCQLs.
+ * Identifies a (record, target) divert within one `put()` call — dedups as
+ * `JsonBulkWriter.insert` walks multiple batches/KCQLs.
  *
- * `target` is deliberately part of the key, not just the record: one `SinkRecord` can fan out
- * to several `BulkOp`s when more than one KCQL targets the same source topic, and a record
- * that is rejected by index A but written successfully to index B must still be reported for
- * A — the two outcomes are independent and both belong in the DLQ / success path respectively.
+ * `target` is part of the key: one `SinkRecord` can fan out to several `BulkOp`s (multiple
+ * KCQLs on the same topic); a record rejected for index A but written to index B is
+ * independent per target.
  *
- * Note this dedup is scoped to a single `put()` invocation (a fresh set is created in
- * `JsonBulkWriter.write`). It intentionally does NOT survive across a redelivered `put()` — if
- * Kafka Connect redelivers the same batch (e.g. after a `RetriableException` under
- * `error.policy=RETRY`), already-reported records may be reported again. DLQ delivery is
- * at-least-once, matching Kafka Connect's own DLQ semantics.
+ * Scoped to one `put()` (fresh set per `JsonBulkWriter.write`); does not survive a redelivered
+ * `put()`. Divert delivery is at-least-once.
  */
 final case class DlqKey(topic: String, partition: Int, offset: Long, target: String)
 

@@ -16,10 +16,9 @@
 package io.lenses.streamreactor.connect.elastic.common.dlq
 
 /**
- * Result of an [[ErrantRecordHandler]] divert attempt (drop or DLQ report). All-or-nothing per
- * call: if any record in the attempt could not be confidently mapped, dropped, reported, or
- * acknowledged, the whole call is [[DivertOutcome.NotDiverted]] and the caller must fall back to
- * its normal failure path rather than partially advancing offsets.
+ * Result of an [[ErrantRecordHandler]] divert attempt. All-or-nothing: if any record could not
+ * be mapped, dropped, reported, or acknowledged, the whole call is [[DivertOutcome.NotDiverted]]
+ * — caller falls back to its normal failure path.
  */
 sealed trait DivertOutcome
 

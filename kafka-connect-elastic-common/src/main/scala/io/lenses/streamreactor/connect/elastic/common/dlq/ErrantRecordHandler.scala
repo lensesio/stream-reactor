@@ -32,63 +32,44 @@ import scala.collection.mutable
 import scala.util.control.NonFatal
 
 /**
- * Diverts permanently-failed bulk items (and writer-stage failures) away from failing the task —
- * either by dropping them (`bulk.item.errors=drop`) or by reporting them to Kafka Connect's
- * dead-letter queue via [[ErrantRecordReporter]] (`bulk.item.errors=dlq`, modelled on the in-repo
- * `com.wepay.kafka.connect.bigquery.ErrantRecordHandler` (kcbq-connector) but hardened):
+ * Diverts permanently-failed bulk items (and writer-stage failures): drops them
+ * (`bulk.item.errors=drop`) or reports them to Kafka Connect's DLQ via [[ErrantRecordReporter]]
+ * (`bulk.item.errors=dlq`).
  *
- *  - Maps a [[BulkItemError]] to a record by `position`, refusing the mapping unless `position`
- *    is in range AND the response item's `id` matches the op at that position. A length
- *    mismatch already disables positions upstream (`position = -1`); an id mismatch at an
- *    in-range position means the Bulk API did not return items in request order, and guessing
- *    would silently divert the wrong Kafka record while committing the actually-bad one as
- *    successful — the only way this feature could lose data. On any doubt the whole call is
- *    refused ([[DivertOutcome.NotDiverted]]) rather than partially diverted. This applies equally
- *    to `drop` and `dlq` — an untrustworthy response is never diverted, only failed.
- *  - Deliberately does NOT also require the response item's `index` to match the request op's
- *    `index`. When the KCQL target is a write alias, Elasticsearch/OpenSearch resolve it to the
- *    concrete backing index before writing and echo that concrete index in the response — never
- *    the alias that was actually sent — so an index equality check would refuse every batch
- *    routed through an alias. `id` alone is sufficient corroboration that the response is in
- *    request order; `DlqKey.forOp` still keys the divert on the op's (KCQL-resolved) index,
- *    so this does not change dedup semantics or misattribute a Kafka record.
- *  - For `dlq`, waits on every `Future[Void]` returned by `report()` under a short bound before
- *    treating a batch as reported. This is a correctness requirement, not an optimisation: Kafka
- *    Connect provides no other signal that a DLQ write failed while `errors.tolerance=all` —
- *    `WorkerErrantRecordReporter.maybeThrowAsyncError()` only throws outside tolerance limits,
- *    so it is inert in exactly the mode `dlq` requires.
- *  - For `dlq`, catches throws from `report()` itself. Under `errors.tolerance=none`,
- *    `RetryWithToleranceOperator.executeFailed` issues the report and THEN throws
- *    (`ConnectException("Tolerance exceeded in error handler", ...)`), so the record still
- *    reaches the DLQ even though the call throws. The throw is caught here and surfaced as
- *    [[DivertOutcome.NotDiverted]] so the writer falls back to its own classified exception
- *    (carrying index/id/type/status/reason) instead of a generic tolerance message — net effect
- *    under `none`: the record is in the DLQ AND the task fails fast, which is correct, since
- *    `dlq` requires `errors.tolerance=all` to have any effect.
- *  - For `drop`, none of the DLQ machinery above applies — no reporter, no ack wait, no
- *    tolerance interaction. A dropped record has no other durable trace, so (unlike `dlq`, where
- *    the record lives on in the DLQ topic) each drop is logged individually at WARN with the
- *    error detail that caused it.
+ *  - Maps a [[BulkItemError]] to a record by `position`; refuses the mapping unless `position`
+ *    is in range AND the response item's `id` matches the op at that position. Refuses the
+ *    whole call ([[DivertOutcome.NotDiverted]]) on any mismatch — applies to both `drop` and
+ *    `dlq`.
+ *  - Does not compare `index`: a write alias resolves to a concrete backing index in the
+ *    response, so `op.index` (alias) never equals `error.index` (concrete) even when the
+ *    mapping is correct. `id` alone corroborates ordering; `DlqKey.forOp` keys on the op's
+ *    (KCQL-resolved) index.
+ *  - `dlq`: awaits every `report()` future under `reportTimeoutMs` before treating a batch as
+ *    diverted. `WorkerErrantRecordReporter.maybeThrowAsyncError()` only throws outside
+ *    tolerance limits, so it gives no signal under `errors.tolerance=all`.
+ *  - `dlq`: catches throws from `report()` itself. Under `errors.tolerance=none`,
+ *    `RetryWithToleranceOperator.executeFailed` reports, then throws
+ *    (`ConnectException("Tolerance exceeded in error handler", ...)`). Caught here and surfaced
+ *    as [[DivertOutcome.NotDiverted]] so the writer's own classified exception propagates
+ *    instead of the generic tolerance message.
+ *  - `drop`: no reporter, no ack wait, no tolerance interaction. Each drop is logged
+ *    individually at WARN with the error detail — its only trace.
  */
 class ErrantRecordHandler(
   dlqGate: DlqGate,
-  // Bounded wait for DLQ producer acknowledgement. Deliberately far shorter than
-  // connect.elastic.write.timeout (default 300000ms/5min) — blocking that long inside put()
-  // risks exceeding max.poll.interval.ms and having the task revoked mid-flight, after the
-  // Elasticsearch/OpenSearch write has already happened. Exposed as a constructor param (rather
-  // than a hardcoded constant) purely so tests can exercise the timeout path quickly.
+  // Bounded wait for DLQ producer ack. Shorter than connect.elastic.write.timeout (default
+  // 300000ms) to avoid exceeding max.poll.interval.ms. Constructor param so tests can use a
+  // short timeout.
   reportTimeoutMs: Long = 30000L,
 ) extends StrictLogging {
 
   /**
-   * Diverts permanent (non-retriable) item errors, mapping each back to its originating
-   * `SinkRecord` by position. `errors` must already be filtered to permanent, divertible errors
-   * only — retriable errors (429/409) are never diverted here; they are left on the retry path.
+   * Diverts permanent item errors, mapping each to its `SinkRecord` by position. `errors` must
+   * already be filtered to permanent, divertible errors — retriable (429/409) are never
+   * diverted here.
    *
-   * `mode` must be [[ItemErrorMode.Drop]] or [[ItemErrorMode.Dlq]]; [[ItemErrorMode.Fail]] always
-   * returns [[DivertOutcome.NotDiverted]] defensively (callers should not invoke this method at
-   * all when diversion is inactive, but this method must be safe on its own for any future
-   * caller).
+   * `mode = Fail` returns [[DivertOutcome.NotDiverted]] (defensive default for callers that
+   * invoke this while diversion is inactive).
    */
   def divertPermanent(
     errors:          Seq[BulkItemError],
@@ -108,11 +89,9 @@ class ErrantRecordHandler(
               DivertOutcome.Diverted
           }
         case ItemErrorMode.Dlq =>
-          // Gated on dlqGate.enabled, NOT dlqGate.reporter alone — a non-null reporter with no DLQ
-          // topic configured (errors.log.enable=true on its own, see DlqGate's scaladoc) must behave
-          // identically to no reporter at all. JsonBulkWriter already enforces this via
-          // divertActive before ever calling this method, but the handler must not rely on that:
-          // it is public API and must be safe on its own for any future caller.
+          // Gated on dlqGate.enabled, not dlqGate.reporter alone: a reporter with no DLQ topic
+          // (errors.log.enable=true alone) must behave like no reporter. Must be safe standalone
+          // even though JsonBulkWriter also gates on divertActive.
           (dlqGate.enabled, dlqGate.reporter) match {
             case (true, Some(reporter)) =>
               resolvePositions(errors, opsWithRecords) match {
@@ -132,10 +111,9 @@ class ErrantRecordHandler(
     }
 
   /**
-   * Diverts a single writer-stage failure — a record that never made it into a `BulkOp` (e.g. a
-   * `NullValueBehavior.FAIL` tombstone, a primary-key extraction failure, or an unsupported write
-   * mode). There is no resolved index to correlate against here, so `target` (typically the KCQL
-   * target pattern) stands in for dedup purposes only.
+   * Diverts a single writer-stage failure — a record that never became a `BulkOp` (e.g. a
+   * `NullValueBehavior.FAIL` tombstone, PK extraction failure, unsupported write mode).
+   * `target` (the KCQL target) stands in for dedup; there is no resolved index here.
    */
   def divertOne(
     record:          SinkRecord,
@@ -211,13 +189,9 @@ class ErrantRecordHandler(
         None
       } else {
         val (op, record) = opsWithRecords(error.position)
-        // Corroborate the position-based mapping with `id` only — NOT `index`. A write alias
-        // resolves to its concrete backing index by the time Elasticsearch/OpenSearch echo
-        // `_index` in the bulk response, so op.index (the alias we sent) never equals
-        // error.index (the concrete index) even though the mapping is entirely correct. `id` is
-        // sufficient corroboration that the Bulk API returned items in request order: a reorder
-        // would flip id too, and DlqKey.forOp still keys on op.index (the KCQL-resolved target),
-        // so dedup semantics are unaffected by an alias/concrete-index difference.
+        // Corroborate by `id` only, not `index`: a write alias resolves to its concrete backing
+        // index in the response, so op.index (alias) != error.index (concrete) even when
+        // correct. DlqKey.forOp keys on op.index (the KCQL-resolved target) regardless.
         if (op.id == error.id) {
           if (op.index != error.index) {
             logger.debug(
@@ -289,8 +263,7 @@ class ErrantRecordHandler(
         logger.error(s"DLQ write failed: ${Option(e.getCause).map(_.getMessage).getOrElse(e.getMessage)}", e.getCause)
         false
       case e: CancellationException =>
-        // Future.get throws this (a RuntimeException, NOT a subtype of ExecutionException) if
-        // the future was cancelled — treat it the same as any other unacknowledged write.
+        // Not a subtype of ExecutionException. Treated as unacknowledged.
         logger.error("DLQ write future was cancelled before it could be acknowledged.", e)
         false
       case e: InterruptedException =>
