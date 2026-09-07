@@ -137,6 +137,6 @@ object ElasticCommonConfigConstants {
       |skip takes effect only when errors.deadletterqueue.topic.name is set, errors.tolerance=all and
       |bulk.strict.item.errors=true; otherwise it behaves as fail. Only per-document HTTP 400 rejections are
       |diverted - batch-wide failures (write-blocked/missing index, auth errors) still fail the task.
-      |DLQ delivery is at-least-once. See docs/elastic-opensearch-bulk-dlq.md for details.""".stripMargin
+      |DLQ delivery is at-least-once.""".stripMargin
   val BULK_ITEM_ERRORS_DLQ_DEFAULT = "fail"
 }
