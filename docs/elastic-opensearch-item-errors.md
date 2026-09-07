@@ -19,7 +19,10 @@ Controls what happens to a bulk item that fails with a **permanent, per-document
 never fail"*. The difference between them is purely where the diverted record ends up:
 
 - `drop` needs nothing beyond the connector itself, but the diverted record is **gone** — its only
-  trace is the WARN log line.
+  trace is the log. Drops are summarised in one WARN per batch (record coordinates plus the
+  cluster's rejection reason for the first 10 records, then a count of the rest); enable DEBUG on
+  `io.lenses.streamreactor.connect.elastic.common.dlq.ErrantRecordHandler` to log every dropped
+  record individually.
 - `dlq` needs a Kafka Connect dead-letter queue configured, but the diverted record is **durable**
   — it lands in the DLQ topic, consumable and replayable.
 

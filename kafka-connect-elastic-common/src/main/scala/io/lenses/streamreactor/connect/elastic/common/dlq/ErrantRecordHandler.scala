@@ -52,8 +52,9 @@ import scala.util.control.NonFatal
  *    (`ConnectException("Tolerance exceeded in error handler", ...)`). Caught here and surfaced
  *    as [[DivertOutcome.NotDiverted]] so the writer's own classified exception propagates
  *    instead of the generic tolerance message.
- *  - `drop`: no reporter, no ack wait, no tolerance interaction. Each drop is logged
- *    individually at WARN with the error detail — its only trace.
+ *  - `drop`: no reporter, no ack wait, no tolerance interaction. Bulk-item drops are the only
+ *    trace of a discarded record, so they are logged — one summary WARN per batch capped at
+ *    [[BulkItemErrorClassifier.MaxErrorsInMessage]] records of detail, remainder at DEBUG.
  */
 class ErrantRecordHandler(
   dlqGate: DlqGate,
@@ -124,10 +125,9 @@ class ErrantRecordHandler(
   ): Boolean =
     mode match {
       case ItemErrorMode.Drop =>
-        val key = DlqKey.forTarget(record, target)
-        if (!reportedThisPut.contains(key)) {
-          dropOne(key, record, target, cause, reportedThisPut)
-        }
+        // Not logged here: JsonBulkWriter.insert already logs one WARN per diverted
+        // writer-stage record, for both drop and dlq.
+        reportedThisPut.put(DlqKey.forTarget(record, target), record)
         true
       case ItemErrorMode.Dlq =>
         // See divertPermanent — gated on dlqGate.enabled, not dlqGate.reporter alone.
@@ -144,35 +144,37 @@ class ErrantRecordHandler(
       case ItemErrorMode.Fail => false
     }
 
+  /**
+   * Tracks and logs a batch of dropped records.
+   *
+   * One WARN per call, not per record: a batch-wide cause (e.g. a field type change that makes
+   * every document in the topic a mapper conflict) drops up to `batch.size` records per bulk
+   * call, and each `reason` embeds a preview of the rejected document. Detail is capped at
+   * [[BulkItemErrorClassifier.MaxErrorsInMessage]]; the remainder is logged at DEBUG.
+   */
   private def dropAll(
     mapped:          Seq[(DlqKey, SinkRecord, BulkItemError)],
     reportedThisPut: mutable.Map[DlqKey, SinkRecord],
-  ): Unit =
-    mapped
-      .filterNot { case (key, _, _) => reportedThisPut.contains(key) }
-      .foreach {
-        case (key, record, error) =>
-          reportedThisPut.put(key, record)
-          logger.warn(
-            s"bulk.item.errors=drop: discarding ${record.topic()}-${record.kafkaPartition()}-${record.kafkaOffset()} " +
-              s"(index=${error.index} id=${error.id} status=${error.status} reason=${error.reason}); " +
-              "offsets will advance past this record and it is not sent anywhere else.",
-          )
-      }
-
-  private def dropOne(
-    key:             DlqKey,
-    record:          SinkRecord,
-    target:          String,
-    cause:           Throwable,
-    reportedThisPut: mutable.Map[DlqKey, SinkRecord],
   ): Unit = {
-    reportedThisPut.put(key, record)
-    logger.warn(
-      s"bulk.item.errors=drop: discarding ${record.topic()}-${record.kafkaPartition()}-${record.kafkaOffset()} " +
-        s"(target=$target) after a writer-stage failure: ${cause.getMessage}; " +
-        "offsets will advance past this record and it is not sent anywhere else.",
-    )
+    val toDrop = mapped.filterNot { case (key, _, _) => reportedThisPut.contains(key) }
+    toDrop.foreach { case (key, record, _) => reportedThisPut.put(key, record) }
+
+    if (toDrop.nonEmpty) {
+      val shown = toDrop.take(BulkItemErrorClassifier.MaxErrorsInMessage)
+      val extra = toDrop.size - shown.size
+      val more  = if (extra > 0) s", ... and $extra more (logged individually at DEBUG)" else ""
+      logger.warn(
+        s"bulk.item.errors=drop: discarding ${toDrop.size} record(s); offsets will advance past them " +
+          s"and they are not sent anywhere else: ${shown.map(describeDrop).mkString(", ")}$more",
+      )
+      toDrop.drop(shown.size).foreach(e => logger.debug(s"bulk.item.errors=drop: discarding ${describeDrop(e)}"))
+    }
+  }
+
+  private def describeDrop(entry: (DlqKey, SinkRecord, BulkItemError)): String = {
+    val (_, record, error) = entry
+    s"[${record.topic()}-${record.kafkaPartition()}-${record.kafkaOffset()} index=${error.index} " +
+      s"id=${error.id} status=${error.status} reason=${error.reason}]"
   }
 
   private def resolvePositions(

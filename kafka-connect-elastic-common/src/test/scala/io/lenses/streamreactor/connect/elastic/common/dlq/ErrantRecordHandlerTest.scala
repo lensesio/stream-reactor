@@ -15,18 +15,27 @@
  */
 package io.lenses.streamreactor.connect.elastic.common.dlq
 
+import ch.qos.logback.classic.{ Level => LogbackLevel }
+import ch.qos.logback.classic.{ Logger => LogbackLogger }
+import ch.qos.logback.classic.spi.ILoggingEvent
+import ch.qos.logback.core.read.ListAppender
 import com.fasterxml.jackson.databind.node.JsonNodeFactory
 import io.lenses.streamreactor.connect.elastic.common.bulk.BulkItemError
+import io.lenses.streamreactor.connect.elastic.common.bulk.BulkItemErrorClassifier
+import io.lenses.streamreactor.connect.elastic.common.bulk.BulkOp
 import io.lenses.streamreactor.connect.elastic.common.bulk.InsertOp
 import io.lenses.streamreactor.connect.elastic.common.config.ItemErrorMode
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.sink.ErrantRecordReporter
 import org.apache.kafka.connect.sink.SinkRecord
+import org.scalatest.LoneElement
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
+import org.slf4j.LoggerFactory
 
 import java.util.concurrent.CompletableFuture
 import scala.collection.mutable
+import scala.jdk.CollectionConverters._
 
 /**
  * Unit tests for [[ErrantRecordHandler]] in isolation from [[io.lenses.streamreactor.connect.elastic.common.writer.JsonBulkWriter]].
@@ -44,7 +53,7 @@ import scala.collection.mutable
  * position/id resolution and dedup logic with [[ItemErrorMode.Drop]]); the "drop mode" section
  * near the bottom covers what is unique to [[ItemErrorMode.Drop]].
  */
-class ErrantRecordHandlerTest extends AnyFunSuite with Matchers {
+class ErrantRecordHandlerTest extends AnyFunSuite with Matchers with LoneElement {
 
   private val json = JsonNodeFactory.instance.objectNode().put("field", "value")
 
@@ -405,5 +414,103 @@ class ErrantRecordHandlerTest extends AnyFunSuite with Matchers {
 
     handler.divertOne(r, "target", new RuntimeException("x"), ItemErrorMode.Drop, tracked) shouldBe true
     tracked.size shouldBe 1
+  }
+
+  // ---- drop mode log volume ---------------------------------------------------------------
+  // A batch-wide cause (e.g. a field type change) makes every document in the batch a 400, so
+  // per-record WARN logging would emit up to batch.size lines per bulk call, each carrying a
+  // document preview in `reason`.
+
+  private def captureLogs(level: LogbackLevel)(body: => Any): Seq[String] = {
+    val handlerLogger = LoggerFactory.getLogger(classOf[ErrantRecordHandler]).asInstanceOf[LogbackLogger]
+    val previousLevel = handlerLogger.getLevel
+    val listAppender  = new ListAppender[ILoggingEvent]()
+    listAppender.start()
+    handlerLogger.addAppender(listAppender)
+    handlerLogger.setLevel(LogbackLevel.DEBUG)
+    try {
+      body
+      listAppender.list.asScala.filter(_.getLevel == level).map(_.getFormattedMessage).toSeq
+    } finally {
+      handlerLogger.setLevel(previousLevel)
+      val _ = handlerLogger.detachAppender(listAppender)
+    }
+  }
+
+  /** `count` records, each rejected with its own 400, correlated by position. */
+  private def dropScenario(count: Int): (Seq[BulkItemError], IndexedSeq[(BulkOp, SinkRecord)]) = {
+    val ops = (0 until count).map { i =>
+      op(index = "idx", id = i.toString) -> record(offset = i.toLong)
+    }.toIndexedSeq
+    val errors = (0 until count).map { i =>
+      BulkItemError(index = "idx", id = i.toString, reason = s"boom-$i", position = i)
+    }
+    (errors, ops)
+  }
+
+  test("divertPermanent(Drop) emits ONE summary WARN per batch, not one per record") {
+    val handler       = new ErrantRecordHandler(DlqGate.disabled)
+    val (errors, ops) = dropScenario(250)
+    val tracked       = mutable.Map.empty[DlqKey, SinkRecord]
+
+    val warnings = captureLogs(LogbackLevel.WARN) {
+      handler.divertPermanent(errors, ops, ItemErrorMode.Drop, tracked) shouldBe DivertOutcome.Diverted
+    }
+
+    warnings should have size 1
+    warnings.head should include("discarding 250 record(s)")
+    tracked should have size 250
+  }
+
+  test("divertPermanent(Drop) caps the WARN detail and reports the remaining count") {
+    val handler       = new ErrantRecordHandler(DlqGate.disabled)
+    val (errors, ops) = dropScenario(25)
+
+    val warnings = captureLogs(LogbackLevel.WARN) {
+      handler.divertPermanent(errors, ops, ItemErrorMode.Drop, mutable.Map.empty)
+    }
+
+    val warning = warnings.loneElement
+    // MaxErrorsInMessage (10) records of detail, then a count of the rest.
+    warning should include("reason=boom-0")
+    warning should include(s"reason=boom-${BulkItemErrorClassifier.MaxErrorsInMessage - 1}")
+    warning should not include s"reason=boom-${BulkItemErrorClassifier.MaxErrorsInMessage}"
+    warning should include(s"and ${25 - BulkItemErrorClassifier.MaxErrorsInMessage} more")
+  }
+
+  test("divertPermanent(Drop) logs the records omitted from the WARN individually at DEBUG") {
+    val handler       = new ErrantRecordHandler(DlqGate.disabled)
+    val (errors, ops) = dropScenario(25)
+
+    val debugs = captureLogs(LogbackLevel.DEBUG) {
+      handler.divertPermanent(errors, ops, ItemErrorMode.Drop, mutable.Map.empty)
+    }
+
+    debugs.size shouldBe (25 - BulkItemErrorClassifier.MaxErrorsInMessage)
+    debugs.head should include(s"reason=boom-${BulkItemErrorClassifier.MaxErrorsInMessage}")
+    debugs.last should include("reason=boom-24")
+  }
+
+  test("divertPermanent(Drop) emits no DEBUG remainder when the batch fits within the WARN cap") {
+    val handler       = new ErrantRecordHandler(DlqGate.disabled)
+    val (errors, ops) = dropScenario(BulkItemErrorClassifier.MaxErrorsInMessage)
+
+    val debugs = captureLogs(LogbackLevel.DEBUG) {
+      handler.divertPermanent(errors, ops, ItemErrorMode.Drop, mutable.Map.empty)
+    }
+
+    debugs shouldBe empty
+  }
+
+  test("divertOne(Drop) logs nothing itself — JsonBulkWriter logs the writer-stage WARN") {
+    val handler = new ErrantRecordHandler(DlqGate.disabled)
+    val tracked = mutable.Map.empty[DlqKey, SinkRecord]
+
+    val warnings = captureLogs(LogbackLevel.WARN) {
+      handler.divertOne(record(offset = 1L), "target", new RuntimeException("x"), ItemErrorMode.Drop, tracked)
+    }
+
+    warnings shouldBe empty
+    tracked should have size 1
   }
 }
