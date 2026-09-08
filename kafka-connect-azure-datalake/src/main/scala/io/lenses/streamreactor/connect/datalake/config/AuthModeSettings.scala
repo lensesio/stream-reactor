@@ -37,6 +37,13 @@ object AuthMode {
 
   case class ConnectionString(connectionString: String) extends AuthMode
 
+  case class ServicePrincipal(
+    clientId:     String,
+    tenantId:     String,
+    clientSecret: Password,
+    accountName:  Option[String],
+  ) extends AuthMode
+
   case object Default extends AuthMode
 
 }
@@ -47,6 +54,9 @@ trait AuthModeSettingsConfigKeys extends WithConnectorPrefix {
   protected val AZURE_ACCOUNT_NAME:      String = s"$connectorPrefix.azure.account.name"
   protected val AZURE_ACCOUNT_KEY:       String = s"$connectorPrefix.azure.account.key"
   protected val AZURE_CONNECTION_STRING: String = s"$connectorPrefix.azure.connection.string"
+  protected val AZURE_CLIENT_ID:         String = s"$connectorPrefix.azure.client.id"
+  protected val AZURE_TENANT_ID:         String = s"$connectorPrefix.azure.tenant.id"
+  protected val AZURE_CLIENT_SECRET:     String = s"$connectorPrefix.azure.client.secret"
 
   def withAuthModeSettings(configDef: ConfigDef): ConfigDef =
     configDef.define(
@@ -54,7 +64,7 @@ trait AuthModeSettingsConfigKeys extends WithConnectorPrefix {
       Type.STRING,
       AuthMode.Default.toString,
       Importance.HIGH,
-      "Authenticate mode, 'credentials', 'connectionstring' or 'default'",
+      "Authenticate mode, 'credentials', 'connectionstring', 'serviceprincipal' or 'default'",
     )
       .define(
         AZURE_ACCOUNT_NAME,
@@ -75,6 +85,24 @@ trait AuthModeSettingsConfigKeys extends WithConnectorPrefix {
         "",
         Importance.HIGH,
         "Azure Account Key",
+      ).define(
+        AZURE_CLIENT_ID,
+        Type.STRING,
+        "",
+        Importance.HIGH,
+        "Azure Entra ID application (client) id, used by the 'serviceprincipal' auth mode",
+      ).define(
+        AZURE_TENANT_ID,
+        Type.STRING,
+        "",
+        Importance.HIGH,
+        "Azure Entra ID directory (tenant) id, used by the 'serviceprincipal' auth mode",
+      ).define(
+        AZURE_CLIENT_SECRET,
+        Type.PASSWORD,
+        "",
+        Importance.HIGH,
+        "Azure Entra ID application client secret, used by the 'serviceprincipal' auth mode",
       )
 }
 
@@ -93,6 +121,18 @@ trait AuthModeSettings extends BaseSettings with AuthModeSettingsConfigKeys {
         for {
           cString <- Try(getPassword(AZURE_CONNECTION_STRING)).toEither
         } yield AuthMode.ConnectionString(cString.value())
+      case Some("serviceprincipal") =>
+        for {
+          clientId     <- Try(getString(AZURE_CLIENT_ID)).toEither
+          tenantId     <- Try(getString(AZURE_TENANT_ID)).toEither
+          clientSecret <- Try(getPassword(AZURE_CLIENT_SECRET)).toEither
+          accountName  <- Try(Option(getString(AZURE_ACCOUNT_NAME))).toEither
+        } yield AuthMode.ServicePrincipal(
+          clientId,
+          tenantId,
+          clientSecret,
+          accountName.map(_.trim).filter(_.nonEmpty),
+        )
       case Some("default")       => AuthMode.Default.asRight
       case Some(invalidAuthMode) => new ConfigException(s"Unsupported auth mode `$invalidAuthMode`").asLeft
       case None                  => AuthMode.Default.asRight
