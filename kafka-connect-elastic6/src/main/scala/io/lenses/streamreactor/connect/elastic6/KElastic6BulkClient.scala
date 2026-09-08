@@ -18,12 +18,16 @@ package io.lenses.streamreactor.connect.elastic6
 import com.sksamuel.elastic4s.Index
 import com.sksamuel.elastic4s.http.ElasticDsl
 import com.typesafe.scalalogging.StrictLogging
+import io.lenses.streamreactor.connect.elastic.common.bulk.BulkItemError
+import io.lenses.streamreactor.connect.elastic.common.bulk.BulkItemErrorClassifier
 import io.lenses.streamreactor.connect.elastic.common.bulk.BulkOp
 import io.lenses.streamreactor.connect.elastic.common.bulk.BulkResult
 import io.lenses.streamreactor.connect.elastic.common.bulk.DeleteOp
 import io.lenses.streamreactor.connect.elastic.common.bulk.InsertOp
 import io.lenses.streamreactor.connect.elastic.common.bulk.KBulkClient
 import io.lenses.streamreactor.connect.elastic.common.bulk.UpsertOp
+import io.lenses.streamreactor.connect.elastic.common.config.ElasticCommonConfigConstants
+import io.lenses.streamreactor.connect.elastic.common.config.ElasticCommonSettings
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -36,19 +40,21 @@ import scala.util.Try
  * The fallback (per original [[ElasticJsonWriter]] behaviour) is to use the index name
  * as the document type when the KCQL `WITHDOCTYPE` clause is absent.
  *
- * Error handling preserves ES6 parity with the pre-refactor [[ElasticJsonWriter]]:
- * HTTP-transport errors are surfaced via the returned `Try`; per-item bulk errors
- * (e.g. mapping conflicts, version conflicts) are logged at WARN but treated as
- * non-fatal, matching ES7 behaviour.
+ * HTTP-transport errors are surfaced via the returned `Try`. Per-item bulk errors are controlled
+ * by [[strictItemErrors]] (config `connect.elastic.bulk.strict.item.errors`, default true):
+ *  - true: `BulkResult.errors=true` so JsonBulkWriter classifies 429 vs mapper errors
+ *  - false: logged at WARN and dropped (legacy tolerant mode)
  *
- * @param writeTimeoutSeconds timeout in **seconds**, preserving the pre-refactor ES6 interpretation of
- *                            `connect.elastic.write.timeout` (default 300000 ≈ 83 hours, effectively
- *                            unbounded). Despite the config doc historically claiming "millis", the old
- *                            `ElasticJsonWriter` always passed this value to `Await.result` as `.seconds`.
- *                            We preserve that here to avoid breaking existing deployments. OpenSearch uses
- *                            milliseconds instead (see OpenSearchTransportFactory).
+ * @param writeTimeoutMillis timeout in **milliseconds** for `Await.result` on the bulk Future.
+ *                           The same value is applied as the HTTP connect/socket timeout.
+ *                           Default 300000 = 5 minutes.
  */
-class KElastic6BulkClient(client: KElasticClient, writeTimeoutSeconds: Int) extends KBulkClient with StrictLogging {
+class KElastic6BulkClient(
+  client:             KElasticClient,
+  writeTimeoutMillis: Int,
+  strictItemErrors:   Boolean = true,
+) extends KBulkClient
+    with StrictLogging {
 
   override def supportsDocumentType: Boolean = true
 
@@ -68,13 +74,14 @@ class KElastic6BulkClient(client: KElasticClient, writeTimeoutSeconds: Int) exte
         update(id)
           .in(index / docType)
           .docAsUpsert(json.toString)
+          .retryOnConflict(ElasticCommonConfigConstants.UPSERT_RETRY_ON_CONFLICT)
 
       case DeleteOp(index, id, documentType) =>
         val docType = documentType.getOrElse(index)
         deleteById(new Index(index), docType, id)
     }
 
-    val response = Await.result(client.execute(ElasticDsl.bulk(elasticRequests)), writeTimeoutSeconds.seconds)
+    val response = Await.result(client.execute(ElasticDsl.bulk(elasticRequests)), writeTimeoutMillis.millis)
 
     if (response.isError) {
       throw new RuntimeException(s"Elastic bulk transport error: ${response.error.reason}")
@@ -83,20 +90,33 @@ class KElastic6BulkClient(client: KElasticClient, writeTimeoutSeconds: Int) exte
     val result     = response.result
     val tookMillis = result.took
 
-    // ES6 parity: item-level errors are logged at WARN but treated as non-fatal,
-    // matching the pre-refactor ElasticJsonWriter behaviour and the ES7 client.
-    val itemErrorMessages = result.items
-      .filter(_.error.isDefined)
-      .map(item => s"[${item.index}/${item.id}] ${item.error.map(_.reason).getOrElse("")}")
-
-    if (itemErrorMessages.nonEmpty) {
-      logger.warn(
-        s"Bulk write completed with ${itemErrorMessages.size} item-level errors (ES6 tolerant mode): $itemErrorMessages",
-      )
+    val itemErrors: Seq[BulkItemError] = result.items.collect {
+      case item if item.error.isDefined =>
+        val err = item.error.get
+        BulkItemError(
+          index     = item.index,
+          id        = item.id,
+          reason    = err.reason,
+          errorType = err.`type`,
+          status    = item.status,
+        )
     }
 
+    val bulkResult =
+      if (itemErrors.nonEmpty && strictItemErrors) {
+        logger.error(s"Bulk write completed with ${BulkItemErrorClassifier.formatItemErrors(itemErrors)}")
+        BulkResult(took = tookMillis, errors = true, itemErrors = itemErrors)
+      } else if (itemErrors.nonEmpty) {
+        logger.warn(
+          s"Bulk write completed with ${BulkItemErrorClassifier.formatItemErrors(itemErrors)} (tolerant mode)",
+        )
+        BulkResult(took = tookMillis, errors = false, itemErrors = Seq.empty)
+      } else {
+        BulkResult(took = tookMillis, errors = false, itemErrors = Seq.empty)
+      }
+
     logger.info(s"Bulk write completed: took=${tookMillis}ms, items=${result.items.size}")
-    BulkResult(took = tookMillis, errors = false, itemErrors = Seq.empty)
+    bulkResult
   }
 
   override def createIndex(name: String): Try[Unit] = Try {
@@ -104,4 +124,9 @@ class KElastic6BulkClient(client: KElasticClient, writeTimeoutSeconds: Int) exte
   }
 
   override def close(): Unit = client.close()
+}
+
+object KElastic6BulkClient {
+  def apply(client: KElasticClient, settings: ElasticCommonSettings): KElastic6BulkClient =
+    new KElastic6BulkClient(client, settings.writeTimeout, settings.strictItemErrors)
 }

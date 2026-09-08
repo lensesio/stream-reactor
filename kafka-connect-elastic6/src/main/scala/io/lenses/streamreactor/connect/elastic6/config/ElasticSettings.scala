@@ -33,6 +33,7 @@ object ElasticSettings {
     val httpBasicAuthUsername = config.getString(ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_USERNAME)
     val httpBasicAuthPassword = config.getString(ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_PASSWORD)
     val batchSize             = config.getInt(ElasticConfigConstants.BATCH_SIZE_CONFIG)
+    val strictItemErrors      = config.getBoolean(ElasticConfigConstants.BULK_STRICT_ITEM_ERRORS_KEY)
 
     ElasticCommonSettings(
       kcqls                 = kcql,
@@ -44,6 +45,7 @@ object ElasticSettings {
       httpBasicAuthUsername = httpBasicAuthUsername,
       httpBasicAuthPassword = httpBasicAuthPassword,
       storesInfo            = unpackOrThrow(StoresInfo.fromConfig(config)),
+      strictItemErrors      = strictItemErrors,
     )
   }
 }

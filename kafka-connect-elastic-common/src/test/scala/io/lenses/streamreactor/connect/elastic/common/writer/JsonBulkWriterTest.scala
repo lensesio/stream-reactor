@@ -31,12 +31,18 @@ import io.lenses.streamreactor.connect.elastic.common.bulk.DeleteOp
 import io.lenses.streamreactor.connect.elastic.common.bulk.InsertOp
 import io.lenses.streamreactor.connect.elastic.common.bulk.KBulkClient
 import io.lenses.streamreactor.connect.elastic.common.bulk.UpsertOp
+import io.lenses.streamreactor.connect.elastic.common.bulk.BulkItemError
 import io.lenses.streamreactor.connect.elastic.common.config.ElasticCommonSettings
+import io.lenses.streamreactor.common.errors.FatalConnectException
 import io.lenses.streamreactor.common.errors.NoopErrorPolicy
+import io.lenses.streamreactor.common.errors.RetryErrorPolicy
+import io.lenses.streamreactor.common.errors.RetriableIntegrityException
+import io.lenses.streamreactor.common.errors.ThrowErrorPolicy
 import io.lenses.streamreactor.common.security.StoresInfo
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaBuilder
 import org.apache.kafka.connect.data.Struct
+import org.apache.kafka.connect.errors.RetriableException
 import org.apache.kafka.connect.sink.SinkRecord
 import org.mockito.MockitoSugar
 import org.mockito.ArgumentMatchersSugar
@@ -544,5 +550,129 @@ class JsonBulkWriterTest
     val deleteOps = recording.allOps.collect { case d: DeleteOp => d }
     deleteOps should not be empty
     deleteOps.head.index shouldBe expected
+  }
+
+  // ---- Item-level error classification (429 vs mapper) ---------------------------------
+
+  private def failingClient(itemErrors: Seq[BulkItemError]): KBulkClient = new KBulkClient {
+    override def bulk(ops: Seq[BulkOp]): Try[BulkResult] =
+      Success(BulkResult(took = 1L, errors = true, itemErrors = itemErrors))
+    override def createIndex(name: String): Try[Unit] = Success(())
+    override def close(): Unit = ()
+  }
+
+  test("mapper item error under THROW surfaces as FatalConnectException (not retried)") {
+    val writer = new JsonBulkWriter(
+      failingClient(Seq(BulkItemError("idx", "1", "failed to parse", "mapper_parsing_exception", 400))),
+      ElasticCommonSettings(
+        kcqls       = Seq(io.lenses.kcql.Kcql.parse("INSERT INTO idx SELECT * FROM topic")),
+        errorPolicy = ThrowErrorPolicy(),
+        taskRetries = 20,
+        storesInfo  = defaultStoresInfo,
+      ),
+    )
+    val thrown = intercept[FatalConnectException](writer.write(Vector(record("topic", "k", struct(1, "x")))))
+    thrown should not be a[RetriableIntegrityException]
+    thrown.getMessage should include("mapper_parsing_exception")
+  }
+
+  test("429 item error under RETRY surfaces as RetriableException wrapping RetriableIntegrityException") {
+    val writer = new JsonBulkWriter(
+      failingClient(Seq(BulkItemError("idx", "1", "rejected execution", "es_rejected_execution_exception", 429))),
+      ElasticCommonSettings(
+        kcqls       = Seq(io.lenses.kcql.Kcql.parse("INSERT INTO idx SELECT * FROM topic")),
+        errorPolicy = RetryErrorPolicy(),
+        taskRetries = 20,
+        storesInfo  = defaultStoresInfo,
+      ),
+    )
+    val thrown = intercept[RetriableException](writer.write(Vector(record("topic", "k", struct(1, "x")))))
+    thrown.getCause shouldBe a[RetriableIntegrityException]
+  }
+
+  test("429 item error under THROW fails the task via RetriableIntegrityException (no silent skip)") {
+    val writer = new JsonBulkWriter(
+      failingClient(Seq(BulkItemError("idx", "1", "rejected execution", "es_rejected_execution_exception", 429))),
+      ElasticCommonSettings(
+        kcqls       = Seq(io.lenses.kcql.Kcql.parse("INSERT INTO idx SELECT * FROM topic")),
+        errorPolicy = ThrowErrorPolicy(),
+        taskRetries = 20,
+        storesInfo  = defaultStoresInfo,
+      ),
+    )
+    intercept[RetriableIntegrityException](writer.write(Vector(record("topic", "k", struct(1, "x")))))
+  }
+
+  test("429 item error under NOOP is not swallowed") {
+    val writer = new JsonBulkWriter(
+      failingClient(Seq(BulkItemError("idx", "1", "rejected execution", "es_rejected_execution_exception", 429))),
+      ElasticCommonSettings(
+        kcqls       = Seq(io.lenses.kcql.Kcql.parse("INSERT INTO idx SELECT * FROM topic")),
+        errorPolicy = new NoopErrorPolicy(),
+        taskRetries = 20,
+        storesInfo  = defaultStoresInfo,
+      ),
+    )
+    intercept[RetriableIntegrityException](writer.write(Vector(record("topic", "k", struct(1, "x")))))
+  }
+
+  test("mixed 429 + mapper under RETRY is fatal (does not wrap in RetriableException)") {
+    val writer = new JsonBulkWriter(
+      failingClient(
+        Seq(
+          BulkItemError("idx", "1", "rejected", "es_rejected_execution_exception", 429),
+          BulkItemError("idx", "2", "failed to parse", "mapper_parsing_exception", 400),
+        ),
+      ),
+      ElasticCommonSettings(
+        kcqls       = Seq(io.lenses.kcql.Kcql.parse("INSERT INTO idx SELECT * FROM topic")),
+        errorPolicy = RetryErrorPolicy(),
+        taskRetries = 20,
+        storesInfo  = defaultStoresInfo,
+      ),
+    )
+    val thrown = intercept[FatalConnectException](writer.write(Vector(record("topic", "k", struct(1, "x")))))
+    thrown should not be a[RetriableIntegrityException]
+    thrown should not be a[RetriableException]
+  }
+
+  test("409 version conflict under RETRY surfaces as RetriableException") {
+    val writer = new JsonBulkWriter(
+      failingClient(
+        Seq(BulkItemError("idx", "1", "version conflict", "version_conflict_engine_exception", 409)),
+      ),
+      ElasticCommonSettings(
+        kcqls       = Seq(io.lenses.kcql.Kcql.parse("INSERT INTO idx SELECT * FROM topic")),
+        errorPolicy = RetryErrorPolicy(),
+        taskRetries = 20,
+        storesInfo  = defaultStoresInfo,
+      ),
+    )
+    val thrown = intercept[RetriableException](writer.write(Vector(record("topic", "k", struct(1, "x")))))
+    thrown.getCause shouldBe a[RetriableIntegrityException]
+  }
+
+  test("mapper error whose reason mentions rejected execution is still fatal under RETRY") {
+    val writer = new JsonBulkWriter(
+      failingClient(
+        Seq(
+          BulkItemError(
+            "idx",
+            "1",
+            "failed to parse field [foo]: Preview of field's value: 'rejected execution'",
+            "mapper_parsing_exception",
+            400,
+          ),
+        ),
+      ),
+      ElasticCommonSettings(
+        kcqls       = Seq(io.lenses.kcql.Kcql.parse("INSERT INTO idx SELECT * FROM topic")),
+        errorPolicy = RetryErrorPolicy(),
+        taskRetries = 20,
+        storesInfo  = defaultStoresInfo,
+      ),
+    )
+    val thrown = intercept[FatalConnectException](writer.write(Vector(record("topic", "k", struct(1, "x")))))
+    thrown should not be a[RetriableException]
   }
 }

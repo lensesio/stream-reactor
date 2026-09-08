@@ -27,6 +27,7 @@ import io.lenses.streamreactor.connect.elastic.common.writer.JsonBulkWriter
 import io.lenses.streamreactor.connect.opensearch.config.OpenSearchConfig
 import io.lenses.streamreactor.connect.opensearch.config.OpenSearchConfigConstants._
 import io.lenses.streamreactor.connect.opensearch.config.OpenSearchSettings
+import io.lenses.streamreactor.common.errors.FatalConnectException
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaBuilder
@@ -150,9 +151,11 @@ class KOpenSearchClientTest extends AnyFunSuite with Matchers {
     val errorItem   = mock(classOf[BulkResponseItem])
     val errorDetail = mock(classOf[org.opensearch.client.opensearch._types.ErrorCause])
     when(errorDetail.reason()).thenReturn("mapping error")
+    when(errorDetail.`type`()).thenReturn("mapper_parsing_exception")
     when(errorItem.error()).thenReturn(errorDetail)
     when(errorItem.index()).thenReturn("idx")
     when(errorItem.id()).thenReturn("1")
+    when(errorItem.status()).thenReturn(400)
 
     val client = makeClient(
       makeInfoResponse("opensearch", "2.13.0"),
@@ -164,6 +167,8 @@ class KOpenSearchClientTest extends AnyFunSuite with Matchers {
     result.get.errors shouldBe true
     result.get.itemErrors should not be empty
     result.get.itemErrors.head.reason should include("mapping error")
+    result.get.itemErrors.head.errorType shouldBe "mapper_parsing_exception"
+    result.get.itemErrors.head.status shouldBe 400
   }
 
   // This test exercises the escalation path: JsonBulkWriter.insert converts
@@ -194,7 +199,7 @@ class KOpenSearchClientTest extends AnyFunSuite with Matchers {
     val struct: Struct     = new Struct(schema).put("id", "val1")
     val record: SinkRecord = new SinkRecord("topic", 0, Schema.STRING_SCHEMA, "k", schema, struct, 0L)
 
-    val ex = intercept[ConnectException](writer.write(Vector(record)))
+    val ex = intercept[FatalConnectException](writer.write(Vector(record)))
     ex.getMessage should include("item-level error")
   }
 
@@ -306,8 +311,8 @@ class KOpenSearchClientTest extends AnyFunSuite with Matchers {
     indexOp.pipeline() shouldBe null
   }
 
-  // B8: UPSERT action lines must NOT contain forbidden fields either
-  test("B8: UpsertOp serialised action line contains no routing/retryOnConflict fields beyond docAsUpsert") {
+  // B8: UPSERT sets retry_on_conflict so concurrent updates don't fail the task on first 409
+  test("B8: UpsertOp sets retryOnConflict and does not set routing") {
     val captor = ArgumentCaptor.forClass(classOf[BulkRequest])
     val client = makeClient(
       makeInfoResponse("opensearch", "2.13.0"),
@@ -323,7 +328,9 @@ class KOpenSearchClientTest extends AnyFunSuite with Matchers {
     op.isUpdate shouldBe true
     val updateOp = op.update()
     updateOp.routing() shouldBe null
-    updateOp.retryOnConflict() shouldBe null
+    updateOp.retryOnConflict() shouldBe Integer.valueOf(
+      io.lenses.streamreactor.connect.elastic.common.config.ElasticCommonConfigConstants.UPSERT_RETRY_ON_CONFLICT,
+    )
   }
 
   // A4: empty-id guard

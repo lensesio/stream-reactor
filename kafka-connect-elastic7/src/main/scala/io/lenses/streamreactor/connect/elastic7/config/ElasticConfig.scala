@@ -20,6 +20,7 @@ import io.lenses.streamreactor.common.config.base.traits.BaseConfig
 import io.lenses.streamreactor.common.config.base.traits.ErrorPolicySettings
 import io.lenses.streamreactor.common.config.base.traits.NumberRetriesSettings
 import io.lenses.streamreactor.common.config.base.traits.WriteTimeoutSettings
+import io.lenses.streamreactor.connect.elastic.common.config.ElasticWriteTimeoutValidator
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.Importance
 import org.apache.kafka.common.config.ConfigDef.Type
@@ -86,6 +87,7 @@ object ElasticConfig {
       ElasticConfigConstants.WRITE_TIMEOUT_CONFIG,
       Type.INT,
       ElasticConfigConstants.WRITE_TIMEOUT_DEFAULT,
+      ConfigDef.Range.atLeast(ElasticConfigConstants.WRITE_TIMEOUT_MIN),
       Importance.MEDIUM,
       ElasticConfigConstants.WRITE_TIMEOUT_DOC,
       "Connection",
@@ -191,6 +193,17 @@ object ElasticConfig {
       ConfigDef.Width.MEDIUM,
       ElasticConfigConstants.PROGRESS_COUNTER_ENABLED_DISPLAY,
     )
+    .define(
+      ElasticConfigConstants.BULK_STRICT_ITEM_ERRORS_KEY,
+      Type.BOOLEAN,
+      ElasticConfigConstants.BULK_STRICT_ITEM_ERRORS_DEFAULT,
+      Importance.HIGH,
+      ElasticConfigConstants.BULK_STRICT_ITEM_ERRORS_DOC,
+      "Error",
+      4,
+      ConfigDef.Width.SHORT,
+      ElasticConfigConstants.BULK_STRICT_ITEM_ERRORS_KEY,
+    )
     .withClientSslSupport()
 }
 
@@ -204,6 +217,8 @@ case class ElasticConfig(props: Map[String, String])
     with WriteTimeoutSettings
     with ErrorPolicySettings
     with NumberRetriesSettings {
+  ElasticWriteTimeoutValidator.validateElastic6Or7(getWriteTimeout, writeTimeoutSettingsConst)
+
   val kcqlConstant: String = ElasticConfigConstants.KCQL
 
   def getKcql(): Seq[Kcql] =

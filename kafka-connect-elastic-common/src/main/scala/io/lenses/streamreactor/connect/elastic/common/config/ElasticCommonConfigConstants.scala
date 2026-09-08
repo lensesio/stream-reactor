@@ -46,9 +46,24 @@ object ElasticCommonConfigConstants {
   val KCQL_DOC    = "KCQL expression describing field selection and routes."
 
   val WRITE_TIMEOUT_SUFFIX_ = WRITE_TIMEOUT_SUFFIX
-  val WRITE_TIMEOUT_DOC     = "The time to wait in millis. Default is 5 minutes."
+  val WRITE_TIMEOUT_DOC =
+    """The time to wait in milliseconds for a bulk request, also used as the HTTP connect/socket timeout.
+      |Minimum 1. Default 300000 (5 minutes).""".stripMargin
+  val WRITE_TIMEOUT_ELASTIC6_7_DOC =
+    """The time to wait in milliseconds for a bulk request, also used as the HTTP connect/socket timeout.
+      |Minimum 1. Default 300000 (5 minutes).
+      |Elasticsearch 6/7 connectors previously treated this value as seconds; values from 1 to 120 are
+      |rejected as likely seconds (e.g. 60 must become 60000). Sub-second timeouts such as 750 are allowed.""".stripMargin
   val WRITE_TIMEOUT_DISPLAY = "Write timeout"
   val WRITE_TIMEOUT_DEFAULT = 300000
+  val WRITE_TIMEOUT_MIN     = 1
+
+  /** Inclusive range of values that likely meant seconds before the milliseconds migration. */
+  val WRITE_TIMEOUT_SECONDS_TRAP_MIN = 1
+  val WRITE_TIMEOUT_SECONDS_TRAP_MAX = 120
+
+  /** `retry_on_conflict` on UPSERT bulk ops. Exhausted conflicts still surface as HTTP 409 and are classified retriable. */
+  val UPSERT_RETRY_ON_CONFLICT = 3
 
   val CLIENT_HTTP_BASIC_AUTH_USERNAME_SUFFIX  = "use.http.username"
   val CLIENT_HTTP_BASIC_AUTH_USERNAME_DEFAULT = ""
@@ -97,4 +112,15 @@ object ElasticCommonConfigConstants {
   val PK_JOINER_SEPARATOR_DEFAULT = "-"
 
   val BEHAVIOR_ON_NULL_VALUES_PROPERTY = "behavior.on.null.values"
+
+  val BULK_STRICT_ITEM_ERRORS_SUFFIX = "bulk.strict.item.errors"
+  val BULK_STRICT_ITEM_ERRORS_DOC =
+    """When true (default), any per-item bulk failure goes through ErrorPolicy.
+      |HTTP 429 / es_rejected_execution_exception (write-queue saturation) and HTTP 409 /
+      |version_conflict_engine_exception are classified as retriable and surface as RetriableIntegrityException:
+      |error.policy=RETRY re-delivers the batch; NOOP and THROW fail the task.
+      |Mapper conflicts and other permanent item errors surface as FatalConnectException (never retried, never swallowed).
+      |When false, only HTTP-transport errors are surfaced; per-item failures are logged at WARN and dropped.
+      |WARNING: Setting bulk.strict.item.errors=false swallows rejected documents and advances Kafka offsets past them.""".stripMargin
+  val BULK_STRICT_ITEM_ERRORS_DEFAULT = true
 }

@@ -79,6 +79,7 @@ object ElasticCommonConfigDef {
         s"$prefix.$WRITE_TIMEOUT_SUFFIX_",
         Type.INT,
         WRITE_TIMEOUT_DEFAULT,
+        ConfigDef.Range.atLeast(WRITE_TIMEOUT_MIN),
         Importance.MEDIUM,
         WRITE_TIMEOUT_DOC,
         "Connection",
