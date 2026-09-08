@@ -83,14 +83,10 @@ object BulkItemErrorClassifier {
    *  - Excludes 403 (`cluster_block_exception`, `security_exception`) and 404
    *    (`index_not_found_exception`) — batch-wide, not per-document.
    *  - Excludes the HTTP 400 faults that are batch-wide despite the per-item status code (see
-   *    [[isBatchWide]]): closed index, missing ingest pipeline. Caught here, not by the
-   *    [[io.lenses.streamreactor.connect.elastic.common.writer.JsonBulkWriter.handleBulkResult]]
-   *    mixed-error backstop, because that backstop only trips when a non-divertible error is
-   *    mixed with a divertible one — an all-400 response of these faults needs its own check.
+   *    [[isBatchWide]]): closed index, missing ingest pipeline.
    *  - Excludes connector-synthesized validation errors (see [[isConnectorSynthesized]]):
    *    structural violations caught before the request is sent (empty index/id, an id over the
-   *    512-byte limit). Systemic (same KCQL/PK misconfiguration fails every record), not a
-   *    one-off cluster rejection.
+   *    512-byte limit). Systemic — the same KCQL/PK misconfiguration fails every record.
    */
   def isDivertible(error: BulkItemError): Boolean =
     !isRetriable(error) && error.status == 400 && !isBatchWide(error) && !isConnectorSynthesized(error)
@@ -99,7 +95,7 @@ object BulkItemErrorClassifier {
    * `errorType` used by [[io.lenses.streamreactor.connect.opensearch.KOpenSearchClient.validateOp]]
    * and [[io.lenses.streamreactor.connect.elastic7.KElasticBulkClient.validateOp]] for a
    * structural violation caught locally, before any request reaches the cluster. Never
-   * divertible and never discarded by `bulk.strict.item.errors=false` — see the callers.
+   * divertible and never discarded by `bulk.strict.item.errors=false`.
    */
   val ConnectorValidationErrorType: String = "connector_op_validation_exception"
 
@@ -135,8 +131,8 @@ object BulkItemErrorClassifier {
 
   /**
    * Prefix match, not `contains`: a mapper error's `reason` embeds a preview of the rejected
-   * document (see [[isRetriable]]), so a document containing the literal pipeline-missing text
-   * would false-positive under `contains`. The fixed prefix is always emitted first.
+   * document, so a document containing the literal pipeline-missing text would false-positive
+   * under `contains`. The fixed prefix is always emitted first.
    */
   private def reasonLooksBatchWide(errorType: String, reason: String): Boolean =
     normalize(errorType) == "illegal_argument_exception" &&
@@ -162,17 +158,12 @@ object BulkItemErrorClassifier {
   }
 
   /**
-   * Exception for a response where diversion (`bulk.item.errors=drop`/`dlq`) was DEFERRED
-   * because a retriable (429/409) error shares the response with an otherwise-divertible
-   * permanent one — see
-   * [[io.lenses.streamreactor.connect.elastic.common.writer.JsonBulkWriter.handleBulkResult]].
-   * Always [[RetriableIntegrityException]]: every non-retriable error in the set is already
-   * confirmed divertible, so a clean redelivery is guaranteed to make progress once the
-   * retriable remainder clears.
-   *
-   * Not used by [[exceptionFor]]'s other caller, the per-record DLQ report cause in
-   * [[io.lenses.streamreactor.connect.elastic.common.dlq.ErrantRecordHandler]], which must stay
-   * permanent regardless of what else was in the response.
+   * Exception for a response mixing retriable (429/409) errors with divertible permanent ones.
+   * Nothing is dropped or sent to the DLQ on this attempt: Kafka Connect redelivers the whole
+   * batch, so diverting now would divert the same records again on every retry while the
+   * retriable errors persist. The full error set is thrown as retriable instead, and
+   * `bulk.item.errors=drop`/`dlq` is applied on a later attempt whose response contains only
+   * divertible errors.
    */
   def deferredDiversionExceptionFor(itemErrors: Seq[BulkItemError]): RetriableIntegrityException =
     new RetriableIntegrityException(
