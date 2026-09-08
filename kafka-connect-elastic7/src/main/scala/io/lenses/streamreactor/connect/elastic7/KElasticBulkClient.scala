@@ -17,6 +17,7 @@ package io.lenses.streamreactor.connect.elastic7
 
 import com.sksamuel.elastic4s.ElasticDsl
 import com.sksamuel.elastic4s.Index
+import com.sksamuel.elastic4s.requests.bulk.BulkResponseItem
 import com.typesafe.scalalogging.StrictLogging
 import io.lenses.streamreactor.connect.elastic.common.bulk.BulkItemError
 import io.lenses.streamreactor.connect.elastic.common.bulk.BulkItemErrorClassifier
@@ -117,7 +118,27 @@ class KElasticBulkClient(
     }
   }
 
+  /**
+   * Local-validation outcome for one `bulk` call: `validOpsWithIndex` retains each surviving
+   * op's position in the ORIGINAL request, since only a subset may end up sent to the cluster.
+   */
+  private case class ValidatedOps(
+    validationErrors:  Seq[BulkItemError],
+    validOpsWithIndex: IndexedSeq[(BulkOp, Int)],
+  )
+
+  // Structurally identical to
+  // [[io.lenses.streamreactor.connect.opensearch.KOpenSearchClient.bulk]] — same four stages
+  // (validate, send, correlate, merge) — but kept independent rather than shared: the two
+  // diverge in where exactly the cluster-error scan happens and what the completion log
+  // reports, and unifying those would force a behavioural choice neither side asked for.
   override def bulk(ops: Seq[BulkOp]): Try[BulkResult] = Try {
+    val validated                       = partitionValidated(ops)
+    val (tookMillis, clusterItemErrors) = executeValidOps(validated, ops.size)
+    buildResult(tookMillis, validated.validationErrors, clusterItemErrors)
+  }
+
+  private def partitionValidated(ops: Seq[BulkOp]): ValidatedOps = {
     // Single pass over `ops` (vs. validate-all-into-Either then collect twice).
     val validationErrorsBuilder  = mutable.ListBuffer.empty[BulkItemError]
     val validOpsWithIndexBuilder = IndexedSeq.newBuilder[(BulkOp, Int)]
@@ -130,65 +151,79 @@ class KElasticBulkClient(
           case Right(())   => validOpsWithIndexBuilder += op -> idx
         }
     }
-    val validationErrors:  Seq[BulkItemError]        = validationErrorsBuilder.toSeq
-    val validOpsWithIndex: IndexedSeq[(BulkOp, Int)] = validOpsWithIndexBuilder.result()
+    ValidatedOps(validationErrorsBuilder.toSeq, validOpsWithIndexBuilder.result())
+  }
 
-    val (tookMillis, responseItemErrors) =
-      if (validOpsWithIndex.isEmpty) {
-        // Every op failed local validation — nothing sent to the cluster. `took=0` doesn't mean
-        // a 0ms round trip; logged distinctly rather than folded into the "Bulk write completed"
-        // line below.
-        logger.info(
-          s"All ${ops.size} op(s) failed local validation; no bulk request was sent to the cluster.",
-        )
-        (0L, Seq.empty[BulkItemError])
-      } else {
-        val validOps        = validOpsWithIndex.map(_._1)
-        val elasticRequests = validOps.map(toElasticRequest)
-        val response        = Await.result(client.execute(ElasticDsl.bulk(elasticRequests)), writeTimeoutMillis.millis)
+  private def executeValidOps(validated: ValidatedOps, totalOps: Int): (Long, Seq[BulkItemError]) = {
+    val validOpsWithIndex = validated.validOpsWithIndex
+    if (validOpsWithIndex.isEmpty) {
+      // Every op failed local validation — nothing sent to the cluster. `took=0` doesn't mean
+      // a 0ms round trip; logged distinctly rather than folded into the "Bulk write completed"
+      // line below.
+      logger.info(
+        s"All $totalOps op(s) failed local validation; no bulk request was sent to the cluster.",
+      )
+      (0L, Seq.empty[BulkItemError])
+    } else {
+      val validOps        = validOpsWithIndex.map(_._1)
+      val elasticRequests = validOps.map(toElasticRequest)
+      val response        = Await.result(client.execute(ElasticDsl.bulk(elasticRequests)), writeTimeoutMillis.millis)
 
-        if (response.isError) {
-          throw new RuntimeException(s"Elastic bulk transport error: ${response.error.reason}")
-        }
-
-        val result = response.result
-        val took   = result.took
-        // BulkResponse.items is a def that rebuilds its list on every access — capture once.
-        val items = result.items
-
-        // elastic4s's own `itemId` is assigned positionally over this same decoded list, so a
-        // length mismatch against the request (e.g. a decode step dropping an unrecognised item
-        // shape) would shift every later itemId too. Guard here: trust positions only when the
-        // response item count matches the request op count; otherwise disable position mapping
-        // for the whole batch (position = -1) rather than risk mis-correlating an error.
-        val positionsTrustworthy = items.size == validOps.size
-        if (!positionsTrustworthy) {
-          logger.warn(
-            s"Bulk response returned ${items.size} item(s) for a request of ${validOps.size} op(s); " +
-              "cannot reliably correlate item errors to their originating records. Per-record DLQ " +
-              "mapping (if configured) is disabled for this batch.",
-          )
-        }
-
-        val errs: Seq[BulkItemError] = items.zipWithIndex.collect {
-          case (item, idx) if item.error.isDefined =>
-            val err = item.error.get
-            BulkItemError(
-              index     = item.index,
-              id        = item.id,
-              reason    = err.reason,
-              errorType = err.`type`,
-              status    = item.status,
-              // Map back to the position in the ORIGINAL request (validation failures may have
-              // already removed ops from what was sent). Not `item.itemId`: derived from the
-              // same response list, so a length mismatch would poison it too.
-              position = if (positionsTrustworthy) validOpsWithIndex(idx)._2 else -1,
-            )
-        }
-        logger.info(s"Bulk write completed: took=${took}ms, items=${items.size}")
-        (took, errs)
+      if (response.isError) {
+        throw new RuntimeException(s"Elastic bulk transport error: ${response.error.reason}")
       }
 
+      val result = response.result
+      val took   = result.took
+      // BulkResponse.items is a def that rebuilds its list on every access — capture once.
+      val items = result.items
+
+      val errs = itemErrorsFrom(items, validOpsWithIndex)
+      logger.info(s"Bulk write completed: took=${took}ms, items=${items.size}")
+      (took, errs)
+    }
+  }
+
+  private def itemErrorsFrom(
+    items:             Seq[BulkResponseItem],
+    validOpsWithIndex: IndexedSeq[(BulkOp, Int)],
+  ): Seq[BulkItemError] = {
+    // elastic4s's own `itemId` is assigned positionally over this same decoded list, so a
+    // length mismatch against the request (e.g. a decode step dropping an unrecognised item
+    // shape) would shift every later itemId too. Guard here: trust positions only when the
+    // response item count matches the request op count; otherwise disable position mapping
+    // for the whole batch (position = -1) rather than risk mis-correlating an error.
+    val positionsTrustworthy = items.size == validOpsWithIndex.size
+    if (!positionsTrustworthy) {
+      logger.warn(
+        s"Bulk response returned ${items.size} item(s) for a request of ${validOpsWithIndex.size} op(s); " +
+          "cannot reliably correlate item errors to their originating records. Per-record DLQ " +
+          "mapping (if configured) is disabled for this batch.",
+      )
+    }
+
+    items.zipWithIndex.collect {
+      case (item, idx) if item.error.isDefined =>
+        val err = item.error.get
+        BulkItemError(
+          index     = item.index,
+          id        = item.id,
+          reason    = err.reason,
+          errorType = err.`type`,
+          status    = item.status,
+          // Map back to the position in the ORIGINAL request (validation failures may have
+          // already removed ops from what was sent). Not `item.itemId`: derived from the
+          // same response list, so a length mismatch would poison it too.
+          position = if (positionsTrustworthy) validOpsWithIndex(idx)._2 else -1,
+        )
+    }
+  }
+
+  private def buildResult(
+    tookMillis:         Long,
+    validationErrors:   Seq[BulkItemError],
+    responseItemErrors: Seq[BulkItemError],
+  ): BulkResult = {
     // bulk.strict.item.errors=false (legacy tolerant mode: log and drop) applies only to genuine
     // cluster item errors, never to connector-side validation errors (see validateOp) — those
     // are never divertible and must always surface.

@@ -32,6 +32,7 @@ import org.opensearch.client.opensearch.OpenSearchClient
 import org.opensearch.client.opensearch._types.OpenSearchException
 import org.opensearch.client.opensearch.core.BulkRequest
 import org.opensearch.client.opensearch.core.bulk.BulkOperation
+import org.opensearch.client.opensearch.core.bulk.BulkResponseItem
 import org.opensearch.client.opensearch.core.bulk.DeleteOperation
 import org.opensearch.client.opensearch.core.bulk.IndexOperation
 import org.opensearch.client.opensearch.core.bulk.UpdateOperation
@@ -165,7 +166,27 @@ class KOpenSearchClient(client: OpenSearchClient, settings: OpenSearchSettings) 
       new BulkOperation.Builder().delete(deleteOp).build()
   }
 
+  /**
+   * Local-validation outcome for one `bulk` call: `validOpsWithIndex` retains each surviving
+   * op's position in the ORIGINAL request, since only a subset may end up sent to the cluster.
+   */
+  private case class ValidatedOps(
+    validationErrors:  Seq[BulkItemError],
+    validOpsWithIndex: IndexedSeq[(BulkOp, Int)],
+  )
+
+  // Structurally identical to
+  // [[io.lenses.streamreactor.connect.elastic7.KElasticBulkClient.bulk]] — same four stages
+  // (validate, send, correlate, merge) — but kept independent rather than shared: the two
+  // diverge in where exactly the cluster-error scan happens and what the completion log
+  // reports, and unifying those would force a behavioural choice neither side asked for.
   override def bulk(ops: Seq[BulkOp]): Try[BulkResult] = Try {
+    val validated                       = partitionValidated(ops)
+    val (tookMillis, clusterItemErrors) = executeValidOps(validated, ops.size)
+    buildResult(tookMillis, validated.validationErrors, clusterItemErrors)
+  }
+
+  private def partitionValidated(ops: Seq[BulkOp]): ValidatedOps = {
     // Single pass over `ops` (vs. validate-all-into-Either then collect twice).
     val validationErrorsBuilder  = mutable.ListBuffer.empty[BulkItemError]
     val validOpsWithIndexBuilder = IndexedSeq.newBuilder[(BulkOp, Int)]
@@ -178,63 +199,76 @@ class KOpenSearchClient(client: OpenSearchClient, settings: OpenSearchSettings) 
           case Right(())   => validOpsWithIndexBuilder += op -> idx
         }
     }
-    val validationErrors:  Seq[BulkItemError]        = validationErrorsBuilder.toSeq
-    val validOpsWithIndex: IndexedSeq[(BulkOp, Int)] = validOpsWithIndexBuilder.result()
+    ValidatedOps(validationErrorsBuilder.toSeq, validOpsWithIndexBuilder.result())
+  }
 
-    val (tookMillis, responseItemErrors) =
-      if (validOpsWithIndex.isEmpty) {
-        // Every op failed local validation — nothing left to send to the cluster. `took=0` is
-        // NOT "the cluster responded in 0ms" (no request was ever sent).
-        logger.info(
-          s"All ${ops.size} op(s) failed local validation; no bulk request was sent to the cluster.",
-        )
-        (0L, Seq.empty[BulkItemError])
+  private def executeValidOps(validated: ValidatedOps, totalOps: Int): (Long, Seq[BulkItemError]) = {
+    val validOpsWithIndex = validated.validOpsWithIndex
+    if (validOpsWithIndex.isEmpty) {
+      // Every op failed local validation — nothing left to send to the cluster. `took=0` is
+      // NOT "the cluster responded in 0ms" (no request was ever sent).
+      logger.info(
+        s"All $totalOps op(s) failed local validation; no bulk request was sent to the cluster.",
+      )
+      (0L, Seq.empty[BulkItemError])
+    } else {
+      val validOps = validOpsWithIndex.map(_._1)
+      val bulkOps: java.util.List[BulkOperation] = validOps.map(toBulkOperation).asJava
+      val request  = new BulkRequest.Builder().operations(bulkOps).build()
+      val response = client.bulk(request)
+
+      val took = response.took()
+      logger.info(s"Bulk write completed: took=${took}ms, items=${bulkOps.size()}")
+
+      if (!response.errors()) {
+        (took, Seq.empty[BulkItemError])
       } else {
-        val validOps = validOpsWithIndex.map(_._1)
-        val bulkOps: java.util.List[BulkOperation] = validOps.map(toBulkOperation).asJava
-        val request  = new BulkRequest.Builder().operations(bulkOps).build()
-        val response = client.bulk(request)
-
-        val took = response.took()
-        logger.info(s"Bulk write completed: took=${took}ms, items=${bulkOps.size()}")
-
-        if (!response.errors()) {
-          (took, Seq.empty[BulkItemError])
-        } else {
-          // opensearch-java's BulkResponseItem has no ordinal field — position is the item's
-          // index within response.items(), trusted only if it lines up 1:1 with the ops sent
-          // (zipWithIndex must run before the filter, or a dropped success item shifts every
-          // later index). On a length mismatch, disable position mapping for the whole batch
-          // (position = -1) rather than risk mis-correlating an error.
-          val responseItems        = response.items().asScala.toIndexedSeq
-          val positionsTrustworthy = responseItems.size == validOps.size
-          if (!positionsTrustworthy) {
-            logger.warn(
-              s"Bulk response returned ${responseItems.size} item(s) for a request of ${validOps.size} op(s); " +
-                "cannot reliably correlate item errors to their originating records. Per-record DLQ " +
-                "mapping (if configured) is disabled for this batch.",
-            )
-          }
-
-          val errs: Seq[BulkItemError] = responseItems.zipWithIndex
-            .collect {
-              case (item, idx) if item.error() != null =>
-                BulkItemError(
-                  index     = Option(item.index()).getOrElse(""),
-                  id        = Option(item.id()).getOrElse(""),
-                  reason    = Option(item.error().reason()).getOrElse(""),
-                  errorType = Option(item.error().`type`()).getOrElse(""),
-                  status    = item.status(),
-                  // Map the response-relative index back to the position in the ORIGINAL
-                  // request, since validation failures may have already been removed from
-                  // what was actually sent.
-                  position = if (positionsTrustworthy) validOpsWithIndex(idx)._2 else -1,
-                )
-            }
-          (took, errs)
-        }
+        val responseItems = response.items().asScala.toIndexedSeq
+        (took, itemErrorsFrom(responseItems, validOpsWithIndex))
       }
+    }
+  }
 
+  private def itemErrorsFrom(
+    responseItems:     IndexedSeq[BulkResponseItem],
+    validOpsWithIndex: IndexedSeq[(BulkOp, Int)],
+  ): Seq[BulkItemError] = {
+    // opensearch-java's BulkResponseItem has no ordinal field — position is the item's
+    // index within response.items(), trusted only if it lines up 1:1 with the ops sent
+    // (zipWithIndex must run before the filter, or a dropped success item shifts every
+    // later index). On a length mismatch, disable position mapping for the whole batch
+    // (position = -1) rather than risk mis-correlating an error.
+    val positionsTrustworthy = responseItems.size == validOpsWithIndex.size
+    if (!positionsTrustworthy) {
+      logger.warn(
+        s"Bulk response returned ${responseItems.size} item(s) for a request of ${validOpsWithIndex.size} op(s); " +
+          "cannot reliably correlate item errors to their originating records. Per-record DLQ " +
+          "mapping (if configured) is disabled for this batch.",
+      )
+    }
+
+    responseItems.zipWithIndex
+      .collect {
+        case (item, idx) if item.error() != null =>
+          BulkItemError(
+            index     = Option(item.index()).getOrElse(""),
+            id        = Option(item.id()).getOrElse(""),
+            reason    = Option(item.error().reason()).getOrElse(""),
+            errorType = Option(item.error().`type`()).getOrElse(""),
+            status    = item.status(),
+            // Map the response-relative index back to the position in the ORIGINAL
+            // request, since validation failures may have already been removed from
+            // what was actually sent.
+            position = if (positionsTrustworthy) validOpsWithIndex(idx)._2 else -1,
+          )
+      }
+  }
+
+  private def buildResult(
+    tookMillis:         Long,
+    validationErrors:   Seq[BulkItemError],
+    responseItemErrors: Seq[BulkItemError],
+  ): BulkResult = {
     // bulk.strict.item.errors=false (legacy tolerant mode: log and drop) applies only to genuine
     // cluster item errors, never to connector-side validation errors (see validateOp) — those
     // are never divertible and must always surface.
