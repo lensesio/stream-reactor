@@ -44,7 +44,7 @@ import org.scalatest.matchers.should.Matchers
  *    silently swallowed, so offsets never advance past a batch that was never written.
  *  - THROW policy: WireMock returns HTTP 503 → `ConnectException` propagates.
  */
-class OpenSearchErrorPolicyIT extends AnyFunSuite with Matchers with BeforeAndAfterAll {
+class OpenSearchErrorPolicyIT extends AnyFunSuite with Matchers with BeforeAndAfterAll with ITResourceRegistry {
 
   private var wireMock: WireMockServer = _
 
@@ -75,7 +75,7 @@ class OpenSearchErrorPolicyIT extends AnyFunSuite with Matchers with BeforeAndAf
     )
     val config    = OpenSearchConfig(props)
     val settings  = OpenSearchSettings(config)
-    val transport = OpenSearchTransportFactory.create(settings)
+    val transport = track(OpenSearchTransportFactory.create(settings))
     val osClient  = new OpenSearchClient(transport)
     val kClient   = new KOpenSearchClient(osClient, settings)
     new JsonBulkWriter(kClient, settings.common)

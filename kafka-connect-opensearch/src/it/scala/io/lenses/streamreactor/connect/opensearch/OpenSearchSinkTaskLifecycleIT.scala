@@ -24,6 +24,7 @@ import org.apache.kafka.connect.sink.SinkTaskContext
 
 import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.jdk.CollectionConverters.SeqHasAsJava
+import scala.util.Try
 
 /**
  * End-to-end integration test exercising the full [[OpenSearchSinkTask]] lifecycle
@@ -71,17 +72,21 @@ class OpenSearchSinkTaskLifecycleIT extends ITBase {
 
     val task = new OpenSearchSinkTask
     task.initialize(makeContext)
-    task.start(props)
+    var stopped = false
+    try {
+      task.start(props)
 
-    val records = List(
-      record("topic", 1, "Alice", 0),
-      record("topic", 2, "Bob", 1),
-    ).asJava
+      val records = List(
+        record("topic", 1, "Alice", 0),
+        record("topic", 2, "Bob", 1),
+      ).asJava
 
-    noException shouldBe thrownBy(task.put(records))
-    task.stop()
+      noException shouldBe thrownBy(task.put(records))
+      task.stop()
+      stopped = true
 
-    awaitDocumentCount(index, 2L)
+      awaitDocumentCount(index, 2L)
+    } finally if (!stopped) { val _ = Try(task.stop()) }
   }
 
   test("T2: multi-KCQL config (semicolon-separated) fans out to two indices end-to-end") {
@@ -97,17 +102,21 @@ class OpenSearchSinkTaskLifecycleIT extends ITBase {
 
     val task = new OpenSearchSinkTask
     task.initialize(makeContext)
-    task.start(props)
+    var stopped = false
+    try {
+      task.start(props)
 
-    val rA = List(record("topicA", 10, "Alice", 0)).asJava
-    val rB = List(record("topicB", 20, "Bob", 0)).asJava
+      val rA = List(record("topicA", 10, "Alice", 0)).asJava
+      val rB = List(record("topicB", 20, "Bob", 0)).asJava
 
-    noException shouldBe thrownBy(task.put(rA))
-    noException shouldBe thrownBy(task.put(rB))
-    task.stop()
+      noException shouldBe thrownBy(task.put(rA))
+      noException shouldBe thrownBy(task.put(rB))
+      task.stop()
+      stopped = true
 
-    awaitDocumentCount(idx1, 1L)
-    awaitDocumentCount(idx2, 1L)
+      awaitDocumentCount(idx1, 1L)
+      awaitDocumentCount(idx2, 1L)
+    } finally if (!stopped) { val _ = Try(task.stop()) }
   }
 
   test("T3: progress counter key (connect.progress.enabled=true) does not crash task start") {
@@ -121,8 +130,12 @@ class OpenSearchSinkTaskLifecycleIT extends ITBase {
 
     val task = new OpenSearchSinkTask
     task.initialize(makeContext)
-    noException shouldBe thrownBy(task.start(props))
-    noException shouldBe thrownBy(task.put(List(record("topic", 99, "Progress", 0)).asJava))
-    task.stop()
+    var stopped = false
+    try {
+      noException shouldBe thrownBy(task.start(props))
+      noException shouldBe thrownBy(task.put(List(record("topic", 99, "Progress", 0)).asJava))
+      task.stop()
+      stopped = true
+    } finally if (!stopped) { val _ = Try(task.stop()) }
   }
 }

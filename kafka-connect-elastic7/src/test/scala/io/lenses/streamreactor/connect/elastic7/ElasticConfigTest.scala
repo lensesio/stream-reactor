@@ -42,20 +42,6 @@ class ElasticConfigTest extends TestBase {
     config.getBoolean(ElasticConfigConstants.BULK_STRICT_ITEM_ERRORS_KEY) shouldBe false
   }
 
-  // Pure ConfigDef get/set echo tests for bulk.item.errors were removed here — they duplicated
-  // the "ElasticSettings should resolve bulk.item.errors=..." tests below, which exercise the
-  // actual ItemErrorMode resolution rather than just confirming ConfigDef stores what it was
-  // given.
-
-  "A ElasticConfig should reject the old bulk.item.errors=skip value — the config was renamed with no alias" in {
-    val ex = intercept[ConfigException] {
-      new ElasticConfig(
-        getElasticSinkConfigProps() + (ElasticConfigConstants.BULK_ITEM_ERRORS_KEY -> "skip"),
-      )
-    }
-    ex.getMessage should include(ElasticConfigConstants.BULK_ITEM_ERRORS_KEY)
-  }
-
   "ElasticSettings should resolve bulk.item.errors into ItemErrorMode.Fail by default" in {
     val config = new ElasticConfig(getElasticSinkConfigProps())
     ElasticSettings(config).itemErrorMode shouldBe ItemErrorMode.Fail

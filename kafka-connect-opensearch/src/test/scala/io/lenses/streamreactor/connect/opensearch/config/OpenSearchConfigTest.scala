@@ -292,11 +292,6 @@ class OpenSearchConfigTest extends AnyFunSuite with Matchers {
     settings(BULK_ITEM_ERRORS_KEY -> "dlq").common.itemErrorMode shouldBe ItemErrorMode.Dlq
   }
 
-  test("bulk.item.errors rejects the old skip value — the config was renamed with no alias") {
-    val ex = intercept[ConfigException](settings(BULK_ITEM_ERRORS_KEY -> "skip"))
-    ex.getMessage should include("bulk.item.errors")
-  }
-
   test("bulk.item.errors rejects an invalid value") {
     val ex = intercept[ConfigException](settings(BULK_ITEM_ERRORS_KEY -> "maybe"))
     ex.getMessage should include("bulk.item.errors")

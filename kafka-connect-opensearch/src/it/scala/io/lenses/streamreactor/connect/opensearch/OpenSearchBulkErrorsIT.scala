@@ -59,20 +59,19 @@ class OpenSearchBulkErrorsIT extends ITBase {
   private def createIndexWithIntegerMapping(index: String, kClient: KOpenSearchClient): Unit = {
     val _ = kClient.createIndex(index)
     // Force the mapping via the OpenSearch indices API through our raw client
-    val rawClient = {
-      import org.opensearch.client.opensearch.OpenSearchClient
-      import org.opensearch.client.transport.httpclient5.ApacheHttpClient5TransportBuilder
-      import org.apache.hc.core5.http.HttpHost
-      val httpHost  = new HttpHost("http", host, port)
-      val transport = ApacheHttpClient5TransportBuilder.builder(httpHost).build()
-      new OpenSearchClient(transport)
-    }
-    val intProp = org.opensearch.client.opensearch._types.mapping.Property.of(p => p.integer(i => i))
-    val putReq = org.opensearch.client.opensearch.indices.PutMappingRequest.of { b =>
-      b.index(index).properties("field", intProp)
-    }
-    rawClient.indices().putMapping(putReq)
-    rawClient._transport().close()
+    import org.opensearch.client.opensearch.OpenSearchClient
+    import org.opensearch.client.transport.httpclient5.ApacheHttpClient5TransportBuilder
+    import org.apache.hc.core5.http.HttpHost
+    val httpHost  = new HttpHost("http", host, port)
+    val transport = ApacheHttpClient5TransportBuilder.builder(httpHost).build()
+    try {
+      val rawClient = new OpenSearchClient(transport)
+      val intProp   = org.opensearch.client.opensearch._types.mapping.Property.of(p => p.integer(i => i))
+      val putReq = org.opensearch.client.opensearch.indices.PutMappingRequest.of { b =>
+        b.index(index).properties("field", intProp)
+      }
+      val _ = rawClient.indices().putMapping(putReq)
+    } finally transport.close()
   }
 
   test("strict mode: item-level mapper_parsing_exception returns BulkResult with errors=true") {
@@ -150,7 +149,7 @@ class OpenSearchBulkErrorsIT extends ITBase {
     )
     val config    = OpenSearchConfig(props)
     val settings  = OpenSearchSettings(config)
-    val transport = OpenSearchTransportFactory.create(settings)
+    val transport = track(OpenSearchTransportFactory.create(settings))
     val osClient  = new OpenSearchClient(transport)
     val kClient   = new KOpenSearchClient(osClient, settings)
     val writer    = new JsonBulkWriter(kClient, settings.common)
@@ -205,7 +204,7 @@ class OpenSearchBulkErrorsIT extends ITBase {
     )
     val config    = OpenSearchConfig(props)
     val settings  = OpenSearchSettings(config)
-    val transport = OpenSearchTransportFactory.create(settings)
+    val transport = track(OpenSearchTransportFactory.create(settings))
     val osClient  = new OpenSearchClient(transport)
     val kClient   = new KOpenSearchClient(osClient, settings)
     val reporter  = new CapturingReporter
@@ -246,8 +245,6 @@ class OpenSearchBulkErrorsIT extends ITBase {
     // The good record in the same batch was actually written, not swept up by the failure.
     val fetched = osClient.get(GetRequest.of(g => g.index(index).id("good")), classOf[JsonNode])
     fetched.found shouldBe true
-
-    transport.close()
   }
 
   test(
@@ -271,7 +268,7 @@ class OpenSearchBulkErrorsIT extends ITBase {
     )
     val config    = OpenSearchConfig(props)
     val settings  = OpenSearchSettings(config)
-    val transport = OpenSearchTransportFactory.create(settings)
+    val transport = track(OpenSearchTransportFactory.create(settings))
     val osClient  = new OpenSearchClient(transport)
     val kClient   = new KOpenSearchClient(osClient, settings)
     // No DlqGate at all — proving drop mode needs no DLQ topic, no reporter, nothing DLQ-related,
@@ -309,8 +306,6 @@ class OpenSearchBulkErrorsIT extends ITBase {
     // The bad record is genuinely gone — drop has no DLQ, no other trace but the WARN log.
     val fetchedBad = osClient.get(GetRequest.of(g => g.index(index).id("bad")), classOf[JsonNode])
     fetchedBad.found shouldBe false
-
-    transport.close()
   }
 
   // OpenSearch resolves a write alias to its concrete backing index before writing, and echoes
@@ -342,7 +337,7 @@ class OpenSearchBulkErrorsIT extends ITBase {
     )
     val config    = OpenSearchConfig(props)
     val settings  = OpenSearchSettings(config)
-    val transport = OpenSearchTransportFactory.create(settings)
+    val transport = track(OpenSearchTransportFactory.create(settings))
     val osClient  = new OpenSearchClient(transport)
     val kClient   = new KOpenSearchClient(osClient, settings)
     val reporter  = new CapturingReporter
@@ -389,8 +384,6 @@ class OpenSearchBulkErrorsIT extends ITBase {
     // The good record in the same batch was actually written, not swept up by the failure.
     val fetched = osClient.get(GetRequest.of(g => g.index(backingIndex).id("good")), classOf[JsonNode])
     fetched.found shouldBe true
-
-    transport.close()
   }
 
   test(
@@ -413,7 +406,7 @@ class OpenSearchBulkErrorsIT extends ITBase {
     )
     val config    = OpenSearchConfig(props)
     val settings  = OpenSearchSettings(config)
-    val transport = OpenSearchTransportFactory.create(settings)
+    val transport = track(OpenSearchTransportFactory.create(settings))
     val osClient  = new OpenSearchClient(transport)
     val kClient   = new KOpenSearchClient(osClient, settings)
     val reporter  = new CapturingReporter
@@ -436,8 +429,6 @@ class OpenSearchBulkErrorsIT extends ITBase {
     thrown.getMessage.toLowerCase should include("cluster_block_exception")
     // Nothing was diverted — a batch-wide condition must never partially divert a batch.
     reporter.received shouldBe empty
-
-    transport.close()
   }
 
   // Pins BulkItemErrorClassifier.isBatchWide's errorType/reason guard against the WORDING a
@@ -497,7 +488,7 @@ class OpenSearchBulkErrorsIT extends ITBase {
     )
     val config    = OpenSearchConfig(props)
     val settings  = OpenSearchSettings(config)
-    val transport = OpenSearchTransportFactory.create(settings)
+    val transport = track(OpenSearchTransportFactory.create(settings))
     val osClient  = new OpenSearchClient(transport)
     val kClient   = new KOpenSearchClient(osClient, settings)
     val reporter  = new CapturingReporter
@@ -521,7 +512,5 @@ class OpenSearchBulkErrorsIT extends ITBase {
     thrown.getMessage.toLowerCase should include("closed")
     // Nothing was diverted — a batch-wide condition must never partially divert a batch.
     reporter.received shouldBe empty
-
-    transport.close()
   }
 }
