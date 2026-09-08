@@ -42,7 +42,7 @@ import scala.jdk.CollectionConverters.MapHasAsScala
 abstract class AbstractElasticSinkTask extends SinkTask with StrictLogging with JarManifestProvided {
 
   private var writer: Option[JsonBulkWriter] = None
-  private val progressCounter = new ProgressCounter
+  private[sink] val progressCounter = new ProgressCounter
   private var enableProgress: Boolean = false
 
   protected def asciiArtResource: String

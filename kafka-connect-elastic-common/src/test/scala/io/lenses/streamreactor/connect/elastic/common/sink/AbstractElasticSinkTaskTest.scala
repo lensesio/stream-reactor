@@ -261,9 +261,8 @@ class AbstractElasticSinkTaskTest extends AnyFunSuite with Matchers with Mockito
       ),
       expect = Seq(DlqGate.ErrorsToleranceConfigKey),
     ),
-    // Regression case for the fix: Kafka Connect's own default for errors.tolerance is "none" —
-    // an operator who sets the DLQ topic and dlq but simply OMITS errors.tolerance is on exactly
-    // the same footing as one who set it to "none" explicitly, and must get the same warning.
+    // Kafka Connect's default for errors.tolerance is "none" — omitting it is equivalent to
+    // setting it to "none" explicitly, and must produce the same warning.
     WarnCase(
       "warns when dlq is set and errors.tolerance is left UNSET (defaults to none)",
       dlqSettings(),
@@ -407,9 +406,8 @@ class AbstractElasticSinkTaskTest extends AnyFunSuite with Matchers with Mockito
     val task = new RealWriterTask
     task.initialize(
       mockContext(
-        // ProgressKey must be here, not just in the props passed to start(): context.configs()
-        // takes precedence over props whenever non-empty (see the "context.configs() takes
-        // precedence" test above), and this mockContext already carries the DLQ-related keys.
+        // ProgressKey must be in context.configs() (takes precedence over props when non-empty)
+        // alongside the DLQ-related keys already carried by this mockContext.
         configs = Map(
           ItemErrorModeKey                 -> "dlq",
           DlqGate.DlqTopicNameConfigKey    -> "my-dlq-topic",
@@ -419,27 +417,12 @@ class AbstractElasticSinkTaskTest extends AnyFunSuite with Matchers with Mockito
         reporter = Some(new AlwaysAckReporter),
       ),
     )
-    // ProgressCounter logs a "Delivered [n] records for [topic]" line the first time update()
-    // is called with a non-empty collection (its internal timestamp starts at 0, so the very
-    // first elapsed-time check always trips) — a convenient black-box observation point without
-    // reaching into ProgressCounter's private state.
     task.start(Map(ProgressKey -> "true").asJava)
 
-    val progressLogger = LoggerFactory.getLogger(
-      classOf[io.lenses.streamreactor.common.utils.ProgressCounter],
-    ).asInstanceOf[LogbackLogger]
-    val listAppender = new ListAppender[ILoggingEvent]()
-    listAppender.start()
-    progressLogger.addAppender(listAppender)
-    try {
-      task.put(java.util.List.of(good1, good2, dlqd))
+    task.put(java.util.List.of(good1, good2, dlqd))
 
-      val infoLines = listAppender.list.asScala.map(_.getFormattedMessage).toSeq
-      infoLines.exists(l => l.contains("[2]") && l.contains(goodTopic)) shouldBe true
-      infoLines.exists(_.contains(dlqTopic)) shouldBe false
-    } finally {
-      val _ = progressLogger.detachAppender(listAppender)
-    }
+    task.progressCounter.countsByTopic.get(goodTopic) shouldBe Some(2L)
+    task.progressCounter.countsByTopic.get(dlqTopic) shouldBe None
   }
 
   test("put() counts everything when the writer reports no DLQ'd records") {
@@ -455,20 +438,9 @@ class AbstractElasticSinkTaskTest extends AnyFunSuite with Matchers with Mockito
     task.initialize(mockContext())
     task.start(Map(ProgressKey -> "true").asJava)
 
-    val progressLogger = LoggerFactory.getLogger(
-      classOf[io.lenses.streamreactor.common.utils.ProgressCounter],
-    ).asInstanceOf[LogbackLogger]
-    val listAppender = new ListAppender[ILoggingEvent]()
-    listAppender.start()
-    progressLogger.addAppender(listAppender)
-    try {
-      task.put(java.util.List.of(r1, r2))
+    task.put(java.util.List.of(r1, r2))
 
-      val infoLines = listAppender.list.asScala.map(_.getFormattedMessage).toSeq
-      infoLines.exists(l => l.contains("[2]") && l.contains(topic)) shouldBe true
-    } finally {
-      val _ = progressLogger.detachAppender(listAppender)
-    }
+    task.progressCounter.countsByTopic.get(topic) shouldBe Some(2L)
   }
 
   test("put() does not touch the progress counter at all when progress is disabled") {
@@ -484,17 +456,8 @@ class AbstractElasticSinkTaskTest extends AnyFunSuite with Matchers with Mockito
     // progressEnabledKey deliberately left unset -> enableProgress stays false.
     task.start(emptyMap[String, String]())
 
-    val progressLogger = LoggerFactory.getLogger(
-      classOf[io.lenses.streamreactor.common.utils.ProgressCounter],
-    ).asInstanceOf[LogbackLogger]
-    val listAppender = new ListAppender[ILoggingEvent]()
-    listAppender.start()
-    progressLogger.addAppender(listAppender)
-    try {
-      task.put(java.util.List.of(r1))
-      listAppender.list.asScala shouldBe empty
-    } finally {
-      val _ = progressLogger.detachAppender(listAppender)
-    }
+    task.put(java.util.List.of(r1))
+
+    task.progressCounter.countsByTopic shouldBe empty
   }
 }
