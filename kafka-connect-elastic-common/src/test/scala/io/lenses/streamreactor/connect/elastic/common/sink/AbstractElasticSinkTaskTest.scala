@@ -69,16 +69,17 @@ class AbstractElasticSinkTaskTest extends AnyFunSuite with Matchers with Mockito
   private val ItemErrorModeKey    = "test.bulk.item.errors"
   private val StrictItemErrorsKey = "test.bulk.strict.item.errors"
 
-  private class CapturingTask(writerStub: JsonBulkWriter, diversionSupported: Boolean = true) extends AbstractElasticSinkTask {
+  private class CapturingTask(writerStub: JsonBulkWriter, diversionSupported: Boolean = true)
+      extends AbstractElasticSinkTask {
     var capturedConf: Map[String, String] = Map.empty
     var capturedGate: DlqGate             = DlqGate.disabled
 
-    override protected def asciiArtResource:              String  = "/does-not-exist.txt"
-    override protected def errorRetryIntervalKey:         String  = RetryKey
-    override protected def progressEnabledKey:            String  = ProgressKey
-    override protected def itemErrorModeConfigKey:        String  = ItemErrorModeKey
-    override protected def strictItemErrorsConfigKey:     String  = StrictItemErrorsKey
-    override protected def supportsItemErrorDiversion:    Boolean = diversionSupported
+    override protected def asciiArtResource:           String  = "/does-not-exist.txt"
+    override protected def errorRetryIntervalKey:      String  = RetryKey
+    override protected def progressEnabledKey:         String  = ProgressKey
+    override protected def itemErrorModeConfigKey:     String  = ItemErrorModeKey
+    override protected def strictItemErrorsConfigKey:  String  = StrictItemErrorsKey
+    override protected def supportsItemErrorDiversion: Boolean = diversionSupported
 
     override protected def createWriter(conf: Map[String, String], dlqGate: DlqGate): JsonBulkWriter = {
       capturedConf = conf

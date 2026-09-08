@@ -87,6 +87,7 @@ class JsonBulkWriter(
     case ItemErrorMode.Dlq if !dlqGate.enabled => ItemErrorMode.Fail
     case other                                 => other
   }
+
   /** True when [[effectiveItemErrorMode]] is [[ItemErrorMode.Drop]] or [[ItemErrorMode.Dlq]]. */
   private def divertActive: Boolean = effectiveItemErrorMode != ItemErrorMode.Fail
 

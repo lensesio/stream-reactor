@@ -152,7 +152,7 @@ abstract class AbstractElasticSinkTask extends SinkTask with StrictLogging with 
    * would via a real `ConfigDef.parse`.
    */
   private def validateItemErrorConfiguration(confMap: Map[String, String], dlqGate: DlqGate): Unit = {
-    val rawValue = confMap.getOrElse(itemErrorModeConfigKey, ElasticCommonConfigConstants.BULK_ITEM_ERRORS_DEFAULT)
+    val rawValue      = confMap.getOrElse(itemErrorModeConfigKey, ElasticCommonConfigConstants.BULK_ITEM_ERRORS_DEFAULT)
     val itemErrorMode = ItemErrorMode.fromString(rawValue)
 
     // ES6: bulk.item.errors is not registered in ConfigDef and ElasticSettings always pins
