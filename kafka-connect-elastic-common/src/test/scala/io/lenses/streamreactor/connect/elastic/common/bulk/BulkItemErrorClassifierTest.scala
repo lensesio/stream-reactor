@@ -209,6 +209,12 @@ class BulkItemErrorClassifierTest extends AnyFunSuite with Matchers {
     ) shouldBe false
   }
 
+  test("camelCase IllegalArgumentException for a missing pipeline is NOT divertible") {
+    BulkItemErrorClassifier.isDivertible(
+      item("pipeline with id [my-pipeline] does not exist", errorType = "IllegalArgumentException", status = 400),
+    ) shouldBe false
+  }
+
   test("403 cluster_block_exception is NOT divertible") {
     BulkItemErrorClassifier.isDivertible(
       item("blocked", errorType = "cluster_block_exception", status = 403),

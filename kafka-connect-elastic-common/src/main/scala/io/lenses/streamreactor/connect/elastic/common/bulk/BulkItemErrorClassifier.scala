@@ -134,9 +134,14 @@ object BulkItemErrorClassifier {
    * document, so a document containing the literal pipeline-missing text would false-positive
    * under `contains`. The fixed prefix is always emitted first.
    */
-  private def reasonLooksBatchWide(errorType: String, reason: String): Boolean =
-    normalize(errorType) == "illegal_argument_exception" &&
-      normalize(reason).startsWith("pipeline with id")
+  private val illegalArgType        = "illegal_argument_exception"
+  private val illegalArgTypeCompact = illegalArgType.replace("_", "")
+
+  private def reasonLooksBatchWide(errorType: String, reason: String): Boolean = {
+    val t = normalize(errorType)
+    (t == illegalArgType || t.replace("_", "") == illegalArgTypeCompact) &&
+    normalize(reason).startsWith("pipeline with id")
+  }
 
   def formatItemErrors(itemErrors: Seq[BulkItemError]): String = {
     val shown = itemErrors.take(MaxErrorsInMessage)
