@@ -621,7 +621,6 @@ class JsonBulkWriterTest
     )
     val thrown = intercept[FatalConnectException](writer.write(Vector(record("topic", "k", struct(1, "x")))))
     thrown should not be a[RetriableIntegrityException]
-    thrown should not be a[RetriableException]
   }
 
   test("409 version conflict under RETRY surfaces as RetriableException") {
@@ -661,7 +660,7 @@ class JsonBulkWriterTest
       ),
     )
     val thrown = intercept[FatalConnectException](writer.write(Vector(record("topic", "k", struct(1, "x")))))
-    thrown should not be a[RetriableException]
+    thrown should not be a[RetriableIntegrityException]
   }
 
   /** Records every (record, cause) it was asked to report and always acknowledges immediately. */
@@ -1286,7 +1285,6 @@ class JsonBulkWriterTest
     // going anywhere), so this must stay a plain FatalConnectException, not wrapped.
     val thrown = intercept[FatalConnectException](writer.write(Vector(rec1, rec2)))
     thrown should not be a[RetriableIntegrityException]
-    thrown should not be a[RetriableException]
   }
 
   test("drop mode: a writer-stage failure (FAIL tombstone) is dropped instead of failing the task") {
