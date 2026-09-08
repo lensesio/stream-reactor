@@ -186,9 +186,12 @@ abstract class AbstractElasticSinkTask extends SinkTask with StrictLogging with 
         }
         if (!strictItemErrors) {
           logger.warn(
-            "bulk.item.errors=dlq is set together with bulk.strict.item.errors=false; in tolerant " +
-              "mode per-item bulk failures are never surfaced to the writer, so nothing will ever be " +
-              "reported to the dead-letter queue.",
+            "bulk.item.errors=dlq is set together with bulk.strict.item.errors=false. " +
+              "bulk.strict.item.errors=false discards per-item bulk failures inside the bulk client " +
+              "(legacy tolerant mode, logged at WARN there) before bulk.item.errors is ever consulted, " +
+              "so bulk.item.errors=dlq has no effect and no record will ever reach the dead-letter " +
+              "queue. Set bulk.strict.item.errors=true if you want failing records to actually reach " +
+              "the DLQ.",
           )
         }
         // errors.tolerance defaults to "none" when unset — treat absent/blank the same as
