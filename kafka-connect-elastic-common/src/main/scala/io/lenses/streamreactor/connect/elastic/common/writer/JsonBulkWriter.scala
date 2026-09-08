@@ -176,27 +176,18 @@ class JsonBulkWriter(
     } else {
       logger.debug(s"Received ${records.size} records.")
       val grouped = records.groupBy(_.topic())
-      // One fresh, empty tracker per write() call. Deliberately NOT shared/cached across calls
-      // or instances: previously a single static empty map was reused whenever diversion was
-      // inactive to dodge this allocation, which meant any future removal of one of the
-      // divertActive guards in `insert` would have every JsonBulkWriter instance in the JVM
-      // writing into the SAME mutable, non-thread-safe map. The allocation this avoided is
-      // negligible next to the JSON transform and HTTP round trip `insert` performs per batch.
+      // Fresh, empty tracker per write() call — never shared across calls or instances, since
+      // it's mutable and non-thread-safe. The allocation is negligible next to the JSON
+      // transform and HTTP round trip `insert` performs per batch.
       val reportedThisPut = mutable.LinkedHashMap.empty[DlqKey, SinkRecord]
       insert(grouped, reportedThisPut)
       if (reportedThisPut.nonEmpty) {
         logger.info(
-          s"Diverted ${reportedThisPut.size} record(s) (bulk.item.errors=${modeConfigValue}) during this put().",
+          s"Diverted ${reportedThisPut.size} record(s) (bulk.item.errors=${effectiveMode.configValue}) during this put().",
         )
       }
       reportedThisPut.keys.map(k => RecordRef(k.topic, k.partition, k.offset)).toSet
     }
-
-  private def modeConfigValue: String = effectiveMode match {
-    case ItemErrorMode.Fail => "fail"
-    case ItemErrorMode.Drop => "drop"
-    case ItemErrorMode.Dlq  => "dlq"
-  }
 
   private def insert(
     records:         Map[String, Vector[SinkRecord]],
@@ -229,7 +220,7 @@ class JsonBulkWriter(
                     if (errantRecordHandler.divertOne(r, target, e, effectiveMode, reportedThisPut)) {
                       logger.warn(
                         s"Writer-stage failure for ${r.topic()}-${r.kafkaPartition()}-${r.kafkaOffset()} " +
-                          s"diverted (bulk.item.errors=${modeConfigValue}) instead of failing the task: ${e.getMessage}",
+                          s"diverted (bulk.item.errors=${effectiveMode.configValue}) instead of failing the task: ${e.getMessage}",
                       )
                       None
                     } else {

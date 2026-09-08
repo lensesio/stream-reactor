@@ -28,12 +28,16 @@ import org.apache.kafka.common.config.ConfigException
  * [[Drop]]/[[Dlq]] never divert batch-wide (403/404) or retriable (429/409) errors — only
  * per-document HTTP 400. See `BulkItemErrorClassifier.isDivertible`.
  */
-sealed trait ItemErrorMode
+sealed trait ItemErrorMode {
+
+  /** The `bulk.item.errors` config value that resolves to this mode — the inverse of [[ItemErrorMode.fromString]]. */
+  def configValue: String
+}
 
 object ItemErrorMode {
-  case object Fail extends ItemErrorMode
-  case object Drop extends ItemErrorMode
-  case object Dlq  extends ItemErrorMode
+  case object Fail extends ItemErrorMode { val configValue = "fail" }
+  case object Drop extends ItemErrorMode { val configValue = "drop" }
+  case object Dlq  extends ItemErrorMode { val configValue = "dlq"  }
 
   def fromString(value: String): ItemErrorMode =
     Option(value).map(_.trim.toLowerCase) match {
