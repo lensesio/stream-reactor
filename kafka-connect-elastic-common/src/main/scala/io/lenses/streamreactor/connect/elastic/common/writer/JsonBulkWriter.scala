@@ -119,13 +119,11 @@ class JsonBulkWriter(
    * won't convert to the declared type), which are all divertible under
    * `bulk.item.errors=drop`/`dlq` (see `insert` below), a KCQL/config-level fault must still fail
    * the task in every mode, or the entire stream would be silently discarded one record at a
-   * time while the task reported itself healthy. Failing here means it fails at `start()`
-   * instead of on the first record.
+   * time while the task reported itself healthy.
    *
    * Deliberately placed BEFORE `client.start()` below: this is pure KCQL/config validation with
    * no cluster dependency, so a bad KCQL must fail before the writer ever probes the cluster or
-   * (via AUTOCREATE, also below) creates an index there. An operator with both a down cluster
-   * and a bad KCQL should not have to fix them one restart at a time.
+   * (via AUTOCREATE, also below) creates an index there.
    */
   private val kcqlMap: util.IdentityHashMap[Kcql, KcqlValues] = {
     val m = new util.IdentityHashMap[Kcql, KcqlValues]()
@@ -187,13 +185,9 @@ class JsonBulkWriter(
       .orNull
 
   /**
-   * Parses `WITHINDEXSUFFIX` once at construction instead of once per record. `CustomIndexName`'s
-   * `DateTimeFragment`s are otherwise lazy — `DateTimeFormatter.ofPattern` isn't called until
-   * `.toString`/`.getFragment` runs — so an invalid pattern (e.g. `WITHINDEXSUFFIX=_{NOT-A-REAL-PATTERN}`)
-   * would not actually surface until the first record if we stopped at parsing; forcing
-   * `.toString` once here, and discarding the (necessarily date-dependent) result, surfaces it at
-   * `start()` instead. The cached `CustomIndexName` returned still renders a fresh date/time on
-   * every subsequent per-record `.toString` — see `CreateIndex.createIndexName`.
+   * Parses `WITHINDEXSUFFIX` once at construction. Forcing `.toString` here surfaces an invalid
+   * pattern at `start()` rather than on the first record. The cached `CustomIndexName` still
+   * renders a fresh date/time on each per-record `.toString` — see `CreateIndex.createIndexName`.
    *
    * An unmatched `}` in the pattern surfaces as `InvalidCustomIndexNameException` (a bare
    * `RuntimeException`), unlike every OTHER construction-time rejection in `kcqlMap`, which is an
@@ -270,9 +264,8 @@ class JsonBulkWriter(
       // Writer-stage failures (record, target, cause) collected across the WHOLE write() call —
       // every topic/KCQL/sub-batch — and diverted in exactly ONE divertWriterStage call below,
       // after every bulk call in this put() has already succeeded. See
-      // ErrantRecordHandler.divertWriterStage's scaladoc for why per-record or per-sub-batch
-      // diversion would be unsafe here (DLQ deadline amplification / duplicate reports on
-      // redelivery) now that writer-stage diversion is no longer a rare, allow-listed case.
+      // See ErrantRecordHandler.divertWriterStage's scaladoc for why per-record or per-sub-batch
+      // diversion would be unsafe (DLQ deadline amplification / duplicate reports on redelivery).
       val pendingWriterStage = mutable.Buffer.empty[WriterStageFailure]
       insert(grouped, reportedThisPut, pendingWriterStage)
 

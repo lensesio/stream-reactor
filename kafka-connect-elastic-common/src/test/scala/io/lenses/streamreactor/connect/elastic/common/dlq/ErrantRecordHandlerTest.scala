@@ -453,7 +453,7 @@ class ErrantRecordHandlerTest extends AnyFunSuite with Matchers with LoneElement
     }
 
     warnings should have size 1
-    warnings.head should include("reported 12 writer-stage record(s)")
+    warnings.head should include("12 record(s)")
     warnings.head should include("dead-letter queue")
     tracked should have size 12
   }
@@ -645,7 +645,8 @@ class ErrantRecordHandlerTest extends AnyFunSuite with Matchers with LoneElement
     }
 
     warnings should have size 1
-    warnings.head should include("discarding 12 writer-stage record(s)")
+    warnings.head should include("12 record(s)")
+    warnings.head should include("discarded")
     tracked should have size 12
   }
 
@@ -720,7 +721,8 @@ class ErrantRecordHandlerTest extends AnyFunSuite with Matchers with LoneElement
     }
 
     warnings should have size 1
-    warnings.head should include("discarding 12 record(s)")
+    warnings.head should include("12 record(s)")
+    warnings.head should include("discarded")
     tracked should have size 12
   }
 

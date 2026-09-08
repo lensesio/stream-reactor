@@ -33,8 +33,7 @@ import scala.util.control.NonFatal
 
 /**
  * A record that failed before becoming a bulk operation (e.g. a missing header, an unresolvable
- * PK path, a tombstone under `FAIL`). Replaces the raw `(SinkRecord, String, Throwable)` tuple
- * so call sites read as named fields rather than positional `_1`/`_2`/`_3`.
+ * PK path, a tombstone under `FAIL`).
  */
 final case class WriterStageFailure(record: SinkRecord, target: String, cause: Throwable)
 
@@ -141,8 +140,7 @@ class ErrantRecordHandler(
    *
    * Called ONCE per `JsonBulkWriter.write()` (i.e. once per `put()`), covering every topic/KCQL/
    * sub-batch's writer-stage failures together — never per record and never per sub-batch. Two
-   * reasons this matters, both a direct consequence of writer-stage failures no longer being a
-   * rare, allow-listed case (historically only a `FAIL` tombstone could reach here at all):
+   * reasons this matters:
    *
    *  - `dlq`: [[reportAndAwait]] shares ONE deadline (`reportTimeoutMs`) across every future it
    *    issues in a single call. Diverting per record would mean a KCQL no record on the topic can
@@ -225,10 +223,12 @@ class ErrantRecordHandler(
       val extra = toDrop.size - shown.size
       val more  = if (extra > 0) s", ... and $extra more (logged individually at DEBUG)" else ""
       logger.warn(
-        s"bulk.item.errors=drop: discarding ${toDrop.size} record(s); offsets will advance past them " +
-          s"and they are not sent anywhere else: ${shown.map(describeDrop).mkString(", ")}$more",
+        s"${toDrop.size} record(s) were permanently rejected by Elasticsearch/OpenSearch and have been " +
+          s"discarded (bulk.item.errors=drop). These records will not be retried and are not recoverable. " +
+          s"Check the rejection reasons below and fix the data or mapping if this is unexpected. " +
+          s"Details: ${shown.map(describeDrop).mkString(", ")}$more",
       )
-      toDrop.drop(shown.size).foreach(e => logger.debug(s"bulk.item.errors=drop: discarding ${describeDrop(e)}"))
+      toDrop.drop(shown.size).foreach(e => logger.debug(s"Discarded record: ${describeDrop(e)}"))
     }
   }
 
@@ -259,13 +259,14 @@ class ErrantRecordHandler(
       val extra = toDrop.size - shown.size
       val more  = if (extra > 0) s", ... and $extra more (logged individually at DEBUG)" else ""
       logger.warn(
-        s"bulk.item.errors=drop: discarding ${toDrop.size} writer-stage record(s) that failed before " +
-          s"becoming a bulk operation (e.g. a missing/invalid header, key, or value used for a " +
-          s"primary key or index target); offsets will advance past them and they are not sent " +
-          s"anywhere else: ${shown.map(describeWriterStageFailure).mkString(", ")}$more",
+        s"${toDrop.size} record(s) could not be sent to Elasticsearch/OpenSearch because required " +
+          s"fields could not be extracted (e.g. a missing header, an unresolvable primary key, or an " +
+          s"invalid index target). They have been discarded (bulk.item.errors=drop) and will not be " +
+          s"retried. Check your KCQL configuration and record schema. " +
+          s"Details: ${shown.map(describeWriterStageFailure).mkString(", ")}$more",
       )
       toDrop.drop(shown.size).foreach(e =>
-        logger.debug(s"bulk.item.errors=drop: discarding ${describeWriterStageFailure(e)}"),
+        logger.debug(s"Discarded record (extraction failure): ${describeWriterStageFailure(e)}"),
       )
     }
   }
@@ -287,13 +288,14 @@ class ErrantRecordHandler(
       val extra = reported.size - shown.size
       val more  = if (extra > 0) s", ... and $extra more (logged individually at DEBUG)" else ""
       logger.warn(
-        s"bulk.item.errors=dlq: reported ${reported.size} writer-stage record(s) that failed before " +
-          s"becoming a bulk operation (e.g. a missing/invalid header, key, or value used for a " +
-          s"primary key or index target) to the dead-letter queue: " +
-          s"${shown.map(describeWriterStageFailure).mkString(", ")}$more",
+        s"${reported.size} record(s) could not be sent to Elasticsearch/OpenSearch because required " +
+          s"fields could not be extracted (e.g. a missing header, an unresolvable primary key, or an " +
+          s"invalid index target). They have been sent to the dead-letter queue (bulk.item.errors=dlq) " +
+          s"and will not be retried. Check your KCQL configuration and record schema. " +
+          s"Details: ${shown.map(describeWriterStageFailure).mkString(", ")}$more",
       )
       reported.drop(shown.size).foreach(e =>
-        logger.debug(s"bulk.item.errors=dlq: reported ${describeWriterStageFailure(e)}"),
+        logger.debug(s"Sent to dead-letter queue (extraction failure): ${describeWriterStageFailure(e)}"),
       )
     }
 
@@ -310,9 +312,10 @@ class ErrantRecordHandler(
     val mapped: Seq[Option[(DlqKey, SinkRecord, BulkItemError)]] = errors.map { error =>
       if (error.position < 0 || error.position >= opsWithRecords.size) {
         logger.error(
-          s"Bulk item error at position ${error.position} is out of range for a request of " +
-            s"${opsWithRecords.size} op(s) (index=${error.index} id=${error.id}); " +
-            "refusing to divert as the position cannot be trusted.",
+          s"Could not identify which record caused a rejection from Elasticsearch/OpenSearch: " +
+            s"response position ${error.position} is out of range (request had ${opsWithRecords.size} record(s); " +
+            s"rejected: index=${error.index} id=${error.id}). The entire batch will be retried rather " +
+            s"than risk discarding or DLQ-ing the wrong record.",
         )
         None
       } else {
@@ -329,9 +332,9 @@ class ErrantRecordHandler(
           Some((DlqKey.forOp(op, record), record, error))
         } else {
           logger.error(
-            s"Bulk response item at position ${error.position} (id=${error.id}) does not match the " +
-              s"request op at that position (id=${op.id}); the Bulk API may not have returned items " +
-              "in request order. Refusing to divert for this batch as the mapping cannot be trusted.",
+            s"The Elasticsearch/OpenSearch bulk response is out of order: response position ${error.position} " +
+              s"has id='${error.id}' but the record sent at that position has id='${op.id}'. " +
+              s"The entire batch will be retried to avoid discarding or DLQ-ing the wrong record.",
           )
           None
         }
@@ -354,9 +357,9 @@ class ErrantRecordHandler(
         } catch {
           case NonFatal(e) =>
             logger.error(
-              s"ErrantRecordReporter.report threw while issuing ${toSend.size} record(s) to the DLQ " +
-                s"(likely errors.tolerance=none — the record(s) may still have reached the DLQ before " +
-                s"the throw); falling back to failing the batch: ${e.getMessage}",
+              s"Failed to send ${toSend.size} record(s) to the dead-letter queue: ${e.getMessage}. " +
+                s"If errors.tolerance=none is set (the default), Kafka Connect rejects DLQ writes — " +
+                s"set errors.tolerance=all for dlq mode to work. The batch will be retried.",
               e,
             )
             None
@@ -384,7 +387,9 @@ class ErrantRecordHandler(
     if (remainingMs <= 0) {
       // The shared deadline was already exhausted by earlier futures in this same call.
       logger.error(
-        s"Timed out after ${reportTimeoutMs}ms (shared across this report call) waiting for a DLQ write to be acknowledged.",
+        s"Timed out waiting for the dead-letter queue to confirm a write (limit: ${reportTimeoutMs}ms, shared " +
+          s"across this batch). The batch will be retried. Consider increasing bulk.item.errors.dlq.timeout.ms " +
+          s"or checking dead-letter queue topic health.",
       )
       false
     } else {
@@ -393,21 +398,27 @@ class ErrantRecordHandler(
         true
       } catch {
         case _: TimeoutException =>
-          logger.error(s"Timed out after ${reportTimeoutMs}ms waiting for a DLQ write to be acknowledged.")
+          logger.error(
+            s"Timed out waiting for the dead-letter queue to confirm a write (limit: ${reportTimeoutMs}ms). " +
+              s"The batch will be retried. Consider increasing bulk.item.errors.dlq.timeout.ms or checking dead-letter queue topic health.",
+          )
           false
         case e: ExecutionException =>
           logger.error(
-            s"DLQ write failed: ${Option(e.getCause).map(_.getMessage).getOrElse(e.getMessage)}",
+            s"The dead-letter queue rejected a write: ${Option(e.getCause).map(_.getMessage).getOrElse(e.getMessage)}. " +
+              s"The batch will be retried.",
             e.getCause,
           )
           false
         case e: CancellationException =>
-          // Not a subtype of ExecutionException. Treated as unacknowledged.
-          logger.error("DLQ write future was cancelled before it could be acknowledged.", e)
+          logger.error("A dead-letter queue write was cancelled before it completed. The batch will be retried.", e)
           false
         case e: InterruptedException =>
           Thread.currentThread().interrupt()
-          logger.error("Interrupted while waiting for a DLQ write to be acknowledged.", e)
+          logger.error(
+            "Interrupted while waiting for the dead-letter queue to confirm a write. The batch will be retried.",
+            e,
+          )
           false
       }
     }

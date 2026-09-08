@@ -150,23 +150,22 @@ abstract class AbstractElasticSinkTask extends SinkTask with StrictLogging with 
       case ItemErrorMode.Fail => // silent — identical to the pre-diversion behaviour
       case ItemErrorMode.Drop =>
         logger.warn(
-          "bulk.item.errors=drop is set: permanently-failed bulk items (HTTP 400, e.g. a mapper " +
-            "conflict) AND writer-stage failures (e.g. a missing/invalid header, key, or value used " +
-            "for a record's primary key or index target) will be discarded and offsets will advance " +
-            "past them. This is a deliberate data-loss trade-off in exchange for keeping the task " +
-            "running; use bulk.item.errors=dlq instead if you need a durable record of what was " +
-            "discarded.",
+          "bulk.item.errors=drop is active. Records permanently rejected by Elasticsearch/OpenSearch " +
+            "(e.g. a mapping conflict) and records that cannot be prepared for indexing (e.g. a missing " +
+            "header or unresolvable primary key) will be silently discarded — they are gone and cannot " +
+            "be recovered. The task will keep running and offsets will advance past them. " +
+            "Use bulk.item.errors=dlq if you need a recoverable copy of discarded records.",
         )
         if (!strictItemErrors) {
           logger.warn(
-            "bulk.item.errors=drop is set together with bulk.strict.item.errors=false. Both discard " +
-              "poison bulk items, but bulk.strict.item.errors=false already discards them inside the " +
-              "bulk client (legacy tolerant mode) before bulk.item.errors is consulted, so " +
-              "bulk.item.errors=drop has no additional effect on PERMANENT BULK ITEM ERRORS and its " +
-              "per-batch drop summary logging will not appear for them. Set bulk.strict.item.errors=true " +
-              "if you want bulk.item.errors=drop to be what discards those. This does NOT affect " +
-              "writer-stage failures (missing/invalid header, key, or value): those never reach the " +
-              "bulk client at all, so bulk.item.errors=drop discards them regardless of this setting.",
+            "bulk.item.errors=drop and bulk.strict.item.errors=false are both set. " +
+              "Records permanently rejected by Elasticsearch/OpenSearch are already silently discarded " +
+              "by the bulk client (bulk.strict.item.errors=false) before bulk.item.errors is consulted — " +
+              "so bulk.item.errors=drop adds no extra behaviour for those and its per-batch summary log " +
+              "will not appear for them. Set bulk.strict.item.errors=true if you want bulk.item.errors=drop " +
+              "to control what happens to rejected records. " +
+              "Records that cannot be prepared for indexing (e.g. a missing header or unresolvable primary key) " +
+              "are still discarded by bulk.item.errors=drop regardless of this setting.",
           )
         }
       case ItemErrorMode.Dlq =>
@@ -174,27 +173,26 @@ abstract class AbstractElasticSinkTask extends SinkTask with StrictLogging with 
         // gates on dlqGate.enabled = reporter.isDefined && dlqTopicConfigured) gets its own WARN.
         if (!dlqGate.dlqTopicConfigured) {
           logger.warn(
-            s"bulk.item.errors=dlq is set but ${DlqGate.DlqTopicNameConfigKey} is not configured " +
-              "(or is empty); dlq cannot take effect and the connector will behave as if set to fail.",
+            s"bulk.item.errors=dlq is set but ${DlqGate.DlqTopicNameConfigKey} is not configured or is empty. " +
+              s"Failed records will not be sent to a dead-letter queue — the task will fail instead (same as bulk.item.errors=fail). " +
+              s"Set ${DlqGate.DlqTopicNameConfigKey} to enable dead-letter queue routing.",
           )
         } else if (dlqGate.reporter.isEmpty) {
           logger.warn(
-            "bulk.item.errors=dlq is set but Kafka Connect did not provide an ErrantRecordReporter " +
-              "for this task (typically a Connect runtime older than 2.6); dlq cannot take effect and " +
-              "the connector will behave as if set to fail.",
+            "bulk.item.errors=dlq is set but this Kafka Connect runtime does not support per-record error reporting " +
+              "(requires Kafka Connect 2.6 or later). Failed records will not be sent to a dead-letter queue — " +
+              "the task will fail instead (same as bulk.item.errors=fail). Upgrade Kafka Connect to enable this.",
           )
         }
         if (!strictItemErrors) {
           logger.warn(
-            "bulk.item.errors=dlq is set together with bulk.strict.item.errors=false. " +
-              "bulk.strict.item.errors=false discards per-item bulk failures inside the bulk client " +
-              "(legacy tolerant mode, logged at WARN there) before bulk.item.errors is ever consulted, " +
-              "so bulk.item.errors=dlq has no effect on PERMANENT BULK ITEM ERRORS and none of those " +
-              "will ever reach the dead-letter queue. Set bulk.strict.item.errors=true if you want " +
-              "those to actually reach the DLQ. This does NOT affect writer-stage failures " +
-              "(missing/invalid header, key, or value used for a primary key or index target): those " +
-              "never reach the bulk client at all, so bulk.item.errors=dlq still reports them " +
-              "regardless of this setting.",
+            "bulk.item.errors=dlq and bulk.strict.item.errors=false are both set. " +
+              "Records permanently rejected by Elasticsearch/OpenSearch are already silently discarded " +
+              "by the bulk client (bulk.strict.item.errors=false) before bulk.item.errors is consulted — " +
+              "so those records will never reach the dead-letter queue. " +
+              "Set bulk.strict.item.errors=true if you want rejected records to be routed to the dead-letter queue. " +
+              "Records that cannot be prepared for indexing (e.g. a missing header or unresolvable primary key) " +
+              "are still routed to the dead-letter queue by bulk.item.errors=dlq regardless of this setting.",
           )
         }
         // errors.tolerance defaults to "none" when unset — treat absent/blank the same as
@@ -205,11 +203,10 @@ abstract class AbstractElasticSinkTask extends SinkTask with StrictLogging with 
           .getOrElse("none")
         if (tolerance == "none") {
           logger.warn(
-            s"bulk.item.errors=dlq is set together with ${DlqGate.ErrorsToleranceConfigKey}=none " +
-              s"(the default when ${DlqGate.ErrorsToleranceConfigKey} is unset); " +
-              "Kafka Connect throws out of the DLQ report call once tolerance is exceeded, so dlq " +
-              "cannot keep the task running under this setting (the record still reaches the DLQ, but " +
-              s"the task then fails fast). Set ${DlqGate.ErrorsToleranceConfigKey}=all for dlq to work.",
+            s"bulk.item.errors=dlq is set but ${DlqGate.ErrorsToleranceConfigKey} is 'none' (the default). " +
+              s"With this setting Kafka Connect will fail the task after routing a record to the dead-letter queue, " +
+              s"so the task cannot keep running. The record will still reach the dead-letter queue, but the task will stop. " +
+              s"Set ${DlqGate.ErrorsToleranceConfigKey}=all for the task to continue after routing failed records.",
           )
         }
     }

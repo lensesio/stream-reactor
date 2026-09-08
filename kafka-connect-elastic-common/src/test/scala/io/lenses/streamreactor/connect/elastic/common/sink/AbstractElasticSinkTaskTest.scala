@@ -220,7 +220,7 @@ class AbstractElasticSinkTaskTest extends AnyFunSuite with Matchers with Mockito
           DlqGate.ErrorsToleranceConfigKey -> "all",
       ),
       reporter = false,
-      expect   = Seq("ErrantRecordReporter"),
+      expect   = Seq("does not support per-record error reporting"),
       forbid   = Seq(DlqGate.DlqTopicNameConfigKey),
     ),
     WarnCase(

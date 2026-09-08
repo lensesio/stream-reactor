@@ -18,13 +18,11 @@ package io.lenses.streamreactor.connect.elastic.common.dlq
 import org.apache.kafka.connect.sink.SinkRecord
 
 /**
- * Kafka's own identity for a `SinkRecord` — `(topic, partition, offset)` — used instead of the
- * `SinkRecord` itself wherever only set-membership (was this record diverted?) is needed.
+ * Kafka's own identity for a `SinkRecord` — `(topic, partition, offset)`.
  *
- * `JsonBulkWriter.write` returns a `Set[RecordRef]` rather than `Set[SinkRecord]` for exactly
- * this reason: `SinkRecord.hashCode`/`equals` recurse through the entire payload `Struct` and
- * its `Schema`, and `AbstractElasticSinkTask.put` calls `contains` against this set once per
- * record in the batch, on every `put()`. `(topic, partition, offset)` alone is a cheap,
+ * `JsonBulkWriter.write` returns a `Set[RecordRef]` rather than `Set[SinkRecord]` because
+ * `SinkRecord.hashCode`/`equals` recurse through the entire payload `Struct` and its `Schema`,
+ * making it expensive to use in set-membership tests. `(topic, partition, offset)` is cheap and
  * correct-enough key: Kafka guarantees it uniquely identifies a record.
  */
 final case class RecordRef(topic: String, partition: Int, offset: Long)

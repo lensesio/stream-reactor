@@ -56,10 +56,8 @@ object CreateIndex {
 
   /**
    * Construction-time path used by [[io.lenses.streamreactor.connect.elastic.common.writer.JsonBulkWriter]]:
-   * takes the `targetType`/`indexSuffix` already resolved once into
-   * [[io.lenses.streamreactor.connect.elastic.common.KcqlValues]], instead of re-resolving both
-   * from the raw `Kcql` a second time for AUTOCREATE KCQLs (`Kcql.getTargetType()` re-parses the
-   * target string, and the `Kcql`-based `createIndexName` overload re-parses `WITHINDEXSUFFIX`).
+   * takes `targetType`/`indexSuffix` already resolved once into [[io.lenses.streamreactor.connect.elastic.common.KcqlValues]],
+   * avoiding re-parsing for AUTOCREATE KCQLs.
    */
   def getIndexNameForAutoCreate(
     targetType:  TargetType,
