@@ -211,6 +211,19 @@ class AbstractElasticSinkTaskTest extends AnyFunSuite with Matchers with Mockito
       expect = Seq(DlqGate.DlqTopicNameConfigKey),
     ),
     WarnCase(
+      // A DLQ topic IS configured, but no reporter was handed out (old Connect runtime): dlq
+      // still degrades to fail, so this must warn — and NOT via the "topic not configured" message.
+      "warns when dlq is set with a DLQ topic configured but no ErrantRecordReporter provided",
+      dlqSettings(),
+      Map(ItemErrorModeKey                 -> "dlq",
+          DlqGate.DlqTopicNameConfigKey    -> "my-dlq-topic",
+          DlqGate.ErrorsToleranceConfigKey -> "all",
+      ),
+      reporter = false,
+      expect   = Seq("ErrantRecordReporter"),
+      forbid   = Seq(DlqGate.DlqTopicNameConfigKey),
+    ),
+    WarnCase(
       "does not warn about a missing DLQ topic when one is actually configured",
       dlqSettings(),
       Map(ItemErrorModeKey                 -> "dlq",

@@ -113,8 +113,7 @@ abstract class AbstractElasticSinkTask extends SinkTask with StrictLogging with 
 
     val w = createWriter(confMap, dlqGate)
     logger.info(
-      s"bulk.item.errors=${w.settings.itemErrorMode} resolved to effective mode " +
-        s"${w.effectiveItemErrorMode} (see WARN(s) above if these differ).",
+      s"bulk.item.errors=${w.settings.itemErrorMode} resolved to effective mode ${w.effectiveItemErrorMode}.",
     )
 
     // Wire the retry interval into the context timeout when policy is RETRY
@@ -161,16 +160,28 @@ abstract class AbstractElasticSinkTask extends SinkTask with StrictLogging with 
         )
         if (!strictItemErrors) {
           logger.warn(
-            "bulk.item.errors=drop is set together with bulk.strict.item.errors=false; in tolerant " +
-              "mode per-item bulk failures are never surfaced to the writer, so nothing will ever be " +
-              "dropped by this setting (bulk.strict.item.errors=false already discards them itself).",
+            "bulk.item.errors=drop is set together with bulk.strict.item.errors=false. Both discard " +
+              "poison records, but bulk.strict.item.errors=false already discards them inside the bulk " +
+              "client (legacy tolerant mode) before bulk.item.errors is consulted, so bulk.item.errors=drop " +
+              "has no additional effect and its per-batch drop summary logging will not appear. Set " +
+              "bulk.strict.item.errors=true if you want bulk.item.errors=drop to be what discards them.",
           )
         }
       case ItemErrorMode.Dlq =>
+        // Both branches below are conditions under which dlq degrades to fail
+        // (JsonBulkWriter.effectiveItemErrorMode gates on dlqGate.enabled = reporter.isDefined &&
+        // dlqTopicConfigured). Each degrade path must have its own WARN, so a silent
+        // dlq -> fail is never possible.
         if (!dlqGate.dlqTopicConfigured) {
           logger.warn(
             s"bulk.item.errors=dlq is set but ${DlqGate.DlqTopicNameConfigKey} is not configured " +
               "(or is empty); dlq cannot take effect and the connector will behave as if set to fail.",
+          )
+        } else if (dlqGate.reporter.isEmpty) {
+          logger.warn(
+            "bulk.item.errors=dlq is set but Kafka Connect did not provide an ErrantRecordReporter " +
+              "for this task (typically a Connect runtime older than 2.6); dlq cannot take effect and " +
+              "the connector will behave as if set to fail.",
           )
         }
         if (!strictItemErrors) {
