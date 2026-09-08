@@ -158,16 +158,12 @@ class JsonBulkWriter(
 
   /**
    * Writes a batch of records. Returns the subset diverted (dropped or DLQ'd) rather than
-   * written, identified by [[RecordRef]] (Kafka's own topic/partition/offset coordinates, not
-   * the `SinkRecord` itself — see [[RecordRef]]) — callers should exclude these from
-   * delivered-record accounting.
+   * written, identified by [[RecordRef]] — callers should exclude these from delivered-record
+   * accounting.
    *
    * Dedup tracking is scoped to this call: a fresh tracker per `write()`, so diversions are not
-   * suppressed across a redelivered `put()` (at-least-once; see [[DlqKey]]). Note that a single
-   * bulk response mixing a divertible permanent error with a retriable one defers diversion
-   * entirely rather than diverting the permanent subset every redelivery — see
-   * [[handleBulkResult]] — so at-least-once here is bounded by "at most once per distinct
-   * *whole-`put()`* redelivery", not "once per retriable sub-attempt".
+   * suppressed across a redelivered `put()` (at-least-once per whole-`put()` redelivery; see
+   * [[DlqKey]] and [[handleBulkResult]] for the mixed-error deferral this interacts with).
    */
   def write(records: Vector[SinkRecord]): Set[RecordRef] =
     if (records.isEmpty) {
@@ -248,38 +244,25 @@ class JsonBulkWriter(
    *
    *  - Permanent errors split into per-document rejections (HTTP 400, see
    *    [[BulkItemErrorClassifier.isDivertible]]) and batch-wide failures (403/404/5xx and the
-   *    batch-wide 400s). Any batch-wide failure blocks diversion for the whole batch — throws
-   *    a plain [[BulkItemErrorClassifier.exceptionFor]] for the full error set: a clean
-   *    redelivery cannot help (the batch-wide condition doesn't depend on the retriable
-   *    remainder clearing), so this is NOT made retriable.
-   *  - Diversion is DEFERRED whenever a retriable (429/409) remainder is present in the SAME
-   *    response, even if every other error in it is divertible: nothing is diverted, and the
-   *    full error set throws for redelivery via
+   *    batch-wide 400s). A batch-wide failure blocks diversion for the whole batch: throws a
+   *    plain [[BulkItemErrorClassifier.exceptionFor]] (not retriable — redelivery can't clear a
+   *    batch-wide condition).
+   *  - A retriable (429/409) remainder in the SAME response defers diversion entirely, even if
+   *    every other error is divertible: nothing is diverted, full error set thrown via
    *    [[BulkItemErrorClassifier.deferredDiversionExceptionFor]] — a
-   *    [[io.lenses.streamreactor.common.errors.RetriableIntegrityException]], unlike the other
-   *    throws in this method. This is deliberate, not a missed case — diverting the permanent
-   *    subset here and throwing for the retriable remainder would mean the same permanent
-   *    record(s) get diverted again on every redelivery attempt while the retriable condition
-   *    persists (unbounded amplification: N redeliveries -> N DLQ reports / N drop log lines for
-   *    the same record). Deferring means a mixed batch diverts at most once — on whichever
-   *    attempt eventually comes back with ONLY divertible errors (the retriable condition having
-   *    cleared) — and, in the pathological case where the retriable condition never clears, the
-   *    task fails once its retry budget is exhausted having diverted nothing, which is the same
-   *    outcome `fail` mode always had for that batch.
-   *    Being retriable here matters concretely under `error.policy=RETRY`: without it,
-   *    [[io.lenses.streamreactor.common.errors.RetryErrorPolicy]] rethrows a plain
-   *    `FatalConnectException` as-is (never wrapping it in `RetriableException`), so the task
-   *    would die on the very FIRST mixed response, before the retriable condition ever gets a
-   *    chance to clear — exactly the failure `drop`/`dlq` exist to avoid. Under `THROW`/`NOOP`
-   *    the distinction is moot: both policies already fail fast on any `FatalConnectException`
-   *    subtype (see [[io.lenses.streamreactor.common.errors.ErrorPolicy]]), so this batch still
-   *    fails the task immediately either way — only the batch's own redelivery-on-restart (not
-   *    an in-process retry) can get it back with the retriable condition cleared.
+   *    [[io.lenses.streamreactor.common.errors.RetriableIntegrityException]] — for redelivery.
+   *    Diverting the permanent subset immediately and throwing only for the retriable remainder
+   *    would re-divert the same record(s) on every redelivery while the retriable condition
+   *    persists; deferring diverts a mixed batch at most once, on whichever attempt comes back
+   *    with only divertible errors. Being retriable matters under `error.policy=RETRY`:
+   *    [[io.lenses.streamreactor.common.errors.RetryErrorPolicy]] never wraps a plain
+   *    `FatalConnectException` in `RetriableException`, so without this the task would die on
+   *    the first mixed response. Under `THROW`/`NOOP` both already fail fast regardless, so only
+   *    redelivery-on-restart (not an in-process retry) can retry the batch.
    *  - `errantRecordHandler.divertPermanent` returning
-   *    [[io.lenses.streamreactor.connect.elastic.common.dlq.DivertOutcome.NotDiverted]] (e.g. an
-   *    untrusted position mapping, or a DLQ ack timeout) is NOT retried here either: unlike the
-   *    deferred case above, nothing here indicates that the retriable remainder clearing would
-   *    change the outcome, so a plain [[BulkItemErrorClassifier.exceptionFor]] is thrown.
+   *    [[io.lenses.streamreactor.connect.elastic.common.dlq.DivertOutcome.NotDiverted]] (untrusted
+   *    position mapping, DLQ ack timeout) throws a plain [[BulkItemErrorClassifier.exceptionFor]]
+   *    too — unlike the deferred case, a clean redelivery isn't guaranteed to change the outcome.
    */
   private def handleBulkResult(
     result:          BulkResult,

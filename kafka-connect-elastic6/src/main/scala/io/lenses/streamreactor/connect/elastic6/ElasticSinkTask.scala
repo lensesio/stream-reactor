@@ -31,9 +31,9 @@ class ElasticSinkTask extends AbstractElasticSinkTask {
 
   override protected def progressEnabledKey: String = ElasticConfigConstants.PROGRESS_COUNTER_ENABLED
 
-  // ES6 has no registered bulk.item.errors key at all (see createWriter below) — this key is
-  // never present in confMap, so validateItemErrorConfiguration's lookup always falls back to
-  // the "fail" default, which matches ES6's actual pinned behaviour.
+  // ES6 has no registered bulk.item.errors key (see createWriter below), so it's never present
+  // in confMap; validateItemErrorConfiguration's lookup falls back to "fail", matching ES6's
+  // actual pinned behaviour.
   override protected def itemErrorModeConfigKey: String =
     s"${ElasticConfigConstants.CONNECTOR_PREFIX}.${io.lenses.streamreactor.connect.elastic.common.config.ElasticCommonConfigConstants.BULK_ITEM_ERRORS_SUFFIX}"
 

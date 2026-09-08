@@ -17,35 +17,24 @@ package io.lenses.streamreactor.connect.elastic.common.writer
 
 /**
  * Marker trait for writer-stage failures (thrown by `JsonBulkWriter.processRecord` before a
- * record ever becomes a `BulkOp`) that are a property of exactly one record, and so are safe to
- * divert under `bulk.item.errors=drop`/`dlq`.
+ * record becomes a `BulkOp`) that are a property of exactly one record and safe to divert under
+ * `bulk.item.errors=drop`/`dlq`. See `JsonBulkWriter.insert`.
  *
- * `JsonBulkWriter.insert` only offers diversion to failures marked with this trait; every other
- * `Throwable` from `processRecord` propagates and fails the task, exactly as it did before
- * per-record diversion existed. This is deliberately an allow-list, not a deny-list: most
- * exceptions `processRecord` can throw are schema-, config-, or KCQL-level problems (a header
- * missing from every record on the topic, PK extraction failing because a field was renamed,
- * `require(pks.nonEmpty)` for a misconfigured UPSERT) that affect every record on the topic, not
- * just the one that happened to be first. Diverting those would silently discard or DLQ the
- * entire topic's traffic while the task reported itself healthy — the exact silent-data-loss
- * failure mode `BulkItemErrorClassifier.isDivertible` guards against on the cluster-response
- * side. See `JsonBulkWriter.insert`.
- *
- * Do NOT mix this into a new exception unless the condition that triggers it is truly a property
- * of the individual `SinkRecord` (its own payload/headers/tombstone-ness), never of the
- * connector's configuration, the topic's schema, or KCQL.
+ * Allow-list, not a deny-list: only mix this in when the failure is a property of the individual
+ * `SinkRecord` (payload/headers/tombstone-ness), never of connector config, topic schema, or
+ * KCQL. Every other `Throwable` from `processRecord` propagates and fails the task, since those
+ * causes (a header missing from every record, a renamed PK field, `require(pks.nonEmpty)` for a
+ * misconfigured UPSERT) affect the whole topic, not one record.
  */
 trait PerRecordWriterFailure { self: Throwable => }
 
 /**
- * Thrown by `JsonBulkWriter.handleTombstone` when a tombstone (null value) arrives under
- * `behavior.on.null.values=FAIL`. Whether a given `SinkRecord` is a tombstone is a property of
- * that record alone — a topic can freely mix tombstones and non-tombstones — so this is safe to
- * divert independently of any other record in the batch.
+ * Thrown by `JsonBulkWriter.handleTombstone` for a tombstone under
+ * `behavior.on.null.values=FAIL`. Tombstone-ness is a property of the individual record, so this
+ * is divertible independently of any other record in the batch.
  *
- * Extends `IllegalStateException` (rather than only mixing in the marker trait) to preserve the
- * pre-existing exception type for callers/tests that still expect `IllegalStateException` when
- * diversion is inactive.
+ * Extends `IllegalStateException` (not just the marker trait) so callers/tests expecting
+ * `IllegalStateException` when diversion is inactive are unaffected.
  */
 final class TombstoneRejectedException(message: String)
     extends IllegalStateException(message)

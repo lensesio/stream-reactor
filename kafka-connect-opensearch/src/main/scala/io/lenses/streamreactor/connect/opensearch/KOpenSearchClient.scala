@@ -98,21 +98,16 @@ class KOpenSearchClient(client: OpenSearchClient, settings: OpenSearchSettings) 
   override def start(): Try[Unit] = Try(probeClusterCompatibility())
 
   /**
-   * Structural violations (empty index/id, an id over OpenSearch's 512-byte hard limit) are
-   * permanent, per-document faults — the moral equivalent of an HTTP 400 `illegal_argument_exception`
-   * — not transport failures. They used to be thrown as a bare `IllegalArgumentException` before
-   * the request was ever sent, which [[io.lenses.streamreactor.connect.elastic.common.writer.JsonBulkWriter.handleTransportFailure]]
-   * then reclassified as a *retriable* transport failure: pointless under `error.policy=RETRY`
-   * (identical input, identical failure, every attempt) and unreportable to the DLQ. Returning
-   * them as ordinary [[BulkItemError]]s instead routes them through the same strict/tolerant and
-   * DLQ machinery as every other per-item bulk error.
-   *
-   * Tagged with [[BulkItemErrorClassifier.ConnectorValidationErrorType]], NOT
-   * `illegal_argument_exception`: these are systemic (every record hitting the same
-   * KCQL/PK/index misconfiguration fails identically), so — unlike a genuine cluster-reported
-   * `illegal_argument_exception` — they must never be divertible under `bulk.item.errors=drop`
-   * or `dlq` (see [[BulkItemErrorClassifier.isDivertible]]), and must always surface even under
-   * `bulk.strict.item.errors=false` (see the tolerant-mode handling in [[bulk]] below).
+   * Validates structural constraints (empty index/id, an id over the 512-byte hard limit)
+   * locally — the moral equivalent of an HTTP 400 `illegal_argument_exception` — rather than
+   * letting them surface as a bare `IllegalArgumentException` before the request is sent, which
+   * [[io.lenses.streamreactor.connect.elastic.common.writer.JsonBulkWriter.handleTransportFailure]]
+   * would reclassify as retriable (pointless: identical input fails identically on retry) and
+   * unreportable to the DLQ. Returned as ordinary [[BulkItemError]]s instead, tagged with
+   * [[BulkItemErrorClassifier.ConnectorValidationErrorType]] (not `illegal_argument_exception`):
+   * never divertible (see [[BulkItemErrorClassifier.isDivertible]]) and always surfaced even
+   * under `bulk.strict.item.errors=false` (see tolerant-mode handling in [[bulk]] below), since
+   * these are systemic rather than a one-off cluster rejection.
    */
   private def validateOp(op: BulkOp): Either[BulkItemError, Unit] = {
     def invalid(reason: String): Either[BulkItemError, Unit] =
@@ -171,20 +166,14 @@ class KOpenSearchClient(client: OpenSearchClient, settings: OpenSearchSettings) 
   }
 
   override def bulk(ops: Seq[BulkOp]): Try[BulkResult] = Try {
-    // Single pass over `ops`, not validate-then-partition-then-partition-again: a
-    // validate-all-into-Either, then `collect` the lefts, then `collect` the rights (each its
-    // own traversal plus an intermediate `IndexedSeq[Either[...]]`) costs three traversals and
-    // two throwaway collections on every call, for a validation failure that essentially never
-    // fires in steady-state operation. Still calls validateOp exactly once per op either way —
-    // the fast path is fewer traversals of the result, not fewer validations.
+    // Single pass over `ops` (vs. validate-all-into-Either then collect twice).
     val validationErrorsBuilder  = mutable.ListBuffer.empty[BulkItemError]
     val validOpsWithIndexBuilder = IndexedSeq.newBuilder[(BulkOp, Int)]
     ops.zipWithIndex.foreach {
       case (op, idx) =>
         validateOp(op) match {
-          // Position set relative to the ORIGINAL request before any op is dropped, so DLQ
-          // correlation (which trusts BulkItemError.position as an index into the original ops
-          // list) stays correct even when only a subset of ops is actually sent to the cluster.
+          // Position relative to the ORIGINAL request, so DLQ correlation stays correct even
+          // when only a subset of ops is actually sent to the cluster.
           case Left(error) => validationErrorsBuilder += error.copy(position = idx)
           case Right(())   => validOpsWithIndexBuilder += op -> idx
         }
@@ -212,12 +201,11 @@ class KOpenSearchClient(client: OpenSearchClient, settings: OpenSearchSettings) 
         if (!response.errors()) {
           (took, Seq.empty[BulkItemError])
         } else {
-          // opensearch-java's BulkResponseItem has no ordinal field — position is purely the
-          // item's index within response.items(), which we only trust if it lines up 1:1 with
-          // the ops actually sent. zipWithIndex MUST run before the filter, otherwise a dropped
-          // success item shifts every later index. On a length mismatch, disable DLQ mapping
-          // for the whole batch (position = -1) rather than risk correlating an error to the
-          // wrong Kafka record.
+          // opensearch-java's BulkResponseItem has no ordinal field — position is the item's
+          // index within response.items(), trusted only if it lines up 1:1 with the ops sent
+          // (zipWithIndex must run before the filter, or a dropped success item shifts every
+          // later index). On a length mismatch, disable position mapping for the whole batch
+          // (position = -1) rather than risk mis-correlating an error.
           val responseItems        = response.items().asScala.toIndexedSeq
           val positionsTrustworthy = responseItems.size == validOps.size
           if (!positionsTrustworthy) {
@@ -247,11 +235,9 @@ class KOpenSearchClient(client: OpenSearchClient, settings: OpenSearchSettings) 
         }
       }
 
-    // bulk.strict.item.errors=false only ever applied to genuine CLUSTER item errors (legacy
-    // tolerant mode: log and drop). It must NOT swallow a connector-side validation error —
-    // those are never divertible (see validateOp) and were an unconditional throw before this
-    // PR, so silently discarding them under tolerant mode would be a new, PR-introduced data
-    // loss path with no way to opt out.
+    // bulk.strict.item.errors=false (legacy tolerant mode: log and drop) applies only to genuine
+    // cluster item errors, never to connector-side validation errors (see validateOp) — those
+    // are never divertible and must always surface.
     if (responseItemErrors.nonEmpty && !settings.strictItemErrors) {
       logger.warn(
         s"Bulk write completed with ${BulkItemErrorClassifier.formatItemErrors(responseItemErrors)} (tolerant mode)",

@@ -89,13 +89,10 @@ object ElasticCommonConfigConstants {
       |THROW - the error is allowed to propagate.
       |RETRY - The exception causes the Connect framework to retry the message. The number of retries is based on
       |The error will be logged automatically
-      |UPGRADE NOTE: on connector versions before per-record bulk.item.errors diversion, NOOP
-      |swallowed a bulk transport failure and a permanent per-item bulk error with only a WARN,
-      |advancing offsets past a batch that may never have been written. Both now fail the task
-      |instead. This closes a silent data-loss path but is a behavioural change for existing
-      |NOOP deployments upgrading past that version — review error.policy=NOOP usage, and
-      |consider bulk.item.errors=drop or dlq if the goal was "keep the task running through a
-      |poison record" rather than "never fail the task".""".stripMargin
+      |UPGRADE NOTE: before per-record bulk.item.errors diversion, NOOP swallowed a bulk transport
+      |failure and a permanent per-item bulk error with only a WARN, advancing offsets past a batch
+      |that may never have been written. Both now fail the task instead. If you use NOOP to keep the
+      |task running through occasional poison records, use bulk.item.errors=drop or dlq instead.""".stripMargin
   val ERROR_POLICY_DEFAULT = "THROW"
 
   val BATCH_SIZE_SUFFIX = BATCH_SIZE_PROP_SUFFIX

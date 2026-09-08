@@ -56,22 +56,17 @@ class KElasticBulkClient(
     with StrictLogging {
 
   /**
-   * Structural violations (empty index/id, an id over the cluster's 512-byte hard id limit) are
-   * permanent, per-document faults, not transport failures. Left unvalidated, they'd surface as
-   * a bare `RuntimeException`/`IllegalArgumentException` from deeper in the request path, which
+   * Validates structural constraints (empty index/id, an id over the 512-byte hard id limit)
+   * locally rather than letting them surface as a bare `RuntimeException` from deeper in the
+   * request path, which
    * [[io.lenses.streamreactor.connect.elastic.common.writer.JsonBulkWriter.handleTransportFailure]]
-   * would reclassify as a *retriable* transport failure: pointless under `error.policy=RETRY`
-   * (identical input, identical failure, every attempt) and unreportable to the DLQ. Returning
-   * them as ordinary [[BulkItemError]]s instead routes them through the same strict/tolerant
-   * machinery as every other per-item bulk error — mirrors
-   * [[io.lenses.streamreactor.connect.opensearch.KOpenSearchClient.validateOp]] for ES7/OpenSearch
-   * parity.
-   *
-   * Tagged with [[BulkItemErrorClassifier.ConnectorValidationErrorType]]: never divertible under
-   * `bulk.item.errors=drop`/`dlq` (see [[BulkItemErrorClassifier.isDivertible]]), and always
-   * surfaced even under `bulk.strict.item.errors=false` (see the tolerant-mode handling below) —
-   * these are systemic (every record hitting the same misconfiguration fails identically), not a
-   * one-off cluster rejection.
+   * would reclassify as retriable (pointless: identical input fails identically on retry) and
+   * unreportable to the DLQ. Returned as ordinary [[BulkItemError]]s instead, tagged with
+   * [[BulkItemErrorClassifier.ConnectorValidationErrorType]] — never divertible (see
+   * [[BulkItemErrorClassifier.isDivertible]]) and always surfaced even under
+   * `bulk.strict.item.errors=false` (see tolerant-mode handling below), since these are systemic
+   * rather than a one-off cluster rejection. Mirrors
+   * [[io.lenses.streamreactor.connect.opensearch.KOpenSearchClient.validateOp]].
    */
   private def validateOp(op: BulkOp): Either[BulkItemError, Unit] = {
     def invalid(reason: String): Either[BulkItemError, Unit] =
@@ -123,20 +118,14 @@ class KElasticBulkClient(
   }
 
   override def bulk(ops: Seq[BulkOp]): Try[BulkResult] = Try {
-    // Single pass over `ops`, not validate-then-partition-then-partition-again: a
-    // validate-all-into-Either, then `collect` the lefts, then `collect` the rights (each its
-    // own traversal plus an intermediate `IndexedSeq[Either[...]]`) costs three traversals and
-    // two throwaway collections on every call, for a validation failure that essentially never
-    // fires in steady-state operation. Still calls validateOp exactly once per op either way —
-    // the fast path is fewer traversals of the result, not fewer validations.
+    // Single pass over `ops` (vs. validate-all-into-Either then collect twice).
     val validationErrorsBuilder  = mutable.ListBuffer.empty[BulkItemError]
     val validOpsWithIndexBuilder = IndexedSeq.newBuilder[(BulkOp, Int)]
     ops.zipWithIndex.foreach {
       case (op, idx) =>
         validateOp(op) match {
-          // Position set relative to the ORIGINAL request before any op is dropped, so DLQ
-          // correlation (which trusts BulkItemError.position as an index into the original ops
-          // list) stays correct even when only a subset of ops is actually sent to the cluster.
+          // Position relative to the ORIGINAL request, so DLQ correlation stays correct even
+          // when only a subset of ops is actually sent to the cluster.
           case Left(error) => validationErrorsBuilder += error.copy(position = idx)
           case Right(())   => validOpsWithIndexBuilder += op -> idx
         }
@@ -146,10 +135,9 @@ class KElasticBulkClient(
 
     val (tookMillis, responseItemErrors) =
       if (validOpsWithIndex.isEmpty) {
-        // Every op failed local validation — nothing left to send to the cluster. `took=0` is
-        // NOT "the cluster responded in 0ms" (no request was ever sent); logged distinctly
-        // below rather than folded into the "Bulk write completed: took=Xms" line, which would
-        // misleadingly imply a real round trip happened.
+        // Every op failed local validation — nothing sent to the cluster. `took=0` doesn't mean
+        // a 0ms round trip; logged distinctly rather than folded into the "Bulk write completed"
+        // line below.
         logger.info(
           s"All ${ops.size} op(s) failed local validation; no bulk request was sent to the cluster.",
         )
@@ -165,18 +153,14 @@ class KElasticBulkClient(
 
         val result = response.result
         val took   = result.took
-        // elastic4s's BulkResponse.items is a def that rebuilds (flatMap + zipWithIndex + map)
-        // its list on every access — capture it once rather than recomputing it on each
-        // reference below.
+        // BulkResponse.items is a def that rebuilds its list on every access — capture once.
         val items = result.items
 
-        // elastic4s assigns `itemId` positionally via zipWithIndex over its own decoded item
-        // list (com.sksamuel.elastic4s.requests.bulk.BulkResponse.items). That list can differ
-        // in length from our request (e.g. a decode step silently drops an item shape it
-        // doesn't recognise), which would shift every later itemId. Guard it here: only trust
-        // positions when the response item count matches the request op count. On mismatch,
-        // disable position mapping for the whole batch (position = -1) rather than risk
-        // correlating an error to the wrong Kafka record.
+        // elastic4s's own `itemId` is assigned positionally over this same decoded list, so a
+        // length mismatch against the request (e.g. a decode step dropping an unrecognised item
+        // shape) would shift every later itemId too. Guard here: trust positions only when the
+        // response item count matches the request op count; otherwise disable position mapping
+        // for the whole batch (position = -1) rather than risk mis-correlating an error.
         val positionsTrustworthy = items.size == validOps.size
         if (!positionsTrustworthy) {
           logger.warn(
@@ -195,11 +179,9 @@ class KElasticBulkClient(
               reason    = err.reason,
               errorType = err.`type`,
               status    = item.status,
-              // Map the response-relative index back to the position in the ORIGINAL request,
-              // since validation failures may have already been removed from what was actually
-              // sent. `item.itemId` (elastic4s's own positional id, see above) is deliberately
-              // NOT used here — it is derived the same way, from the same response list, so a
-              // length mismatch would silently poison it too.
+              // Map back to the position in the ORIGINAL request (validation failures may have
+              // already removed ops from what was sent). Not `item.itemId`: derived from the
+              // same response list, so a length mismatch would poison it too.
               position = if (positionsTrustworthy) validOpsWithIndex(idx)._2 else -1,
             )
         }
@@ -207,11 +189,9 @@ class KElasticBulkClient(
         (took, errs)
       }
 
-    // bulk.strict.item.errors=false only ever applied to genuine CLUSTER item errors (legacy
-    // tolerant mode: log and drop). It must NOT swallow a connector-side validation error —
-    // those are never divertible (see validateOp) and were an unconditional throw before
-    // per-record diversion existed, so silently discarding them under tolerant mode would be a
-    // new data-loss path with no way to opt out.
+    // bulk.strict.item.errors=false (legacy tolerant mode: log and drop) applies only to genuine
+    // cluster item errors, never to connector-side validation errors (see validateOp) — those
+    // are never divertible and must always surface.
     if (responseItemErrors.nonEmpty && !strictItemErrors) {
       logger.warn(
         s"Bulk write completed with ${BulkItemErrorClassifier.formatItemErrors(responseItemErrors)} (tolerant mode)",

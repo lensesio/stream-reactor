@@ -21,10 +21,9 @@ final case class BulkItemError(
   reason:    String,
   errorType: String = "",
   status:    Int    = 0,
-  // Ordinal of this item within the bulk request/response, 0-based. -1 means "unknown" —
-  // either the backend does not expose one, or the client detected that response.items().size
-  // did not match the request op count and disabled position mapping for the whole batch.
-  // Per-record DLQ reporting (ErrantRecordHandler) refuses to map an error with position = -1.
+  // 0-based ordinal of this item in the bulk request/response. -1 = unknown: either the backend
+  // doesn't expose one, or response.items().size mismatched the request op count. Per-record
+  // DLQ reporting (ErrantRecordHandler) refuses to map an error with position = -1.
   position: Int = -1,
 )
 

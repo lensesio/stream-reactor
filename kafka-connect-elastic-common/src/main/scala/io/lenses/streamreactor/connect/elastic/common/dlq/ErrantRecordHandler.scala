@@ -36,28 +36,24 @@ import scala.util.control.NonFatal
  * (`bulk.item.errors=drop`) or reports them to Kafka Connect's DLQ via [[ErrantRecordReporter]]
  * (`bulk.item.errors=dlq`).
  *
- *  - Maps a [[BulkItemError]] to a record by `position`; refuses the mapping unless `position`
- *    is in range AND the response item's `id` matches the op at that position. Refuses the
- *    whole call ([[DivertOutcome.NotDiverted]]) on any mismatch — applies to both `drop` and
- *    `dlq`.
+ *  - Maps a [[BulkItemError]] to a record by `position`, requiring both that `position` is in
+ *    range and that the response item's `id` matches the op at that position; any mismatch
+ *    refuses the whole call ([[DivertOutcome.NotDiverted]]), for both `drop` and `dlq`.
  *  - Does not compare `index`: a write alias resolves to a concrete backing index in the
- *    response, so `op.index` (alias) never equals `error.index` (concrete) even when the
- *    mapping is correct. `id` alone corroborates ordering; `DlqKey.forOp` keys on the op's
- *    (KCQL-resolved) index.
- *  - `dlq`: awaits every `report()` future issued by ONE [[divertPermanent]]/[[divertOne]] call
- *    against a SINGLE shared deadline (`reportTimeoutMs` from the start of that call), not
- *    `reportTimeoutMs` restarted per future — otherwise N records reported together could block
- *    for N * `reportTimeoutMs` before the batch is failed. `WorkerErrantRecordReporter
- *    .maybeThrowAsyncError()` only throws outside tolerance limits, so it gives no signal under
- *    `errors.tolerance=all`.
- *  - `dlq`: catches throws from `report()` itself. Under `errors.tolerance=none`,
- *    `RetryWithToleranceOperator.executeFailed` reports, then throws
- *    (`ConnectException("Tolerance exceeded in error handler", ...)`). Caught here and surfaced
- *    as [[DivertOutcome.NotDiverted]] so the writer's own classified exception propagates
- *    instead of the generic tolerance message.
- *  - `drop`: no reporter, no ack wait, no tolerance interaction. Bulk-item drops are the only
- *    trace of a discarded record, so they are logged — one summary WARN per batch capped at
- *    [[BulkItemErrorClassifier.MaxErrorsInMessage]] records of detail, remainder at DEBUG.
+ *    response, so `op.index` (alias) never equals `error.index` (concrete) even on a correct
+ *    mapping. `id` alone corroborates ordering; `DlqKey.forOp` keys on the op's index.
+ *  - `dlq`: awaits every `report()` future issued by one [[divertPermanent]]/[[divertOne]] call
+ *    against a single shared deadline (`reportTimeoutMs` from the start of that call, not
+ *    restarted per future), bounding the whole call at `reportTimeoutMs` regardless of how many
+ *    records it reports.
+ *  - `dlq`: catches throws from `report()` itself — under `errors.tolerance=none`,
+ *    `RetryWithToleranceOperator.executeFailed` reports then throws
+ *    (`ConnectException("Tolerance exceeded in error handler", ...)`) — and surfaces
+ *    [[DivertOutcome.NotDiverted]] so the writer's own classified exception propagates instead
+ *    of the generic tolerance message.
+ *  - `drop`: no reporter, no ack wait, no tolerance interaction. Logged as one summary WARN per
+ *    batch, capped at [[BulkItemErrorClassifier.MaxErrorsInMessage]] records of detail with the
+ *    remainder at DEBUG — the log is the only trace of a discarded record.
  */
 class ErrantRecordHandler(
   dlqGate: DlqGate,
@@ -194,17 +190,13 @@ class ErrantRecordHandler(
         None
       } else {
         val (op, record) = opsWithRecords(error.position)
-        // Corroborate by `id` only, not `index`: a write alias resolves to its concrete backing
-        // index in the response, so op.index (alias) != error.index (concrete) even when
-        // correct. DlqKey.forOp keys on op.index (the KCQL-resolved target) regardless.
+        // Corroborate by `id` only, not `index` (see class scaladoc: alias resolution).
         if (op.id == error.id) {
           if (op.index != error.index) {
             logger.debug(
               s"Bulk response item at position ${error.position} reported index '${error.index}' " +
-                s"but the request op targeted '${op.index}' (id=${op.id}); treating this as alias " +
-                "resolution (the target is a write alias resolved to its concrete backing index) " +
-                "and mapping by id. The divert will use the KCQL-resolved target, not the " +
-                "concrete index reported by the cluster.",
+                s"but the request op targeted '${op.index}' (id=${op.id}); treating as alias " +
+                "resolution and mapping by id — the divert will use the KCQL-resolved target.",
             )
           }
           Some((DlqKey.forOp(op, record), record, error))
@@ -246,12 +238,9 @@ class ErrantRecordHandler(
       issued match {
         case None          => DivertOutcome.NotDiverted
         case Some(futures) =>
-          // ONE deadline for this whole call, computed once — NOT `reportTimeoutMs` restarted
-          // for each future in `futures`. Sequentially awaiting N futures, each given the full
-          // `reportTimeoutMs`, would let a single call block for up to N * reportTimeoutMs
-          // (e.g. a batch-size-4000 drop-mode... no, dlq-mode response with many divertible
-          // items in one group), risking max.poll.interval.ms. A shared deadline instead bounds
-          // the whole call at reportTimeoutMs regardless of how many records are in `toSend`.
+          // One deadline for the whole call, computed once (not restarted per future): bounds
+          // the call at reportTimeoutMs regardless of how many records are in `toSend`, instead
+          // of up to N * reportTimeoutMs for N sequentially-awaited futures.
           val deadlineNanos   = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(reportTimeoutMs)
           val allAcknowledged = futures.forall { case (_, _, future) => awaitAck(future, deadlineNanos) }
           if (allAcknowledged) {

@@ -64,14 +64,13 @@ abstract class AbstractElasticSinkTask extends SinkTask with StrictLogging with 
   /**
    * Full config key for `bulk.item.errors` (connector-prefixed, e.g.
    * `connect.elastic.bulk.item.errors` / `connect.opensearch.bulk.item.errors`). ES6 has no
-   * registered key for this (its bulk client never populates `BulkItemError.position`, so the
-   * mode always stays [[ItemErrorMode.Fail]]) — return any string; an absent key in `confMap`
-   * resolves to the `fail` default either way, which matches ES6's actual pinned behaviour.
+   * registered key (its bulk client never populates `BulkItemError.position`, so the mode stays
+   * [[ItemErrorMode.Fail]]) — any string works, since an absent key in `confMap` defaults to
+   * `fail` regardless.
    *
-   * Read directly from `confMap` here (not via a parsed `ElasticCommonSettings`) so
-   * [[validateItemErrorConfiguration]] can run, and its warnings can fire, BEFORE
-   * [[createWriter]] — which connects to the cluster and can throw before those warnings would
-   * otherwise ever be seen.
+   * Read directly from `confMap`, not a parsed `ElasticCommonSettings`, so
+   * [[validateItemErrorConfiguration]] can run — and its warnings fire — before [[createWriter]],
+   * which connects to the cluster and can throw first.
    */
   protected def itemErrorModeConfigKey: String
 
@@ -106,9 +105,7 @@ abstract class AbstractElasticSinkTask extends SinkTask with StrictLogging with 
     )
 
     // Config-only: reads confMap/dlqGate alone, so it runs — and its WARN(s) are guaranteed to
-    // be seen — BEFORE createWriter, which connects to the cluster and can throw. Previously
-    // this ran after createWriter, so any misconfiguration warning went unseen whenever the
-    // cluster was unreachable at start().
+    // be seen — before createWriter, which connects to the cluster and can throw.
     validateItemErrorConfiguration(confMap, dlqGate)
 
     val w = createWriter(confMap, dlqGate)
@@ -134,12 +131,12 @@ abstract class AbstractElasticSinkTask extends SinkTask with StrictLogging with 
    * Warns at start() about drop/dlq misconfigurations, rather than at the first poison record.
    *
    * Reads `bulk.item.errors`/`bulk.strict.item.errors` directly from `confMap` via
-   * [[itemErrorModeConfigKey]]/[[strictItemErrorsConfigKey]] rather than from a parsed
-   * `ElasticCommonSettings`, specifically so this can run — and its warnings be guaranteed
-   * visible — before [[createWriter]], which connects to the cluster and can throw. Mirrors
-   * [[io.lenses.streamreactor.connect.elastic.common.config.ItemErrorMode.fromString]] /
+   * [[itemErrorModeConfigKey]]/[[strictItemErrorsConfigKey]], not from a parsed
+   * `ElasticCommonSettings`, so this runs — and its warnings are visible — before
+   * [[createWriter]], which connects to the cluster and can throw. Applies the same defaulting
+   * as [[io.lenses.streamreactor.connect.elastic.common.config.ItemErrorMode.fromString]] /
    * `ElasticCommonConfigConstants.BULK_ITEM_ERRORS_DEFAULT` / `BULK_STRICT_ITEM_ERRORS_DEFAULT`
-   * for the same defaulting behaviour a real `ConfigDef.parse` would apply.
+   * would via a real `ConfigDef.parse`.
    */
   private def validateItemErrorConfiguration(confMap: Map[String, String], dlqGate: DlqGate): Unit = {
     val itemErrorMode = ItemErrorMode.fromString(
@@ -168,10 +165,8 @@ abstract class AbstractElasticSinkTask extends SinkTask with StrictLogging with 
           )
         }
       case ItemErrorMode.Dlq =>
-        // Both branches below are conditions under which dlq degrades to fail
-        // (JsonBulkWriter.effectiveItemErrorMode gates on dlqGate.enabled = reporter.isDefined &&
-        // dlqTopicConfigured). Each degrade path must have its own WARN, so a silent
-        // dlq -> fail is never possible.
+        // Each condition under which dlq degrades to fail (JsonBulkWriter.effectiveItemErrorMode
+        // gates on dlqGate.enabled = reporter.isDefined && dlqTopicConfigured) gets its own WARN.
         if (!dlqGate.dlqTopicConfigured) {
           logger.warn(
             s"bulk.item.errors=dlq is set but ${DlqGate.DlqTopicNameConfigKey} is not configured " +

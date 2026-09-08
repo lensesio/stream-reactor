@@ -82,20 +82,15 @@ object BulkItemErrorClassifier {
    *    without a connector release.
    *  - Excludes 403 (`cluster_block_exception`, `security_exception`) and 404
    *    (`index_not_found_exception`) — batch-wide, not per-document.
-   *  - Also excludes the HTTP 400 faults that are batch-wide despite the per-item status code
-   *    (see [[isBatchWide]]): a closed index and a missing ingest pipeline. Every document
-   *    routed to a closed index / through a missing pipeline fails identically, so diverting
-   *    them would discard perfectly-good records while the task reported itself healthy — the
-   *    exact silent-data-loss case the 403/404 exclusions guard against. The
+   *  - Excludes the HTTP 400 faults that are batch-wide despite the per-item status code (see
+   *    [[isBatchWide]]): closed index, missing ingest pipeline. Caught here, not by the
    *    [[io.lenses.streamreactor.connect.elastic.common.writer.JsonBulkWriter.handleBulkResult]]
-   *    backstop only trips when a *non*-divertible error is mixed in, so an all-400 response of
-   *    these faults must be caught here rather than there.
-   *  - Also excludes connector-synthesized validation errors (see [[isConnectorSynthesized]]):
-   *    a structural violation the connector itself detected before ever sending the request
-   *    (empty index/id, an id over the 512-byte hard limit). These are systemic — driven by a
-   *    KCQL/PK misconfiguration or a field that grew too long for every record on the topic —
-   *    not a one-off rejection by the cluster, so they must always fail the task rather than
-   *    being diverted one record at a time.
+   *    mixed-error backstop, because that backstop only trips when a non-divertible error is
+   *    mixed with a divertible one — an all-400 response of these faults needs its own check.
+   *  - Excludes connector-synthesized validation errors (see [[isConnectorSynthesized]]):
+   *    structural violations caught before the request is sent (empty index/id, an id over the
+   *    512-byte limit). Systemic (same KCQL/PK misconfiguration fails every record), not a
+   *    one-off cluster rejection.
    */
   def isDivertible(error: BulkItemError): Boolean =
     !isRetriable(error) && error.status == 400 && !isBatchWide(error) && !isConnectorSynthesized(error)
@@ -125,16 +120,11 @@ object BulkItemErrorClassifier {
   private val batchWide400TypesCompact: Set[String] = batchWide400Types.map(_.replace("_", ""))
 
   /**
-   * Whether an HTTP 400 item error is really batch-wide. Detected two ways:
-   *
-   *  - by `errorType`, for types that are unambiguously batch-wide ([[batchWide400Types]]);
-   *  - by `reason`, for a missing ingest pipeline, whose `errorType` (`illegal_argument_exception`)
-   *    collides with genuine per-document rejections. Elasticsearch/OpenSearch report it as
-   *    "pipeline with id [x] does not exist", which is batch-wide because the pipeline is absent
-   *    for every document routed through it, not just this one.
-   *
-   * The reason check is a conservative fail-safe: at worst it pins an oddly-worded per-document
-   * rejection to `fail` (never data loss).
+   * Whether an HTTP 400 item error is batch-wide, detected two ways:
+   *  - by `errorType`, for types unambiguously batch-wide ([[batchWide400Types]]);
+   *  - by `reason`, for a missing ingest pipeline: `errorType` is `illegal_argument_exception`,
+   *    which also covers genuine per-document rejections, so `reason` ("pipeline with id [x]
+   *    does not exist") disambiguates.
    */
   private def isBatchWide(error: BulkItemError): Boolean = {
     val t = normalize(error.errorType)
@@ -144,15 +134,9 @@ object BulkItemErrorClassifier {
   }
 
   /**
-   * Matched as an errorType check plus a `reason` PREFIX (not `contains`): a bare `contains`
-   * check on "pipeline with id" ... "does not exist" is satisfiable by a crafted document, since
-   * a mapper error's `reason` embeds a preview of the rejected document verbatim (see
-   * [[isRetriable]]'s docs). A document containing that literal text — entirely plausible in a
-   * free-text field — would misclassify a genuine per-document rejection as batch-wide and
-   * (via [[io.lenses.streamreactor.connect.elastic.common.writer.JsonBulkWriter.handleBulkResult]])
-   * block diversion for the whole response, not just that one record. Requiring the errorType to
-   * be `illegal_argument_exception` AND the reason to START WITH the fixed prefix (which
-   * Elasticsearch/OpenSearch always emit first, before any document content) closes that gap.
+   * Prefix match, not `contains`: a mapper error's `reason` embeds a preview of the rejected
+   * document (see [[isRetriable]]), so a document containing the literal pipeline-missing text
+   * would false-positive under `contains`. The fixed prefix is always emitted first.
    */
   private def reasonLooksBatchWide(errorType: String, reason: String): Boolean =
     normalize(errorType) == "illegal_argument_exception" &&
