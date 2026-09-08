@@ -69,15 +69,16 @@ class AbstractElasticSinkTaskTest extends AnyFunSuite with Matchers with Mockito
   private val ItemErrorModeKey    = "test.bulk.item.errors"
   private val StrictItemErrorsKey = "test.bulk.strict.item.errors"
 
-  private class CapturingTask(writerStub: JsonBulkWriter) extends AbstractElasticSinkTask {
+  private class CapturingTask(writerStub: JsonBulkWriter, diversionSupported: Boolean = true) extends AbstractElasticSinkTask {
     var capturedConf: Map[String, String] = Map.empty
     var capturedGate: DlqGate             = DlqGate.disabled
 
-    override protected def asciiArtResource:          String = "/does-not-exist.txt"
-    override protected def errorRetryIntervalKey:     String = RetryKey
-    override protected def progressEnabledKey:        String = ProgressKey
-    override protected def itemErrorModeConfigKey:    String = ItemErrorModeKey
-    override protected def strictItemErrorsConfigKey: String = StrictItemErrorsKey
+    override protected def asciiArtResource:              String  = "/does-not-exist.txt"
+    override protected def errorRetryIntervalKey:         String  = RetryKey
+    override protected def progressEnabledKey:            String  = ProgressKey
+    override protected def itemErrorModeConfigKey:        String  = ItemErrorModeKey
+    override protected def strictItemErrorsConfigKey:     String  = StrictItemErrorsKey
+    override protected def supportsItemErrorDiversion:    Boolean = diversionSupported
 
     override protected def createWriter(conf: Map[String, String], dlqGate: DlqGate): JsonBulkWriter = {
       capturedConf = conf
@@ -195,12 +196,13 @@ class AbstractElasticSinkTaskTest extends AnyFunSuite with Matchers with Mockito
    * never free-form prose, so a copy-edit of the surrounding sentence can't break these.
    */
   private case class WarnCase(
-    name:     String,
-    settings: ElasticCommonSettings,
-    configs:  Map[String, String],
-    reporter: Boolean     = true,
-    expect:   Seq[String] = Seq.empty,
-    forbid:   Seq[String] = Seq.empty,
+    name:               String,
+    settings:           ElasticCommonSettings,
+    configs:            Map[String, String],
+    reporter:           Boolean     = true,
+    expect:             Seq[String] = Seq.empty,
+    forbid:             Seq[String] = Seq.empty,
+    diversionSupported: Boolean     = true,
   )
 
   private val warnCases: Seq[WarnCase] = Seq(
@@ -317,11 +319,37 @@ class AbstractElasticSinkTaskTest extends AnyFunSuite with Matchers with Mockito
       reporter = false,
       forbid   = Seq("bulk.strict.item.errors=false"),
     ),
+    // --- supportsItemErrorDiversion = false (ES6 scenario) ---
+    WarnCase(
+      "when diversion is unsupported, drop emits an 'ignored' WARN instead of the data-loss WARN",
+      dropSettings(),
+      Map(ItemErrorModeKey -> "drop"),
+      reporter           = false,
+      diversionSupported = false,
+      expect             = Seq("setting is ignored"),
+      forbid             = Seq("is active", "silently discarded"),
+    ),
+    WarnCase(
+      "when diversion is unsupported, dlq emits an 'ignored' WARN instead of the DLQ warnings",
+      dlqSettings(),
+      Map(ItemErrorModeKey -> "dlq"),
+      diversionSupported = false,
+      expect             = Seq("setting is ignored"),
+      forbid             = Seq(DlqGate.DlqTopicNameConfigKey, DlqGate.ErrorsToleranceConfigKey),
+    ),
+    WarnCase(
+      "when diversion is unsupported and mode is fail (the default), no warnings are emitted",
+      ElasticCommonSettings(kcqls = Seq.empty, errorPolicy = new NoopErrorPolicy),
+      Map.empty,
+      reporter           = false,
+      diversionSupported = false,
+      forbid             = Seq("setting is ignored", "bulk.item.errors=drop", DlqGate.DlqTopicNameConfigKey),
+    ),
   )
 
   warnCases.foreach { c =>
     test(c.name) {
-      val task = new CapturingTask(writerStub(c.settings))
+      val task = new CapturingTask(writerStub(c.settings), diversionSupported = c.diversionSupported)
       task.initialize(mockContext(
         configs  = c.configs,
         reporter = if (c.reporter) Some(mock[ErrantRecordReporter]) else None,

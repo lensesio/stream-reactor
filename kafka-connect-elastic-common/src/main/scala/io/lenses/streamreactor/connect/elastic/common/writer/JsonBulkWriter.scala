@@ -87,10 +87,8 @@ class JsonBulkWriter(
     case ItemErrorMode.Dlq if !dlqGate.enabled => ItemErrorMode.Fail
     case other                                 => other
   }
-  private def effectiveMode: ItemErrorMode = effectiveItemErrorMode
-
-  /** True when [[effectiveMode]] is [[ItemErrorMode.Drop]] or [[ItemErrorMode.Dlq]]. */
-  private def divertActive: Boolean = effectiveMode != ItemErrorMode.Fail
+  /** True when [[effectiveItemErrorMode]] is [[ItemErrorMode.Drop]] or [[ItemErrorMode.Dlq]]. */
+  private def divertActive: Boolean = effectiveItemErrorMode != ItemErrorMode.Fail
 
   // Validate write modes upfront — fail fast on unsupported modes. Pure KCQL-only check, no
   // cluster access — deliberately placed BEFORE client.start()/AUTOCREATE below, alongside
@@ -270,7 +268,7 @@ class JsonBulkWriter(
       insert(grouped, reportedThisPut, pendingWriterStage)
 
       if (pendingWriterStage.nonEmpty) {
-        errantRecordHandler.divertWriterStage(pendingWriterStage.toSeq, effectiveMode, reportedThisPut) match {
+        errantRecordHandler.divertWriterStage(pendingWriterStage.toSeq, effectiveItemErrorMode, reportedThisPut) match {
           case DivertOutcome.Diverted    => ()
           case DivertOutcome.NotDiverted =>
             // Picked deterministically by (topic, partition, offset) — NOT "the first one Try
@@ -280,7 +278,7 @@ class JsonBulkWriter(
               pendingWriterStage.minBy(f => (f.record.topic(), f.record.kafkaPartition(), f.record.kafkaOffset())).cause
             throw new WriterStageDiversionFailedException(
               s"Failed to divert ${pendingWriterStage.size} writer-stage failure(s) under " +
-                s"bulk.item.errors=${effectiveMode.configValue} (DLQ ack timeout, report() throwing " +
+                s"bulk.item.errors=${effectiveItemErrorMode.configValue} (DLQ ack timeout, report() throwing " +
                 s"under errors.tolerance=none, or no DLQ available); representative underlying " +
                 s"cause (lowest topic-partition-offset among ${pendingWriterStage.size} failure(s)): " +
                 s"${representativeCause.getMessage}",
@@ -291,7 +289,7 @@ class JsonBulkWriter(
 
       if (reportedThisPut.nonEmpty) {
         logger.info(
-          s"Diverted ${reportedThisPut.size} record(s) (bulk.item.errors=${effectiveMode.configValue}) during this put().",
+          s"Diverted ${reportedThisPut.size} record(s) (bulk.item.errors=${effectiveItemErrorMode.configValue}) during this put().",
         )
       }
       reportedThisPut.keys.map(k => RecordRef(k.topic, k.partition, k.offset)).toSet
@@ -350,7 +348,7 @@ class JsonBulkWriter(
 
   /**
    * Classifies a successful bulk response and, when diversion is active, diverts divertible
-   * permanent item errors per [[effectiveMode]].
+   * permanent item errors per [[effectiveItemErrorMode]].
    *
    *  - Permanent errors split into per-document rejections (HTTP 400, see
    *    [[BulkItemErrorClassifier.isDivertible]]) and batch-wide failures (403/404/5xx and the
@@ -400,7 +398,7 @@ class JsonBulkWriter(
         errantRecordHandler.divertPermanent(
           perDocumentRejections,
           opsWithRecords,
-          effectiveMode,
+          effectiveItemErrorMode,
           reportedThisPut,
         ) match {
           case DivertOutcome.Diverted    => Success(result)

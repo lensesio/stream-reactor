@@ -77,6 +77,19 @@ abstract class AbstractElasticSinkTask extends SinkTask with StrictLogging with 
   /** Full config key for `bulk.strict.item.errors` (connector-prefixed). See [[itemErrorModeConfigKey]]. */
   protected def strictItemErrorsConfigKey: String
 
+  /**
+   * Whether this connector implementation supports `bulk.item.errors` diversion (`drop`/`dlq`).
+   * ES7 and OpenSearch override nothing (default `true`); ES6 overrides to `false` because
+   * [[io.lenses.streamreactor.connect.elastic6.KElastic6BulkClient]] never populates
+   * `BulkItemError.position` and [[io.lenses.streamreactor.connect.elastic6.config.ElasticSettings]]
+   * always pins `itemErrorMode` to [[ItemErrorMode.Fail]].
+   *
+   * When `false`, [[validateItemErrorConfiguration]] emits a single WARN if the user set
+   * `bulk.item.errors` to anything other than `fail`, telling them the setting is ignored, and
+   * skips the mode-specific warnings that would otherwise imply the mode is active.
+   */
+  protected def supportsItemErrorDiversion: Boolean = true
+
   override def start(props: util.Map[String, String]): Unit = {
     printAsciiHeader(manifest, asciiArtResource)
 
@@ -139,9 +152,22 @@ abstract class AbstractElasticSinkTask extends SinkTask with StrictLogging with 
    * would via a real `ConfigDef.parse`.
    */
   private def validateItemErrorConfiguration(confMap: Map[String, String], dlqGate: DlqGate): Unit = {
-    val itemErrorMode = ItemErrorMode.fromString(
-      confMap.getOrElse(itemErrorModeConfigKey, ElasticCommonConfigConstants.BULK_ITEM_ERRORS_DEFAULT),
-    )
+    val rawValue = confMap.getOrElse(itemErrorModeConfigKey, ElasticCommonConfigConstants.BULK_ITEM_ERRORS_DEFAULT)
+    val itemErrorMode = ItemErrorMode.fromString(rawValue)
+
+    // ES6: bulk.item.errors is not registered in ConfigDef and ElasticSettings always pins
+    // itemErrorMode to Fail. Kafka Connect still passes unregistered properties through to the
+    // task config map, so a user CAN set the key — but it has no effect. Warn once and skip the
+    // mode-specific warnings that would otherwise imply the mode is active.
+    if (!supportsItemErrorDiversion && itemErrorMode != ItemErrorMode.Fail) {
+      logger.warn(
+        s"bulk.item.errors=$rawValue is set but this connector does not support per-record diversion " +
+          "(the bulk client does not expose per-item positions). The setting is ignored — the connector " +
+          "will behave as bulk.item.errors=fail regardless.",
+      )
+      return
+    }
+
     val strictItemErrors = confMap.get(strictItemErrorsConfigKey)
       .map(_.toBoolean)
       .getOrElse(ElasticCommonConfigConstants.BULK_STRICT_ITEM_ERRORS_DEFAULT)
