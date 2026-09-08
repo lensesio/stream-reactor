@@ -32,15 +32,18 @@ import scala.collection.mutable
 import scala.util.control.NonFatal
 
 /**
- * Wraps a writer-stage failure's cause with the record coordinates and KCQL target before it is
- * reported to the DLQ — without this, a bare extraction failure like
- * `IllegalArgumentException("Header with key 'tenant_id' not found")` reaches the DLQ record's
- * failure header with no indication of WHICH record or target it came from, and a
- * `ClassCastException` from a wrong-typed PK field carries no context at all. The original is
- * preserved as `getCause`. Suppression and stack trace capture are both disabled
- * (`writableStackTrace = false`): this exception exists purely to carry a better message, and on
- * a fully-poison topic under `dlq` it is constructed once per record, so paying
- * `fillInStackTrace` for something that is never itself thrown or logged would be wasted work.
+ * A record that failed before becoming a bulk operation (e.g. a missing header, an unresolvable
+ * PK path, a tombstone under `FAIL`). Replaces the raw `(SinkRecord, String, Throwable)` tuple
+ * so call sites read as named fields rather than positional `_1`/`_2`/`_3`.
+ */
+final case class WriterStageFailure(record: SinkRecord, target: String, cause: Throwable)
+
+/**
+ * Prepends `topic-partition-offset (target=…)` to a writer-stage failure's message string
+ * before it is reported to the DLQ. The original cause is preserved as `getCause`.
+ * Suppression and stack trace capture are disabled (`writableStackTrace = false`): this
+ * exception is never thrown or logged, and on a fully-poison topic it is constructed once per
+ * record, so `fillInStackTrace` would be wasted work.
  */
 final class ContextualWriterStageFailure(message: String, cause: Throwable)
     extends RuntimeException(message, cause, false, false)
@@ -157,7 +160,7 @@ class ErrantRecordHandler(
    *    has already succeeded.
    */
   def divertWriterStage(
-    failures:        Seq[(SinkRecord, String, Throwable)],
+    failures:        Seq[WriterStageFailure],
     mode:            ItemErrorMode,
     reportedThisPut: mutable.Map[DlqKey, SinkRecord],
   ): DivertOutcome =
@@ -177,23 +180,23 @@ class ErrantRecordHandler(
               // actually about to be reported, not for one about to be discarded as
               // already-reported this put().
               val toReport = failures
-                .map { case (record, target, cause) => (DlqKey.forTarget(record, target), record, target, cause) }
-                .filterNot { case (key, _, _, _) => reportedThisPut.contains(key) }
+                .map(f => (DlqKey.forTarget(f.record, f.target), f))
+                .filterNot { case (key, _) => reportedThisPut.contains(key) }
               val toSend = toReport.map {
-                case (key, record, target, cause) =>
+                case (key, f) =>
                   val enriched = new ContextualWriterStageFailure(
-                    s"${record.topic()}-${record.kafkaPartition()}-${record.kafkaOffset()} " +
-                      s"(target=$target): ${cause.getMessage}",
-                    cause,
+                    s"${f.record.topic()}-${f.record.kafkaPartition()}-${f.record.kafkaOffset()} " +
+                      s"(target=${f.target}): ${f.cause.getMessage}",
+                    f.cause,
                   )
-                  (key, record, enriched: Throwable)
+                  (key, f.record, enriched: Throwable)
               }
               val outcome = reportAndAwait(reporter, toSend, reportedThisPut)
               if (outcome == DivertOutcome.Diverted) {
                 // reportAndAwait already marked these in reportedThisPut on success; this is
                 // purely the log line — see logWriterStageDlqReported's scaladoc for why dlq
                 // gets a summary WARN here, unlike divertPermanent's silent dlq path.
-                logWriterStageDlqReported(toReport.map { case (key, record, _, cause) => (key, record, cause) })
+                logWriterStageDlqReported(toReport.map { case (key, f) => (key, f.record, f.cause) })
               }
               outcome
             case _ => DivertOutcome.NotDiverted
@@ -243,11 +246,11 @@ class ErrantRecordHandler(
    * per record in the batch.
    */
   private def dropAllWriterStage(
-    failures:        Seq[(SinkRecord, String, Throwable)],
+    failures:        Seq[WriterStageFailure],
     reportedThisPut: mutable.Map[DlqKey, SinkRecord],
   ): Unit = {
     val toDrop = failures
-      .map { case (record, target, cause) => (DlqKey.forTarget(record, target), record, cause) }
+      .map(f => (DlqKey.forTarget(f.record, f.target), f.record, f.cause))
       .filterNot { case (key, _, _) => reportedThisPut.contains(key) }
     toDrop.foreach { case (key, record, _) => reportedThisPut.put(key, record) }
 

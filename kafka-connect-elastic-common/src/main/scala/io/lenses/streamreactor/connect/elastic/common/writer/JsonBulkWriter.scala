@@ -47,6 +47,7 @@ import io.lenses.streamreactor.connect.elastic.common.dlq.DlqGate
 import io.lenses.streamreactor.connect.elastic.common.dlq.DlqKey
 import io.lenses.streamreactor.connect.elastic.common.dlq.ErrantRecordHandler
 import io.lenses.streamreactor.connect.elastic.common.dlq.RecordRef
+import io.lenses.streamreactor.connect.elastic.common.dlq.WriterStageFailure
 import io.lenses.streamreactor.connect.elastic.common.indexname.CreateIndex
 import io.lenses.streamreactor.connect.elastic.common.indexname.CustomIndexName
 import io.lenses.streamreactor.connect.elastic.common.indexname.InvalidCustomIndexNameException
@@ -272,7 +273,7 @@ class JsonBulkWriter(
       // ErrantRecordHandler.divertWriterStage's scaladoc for why per-record or per-sub-batch
       // diversion would be unsafe here (DLQ deadline amplification / duplicate reports on
       // redelivery) now that writer-stage diversion is no longer a rare, allow-listed case.
-      val pendingWriterStage = mutable.Buffer.empty[(SinkRecord, String, Throwable)]
+      val pendingWriterStage = mutable.Buffer.empty[WriterStageFailure]
       insert(grouped, reportedThisPut, pendingWriterStage)
 
       if (pendingWriterStage.nonEmpty) {
@@ -283,7 +284,7 @@ class JsonBulkWriter(
             // happened to fail on" — so this exception's cause/message is reproducible for the
             // same input regardless of Map/HashMap iteration order over topics/sub-batches.
             val representativeCause =
-              pendingWriterStage.minBy { case (r, _, _) => (r.topic(), r.kafkaPartition(), r.kafkaOffset()) }._3
+              pendingWriterStage.minBy(f => (f.record.topic(), f.record.kafkaPartition(), f.record.kafkaOffset())).cause
             throw new WriterStageDiversionFailedException(
               s"Failed to divert ${pendingWriterStage.size} writer-stage failure(s) under " +
                 s"bulk.item.errors=${effectiveMode.configValue} (DLQ ack timeout, report() throwing " +
@@ -306,7 +307,7 @@ class JsonBulkWriter(
   private def insert(
     records:            Map[String, Vector[SinkRecord]],
     reportedThisPut:    mutable.Map[DlqKey, SinkRecord],
-    pendingWriterStage: mutable.Buffer[(SinkRecord, String, Throwable)],
+    pendingWriterStage: mutable.Buffer[WriterStageFailure],
   ): Unit = {
     logger.info(s"Inserting ${records.size} record groups")
     records.foreach {
@@ -322,7 +323,7 @@ class JsonBulkWriter(
           val kcqlValue: KcqlValues = kcqlMap.get(kcql)
           val target = Option(kcql.getTarget).getOrElse(topic)
           sinkRecords.grouped(settings.batchSize).foreach { batch =>
-            val attempted: Vector[Either[(SinkRecord, String, Throwable), Option[(BulkOp, SinkRecord)]]] =
+            val attempted: Vector[Either[WriterStageFailure, Option[(BulkOp, SinkRecord)]]] =
               batch.map { r =>
                 Try(processRecord(topic, kcql, kcqlValue, r)) match {
                   case Success(opt) => Right(opt.map(_ -> r))
@@ -334,7 +335,7 @@ class JsonBulkWriter(
                   // all — it fails the task at start(), in every mode, before any record is
                   // written. scala.util.Try only ever catches NonFatal, so a VM error or
                   // InterruptedException still propagates through untouched, in every mode.
-                  case Failure(e) if divertActive => Left((r, target, e))
+                  case Failure(e) if divertActive => Left(WriterStageFailure(r, target, e))
                   case Failure(e)                 => throw e
                 }
               }

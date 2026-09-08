@@ -423,7 +423,8 @@ class ErrantRecordHandlerTest extends AnyFunSuite with Matchers with LoneElement
     val cause    = new IllegalStateException("KCQL mapping is configured to fail on tombstone records")
     val tracked  = mutable.Map.empty[DlqKey, SinkRecord]
 
-    val outcome = handler.divertWriterStage(Seq((r, "my-kcql-target", cause)), ItemErrorMode.Dlq, tracked)
+    val outcome =
+      handler.divertWriterStage(Seq(WriterStageFailure(r, "my-kcql-target", cause)), ItemErrorMode.Dlq, tracked)
 
     outcome shouldBe DivertOutcome.Diverted
     reporter.received should have size 1
@@ -479,7 +480,7 @@ class ErrantRecordHandlerTest extends AnyFunSuite with Matchers with LoneElement
 
     val warnings = captureLogs(LogbackLevel.WARN) {
       handler.divertWriterStage(
-        Seq((record(), "target", new RuntimeException("x"))),
+        Seq(WriterStageFailure(record(), "target", new RuntimeException("x"))),
         ItemErrorMode.Dlq,
         mutable.Map.empty,
       ) shouldBe DivertOutcome.NotDiverted
@@ -500,7 +501,7 @@ class ErrantRecordHandlerTest extends AnyFunSuite with Matchers with LoneElement
     val handler = new ErrantRecordHandler(DlqGate.disabled)
     val r       = record()
     handler.divertWriterStage(
-      Seq((r, "target", new RuntimeException("x"))),
+      Seq(WriterStageFailure(r, "target", new RuntimeException("x"))),
       ItemErrorMode.Dlq,
       mutable.Map.empty,
     ) shouldBe DivertOutcome.NotDiverted
@@ -511,7 +512,7 @@ class ErrantRecordHandlerTest extends AnyFunSuite with Matchers with LoneElement
     val handler  = new ErrantRecordHandler(gateWith(reporter))
     val r        = record()
     handler.divertWriterStage(
-      Seq((r, "target", new RuntimeException("x"))),
+      Seq(WriterStageFailure(r, "target", new RuntimeException("x"))),
       ItemErrorMode.Fail,
       mutable.Map.empty,
     ) shouldBe DivertOutcome.NotDiverted
@@ -525,7 +526,10 @@ class ErrantRecordHandlerTest extends AnyFunSuite with Matchers with LoneElement
     val key      = DlqKey.forTarget(r, "target")
     val tracked  = mutable.Map(key -> r)
 
-    val outcome = handler.divertWriterStage(Seq((r, "target", new RuntimeException("x"))), ItemErrorMode.Dlq, tracked)
+    val outcome = handler.divertWriterStage(Seq(WriterStageFailure(r, "target", new RuntimeException("x"))),
+                                            ItemErrorMode.Dlq,
+                                            tracked,
+    )
 
     outcome shouldBe DivertOutcome.Diverted
     reporter.received shouldBe empty // already reported earlier this put() — not sent again
@@ -535,7 +539,7 @@ class ErrantRecordHandlerTest extends AnyFunSuite with Matchers with LoneElement
     val reporter = new FakeReporter(ReporterBehaviour.ThrowImmediately)
     val handler  = new ErrantRecordHandler(gateWith(reporter))
     handler.divertWriterStage(
-      Seq((record(), "target", new RuntimeException("x"))),
+      Seq(WriterStageFailure(record(), "target", new RuntimeException("x"))),
       ItemErrorMode.Dlq,
       mutable.Map.empty,
     ) shouldBe DivertOutcome.NotDiverted
@@ -555,9 +559,9 @@ class ErrantRecordHandlerTest extends AnyFunSuite with Matchers with LoneElement
     val r1      = record(offset = 1L)
     val r2      = record(offset = 2L)
     val failures = Seq(
-      (r0, "target", new RuntimeException("boom-0")),
-      (r1, "target", new RuntimeException("boom-1")),
-      (r2, "target", new RuntimeException("boom-2")),
+      WriterStageFailure(r0, "target", new RuntimeException("boom-0")),
+      WriterStageFailure(r1, "target", new RuntimeException("boom-1")),
+      WriterStageFailure(r2, "target", new RuntimeException("boom-2")),
     )
     val tracked = mutable.Map.empty[DlqKey, SinkRecord]
 
@@ -606,7 +610,8 @@ class ErrantRecordHandlerTest extends AnyFunSuite with Matchers with LoneElement
     val cause   = new IllegalStateException("KCQL mapping is configured to fail on tombstone records")
     val tracked = mutable.Map.empty[DlqKey, SinkRecord]
 
-    val outcome = handler.divertWriterStage(Seq((r, "my-kcql-target", cause)), ItemErrorMode.Drop, tracked)
+    val outcome =
+      handler.divertWriterStage(Seq(WriterStageFailure(r, "my-kcql-target", cause)), ItemErrorMode.Drop, tracked)
 
     outcome shouldBe DivertOutcome.Diverted
     tracked.values.toSet shouldBe Set(r)
@@ -619,7 +624,7 @@ class ErrantRecordHandlerTest extends AnyFunSuite with Matchers with LoneElement
     val tracked = mutable.Map(key -> r)
 
     handler.divertWriterStage(
-      Seq((r, "target", new RuntimeException("x"))),
+      Seq(WriterStageFailure(r, "target", new RuntimeException("x"))),
       ItemErrorMode.Drop,
       tracked,
     ) shouldBe DivertOutcome.Diverted
@@ -627,8 +632,8 @@ class ErrantRecordHandlerTest extends AnyFunSuite with Matchers with LoneElement
   }
 
   /** `count` distinct writer-stage failures, one per record. */
-  private def writerStageDropScenario(count: Int): Seq[(SinkRecord, String, Throwable)] =
-    (0 until count).map(i => (record(offset = i.toLong), "target", new RuntimeException(s"boom-$i")))
+  private def writerStageDropScenario(count: Int): Seq[WriterStageFailure] =
+    (0 until count).map(i => WriterStageFailure(record(offset = i.toLong), "target", new RuntimeException(s"boom-$i")))
 
   test("divertWriterStage(Drop) emits ONE summary WARN per call, not one per record") {
     val handler  = new ErrantRecordHandler(DlqGate.disabled)
