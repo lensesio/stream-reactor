@@ -791,10 +791,64 @@ class JsonBulkWriterTest
     // Diverting the mapper conflict here, then throwing for the retriable remainder, would mean
     // it gets diverted AGAIN on every redelivery while the 429 persists — unbounded
     // amplification. So a retriable remainder in the SAME response defers diversion entirely:
-    // the full error set throws, and nothing is reported.
-    val thrown = intercept[FatalConnectException](writer.write(Vector(ok, poison)))
+    // the full error set throws, and nothing is reported. Asserting the precise
+    // RetriableIntegrityException type (not just FatalConnectException, its supertype) locks in
+    // that this deferred-diversion throw is retriable — see the RETRY-policy test below.
+    val thrown = intercept[RetriableIntegrityException](writer.write(Vector(ok, poison)))
     thrown.getMessage should include("es_rejected_execution_exception")
     thrown.getMessage should include("mapper_parsing_exception")
+    reporter.received shouldBe empty
+  }
+
+  test(
+    "dlq mode: a mixed batch under RETRY wraps in RetriableException so Connect redelivers instead of killing the task",
+  ) {
+    val reporter = new FakeReporter
+    val client = new ScriptedBulkClient(
+      Map("1" -> rejectedError(), "2" -> mapperError()),
+    )
+    val writer = new JsonBulkWriter(
+      client,
+      settingsWith("INSERT INTO idx SELECT * FROM topic PK id", ItemErrorMode.Dlq, policy = RetryErrorPolicy()),
+      dlqGate(reporter),
+    )
+
+    val poison = record("topic", "k2", struct(2, "bad"), offset = 1L)
+    val ok     = record("topic", "k1", struct(1, "transient"), offset = 0L)
+
+    // Without the deferred-diversion throw being retriable, RetryErrorPolicy would rethrow the
+    // plain FatalConnectException as-is, killing the task on this very first mixed response —
+    // before the 429 ever gets a chance to clear. Wrapping in RetriableException instead lets
+    // Connect redeliver the batch while retries remain, exactly like a genuine all-retriable
+    // response (see the 429-only RETRY test above).
+    val thrown = intercept[RetriableException](writer.write(Vector(ok, poison)))
+    thrown.getCause shouldBe a[RetriableIntegrityException]
+    reporter.received shouldBe empty
+  }
+
+  test(
+    "dlq mode: a mixed batch under RETRY with no retries remaining still fails the task (not silently retried forever)",
+  ) {
+    val reporter = new FakeReporter
+    val client = new ScriptedBulkClient(
+      Map("1" -> rejectedError(), "2" -> mapperError()),
+    )
+    val writer = new JsonBulkWriter(
+      client,
+      ElasticCommonSettings(
+        kcqls         = Seq(io.lenses.kcql.Kcql.parse("INSERT INTO idx SELECT * FROM topic PK id")),
+        errorPolicy   = RetryErrorPolicy(),
+        taskRetries   = 0,
+        storesInfo    = defaultStoresInfo,
+        itemErrorMode = ItemErrorMode.Dlq,
+      ),
+      dlqGate(reporter),
+    )
+
+    val poison = record("topic", "k2", struct(2, "bad"), offset = 1L)
+    val ok     = record("topic", "k1", struct(1, "transient"), offset = 0L)
+
+    intercept[RetriableIntegrityException](writer.write(Vector(ok, poison)))
     reporter.received shouldBe empty
   }
 
@@ -1056,12 +1110,12 @@ class JsonBulkWriterTest
     val ok     = record("topic", "k1", struct(1, "transient"), offset = 0L)
 
     // Attempt 1: mixed response -> diversion deferred, nothing reported, full set thrown.
-    intercept[FatalConnectException](writer.write(Vector(ok, poison)))
+    intercept[RetriableIntegrityException](writer.write(Vector(ok, poison)))
     // Attempt 2: Connect redelivers the identical batch; the retriable condition still hasn't
     // cleared, so it's STILL a mixed response -> still deferred, still nothing reported. If the
     // old "divert-then-throw-for-the-remainder" behaviour were still in place, "2" would have
     // been reported twice by now; instead it is never reported while "1" keeps failing.
-    intercept[FatalConnectException](writer.write(Vector(ok, poison)))
+    intercept[RetriableIntegrityException](writer.write(Vector(ok, poison)))
 
     reporter.received shouldBe empty
   }
@@ -1103,7 +1157,7 @@ class JsonBulkWriterTest
     val ok     = record("topic", "k1", struct(1, "transient"), offset = 0L)
 
     // Attempt 1: mixed -> deferred, nothing reported, full set thrown.
-    intercept[FatalConnectException](writer.write(Vector(ok, poison)))
+    intercept[RetriableIntegrityException](writer.write(Vector(ok, poison)))
     reporter.received shouldBe empty
 
     // Attempt 2: only the divertible 400 remains (the 429 "cleared") -> diverted, not thrown.
@@ -1188,10 +1242,51 @@ class JsonBulkWriterTest
     val ok     = record("topic", "k1", struct(1, "transient"), offset = 0L)
 
     // See the equivalent dlq-mode test above: dropping "2" here, then throwing for "1", would
-    // mean "2" gets dropped AGAIN on every redelivery while "1" keeps failing.
-    val thrown = intercept[FatalConnectException](writer.write(Vector(ok, poison)))
+    // mean "2" gets dropped AGAIN on every redelivery while "1" keeps failing. Asserting the
+    // precise RetriableIntegrityException type (not just FatalConnectException) locks in that
+    // this deferred-diversion throw is retriable — see the RETRY-policy test below.
+    val thrown = intercept[RetriableIntegrityException](writer.write(Vector(ok, poison)))
     thrown.getMessage should include("es_rejected_execution_exception")
     thrown.getMessage should include("mapper_parsing_exception")
+  }
+
+  test(
+    "drop mode: a mixed batch under RETRY wraps in RetriableException so Connect redelivers instead of killing the task",
+  ) {
+    val client = new ScriptedBulkClient(Map("1" -> rejectedError(), "2" -> mapperError()))
+    val writer = new JsonBulkWriter(
+      client,
+      settingsWith("INSERT INTO idx SELECT * FROM topic PK id", ItemErrorMode.Drop, policy = RetryErrorPolicy()),
+    )
+
+    val poison = record("topic", "k2", struct(2, "bad"), offset = 1L)
+    val ok     = record("topic", "k1", struct(1, "transient"), offset = 0L)
+
+    // Without the deferred-diversion throw being retriable, RetryErrorPolicy would rethrow the
+    // plain FatalConnectException as-is, killing the task on this very first mixed response —
+    // before the 429 ever gets a chance to clear (the exact failure `drop`/`dlq` exist to avoid).
+    val thrown = intercept[RetriableException](writer.write(Vector(ok, poison)))
+    thrown.getCause shouldBe a[RetriableIntegrityException]
+  }
+
+  test(
+    "drop mode: a batch mixing a 400 mapper error with a 403 cluster_block_exception under RETRY is fatal (not retriable) — a batch-wide condition doesn't clear on redelivery",
+  ) {
+    val client = new ScriptedBulkClient(Map("1" -> mapperError(), "2" -> clusterBlockError()))
+    val writer = new JsonBulkWriter(
+      client,
+      settingsWith("INSERT INTO idx SELECT * FROM topic PK id", ItemErrorMode.Drop, policy = RetryErrorPolicy()),
+    )
+
+    val rec1 = record("topic", "k1", struct(1, "x"))
+    val rec2 = record("topic", "k2", struct(2, "y"), offset = 1L)
+
+    // A batch-wide failure blocks diversion regardless of any retriable remainder — and unlike
+    // the divertible-400-plus-429 case above, redelivering cannot help (the cluster block isn't
+    // going anywhere), so this must stay a plain FatalConnectException, not wrapped.
+    val thrown = intercept[FatalConnectException](writer.write(Vector(rec1, rec2)))
+    thrown should not be a[RetriableIntegrityException]
+    thrown should not be a[RetriableException]
   }
 
   test("drop mode: a writer-stage failure (FAIL tombstone) is dropped instead of failing the task") {

@@ -249,18 +249,37 @@ class JsonBulkWriter(
    *  - Permanent errors split into per-document rejections (HTTP 400, see
    *    [[BulkItemErrorClassifier.isDivertible]]) and batch-wide failures (403/404/5xx and the
    *    batch-wide 400s). Any batch-wide failure blocks diversion for the whole batch — throws
-   *    for the full error set.
+   *    a plain [[BulkItemErrorClassifier.exceptionFor]] for the full error set: a clean
+   *    redelivery cannot help (the batch-wide condition doesn't depend on the retriable
+   *    remainder clearing), so this is NOT made retriable.
    *  - Diversion is DEFERRED whenever a retriable (429/409) remainder is present in the SAME
    *    response, even if every other error in it is divertible: nothing is diverted, and the
-   *    full error set throws for redelivery. This is deliberate, not a missed case — diverting
-   *    the permanent subset here and throwing for the retriable remainder would mean the same
-   *    permanent record(s) get diverted again on every redelivery attempt while the retriable
-   *    condition persists (unbounded amplification: N redeliveries -> N DLQ reports / N drop
-   *    log lines for the same record). Deferring means a mixed batch diverts at most once — on
-   *    whichever attempt eventually comes back with ONLY divertible errors (the retriable
-   *    condition having cleared) — and, in the pathological case where the retriable condition
-   *    never clears, the task fails on retry-budget exhaustion having diverted nothing, which is
-   *    the same outcome `fail` mode always had for that batch.
+   *    full error set throws for redelivery via
+   *    [[BulkItemErrorClassifier.deferredDiversionExceptionFor]] — a
+   *    [[io.lenses.streamreactor.common.errors.RetriableIntegrityException]], unlike the other
+   *    throws in this method. This is deliberate, not a missed case — diverting the permanent
+   *    subset here and throwing for the retriable remainder would mean the same permanent
+   *    record(s) get diverted again on every redelivery attempt while the retriable condition
+   *    persists (unbounded amplification: N redeliveries -> N DLQ reports / N drop log lines for
+   *    the same record). Deferring means a mixed batch diverts at most once — on whichever
+   *    attempt eventually comes back with ONLY divertible errors (the retriable condition having
+   *    cleared) — and, in the pathological case where the retriable condition never clears, the
+   *    task fails once its retry budget is exhausted having diverted nothing, which is the same
+   *    outcome `fail` mode always had for that batch.
+   *    Being retriable here matters concretely under `error.policy=RETRY`: without it,
+   *    [[io.lenses.streamreactor.common.errors.RetryErrorPolicy]] rethrows a plain
+   *    `FatalConnectException` as-is (never wrapping it in `RetriableException`), so the task
+   *    would die on the very FIRST mixed response, before the retriable condition ever gets a
+   *    chance to clear — exactly the failure `drop`/`dlq` exist to avoid. Under `THROW`/`NOOP`
+   *    the distinction is moot: both policies already fail fast on any `FatalConnectException`
+   *    subtype (see [[io.lenses.streamreactor.common.errors.ErrorPolicy]]), so this batch still
+   *    fails the task immediately either way — only the batch's own redelivery-on-restart (not
+   *    an in-process retry) can get it back with the retriable condition cleared.
+   *  - `errantRecordHandler.divertPermanent` returning
+   *    [[io.lenses.streamreactor.connect.elastic.common.dlq.DivertOutcome.NotDiverted]] (e.g. an
+   *    untrusted position mapping, or a DLQ ack timeout) is NOT retried here either: unlike the
+   *    deferred case above, nothing here indicates that the retriable remainder clearing would
+   *    change the outcome, so a plain [[BulkItemErrorClassifier.exceptionFor]] is thrown.
    */
   private def handleBulkResult(
     result:          BulkResult,
@@ -273,11 +292,17 @@ class JsonBulkWriter(
       val (retriable, nonRetriable) = result.itemErrors.partition(BulkItemErrorClassifier.isRetriable)
       val (perDocumentRejections, batchWideFailures) =
         nonRetriable.partition(BulkItemErrorClassifier.isDivertible)
-      if (perDocumentRejections.isEmpty || batchWideFailures.nonEmpty || retriable.nonEmpty || !divertActive) {
-        // Nothing divertible, a batch-wide error is present, a retriable remainder is present
-        // (diversion deferred to a clean attempt — see scaladoc above), or diversion is
-        // inactive: throw for the full error set (pre-diversion behaviour).
+      if (!divertActive || perDocumentRejections.isEmpty || batchWideFailures.nonEmpty) {
+        // Diversion is inactive, nothing is divertible, or a batch-wide error is present: throw
+        // for the full error set (pre-diversion behaviour). Never retriable purely because of
+        // this batch's shape — see scaladoc above.
         Failure(BulkItemErrorClassifier.exceptionFor(result.itemErrors))
+      } else if (retriable.nonEmpty) {
+        // Every non-retriable error here is divertible (the branches above ruled out "nothing
+        // divertible" and "batch-wide"); diversion is deferred to a clean attempt, and that
+        // attempt is guaranteed to make progress once the retriable remainder clears — see
+        // scaladoc above.
+        Failure(BulkItemErrorClassifier.deferredDiversionExceptionFor(result.itemErrors))
       } else {
         errantRecordHandler.divertPermanent(
           perDocumentRejections,
@@ -292,24 +317,10 @@ class JsonBulkWriter(
     }
 
   /**
-   * Classifies a transport-level failure (connection error, timeout, etc — no per-item
-   * response received at all).
-   *
-   * Reclassified as [[RetriableIntegrityException]]:
-   *  - A bare `RuntimeException` is swallowed by NOOP with only a WARN — offsets advance past
-   *    unwritten records. Avoided by using a `FatalConnectException` subtype.
-   *  - Not swallowed by NOOP, but still retried under `error.policy=RETRY` (unlike a plain
-   *    `FatalConnectException`).
-   *  - Never diverted: no per-document information exists to attribute the failure to
-   *    specific records.
-   *
-   * [[RetriableIntegrityException]]'s own scaladoc frames retry-safety as "no partial state was
-   * cached" — that framing fits its original cloud-sink use case but not quite this one: a bulk
-   * transport failure is exactly the case where the cluster MAY have partially applied the
-   * request. Retrying here is still safe, but for a different reason — INSERT/UPSERT ops are
-   * keyed by document `id`, so re-sending an already-written document overwrites it identically
-   * (idempotent), and DELETE is naturally idempotent. That idempotency, not "nothing was
-   * cached", is what makes at-least-once redelivery of a whole batch safe.
+   * Classifies a transport-level failure (no per-item response received at all) as
+   * [[RetriableIntegrityException]] — not swallowed by NOOP, retried under `error.policy=RETRY`,
+   * never diverted (no per-item data to attribute it to). Safe to retry: INSERT/UPSERT are keyed
+   * by document `id` (re-sending overwrites identically) and DELETE is naturally idempotent.
    */
   private def handleTransportFailure(error: Throwable): Try[BulkResult] = {
     val classified = error match {

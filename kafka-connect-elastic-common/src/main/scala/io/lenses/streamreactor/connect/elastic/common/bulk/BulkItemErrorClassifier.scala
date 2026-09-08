@@ -178,6 +178,25 @@ object BulkItemErrorClassifier {
   }
 
   /**
+   * Exception for a response where diversion (`bulk.item.errors=drop`/`dlq`) was DEFERRED
+   * because a retriable (429/409) error shares the response with an otherwise-divertible
+   * permanent one — see
+   * [[io.lenses.streamreactor.connect.elastic.common.writer.JsonBulkWriter.handleBulkResult]].
+   * Always [[RetriableIntegrityException]]: every non-retriable error in the set is already
+   * confirmed divertible, so a clean redelivery is guaranteed to make progress once the
+   * retriable remainder clears.
+   *
+   * Not used by [[exceptionFor]]'s other caller, the per-record DLQ report cause in
+   * [[io.lenses.streamreactor.connect.elastic.common.dlq.ErrantRecordHandler]], which must stay
+   * permanent regardless of what else was in the response.
+   */
+  def deferredDiversionExceptionFor(itemErrors: Seq[BulkItemError]): RetriableIntegrityException =
+    new RetriableIntegrityException(
+      s"Bulk request had ${formatItemErrors(itemErrors)}; diversion (bulk.item.errors) deferred " +
+        "until the retriable errors clear",
+    )
+
+  /**
    * `errorType` format differs by connector:
    *  - ES6/ES7 ([[io.lenses.streamreactor.connect.elastic7.KElasticBulkClient]]): snake_case,
    *    e.g. `es_rejected_execution_exception`.

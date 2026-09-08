@@ -146,6 +146,39 @@ class BulkItemErrorClassifierTest extends AnyFunSuite with Matchers {
     ex should not be a[RetriableIntegrityException]
   }
 
+  // deferredDiversionExceptionFor is used at the JsonBulkWriter.handleBulkResult call site only
+  // for a mixed batch where diversion was DEFERRED (i.e. every non-retriable error present is
+  // already known to be divertible) — see its scaladoc. It deliberately classifies the exact
+  // same mixed error set that exceptionFor (above) classifies as permanent, because the
+  // retriability here is a property of the caller's deferral decision, not of the error set on
+  // its own.
+  test(
+    "deferredDiversionExceptionFor returns RetriableIntegrityException for a mixed batch that exceptionFor treats as fatal",
+  ) {
+    val errors = Seq(
+      item("rejected", errorType        = "es_rejected_execution_exception", status = 429, id = "ok-later"),
+      item("failed to parse", errorType = "mapper_parsing_exception", status        = 400, id = "poison"),
+    )
+
+    val deferred = BulkItemErrorClassifier.deferredDiversionExceptionFor(errors)
+    deferred shouldBe a[RetriableIntegrityException]
+
+    val fatal = BulkItemErrorClassifier.exceptionFor(errors)
+    fatal shouldBe a[FatalConnectException]
+    fatal should not be a[RetriableIntegrityException]
+  }
+
+  test("deferredDiversionExceptionFor's message names every error in the set") {
+    val errors = Seq(
+      item("rejected", errorType        = "es_rejected_execution_exception", status = 429, id = "ok-later"),
+      item("failed to parse", errorType = "mapper_parsing_exception", status        = 400, id = "poison"),
+    )
+    val msg = BulkItemErrorClassifier.deferredDiversionExceptionFor(errors).getMessage
+    msg should include("es_rejected_execution_exception")
+    msg should include("mapper_parsing_exception")
+    msg should include("deferred")
+  }
+
   test("mapper_parsing_exception (per-document 400) is divertible") {
     BulkItemErrorClassifier.isDivertible(
       item("failed to parse field [foo]", errorType = "mapper_parsing_exception", status = 400),

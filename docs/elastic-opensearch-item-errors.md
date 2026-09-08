@@ -108,7 +108,10 @@ with a per-document HTTP 400 — never a whole batch wholesale. For a 100-record
 - **3 rejected with 400 + some 429 (retriable) in the same response**: **0 are diverted.**
   Diversion is deferred whenever a retriable error is present anywhere in the same response —
   see "At-least-once semantics and mixed batches" below — so the full error set throws and the
-  batch is redelivered with nothing diverted on this attempt.
+  batch is redelivered with nothing diverted on this attempt. Under `error.policy=RETRY` this
+  redelivery happens in-process (via `RetriableException`), without killing the task, as long as
+  retries remain; under `THROW`/`NOOP` the task fails and the batch is redelivered only on
+  restart.
 
 The only way a large number of records is diverted is if the cluster genuinely rejected each of
 them individually with a 400 — the intended "poison record" case. A single infrastructure blip or
@@ -127,9 +130,19 @@ record(s) get diverted again on *every* redelivery attempt while the retriable c
 persists: N redeliveries produce N DLQ reports (or N drop log lines) for the same record, an
 unbounded amplification bounded only by the connector's retry budget. Deferring means a mixed
 batch diverts **at most once** — on whichever attempt eventually comes back with only divertible
-errors (the retriable condition having cleared) — and in the pathological case where the
-retriable condition never clears, the task fails on retry-budget exhaustion having diverted
-nothing, which is the same outcome `fail` mode always had for that batch.
+errors (the retriable condition having cleared).
+
+This deferred throw is itself retriable (`RetriableIntegrityException`, not a plain fatal
+exception) precisely *because* every non-retriable error in the mixed response has already been
+confirmed divertible: once the retriable remainder clears, a redelivery is guaranteed to make
+progress. That distinction matters concretely under `error.policy=RETRY`: the batch is redelivered
+in-process, via `RetriableException`, while retries remain — the task does **not** die on the
+first mixed response. Under `error.policy=THROW`/`NOOP` the distinction is moot, since both
+policies already fail fast on any fatal exception subtype regardless; there, only the batch's
+redelivery on task restart (not an in-process retry) can get it back with the retriable condition
+cleared. In the pathological case where the retriable condition never clears, the task fails once
+its retry budget is exhausted having diverted nothing, which is the same outcome `fail` mode
+always had for that batch.
 
 The dedup that prevents double-diverting within one attempt is scoped to a single `put()` (a fresh
 tracker is created per `write()`), keyed by `(topic, partition, offset, target)`. It deliberately
