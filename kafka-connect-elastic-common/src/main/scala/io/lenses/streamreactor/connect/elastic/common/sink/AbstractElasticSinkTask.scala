@@ -151,17 +151,22 @@ abstract class AbstractElasticSinkTask extends SinkTask with StrictLogging with 
       case ItemErrorMode.Drop =>
         logger.warn(
           "bulk.item.errors=drop is set: permanently-failed bulk items (HTTP 400, e.g. a mapper " +
-            "conflict) will be discarded and offsets will advance past them. This is a deliberate " +
-            "data-loss trade-off in exchange for keeping the task running; use bulk.item.errors=dlq " +
-            "instead if you need a durable record of what was discarded.",
+            "conflict) AND writer-stage failures (e.g. a missing/invalid header, key, or value used " +
+            "for a record's primary key or index target) will be discarded and offsets will advance " +
+            "past them. This is a deliberate data-loss trade-off in exchange for keeping the task " +
+            "running; use bulk.item.errors=dlq instead if you need a durable record of what was " +
+            "discarded.",
         )
         if (!strictItemErrors) {
           logger.warn(
             "bulk.item.errors=drop is set together with bulk.strict.item.errors=false. Both discard " +
-              "poison records, but bulk.strict.item.errors=false already discards them inside the bulk " +
-              "client (legacy tolerant mode) before bulk.item.errors is consulted, so bulk.item.errors=drop " +
-              "has no additional effect and its per-batch drop summary logging will not appear. Set " +
-              "bulk.strict.item.errors=true if you want bulk.item.errors=drop to be what discards them.",
+              "poison bulk items, but bulk.strict.item.errors=false already discards them inside the " +
+              "bulk client (legacy tolerant mode) before bulk.item.errors is consulted, so " +
+              "bulk.item.errors=drop has no additional effect on PERMANENT BULK ITEM ERRORS and its " +
+              "per-batch drop summary logging will not appear for them. Set bulk.strict.item.errors=true " +
+              "if you want bulk.item.errors=drop to be what discards those. This does NOT affect " +
+              "writer-stage failures (missing/invalid header, key, or value): those never reach the " +
+              "bulk client at all, so bulk.item.errors=drop discards them regardless of this setting.",
           )
         }
       case ItemErrorMode.Dlq =>
@@ -184,9 +189,12 @@ abstract class AbstractElasticSinkTask extends SinkTask with StrictLogging with 
             "bulk.item.errors=dlq is set together with bulk.strict.item.errors=false. " +
               "bulk.strict.item.errors=false discards per-item bulk failures inside the bulk client " +
               "(legacy tolerant mode, logged at WARN there) before bulk.item.errors is ever consulted, " +
-              "so bulk.item.errors=dlq has no effect and no record will ever reach the dead-letter " +
-              "queue. Set bulk.strict.item.errors=true if you want failing records to actually reach " +
-              "the DLQ.",
+              "so bulk.item.errors=dlq has no effect on PERMANENT BULK ITEM ERRORS and none of those " +
+              "will ever reach the dead-letter queue. Set bulk.strict.item.errors=true if you want " +
+              "those to actually reach the DLQ. This does NOT affect writer-stage failures " +
+              "(missing/invalid header, key, or value used for a primary key or index target): those " +
+              "never reach the bulk client at all, so bulk.item.errors=dlq still reports them " +
+              "regardless of this setting.",
           )
         }
         // errors.tolerance defaults to "none" when unset — treat absent/blank the same as

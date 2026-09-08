@@ -134,16 +134,21 @@ object ElasticCommonConfigConstants {
 
   val BULK_ITEM_ERRORS_SUFFIX = "bulk.item.errors"
   val BULK_ITEM_ERRORS_DOC =
-    """Controls what happens to a bulk item that fails with a permanent, per-document error
-      |(HTTP 400, e.g. a mapper conflict).
+    """Controls what happens to a record that fails with either a permanent, per-document bulk
+      |error (HTTP 400, e.g. a mapper conflict) or a writer-stage failure - the record never
+      |became a bulk operation at all, e.g. a missing/invalid header, key, or value used for its
+      |primary key or index target, or a malformed payload.
       |fail (default): the connector throws and the task stops with offsets uncommitted (no data loss).
-      |drop: the failing record(s) are discarded (logged at WARN) and offsets advance, keeping the task
-      |running. No dead-letter queue is required.
+      |drop: the failing record(s) are discarded (logged at WARN, one summary line per put()) and
+      |offsets advance, keeping the task running. No dead-letter queue is required.
       |dlq: the failing record(s) are reported to the dead-letter queue and offsets advance, keeping the
       |task running. Takes effect only when errors.deadletterqueue.topic.name is set, errors.tolerance=all
       |and bulk.strict.item.errors=true; otherwise it behaves as fail.
-      |Both drop and dlq only divert per-document HTTP 400 rejections - batch-wide failures
-      |(write-blocked/missing index, auth errors) still fail the task. DLQ delivery is at-least-once.""".stripMargin
+      |Both drop and dlq divert per-document HTTP 400 bulk rejections and per-record writer-stage
+      |failures, but never a batch-wide bulk failure (write-blocked/missing index, auth errors) or a
+      |KCQL/config fault that would fail every record identically (e.g. a nested header PK path,
+      |UPSERT with no PK, or an unparseable KCQL target - these are rejected at start() instead).
+      |DLQ delivery is at-least-once.""".stripMargin
   val BULK_ITEM_ERRORS_DEFAULT = "fail"
 
   val BULK_ITEM_ERRORS_DLQ_TIMEOUT_MS_SUFFIX = "bulk.item.errors.dlq.timeout.ms"

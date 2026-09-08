@@ -32,6 +32,20 @@ import scala.collection.mutable
 import scala.util.control.NonFatal
 
 /**
+ * Wraps a writer-stage failure's cause with the record coordinates and KCQL target before it is
+ * reported to the DLQ — without this, a bare extraction failure like
+ * `IllegalArgumentException("Header with key 'tenant_id' not found")` reaches the DLQ record's
+ * failure header with no indication of WHICH record or target it came from, and a
+ * `ClassCastException` from a wrong-typed PK field carries no context at all. The original is
+ * preserved as `getCause`. Suppression and stack trace capture are both disabled
+ * (`writableStackTrace = false`): this exception exists purely to carry a better message, and on
+ * a fully-poison topic under `dlq` it is constructed once per record, so paying
+ * `fillInStackTrace` for something that is never itself thrown or logged would be wasted work.
+ */
+final class ContextualWriterStageFailure(message: String, cause: Throwable)
+    extends RuntimeException(message, cause, false, false)
+
+/**
  * Diverts permanently-failed bulk items (and writer-stage failures): drops them
  * (`bulk.item.errors=drop`) or reports them to Kafka Connect's DLQ via [[ErrantRecordReporter]]
  * (`bulk.item.errors=dlq`).
@@ -42,10 +56,12 @@ import scala.util.control.NonFatal
  *  - Does not compare `index`: a write alias resolves to a concrete backing index in the
  *    response, so `op.index` (alias) never equals `error.index` (concrete) even on a correct
  *    mapping. `id` alone corroborates ordering; `DlqKey.forOp` keys on the op's index.
- *  - `dlq`: awaits every `report()` future issued by one [[divertPermanent]]/[[divertOne]] call
- *    against a single shared deadline (`reportTimeoutMs` from the start of that call, not
+ *  - `dlq`: awaits every `report()` future issued by one [[divertPermanent]]/[[divertWriterStage]]
+ *    call against a single shared deadline (`reportTimeoutMs` from the start of that call, not
  *    restarted per future), bounding the whole call at `reportTimeoutMs` regardless of how many
- *    records it reports.
+ *    records it reports. [[divertWriterStage]] in particular is called ONCE for an entire
+ *    `JsonBulkWriter.write()` (every topic/KCQL/sub-batch), not once per sub-batch or per record
+ *    — see its own scaladoc for why that matters.
  *  - `dlq`: catches throws from `report()` itself — under `errors.tolerance=none`,
  *    `RetryWithToleranceOperator.executeFailed` reports then throws
  *    (`ConnectException("Tolerance exceeded in error handler", ...)`) — and surfaces
@@ -54,6 +70,11 @@ import scala.util.control.NonFatal
  *  - `drop`: no reporter, no ack wait, no tolerance interaction. Logged as one summary WARN per
  *    batch, capped at [[BulkItemErrorClassifier.MaxErrorsInMessage]] records of detail with the
  *    remainder at DEBUG — the log is the only trace of a discarded record.
+ *  - `dlq`: [[divertPermanent]] logs nothing itself on success — a bulk-item DLQ report is
+ *    usually just one cluster-rejected document, so per-bulk-call WARN would be noise.
+ *    [[divertWriterStage]] is the exception: it DOES log a summary WARN on success, capped the
+ *    same way, because a writer-stage DLQ report is much more likely to indicate a KCQL that is
+ *    wrong for the whole topic — see its own scaladoc.
  */
 class ErrantRecordHandler(
   dlqGate: DlqGate,
@@ -111,36 +132,74 @@ class ErrantRecordHandler(
     }
 
   /**
-   * Diverts a single writer-stage failure — a record that never became a `BulkOp` (e.g. a
-   * `NullValueBehavior.FAIL` tombstone, PK extraction failure, unsupported write mode).
+   * Diverts a batch of writer-stage failures — records that never became a `BulkOp` (e.g. a
+   * `NullValueBehavior.FAIL` tombstone, or any PK/index-target extraction or conversion failure).
    * `target` (the KCQL target) stands in for dedup; there is no resolved index here.
+   *
+   * Called ONCE per `JsonBulkWriter.write()` (i.e. once per `put()`), covering every topic/KCQL/
+   * sub-batch's writer-stage failures together — never per record and never per sub-batch. Two
+   * reasons this matters, both a direct consequence of writer-stage failures no longer being a
+   * rare, allow-listed case (historically only a `FAIL` tombstone could reach here at all):
+   *
+   *  - `dlq`: [[reportAndAwait]] shares ONE deadline (`reportTimeoutMs`) across every future it
+   *    issues in a single call. Diverting per record would mean a KCQL no record on the topic can
+   *    satisfy (e.g. a renamed PK header) pays up to one FULL `reportTimeoutMs` wait PER RECORD
+   *    inside a single `put()` — for a batch of hundreds or thousands of records, easily blowing
+   *    `max.poll.interval.ms` and evicting the task from its consumer group. One call for the
+   *    whole `put()` bounds it at `reportTimeoutMs` total, matching [[divertPermanent]].
+   *  - Diverting per sub-batch (`settings.batchSize` records at a time) is not enough either: a
+   *    later sub-batch's bulk call can still fail and force the whole `put()` to be redelivered,
+   *    after an earlier sub-batch's writer-stage failures were already reported — duplicating
+   *    those DLQ reports (or drop log lines) on every redelivery attempt while the later failure
+   *    persists, the exact unbounded-amplification failure mode [[divertPermanent]]'s deferred-
+   *    diversion-on-a-retriable-remainder already avoids for bulk-item errors (see its scaladoc).
+   *    `JsonBulkWriter.write` therefore defers calling this until every bulk call in the `put()`
+   *    has already succeeded.
    */
-  def divertOne(
-    record:          SinkRecord,
-    target:          String,
-    cause:           Throwable,
+  def divertWriterStage(
+    failures:        Seq[(SinkRecord, String, Throwable)],
     mode:            ItemErrorMode,
     reportedThisPut: mutable.Map[DlqKey, SinkRecord],
-  ): Boolean =
-    mode match {
-      case ItemErrorMode.Drop =>
-        // Not logged here: JsonBulkWriter.insert already logs one WARN per diverted
-        // writer-stage record, for both drop and dlq.
-        reportedThisPut.put(DlqKey.forTarget(record, target), record)
-        true
-      case ItemErrorMode.Dlq =>
-        // See divertPermanent — gated on dlqGate.enabled, not dlqGate.reporter alone.
-        (dlqGate.enabled, dlqGate.reporter) match {
-          case (true, Some(reporter)) =>
-            val key = DlqKey.forTarget(record, target)
-            if (reportedThisPut.contains(key)) {
-              true
-            } else {
-              reportAndAwait(reporter, Vector((key, record, cause)), reportedThisPut) == DivertOutcome.Diverted
-            }
-          case _ => false
-        }
-      case ItemErrorMode.Fail => false
+  ): DivertOutcome =
+    if (failures.isEmpty) {
+      DivertOutcome.Diverted
+    } else {
+      mode match {
+        case ItemErrorMode.Drop =>
+          dropAllWriterStage(failures, reportedThisPut)
+          DivertOutcome.Diverted
+        case ItemErrorMode.Dlq =>
+          // See divertPermanent — gated on dlqGate.enabled, not dlqGate.reporter alone.
+          (dlqGate.enabled, dlqGate.reporter) match {
+            case (true, Some(reporter)) =>
+              // Filter FIRST, enrich SECOND (mirrors divertPermanent's order): a
+              // ContextualWriterStageFailure is only ever allocated for a record that is
+              // actually about to be reported, not for one about to be discarded as
+              // already-reported this put().
+              val toReport = failures
+                .map { case (record, target, cause) => (DlqKey.forTarget(record, target), record, target, cause) }
+                .filterNot { case (key, _, _, _) => reportedThisPut.contains(key) }
+              val toSend = toReport.map {
+                case (key, record, target, cause) =>
+                  val enriched = new ContextualWriterStageFailure(
+                    s"${record.topic()}-${record.kafkaPartition()}-${record.kafkaOffset()} " +
+                      s"(target=$target): ${cause.getMessage}",
+                    cause,
+                  )
+                  (key, record, enriched: Throwable)
+              }
+              val outcome = reportAndAwait(reporter, toSend, reportedThisPut)
+              if (outcome == DivertOutcome.Diverted) {
+                // reportAndAwait already marked these in reportedThisPut on success; this is
+                // purely the log line — see logWriterStageDlqReported's scaladoc for why dlq
+                // gets a summary WARN here, unlike divertPermanent's silent dlq path.
+                logWriterStageDlqReported(toReport.map { case (key, record, _, cause) => (key, record, cause) })
+              }
+              outcome
+            case _ => DivertOutcome.NotDiverted
+          }
+        case ItemErrorMode.Fail => DivertOutcome.NotDiverted
+      }
     }
 
   /**
@@ -174,6 +233,71 @@ class ErrantRecordHandler(
     val (_, record, error) = entry
     s"[${record.topic()}-${record.kafkaPartition()}-${record.kafkaOffset()} index=${error.index} " +
       s"id=${error.id} status=${error.status} reason=${error.reason}]"
+  }
+
+  /**
+   * Tracks and logs a batch of dropped WRITER-STAGE failures (records that never became a
+   * `BulkOp`) — the writer-stage counterpart of [[dropAll]]. One summary WARN per
+   * [[divertWriterStage]] call (i.e. per `put()`), not per record, for the same reason `dropAll`
+   * caps its own: a KCQL no record on the topic can satisfy would otherwise emit one WARN line
+   * per record in the batch.
+   */
+  private def dropAllWriterStage(
+    failures:        Seq[(SinkRecord, String, Throwable)],
+    reportedThisPut: mutable.Map[DlqKey, SinkRecord],
+  ): Unit = {
+    val toDrop = failures
+      .map { case (record, target, cause) => (DlqKey.forTarget(record, target), record, cause) }
+      .filterNot { case (key, _, _) => reportedThisPut.contains(key) }
+    toDrop.foreach { case (key, record, _) => reportedThisPut.put(key, record) }
+
+    if (toDrop.nonEmpty) {
+      val shown = toDrop.take(BulkItemErrorClassifier.MaxErrorsInMessage)
+      val extra = toDrop.size - shown.size
+      val more  = if (extra > 0) s", ... and $extra more (logged individually at DEBUG)" else ""
+      logger.warn(
+        s"bulk.item.errors=drop: discarding ${toDrop.size} writer-stage record(s) that failed before " +
+          s"becoming a bulk operation (e.g. a missing/invalid header, key, or value used for a " +
+          s"primary key or index target); offsets will advance past them and they are not sent " +
+          s"anywhere else: ${shown.map(describeWriterStageFailure).mkString(", ")}$more",
+      )
+      toDrop.drop(shown.size).foreach(e =>
+        logger.debug(s"bulk.item.errors=drop: discarding ${describeWriterStageFailure(e)}"),
+      )
+    }
+  }
+
+  /**
+   * One summary WARN per `divertWriterStage(Dlq)` call, deliberately UNLIKE `divertPermanent`'s
+   * DLQ path, which logs nothing on success (see the class scaladoc: a bulk-item DLQ report
+   * usually just means the cluster rejected one otherwise-fine document, so a WARN per bulk call
+   * would be noise). A writer-stage DLQ report is a different signal: it means a record never
+   * even reached the cluster, and — now that writer-stage diversion isn't restricted to the rare
+   * `FAIL`-tombstone case any more — it is frequently caused by a KCQL that is wrong for the
+   * WHOLE topic (e.g. a renamed PK header), which is exactly the kind of misconfiguration an
+   * operator needs to see even though `dlq` mode keeps the task running. Mirrors
+   * `dropAllWriterStage`'s cap/remainder shape so `drop` and `dlq` are equally visible in logs.
+   */
+  private def logWriterStageDlqReported(reported: Seq[(DlqKey, SinkRecord, Throwable)]): Unit =
+    if (reported.nonEmpty) {
+      val shown = reported.take(BulkItemErrorClassifier.MaxErrorsInMessage)
+      val extra = reported.size - shown.size
+      val more  = if (extra > 0) s", ... and $extra more (logged individually at DEBUG)" else ""
+      logger.warn(
+        s"bulk.item.errors=dlq: reported ${reported.size} writer-stage record(s) that failed before " +
+          s"becoming a bulk operation (e.g. a missing/invalid header, key, or value used for a " +
+          s"primary key or index target) to the dead-letter queue: " +
+          s"${shown.map(describeWriterStageFailure).mkString(", ")}$more",
+      )
+      reported.drop(shown.size).foreach(e =>
+        logger.debug(s"bulk.item.errors=dlq: reported ${describeWriterStageFailure(e)}"),
+      )
+    }
+
+  private def describeWriterStageFailure(entry: (DlqKey, SinkRecord, Throwable)): String = {
+    val (key, record, cause) = entry
+    s"[${record.topic()}-${record.kafkaPartition()}-${record.kafkaOffset()} target=${key.target} " +
+      s"reason=${cause.getMessage}]"
   }
 
   private def resolvePositions(

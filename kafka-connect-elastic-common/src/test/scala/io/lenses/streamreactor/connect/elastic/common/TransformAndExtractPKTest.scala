@@ -15,6 +15,8 @@
  */
 package io.lenses.streamreactor.connect.elastic.common
 
+import io.lenses.kcql.targettype.StaticTargetType
+import io.lenses.kcql.targettype.TargetType
 import io.lenses.sql.Field
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
@@ -25,6 +27,12 @@ import org.apache.kafka.connect.header.ConnectHeaders
 
 class TransformAndExtractPKTest extends AnyFunSuite with Matchers {
 
+  // TransformAndExtractPK never reads KcqlValues.targetType — it's only consulted by
+  // CreateIndex, which this test file never exercises — so a placeholder is fine. KcqlValues has
+  // no default for targetType precisely so a real caller (JsonBulkWriter) cannot forget to supply
+  // one; see KcqlValues's scaladoc for why a null default was unsafe.
+  private val unusedTargetType: TargetType = new StaticTargetType("unused-in-this-test")
+
   def createKcqlValues(fields: Seq[(String, String, Vector[String])]): KcqlValues = {
     val fieldObjects = fields.map {
       case (name, alias, parents) => Field(name, alias, parents)
@@ -34,6 +42,7 @@ class TransformAndExtractPKTest extends AnyFunSuite with Matchers {
       ignoredFields        = Seq.empty,
       primaryKeysPath      = Seq.empty,
       behaviorOnNullValues = NullValueBehavior.FAIL,
+      targetType           = unusedTargetType,
     )
   }
 
@@ -74,6 +83,7 @@ class TransformAndExtractPKTest extends AnyFunSuite with Matchers {
         Vector("_header", "headerKey"),
       ),
       behaviorOnNullValues = NullValueBehavior.FAIL,
+      targetType           = unusedTargetType,
     )
 
     val result = TransformAndExtractPK.apply(
@@ -114,6 +124,7 @@ class TransformAndExtractPKTest extends AnyFunSuite with Matchers {
       ignoredFields        = Seq.empty,
       primaryKeysPath      = Seq(Vector("_header", "missingHeader")),
       behaviorOnNullValues = NullValueBehavior.FAIL,
+      targetType           = unusedTargetType,
     )
 
     val exception = intercept[IllegalArgumentException] {
@@ -151,6 +162,7 @@ class TransformAndExtractPKTest extends AnyFunSuite with Matchers {
       ignoredFields        = Seq.empty,
       primaryKeysPath      = Seq(Vector("_value", "field1")),
       behaviorOnNullValues = NullValueBehavior.FAIL,
+      targetType           = unusedTargetType,
     )
 
     val result = TransformAndExtractPK.apply(
@@ -184,6 +196,7 @@ class TransformAndExtractPKTest extends AnyFunSuite with Matchers {
       ignoredFields        = Seq.empty,
       primaryKeysPath      = Seq(Vector("_key")),
       behaviorOnNullValues = NullValueBehavior.FAIL,
+      targetType           = unusedTargetType,
     )
 
     val schema = SchemaBuilder.struct()
@@ -219,6 +232,7 @@ class TransformAndExtractPKTest extends AnyFunSuite with Matchers {
       ignoredFields        = Seq.empty,
       primaryKeysPath      = Seq(Vector("_key")),
       behaviorOnNullValues = NullValueBehavior.FAIL,
+      targetType           = unusedTargetType,
     )
 
     val schema = SchemaBuilder.struct()
@@ -254,6 +268,7 @@ class TransformAndExtractPKTest extends AnyFunSuite with Matchers {
       ignoredFields        = Seq.empty,
       primaryKeysPath      = Seq(Vector("_key", "a")),
       behaviorOnNullValues = NullValueBehavior.FAIL,
+      targetType           = unusedTargetType,
     )
 
     val schema = SchemaBuilder.struct()
@@ -294,6 +309,7 @@ class TransformAndExtractPKTest extends AnyFunSuite with Matchers {
       ignoredFields        = Seq.empty,
       primaryKeysPath      = Seq(Vector("_header", "missingHeader")),
       behaviorOnNullValues = NullValueBehavior.FAIL,
+      targetType           = unusedTargetType,
     )
 
     val exception = intercept[IllegalArgumentException] {
@@ -325,6 +341,7 @@ class TransformAndExtractPKTest extends AnyFunSuite with Matchers {
       ignoredFields        = Seq.empty,
       primaryKeysPath      = Seq(Vector("_header", "headerKey")),
       behaviorOnNullValues = NullValueBehavior.FAIL,
+      targetType           = unusedTargetType,
     )
 
     val exception = intercept[IllegalArgumentException] {
@@ -356,6 +373,7 @@ class TransformAndExtractPKTest extends AnyFunSuite with Matchers {
       ignoredFields        = Seq.empty,
       primaryKeysPath      = Seq(Vector("_header", "headerKey", "nonexistentField")),
       behaviorOnNullValues = NullValueBehavior.FAIL,
+      targetType           = unusedTargetType,
     )
 
     val exception = intercept[IllegalArgumentException] {
@@ -387,6 +405,7 @@ class TransformAndExtractPKTest extends AnyFunSuite with Matchers {
       ignoredFields        = Seq.empty,
       primaryKeysPath      = Seq(Vector("_key", "nonexistentField")),
       behaviorOnNullValues = NullValueBehavior.FAIL,
+      targetType           = unusedTargetType,
     )
 
     val exception = intercept[IllegalArgumentException] {
@@ -418,6 +437,7 @@ class TransformAndExtractPKTest extends AnyFunSuite with Matchers {
       ignoredFields        = Seq.empty,
       primaryKeysPath      = Seq(Vector("_header", "numericHeader")),
       behaviorOnNullValues = NullValueBehavior.FAIL,
+      targetType           = unusedTargetType,
     )
 
     val ex = intercept[IllegalArgumentException] {
@@ -448,6 +468,7 @@ class TransformAndExtractPKTest extends AnyFunSuite with Matchers {
       ignoredFields        = Seq.empty,
       primaryKeysPath      = Seq(Vector("_header", "h")),
       behaviorOnNullValues = NullValueBehavior.FAIL,
+      targetType           = unusedTargetType,
     )
 
     val (_, pks) = TransformAndExtractPK.apply(
@@ -462,6 +483,10 @@ class TransformAndExtractPKTest extends AnyFunSuite with Matchers {
     pks.head shouldBe "last"
   }
 
+  // NullPointerException is NonFatal (only VM errors/InterruptedException are not), so under the
+  // writer-stage diversion in JsonBulkWriter.insert this is divertible under
+  // bulk.item.errors=drop/dlq like any other extraction failure, not just under fail — see
+  // JsonBulkWriterTest for the writer-level assertion.
   test("null headers reference raises NullPointerException (verbatim ES7 behaviour)") {
     val jsonString = """{"field1": "value1"}"""
     val schema     = Schema.STRING_SCHEMA
@@ -471,6 +496,7 @@ class TransformAndExtractPKTest extends AnyFunSuite with Matchers {
       ignoredFields        = Seq.empty,
       primaryKeysPath      = Seq(Vector("_header", "h")),
       behaviorOnNullValues = NullValueBehavior.FAIL,
+      targetType           = unusedTargetType,
     )
 
     intercept[NullPointerException] {

@@ -35,6 +35,7 @@ import io.lenses.streamreactor.connect.elastic.common.bulk.BulkItemError
 import io.lenses.streamreactor.connect.elastic.common.config.ElasticCommonSettings
 import io.lenses.streamreactor.connect.elastic.common.config.ItemErrorMode
 import io.lenses.streamreactor.connect.elastic.common.dlq.DlqGate
+import io.lenses.streamreactor.connect.elastic.common.dlq.ErrantRecordHandler
 import io.lenses.streamreactor.connect.elastic.common.dlq.RecordRef
 import io.lenses.streamreactor.common.errors.FatalConnectException
 import io.lenses.streamreactor.common.errors.NoopErrorPolicy
@@ -184,11 +185,14 @@ class JsonBulkWriterTest
     op.id shouldBe "5"
   }
 
-  test("UPSERT without PK fails at write time with a message about primary keys") {
+  // UPSERT with no PK declared fails identically for every record on the topic — it's a KCQL
+  // authoring mistake, not a per-record condition — so it is now rejected at CONSTRUCTION
+  // (JsonBulkWriter's kcqlMap build), not at write time: the task fails at start() instead of on
+  // the first record, in every bulk.item.errors mode (this KCQL-only fault is never diverted).
+  test("UPSERT without PK fails at CONSTRUCTION with a message about primary keys") {
     val recording = new RecordingBulkClient
-    val writer    = new JsonBulkWriter(recording, kcqlSettings("UPSERT INTO upsert-nopk SELECT * FROM upsert-nopk-topic"))
     val ex = intercept[IllegalArgumentException](
-      writer.write(Vector(record("upsert-nopk-topic", "k1", struct(1, "test")))),
+      new JsonBulkWriter(recording, kcqlSettings("UPSERT INTO upsert-nopk SELECT * FROM upsert-nopk-topic")),
     )
     ex.getMessage should include("primary keys")
   }
@@ -701,19 +705,21 @@ class JsonBulkWriterTest
     BulkItemError(index = "", id = "", reason = "rejected", errorType = "es_rejected_execution_exception", status = 429)
 
   private def settingsWith(
-    kcqlExpr:  String,
-    mode:      ItemErrorMode,
-    policy:    io.lenses.streamreactor.common.errors.ErrorPolicy = ThrowErrorPolicy(),
-    batchSize: Int                                               = 100,
+    kcqlExpr:           String,
+    mode:               ItemErrorMode,
+    policy:             io.lenses.streamreactor.common.errors.ErrorPolicy = ThrowErrorPolicy(),
+    batchSize:          Int                                               = 100,
+    dlqReportTimeoutMs: Long                                              = 30000L,
   ): ElasticCommonSettings = {
     val kcqls = kcqlExpr.split(";").filter(_.nonEmpty).map(io.lenses.kcql.Kcql.parse).toSeq
     ElasticCommonSettings(
-      kcqls         = kcqls,
-      errorPolicy   = policy,
-      taskRetries   = 20,
-      batchSize     = batchSize,
-      storesInfo    = defaultStoresInfo,
-      itemErrorMode = mode,
+      kcqls              = kcqls,
+      errorPolicy        = policy,
+      taskRetries        = 20,
+      batchSize          = batchSize,
+      storesInfo         = defaultStoresInfo,
+      itemErrorMode      = mode,
+      dlqReportTimeoutMs = dlqReportTimeoutMs,
     )
   }
 
@@ -902,7 +908,13 @@ class JsonBulkWriterTest
       dlqGate(reporter),
     )
 
-    intercept[IllegalStateException](writer.write(Vector(tombstone("topic", "k1"))))
+    // F8: assert the CONCRETE type, not just its IllegalStateException supertype — the previous
+    // assertion would also have passed if WriterStageDiversionFailedException (also an
+    // IllegalStateException) had somehow leaked into fail mode, where diversion is inactive and
+    // the raw cause must surface untouched.
+    val thrown = intercept[IllegalStateException](writer.write(Vector(tombstone("topic", "k1"))))
+    thrown shouldBe a[TombstoneRejectedException]
+    thrown should not be a[WriterStageDiversionFailedException]
     reporter.received shouldBe empty
   }
 
@@ -1194,7 +1206,9 @@ class JsonBulkWriterTest
   // ErrantRecordHandlerTest already covers the timeout mechanics directly with a short bound,
   // and the position=-1 test above already proves the writer's NotReported fallback works.
 
-  test("dlq mode: divertOne returning false for a writer-stage failure still throws the original cause") {
+  test(
+    "dlq mode: a refused writer-stage diversion still fails the task, wrapped in WriterStageDiversionFailedException",
+  ) {
     class RefusingReporter extends ErrantRecordReporter {
       override def report(record: SinkRecord, error: Throwable): java.util.concurrent.Future[Void] =
         throw new RuntimeException("Tolerance exceeded in error handler")
@@ -1209,8 +1223,13 @@ class JsonBulkWriterTest
       DlqGate(Some(new RefusingReporter), dlqTopicConfigured = true),
     )
 
-    // The original IllegalStateException (not a generic DLQ-failure message) must still surface.
-    intercept[IllegalStateException](writer.write(Vector(tombstone("topic", "k1"))))
+    // The task still fails, but names the failure that actually happened (the refused
+    // diversion) rather than the original tombstone-rejection message — an operator seeing this
+    // should debug the DLQ, not go looking for a phantom tombstone-configuration bug. The
+    // original cause is preserved, not lost, as getCause.
+    val thrown = intercept[WriterStageDiversionFailedException](writer.write(Vector(tombstone("topic", "k1"))))
+    thrown.getCause shouldBe an[IllegalStateException]
+    thrown.getCause.getMessage should include("tombstone records")
   }
 
   test("drop mode diverts a permanent item error without any DLQ configured; offsets can advance") {
@@ -1304,13 +1323,19 @@ class JsonBulkWriterTest
     client.calls shouldBe empty // the tombstone never became a BulkOp at all
   }
 
-  // Regression lock for the writer-stage diversion allow-list (PerRecordWriterFailure): a
-  // writer-stage failure caused by a KCQL/config-level problem — here, a PK path referencing a
-  // header absent from EVERY record on the topic — is a property of the whole topic, not of any
-  // one record. It must NEVER be diverted, even in drop/dlq mode, or the entire stream would be
-  // silently discarded one record at a time while the task reported itself healthy.
+  // Historically this was a regression lock for a writer-stage diversion ALLOW-LIST
+  // (PerRecordWriterFailure): a missing header used to be treated as a property of the whole
+  // topic/KCQL and NEVER diverted, on the theory that the writer couldn't tell "this record
+  // happens to be poison" apart from "the header/KCQL name is wrong". That allow-list is gone —
+  // a missing header PK is a property of the individual record's content, exactly like a bad
+  // Elasticsearch mapping rejecting one document with HTTP 400 (always divertible), not like a
+  // nested header path or an unparseable KCQL target (both rejected at CONSTRUCTION instead,
+  // see further below, because THOSE fail identically for every record regardless of content).
+  // A KCQL that genuinely names the wrong header still shows up clearly: under `drop`, one
+  // summary WARN per put() naming the discarded count; under `dlq`, the DLQ topic fills at full
+  // throughput while the target index stays empty — loud, just not fatal.
   test(
-    "drop mode: a writer-stage failure from a missing header (topic-wide, not per-record) is NEVER diverted — the task still fails",
+    "drop mode: a writer-stage failure from a missing header is diverted, not fatal — even when every record on the topic is missing it",
   ) {
     val client = new ScriptedBulkClient(Map.empty)
     val writer = new JsonBulkWriter(
@@ -1318,18 +1343,17 @@ class JsonBulkWriterTest
       settingsWith("INSERT INTO idx SELECT * FROM topic PK _header.tenant_id", ItemErrorMode.Drop),
     )
 
-    // Every record on "topic" is missing the tenant_id header (none of these records carry any
-    // headers at all) — this is not a "which record happened to be poison" situation.
     val r1 = record("topic", "k1", struct(1, "a"))
     val r2 = record("topic", "k2", struct(2, "b"), offset = 1L)
 
-    val thrown = intercept[IllegalArgumentException](writer.write(Vector(r1, r2)))
-    thrown.getMessage should include("tenant_id")
-    client.calls shouldBe empty // never even reached the bulk client — thrown before any op was built
+    val reported = writer.write(Vector(r1, r2))
+
+    reported shouldBe Set(RecordRef.of(r1), RecordRef.of(r2))
+    client.calls shouldBe empty // neither record ever became a BulkOp
   }
 
   test(
-    "dlq mode: a writer-stage failure from a missing header (topic-wide, not per-record) is NEVER diverted — the task still fails",
+    "dlq mode: a writer-stage failure from a missing header is reported to the DLQ, not fatal — even when every record on the topic is missing it",
   ) {
     val reporter = new FakeReporter
     val client   = new ScriptedBulkClient(Map.empty)
@@ -1341,8 +1365,357 @@ class JsonBulkWriterTest
 
     val r1 = record("topic", "k1", struct(1, "a"))
 
-    intercept[IllegalArgumentException](writer.write(Vector(r1)))
+    val reported = writer.write(Vector(r1))
+
+    reported shouldBe Set(RecordRef.of(r1))
+    reporter.received.map(_._1) shouldBe Seq(r1)
+    client.calls shouldBe empty
+  }
+
+  // The poison-pill case this whole change exists for: 2 bad records out of 10 should not take
+  // the task down, and the 8 good ones should still be written.
+  test(
+    "drop mode: a PARTIAL batch of missing-header records diverts only the poison record(s); the rest are written normally",
+  ) {
+    val client = new ScriptedBulkClient(Map.empty)
+    val writer = new JsonBulkWriter(
+      client,
+      settingsWith("INSERT INTO idx SELECT * FROM topic PK _header.tenant_id", ItemErrorMode.Drop),
+    )
+
+    def withTenantHeader(key: String, offset: Long): SinkRecord = {
+      val r = record("topic", key, struct(offset.toInt, "ok"), offset = offset)
+      r.headers().addString("tenant_id", "t1")
+      r
+    }
+
+    val ok1    = withTenantHeader("k1", 0L)
+    val poison = record("topic", "k2", struct(2, "bad"), offset = 1L) // no headers at all
+    val ok2    = withTenantHeader("k3", 2L)
+
+    val reported = writer.write(Vector(ok1, poison, ok2))
+
+    reported shouldBe Set(RecordRef.of(poison))
+    client.calls should have size 1
+    client.calls.head should have size 2 // ok1 and ok2 were written; poison never became a BulkOp
+  }
+
+  // F10: the equivalent guarantee is locked directly on ErrantRecordHandler.divertWriterStage in
+  // ErrantRecordHandlerTest, but that calls it with an already-aggregated Seq — this proves
+  // JsonBulkWriter itself correctly aggregates failures spread across MULTIPLE settings.batchSize
+  // sub-batches into that one call, rather than one WARN slipping out per sub-batch.
+  test(
+    "drop mode: writer-stage failures spanning multiple sub-batches still produce exactly ONE summary WARN per put()",
+  ) {
+    val client = new ScriptedBulkClient(Map.empty)
+    val writer = new JsonBulkWriter(
+      client,
+      settingsWith(
+        "INSERT INTO idx SELECT * FROM topic PK _header.tenant_id",
+        ItemErrorMode.Drop,
+        batchSize = 1, // forces 3 separate sub-batches for 3 records
+      ),
+    )
+
+    val records = (1 to 3).map(i => record("topic", s"k$i", struct(i, "x"), offset = i.toLong)).toVector
+
+    // dropAllWriterStage's WARN is logged by ErrantRecordHandler, not JsonBulkWriter — attach
+    // there to observe it while driving everything through the writer's public API.
+    val handlerLogger = LoggerFactory.getLogger(classOf[ErrantRecordHandler]).asInstanceOf[LogbackLogger]
+    val listAppender  = new ListAppender[ILoggingEvent]()
+    listAppender.start()
+    handlerLogger.addAppender(listAppender)
+    try {
+      val reported = writer.write(records)
+      reported should have size 3
+
+      val warnings = listAppender.list.asScala
+        .filter(_.getLevel == LogbackLevel.WARN)
+        .map(_.getFormattedMessage)
+        .toSeq
+      warnings should have size 1
+      warnings.head should include("discarding 3 writer-stage record(s)")
+    } finally {
+      val _ = handlerLogger.detachAppender(listAppender)
+    }
+  }
+
+  test("drop mode: a header PK present but with a null value is diverted, not fatal") {
+    val client = new ScriptedBulkClient(Map.empty)
+    val writer = new JsonBulkWriter(
+      client,
+      settingsWith("INSERT INTO idx SELECT * FROM topic PK _header.tenant_id", ItemErrorMode.Drop),
+    )
+    val r = record("topic", "k1", struct(1, "a"))
+    r.headers().addString("tenant_id", null)
+
+    val reported = writer.write(Vector(r))
+
+    reported shouldBe Set(RecordRef.of(r))
+    client.calls shouldBe empty
+  }
+
+  test("drop mode: a header PK present but not a string is diverted, not fatal") {
+    val client = new ScriptedBulkClient(Map.empty)
+    val writer = new JsonBulkWriter(
+      client,
+      settingsWith("INSERT INTO idx SELECT * FROM topic PK _header.tenant_id", ItemErrorMode.Drop),
+    )
+    val r = record("topic", "k1", struct(1, "a"))
+    r.headers().addInt("tenant_id", 42)
+
+    val reported = writer.write(Vector(r))
+
+    reported shouldBe Set(RecordRef.of(r))
+    client.calls shouldBe empty
+  }
+
+  test("dlq mode: a header PK conversion/extraction failure reports a cause naming the record coordinates and target") {
+    val reporter = new FakeReporter
+    val client   = new ScriptedBulkClient(Map.empty)
+    val writer = new JsonBulkWriter(
+      client,
+      settingsWith("INSERT INTO my-target SELECT * FROM topic PK _header.tenant_id", ItemErrorMode.Dlq),
+      dlqGate(reporter),
+    )
+    val r = record("topic", "k1", struct(1, "a"), offset = 5L)
+    r.headers().addInt("tenant_id", 42) // not a string -> extraction failure
+
+    val reported = writer.write(Vector(r))
+
+    reported shouldBe Set(RecordRef.of(r))
+    reporter.received should have size 1
+    val (reportedRecord, reportedCause) = reporter.received.head
+    reportedRecord shouldBe r
+    reportedCause.getMessage should include("topic-0-5")
+    reportedCause.getMessage should include("my-target")
+    reportedCause.getMessage should include("not a string")
+    reportedCause.getCause.getMessage should include("not a string")
+  }
+
+  test("drop mode: a PK resolving to a JSON null is diverted, not written under the bogus id \"null\"") {
+    val client = new ScriptedBulkClient(Map.empty)
+    val writer = new JsonBulkWriter(
+      client,
+      settingsWith("INSERT INTO idx SELECT * FROM topic PK id", ItemErrorMode.Drop),
+    )
+    val jsonSchema = Schema.STRING_SCHEMA
+    val r          = new SinkRecord("topic", 0, Schema.STRING_SCHEMA, "k1", jsonSchema, """{"id": null}""", 0L)
+
+    val reported = writer.write(Vector(r))
+
+    reported shouldBe Set(RecordRef.of(r))
+    client.calls shouldBe empty // never written under id "null"
+  }
+
+  test("drop mode: an unresolvable _value PK path is diverted, not fatal") {
+    val client = new ScriptedBulkClient(Map.empty)
+    val writer = new JsonBulkWriter(
+      client,
+      settingsWith("INSERT INTO idx SELECT * FROM topic PK _value.nonexistent", ItemErrorMode.Drop),
+    )
+    val r = record("topic", "k1", struct(1, "a"))
+
+    val reported = writer.write(Vector(r))
+
+    reported shouldBe Set(RecordRef.of(r))
+    client.calls shouldBe empty
+  }
+
+  test("drop mode: a null _key PK path is diverted, not fatal") {
+    val client = new ScriptedBulkClient(Map.empty)
+    val writer = new JsonBulkWriter(
+      client,
+      settingsWith("INSERT INTO idx SELECT * FROM topic PK _key.field", ItemErrorMode.Drop),
+    )
+    // Null key -> keyJsonNodeOpt is None -> "Key path '_key.field' has a null value".
+    val r = new SinkRecord("topic", 0, Schema.STRING_SCHEMA, null, schema, struct(1, "a"), 0L)
+
+    val reported = writer.write(Vector(r))
+
+    reported shouldBe Set(RecordRef.of(r))
+    client.calls shouldBe empty
+  }
+
+  test("drop mode: a malformed JSON payload (Transform-stage failure) is diverted, not fatal") {
+    val client = new ScriptedBulkClient(Map.empty)
+    val writer = new JsonBulkWriter(
+      client,
+      settingsWith("INSERT INTO idx SELECT * FROM topic", ItemErrorMode.Drop),
+    )
+    val r = new SinkRecord("topic", 0, Schema.STRING_SCHEMA, "k1", Schema.STRING_SCHEMA, "{not valid json", 0L)
+
+    val reported = writer.write(Vector(r))
+
+    reported shouldBe Set(RecordRef.of(r))
+    client.calls shouldBe empty
+  }
+
+  test("drop mode: a header-routed index target the record cannot satisfy is diverted, not fatal") {
+    val client = new ScriptedBulkClient(Map.empty)
+    val writer = new JsonBulkWriter(
+      client,
+      settingsWith("INSERT INTO _header.region SELECT * FROM topic", ItemErrorMode.Drop),
+    )
+    val r = record("topic", "k1", struct(1, "a")) // no "region" header
+
+    val reported = writer.write(Vector(r))
+
+    reported shouldBe Set(RecordRef.of(r))
+    client.calls shouldBe empty
+  }
+
+  test("dlq mode: fan-out where extraction fails for ONE target only writes the other and diverts just that target") {
+    val reporter = new FakeReporter
+    val client   = new ScriptedBulkClient(Map.empty)
+    val writer = new JsonBulkWriter(
+      client,
+      settingsWith(
+        "INSERT INTO idx-a SELECT * FROM fan-topic;INSERT INTO _header.region SELECT * FROM fan-topic",
+        ItemErrorMode.Dlq,
+      ),
+      dlqGate(reporter),
+    )
+
+    val r = record("fan-topic", "k1", struct(1, "x")) // no "region" header -> idx-a ok, second KCQL fails
+
+    val reported = writer.write(Vector(r))
+
+    reported shouldBe Set(RecordRef.of(r))
+    reporter.received.map(_._1) shouldBe Seq(r)
+    client.calls should have size 1
+    client.calls.head.head.asInstanceOf[InsertOp].index shouldBe "idx-a"
+  }
+
+  test(
+    "dlq mode: writer-stage failures share ONE DLQ deadline across the whole put(), even split across multiple sub-batches",
+  ) {
+    class NeverAckingReporter extends ErrantRecordReporter {
+      val received: mutable.Buffer[(SinkRecord, Throwable)] = mutable.Buffer.empty
+      override def report(record: SinkRecord, error: Throwable): java.util.concurrent.Future[Void] = {
+        received += (record -> error)
+        new CompletableFuture[Void]() // deliberately never completed
+      }
+    }
+    val reporter = new NeverAckingReporter
+    // F9: sized so the pass/fail gap is not sub-second on a loaded CI box. One shared deadline
+    // for the whole put() should complete in ~1 timeout (~1000ms); a regression to per-record or
+    // per-sub-batch diversion would take roughly N * timeout for N=3 records (~3000ms) — bounding
+    // at 2x the timeout comfortably separates the two without a marginal wall-clock assertion.
+    val timeoutMs = 1000L
+    val client    = new ScriptedBulkClient(Map.empty)
+    val writer = new JsonBulkWriter(
+      client,
+      settingsWith(
+        "INSERT INTO idx SELECT * FROM topic PK _header.tenant_id",
+        ItemErrorMode.Dlq,
+        batchSize          = 1, // forces 3 separate sub-batches for 3 records
+        dlqReportTimeoutMs = timeoutMs,
+      ),
+      DlqGate(Some(reporter), dlqTopicConfigured = true),
+    )
+
+    val records = (1 to 3).map(i => record("topic", s"k$i", struct(i, "x"), offset = i.toLong)).toVector
+
+    val startNanos = System.nanoTime()
+    intercept[WriterStageDiversionFailedException](writer.write(records))
+    val elapsedMs = (System.nanoTime() - startNanos) / 1000000L
+
+    // All three report() calls were issued — across three separate sub-batches of size 1 —
+    // before any await began, proving diversion is deferred to the end of write(), not done per
+    // sub-batch.
+    reporter.received should have size 3
+    elapsedMs should be < (2 * timeoutMs)
+  }
+
+  test(
+    "dlq mode: if a LATER sub-batch's bulk call fails, an EARLIER sub-batch's writer-stage failures are never reported at all",
+  ) {
+    val reporter = new FakeReporter
+    val client = new KBulkClient {
+      override def bulk(ops:         Seq[BulkOp]): Try[BulkResult] = Failure(new RuntimeException("connection reset"))
+      override def createIndex(name: String):      Try[Unit]       = Success(())
+      override def close(): Unit = ()
+    }
+    val writer = new JsonBulkWriter(
+      client,
+      settingsWith("INSERT INTO idx SELECT * FROM topic PK _header.tenant_id", ItemErrorMode.Dlq, batchSize = 1),
+      dlqGate(reporter),
+    )
+
+    val poison = record("topic", "k1", struct(1, "a"), offset = 0L) // no header -> writer-stage failure
+    val ok = {
+      val r = record("topic", "k2", struct(2, "b"), offset = 1L)
+      r.headers().addString("tenant_id", "t1")
+      r
+    }
+
+    // "poison" is in the first sub-batch (batch.size=1): collected as a writer-stage failure but
+    // not yet diverted. "ok" is in the second sub-batch, whose bulk() call throws a transport
+    // failure — this aborts write() before divertWriterStage is ever reached.
+    intercept[RetriableIntegrityException](writer.write(Vector(poison, ok)))
     reporter.received shouldBe empty
+  }
+
+  test("PK path with a nested header key (_header.a.b) is rejected at CONSTRUCTION, not diverted at runtime") {
+    val recording = new RecordingBulkClient
+    val ex = intercept[IllegalArgumentException](
+      new JsonBulkWriter(recording, kcqlSettings("INSERT INTO idx SELECT * FROM topic PK _header.a.b")),
+    )
+    ex.getMessage should include("Nested header keys are not supported")
+  }
+
+  test("an unparseable KCQL target (_header with no path) is rejected at CONSTRUCTION, not diverted at runtime") {
+    val recording = new RecordingBulkClient
+    val ex = intercept[IllegalArgumentException](
+      new JsonBulkWriter(recording, kcqlSettings("INSERT INTO _header SELECT * FROM bad-target-topic")),
+    )
+    ex.getMessage should include("header")
+  }
+
+  test("an invalid WITHINDEXSUFFIX date pattern is rejected at CONSTRUCTION, not on the first record") {
+    val recording = new RecordingBulkClient
+    intercept[IllegalArgumentException] {
+      new JsonBulkWriter(
+        recording,
+        kcqlSettings("INSERT INTO idx SELECT * FROM topic WITHINDEXSUFFIX=_{NOT-A-REAL-PATTERN}"),
+      )
+    }
+  }
+
+  // F6: rewrapped from the raw InvalidCustomIndexNameException (a bare RuntimeException) into
+  // IllegalArgumentException, so all five construction-time rejections share one exception type.
+  // F2: a bad KCQL must fail before the writer ever touches the cluster — an operator with both
+  // a down cluster and a bad KCQL should see the (fixable-locally) KCQL error, not a cluster
+  // connection error that has nothing to do with the real problem, and should not have to fix
+  // them one restart at a time.
+  test(
+    "a KCQL-only construction failure is thrown even when the client's start() would ALSO fail — validation runs first",
+  ) {
+    class FailingStartClient extends RecordingBulkClient {
+      var startCalled: Boolean = false
+      override def start(): Try[Unit] = {
+        startCalled = true
+        Failure(new RuntimeException("cluster is unreachable"))
+      }
+    }
+    val client = new FailingStartClient
+
+    val ex = intercept[IllegalArgumentException] {
+      new JsonBulkWriter(client, kcqlSettings("UPSERT INTO upsert-nopk SELECT * FROM upsert-nopk-topic"))
+    }
+
+    ex.getMessage should include("primary keys")
+    client.startCalled shouldBe false
+  }
+
+  test("an unmatched closing brace in WITHINDEXSUFFIX is rejected at CONSTRUCTION, not on the first record") {
+    val recording = new RecordingBulkClient
+    val ex = intercept[IllegalArgumentException] {
+      new JsonBulkWriter(recording, kcqlSettings("INSERT INTO idx SELECT * FROM topic WITHINDEXSUFFIX=_abc}"))
+    }
+    ex.getCause shouldBe an[io.lenses.streamreactor.connect.elastic.common.indexname.InvalidCustomIndexNameException]
+    ex.getMessage should include("WITHINDEXSUFFIX")
   }
 
   test("drop mode: a 403 cluster_block_exception is never dropped — the batch throws instead") {

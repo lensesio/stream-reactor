@@ -74,7 +74,31 @@ class PrimaryKeyExtractorTest extends AnyFunSuite with Matchers {
     PrimaryKeyExtractor.extract(jsonNode, Vector("intField")) shouldEqual 42
     PrimaryKeyExtractor.extract(jsonNode, Vector("floatField")) shouldEqual 3.14
     PrimaryKeyExtractor.extract(jsonNode, Vector("booleanField")) shouldEqual true
-    PrimaryKeyExtractor.extract(jsonNode, Vector("nullField")).asInstanceOf[AnyRef] shouldBe null
+  }
+
+  // A PK resolving to a JSON null used to be silently returned as the Scala `null`, which
+  // `pks.mkString` in JsonBulkWriter then stringified to the literal id "null" — a bogus,
+  // collision-prone document id, indistinguishable from a genuine extraction failure. Throwing
+  // here instead makes it a divertible writer-stage failure like any other bad PK, and matches
+  // the Struct overload below, which already throws "Field 'x' is null" for the same condition.
+  test("extract should throw exception when a PK field resolves to a JSON null") {
+    val jsonNode = parseJson("""{"nullField": null}""")
+    val exception = intercept[IllegalArgumentException] {
+      PrimaryKeyExtractor.extract(jsonNode, Vector("nullField"))
+    }
+    exception.getMessage should include("cannot be used as a primary key value")
+  }
+
+  test("extract should throw exception when a PK field resolves to a missing JSON node") {
+    val jsonNode = parseJson("""{"otherField": "value"}""")
+    // Missing a field on an ObjectNode already throws ("Can't find ... field") before ever
+    // reaching a MissingNode — MissingNode is reachable via Jackson's own path traversal
+    // (e.g. `node.path("missing")`), not `node.get`, so exercise it directly.
+    val missing = jsonNode.path("doesNotExist")
+    val exception = intercept[IllegalArgumentException] {
+      PrimaryKeyExtractor.extract(missing, Vector.empty)
+    }
+    exception.getMessage should include("cannot be used as a primary key value")
   }
 
   test("extract should retrieve a primitive value from Struct") {

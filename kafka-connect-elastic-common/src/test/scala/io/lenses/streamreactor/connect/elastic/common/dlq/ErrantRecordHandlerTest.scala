@@ -52,6 +52,12 @@ import scala.jdk.CollectionConverters._
  * Most tests here exercise [[ItemErrorMode.Dlq]] (the DLQ-reporting path, which shares the
  * position/id resolution and dedup logic with [[ItemErrorMode.Drop]]); the "drop mode" section
  * near the bottom covers what is unique to [[ItemErrorMode.Drop]].
+ *
+ * [[ErrantRecordHandler.divertWriterStage]] gets its own set of tests mirroring [[divertPermanent]]'s
+ * (shared deadline across N failures, dedup, one summary WARN per call under `drop`) since it is
+ * the batching entry point `JsonBulkWriter.write` calls ONCE per `put()` for every writer-stage
+ * failure collected across the whole call — see its own scaladoc for why per-record diversion
+ * would be unsafe.
  */
 class ErrantRecordHandlerTest extends AnyFunSuite with Matchers with LoneElement {
 
@@ -410,54 +416,158 @@ class ErrantRecordHandlerTest extends AnyFunSuite with Matchers with LoneElement
     tracked shouldBe empty
   }
 
-  test("divertOne(Dlq) reports a single writer-stage failure and tracks it") {
+  test("divertWriterStage(Dlq) reports a single writer-stage failure and tracks it") {
     val reporter = new FakeReporter()
     val handler  = new ErrantRecordHandler(gateWith(reporter))
     val r        = record(offset = 3L)
     val cause    = new IllegalStateException("KCQL mapping is configured to fail on tombstone records")
     val tracked  = mutable.Map.empty[DlqKey, SinkRecord]
 
-    handler.divertOne(r, "my-kcql-target", cause, ItemErrorMode.Dlq, tracked) shouldBe true
+    val outcome = handler.divertWriterStage(Seq((r, "my-kcql-target", cause)), ItemErrorMode.Dlq, tracked)
+
+    outcome shouldBe DivertOutcome.Diverted
     reporter.received should have size 1
-    reporter.received.head shouldBe (r -> cause)
+    // The reported cause is wrapped (record coordinates + target prepended) rather than the raw
+    // cause itself — see ContextualWriterStageFailure — but the original is preserved as its
+    // cause and its message is still present verbatim.
+    reporter.received.head._1 shouldBe r
+    reporter.received.head._2.getCause shouldBe cause
+    reporter.received.head._2.getMessage should include(cause.getMessage)
+    reporter.received.head._2.getMessage should include("my-kcql-target")
     tracked.values.toSet shouldBe Set(r)
   }
 
-  test("divertOne(Dlq) returns false when no reporter is present") {
-    val handler = new ErrantRecordHandler(DlqGate.disabled)
-    val r       = record()
-    handler.divertOne(r, "target", new RuntimeException("x"), ItemErrorMode.Dlq, mutable.Map.empty) shouldBe false
-  }
-
-  test("divertOne(Fail) always returns false defensively, even with a working reporter") {
+  // F1: unlike divertPermanent's silent-on-success dlq path, divertWriterStage(Dlq) DOES log a
+  // summary WARN — a writer-stage DLQ report is much more likely to mean the whole KCQL is wrong
+  // for the topic than a single cluster-rejected document is, so it must stay visible even
+  // though dlq mode keeps the task running.
+  test("divertWriterStage(Dlq) emits ONE summary WARN per call on success, not one per record") {
     val reporter = new FakeReporter()
     val handler  = new ErrantRecordHandler(gateWith(reporter))
-    val r        = record()
-    handler.divertOne(r, "target", new RuntimeException("x"), ItemErrorMode.Fail, mutable.Map.empty) shouldBe false
+    val failures = writerStageDropScenario(12)
+    val tracked  = mutable.Map.empty[DlqKey, SinkRecord]
+
+    val warnings = captureLogs(LogbackLevel.WARN) {
+      handler.divertWriterStage(failures, ItemErrorMode.Dlq, tracked) shouldBe DivertOutcome.Diverted
+    }
+
+    warnings should have size 1
+    warnings.head should include("reported 12 writer-stage record(s)")
+    warnings.head should include("dead-letter queue")
+    tracked should have size 12
+  }
+
+  test("divertWriterStage(Dlq) caps the WARN detail and reports the remaining count") {
+    val reporter = new FakeReporter()
+    val handler  = new ErrantRecordHandler(gateWith(reporter))
+    val failures = writerStageDropScenario(25)
+
+    val warnings = captureLogs(LogbackLevel.WARN) {
+      handler.divertWriterStage(failures, ItemErrorMode.Dlq, mutable.Map.empty)
+    }
+
+    val warning = warnings.loneElement
+    warning should include("reason=boom-0")
+    warning should include(s"reason=boom-${BulkItemErrorClassifier.MaxErrorsInMessage - 1}")
+    warning should not include s"reason=boom-${BulkItemErrorClassifier.MaxErrorsInMessage}"
+    warning should include(s"and ${25 - BulkItemErrorClassifier.MaxErrorsInMessage} more")
+  }
+
+  test("divertWriterStage(Dlq) logs nothing when the call is refused (NotDiverted) — no false success signal") {
+    val reporter = new FakeReporter(ReporterBehaviour.ThrowImmediately)
+    val handler  = new ErrantRecordHandler(gateWith(reporter))
+
+    val warnings = captureLogs(LogbackLevel.WARN) {
+      handler.divertWriterStage(
+        Seq((record(), "target", new RuntimeException("x"))),
+        ItemErrorMode.Dlq,
+        mutable.Map.empty,
+      ) shouldBe DivertOutcome.NotDiverted
+    }
+
+    warnings shouldBe empty
+  }
+
+  test("divertWriterStage(Dlq) with an empty failure list is trivially Diverted without calling the reporter") {
+    val reporter = new FakeReporter()
+    val handler  = new ErrantRecordHandler(gateWith(reporter))
+
+    handler.divertWriterStage(Seq.empty, ItemErrorMode.Dlq, mutable.Map.empty) shouldBe DivertOutcome.Diverted
     reporter.received shouldBe empty
   }
 
-  test("divertOne(Dlq) short-circuits to true without re-invoking the reporter when already tracked") {
+  test("divertWriterStage(Dlq) returns NotDiverted when no reporter is present") {
+    val handler = new ErrantRecordHandler(DlqGate.disabled)
+    val r       = record()
+    handler.divertWriterStage(
+      Seq((r, "target", new RuntimeException("x"))),
+      ItemErrorMode.Dlq,
+      mutable.Map.empty,
+    ) shouldBe DivertOutcome.NotDiverted
+  }
+
+  test("divertWriterStage(Fail) always returns NotDiverted defensively, even with a working reporter") {
+    val reporter = new FakeReporter()
+    val handler  = new ErrantRecordHandler(gateWith(reporter))
+    val r        = record()
+    handler.divertWriterStage(
+      Seq((r, "target", new RuntimeException("x"))),
+      ItemErrorMode.Fail,
+      mutable.Map.empty,
+    ) shouldBe DivertOutcome.NotDiverted
+    reporter.received shouldBe empty
+  }
+
+  test("divertWriterStage(Dlq) does not re-report a key already present in the tracker") {
     val reporter = new FakeReporter()
     val handler  = new ErrantRecordHandler(gateWith(reporter))
     val r        = record(offset = 9L)
     val key      = DlqKey.forTarget(r, "target")
     val tracked  = mutable.Map(key -> r)
 
-    handler.divertOne(r, "target", new RuntimeException("x"), ItemErrorMode.Dlq, tracked) shouldBe true
-    reporter.received shouldBe empty
+    val outcome = handler.divertWriterStage(Seq((r, "target", new RuntimeException("x"))), ItemErrorMode.Dlq, tracked)
+
+    outcome shouldBe DivertOutcome.Diverted
+    reporter.received shouldBe empty // already reported earlier this put() — not sent again
   }
 
-  test("divertOne(Dlq) returns false when report() throws") {
+  test("divertWriterStage(Dlq) returns NotDiverted when report() throws") {
     val reporter = new FakeReporter(ReporterBehaviour.ThrowImmediately)
     val handler  = new ErrantRecordHandler(gateWith(reporter))
-    handler.divertOne(
-      record(),
-      "target",
-      new RuntimeException("x"),
+    handler.divertWriterStage(
+      Seq((record(), "target", new RuntimeException("x"))),
       ItemErrorMode.Dlq,
       mutable.Map.empty,
-    ) shouldBe false
+    ) shouldBe DivertOutcome.NotDiverted
+  }
+
+  test(
+    "divertWriterStage(Dlq) with N failures: one future timing out makes the WHOLE call NotDiverted, even though the others acked",
+  ) {
+    // Mirrors the equivalent divertPermanent test: report() is issued for every record (index 2's
+    // future just never completes) — a PARTIAL ACK, not a partial issue. This is exactly the
+    // shared-deadline guarantee divertWriterStage's scaladoc relies on: with writer-stage
+    // diversion now happening for a whole write() at once, N could be every record in a put().
+    val reporter =
+      new SelectiveReporter(idx => if (idx == 2) ReporterBehaviour.NeverCompletes else ReporterBehaviour.Succeed)
+    val handler = new ErrantRecordHandler(gateWith(reporter), reportTimeoutMs = 100L)
+    val r0      = record(offset = 0L)
+    val r1      = record(offset = 1L)
+    val r2      = record(offset = 2L)
+    val failures = Seq(
+      (r0, "target", new RuntimeException("boom-0")),
+      (r1, "target", new RuntimeException("boom-1")),
+      (r2, "target", new RuntimeException("boom-2")),
+    )
+    val tracked = mutable.Map.empty[DlqKey, SinkRecord]
+
+    handler.divertWriterStage(failures, ItemErrorMode.Dlq, tracked) shouldBe DivertOutcome.NotDiverted
+
+    reporter.received.map(_._1) should contain theSameElementsAs Seq(r0, r1, r2)
+    // Nothing is tracked as diverted — a partial ack must not partially advance offsets; the
+    // batch throws (WriterStageDiversionFailedException) and the redelivered put() re-attempts
+    // all three, a harmless duplicate for r0/r1, unlike losing r2.
+    tracked shouldBe empty
   }
 
   // Drop never touches dlqGate/the reporter at all — these tests deliberately use a disabled
@@ -488,24 +598,78 @@ class ErrantRecordHandlerTest extends AnyFunSuite with Matchers with LoneElement
     tracked.size shouldBe 1
   }
 
-  test("divertOne(Drop) drops a single writer-stage failure without ever calling a reporter, using a disabled gate") {
+  test(
+    "divertWriterStage(Drop) diverts a single writer-stage failure without ever calling a reporter, using a disabled gate",
+  ) {
     val handler = new ErrantRecordHandler(DlqGate.disabled)
     val r       = record(offset = 13L)
     val cause   = new IllegalStateException("KCQL mapping is configured to fail on tombstone records")
     val tracked = mutable.Map.empty[DlqKey, SinkRecord]
 
-    handler.divertOne(r, "my-kcql-target", cause, ItemErrorMode.Drop, tracked) shouldBe true
+    val outcome = handler.divertWriterStage(Seq((r, "my-kcql-target", cause)), ItemErrorMode.Drop, tracked)
+
+    outcome shouldBe DivertOutcome.Diverted
     tracked.values.toSet shouldBe Set(r)
   }
 
-  test("divertOne(Drop) short-circuits to true without re-tracking when already tracked") {
+  test("divertWriterStage(Drop) does not re-track a key already present in the tracker") {
     val handler = new ErrantRecordHandler(DlqGate.disabled)
     val r       = record(offset = 14L)
     val key     = DlqKey.forTarget(r, "target")
     val tracked = mutable.Map(key -> r)
 
-    handler.divertOne(r, "target", new RuntimeException("x"), ItemErrorMode.Drop, tracked) shouldBe true
+    handler.divertWriterStage(
+      Seq((r, "target", new RuntimeException("x"))),
+      ItemErrorMode.Drop,
+      tracked,
+    ) shouldBe DivertOutcome.Diverted
     tracked.size shouldBe 1
+  }
+
+  /** `count` distinct writer-stage failures, one per record. */
+  private def writerStageDropScenario(count: Int): Seq[(SinkRecord, String, Throwable)] =
+    (0 until count).map(i => (record(offset = i.toLong), "target", new RuntimeException(s"boom-$i")))
+
+  test("divertWriterStage(Drop) emits ONE summary WARN per call, not one per record") {
+    val handler  = new ErrantRecordHandler(DlqGate.disabled)
+    val failures = writerStageDropScenario(12)
+    val tracked  = mutable.Map.empty[DlqKey, SinkRecord]
+
+    val warnings = captureLogs(LogbackLevel.WARN) {
+      handler.divertWriterStage(failures, ItemErrorMode.Drop, tracked) shouldBe DivertOutcome.Diverted
+    }
+
+    warnings should have size 1
+    warnings.head should include("discarding 12 writer-stage record(s)")
+    tracked should have size 12
+  }
+
+  test("divertWriterStage(Drop) caps the WARN detail and reports the remaining count") {
+    val handler  = new ErrantRecordHandler(DlqGate.disabled)
+    val failures = writerStageDropScenario(25)
+
+    val warnings = captureLogs(LogbackLevel.WARN) {
+      handler.divertWriterStage(failures, ItemErrorMode.Drop, mutable.Map.empty)
+    }
+
+    val warning = warnings.loneElement
+    warning should include("reason=boom-0")
+    warning should include(s"reason=boom-${BulkItemErrorClassifier.MaxErrorsInMessage - 1}")
+    warning should not include s"reason=boom-${BulkItemErrorClassifier.MaxErrorsInMessage}"
+    warning should include(s"and ${25 - BulkItemErrorClassifier.MaxErrorsInMessage} more")
+  }
+
+  test("divertWriterStage(Drop) logs the failures omitted from the WARN individually at DEBUG") {
+    val handler  = new ErrantRecordHandler(DlqGate.disabled)
+    val failures = writerStageDropScenario(25)
+
+    val debugs = captureLogs(LogbackLevel.DEBUG) {
+      handler.divertWriterStage(failures, ItemErrorMode.Drop, mutable.Map.empty)
+    }
+
+    debugs.size shouldBe (25 - BulkItemErrorClassifier.MaxErrorsInMessage)
+    debugs.head should include(s"reason=boom-${BulkItemErrorClassifier.MaxErrorsInMessage}")
+    debugs.last should include("reason=boom-24")
   }
 
   // A batch-wide cause (e.g. a field type change) makes every document in the batch a 400, so
@@ -595,15 +759,14 @@ class ErrantRecordHandlerTest extends AnyFunSuite with Matchers with LoneElement
     debugs shouldBe empty
   }
 
-  test("divertOne(Drop) logs nothing itself — JsonBulkWriter logs the writer-stage WARN") {
-    val handler = new ErrantRecordHandler(DlqGate.disabled)
-    val tracked = mutable.Map.empty[DlqKey, SinkRecord]
+  test("divertWriterStage(Drop) emits no DEBUG remainder when the batch fits within the WARN cap") {
+    val handler  = new ErrantRecordHandler(DlqGate.disabled)
+    val failures = writerStageDropScenario(BulkItemErrorClassifier.MaxErrorsInMessage)
 
-    val warnings = captureLogs(LogbackLevel.WARN) {
-      handler.divertOne(record(offset = 1L), "target", new RuntimeException("x"), ItemErrorMode.Drop, tracked)
+    val debugs = captureLogs(LogbackLevel.DEBUG) {
+      handler.divertWriterStage(failures, ItemErrorMode.Drop, mutable.Map.empty)
     }
 
-    warnings shouldBe empty
-    tracked should have size 1
+    debugs shouldBe empty
   }
 }
