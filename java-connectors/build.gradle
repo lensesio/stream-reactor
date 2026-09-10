@@ -219,13 +219,25 @@ allprojects {
     }
 
     task collectDependencies(type: Copy) {
-        from configurations.runtimeClasspath
-        into "${libsDir}/${project.name}"
-        exclude {
-            it.file.name.contains('log4j-core') ||
-                    it.file.name.startsWith('kafka-') ||
-                    it.file.name.startsWith('zookeeper-')
+        // Kafka's own jars come from the Connect worker, so they are not copied here.
+        // Match on the module coordinates rather than the file name: a `kafka-` prefix
+        // check also drops our own kafka-connect-common, kafka-connect-gcp-common and
+        // kafka-connect-query-language, which leaves the connectors in this raw layout
+        // unable to instantiate.
+        // The closure below yields plain Files, which carry no task dependencies, so the
+        // sibling module jars have to be requested explicitly.
+        dependsOn configurations.runtimeClasspath
+        from {
+            configurations.runtimeClasspath.resolvedConfiguration.resolvedArtifacts
+                    .findAll { artifact ->
+                        def id = artifact.moduleVersion.id
+                        id.group != 'org.apache.kafka' &&
+                                id.group != 'org.apache.zookeeper' &&
+                                !(id.group == 'org.apache.logging.log4j' && id.name == 'log4j-core')
+                    }
+                    .collect { it.file }
         }
+        into "${libsDir}/${project.name}"
     }
 
     task copyModuleJar(type: Copy, dependsOn: jar) {
