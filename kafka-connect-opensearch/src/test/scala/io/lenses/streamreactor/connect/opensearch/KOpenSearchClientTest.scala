@@ -263,8 +263,8 @@ class KOpenSearchClientTest extends AnyFunSuite with Matchers {
     result.isSuccess shouldBe true
   }
 
-  // A7: UPSERT action must NOT contain a pipeline key
-  test("A7: UpsertOp serialised action line has no pipeline field") {
+  // UPSERT action must NOT contain a pipeline key
+  test("UpsertOp serialised action line has no pipeline field") {
     val captor = ArgumentCaptor.forClass(classOf[BulkRequest])
     val client = makeClient(
       makeInfoResponse("opensearch", "2.13.0"),
@@ -333,8 +333,8 @@ class KOpenSearchClientTest extends AnyFunSuite with Matchers {
     )
   }
 
-  // A4: empty-id guard
-  test("A4: bulk with empty id raises IllegalArgumentException") {
+  // empty-id guard
+  test("bulk with empty id raises IllegalArgumentException") {
     val client  = makeClient(makeInfoResponse("opensearch", "2.13.0"), makeBulkResponse(false))
     val kClient = new KOpenSearchClient(client, settings())
     val ex = intercept[IllegalArgumentException](
@@ -343,8 +343,8 @@ class KOpenSearchClientTest extends AnyFunSuite with Matchers {
     ex.getMessage should include("id must be non-empty")
   }
 
-  // A4: empty-index guard
-  test("A4: bulk with empty index raises IllegalArgumentException") {
+  // empty-index guard
+  test("bulk with empty index raises IllegalArgumentException") {
     val client  = makeClient(makeInfoResponse("opensearch", "2.13.0"), makeBulkResponse(false))
     val kClient = new KOpenSearchClient(client, settings())
     val ex = intercept[IllegalArgumentException](
@@ -353,8 +353,8 @@ class KOpenSearchClientTest extends AnyFunSuite with Matchers {
     ex.getMessage should include("index must be non-empty")
   }
 
-  // A4: 512-byte id-length guard
-  test("A4: bulk with id exceeding 512 UTF-8 bytes raises IllegalArgumentException") {
+  // 512-byte id-length guard
+  test("bulk with id exceeding 512 UTF-8 bytes raises IllegalArgumentException") {
     val longId  = "x" * 513
     val client  = makeClient(makeInfoResponse("opensearch", "2.13.0"), makeBulkResponse(false))
     val kClient = new KOpenSearchClient(client, settings())
@@ -431,7 +431,7 @@ class KOpenSearchClientTest extends AnyFunSuite with Matchers {
 
   // Verify that UpsertOp maps to an Update BulkOperation (not Index or Delete).
   // The doc_as_upsert=true flag is set in KOpenSearchClient.bulk — this is a code-level invariant.
-  test("A7 code: UpsertOp is mapped to an Update (not Index) BulkOperation") {
+  test("UpsertOp is mapped to an Update (not Index) BulkOperation") {
     val captor     = ArgumentCaptor.forClass(classOf[BulkRequest])
     val mockClient = makeClient(makeInfoResponse("opensearch", "2.13.0"), makeBulkResponse(false))
     val kClient    = new KOpenSearchClient(mockClient, settings())

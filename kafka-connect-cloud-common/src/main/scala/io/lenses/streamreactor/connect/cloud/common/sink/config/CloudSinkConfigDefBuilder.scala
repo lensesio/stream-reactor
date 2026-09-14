@@ -30,4 +30,10 @@ trait CloudSinkConfigDefBuilder
     with CommitRetrySettings
     with SchemaChangeSettings
     with SkipNullSettings
-    with EnableLatestSchemaOptimizationSettings {}
+    with EnableLatestSchemaOptimizationSettings {
+
+  // Satisfied by AbstractConfig#originalsStrings() on every concrete builder (they all extend BaseConfig).
+  // Needed to see SMT `transforms.*` entries, which live outside this connector's own ConfigDef and are
+  // therefore absent from the typed values() map but retained in the untyped originals.
+  def originalsStrings(): java.util.Map[String, String]
+}

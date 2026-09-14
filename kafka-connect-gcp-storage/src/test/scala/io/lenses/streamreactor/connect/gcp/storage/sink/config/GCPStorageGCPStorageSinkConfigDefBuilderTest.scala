@@ -297,4 +297,51 @@ class GCPStorageGCPStorageSinkConfigDefBuilderTest
       (include(KeySuffix.entryName) and include("digit"))
   }
 
+  "GCPSinkConfigDefBuilder" should "raise an exception when PARTITIONBY uses a header from a wallclock SMT with exactly-once enabled and granular commit mode" in {
+    val props = Map(
+      "connect.gcpstorage.kcql"                       -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _header.date STOREAS `CSV` PROPERTIES('${FlushCount.entryName}'=1)",
+      "transforms"                                    -> "InsertRollingWallclockHeaders",
+      "transforms.InsertRollingWallclockHeaders.type" -> "io.lenses.connect.smt.header.InsertRollingWallclockHeaders",
+    )
+
+    val ex = CloudSinkBucketOptions(connectorTaskId, GCPStorageSinkConfigDefBuilder(props)).left.getOrElse(
+      fail("Expected an exception"),
+    )
+
+    ex.getMessage should include("'date'")
+    ex.getMessage should include("InsertRollingWallclockHeaders")
+  }
+
+  "GCPSinkConfigDefBuilder" should "not raise an exception for a wallclock SMT when exactly-once is disabled" in {
+    val props = Map(
+      "connect.gcpstorage.kcql"                       -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _header.date STOREAS `CSV` PROPERTIES('${FlushCount.entryName}'=1)",
+      "connect.gcpstorage.exactly.once.enable"        -> "false",
+      "transforms"                                    -> "InsertRollingWallclockHeaders",
+      "transforms.InsertRollingWallclockHeaders.type" -> "io.lenses.connect.smt.header.InsertRollingWallclockHeaders",
+    )
+
+    CloudSinkBucketOptions(connectorTaskId, GCPStorageSinkConfigDefBuilder(props)) shouldBe Symbol("right")
+  }
+
+  "GCPSinkConfigDefBuilder" should "not raise an exception when PARTITIONBY uses a header from a record-derived SMT" in {
+    val props = Map(
+      "connect.gcpstorage.kcql"                      -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _header.date STOREAS `CSV` PROPERTIES('${FlushCount.entryName}'=1)",
+      "transforms"                                   -> "InsertRecordTimestampHeaders",
+      "transforms.InsertRecordTimestampHeaders.type" -> "io.lenses.connect.smt.header.InsertRecordTimestampHeaders",
+    )
+
+    CloudSinkBucketOptions(connectorTaskId, GCPStorageSinkConfigDefBuilder(props)) shouldBe Symbol("right")
+  }
+
+  "GCPSinkConfigDefBuilder" should "not raise an exception for a wallclock SMT when commit.mode is batch" in {
+    val props = Map(
+      "connect.gcpstorage.kcql"                       -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _header.date STOREAS `CSV` PROPERTIES('${FlushCount.entryName}'=1)",
+      "connect.gcpstorage.exactly.once.commit.mode"   -> "batch",
+      "transforms"                                    -> "InsertRollingWallclockHeaders",
+      "transforms.InsertRollingWallclockHeaders.type" -> "io.lenses.connect.smt.header.InsertRollingWallclockHeaders",
+    )
+
+    CloudSinkBucketOptions(connectorTaskId, GCPStorageSinkConfigDefBuilder(props)) shouldBe Symbol("right")
+  }
+
 }

@@ -196,7 +196,7 @@ class OpenSearchJwtAuthIT extends ITBase {
     r2.get.errors shouldBe false
   }
 
-  test("A2: JWT + mTLS combined — client cert + bearer token both sent and accepted") {
+  test("JWT + mTLS combined — client cert + bearer token both sent and accepted") {
     val pki   = io.lenses.streamreactor.connect.testcontainers.SecurityPkiFixture.shared
     val token = mintToken(jwtSigningKeyBytes, subject = "kafka-connect-jwt-mtls")
 

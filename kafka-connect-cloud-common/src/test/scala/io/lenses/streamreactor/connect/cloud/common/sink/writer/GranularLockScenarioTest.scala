@@ -1974,8 +1974,88 @@ class GranularLockScenarioTest extends AnyFunSuiteLike with Matchers with Mockit
     )
 
     // Both granular lock and master lock return None (globalSafeOffset == 0).
-    // The fallback produces None.orElse(None) = None, so offset 0 must NOT be skipped.
+    // The fallback produces max(None, None) = None, so offset 0 must NOT be skipped.
     wm.write(topicPartition.withOffset(Offset(0)), makeMockMsg(0L)) shouldBe Right(())
     verify(mockFW, times(1)).write(any[MessageDetail])
+  }
+
+  // ── createWriter granular fallback max(granular, master) ─────────────────────────────
+
+  /**
+   * Builds a granular-mode WriterManager whose granular lock returns `granular` and whose master
+   * lock returns `master`, then delivers `offset`. Returns whether the record was written (true)
+   * or deduplicated (false).
+   */
+  private def granularFallbackWrites(
+    granular: Option[Long],
+    master:   Option[Long],
+    offset:   Long,
+  ): Boolean = {
+    val mockIM = mock[IndexManager]
+    when(mockIM.indexingEnabled).thenReturn(true)
+    when(mockIM.ensureGranularLock(any[TopicPartition], any[String])).thenReturn(Right(()))
+    when(mockIM.getSeekedOffsetForPartitionKey(any[TopicPartition], any[String]))
+      .thenReturn(Right(granular.map(Offset(_))))
+    when(mockIM.getSeekedOffsetForTopicPartition(any[TopicPartition])).thenReturn(master.map(Offset(_)))
+    when(mockIM.evictAllGranularLocks(any[TopicPartition])).thenAnswer(())
+
+    val mockKN = mock[KeyNamer]
+    val pf     = PartitionField(Seq("_value")).value
+    when(mockKN.processPartitionValues(any[MessageDetail], any[TopicPartition]))
+      .thenReturn(Right(immutable.Map(pf -> "key_a")))
+
+    val mockFW = mock[FormatWriter]
+    when(mockFW.write(any[MessageDetail])).thenReturn(Right(()))
+    when(mockFW.getPointer).thenReturn(1L)
+    when(mockFW.rolloverFileOnSchemaChange()).thenReturn(false)
+
+    val neverFlush = mock[CommitPolicy]
+    when(neverFlush.shouldFlush(any[CommitContext])).thenReturn(false)
+
+    val mockValue = mock[io.lenses.streamreactor.connect.cloud.common.sink.conversion.SinkData]
+    when(mockValue.schema()).thenReturn(None)
+    def msg(o: Long): MessageDetail = {
+      val m = mock[MessageDetail]
+      when(m.topic).thenReturn(topicPartition.topic)
+      when(m.partition).thenReturn(0)
+      when(m.offset).thenReturn(Offset(o))
+      when(m.epochTimestamp).thenReturn(1L)
+      when(m.value).thenReturn(mockValue)
+      when(m.key).thenReturn(mockValue)
+      when(m.headers).thenReturn(Map.empty)
+      m
+    }
+
+    val metrics = new io.lenses.streamreactor.connect.cloud.common.sink.metrics.CloudSinkMetrics()
+    val wm = new WriterManager[FileMetadata](
+      commitPolicyFn              = _ => Right(neverFlush),
+      bucketAndPrefixFn           = _ => Right(CloudLocation("bucket", Some("prefix"))),
+      keyNamerFn                  = _ => Right(mockKN),
+      stagingFilenameFn           = (_, _) => Right(File.createTempFile("c8-", ".tmp")),
+      objKeyBuilderFn             = (_, _) => mock[ObjectKeyBuilder],
+      formatWriterFn              = (_, _) => Right(mockFW),
+      indexManager                = mockIM,
+      transformerF                = m => Right(m),
+      schemaChangeDetector        = schemaChangeDetector,
+      skipNullValues              = false,
+      pendingOperationsProcessors = mock[PendingOperationsProcessors],
+      metrics                     = metrics,
+    )
+    wm.write(topicPartition.withOffset(Offset(offset)), msg(offset)).value
+    metrics.getRecordsWrittenTotal == 1L
+  }
+
+  test("[B] granular fallback with a granular lock at or above the master floor uses the granular offset") {
+    // K.lock = 150 >= M = 99: floor 150, so record 150 is skipped and 151 is written.
+    granularFallbackWrites(granular = Some(150), master = Some(99), offset = 150) shouldBe false
+    granularFallbackWrites(granular = Some(150), master = Some(99), offset = 151) shouldBe true
+  }
+
+  test("[ND] granular fallback with a stale granular lock below the master floor uses the master offset") {
+    // K.lock = 90 < M = 99: with `orElse` the floor would be 90 and record 95 would be written
+    // (a duplicate); `max` raises the floor to 99 so 91..99 are skipped and 100 is written.
+    granularFallbackWrites(granular = Some(90), master = Some(99), offset = 95) shouldBe false
+    granularFallbackWrites(granular = Some(90), master = Some(99), offset = 99) shouldBe false
+    granularFallbackWrites(granular = Some(90), master = Some(99), offset = 100) shouldBe true
   }
 }

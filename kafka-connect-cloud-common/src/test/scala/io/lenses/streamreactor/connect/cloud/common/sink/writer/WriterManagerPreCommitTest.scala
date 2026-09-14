@@ -34,6 +34,7 @@ import io.lenses.streamreactor.connect.cloud.common.sink.conversion.NullSinkData
 import io.lenses.streamreactor.connect.cloud.common.sink.metrics.CloudSinkMetrics
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.KeyNamer
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.ObjectKeyBuilder
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.CommitMode
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexManager
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.PendingOperationsProcessors
 import io.lenses.streamreactor.connect.cloud.common.storage.FileMetadata
@@ -128,6 +129,7 @@ class WriterManagerPreCommitTest
   private def buildWriterManager(
     indexManager: IndexManager,
     metrics:      CloudSinkMetrics = new CloudSinkMetrics(),
+    commitMode:   CommitMode       = CommitMode.Granular,
   ): WriterManager[FileMetadata] =
     new WriterManager[FileMetadata](
       commitPolicyFn              = _ => Right(commitPolicy),
@@ -141,8 +143,35 @@ class WriterManagerPreCommitTest
       schemaChangeDetector        = schemaChangeDetector,
       skipNullValues              = false,
       pendingOperationsProcessors = pendingOpsProcessors,
+      commitMode                  = commitMode,
       metrics                     = metrics,
     )
+
+  /** A writer parked in `Staged`: bytes already at a temp path, waiting for the batch CAS. */
+  private def writerInStagedState(
+    tp:                  TopicPartition,
+    committedOffset:     Option[Offset],
+    firstBufferedOffset: Offset,
+    uncommittedOffset:   Offset,
+  ): Writer[FileMetadata] = {
+    val w = makeWriter(tp, committedOffset)
+    w.forceWriteState(
+      Staged(
+        CommitState(tp, committedOffset),
+        new File("test"),
+        firstBufferedOffset,
+        uncommittedOffset,
+        earliestRecordTimestamp = 1L,
+        latestRecordTimestamp   = 2L,
+        recordCount             = 3L,
+        bucket                  = "bucket",
+        tempPath                = ".temp-upload/test-connector/topic/0/uuid/data/x.json",
+        tempETag                = "etag-1",
+        finalPath               = "data/x.json",
+      ),
+    )
+    w
+  }
 
   private def currentOffsets(tp: TopicPartition, offset: Long): immutable.Map[TopicPartition, OffsetAndMetadata] =
     Map(tp -> new OffsetAndMetadata(offset))
@@ -999,5 +1028,62 @@ class WriterManagerPreCommitTest
     verify(indexManager).evictGranularLock(tp0, WriterManager.derivePartitionKey(dateA).get)
     verify(indexManager).evictGranularLock(tp0, WriterManager.derivePartitionKey(dateB).get)
     verify(indexManager, never).evictGranularLock(eqTo(tp1), any[String])
+  }
+
+  // ── Partition-batch commit mode: preCommit ──────────────────────────────────────────
+  // In batch mode `preCommit` is a pure read: it computes the same globalSafeOffset barrier as
+  // granular mode but never writes the master lock, because the only thing allowed to advance
+  // the durable floor is a completed batch CAS.
+
+  test("[NL] batch: preCommit returns the Staged writer's firstBufferedOffset, not the idle sibling's") {
+    val indexManager = mock[IndexManager]
+    when(indexManager.getSeekedOffsetForTopicPartition(tp0)).thenReturn(Some(Offset(99)))
+
+    val wm = buildWriterManager(indexManager, commitMode = CommitMode.Batch)
+    wm.putWriter(
+      MapKey(tp0, dateA),
+      writerInStagedState(tp0, Some(Offset(99)), firstBufferedOffset = Offset(100), uncommittedOffset = Offset(199)),
+    )
+    wm.putWriter(MapKey(tp0, dateB), writerInNoWriterState(tp0, Some(Offset(250))))
+
+    wm.preCommit(currentOffsets(tp0, 400)).get(tp0).value.offset() shouldBe 100L
+    verify(indexManager, never).updateMasterLock(any[TopicPartition], any[Offset])
+  }
+
+  test("[NL] batch: preCommit tracks the buffered floor across null-skipped records and then advances") {
+    val indexManager = mock[IndexManager]
+    when(indexManager.getSeekedOffsetForTopicPartition(tp0)).thenReturn(Some(Offset(250)))
+
+    val wm = buildWriterManager(indexManager, commitMode = CommitMode.Batch)
+    // Offsets 251..260 were null-skipped, so no writer buffers them; 261 is buffered.
+    wm.putWriter(
+      MapKey(tp0, dateA),
+      writerInWritingState(tp0, Some(Offset(250)), firstBufferedOffset = Offset(261), uncommittedOffset = Offset(261)),
+    )
+
+    wm.preCommit(currentOffsets(tp0, 400)).get(tp0).value.offset() shouldBe 261L
+
+    // After the batch commits at 261 every writer is idle, so the barrier moves to 262.
+    wm.writerFor(MapKey(tp0, dateA)).value.forceWriteState(NoWriter(CommitState(tp0, Some(Offset(261)))))
+    wm.preCommit(currentOffsets(tp0, 400)).get(tp0).value.offset() shouldBe 262L
+    verify(indexManager, never).updateMasterLock(any[TopicPartition], any[Offset])
+  }
+
+  test("[B] batch: the high-watermark invariant still holds across cleanUp and re-seed") {
+    val indexManager = mock[IndexManager]
+    when(indexManager.getSeekedOffsetForTopicPartition(tp0)).thenReturn(Some(Offset(199)))
+
+    val wm = buildWriterManager(indexManager, commitMode = CommitMode.Batch)
+    wm.putWriter(MapKey(tp0, dateA), writerInNoWriterState(tp0, Some(Offset(250))))
+    wm.preCommit(currentOffsets(tp0, 400)).get(tp0).value.offset() shouldBe 251L
+
+    // Rollback drops the writers and the HWM, but `lastReturnedSafeOffset` is preserved so the
+    // re-seed cannot hand Kafka a lower offset than it has already been given.
+    wm.cleanUp(tp0)
+    wm.putWriter(MapKey(tp0, dateB), writerInNoWriterState(tp0, Some(Offset(210))))
+
+    // The `require`s inside getOffsetAndMeta are the assertion here: a regression throws.
+    wm.preCommit(currentOffsets(tp0, 400)).get(tp0).value.offset() shouldBe 251L
+    verify(indexManager, never).updateMasterLock(any[TopicPartition], any[Offset])
   }
 }

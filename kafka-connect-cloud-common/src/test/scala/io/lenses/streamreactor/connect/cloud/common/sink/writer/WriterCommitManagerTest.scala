@@ -29,6 +29,7 @@ import io.lenses.streamreactor.connect.cloud.common.sink.commit.CommitContext
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.CommitPolicy
 import io.lenses.streamreactor.connect.cloud.common.sink.config.PartitionField
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.ObjectKeyBuilder
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.CommitMode
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexManager
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.PendingOperationsProcessors
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.PendingState
@@ -140,7 +141,19 @@ class WriterCommitManagerTest
     }
 
   private def createManager(writers: Map[MapKey, Writer[FileMetadata]]): WriterCommitManager[FileMetadata] =
-    new WriterCommitManager(sourceFromMap(writers))
+    granularManager(sourceFromMap(writers))
+
+  /**
+   * These tests all pin granular-mode routing, where `commitBatch` is never reached, so the index
+   * manager and pending-operations processor are inert mocks.
+   */
+  private def granularManager(source: WriterSource[FileMetadata]): WriterCommitManager[FileMetadata] =
+    new WriterCommitManager(
+      source,
+      mock[IndexManager],
+      mock[PendingOperationsProcessors],
+      CommitMode.Granular,
+    )
 
   // commitPending is selective: only writers in Uploading state are picked up.
   // A sibling in Writing state on the same topic-partition is left open and will
@@ -280,7 +293,7 @@ class WriterCommitManagerTest
         backingMap.iterator.filter { case (k, _) => k.topicPartition == tp }
     }
 
-    val manager = new WriterCommitManager(guardedSource)
+    val manager = granularManager(guardedSource)
     // Must succeed without throwing (i.e. the guarded global iterator is never called)
     manager.commitFlushableWritersForTopicPartition(topicPartition).value shouldBe ()
 

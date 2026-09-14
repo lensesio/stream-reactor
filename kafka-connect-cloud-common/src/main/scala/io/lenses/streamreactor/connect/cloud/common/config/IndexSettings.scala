@@ -15,13 +15,16 @@
  */
 package io.lenses.streamreactor.connect.cloud.common.config
 
+import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.common.config.base.traits.BaseSettings
 import io.lenses.streamreactor.common.config.base.traits.WithConnectorPrefix
 import io.lenses.streamreactor.connect.cloud.common.sink.config.IndexOptions
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.CommitMode
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexManagerV2
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.Importance
 import org.apache.kafka.common.config.ConfigDef.Type
+import org.apache.kafka.common.config.ConfigException
 
 trait IndexConfigKeys extends WithConnectorPrefix {
 
@@ -39,6 +42,17 @@ trait IndexConfigKeys extends WithConnectorPrefix {
   private val ENABLE_EXACTLY_ONCE_DOC =
     s"Exactly once is enabled by default.  It works by keeping an .indexes directory at the root of your bucket with subdirectories for indexes.  Exactly once support can be disabled and the default offset tracking from kafka can be used instead by setting this to false."
   private val ENABLE_EXACTLY_ONCE_DEFAULT = true
+
+  val EXACTLY_ONCE_COMMIT_MODE = s"$connectorPrefix.exactly.once.commit.mode"
+  private val EXACTLY_ONCE_COMMIT_MODE_DOC =
+    s"How writers for one Kafka topic-partition are committed when exactly once is enabled. " +
+      s"Case-insensitive. '${CommitMode.GranularName}' (default) commits each PARTITIONBY writer " +
+      s"independently against its own granular lock, which requires the PARTITIONBY keys to be a " +
+      s"deterministic function of the record. " +
+      s"'${CommitMode.BatchName}' commits all writers on a Kafka partition together through a single lock " +
+      s"compare-and-swap and does not require deterministic PARTITIONBY keys; it writes one file per open " +
+      s"writer per flush. Switching modes requires the connector to be stopped first."
+  private val EXACTLY_ONCE_COMMIT_MODE_DEFAULT = CommitMode.GranularName
 
   val GC_INTERVAL_SECONDS = s"$connectorPrefix.indexes.gc.interval.seconds"
   private val GC_INTERVAL_SECONDS_DOC =
@@ -68,9 +82,12 @@ trait IndexConfigKeys extends WithConnectorPrefix {
 
   val GC_SWEEP_MIN_AGE_SECONDS = s"$connectorPrefix.indexes.gc.sweep.min.age.seconds"
   private val GC_SWEEP_MIN_AGE_SECONDS_DOC =
-    s"Minimum age (in seconds) a lock file must have before the sweep considers it for deletion. " +
-      s"Files whose lastModified is more recent than this are skipped without a GET read, reducing API cost. " +
-      s"Should be >= the sweep interval to avoid examining files created since the last sweep."
+    s"Minimum age (in seconds) an object must have before a sweep considers it for deletion. In " +
+      s"'${CommitMode.GranularName}' mode this gates the periodic granular-lock orphan sweep " +
+      s"(files whose lastModified is more recent than this are skipped without a GET read, reducing API " +
+      s"cost; should be >= the sweep interval to avoid examining files created since the last sweep). In " +
+      s"'${CommitMode.BatchName}' mode this also gates deletion of orphaned `.temp-upload` objects, both " +
+      s"at every connector open() and, if the sweep is enabled, on the same periodic schedule."
   private val GC_SWEEP_MIN_AGE_SECONDS_DEFAULT = IndexManagerV2.DefaultGcSweepMinAgeSeconds
 
   val GC_SWEEP_MAX_READS = s"$connectorPrefix.indexes.gc.sweep.max.reads"
@@ -114,6 +131,21 @@ trait IndexConfigKeys extends WithConnectorPrefix {
         3,
         ConfigDef.Width.NONE,
         ENABLE_EXACTLY_ONCE,
+      )
+      .define(
+        EXACTLY_ONCE_COMMIT_MODE,
+        Type.STRING,
+        EXACTLY_ONCE_COMMIT_MODE_DEFAULT,
+        // Case-insensitive so it agrees with CommitMode.fromString's lowercasing below --
+        // a case-sensitive validator would silently reject "Batch"/"BATCH" before
+        // fromString's case-insensitive parse ever ran.
+        ConfigDef.CaseInsensitiveValidString.in(CommitMode.GranularName, CommitMode.BatchName),
+        Importance.LOW,
+        EXACTLY_ONCE_COMMIT_MODE_DOC,
+        "Sink Seek",
+        4,
+        ConfigDef.Width.MEDIUM,
+        EXACTLY_ONCE_COMMIT_MODE,
       )
       .define(
         GC_INTERVAL_SECONDS,
@@ -187,9 +219,19 @@ trait IndexConfigKeys extends WithConnectorPrefix {
         GC_SWEEP_MAX_READS,
       )
 }
-trait IndexSettings extends BaseSettings with IndexConfigKeys {
-  def getIndexSettings: Option[IndexOptions] =
-    Option.when(getBoolean(ENABLE_EXACTLY_ONCE))(
+trait IndexSettings extends BaseSettings with IndexConfigKeys with LazyLogging {
+  def getIndexSettings: Option[IndexOptions] = {
+    val exactlyOnceEnabled = getBoolean(ENABLE_EXACTLY_ONCE)
+    // commit.mode only has an effect when exactly-once is enabled -- with it disabled,
+    // `indexOptions` is `None` below and carries no trace of what commit.mode was configured, so
+    // this is the only point that can see (and warn about) a batch setting that will be ignored.
+    if (!exactlyOnceEnabled && commitMode == CommitMode.Batch) {
+      logger.warn(
+        s"$EXACTLY_ONCE_COMMIT_MODE=${CommitMode.BatchName} has no effect because $ENABLE_EXACTLY_ONCE=false: " +
+          s"exactly-once indexing is disabled, so there is no master lock to commit against in any mode.",
+      )
+    }
+    Option.when(exactlyOnceEnabled)(
       IndexOptions(
         getInt(SEEK_MAX_INDEX_FILES),
         getString(INDEXES_DIRECTORY_NAME),
@@ -199,6 +241,15 @@ trait IndexSettings extends BaseSettings with IndexConfigKeys {
         getInt(GC_SWEEP_INTERVAL_SECONDS),
         getInt(GC_SWEEP_MIN_AGE_SECONDS),
         getInt(GC_SWEEP_MAX_READS),
+        commitMode,
       ),
     )
+  }
+
+  private def commitMode: CommitMode = {
+    val raw = getString(EXACTLY_ONCE_COMMIT_MODE)
+    // ConfigDef.ValidString already rejects anything outside the enum, so this only fires for
+    // callers that bypass ConfigDef validation entirely.
+    CommitMode.fromString(raw).fold(msg => throw new ConfigException(EXACTLY_ONCE_COMMIT_MODE, raw, msg), identity)
+  }
 }

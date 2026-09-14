@@ -73,6 +73,53 @@ class S3SinkConfigDefBuilderTest extends AnyFlatSpec with MockitoSugar with Matc
     ex.getMessage shouldBe CloudSinkBucketOptions.WithPartitionerError
   }
 
+  "S3SinkConfigDefBuilder" should "raise an exception when PARTITIONBY uses a header from a wallclock SMT with exactly-once enabled and granular commit mode" in {
+    val props = Map(
+      "connect.s3.kcql"                               -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _header.date STOREAS `CSV` PROPERTIES('${FlushCount.entryName}'=1)",
+      "transforms"                                    -> "InsertRollingWallclockHeaders",
+      "transforms.InsertRollingWallclockHeaders.type" -> "io.lenses.connect.smt.header.InsertRollingWallclockHeaders",
+    )
+
+    val ex = CloudSinkBucketOptions(connectorTaskId, S3SinkConfigDefBuilder(props)).left.getOrElse(
+      fail("Expected an exception"),
+    )
+
+    ex.getMessage should include("'date'")
+    ex.getMessage should include("InsertRollingWallclockHeaders")
+  }
+
+  "S3SinkConfigDefBuilder" should "not raise an exception for a wallclock SMT when exactly-once is disabled" in {
+    val props = Map(
+      "connect.s3.kcql"                               -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _header.date STOREAS `CSV` PROPERTIES('${FlushCount.entryName}'=1)",
+      "connect.s3.exactly.once.enable"                -> "false",
+      "transforms"                                    -> "InsertRollingWallclockHeaders",
+      "transforms.InsertRollingWallclockHeaders.type" -> "io.lenses.connect.smt.header.InsertRollingWallclockHeaders",
+    )
+
+    CloudSinkBucketOptions(connectorTaskId, S3SinkConfigDefBuilder(props)) shouldBe Symbol("right")
+  }
+
+  "S3SinkConfigDefBuilder" should "not raise an exception when PARTITIONBY uses a header from a record-derived SMT" in {
+    val props = Map(
+      "connect.s3.kcql"                              -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _header.date STOREAS `CSV` PROPERTIES('${FlushCount.entryName}'=1)",
+      "transforms"                                   -> "InsertRecordTimestampHeaders",
+      "transforms.InsertRecordTimestampHeaders.type" -> "io.lenses.connect.smt.header.InsertRecordTimestampHeaders",
+    )
+
+    CloudSinkBucketOptions(connectorTaskId, S3SinkConfigDefBuilder(props)) shouldBe Symbol("right")
+  }
+
+  "S3SinkConfigDefBuilder" should "not raise an exception for a wallclock SMT when commit.mode is batch" in {
+    val props = Map(
+      "connect.s3.kcql"                               -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _header.date STOREAS `CSV` PROPERTIES('${FlushCount.entryName}'=1)",
+      "connect.s3.exactly.once.commit.mode"           -> "batch",
+      "transforms"                                    -> "InsertRollingWallclockHeaders",
+      "transforms.InsertRollingWallclockHeaders.type" -> "io.lenses.connect.smt.header.InsertRollingWallclockHeaders",
+    )
+
+    CloudSinkBucketOptions(connectorTaskId, S3SinkConfigDefBuilder(props)) shouldBe Symbol("right")
+  }
+
   "S3SinkConfigDefBuilder" should "defaults data storage settings if not provided" in {
     val props = Map(
       "connect.s3.kcql" -> s"insert into mybucket:myprefix select * from $TopicName PARTITIONBY _key STOREAS CSV PROPERTIES('${FlushCount.entryName}'=1)",

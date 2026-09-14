@@ -24,7 +24,7 @@ import scala.jdk.CollectionConverters.ListHasAsScala
 
 /**
  * Unit tests for [[OpenSearchSinkConnector]] covering:
- *  - topics-vs-kcql consistency (A9)
+ *  - topics-vs-kcql consistency
  *  - taskConfigs distributes the config to all task slots
  *  - taskClass returns [[OpenSearchSinkTask]]
  *  - stop() is a no-op
@@ -42,13 +42,13 @@ class OpenSearchSinkConnectorTest extends AnyFunSuite with Matchers {
     connector
   }
 
-  test("A9: taskClass returns OpenSearchSinkTask") {
+  test("taskClass returns OpenSearchSinkTask") {
     val connector = startConnector(Map(KCQL -> "INSERT INTO idx SELECT * FROM topic", "topics" -> "topic"))
     connector.taskClass() shouldBe classOf[OpenSearchSinkTask]
     connector.stop()
   }
 
-  test("A9: taskConfigs returns one config map per requested task slot") {
+  test("taskConfigs returns one config map per requested task slot") {
     val connector = startConnector(Map(KCQL -> "INSERT INTO idx SELECT * FROM topic", "topics" -> "topic"))
     val configs   = connector.taskConfigs(3)
     configs should have size 3
@@ -58,7 +58,7 @@ class OpenSearchSinkConnectorTest extends AnyFunSuite with Matchers {
     connector.stop()
   }
 
-  test("A9: topics-vs-kcql mismatch — source topic not in KCQL raises at connector start") {
+  test("topics-vs-kcql mismatch — source topic not in KCQL raises at connector start") {
     // Helpers.checkInputTopics validates that each topic in 'topics' has a corresponding KCQL source.
     val ex = intercept[Exception](
       startConnector(Map(
@@ -70,7 +70,7 @@ class OpenSearchSinkConnectorTest extends AnyFunSuite with Matchers {
     ex.getMessage.toLowerCase should (include("topic-b") or include("topics") or include("kcql"))
   }
 
-  test("A9: matching topics and KCQL sources — connector starts successfully") {
+  test("matching topics and KCQL sources — connector starts successfully") {
     noException shouldBe thrownBy {
       startConnector(Map(
         KCQL     -> "INSERT INTO a SELECT * FROM topic-a;INSERT INTO b SELECT * FROM topic-b",
@@ -79,12 +79,12 @@ class OpenSearchSinkConnectorTest extends AnyFunSuite with Matchers {
     }
   }
 
-  test("A9: stop() does not throw") {
+  test("stop() does not throw") {
     val connector = startConnector(Map(KCQL -> "INSERT INTO idx SELECT * FROM topic", "topics" -> "topic"))
     noException shouldBe thrownBy(connector.stop())
   }
 
-  test("A9: bidirectional mismatch — KCQL source topic not in topics raises at connector start") {
+  test("bidirectional mismatch — KCQL source topic not in topics raises at connector start") {
     // Reverse of the previous case: all 'topics' have a KCQL source, but the KCQL also mentions
     // a source that is not in 'topics'. This should also be rejected.
     val ex = intercept[Exception](

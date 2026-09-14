@@ -107,6 +107,36 @@ trait IndexManager {
   ): Either[SinkError, Option[Offset]]
 
   /**
+   * The deduplication floor for one topic-partition in `CommitMode.Batch`: the master lock's
+   * committed offset alone.
+   *
+   * Batch mode does not consult a per-writer (or per-key) granular lock, because a replayed
+   * offset is not guaranteed to route back to the key that originally handled it -- not even
+   * during a granular -> batch migration, while a previous deployment's granular locks are still
+   * being fenced/purged. Consulting them for dedup would silently drop a record whose key
+   * changed between the original attempt and the replay, reintroducing the exact bug batch mode
+   * exists to fix. See the "Switching modes" section of `docs/datalake-exactly-once-partitionby.md`
+   * for the resulting (accepted) duplicate window during migration.
+   *
+   * @param topicPartition The `TopicPartition` being deduplicated.
+   * @return `Right(Some(offset))` for the highest offset already durably committed, or
+   *         `Right(None)` when nothing has been committed yet. Never `Left` in practice (kept as
+   *         an `Either` for interface consistency with the rest of `IndexManager`).
+   */
+  def batchDedupFloor(topicPartition: TopicPartition): Either[SinkError, Option[Offset]]
+
+  /**
+   * Hook called after a successful `CommitMode.Batch` commit at offset `committed`.
+   *
+   * No-op on `IndexManagerV2`: legacy-lock purging during a granular -> batch migration now
+   * happens synchronously inside batch-mode `open()`, as soon as every legacy lock on the TP has
+   * been fenced (it no longer waits for a batch watermark, because `batchDedupFloor` never
+   * consults these locks). Kept on the trait so `WriterCommitManager.commitBatch` does not need
+   * a mode-specific branch to call it.
+   */
+  def afterBatchCommit(topicPartition: TopicPartition, committed: Offset): Unit
+
+  /**
    * Updates the master lock with the global safe offset.
    * Writes `globalSafeOffset - 1` as the committedOffset to preserve existing semantics.
    *
