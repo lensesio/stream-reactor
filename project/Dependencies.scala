@@ -95,7 +95,7 @@ object Dependencies {
     val json4sVersion       = "4.0.7"
     val mockitoScalaVersion = "2.0.0"
     val mockitoJavaVersion  = "5.2.0"
-    val openCsvVersion      = "5.11.1"
+    val openCsvVersion      = "5.11.2"
     val jsonSmartVersion    = "2.5.2"
 
     val xzVersion  = "1.10"
