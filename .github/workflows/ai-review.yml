@@ -8,11 +8,12 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # git-mirror copies this file to the public lensesio/stream-reactor, which can't
+  # call the internal reviewer. GitHub resolves `uses:` before it evaluates `if:`,
+  # so no condition here can skip it: the workflow is disabled there instead
+  # (Actions > AI code review > Disable workflow).
   review:
-    # git-mirror copies this file to the public lensesio/stream-reactor, which can't
-    # call the internal reviewer: run only in the internal repository.
     if: >-
-      github.repository == 'lensesio-dev/stream-reactor' &&
       !github.event.pull_request.draft &&
       github.event.pull_request.user.login != 'dependabot[bot]' &&
       github.event.pull_request.head.repo.full_name == github.repository
