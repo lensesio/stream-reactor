@@ -65,5 +65,47 @@ class S3SourceConfigTest extends AnyFunSuite with Matchers with TaskIndexKey wit
 
   }
 
+  test("enables source.topic.from.envelope when the envelope is stored") {
+    val props = DefaultProps ++ Map(
+      "connect.s3.kcql" ->
+        s"""insert into placeholder select * from $BucketName:prefix STOREAS `JSON` LIMIT 1000 PROPERTIES ( 'store.envelope' = 'true', 'source.topic.from.envelope' = 'true' )""",
+      "connect.s3.source.partition.search.recurse.levels" -> "0",
+    )
+
+    S3SourceConfig(S3SourceConfigDefBuilder(props)) match {
+      case Left(value) => fail(value.toString)
+      case Right(config) =>
+        config.bucketOptions.size shouldBe 1
+        config.bucketOptions.head.hasEnvelope shouldBe true
+        config.bucketOptions.head.topicFromEnvelope shouldBe true
+    }
+  }
+
+  test("source.topic.from.envelope defaults to false") {
+    val props = DefaultProps ++ Map(
+      "connect.s3.kcql" ->
+        s"""insert into topic1 select * from $BucketName:prefix STOREAS `JSON` LIMIT 1000 PROPERTIES ( 'store.envelope' = 'true' )""",
+      "connect.s3.source.partition.search.recurse.levels" -> "0",
+    )
+
+    S3SourceConfig(S3SourceConfigDefBuilder(props)) match {
+      case Left(value)   => fail(value.toString)
+      case Right(config) => config.bucketOptions.head.topicFromEnvelope shouldBe false
+    }
+  }
+
+  test("source.topic.from.envelope without store.envelope is rejected") {
+    val props = DefaultProps ++ Map(
+      "connect.s3.kcql" ->
+        s"""insert into placeholder select * from $BucketName:prefix STOREAS `JSON` LIMIT 1000 PROPERTIES ( 'source.topic.from.envelope' = 'true' )""",
+      "connect.s3.source.partition.search.recurse.levels" -> "0",
+    )
+
+    S3SourceConfig(S3SourceConfigDefBuilder(props)) match {
+      case Left(value) => value.getMessage should include("source.topic.from.envelope")
+      case Right(_)    => fail("Expected validation to fail when store.envelope is not enabled")
+    }
+  }
+
   override def connectorPrefix: String = CONNECTOR_PREFIX
 }

@@ -36,6 +36,7 @@ object CloudSourcePropsSchema {
     BufferSize                                   -> IntPropsSchema,
     ReadTrimLine                                 -> BooleanPropsSchema,
     StoreEnvelope                                -> BooleanPropsSchema,
+    SourceTopicFromEnvelope                      -> BooleanPropsSchema,
     PostProcessAction                            -> EnumPropsSchema(PostProcessActionEnum),
     PostProcessActionBucket                      -> StringPropsSchema,
     PostProcessActionPrefix                      -> StringPropsSchema,

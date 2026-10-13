@@ -59,6 +59,8 @@ import scala.jdk.CollectionConverters.ListHasAsScala
  * @param partition The target partition; only used if the envelope does not contain a partition
  * @param location The cloud location of the object
  * @param lastModified The last modified date of the object
+ * @param topicFromEnvelope When true, the record is emitted to the original topic stored in the
+ *                          envelope metadata, falling back to `topic` when it is not present
  */
 class SchemaAndValueEnvelopeConverter(
   watermarkPartition: java.util.Map[String, String],
@@ -67,6 +69,7 @@ class SchemaAndValueEnvelopeConverter(
   location:           CloudLocation,
   lastModified:       Instant,
   instantF:           () => Instant = () => Instant.now(),
+  topicFromEnvelope:  Boolean       = false,
 ) extends Converter[SchemaAndValue] {
   override def convert(schemaAndValue: SchemaAndValue, index: Long, lastLine: Boolean): SourceRecord = {
     if (schemaAndValue.schema().`type`() != Schema.Type.STRUCT) {
@@ -101,10 +104,16 @@ class SchemaAndValueEnvelopeConverter(
         struct.get("metadata").asInstanceOf[org.apache.kafka.connect.data.Struct].getInt64("timestamp")
       } else instantF().toEpochMilli
 
+    val recordTopic: String =
+      if (topicFromEnvelope && fields.contains("metadata")) {
+        val meta = struct.get("metadata").asInstanceOf[org.apache.kafka.connect.data.Struct]
+        Option(meta.schema().field("topic")).flatMap(_ => Option(meta.getString("topic"))).getOrElse(topic.value)
+      } else topic.value
+
     new SourceRecord(
       watermarkPartition,
       SourceWatermark.offset(location, index, lastModified, lastLine),
-      topic.value,
+      recordTopic,
       partition,
       keySchema.orNull,
       key.orNull,

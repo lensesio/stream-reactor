@@ -228,13 +228,71 @@ class SchemaAndValueEnvelopeConverterTest extends AnyFunSuite with Matchers {
       createConverter().convert(schemaAndValueEnveloper, 0L, lastLine = true)
     }
   }
-  private def createConverter(instantF: () => Instant = () => Instant.now()): SchemaAndValueEnvelopeConverter =
+  test("topicFromEnvelope uses the topic stored in the envelope metadata") {
+    val envelopeSchema = SchemaBuilder.struct()
+      .field("key", Schema.OPTIONAL_STRING_SCHEMA)
+      .field("value", Schema.OPTIONAL_STRING_SCHEMA)
+      .field("metadata", MetadataSchema)
+      .build()
+    val envelope = new Struct(envelopeSchema)
+    envelope.put("key", "key")
+    envelope.put("value", "value")
+    envelope.put("metadata", createMetadata())
+
+    val sourceRecord = createConverter(topicFromEnvelope = true)
+      .convert(new SchemaAndValue(envelopeSchema, envelope), 0L, lastLine = true)
+    sourceRecord.topic() shouldBe SourceTopic
+    sourceRecord.kafkaPartition() shouldBe Partition
+  }
+
+  test("topicFromEnvelope falls back to the target topic when metadata is missing") {
+    val envelopeSchema = SchemaBuilder.struct()
+      .field("key", Schema.OPTIONAL_STRING_SCHEMA)
+      .field("value", Schema.OPTIONAL_STRING_SCHEMA)
+      .build()
+    val envelope = new Struct(envelopeSchema)
+    envelope.put("key", "key")
+    envelope.put("value", "value")
+
+    val sourceRecord = createConverter(() => LastModifiedTimestamp, topicFromEnvelope = true)
+      .convert(new SchemaAndValue(envelopeSchema, envelope), 0L, lastLine = true)
+    sourceRecord.topic() shouldBe TargetTopic
+  }
+
+  test("topicFromEnvelope falls back to the target topic when metadata has no topic field") {
+    val metadataSchema = SchemaBuilder.struct()
+      .field("timestamp", Schema.INT64_SCHEMA)
+      .field("partition", Schema.INT32_SCHEMA)
+      .build()
+    val envelopeSchema = SchemaBuilder.struct()
+      .field("key", Schema.OPTIONAL_STRING_SCHEMA)
+      .field("value", Schema.OPTIONAL_STRING_SCHEMA)
+      .field("metadata", metadataSchema)
+      .build()
+    val metadata = new Struct(metadataSchema)
+    metadata.put("timestamp", Timestamp)
+    metadata.put("partition", Partition)
+    val envelope = new Struct(envelopeSchema)
+    envelope.put("key", "key")
+    envelope.put("value", "value")
+    envelope.put("metadata", metadata)
+
+    val sourceRecord = createConverter(topicFromEnvelope = true)
+      .convert(new SchemaAndValue(envelopeSchema, envelope), 0L, lastLine = true)
+    sourceRecord.topic() shouldBe TargetTopic
+  }
+
+  private def createConverter(
+    instantF:          () => Instant = () => Instant.now(),
+    topicFromEnvelope: Boolean       = false,
+  ): SchemaAndValueEnvelopeConverter =
     new SchemaAndValueEnvelopeConverter(Map("partition" -> "abc").asJava,
                                         Topic(TargetTopic),
                                         TargetPartition,
                                         cloudLocation,
                                         LastModifiedTimestamp,
                                         instantF,
+                                        topicFromEnvelope,
     )
   private def assertOffsets(sourceRecord: SourceRecord): Assertion = {
     sourceRecord.sourcePartition().asScala shouldBe Map("partition" -> "abc")

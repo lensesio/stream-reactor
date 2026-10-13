@@ -59,6 +59,7 @@ case class ReaderBuilderContext(
   targetPartition:         Integer,
   targetTopic:             Topic,
   watermarkPartition:      java.util.Map[String, String],
+  topicFromEnvelope:       Boolean = false,
 )
 
 sealed trait FormatSelection {
@@ -131,6 +132,7 @@ case object JsonFormatSelection extends FormatSelection {
                                         input.targetPartition,
                                         input.bucketAndPath,
                                         input.metadata.lastModified,
+                                        topicFromEnvelope = input.topicFromEnvelope,
         )
 
       } else {
@@ -167,6 +169,7 @@ case object AvroFormatSelection extends FormatSelection {
                                             input.targetPartition,
                                             input.bucketAndPath,
                                             input.metadata.lastModified,
+                                            topicFromEnvelope = input.topicFromEnvelope,
         )
       } else {
         new SchemaAndValueConverter(
@@ -209,6 +212,7 @@ case object ParquetFormatSelection extends FormatSelection {
                                             input.targetPartition,
                                             input.bucketAndPath,
                                             input.metadata.lastModified,
+                                            topicFromEnvelope = input.topicFromEnvelope,
         )
       } else {
         new SchemaAndValueConverter(
