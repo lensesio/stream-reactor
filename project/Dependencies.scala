@@ -170,7 +170,7 @@ object Dependencies {
 
     val openSearchVersion               = "2.13.0"
     val openSearchTestcontainersVersion = "2.0.1"
-    val httpclient5Version              = "5.2.1"
+    val httpclient5Version              = "5.2.3"
 
   }
 
