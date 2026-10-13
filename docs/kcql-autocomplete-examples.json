@@ -1,0 +1,428 @@
+{
+  "version": 1,
+  "generated_at": "2025-11-26",
+  "notes": "KCQL statements derived from Stream Reactor connector tests/config; pair each example with its description when building Monaco completions.",
+  "connectors": [
+    {
+      "id": "aws-s3-sink",
+      "label": "AWS S3 Sink",
+      "connectorClass": "io.lenses.streamreactor.connect.aws.s3.sink.S3SinkConnector",
+      "version": "9.1-SNAPSHOT",
+      "examples": [
+        {
+          "name": "Partitioned Parquet landing zone",
+          "kcql": "INSERT INTO analytics-bucket:region/year SELECT order_id, customer_id, total FROM orders_topic PARTITIONBY _key STOREAS `PARQUET` PROPERTIES('flush.size'=134217728,'flush.count'=1000,'flush.interval'=60,'partition.include.keys'=false)",
+          "description": "Writes curated fields to S3 in Parquet, partitions by Kafka key, and tunes flush triggers for predictable file sizes."
+        },
+        {
+          "name": "Envelope copy of every topic",
+          "kcql": "INSERT INTO audit-bucket:audit SELECT * FROM `*` STOREAS `JSON` PROPERTIES('store.envelope'=true,'store.envelope.fields.key'=true,'store.envelope.fields.value'=true,'store.envelope.fields.metadata'=true,'store.envelope.fields.headers'=true,'flush.count'=1)",
+          "description": "Captures every topic into JSON while persisting the full Kafka envelope and forcing immediate uploads."
+        },
+        {
+          "name": "Binary snapshots",
+          "kcql": "INSERT INTO payload-bucket:raw-bytes SELECT * FROM binary_topic STOREAS `BYTES` PROPERTIES('flush.count'=1)",
+          "description": "Streams opaque byte payloads where each record becomes its own object; BYTES mode requires flush.count of 1."
+        },
+        {
+          "name": "Header-partitioned CSV",
+          "kcql": "INSERT INTO metrics-bucket:dt=yyyy/MM/dd SELECT * FROM metrics_topic PARTITIONBY _header.region,_header.service STOREAS `CSV` PROPERTIES('flush.count'=100,'padding.length.partition'='12','padding.length.offset'='12')",
+          "description": "Generates CSV files grouped by header values and pads partition/offset metadata for sortable filenames."
+        },
+        {
+          "name": "Mask PII before landing",
+          "kcql": "INSERT INTO compliance-bucket:year/month SELECT customerId, email, cardNumber FROM payments_topic PARTITIONBY _key STOREAS `PARQUET` PROPERTIES('flush.count'=500,'flush.interval'=30)",
+          "description": "Pair this with the Lenses MaskField SMT (e.g. transforms=maskCard; transforms.maskCard.type=io.lenses.kafka.connect.smt.MaskField$Value; transforms.maskCard.fields=_value.cardNumber) so KCQL routes only scrubbed payloads to S3. See https://docs.lenses.io/latest/connectors/single-message-transforms#maskfield."
+        },
+        {
+          "name": "Immediate archive move",
+          "kcql": "INSERT INTO raw-ingest:staging SELECT * FROM audit_topic STOREAS `JSON` PROPERTIES('flush.count'=1,'post.process.action'='MOVE','post.process.action.bucket'='s3://company-archive','post.process.action.prefix'='audit/')",
+          "description": "Uploads JSON envelopes to a staging prefix and then uses the built-in post-process MOVE action to relocate the object into a long-term archive bucket once commits succeed."
+        },
+        {
+          "name": "Glue-friendly CSV headers",
+          "kcql": "INSERT INTO curated-bucket:glue/dt=YYYY/MM/dd SELECT order_id AS id, struct_field.name AS customer_name, total FROM orders_topic STOREAS `CSV_WITHHEADERS` PARTITIONBY _value.country PROPERTIES('flush.size'=268435456,'partition.include.keys'=false)",
+          "description": "Projects and renames fields so the emitted CSV includes headers compatible with AWS Glue crawlers, while partitioning by a value-derived country field."
+        }
+      ]
+    },
+    {
+      "id": "aws-s3-source",
+      "label": "AWS S3 Source",
+      "connectorClass": "io.lenses.streamreactor.connect.aws.s3.source.S3SourceConnector",
+      "version": "9.1-SNAPSHOT",
+      "examples": [
+        {
+          "name": "Avro export replay",
+          "kcql": "INSERT INTO orders_topic SELECT * FROM sales-bucket:/exports/orders STOREAS `AVRO` LIMIT 1000 PROPERTIES('store.envelope'='true')",
+          "description": "Reads Avro objects from a bucket/prefix, keeps the Kafka envelope, and caps each poll to 1,000 records."
+        },
+        {
+          "name": "XML block ingestion",
+          "kcql": "INSERT INTO audit_topic SELECT * FROM logs-bucket:/apps/payments STOREAS `TEXT` LIMIT 500 PROPERTIES('read.text.mode'='multiline','read.text.start.tag'='<event>','read.text.end.tag'='</event>')",
+          "description": "Splits multi-line blobs using explicit start/end tags before emitting them to Kafka."
+        },
+        {
+          "name": "Regex-filtered text",
+          "kcql": "INSERT INTO alerts_topic SELECT * FROM logs-bucket:/alerts STOREAS `TEXT` LIMIT 250 PROPERTIES('read.text.regex'='.*ERROR.*','read.text.trim'='true')",
+          "description": "Streams plain-text log lines but only forwards entries matching the regex filter."
+        },
+        {
+          "name": "Flatten XML with SMT",
+          "kcql": "INSERT INTO enriched_topic SELECT * FROM xml-bucket:/events STOREAS `TEXT` LIMIT 200",
+          "description": "Use KCQL to pull raw XML, then apply the Lenses XmlToJson SMT (transforms=xml2json; transforms.xml2json.type=io.lenses.kafka.connect.smt.XmlToJson$Value) so the emitted Kafka records are already flattened JSON before other SMTs or consumers touch them."
+        }
+      ]
+    },
+    {
+      "id": "gcp-storage-sink",
+      "label": "GCP Storage Sink",
+      "connectorClass": "io.lenses.streamreactor.connect.gcp.storage.sink.GCPStorageSinkConnector",
+      "version": "9.1-SNAPSHOT",
+      "examples": [
+        {
+          "name": "JSON landing zone",
+          "kcql": "INSERT INTO gcp-data:landing/year=2024 SELECT deviceId, reading FROM telemetry_topic PARTITIONBY _topic,_partition STOREAS `JSON` PROPERTIES('flush.count'=1000,'padding.length.partition'='12','padding.length.offset'='12')",
+          "description": "Stores JSON documents while retaining topic/partition metadata for traceability."
+        },
+        {
+          "name": "Parquet with envelope",
+          "kcql": "INSERT INTO gcp-data:finance SELECT * FROM finance_topic PARTITIONBY _key STOREAS `PARQUET` PROPERTIES('flush.size'=67108864,'flush.count'=500,'flush.interval'=45,'store.envelope'=true,'store.envelope.fields.key'=true,'store.envelope.fields.value'=true,'store.envelope.fields.metadata'=false,'store.envelope.fields.headers'=false)",
+          "description": "Creates Parquet files that include keys and values, with tuned flush cadence for medium workloads."
+        },
+        {
+          "name": "Value-only byte stream",
+          "kcql": "INSERT INTO gcp-data:raw/bytestream SELECT * FROM raw_topic STOREAS `BYTES_VALUEONLY` PROPERTIES('flush.count'=1)",
+          "description": "Writes just the Kafka value as bytes into GCS; BYTES_VALUEONLY enforces a flush.count of 1."
+        },
+        {
+          "name": "Flatten arrays before CSV",
+          "kcql": "INSERT INTO gcp-data:flattened SELECT * FROM arrays_topic PARTITIONBY _topic STOREAS `CSV` PROPERTIES('flush.count'=200)",
+          "description": "Combine with the Lenses Flatten SMT (transforms=flattenPayload; transforms.flattenPayload.type=io.lenses.kafka.connect.smt.Flatten$Value; transforms.flattenPayload.delimiter='.') so nested values become flat columns before the connector serializes them to CSV."
+        },
+        {
+          "name": "Archive after copy",
+          "kcql": "INSERT INTO gcs-raw:landing SELECT * FROM raw_topic STOREAS `BYTES` PROPERTIES('flush.count'=10,'post.process.action'='COPY','post.process.action.bucket'='gs://coldline-archive','post.process.action.prefix'='raw/')",
+          "description": "Keeps a working copy in the landing bucket but also copies each object into a Coldline archive using the post-process COPY action."
+        },
+        {
+          "name": "Envelope AVRO snapshots",
+          "kcql": "INSERT INTO gcs-snapshots:topic=${_topic}/dt=YYYY-MM-dd SELECT * FROM `*` STOREAS `AVRO` PROPERTIES('store.envelope'=true,'store.envelope.fields.metadata'=true,'flush.interval'=120)",
+          "description": "Creates AVRO snapshots for every topic under a templated prefix, retaining Kafka metadata in the envelope so downstream tools can replay offsets."
+        }
+      ]
+    },
+    {
+      "id": "azure-datalake-sink",
+      "label": "Azure Data Lake Sink",
+      "connectorClass": "io.lenses.streamreactor.connect.datalake.sink.DatalakeSinkConnector",
+      "version": "9.1-SNAPSHOT",
+      "examples": [
+        {
+          "name": "Parquet landing with auto folders",
+          "kcql": "INSERT INTO adls://lakehouse@datalake.dfs.core.windows.net/events/year=YYYY/month=MM/day=dd SELECT eventId, payload FROM events_topic PARTITIONBY _topic STOREAS `PARQUET` PROPERTIES('flush.count'=1000,'flush.interval'=60)",
+          "description": "Writes Parquet files into hierarchical time-based folders inside ADLS Gen2, keeping per-topic partitions."
+        },
+        {
+          "name": "JSON plus envelope metadata",
+          "kcql": "INSERT INTO adls://lakehouse@datalake.dfs.core.windows.net/audit SELECT * FROM audit_topic STOREAS `JSON` PROPERTIES('store.envelope'=true,'store.envelope.fields.metadata'=true,'store.envelope.fields.headers'=true,'flush.count'=100)",
+          "description": "Persists full Kafka envelopes so compliance teams can inspect headers and metadata directly in ADLS."
+        },
+        {
+          "name": "BYTES landing with post-delete",
+          "kcql": "INSERT INTO adls://lakehouse@datalake.dfs.core.windows.net/binary SELECT * FROM bytes_topic STOREAS `BYTES` PROPERTIES('flush.count'=1,'post.process.action'='DELETE')",
+          "description": "Streams opaque payloads into ADLS and deletes the local staging artefact immediately after the ADLS write succeeds."
+        }
+      ]
+    },
+    {
+      "id": "azure-cosmosdb-sink",
+      "label": "Azure Cosmos DB Sink",
+      "connectorClass": "io.lenses.streamreactor.connect.azure.cosmosdb.sink.CosmosDbSinkConnector",
+      "version": "9.1-SNAPSHOT",
+      "examples": [
+        {
+          "name": "Auto-create collection",
+          "kcql": "INSERT INTO customers SELECT customerId AS id, profile FROM customers_topic PK id AUTOCREATE AUTOEVOLVE",
+          "description": "Creates the target container on demand, renames customerId to the Cosmos id field, and keeps schema evolution enabled."
+        },
+        {
+          "name": "High-volume orders",
+          "kcql": "INSERT INTO orders SELECT * FROM orders_topic IGNORE scratch,transient PK orderId BATCH = 5000 PROPERTIES('flush.count'=20000,'flush.interval'=5)",
+          "description": "Ignores transient fields, defines the partition/primary key, batches records, and aligns the connector flush cadence."
+        },
+        {
+          "name": "Device state upsert",
+          "kcql": "UPSERT INTO deviceState SELECT deviceId, payload FROM state_topic PK deviceId",
+          "description": "Upserts documents per device id so the latest payload overwrites the previous state."
+        },
+        {
+          "name": "Composite session key",
+          "kcql": "INSERT INTO sessions SELECT sessionId, userId, expiresAt FROM sessions_topic PK sessionId, userId",
+          "description": "Writes documents that use a compound primary key to guarantee per-user session uniqueness."
+        }
+      ]
+    },
+    {
+      "id": "cassandra-sink",
+      "label": "Cassandra Sink",
+      "connectorClass": "io.lenses.streamreactor.connect.cassandra.sink.CassandraSinkConnector",
+      "version": "9.1-SNAPSHOT",
+      "examples": [
+        {
+          "name": "Hot data with TTL",
+          "kcql": "INSERT INTO analytics.orders SELECT * FROM orders_topic PK order_id TTL=86400",
+          "description": "Replicates the entire topic into Cassandra while expiring rows after one day."
+        },
+        {
+          "name": "Upsert status updates",
+          "kcql": "UPSERT INTO analytics.orders SELECT order_id, status FROM orders_updates PK order_id BATCH = 2000",
+          "description": "Only writes the fields that change and caps the KCQL batch size for each poll."
+        },
+        {
+          "name": "Aliased composite key",
+          "kcql": "INSERT INTO finance.daily_balances SELECT account_id AS acc, balance, as_of FROM balances_topic PK acc, as_of",
+          "description": "Renames fields before writing and defines a compound primary key for time-sliced balances."
+        }
+      ]
+    },
+    {
+      "id": "cassandra-source",
+      "label": "Cassandra Source",
+      "connectorClass": "io.lenses.streamreactor.connect.cassandra.source.CassandraSourceConnector",
+      "version": "9.1-SNAPSHOT",
+      "examples": [
+        {
+          "name": "Timestamp increments",
+          "kcql": "INSERT INTO orders_topic SELECT order_id, status FROM analytics.orders PK order_id BATCH=500 INCREMENTALMODE=timestamp",
+          "description": "Polls Cassandra using a timestamp column for offsets while keeping batches modest."
+        },
+        {
+          "name": "Timeuuid changelog",
+          "kcql": "INSERT INTO device_changes SELECT device_id, reading FROM analytics.readings PK reading_time WITHFORMAT JSON WITHUNWRAP INCREMENTALMODE=timeuuid",
+          "description": "Flattens JSON payloads and advances offsets using a timeuuid column."
+        },
+        {
+          "name": "Token-based bootstrap",
+          "kcql": "INSERT INTO activity_topic SELECT * FROM analytics.activity PK user_id BATCH=200 INCREMENTALMODE=token",
+          "description": "Uses token-aware pagination to stream a large table into Kafka."
+        },
+        {
+          "name": "Bucketed time series",
+          "kcql": "INSERT INTO metrics_topic SELECT bucket, payload FROM analytics.timeseries PK bucket WITHKEY(device_id) INCREMENTALMODE=buckettimeseries",
+          "description": "Emits bucketed rows while deriving the Kafka key from a value field."
+        }
+      ]
+    },
+    {
+      "id": "elastic-sink",
+      "label": "Elasticsearch 6/7 Sink",
+      "connectorClass": "io.lenses.streamreactor.connect.elastic7.ElasticSinkConnector",
+      "version": "9.1-SNAPSHOT",
+      "examples": [
+        {
+          "name": "Auto-create daily index",
+          "kcql": "INSERT INTO orders_index SELECT * FROM orders_topic PK order_id AUTOCREATE WITHINDEXSUFFIX=_{YYYY-MM-dd}",
+          "description": "Creates a new index per day for each topic and ties documents to the Kafka key."
+        },
+        {
+          "name": "Nested session upserts",
+          "kcql": "UPSERT INTO sessions_index SELECT session.id, session.* FROM sessions_topic PK session.id",
+          "description": "Upserts documents using a nested id path so session updates replace previous versions."
+        },
+        {
+          "name": "Selective log projection",
+          "kcql": "INSERT INTO logs_index SELECT _key AS docId, level, message FROM logs_topic PK docId WITHINDEXSUFFIX=_v1",
+          "description": "Controls the document id explicitly and only forwards the log fields you need."
+        }
+      ]
+    },
+    {
+      "id": "mongodb-sink",
+      "label": "MongoDB Sink",
+      "connectorClass": "io.lenses.streamreactor.connect.mongodb.sink.MongoSinkConnector",
+      "version": "9.1-SNAPSHOT",
+      "examples": [
+        {
+          "name": "Simple collection copy",
+          "kcql": "INSERT INTO customers SELECT * FROM customers_topic PK customerId",
+          "description": "Maps Kafka records directly into MongoDB while deriving the _id from customerId."
+        },
+        {
+          "name": "Alias and ignore",
+          "kcql": "INSERT INTO orders SELECT orderId AS _id, items FROM orders_topic IGNORE scratch PK _id",
+          "description": "Renames orderId into Mongo's _id and drops volatile fields before inserting."
+        },
+        {
+          "name": "Inventory upsert",
+          "kcql": "UPSERT INTO inventory SELECT sku, dimensions.width AS width, dimensions.height AS height FROM inventory_topic PK sku",
+          "description": "Flattens nested fields and upserts documents keyed by SKU."
+        }
+      ]
+    },
+    {
+      "id": "mqtt-source",
+      "label": "MQTT Source",
+      "connectorClass": "io.lenses.streamreactor.connect.mqtt.source.MqttSourceConnector",
+      "version": "9.1-SNAPSHOT",
+      "examples": [
+        {
+          "name": "Wildcard Avro converter",
+          "kcql": "INSERT INTO telemetry_topic SELECT * FROM sensors/+/temperature WITHCONVERTER=`io.lenses.streamreactor.connect.converters.source.AvroConverter`",
+          "description": "Subscribes to a single-level wildcard topic and decodes payloads with the Avro converter."
+        },
+        {
+          "name": "Shared subscription",
+          "kcql": "INSERT INTO alerts_topic SELECT * FROM `$share/connect/alerts` WITHSUBSCRIPTION=connectConsumers WITHCONVERTER=`io.lenses.streamreactor.connect.converters.source.BytesConverter`",
+          "description": "Joins a shared subscription group and keeps payloads as raw bytes."
+        },
+        {
+          "name": "Regex filtered source",
+          "kcql": "INSERT INTO wildcard_topic SELECT * FROM `sensors/#` withregex=`sensors/(.*)/temperature`",
+          "description": "Uses KCQL's withregex option to only forward MQTT topics that match the pattern."
+        }
+      ]
+    },
+    {
+      "id": "mqtt-sink",
+      "label": "MQTT Sink",
+      "connectorClass": "io.lenses.streamreactor.connect.mqtt.sink.MqttSinkConnector",
+      "version": "9.1-SNAPSHOT",
+      "examples": [
+        {
+          "name": "Static destination",
+          "kcql": "INSERT INTO mqtt-target SELECT * FROM metrics_topic",
+          "description": "Publishes every Kafka record to the same MQTT topic."
+        },
+        {
+          "name": "Use Kafka key as target",
+          "kcql": "INSERT INTO _key SELECT * FROM per-device-topic",
+          "description": "Routes each record to the MQTT topic stored in the Kafka key."
+        },
+        {
+          "name": "Topic from payload field",
+          "kcql": "INSERT INTO meta.routing.target SELECT * FROM dynamic_topic PROPERTIES('mqtt.target.from.field'='true')",
+          "description": "Derives the MQTT destination from a nested field path in the record value."
+        }
+      ]
+    },
+    {
+      "id": "jms-source",
+      "label": "JMS Source",
+      "connectorClass": "io.lenses.streamreactor.connect.jms.source.JMSSourceConnector",
+      "version": "9.1-SNAPSHOT",
+      "examples": [
+        {
+          "name": "Queue to Kafka",
+          "kcql": "INSERT INTO kafka-orders SELECT * FROM OrdersQueue WITHTYPE QUEUE",
+          "description": "Streams a JMS queue straight into a Kafka topic."
+        },
+        {
+          "name": "Topic with Avro converter",
+          "kcql": "INSERT INTO kafka-alerts SELECT * FROM AlertsTopic WITHTYPE TOPIC WITHCONVERTER=`io.lenses.streamreactor.connect.converters.source.AvroConverter` WITHSUBSCRIPTION=alertsDurable",
+          "description": "Consumes a JMS topic with a durable subscription and decodes messages with the Avro converter."
+        },
+        {
+          "name": "Selector-based filtering",
+          "kcql": "INSERT INTO kafka-filtered SELECT * FROM AlertsTopic WITHTYPE TOPIC WITHJMSSELECTOR=`severity = 'HIGH'`",
+          "description": "Only forwards JMS messages that satisfy the selector expression."
+        }
+      ]
+    },
+    {
+      "id": "jms-sink",
+      "label": "JMS Sink",
+      "connectorClass": "io.lenses.streamreactor.connect.jms.sink.JMSSinkConnector",
+      "version": "9.1-SNAPSHOT",
+      "examples": [
+        {
+          "name": "Proto converter",
+          "kcql": "INSERT INTO OutboundQueue SELECT * FROM outbound_topic WITHTYPE QUEUE WITHCONVERTER=`io.lenses.streamreactor.connect.jms.sink.converters.ProtoMessageConverter`",
+          "description": "Publishes Kafka events to a JMS queue after serializing them with the Proto converter."
+        },
+        {
+          "name": "Store as POJO",
+          "kcql": "INSERT INTO ContactsTopic SELECT firstName,lastName,email FROM contacts_topic STOREAS `com.example.Contact` WITHTYPE TOPIC",
+          "description": "Maps Kafka fields into a POJO before sending to a JMS topic."
+        },
+        {
+          "name": "JSON topic output",
+          "kcql": "INSERT INTO AuditTopic SELECT * FROM audit_topic WITHFORMAT JSON WITHTYPE TOPIC",
+          "description": "Serializes payloads as JSON when publishing to JMS."
+        }
+      ]
+    },
+    {
+      "id": "azure-servicebus-source",
+      "label": "Azure Service Bus Source",
+      "connectorClass": "io.lenses.streamreactor.connect.azure.servicebus.source.AzureServiceBusSourceConnector",
+      "version": "9.1-SNAPSHOT",
+      "examples": [
+        {
+          "name": "Queue to Kafka",
+          "kcql": "INSERT INTO kafka-invoices SELECT * FROM invoices PROPERTIES('servicebus.type'='QUEUE')",
+          "description": "Mirrors messages from a Service Bus queue into Kafka."
+        },
+        {
+          "name": "Topic subscription",
+          "kcql": "INSERT INTO kafka-telemetry SELECT * FROM telemetry PROPERTIES('servicebus.type'='TOPIC','subscription.name'='raw-readers')",
+          "description": "Consumes from a topic subscription and routes messages into Kafka."
+        }
+      ]
+    },
+    {
+      "id": "azure-servicebus-sink",
+      "label": "Azure Service Bus Sink",
+      "connectorClass": "io.lenses.streamreactor.connect.azure.servicebus.sink.AzureServiceBusSinkConnector",
+      "version": "9.1-SNAPSHOT",
+      "examples": [
+        {
+          "name": "Queue sink with batching",
+          "kcql": "INSERT INTO invoices SELECT * FROM kafka-invoices PROPERTIES('servicebus.type'='QUEUE','batch.enabled'='true')",
+          "description": "Sends Kafka records to a Service Bus queue and enables batched sends."
+        },
+        {
+          "name": "Topic sink",
+          "kcql": "INSERT INTO telemetry SELECT * FROM kafka-telemetry PROPERTIES('servicebus.type'='TOPIC')",
+          "description": "Publishes Kafka events to a Service Bus topic."
+        }
+      ]
+    },
+    {
+      "id": "azure-eventhubs-source",
+      "label": "Azure Event Hubs Source",
+      "connectorClass": "io.lenses.streamreactor.connect.azure.eventhubs.source.AzureEventHubsSourceConnector",
+      "version": "9.1-SNAPSHOT",
+      "examples": [
+        {
+          "name": "Notifications mirror",
+          "kcql": "INSERT INTO kafka-notifications SELECT * FROM notifications-hub",
+          "description": "Streams an Event Hub namespace directly into a Kafka topic."
+        },
+        {
+          "name": "Metrics fan-in",
+          "kcql": "INSERT INTO kafka-metrics SELECT * FROM metrics-hub",
+          "description": "Demonstrates a second mapping; remember Event Hub and Kafka names must satisfy the connector's regex rules."
+        }
+      ]
+    },
+    {
+      "id": "gcp-pubsub-source",
+      "label": "GCP Pub/Sub Source",
+      "connectorClass": "io.lenses.streamreactor.connect.gcp.pubsub.source.GCPPubSubSourceConnector",
+      "version": "9.1-SNAPSHOT",
+      "examples": [
+        {
+          "name": "Fully qualified subscription",
+          "kcql": "INSERT INTO kafka-orders SELECT * FROM projects/acme/subscriptions/orders PROPERTIES('batch.size'=500,'cache.ttl'=600000,'queue.max'=5000)",
+          "description": "Maps a specific subscription into Kafka and tunes the internal batch/cache behavior."
+        },
+        {
+          "name": "Project default subscription",
+          "kcql": "INSERT INTO kafka-payments SELECT * FROM payments-sub PROPERTIES('batch.size'=1000)",
+          "description": "Uses the simple subscription id form while overriding only the batch size."
+        }
+      ]
+    }
+  ]
+}
