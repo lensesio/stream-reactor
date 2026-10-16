@@ -26,11 +26,13 @@ import cats.implicits.toFoldableOps
 import cats.implicits.toTraverseOps
 import com.typesafe.scalalogging.LazyLogging
 import com.typesafe.scalalogging.StrictLogging
+import fs2.Stream
 import io.lenses.streamreactor.common.util.EitherUtils.unpackOrThrow
 import io.lenses.streamreactor.common.utils.CyclopsToScalaOption.convertToScalaOption
 import io.lenses.streamreactor.connect.cloud.common.model.Topic
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
 import io.lenses.streamreactor.connect.http.sink.client.HttpRequestSender
+import io.lenses.streamreactor.connect.http.sink.client.RequestTimeoutHttpClient
 import io.lenses.streamreactor.common.batch.BatchPolicy
 import io.lenses.streamreactor.connect.http.sink.config.ExponentialRetryConfig
 import io.lenses.streamreactor.connect.http.sink.config.FixedRetryConfig
@@ -51,6 +53,7 @@ import org.http4s.jdkhttpclient.JdkHttpClient
 
 import java.net.http.HttpClient
 import java.time.Duration
+import java.util.concurrent.TimeoutException
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.duration.FiniteDuration
 
@@ -86,7 +89,8 @@ object HttpWriterManager extends StrictLogging {
     val builderAfterSSL =
       convertToScalaOption(unpackOrThrow(config.ssl.toSslContext)).fold(httpClientBuilder)(httpClientBuilder.sslContext)
 
-    val httpClient = builderAfterSSL.build()
+    val httpClient =
+      new RequestTimeoutHttpClient(builderAfterSSL.build(), Duration.ofMillis(config.timeout.requestTimeoutMs.toLong))
 
     val retriablePolicy: RetryPolicy[IO] = buildRetriablePolicy(sinkName, config)
 
@@ -97,7 +101,8 @@ object HttpWriterManager extends StrictLogging {
 
       (client, cResRel)    <- clientResource.allocated
       (_, resetterRelease) <- metricsResetter.scheduleResetAndUpdate.allocated
-      retriableClient       = Retry(retriablePolicy)(client)
+      timedClient           = withRequestTimeout(client, config.timeout.requestTimeoutMs.millis)
+      retriableClient       = Retry(retriablePolicy)(timedClient)
       writersRef           <- Ref.of[IO, Map[Topic, HttpWriter]](Map.empty)
       writerCreationLock   <- Semaphore[IO](1)
       sender <- HttpRequestSender(
@@ -152,6 +157,27 @@ object HttpWriterManager extends StrictLogging {
     )
     retriablePolicy
   }
+
+  private[sink] def withRequestTimeout(client: Client[IO], timeout: FiniteDuration): Client[IO] =
+    Client[IO] { request =>
+      Resource.eval(IO.monotonic).flatMap { startedAt =>
+        Resource
+          .make(
+            client.run(request).allocated.timeoutTo(
+              timeout,
+              IO.raiseError(new TimeoutException(s"HTTP request timed out after ${timeout.toMillis} ms")),
+            ),
+          ) { case (_, release) => release }
+          .map { case (response, _) =>
+            val body = Stream.eval(IO.monotonic).flatMap { now =>
+              val remaining = timeout - (now - startedAt)
+              if (remaining.length > 0) response.body.timeout(remaining)
+              else Stream.raiseError[IO](new TimeoutException(s"HTTP request timed out after ${timeout.toMillis} ms"))
+            }
+            response.withBodyStream(body)
+          }
+      }
+    }
 
   /**
    * Determines if the result is an error or contains a retriable status code.

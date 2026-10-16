@@ -82,6 +82,7 @@ object BatchConfig {
 
 case class TimeoutConfig(
   connectionTimeoutMs: Int,
+  requestTimeoutMs:    Int,
 )
 
 sealed trait RetryMode
@@ -205,7 +206,8 @@ object HttpSinkConfig {
       uploadSyncPeriod    = connectConfig.getInt(HttpSinkConfigDef.UploadSyncPeriodProp)
       retries            <- RetriesConfig.fromConfig(connectConfig)
       connectionTimeoutMs = connectConfig.getInt(HttpSinkConfigDef.ConnectionTimeoutMsProp)
-      timeout             = TimeoutConfig(connectionTimeoutMs)
+      requestTimeoutMs    = connectConfig.getInt(HttpSinkConfigDef.RequestTimeoutMsProp)
+      timeout             = TimeoutConfig(connectionTimeoutMs, requestTimeoutMs)
       jsonTidy            = connectConfig.getBoolean(HttpSinkConfigDef.JsonTidyProp)
       errorReportingController = createAndStartController(
         ErrorReportingController.fromAbstractConfig[HttpFailureConnectorSpecificRecordData](
