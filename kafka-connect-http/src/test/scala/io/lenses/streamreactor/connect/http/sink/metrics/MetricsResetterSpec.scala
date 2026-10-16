@@ -44,8 +44,8 @@ class CustomFixedClock(private val fixedInstant: Instant) extends Clock[IO] {
 }
 class MetricsResetterSpec extends AnyFunSuite with Matchers {
 
-  // Mock implementation of HttpSinkMetricsMBean for testing
-  class MockHttpSinkMetrics extends HttpSinkMetricsMBean {
+  // Override only the resetter interactions; the concrete metric methods are irrelevant here.
+  class MockHttpSinkMetrics extends HttpSinkMetrics {
     var resetCalled:  Int = 0
     var updateCalled: Int = 0
 
@@ -55,32 +55,6 @@ class MetricsResetterSpec extends AnyFunSuite with Matchers {
     override def updatePercentiles(): Unit =
       updateCalled += 1
 
-    override def get2xxCount: Long = ???
-
-    override def get4xxCount: Long = ???
-
-    override def get5xxCount: Long = ???
-
-    override def getOtherErrorsCount: Long = ???
-
-    /**
-     * Record the time taken to process a request
-     */
-    override def recordRequestTime(time: Long): Unit = ???
-
-    override def increment2xxCount(): Unit = ???
-
-    override def increment4xxCount(): Unit = ???
-
-    override def increment5xxCount(): Unit = ???
-
-    override def incrementOtherErrorsCount(): Unit = ???
-
-    override def getP50RequestTimeMs: Long = ???
-
-    override def getP95RequestTimeMs: Long = ???
-
-    override def getP99RequestTimeMs: Long = ???
   }
 
   // Import or define the calculateInitialDelay method here
