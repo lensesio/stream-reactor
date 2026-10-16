@@ -27,6 +27,15 @@ trait HttpSinkMetricsMBean {
   def getOtherErrorsCount: Long
 
   /**
+   * Cumulative HTTP submission-attempt counts by every satisfied batch condition. These counters
+   * are non-exclusive: one successfully rendered batch can increment more than one counter, and a
+   * failed HTTP attempt is counted because the increment occurs immediately before submission.
+   */
+  def getBatchCountTriggerCount:   Long
+  def getBatchSizeTriggerCount:    Long
+  def getTimeIntervalTriggerCount: Long
+
+  /**
    * Record the time taken to process a request
    */
   def recordRequestTime(time: Long): Unit
@@ -41,20 +50,26 @@ trait HttpSinkMetricsMBean {
    */
   def updatePercentiles(): Unit
 
-  def increment2xxCount():         Unit
-  def increment4xxCount():         Unit
-  def increment5xxCount():         Unit
-  def incrementOtherErrorsCount(): Unit
-  def getP50RequestTimeMs:         Long
-  def getP95RequestTimeMs:         Long
-  def getP99RequestTimeMs:         Long
+  def increment2xxCount():                 Unit
+  def increment4xxCount():                 Unit
+  def increment5xxCount():                 Unit
+  def incrementOtherErrorsCount():         Unit
+  def incrementBatchCountTriggerCount():   Unit
+  def incrementBatchSizeTriggerCount():    Unit
+  def incrementTimeIntervalTriggerCount(): Unit
+  def getP50RequestTimeMs:                 Long
+  def getP95RequestTimeMs:                 Long
+  def getP99RequestTimeMs:                 Long
 }
 
 class HttpSinkMetrics extends HttpSinkMetricsMBean {
-  private val successCount     = new LongAdder()
-  private val error4xxCount    = new LongAdder()
-  private val error5xxCount    = new LongAdder()
-  private val otherErrorsCount = new LongAdder()
+  private val successCount             = new LongAdder()
+  private val error4xxCount            = new LongAdder()
+  private val error5xxCount            = new LongAdder()
+  private val otherErrorsCount         = new LongAdder()
+  private val batchCountTriggerCount   = new LongAdder()
+  private val batchSizeTriggerCount    = new LongAdder()
+  private val timeIntervalTriggerCount = new LongAdder()
 
   private val p50RequestTimeMs = new AtomicLong(0L)
   private val p95RequestTimeMs = new AtomicLong(0L)
@@ -64,9 +79,12 @@ class HttpSinkMetrics extends HttpSinkMetricsMBean {
   private val MaxValueMillis = 3 * 60 * 60 * 1000L // 3 hours; a more than 3hs HTTP request is considered an error
   private val recorder       = new Recorder(MaxValueMillis, 3)
 
-  def increment2xxCount(): Unit = successCount.increment()
-  def increment4xxCount(): Unit = error4xxCount.increment()
-  def increment5xxCount(): Unit = error5xxCount.increment()
+  def increment2xxCount():                 Unit = successCount.increment()
+  def increment4xxCount():                 Unit = error4xxCount.increment()
+  def increment5xxCount():                 Unit = error5xxCount.increment()
+  def incrementBatchCountTriggerCount():   Unit = batchCountTriggerCount.increment()
+  def incrementBatchSizeTriggerCount():    Unit = batchSizeTriggerCount.increment()
+  def incrementTimeIntervalTriggerCount(): Unit = timeIntervalTriggerCount.increment()
 
   def recordRequestTime(millis: Long): Unit =
     // Record handles concurrent recording. It's the reset that will extract the percentiles and that call is also synchronized
@@ -90,6 +108,9 @@ class HttpSinkMetrics extends HttpSinkMetricsMBean {
   override def get4xxCount:                 Long = error4xxCount.sum()
   override def get5xxCount:                 Long = error5xxCount.sum()
   override def getOtherErrorsCount:         Long = otherErrorsCount.sum()
+  override def getBatchCountTriggerCount:   Long = batchCountTriggerCount.sum()
+  override def getBatchSizeTriggerCount:    Long = batchSizeTriggerCount.sum()
+  override def getTimeIntervalTriggerCount: Long = timeIntervalTriggerCount.sum()
   override def incrementOtherErrorsCount(): Unit = otherErrorsCount.increment()
 
   override def getP50RequestTimeMs: Long = p50RequestTimeMs.get()
