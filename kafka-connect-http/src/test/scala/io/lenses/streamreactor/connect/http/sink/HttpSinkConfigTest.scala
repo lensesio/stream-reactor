@@ -72,8 +72,50 @@ class HttpSinkConfigTest extends AnyFunSuiteLike with Matchers with EitherValues
     )
     httpSinkConfig.timeout should be(TimeoutConfig(HttpSinkConfigDef.ConnectionTimeoutMsDefault))
     httpSinkConfig.tidyJson should be(false)
+    httpSinkConfig.compression should be(CompressionType.None)
     httpSinkConfig.errorReportingController == null shouldBe false
     httpSinkConfig.successReportingController == null shouldBe false
+  }
+
+  test("reads gzip compression") {
+    val config = HttpSinkConfig.from(
+      Map(
+        HttpSinkConfigDef.HttpMethodProp         -> "put",
+        HttpSinkConfigDef.HttpEndpointProp       -> "http://myaddress.example.com",
+        HttpSinkConfigDef.HttpRequestContentProp -> "content",
+        HttpSinkConfigDef.CompressionTypeProp    -> "gzip",
+        ERROR_REPORTING_ENABLED_PROP             -> "false",
+        SUCCESS_REPORTING_ENABLED_PROP           -> "false",
+      ),
+    ).value
+
+    config.compression shouldBe CompressionType.Gzip
+  }
+
+  test("reads gzip compression case-insensitively") {
+    val config = HttpSinkConfig.from(
+      Map(
+        HttpSinkConfigDef.HttpMethodProp         -> "put",
+        HttpSinkConfigDef.HttpEndpointProp       -> "http://myaddress.example.com",
+        HttpSinkConfigDef.HttpRequestContentProp -> "content",
+        HttpSinkConfigDef.CompressionTypeProp    -> "GZIP",
+        ERROR_REPORTING_ENABLED_PROP             -> "false",
+        SUCCESS_REPORTING_ENABLED_PROP           -> "false",
+      ),
+    ).value
+
+    config.compression shouldBe CompressionType.Gzip
+  }
+
+  test("rejects unsupported compression") {
+    the[ConfigException] thrownBy HttpSinkConfig.from(
+      Map(
+        HttpSinkConfigDef.HttpMethodProp         -> "put",
+        HttpSinkConfigDef.HttpEndpointProp       -> "http://myaddress.example.com",
+        HttpSinkConfigDef.HttpRequestContentProp -> "content",
+        HttpSinkConfigDef.CompressionTypeProp    -> "brotli",
+      ),
+    )
   }
 
   test("fails if the method is not supported") {
