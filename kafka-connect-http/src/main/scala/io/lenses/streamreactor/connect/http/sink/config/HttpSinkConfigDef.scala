@@ -64,6 +64,16 @@ object HttpSinkConfigDef {
       |The HTTP connection timeout in milliseconds.
       |""".stripMargin
   val ConnectionTimeoutMsDefault = 10000
+
+  val RequestTimeoutMsProp: String = "connect.http.request.timeout.ms"
+  val RequestTimeoutMsDoc: String =
+    """
+      |The maximum total time in milliseconds to upload an HTTP request, receive a response, and
+      |consume its body. Each retry attempt has its own timeout, so an unresponsive endpoint cannot
+      |block a writer indefinitely.
+      |""".stripMargin
+  val RequestTimeoutMsDefault = 30000
+
   val RetriesMaxTimeoutMsProp: String = "connect.http.retries.max.timeout.ms"
   val RetriesMaxTimeoutMsDoc: String =
     """
@@ -239,6 +249,14 @@ object HttpSinkConfigDef {
         ConnectionTimeoutMsDefault,
         Importance.HIGH,
         ConnectionTimeoutMsDoc,
+      )
+      .define(
+        RequestTimeoutMsProp,
+        Type.INT,
+        RequestTimeoutMsDefault,
+        Range.atLeast(1),
+        Importance.HIGH,
+        RequestTimeoutMsDoc,
       )
       .define(
         RetriesMaxTimeoutMsProp,
