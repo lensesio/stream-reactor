@@ -66,6 +66,8 @@ class BatchAccumulatorTest extends AnyFunSuiteLike with Matchers with LazyLoggin
     val r2 = acc.offer(record2)
     r2.fitsInBatch shouldBe true
     r2.triggerReached shouldBe true
+    r2.triggeredConditions shouldBe Set(Count(2))
+    acc.flushTriggers shouldBe Set(Count(2))
     acc.size shouldBe 2
     acc.currentBatch.map(_.toSeq) shouldBe Some(Seq(record1, record2))
   }
@@ -92,6 +94,8 @@ class BatchAccumulatorTest extends AnyFunSuiteLike with Matchers with LazyLoggin
     // an elapsed interval is a flush trigger, not a capacity limit, so the record fits and is appended
     r1.fitsInBatch shouldBe true
     acc.size shouldBe 1
+    acc.flushTriggers shouldBe r1.triggeredConditions
+    acc.flushTriggers.exists(_.isInstanceOf[Interval]) shouldBe true
   }
 
   test("an interval-only policy packs every record into one batch once the interval has elapsed") {
