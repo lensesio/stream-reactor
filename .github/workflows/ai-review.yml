@@ -18,7 +18,7 @@ jobs:
       github.event.pull_request.user.login != 'dependabot[bot]' &&
       github.event.pull_request.head.repo.full_name == github.repository
     permissions:
-      contents: read
+      contents: write   # only for resolving fixed findings; the review itself gets read
       pull-requests: write
       id-token: write
     uses: lensesio-dev/ai-code-review/.github/workflows/review.yml@v0
