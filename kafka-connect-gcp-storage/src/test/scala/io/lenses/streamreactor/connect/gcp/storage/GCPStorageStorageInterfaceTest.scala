@@ -837,8 +837,8 @@ class GCPStorageStorageInterfaceTest
   // ── LC-318: GCS-specific regression tests (not part of the shared contract) ──────────────
 
   "list" should "still advance the pagination marker when a page consists entirely of markers/zero-byte objects" in {
-    // GCS deliberately keeps the RAW last blob as its pagination marker (unlike S3, whose
-    // marker is derived from the filtered sequence and would be None here). This proves a
+    // GCS deliberately keeps the RAW last blob as its pagination marker (as S3 does since
+    // LC-344). This proves a
     // page of nothing but directory markers/zero-byte objects does not stall pagination:
     // the next poll can still resume via startOffset(marker).
     // Marker size is non-zero so it is filtered only by the "/"-suffix rule (same witness
