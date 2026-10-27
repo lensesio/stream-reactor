@@ -124,7 +124,7 @@ class DateOrderingBatchListerTest
     ))
   }
 
-  "listBatch" should "return requested number of results in order" in {
+  "listBatch" should "return every eligible file from one listing, not only the batch size" in {
     val storageInterfaceResponse: ListOfMetadataResponse[TestFileMetadata] = ListOfMetadataResponse[TestFileMetadata](
       bucket,
       prefix.some,
@@ -137,8 +137,8 @@ class DateOrderingBatchListerTest
     listerFn(none).value.value should be(ListOfKeysResponse(
       bucket,
       prefix.some,
-      allFiles.take(NumResults).map(_.file),
-      allFiles(9),
+      allFiles.map(_.file),
+      allFiles.last,
     ))
   }
 
@@ -155,15 +155,23 @@ class DateOrderingBatchListerTest
     listerFn(allFiles(9).some).value.value should be(ListOfKeysResponse(
       bucket,
       prefix.some,
-      allFiles.slice(10, 20).map(_.file),
-      allFiles(19),
+      allFiles.drop(10).map(_.file),
+      allFiles.last,
     ))
-    listerFn(allFiles(19).some).value.value should be(ListOfKeysResponse(
-      bucket,
-      prefix.some,
-      allFiles.slice(20, 30).map(_.file),
-      allFiles(29),
-    ))
+    listerFn(allFiles.last.some) should be(none.asRight)
+  }
+
+  "listBatch" should "not skip files sharing the last file's lastModified" in {
+    val sameSecond = instant(50)
+    val tied       = Seq("/c", "/a", "/b").map(TestFileMetadata(_, sameSecond))
+    mockStorageInterface(ListOfMetadataResponse[TestFileMetadata](bucket, prefix.some, tied, tied.head))
+
+    val first = listerFn(none).value.value
+    first.files should be(Seq("/a", "/b", "/c"))
+
+    // resuming from the middle of a same-second group must return the rest of it, and nothing twice
+    listerFn(TestFileMetadata("/a", sameSecond).some).value.value.files should be(Seq("/b", "/c"))
+    listerFn(first.latestFileMetadata.some) should be(none.asRight)
   }
 
   private def mockStorageInterface(storageInterfaceResponse: ListOfMetadataResponse[TestFileMetadata]) =

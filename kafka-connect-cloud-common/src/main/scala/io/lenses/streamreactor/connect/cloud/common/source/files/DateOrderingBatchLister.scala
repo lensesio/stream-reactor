@@ -36,7 +36,9 @@ object DateOrderingBatchLister extends BatchLister {
 
     for {
       listResp <- storageInterface.listFileMetaRecursive(bucket, prefix)
-      ordered   = listResp.iterator.flatMap(_.files).filter(lastFileFilter).toSeq.sortBy(_.lastModified).take(numResults)
+      // Every eligible file is returned, not `numResults`: the listing is already a full recursive scan, and
+      // repeating it for each batch made draining a backlog quadratic in LIST requests.
+      ordered = listResp.iterator.flatMap(_.files).filter(lastFileFilter).toSeq.sortBy(f => (f.lastModified, f.file))
     } yield {
       ordered.lastOption.flatMap(lo => ListOfKeysResponse[SM](bucket, prefix, ordered.map(_.file), lo).some)
     }
@@ -45,8 +47,9 @@ object DateOrderingBatchLister extends BatchLister {
   private def filter(maybeLastFile: Option[FileMetadata])(thisFile: FileMetadata): Boolean =
     maybeLastFile.fold(true) {
       lastFile =>
-        thisFile.lastModified.isAfter(lastFile.lastModified) &&
-        thisFile.file != lastFile.file
+        // lastModified is only second-precise on some stores, so ties are broken by key, matching the sort above
+        val byTime = thisFile.lastModified.compareTo(lastFile.lastModified)
+        byTime > 0 || (byTime == 0 && thisFile.file > lastFile.file)
     }
 
 }
