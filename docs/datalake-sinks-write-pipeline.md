@@ -17,6 +17,7 @@ For a map of which tests exercise each stage of this pipeline (default path and 
 | Property | Default | Effect |
 |----------|---------|--------|
 | `connect.<prefix>.exactly.once.enable` | `true` | Enables indexing. When `true`, every commit uses a three-phase `Upload → Copy → Delete` chain with eTag-conditional lock file updates and `shouldSkip` deduplication. When `false`, `NoIndexManager` is wired in and a single direct upload is used; at-least-once semantics only. |
+| `connect.<prefix>.exactly.once.commit.mode` | `granular` | Selects how PARTITIONBY writers commit when indexing is on. `granular` (default) commits each writer against its own per-key lock and requires deterministic PARTITIONBY keys. `batch` commits all writers on a Kafka partition together through one master-lock CAS and deduplicates against a topic-partition-level floor, so it is routing-independent (safe for wall-clock SMTs). Writes one file per open writer per flush. Switching modes requires the connector to be stopped first. See [datalake-exactly-once-partitionby.md](datalake-exactly-once-partitionby.md#partition-batch-commit-mode-commitmodebatch). |
 | KCQL `PROPERTIES` commit thresholds: `flush.count`, `flush.size`, `flush.interval` (set via `connect.<prefix>.kcql`) | per-KCQL statement | Control when a writer's buffered records are flushed to cloud storage (record count, file size in bytes, and time interval in seconds). |
 | `connect.<prefix>.local.tmp.directory` | a fresh `Files.createTempDirectory("<task id>.<uuid>")` under the JVM temp dir | Where local staging files are written before upload. The file is the only durable copy of buffered records between `write()` and a successful cloud upload. |
 | `connect.<prefix>.error.policy` | `THROW` | Selects the `ErrorPolicy` (`NOOP`, `THROW`, or `RETRY`). Only `RETRY` converts a `ConnectException` raised from `put()` into a `RetriableException` that Kafka Connect will retry in-process. |
@@ -191,7 +192,16 @@ flowchart TD
         C2 --> D2["No lock file written\n(NoIndexManager is a no-op)"]
         D2 --> E2["toNoWriter(committedOffset returned by NoIndexManager)\ncommittedOffset advances"]
     end
+
+    subgraph indexBatch ["Indexing ON, commit.mode=batch"]
+        A3["commitBatch(tp): stage() every non-idle writer\n(Writing/Uploading -> Staged)"] --> B3["Upload each staging file\nto .temp-upload/connector/topic/partition/batchUuid/..."]
+        B3 --> C3["Single master-lock CAS:\nPendingState(P, [Copy_1..Copy_N])\n(eTag-conditional = the commit point)"]
+        C3 --> D3["Drive chain: mvFile per Copy;\nrewrite lock with remaining ops after each"]
+        D3 --> E3["finalizeCommit(P) on every staged writer"]
+    end
 ```
+
+**Batch mode:** every non-idle writer on the Kafka partition is staged (its bytes uploaded to a connector-scoped temp path), then a *single* master-lock CAS records one `PendingState` of `Copy` operations — the only commit point. The chain is `[Copy x N]` only (no `Upload`, so per-file eTags survive; no `Delete`, so no mid-chain Fatal). There is no separate post-commit temp delete step: every `Copy` runs via `mvFile`, which moves the object on all three backends, so a successful chain leaves no temp behind; a temp orphaned by a *failed* chain is reaped by the `.temp-upload` orphan sweep at `open()` (and, if `gc.sweep.enabled`, on a periodic schedule). Deduplication uses a topic-partition-level, master-lock-only floor rather than per-key locks, so it does not require deterministic PARTITIONBY keys.
 
 **Indexing on:** The staging file is never written directly to the final output path. The intermediate `.temp-upload/<uuid>` object acts as a staging area in cloud storage. If the task crashes after Phase 1 completes, the `PendingState` in the lock file lets the next task owner replay Phase 2 and 3 (Copy and Delete) on restart. The eTag on each lock file write acts as a zombie-task fencing token.
 
@@ -290,6 +300,20 @@ sequenceDiagram
 | `preCommit` master lock write fails | N/A | No offset returned to Kafka Connect | Consumer offset frozen. Granular locks preserved (GC skipped). On crash, replay from stale master offset; granular locks deduplicate. | No data loss, no duplication |
 | `RetryErrorPolicy` exhausted | Any persistent error | Task fails | Connect restarts task. `IndexManagerV2.open` reads master lock, seeks consumer. Records re-delivered from Kafka. | No data loss |
 
+### Batch mode (`commit.mode=batch`) failure rows
+
+These rows apply when `commit.mode=batch`. The single commit point is the master-lock CAS in `commitBatch`; everything before it is retryable with no durable trace, everything after it is recoverable from the recorded `PendingState`.
+
+| Stage | Error → classification | Writer state after | Recovery path | Data-loss outcome |
+|-------|-------------------------|--------------------|---------------|-------------------|
+| Local write (IOException) | `complete()` IOException during `stage()` → `FatalCloudSinkError` | `Writing`/`Uploading` until `cleanUp` | Task fails; restart replays from master lock | No data loss (pre-CAS) |
+| `stage()` upload transient | `UploadFailedError` → `NonFatalCloudSinkError`, `rollBack=false` | `Uploading`, staging kept | `recommitPending` re-drives `commitBatch`; `stage()` idempotent, only the failed writer re-uploads | No data loss |
+| `stage()` missing staging file | `NonExistingFileError` → `FatalCloudSinkError`, `rollBack=true` | `Uploading` until `cleanUp` | Task fails; restart replays from master lock | No data loss (pre-CAS) |
+| CAS failure | `update` eTag mismatch / write error → `FatalCloudSinkError` | `Staged`; temps kept, staging deleted by `cleanUp` | Restart replays from master; temps become orphan-sweep candidates | No data loss (nothing at a final path) |
+| mid-chain `Copy` failure | Fatal (existing chain behaviour) | `Staged` | Restart resumes from the recorded remaining `[Copy…]` ops | No data loss; one object per final path |
+| last `Copy` failure | `NonFatal` (existing last-op behaviour) | `Staged` | Next `recommitPending` re-drives the full chain idempotently (`mvFile` idempotent) | No data loss; one object per final path |
+| post-commit `Delete` failure | WARN only | `NoWriter` (finalized) | Temp becomes an orphan-sweep candidate | No impact (data already at final path) |
+
 ---
 
 ## Local-write IOException recovery (disk full / ENOSPC)
@@ -336,6 +360,8 @@ Vanilla Kafka Connect does **not** auto-restart a `FAILED` task. Ingestion is ha
 ## `recommitPending` retry loop
 
 `WriterManager.recommitPending()` is the in-process retry mechanism for transient upload failures. It is called at the **start of every `put()`** and runs `Writer.commit` on every writer currently in `Uploading` state.
+
+**In `commit.mode=batch`**, `recommitPending()` instead re-runs `commitBatch(tp)` for every topic-partition that has a writer with a pending upload (`Uploading` or `Staged`); by construction that batch includes the partition's `Writing` siblings too. Because `stage()` is idempotent on an already-`Staged` writer (no storage call), a re-drive only re-uploads writers that actually failed to stage, and the `mvFile` copies are idempotent, so the chain can be re-driven safely after a last-`Copy` failure. Pinned by [`WriterCommitManagerBatchTest`](../kafka-connect-cloud-common/src/test/scala/io/lenses/streamreactor/connect/cloud/common/sink/writer/WriterCommitManagerBatchTest.scala) and .
 
 ```mermaid
 sequenceDiagram
@@ -521,6 +547,8 @@ I3 holds by construction:
 2. **`toNoWriter(newOffset)` enforces I1 ↔ I2 alignment.** `committedOffset` in the `NoWriter` state is the resolved offset returned by `processPendingOperations`. It equals the actual committed offset in the cloud lock file. If the staging file is gone during dead-worker recovery (`escalateOnCancel=false`), `processPendingOperations` returns the *old* `committedOffset` (via the graceful-clear arm) and `toNoWriter` preserves it. If the staging file is gone during a live commit (`escalateOnCancel=true`), a `FatalCloudSinkError` is raised and the task restarts, with the master lock providing the seek-back floor. In neither case does the in-memory state claim an offset is committed until cloud storage confirms it.
 
 3. **`shouldSkip` prevents double-writes.** If a record is replayed by Kafka after a seek-back, `shouldSkip(offset)` checks the writer's `committedOffset`. Only records above the committed offset are written. For PARTITIONBY, granular locks per writer key provide independent dedup floors. See [datalake-exactly-once-partitionby.md](datalake-exactly-once-partitionby.md) for the full dedup proof.
+
+**I-new — per-topic-partition floor (`commit.mode=batch`).** In batch mode I3 is preserved by a different dedup mechanism: instead of a per-key granular lock, a replayed record at `(tp, K, N)` is deduplicated against `max(masterW(tp), maxBuffered(tp))` — a topic-partition-level, **master-only** floor that does not depend on `N` routing back to the key that originally handled it, and (deliberately) does not consult a per-key granular lock even during a granular → batch migration. This removes the granular-mode silent-loss exposure under non-deterministic keys; the accepted trade-off is a bounded, one-time duplicate window during migration (see [Switching modes](datalake-exactly-once-partitionby.md#switching-modes)). The granular createWriter fallback is hardened to `max(granularOffset, masterOffset)` (rather than `orElse`) so a stale legacy lock below the master floor can never re-write a committed record on a batch → granular rollback. See [datalake-exactly-once-partitionby.md](datalake-exactly-once-partitionby.md#partition-batch-commit-mode-commitmodebatch).
 
 **Indexing-off note.** When `exactly.once.enable=false`, I3 reduces to an at-least-once guarantee: `shouldSkip` always returns `false`, so replayed records are always re-written. The cloud lock file and `PendingState` mechanisms do not exist. The risk of partial output (bytes written to the final path but the task crashes before completing a large multipart upload) is cloud-provider dependent.
 

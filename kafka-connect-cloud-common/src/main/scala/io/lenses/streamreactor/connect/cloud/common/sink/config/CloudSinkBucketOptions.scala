@@ -38,6 +38,7 @@ import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.PaddingS
 import io.lenses.streamreactor.connect.cloud.common.sink.naming._
 import org.apache.kafka.common.config.ConfigException
 
+import scala.jdk.CollectionConverters._
 import scala.util.Try
 
 object CloudSinkBucketOptions extends LazyLogging {
@@ -75,6 +76,7 @@ object CloudSinkBucketOptions extends LazyLogging {
         fileExtension       = FileExtensionNamer.fileExtension(config.getCompressionCodec(), formatSelection)
         sinkProps           = CloudSinkProps.fromKcql(kcql)
         partitionSelection <- PartitionSelection(kcql, sinkProps)
+        _                  <- validateWallclockPartitionKey(config, partitionSelection)
         paddingService     <- PaddingService.fromConfig(config, sinkProps)
         storageSettings    <- DataStorageSettings.from(sinkProps)
         fileNamerSuffix    <- KeySuffix.fromKcql(kcql, SinkPropsSchema.schema)
@@ -167,6 +169,18 @@ object CloudSinkBucketOptions extends LazyLogging {
     } else {
       ().asRight
     }
+
+  private def validateWallclockPartitionKey(
+    config:             CloudSinkConfigDefBuilder,
+    partitionSelection: PartitionSelection,
+  ): Either[ConfigException, Unit] =
+    WallclockPartitionKeyValidator.validate(
+      commitMode     = config.getIndexSettings.map(_.commitMode),
+      partitions     = partitionSelection.partitions,
+      originals      = config.originalsStrings().asScala.toMap,
+      exactlyOnceKey = config.ENABLE_EXACTLY_ONCE,
+      commitModeKey  = config.EXACTLY_ONCE_COMMIT_MODE,
+    )
 
   private def validateCommitPolicyForBytesFormat(
     formatSelection: FormatSelection,

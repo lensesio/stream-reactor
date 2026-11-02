@@ -29,6 +29,7 @@ import io.lenses.streamreactor.connect.cloud.common.sink.config.CloudSinkBucketO
 import io.lenses.streamreactor.connect.cloud.common.sink.config.CommitRetryConfig
 import io.lenses.streamreactor.connect.cloud.common.sink.config.IndexOptions
 import io.lenses.streamreactor.connect.cloud.common.sink.metrics.CloudSinkMetrics
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.CommitMode
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexManagerV2
 import io.lenses.streamreactor.connect.cloud.common.sink.writer.WriterManager
 import io.lenses.streamreactor.connect.cloud.common.storage.FileMetadata
@@ -80,6 +81,45 @@ class WriterManagerCreatorTest extends AnyFunSuite with Matchers with MockitoSug
     val (indexManager, writerManager) = writerManagerCreator.from(config, new CloudSinkMetrics())
     writerManager shouldBe a[WriterManager[_]]
     indexManager shouldBe an[IndexManagerV2]
+  }
+
+  test("[B] commit.mode=batch is threaded into both the WriterManager and the IndexManagerV2") {
+    val config = FakeCloudSinkConfig(
+      connectionConfig = FakeConnectionConfig(),
+      bucketOptions    = Seq.empty,
+      indexOptions =
+        IndexOptions(maxIndexFiles = 10, ".indexes", 300, 1000, commitMode = CommitMode.Batch).some,
+      compressionCodec            = CompressionCodecName.ZSTD.toCodec(),
+      errorPolicy                 = NoopErrorPolicy(),
+      connectorRetryConfig        = new RetryConfig(1, 1L, 1.0),
+      skipNullValues              = true,
+      latestSchemaForWriteEnabled = false,
+    )
+
+    val (indexManager, writerManager) =
+      new WriterManagerCreator[FakeFileMetadata, FakeCloudSinkConfig]().from(config, new CloudSinkMetrics())
+
+    writerManager.commitMode shouldBe CommitMode.Batch
+    indexManager.asInstanceOf[IndexManagerV2].commitMode shouldBe CommitMode.Batch
+  }
+
+  test("[B] the default commit mode is granular in both the WriterManager and the IndexManagerV2") {
+    val config = FakeCloudSinkConfig(
+      connectionConfig            = FakeConnectionConfig(),
+      bucketOptions               = Seq.empty,
+      indexOptions                = IndexOptions(maxIndexFiles = 10, ".indexes", 300, 1000).some,
+      compressionCodec            = CompressionCodecName.ZSTD.toCodec(),
+      errorPolicy                 = NoopErrorPolicy(),
+      connectorRetryConfig        = new RetryConfig(1, 1L, 1.0),
+      skipNullValues              = true,
+      latestSchemaForWriteEnabled = false,
+    )
+
+    val (indexManager, writerManager) =
+      new WriterManagerCreator[FakeFileMetadata, FakeCloudSinkConfig]().from(config, new CloudSinkMetrics())
+
+    writerManager.commitMode shouldBe CommitMode.Granular
+    indexManager.asInstanceOf[IndexManagerV2].commitMode shouldBe CommitMode.Granular
   }
 
 }

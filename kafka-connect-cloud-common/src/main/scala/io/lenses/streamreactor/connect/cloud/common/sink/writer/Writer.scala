@@ -71,6 +71,9 @@ class Writer[SM <: FileMetadata](
   private[writer] def forceWriteState(state: WriteState): Unit = writeState = state
   private[writer] def currentWriteState: WriteState = writeState
 
+  /** The sanitized PARTITIONBY key this writer is keyed on, if any. */
+  private[writer] def partitionKeyOpt: Option[String] = partitionKey
+
   /**
    * Returns true if any cause in the throwable chain is an IOException.
    *
@@ -140,10 +143,126 @@ class Writer[SM <: FileMetadata](
         }
 
       case _: Uploading =>
-        // before we write we need to retry the upload
-        NonFatalCloudSinkError("Attempting Write in Uploading State").asLeft
+        // before we write we need to retry the upload. Unswallowable: under
+        // errors.policy=NOOP/THROW this record would otherwise be silently dropped while the
+        // writer is mid-commit, and the master offset later advances past the dropped offset
+        // once the commit succeeds -- a genuine, if narrow, integrity hazard rather than a safe
+        // no-op. RETRY still re-delivers, which is the desired outcome.
+        NonFatalCloudSinkError.unswallowable("Attempting Write in Uploading State", None).asLeft
+
+      case _: Staged =>
+        // Batch mode: the writer's bytes are staged and waiting for the master-lock CAS. Accepting
+        // a record now would put it in a file that has already been sized and keyed. Unswallowable,
+        // not just NonFatal: under errors.policy=NOOP/THROW this record -- and the rest of
+        // the same put() batch, since every writer on the TP is Staged together -- would otherwise
+        // be silently dropped, and the batch commit later advances the floor past them. RETRY
+        // re-delivers, and the next recommitPending drives the batch.
+        NonFatalCloudSinkError.unswallowable("Attempting Write in Staged State", None).asLeft
     }
   }
+
+  /**
+   * Partition-batch commit, phase 1: make this writer's bytes durable at a connector-scoped temp
+   * path and freeze the `(bucket, tempPath, tempETag, finalPath)` tuple the batch's
+   * `CopyOperation` is built from. Nothing durable is recorded — the commit point is the master
+   * lock CAS in `WriterCommitManager.commitBatch`.
+   *
+   * Idempotent: a writer already `Staged` is returned unchanged with no storage call, so a batch
+   * retry after a partial staging failure only re-uploads the writers that actually failed.
+   *
+   * @param batchUuid identifies this batch attempt; part of the temp path so two attempts can
+   *                  never collide on the same object.
+   * @return `Right(None)` for an idle writer, `Right(Some(staged))` otherwise.
+   */
+  def stage(batchUuid: String): Either[SinkError, Option[Staged]] = {
+    writeState match {
+      case NoWriter(_) => return Option.empty[Staged].asRight
+      case s:            Staged => return s.some.asRight
+      case writingState: Writing =>
+        writingState.formatWriter.complete() match {
+          case Left(ex) =>
+            // Same IOException escalation as `commit`: a half-written container cannot be retried.
+            val escalated: SinkError = ex match {
+              case _: FatalCloudSinkError => ex
+              case _ if causedByIOException(ex.exception().orNull) =>
+                FatalCloudSinkError(ex.message(), ex.exception(), topicPartition)
+              case _ => ex
+            }
+            return escalated.asLeft
+          case Right(_) =>
+        }
+        writeState = writingState.toUploading
+      case _: Uploading =>
+    }
+
+    writeState match {
+      case uploading: Uploading =>
+        metrics.incrementInFlightUploads()
+        val result =
+          try {
+            for {
+              key <- objectKeyBuilder.build(
+                uploading.firstBufferedOffset,
+                uploading.uncommittedOffset,
+                uploading.earliestRecordTimestamp,
+                uploading.latestRecordTimestamp,
+                uploading.recordCount,
+              )
+              finalPath <- key.path.toRight(NonFatalCloudSinkError("No path exists within cloud location"): SinkError)
+              // Connector-scoped so the batch sweep can delete orphans belonging to this
+              // connector without ever touching granular-mode temps or another connector's temps.
+              tempPath = finalPath.prependedAll(
+                s".temp-upload/${connectorTaskId.name}/${topicPartition.topic}/${topicPartition.partition}/$batchUuid/",
+              )
+              tempETag <- pendingOperationsProcessors.uploadOnly(
+                topicPartition,
+                UploadOperation(key.bucket, uploading.file, tempPath),
+                partitionKey,
+                Some(uploading.file),
+              )
+            } yield {
+              // On a Left the state deliberately stays `Uploading` with the staging file intact.
+              val staged = uploading.toStaged(key.bucket, tempPath, tempETag, finalPath)
+              writeState = staged
+              staged.some
+            }
+          } finally metrics.decrementInFlightUploads()
+        if (result.isLeft) metrics.incrementFilesFailedTotal()
+        result
+      case other =>
+        FatalCloudSinkError(s"stage reached an unexpected state $other", topicPartition).asLeft
+    }
+  }
+
+  /**
+   * Partition-batch commit, phase 2: the batch's copies have all completed, so this writer's bytes
+   * are at their final path. Only valid on `Staged`.
+   */
+  def finalizeCommit(newOffset: Offset): Unit =
+    writeState match {
+      case staged: Staged =>
+        val fileSize = staged.file.length()
+        writeState = staged.toNoWriter(newOffset)
+        Try(staged.file.delete()) match {
+          case Success(_) =>
+          case Failure(e) =>
+            logger.warn(
+              s"[${connectorTaskId.show}] Failed to delete temp file ${staged.file.getAbsolutePath} after a " +
+                s"successful batch commit; continuing (the cloud commit already succeeded)",
+              e,
+            )
+        }
+        metrics.incrementFilesCommittedTotal()
+        metrics.addRecordsCommittedTotal(staged.recordCount)
+        metrics.addBytesWrittenTotal(fileSize)
+        metrics.setLastCommitEpochMillis(System.currentTimeMillis())
+      case other =>
+        // Defensive: commitBatch only calls this for writers it staged in the same pass.
+        logger.warn(
+          s"[${connectorTaskId.show}] finalizeCommit($newOffset) called on a non-Staged writer for " +
+            s"$topicPartition (state=$other); ignoring.",
+        )
+    }
 
   def commit: Either[SinkError, Unit] = {
 
@@ -166,6 +285,9 @@ class Writer[SM <: FileMetadata](
       case NoWriter(_) =>
         // nothing to commit, get out of here
         return ().asRight
+      case _: Staged =>
+        // Guards against a routing bug that sends a batch-mode writer down the granular path.
+        return FatalCloudSinkError("commit called on Staged writer", topicPartition).asLeft
     }
 
     val commitStartNanos = System.nanoTime()
@@ -275,6 +397,11 @@ class Writer[SM <: FileMetadata](
       case Uploading(commitState, file, _, _, _, _, _) =>
         Try(file.delete())
         NoWriter(commitState.reset())
+      case staged: Staged =>
+        // The temp object is deliberately left behind for the batch orphan sweep; deleting it here
+        // could race a batch whose PendingState still references it.
+        Try(staged.file.delete())
+        NoWriter(staged.commitState.reset())
     }
 
   def isIdle: Boolean =
@@ -290,6 +417,7 @@ class Writer[SM <: FileMetadata](
       case _: NoWriter  => None
       case w: Writing   => Some(w.firstBufferedOffset)
       case u: Uploading => Some(u.firstBufferedOffset)
+      case s: Staged    => Some(s.firstBufferedOffset)
     }
 
   def shouldFlush: Boolean = writeState match {
@@ -305,6 +433,7 @@ class Writer[SM <: FileMetadata](
       )
     case NoWriter(_) => false
     case _: Uploading => false
+    case _: Staged    => false
   }
 
   /**
@@ -354,12 +483,20 @@ class Writer[SM <: FileMetadata](
           shouldSkipInternal(currentOffset, Option(largestOffset(commitState.committedOffset, uncommittedOffset)))
         case Writing(commitState, _, _, _, uncommittedOffset, _, _) =>
           shouldSkipInternal(currentOffset, Option(largestOffset(commitState.committedOffset, uncommittedOffset)))
+        case s: Staged =>
+          // Unreachable in practice: `shouldSkip` is only ever called from the granular
+          // `WriterManager.write` branch, and `Staged` is only ever produced by `stage()` on the
+          // batch-mode path (which uses the topic-partition floor in `batchDedupFloor` instead of
+          // `shouldSkip`). Kept for match exhaustiveness; mirrors the `Uploading` arm above should
+          // a future refactor ever make it reachable.
+          shouldSkipInternal(currentOffset, Option(largestOffset(s.commitState.committedOffset, s.uncommittedOffset)))
       }
     }
 
   def hasPendingUpload: Boolean =
     writeState match {
       case _: Uploading => true
+      case _: Staged    => true
       case _ => false
     }
 

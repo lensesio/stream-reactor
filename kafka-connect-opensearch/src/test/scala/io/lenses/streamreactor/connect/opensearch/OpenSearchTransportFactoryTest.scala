@@ -152,8 +152,8 @@ class OpenSearchTransportFactoryTest extends AnyFunSuite with Matchers with Befo
     } finally transport.close()
   }
 
-  // A2: JWT + mTLS combined — both wired at the same time must not crash the builder
-  test("A2: JWT auth + mTLS keystore/truststore combined creates transport without error") {
+  // JWT + mTLS combined — both wired at the same time must not crash the builder
+  test("JWT auth + mTLS keystore/truststore combined creates transport without error") {
     import java.security.KeyStore
     import java.nio.file.Files
     // Create a minimal in-memory PKCS12 keystore for the test

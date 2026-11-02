@@ -666,12 +666,15 @@ class PendingOperationsProcessorsTest
   }
 
   test(
-    "escalateOnCancel=true does NOT change last-op Copy error classification (NonFatal, symmetric with last-op Delete)",
+    "escalateOnCancel=true does NOT change last-op Copy error classification (Fatal, asymmetric with last-op Delete)",
   ) {
-    // Copy is not a live-commit-cancellation signal. escalateOnCancel only gates on
-    // UploadOperation + NonExistingFileError. A single-op [Copy] failure (e.g. on a
-    // reduced chain after a partial recovery) must return NonFatal under all escalation
-    // settings, just as a last-op Delete failure does.
+    // Copy is not a live-commit-cancellation signal, so escalateOnCancel (which only gates on
+    // UploadOperation + NonExistingFileError) is irrelevant here either way. But a tail
+    // CopyOperation failure (reachable in CommitMode.Batch, whose chain is Copy-only, and on
+    // legacy-lock recovery) escalates to Fatal exactly like a mid-chain Copy failure: the
+    // data is already durable at .temp-upload/<uuid> and the lock's PendingState still
+    // references it, so crash recovery can resume -- unlike a last-op Delete, which is
+    // hygiene-only and stays NonFatal.
     val pendingState = PendingState(
       pendingOffset = Offset(100),
       pendingOperations = NonEmptyList.of(
@@ -690,7 +693,7 @@ class PendingOperationsProcessorsTest
       escalateOnCancel = true,
     )
 
-    result.left.value shouldBe a[NonFatalCloudSinkError]
+    result.left.value shouldBe a[FatalCloudSinkError]
     verifyNoInteractions(fnIndexUpdate)
   }
 

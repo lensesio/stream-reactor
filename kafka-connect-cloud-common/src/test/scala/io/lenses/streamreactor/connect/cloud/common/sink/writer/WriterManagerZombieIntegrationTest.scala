@@ -217,7 +217,7 @@ class WriterManagerZombieIntegrationTest
 
     val wm = buildWriterManager(im, storage, metrics)
 
-    // Cycle 1: establish lastWritten = 51 (committed offset 50 → K = 51).
+    // establish lastWritten = 51 (committed offset 50 → K = 51).
     val writer1 = makeCommittedWriter(tp0, im, storage, committedOffset = Some(Offset(50)))
     wm.putWriter(MapKey(tp0, dateA), writer1)
     wm.preCommit(Map(tp0 -> new OffsetAndMetadata(200)))(tp0).offset() shouldBe 51L
@@ -264,7 +264,7 @@ class WriterManagerZombieIntegrationTest
 
     val wm = buildWriterManager(im, storage, metrics)
 
-    // Cycle 1: establish lastWritten = 51, lastReturnedSafeOffset = 51.
+    // establish lastWritten = 51, lastReturnedSafeOffset = 51.
     val writer1 = makeCommittedWriter(tp0, im, storage, committedOffset = Some(Offset(50)))
     wm.putWriter(MapKey(tp0, dateA), writer1)
     wm.preCommit(Map(tp0 -> new OffsetAndMetadata(200)))(tp0).offset() shouldBe 51L
@@ -283,7 +283,7 @@ class WriterManagerZombieIntegrationTest
     // Arm exactly one master-lock failure to fail the forced write.
     storage.arm(FailWriteAt(bucket, masterLockPath))
 
-    // Cycle 2: WriteForced(PostCleanUp) fires and fails.
+    // WriteForced(PostCleanUp) fires and fails.
     // The flag is cleared BEFORE the write attempt (WriterManager.scala line 627),
     // so the next cycle does NOT re-enter as WriteForced.
     val result2 = wm.preCommit(Map(tp0 -> new OffsetAndMetadata(200)))
@@ -291,7 +291,7 @@ class WriterManagerZombieIntegrationTest
     metrics.getMasterLockWriteForcedPostCleanUp shouldBe 1L
     metrics.getMasterLockFailures shouldBe 1L
 
-    // Cycle 3: storage healthy; the real IndexManagerV2's seekedOffsets(tp0) = Offset(50)
+    // storage healthy; the real IndexManagerV2's seekedOffsets(tp0) = Offset(50)
     // (written by cycle 1), so lastWritten re-seeds to 50+1 = 51, which equals
     // globalSafeOffset = 51. dirty = false → Skip branch.
     //
@@ -316,7 +316,7 @@ class WriterManagerZombieIntegrationTest
       "from older floor; master lock fences replay dedup; granular lock absent (falls back to master floor)",
   ) {
     // Shape:
-    //   Cycle 1 (routine write): committed=50 → K=51 persisted (durable floor = Offset(50)).
+    // Initial write: committed=50 → K=51 persisted (durable floor = Offset(50)).
     //   Add writer2 with committed=100 and skip preCommit: dirty=true on close.
     //   Arm one FailWriteAt for the master-lock path.
     //   wm.close(): force-on-revoke fires → updateMasterLock(Offset(101)) fails → durable floor stays at Offset(50).
@@ -335,7 +335,7 @@ class WriterManagerZombieIntegrationTest
 
     val wm = buildWriterManager(im, storage, metrics)
 
-    // Cycle 1: routine write establishes lastWritten = 51 (committed offset 50 → K = 51).
+    // routine write establishes lastWritten = 51 (committed offset 50 → K = 51).
     val writer1 = makeCommittedWriter(tp0, im, storage, committedOffset = Some(Offset(50)))
     wm.putWriter(MapKey(tp0, dateA), writer1)
     wm.preCommit(Map(tp0 -> new OffsetAndMetadata(200)))(tp0).offset() shouldBe 51L
@@ -355,7 +355,7 @@ class WriterManagerZombieIntegrationTest
     metrics.getMasterLockWriteForcedRevoke shouldBe 1L
     metrics.getMasterLockWriteForcedRevokeFailures shouldBe 1L
     metrics.getMasterLockFailures shouldBe 1L
-    // Cycle 1 routine success; the failed force-write must NOT falsely increment masterLockUpdates.
+    // Initial routine write succeeded; the failed force-write must NOT falsely increment masterLockUpdates.
     metrics.getMasterLockUpdates shouldBe 1L
 
     // Cleanup contract: writer close and cache eviction must still run despite the force failure.
@@ -410,7 +410,7 @@ class WriterManagerZombieIntegrationTest
     // against the real IndexManagerV2 + InMemoryStorageInterface.
     //
     // Shape:
-    //   Cycle 1 (routine write): committed=50 → K=51 persisted (lastWritten=51).
+    // Initial write: committed=50 → K=51 persisted (lastWritten=51).
     //   Skip preCommit after adding high writer: dirty=true on close.
     //   wm.close(): force-on-revoke fires → updateMasterLock(Offset(101)) succeeds.
     //   Assert durable floor = Offset(100) via getSeekedOffsetForTopicPartition (master
@@ -422,7 +422,7 @@ class WriterManagerZombieIntegrationTest
 
     val wm = buildWriterManager(im, storage, metrics)
 
-    // Cycle 1: routine write establishes lastWritten = 51 (committed offset 50 → K = 51).
+    // routine write establishes lastWritten = 51 (committed offset 50 → K = 51).
     val writer1 = makeCommittedWriter(tp0, im, storage, committedOffset = Some(Offset(50)))
     wm.putWriter(MapKey(tp0, dateA), writer1)
     wm.preCommit(Map(tp0 -> new OffsetAndMetadata(200)))(tp0).offset() shouldBe 51L
@@ -460,4 +460,216 @@ class WriterManagerZombieIntegrationTest
     im2.getSeekedOffsetForTopicPartition(tp0) shouldBe Some(Offset(100))
     im2.close()
   }
+
+  // ════════════════════════════════════════════════════════════════════════════════════
+  // End-to-end zombie scenarios in commit.mode=batch
+  // ════════════════════════════════════════════════════════════════════════════════════
+
+  private val batchKey: immutable.Map[PartitionField, String] = Map(dateField -> "2024-02-02")
+
+  private def buildBatchIndexManager(storage: StorageInterface[FakeFileMetadata]): IndexManagerV2 = {
+    implicit val si: StorageInterface[FakeFileMetadata] = storage
+    new IndexManagerV2(
+      bucketAndPrefixFn           = bucketAndPrefix,
+      pendingOperationsProcessors = new PendingOperationsProcessors(storage),
+      directoryFileName           = directoryName,
+      gcIntervalSeconds           = Int.MaxValue,
+      gcSweepIntervalSeconds      = Int.MaxValue,
+      gcSweepMinAgeSeconds        = Int.MaxValue,
+      gcSweepEnabled              = false,
+      commitMode                  = io.lenses.streamreactor.connect.cloud.common.sink.seek.CommitMode.Batch,
+    )(si, connectorTaskId)
+  }
+
+  private def batchStagingFile(): File = {
+    val f = File.createTempFile("wm-zombie-batch-", ".tmp")
+    java.nio.file.Files.write(f.toPath, "payload".getBytes(java.nio.charset.StandardCharsets.UTF_8))
+    f.deleteOnExit()
+    f
+  }
+
+  /** A batch WriterManager plus a mutable flush toggle: buffer with flush=false, then flip + commit. */
+  private final class BatchPair(
+    val im:    IndexManagerV2,
+    val wm:    WriterManager[FakeFileMetadata],
+    val flush: java.util.concurrent.atomic.AtomicBoolean,
+  ) {
+    def deliver(offsets: Range): Unit =
+      offsets.foreach(o => wm.write(tp0.withOffset(Offset(o.toLong)), batchMessage(o.toLong)).value)
+    def commit(): Either[io.lenses.streamreactor.connect.cloud.common.sink.BatchCloudSinkError, Unit] = {
+      flush.set(true)
+      val r = wm.commitFlushableWriters()
+      flush.set(false)
+      r
+    }
+  }
+
+  private def buildBatchWriterManager(
+    im:      IndexManagerV2,
+    storage: StorageInterface[FakeFileMetadata],
+    metrics: CloudSinkMetrics,
+    values:  immutable.Map[PartitionField, String],
+    flush:   java.util.concurrent.atomic.AtomicBoolean,
+  ): WriterManager[FakeFileMetadata] = {
+    val keyNamer = mock[KeyNamer]
+    when(
+      keyNamer.processPartitionValues(
+        any[io.lenses.streamreactor.connect.cloud.common.formats.writer.MessageDetail],
+        any[TopicPartition],
+      ),
+    ).thenReturn(values.asRight[SinkError])
+    val fw = mock[FormatWriter]
+    when(fw.write(any[io.lenses.streamreactor.connect.cloud.common.formats.writer.MessageDetail])).thenReturn(
+      ().asRight,
+    )
+    when(fw.complete()).thenReturn(().asRight)
+    when(fw.rolloverFileOnSchemaChange()).thenReturn(false)
+    val policy = mock[io.lenses.streamreactor.connect.cloud.common.sink.commit.CommitPolicy]
+    when(policy.shouldFlush(any[io.lenses.streamreactor.connect.cloud.common.sink.commit.CommitContext]))
+      .thenAnswer((_: io.lenses.streamreactor.connect.cloud.common.sink.commit.CommitContext) => flush.get())
+    new WriterManager[FakeFileMetadata](
+      commitPolicyFn    = _ => policy.asRight,
+      bucketAndPrefixFn = bucketAndPrefix,
+      keyNamerFn        = _ => keyNamer.asRight,
+      stagingFilenameFn = (_, _) => batchStagingFile().asRight,
+      objKeyBuilderFn = (_, vs) => {
+        val okb = mock[ObjectKeyBuilder]
+        when(okb.build(any[Offset], any[Offset], any[Long], any[Long], any[Long])).thenAnswer {
+          (first: Offset, _: Offset, _: Long, _: Long, _: Long) =>
+            val seg = WriterManager.derivePartitionKey(vs).getOrElse("nokey")
+            CloudLocation(bucket,
+                          path = Some(s"data/${tp0.topic.value}/${tp0.partition}/$seg-${first.value}.json"),
+            ).asRight
+        }
+        okb
+      },
+      formatWriterFn              = (_, _) => fw.asRight,
+      indexManager                = im,
+      transformerF                = Right(_),
+      schemaChangeDetector        = mock[SchemaChangeDetector],
+      skipNullValues              = false,
+      pendingOperationsProcessors = new PendingOperationsProcessors(storage),
+      commitMode                  = io.lenses.streamreactor.connect.cloud.common.sink.seek.CommitMode.Batch,
+      metrics                     = metrics,
+    )
+  }
+
+  private def batchPair(
+    storage: InMemoryStorageInterface,
+    metrics: CloudSinkMetrics                      = new CloudSinkMetrics(),
+    values:  immutable.Map[PartitionField, String] = batchKey,
+  ): BatchPair = {
+    val im = buildBatchIndexManager(storage)
+    im.open(Set(tp0)).value
+    val flush = new java.util.concurrent.atomic.AtomicBoolean(false)
+    val wm    = buildBatchWriterManager(im, storage, metrics, values, flush)
+    new BatchPair(im, wm, flush)
+  }
+
+  private def batchMessage(offset: Long): io.lenses.streamreactor.connect.cloud.common.formats.writer.MessageDetail =
+    io.lenses.streamreactor.connect.cloud.common.formats.writer.MessageDetail(
+      key       = io.lenses.streamreactor.connect.cloud.common.sink.conversion.StringSinkData("k", None),
+      value     = io.lenses.streamreactor.connect.cloud.common.sink.conversion.StringSinkData("v", None),
+      headers   = Map.empty,
+      timestamp = None,
+      topic     = tp0.topic,
+      partition = tp0.partition,
+      offset    = Offset(offset),
+    )
+
+  private def seedBatchMaster(storage: InMemoryStorageInterface, committed: Long): Unit = {
+    val seed = buildBatchIndexManager(storage)
+    seed.open(Set(tp0)).value
+    seed.updateMasterLock(tp0, Offset(committed + 1)).value
+    seed.close()
+  }
+
+  private def dataKeys(storage: InMemoryStorageInterface): Seq[String] = storage.keysUnder(bucket, "data/")
+
+  test("[Z] pre-CAS batch zombie: O's open fences Z; Z's commitBatch fails and O replays each offset once") {
+    val storage = new InMemoryStorageInterface()
+    seedBatchMaster(storage, 99)
+
+    // Zombie Z opens and buffers records.
+    val z = batchPair(storage)
+    z.deliver(100 to 104)
+
+    // New owner O opens (ownership bump fences Z's master eTag).
+    val o = batchPair(storage)
+
+    // Z flushes: staging succeeds (pre-CAS), the CAS is fenced -> Fatal, nothing under data/.
+    z.commit().isLeft shouldBe true
+    dataKeys(storage) shouldBe empty
+    storage.keysUnder(bucket, s".temp-upload/${connectorTaskId.name}/") should not be empty
+
+    // O replays and commits each offset once: a single batch object, master advanced to 104.
+    o.deliver(100 to 104)
+    o.commit().value
+    dataKeys(storage) should have size 1
+    o.im.getSeekedOffsetForTopicPartition(tp0) shouldBe Some(Offset(104))
+
+    z.wm.close(); z.im.close(); o.wm.close(); o.im.close()
+  }
+
+  // A test for a zombie that completes its batch before the new owner opens was removed: Z
+  // commits fully *before* O ever opens, so this is plain restart re-delivery dedup, not a
+  // zombie scenario -- already pinned, with stronger assertions (object count, no duplicate
+  // under a key rotation), by the equivalent batch-mode scenario tests in BatchCommitScenarioTest.
+
+  test("[Z] ping-pong: after a completed batch commit, the fenced side surfaces Fatal; still one object") {
+    val storage = new InMemoryStorageInterface()
+    seedBatchMaster(storage, 99)
+
+    val z = batchPair(storage)
+    z.deliver(100 to 103)
+    // Z completes a full batch commit, reaching committedOffset = 103.
+    z.commit().value
+    val objectsAfterZ = dataKeys(storage)
+    objectsAfterZ should have size 1
+    z.im.getSeekedOffsetForTopicPartition(tp0) shouldBe Some(Offset(103))
+
+    // O opens afterwards (bump). Z, now the loser, tries to commit again and is fenced; O owns P.
+    val o = batchPair(storage)
+    o.im.getSeekedOffsetForTopicPartition(tp0) shouldBe Some(Offset(103))
+    z.deliver(104 to 105)
+    z.commit().isLeft shouldBe true // fenced: availability, not safety
+    // The fenced attempt never reached a final path: still exactly the one object Z committed
+    // before O opened, and the master offset is still Z's single agreed P (103), not Z's
+    // fenced attempt (105).
+    dataKeys(storage) shouldBe objectsAfterZ
+    o.im.getSeekedOffsetForTopicPartition(tp0) shouldBe Some(Offset(103))
+
+    z.wm.close(); z.im.close(); o.wm.close(); o.im.close()
+  }
+
+  test("[Z] rollback with a batch zombie: a granular owner opens, fences Z, and owns the master lock") {
+    val storage = new InMemoryStorageInterface()
+    seedBatchMaster(storage, 99)
+
+    val z = batchPair(storage)
+    z.deliver(100 to 103)
+
+    // Granular owner O opens (ownership bump) — the rollback direction.
+    val oim = buildIndexManager(storage)
+    oim.open(Set(tp0)).value
+
+    // Z's batch commit CAS is fenced; nothing reached a final path.
+    z.commit().isLeft shouldBe true
+    dataKeys(storage) shouldBe empty
+
+    // O (granular) owns the current master eTag and writes successfully.
+    oim.updateMasterLock(tp0, Offset(105)).value
+
+    z.wm.close(); z.im.close(); oim.close()
+  }
+
+  // A test for a granular zombie vs batch owner was removed: the ownership bump is
+  // mode-independent and is already pinned at the IndexManagerV2 level by the fencing
+  // tests above; the removed test constructed zero writers and exercised nothing the
+  // mode-independent fencing tests do not already cover.
+
+  // A test for rebalance mid-batch was removed: it had the identical shape as the
+  // equivalent scenario in BatchCommitScenarioTest (buffer, close before commit, reopen
+  // at the master floor, re-deliver, one object) minus the wall-clock key rotation
+  // that makes that scenario meaningful -- the other test is strictly stronger.
 }

@@ -101,3 +101,6 @@ project/metals.sbt
 project/project/
 
 kafka-connect-cloud-common/src/test/resources/parquet-sample-data/*
+
+# graft's local graph cache — regenerable, not committed (run `graft build`).
+graft/
