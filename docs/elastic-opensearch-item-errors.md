@@ -332,16 +332,17 @@ This feature closes a pre-existing silent-data-loss path shared by all three con
 `bulk.item.errors` at all:
 
 - **Before:** under `error.policy=NOOP`, a bulk transport failure (connection reset, timeout —
-  no per-item response received at all) or a permanent per-item bulk error (under
-  `bulk.strict.item.errors=true`) was logged at WARN and swallowed. The task kept running and
-  Kafka offsets advanced past records whose write outcome was unknown or known-failed.
-- **After:** both now fail the task (transport failures via `RetriableIntegrityException`,
-  permanent item errors via `FatalConnectException`) instead of being swallowed. `error.policy
-  =RETRY` still retries a transport failure while budget remains; `error.policy=THROW` was
-  already unaffected.
+  no per-item response received at all) was logged at WARN and swallowed. The task kept running
+  and Kafka offsets advanced past a batch whose write outcome was unknown.
+- **After:** a transport failure is now classified as `RetriableIntegrityException` and fails
+  the task under NOOP instead of being swallowed. `error.policy=RETRY` still retries it while
+  budget remains; `error.policy=THROW` was already unaffected.
+- **Unchanged:** a per-item bulk error (under `bulk.strict.item.errors=true`) already failed the
+  task under NOOP before this change — permanent errors via `FatalConnectException`, retriable
+  (429/409) ones via `RetriableIntegrityException`, both of which NOOP rethrows.
 
-If you run `error.policy=NOOP` today specifically to keep the task alive through occasional
-poison records, use `bulk.item.errors=drop` (no DLQ needed) or `bulk.item.errors=dlq` instead —
-those are scoped to genuine per-document rejections only, unlike NOOP's previous blanket
-swallow-everything behaviour, which also silently ate transport-level failures that had nothing
+If you want the task to keep running through occasional poison records, use
+`bulk.item.errors=drop` (no DLQ needed) or `bulk.item.errors=dlq` — those are scoped to genuine
+per-document rejections and writer-stage failures only. NOOP never kept the task alive through
+per-item rejections; what it did silently swallow were transport-level failures that had nothing
 to do with any specific record.
