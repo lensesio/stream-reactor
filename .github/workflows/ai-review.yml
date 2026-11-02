@@ -1,0 +1,24 @@
+name: AI code review
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review, reopened]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  # git-mirror copies this file to the public lensesio/stream-reactor, which can't
+  # call the internal reviewer. GitHub resolves `uses:` before it evaluates `if:`,
+  # so no condition here can skip it: the workflow is disabled there instead
+  # (Actions > AI code review > Disable workflow).
+  review:
+    if: >-
+      !github.event.pull_request.draft &&
+      github.event.pull_request.user.login != 'dependabot[bot]' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    permissions:
+      contents: write   # only for resolving fixed findings; the review itself gets read
+      pull-requests: write
+      id-token: write
+    uses: lensesio-dev/ai-code-review/.github/workflows/review.yml@v0

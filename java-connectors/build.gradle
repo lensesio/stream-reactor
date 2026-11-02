@@ -121,8 +121,11 @@ allprojects {
             "StreamReactor-Docs": "https://docs.lenses.io/connectors/"
             )
         }
+        // runtimeClasspath, not compileClasspath: the latter also carries compileOnly and
+        // annotationProcessor entries, which put the whole of Lombok (~1.7MB) into every
+        // connector jar even though none of it can run.
         configurations = [
-            project.configurations.compileClasspath
+            project.configurations.runtimeClasspath
         ]
         archiveFileName = "${project.name}-${artifactVersion}.jar"
         zip64 true
@@ -137,17 +140,12 @@ allprojects {
         relocate('org.antlr', 'lshaded.antlr')
 
         dependencies {
-            //            // UNCOMMENT BELOW IF NEED CLEAN JAR
-            //            exclude(dependency {
-            //                it.moduleGroup != 'io.lenses.streamreactor'
-            //            })
-            //        exclude(dependency('org.apache.logging.log4j:log4j-core:2.11.1'))
-            //        exclude(dependency("org.apache.avro:.*"))
-            //        exclude(dependency("org.apache.kafka:.*"))
-            //        exclude(dependency("io.confluent:.*"))
-            //        exclude(dependency("org.apache.kafka:.*"))
-            //        exclude(dependency("org.apache.zookeeper:.*"))
-            //        exclude(dependency("com.google.guava:guava:28.1-android"))
+            // Kafka Connect never resolves org.apache.kafka.clients or org.apache.kafka.common
+            // from a plugin classloader, so a bundled copy can never be loaded. The connector
+            // always runs against the Kafka version the worker provides. The Scala assembly
+            // already drops these via ShadeRule.zap("org.apache.kafka.**").
+            exclude(dependency("org.apache.kafka:.*"))
+            exclude(dependency("org.apache.zookeeper:.*"))
         }
 
         spotless {

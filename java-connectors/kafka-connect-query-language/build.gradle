@@ -1,6 +1,15 @@
 project(":kafka-connect-query-language") {
     apply plugin: 'antlr'
 
+    // Gradle's antlr plugin makes `api` extend the `antlr` configuration, so the ANTLR
+    // *tool* and everything it drags in (ICU4J, StringTemplate, the ANTLR 3 runtime,
+    // treelayout, javax.json) leak onto the runtime classpath of every consumer. That is
+    // ~11MB of code generator in each connector that depends on KCQL, and none of it can
+    // run. Only antlr4-runtime, declared as `implementation` below, is needed at runtime.
+    configurations.named('api') {
+        setExtendsFrom(extendsFrom.findAll { it.name != 'antlr' })
+    }
+
     test {
         maxParallelForks = 1
     }

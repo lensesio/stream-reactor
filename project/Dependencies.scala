@@ -309,7 +309,10 @@ object Dependencies {
 
   lazy val calciteLinq4J = "org.apache.calcite" % "calcite-linq4j" % calciteVersion
 
-  lazy val lombok = "org.projectlombok" % "lombok" % lombokVersion
+  // Provided: Lombok is an annotation processor. It is needed to compile the Java sources
+  // and has nothing to execute at runtime, but without this scope sbt-assembly packages the
+  // whole ~1.7MB jar (installer and javac agent included) into every connector.
+  lazy val lombok = "org.projectlombok" % "lombok" % lombokVersion % Provided
 
   lazy val s3Sdk  = "software.amazon.awssdk" % "s3"  % awsSdkVersion
   lazy val stsSdk = "software.amazon.awssdk" % "sts" % awsSdkVersion

@@ -138,6 +138,9 @@ object Settings extends Dependencies {
       "-processor",
       "lombok.launch.AnnotationProcessorHider$AnnotationProcessor",
     ),
+    // The -processor flag above is set for every module, so every module needs Lombok on its
+    // own compile classpath. It is Provided, and Provided does not cross dependsOn boundaries.
+    libraryDependencies += Dependencies.lombok,
     packageOptions := Seq(
       ManifestAttributes(
         ("Git-Commit-Hash", "git rev-parse HEAD".!!.trim),
