@@ -398,44 +398,36 @@ class ErrantRecordHandler(
     }
 
   private def awaitAck(future: JFuture[Void], deadlineNanos: Long): Boolean = {
-    val remainingMs = TimeUnit.NANOSECONDS.toMillis(deadlineNanos - System.nanoTime())
-    if (remainingMs <= 0) {
-      // The shared deadline was already exhausted by earlier futures in this same call.
-      logger.error(
-        s"Timed out waiting for the dead-letter queue to confirm a write (limit: ${reportTimeoutMs}ms, shared " +
-          s"across this batch). The batch will be retried. Consider increasing bulk.item.errors.dlq.timeout.ms " +
-          s"or checking dead-letter queue topic health.",
-      )
-      false
-    } else {
-      try {
-        future.get(remainingMs, TimeUnit.MILLISECONDS)
-        true
-      } catch {
-        case _: TimeoutException =>
-          logger.error(
-            s"Timed out waiting for the dead-letter queue to confirm a write (limit: ${reportTimeoutMs}ms). " +
-              s"The batch will be retried. Consider increasing bulk.item.errors.dlq.timeout.ms or checking dead-letter queue topic health.",
-          )
-          false
-        case e: ExecutionException =>
-          logger.error(
-            s"The dead-letter queue rejected a write: ${Option(e.getCause).map(_.getMessage).getOrElse(e.getMessage)}. " +
-              s"The batch will be retried.",
-            e.getCause,
-          )
-          false
-        case e: CancellationException =>
-          logger.error("A dead-letter queue write was cancelled before it completed. The batch will be retried.", e)
-          false
-        case e: InterruptedException =>
-          Thread.currentThread().interrupt()
-          logger.error(
-            "Interrupted while waiting for the dead-letter queue to confirm a write. The batch will be retried.",
-            e,
-          )
-          false
-      }
+    // Never short-circuit on an exhausted deadline: a future that already completed must still count
+    // as acknowledged. A zero timeout makes get() return immediately for completed futures.
+    val remainingMs = math.max(TimeUnit.NANOSECONDS.toMillis(deadlineNanos - System.nanoTime()), 0L)
+    try {
+      future.get(remainingMs, TimeUnit.MILLISECONDS)
+      true
+    } catch {
+      case _: TimeoutException =>
+        logger.error(
+          s"Timed out waiting for the dead-letter queue to confirm a write (limit: ${reportTimeoutMs}ms, shared across this batch). " +
+            s"The batch will be retried. Consider increasing bulk.item.errors.dlq.timeout.ms or checking dead-letter queue topic health.",
+        )
+        false
+      case e: ExecutionException =>
+        logger.error(
+          s"The dead-letter queue rejected a write: ${Option(e.getCause).map(_.getMessage).getOrElse(e.getMessage)}. " +
+            s"The batch will be retried.",
+          e.getCause,
+        )
+        false
+      case e: CancellationException =>
+        logger.error("A dead-letter queue write was cancelled before it completed. The batch will be retried.", e)
+        false
+      case e: InterruptedException =>
+        Thread.currentThread().interrupt()
+        logger.error(
+          "Interrupted while waiting for the dead-letter queue to confirm a write. The batch will be retried.",
+          e,
+        )
+        false
     }
   }
 }

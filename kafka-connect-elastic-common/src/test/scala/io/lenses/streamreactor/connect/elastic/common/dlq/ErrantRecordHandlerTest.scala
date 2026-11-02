@@ -283,6 +283,38 @@ class ErrantRecordHandlerTest extends AnyFunSuite with Matchers with LoneElement
     handler.divertPermanent(Seq(error), ops, ItemErrorMode.Dlq, mutable.Map.empty) shouldBe DivertOutcome.NotDiverted
   }
 
+  test(
+    "divertPermanent(Dlq) counts an already-completed later future as acknowledged after the shared budget is spent",
+  ) {
+    // The first future's get() succeeds but consumes more than the whole shared budget; the second
+    // is already complete. The exhausted deadline must not turn the completed write into a failure.
+    class SlowSuccessFuture extends java.util.concurrent.Future[Void] {
+      override def cancel(b: Boolean): Boolean = false
+      override def isCancelled: Boolean = false
+      override def isDone:      Boolean = true
+      override def get():       Void    = get(0L, java.util.concurrent.TimeUnit.MILLISECONDS)
+      override def get(t: Long, u: java.util.concurrent.TimeUnit): Void = {
+        Thread.sleep(250L)
+        null
+      }
+    }
+    val reporter = new FakeReporter() {
+      override def report(record: SinkRecord, error: Throwable): java.util.concurrent.Future[Void] = {
+        val f = super.report(record, error)
+        if (received.size == 1) new SlowSuccessFuture else f
+      }
+    }
+    val handler = new ErrantRecordHandler(gateWith(reporter), reportTimeoutMs = 100L)
+    val ops     = IndexedSeq(op(id = "1") -> record(offset = 1L), op(id = "2") -> record(offset = 2L))
+    val errors = Seq(
+      BulkItemError(index = "idx", id = "1", reason = "boom", position = 0),
+      BulkItemError(index = "idx", id = "2", reason = "boom", position = 1),
+    )
+
+    handler.divertPermanent(errors, ops, ItemErrorMode.Dlq, mutable.Map.empty) shouldBe DivertOutcome.Diverted
+    reporter.received should have size 2
+  }
+
   test("divertPermanent(Dlq) returns NotDiverted when the DLQ future was cancelled") {
     val reporter = new FakeReporter(ReporterBehaviour.Cancelled)
     val handler  = new ErrantRecordHandler(gateWith(reporter))

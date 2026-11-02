@@ -110,14 +110,16 @@ class KOpenSearchClient(client: OpenSearchClient, settings: OpenSearchSettings) 
    * under `bulk.strict.item.errors=false` (see tolerant-mode handling in [[bulk]] below), since
    * these are systemic rather than a one-off cluster rejection.
    */
-  private def validateOp(op: BulkOp): Either[BulkItemError, Unit] = {
+  private def validateOp(op: BulkOp, position: Int): Either[BulkItemError, Unit] = {
     def invalid(reason: String): Either[BulkItemError, Unit] =
       Left(
-        BulkItemError(index     = op.index,
-                      id        = op.id,
-                      reason    = reason,
-                      errorType = BulkItemErrorClassifier.ConnectorValidationErrorType,
-                      status    = 400,
+        BulkItemError(
+          index     = op.index,
+          id        = op.id,
+          reason    = reason,
+          position  = position,
+          errorType = BulkItemErrorClassifier.ConnectorValidationErrorType,
+          status    = 400,
         ),
       )
 
@@ -190,12 +192,15 @@ class KOpenSearchClient(client: OpenSearchClient, settings: OpenSearchSettings) 
     // Single pass over `ops` (vs. validate-all-into-Either then collect twice).
     val validationErrorsBuilder  = mutable.ListBuffer.empty[BulkItemError]
     val validOpsWithIndexBuilder = IndexedSeq.newBuilder[(BulkOp, Int)]
-    ops.zipWithIndex.foreach {
+    validationErrorsBuilder.sizeHint(ops.size)
+    validOpsWithIndexBuilder.sizeHint(ops.size)
+    // Lazy iterator: no intermediate collection of (op, idx) pairs.
+    ops.iterator.zipWithIndex.foreach {
       case (op, idx) =>
-        validateOp(op) match {
-          // Position relative to the ORIGINAL request, so DLQ correlation stays correct even
-          // when only a subset of ops is actually sent to the cluster.
-          case Left(error) => validationErrorsBuilder += error.copy(position = idx)
+        // `idx` is the position in the ORIGINAL request, so DLQ correlation stays correct even
+        // when only a subset of ops is actually sent to the cluster.
+        validateOp(op, idx) match {
+          case Left(error) => validationErrorsBuilder += error
           case Right(())   => validOpsWithIndexBuilder += op -> idx
         }
     }

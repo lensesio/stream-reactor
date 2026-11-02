@@ -17,6 +17,8 @@ package io.lenses.streamreactor.connect.elastic.common.config
 
 import org.apache.kafka.common.config.ConfigException
 
+import java.util.Locale
+
 /**
  * Controls handling of a *permanent*, per-document bulk item error (HTTP 400).
  *
@@ -40,7 +42,7 @@ object ItemErrorMode {
   case object Dlq  extends ItemErrorMode { val configValue = "dlq"  }
 
   def fromString(value: String): ItemErrorMode =
-    Option(value).map(_.trim.toLowerCase) match {
+    Option(value).map(_.trim.toLowerCase(Locale.ROOT)) match {
       case Some("fail") => Fail
       case Some("drop") => Drop
       case Some("dlq")  => Dlq
