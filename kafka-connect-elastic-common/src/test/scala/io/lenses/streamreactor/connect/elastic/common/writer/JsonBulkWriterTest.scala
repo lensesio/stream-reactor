@@ -1434,7 +1434,8 @@ class JsonBulkWriterTest
         .map(_.getFormattedMessage)
         .toSeq
       warnings should have size 1
-      warnings.head should include("discarding 3 writer-stage record(s)")
+      warnings.head should startWith("3 record(s) ") // count is the message prefix: exactly 3, not e.g. 13
+      warnings.head should include("bulk.item.errors=drop")
     } finally {
       val _ = handlerLogger.detachAppender(listAppender)
     }
