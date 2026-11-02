@@ -343,17 +343,31 @@ class AwsS3StorageInterfaceTest
   ): Either[FileListError, Option[ListOfMetadataResponse[_ <: FileMetadata]]] =
     newStorageInterfaceReturning(objects).listFileMetaRecursive(filterTestBucket, none)
 
-  // ── LC-318: S3-specific regression — all-filtered page marker asymmetry ─────────────────
+  // ── LC-344: an all-filtered page must still advance the resume marker ─────────────────
 
-  "list" should "return None (no resume marker) when a page consists entirely of markers/zero-byte objects" in {
-    // S3 derives its resume marker from the *filtered* sequence via processAsKey, so an
-    // all-filtered page yields Right(None) and does not advance lastSeenFile. GCS keeps the
-    // raw last blob as its marker instead (see GCPStorageStorageInterfaceTest). That S3
-    // re-list characteristic is pre-existing and out of scope for LC-318; this test only
-    // pins the documented asymmetry so a naive "align GCS to S3" refactor cannot land silently.
+  "list" should "advance the resume marker past a page consisting entirely of markers/zero-byte objects" in {
+    // The marker comes from the raw last object of the page, as on GCS, so a page with nothing
+    // readable on it does not make every later listing return that same page forever.
     val allFiltered = Seq(FilterFixtureObject(zeroByteKey, 0L), FilterFixtureObject(markerKey, 42L))
-    newStorageInterfaceReturning(allFiltered)
+    val response = newStorageInterfaceReturning(allFiltered)
       .list(filterTestBucket, none, none, allFiltered.size)
-      .value shouldBe None
+      .value
+      .value
+    response.files shouldBe empty
+    response.latestFileMetadata.file shouldBe markerKey
+  }
+
+  it should "keep the last readable key as the resume marker when the page ends with one" in {
+    val page = Seq(FilterFixtureObject(zeroByteKey, 0L), FilterFixtureObject(validKey, 42L))
+    val response = newStorageInterfaceReturning(page)
+      .list(filterTestBucket, none, none, page.size)
+      .value
+      .value
+    response.files should contain only validKey
+    response.latestFileMetadata.file shouldBe validKey
+  }
+
+  it should "return None when the page is empty" in {
+    newStorageInterfaceReturning(Seq.empty).list(filterTestBucket, none, none, 1).value shouldBe None
   }
 }

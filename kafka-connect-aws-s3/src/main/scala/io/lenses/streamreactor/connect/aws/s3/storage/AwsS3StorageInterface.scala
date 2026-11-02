@@ -84,20 +84,24 @@ class AwsS3StorageInterface(
       lastFile.foreach(lf => builder.startAfter(lf.file))
 
       val listObjectsV2Response = s3Client.listObjectsV2(builder.build())
-      val objects = listObjectsV2Response
-        .contents()
-        .asScala
+      val rawObjects            = listObjectsV2Response.contents().asScala
+      val objects = rawObjects
         .filterNot(AwsS3StorageFilter.filterOut)
         .filter(_.size() > 0)
         .filterNot(_.key().endsWith("/"))
         .map(o => S3FileMetadata(o.key(), o.lastModified()))
         .filter(md => extensionFilter.forall(_.filter(md)))
 
-      processAsKey(
-        bucket,
-        prefix,
-        objects.toSeq,
-      )
+      // The resume marker is the raw last key, not the last kept one: a page where every key is filtered out would
+      // otherwise yield no marker, and every later listing would return that same page forever.
+      rawObjects.lastOption.map { last =>
+        ListOfKeysResponse[S3FileMetadata](
+          bucket,
+          prefix,
+          objects.map(_.file).toSeq,
+          S3FileMetadata(last.key(), last.lastModified()),
+        )
+      }
 
     }.toEither.leftMap {
       ex: Throwable => FileListError(ex, bucket, prefix)
