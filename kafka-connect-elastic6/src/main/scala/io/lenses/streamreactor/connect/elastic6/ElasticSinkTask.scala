@@ -15,6 +15,7 @@
  */
 package io.lenses.streamreactor.connect.elastic6
 
+import io.lenses.streamreactor.connect.elastic.common.dlq.DlqGate
 import io.lenses.streamreactor.connect.elastic.common.sink.AbstractElasticSinkTask
 import io.lenses.streamreactor.connect.elastic.common.writer.JsonBulkWriter
 import io.lenses.streamreactor.connect.elastic6.config.ElasticConfig
@@ -30,8 +31,26 @@ class ElasticSinkTask extends AbstractElasticSinkTask {
 
   override protected def progressEnabledKey: String = ElasticConfigConstants.PROGRESS_COUNTER_ENABLED
 
-  override protected def createWriter(conf: Map[String, String]): JsonBulkWriter = {
+  // ES6 has no registered bulk.item.errors key (see createWriter below) and ElasticSettings
+  // always pins itemErrorMode to Fail, but Kafka Connect DOES pass unregistered properties
+  // through to confMap — supportsItemErrorDiversion = false tells
+  // validateItemErrorConfiguration to warn-and-skip rather than emitting the mode-specific
+  // data-loss/DLQ warnings that would imply the mode is active.
+  override protected def supportsItemErrorDiversion: Boolean = false
+
+  override protected def itemErrorModeConfigKey: String =
+    s"${ElasticConfigConstants.CONNECTOR_PREFIX}.${io.lenses.streamreactor.connect.elastic.common.config.ElasticCommonConfigConstants.BULK_ITEM_ERRORS_SUFFIX}"
+
+  override protected def strictItemErrorsConfigKey: String = ElasticConfigConstants.BULK_STRICT_ITEM_ERRORS_KEY
+
+  // ES6: bulk.item.errors not registered (KElastic6BulkClient doesn't populate
+  // BulkItemError.position) — itemErrorMode stays Fail regardless of dlqGate.
+  //
+  // Side effect: JsonBulkWriter.handleTransportFailure (shared) reclassifies transport failures
+  // as RetriableIntegrityException instead of a bare RuntimeException. NOOP no longer swallows
+  // them (previously WARN-logged, offsets advanced); RETRY still retries them.
+  override protected def createWriter(conf: Map[String, String], dlqGate: DlqGate): JsonBulkWriter = {
     ElasticConfig.config.parse(conf.asJava)
-    ElasticWriter(ElasticConfig(conf))
+    ElasticWriter(ElasticConfig(conf), dlqGate)
   }
 }

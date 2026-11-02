@@ -17,6 +17,7 @@ package io.lenses.streamreactor.connect.opensearch
 
 import com.typesafe.scalalogging.StrictLogging
 import io.lenses.streamreactor.connect.elastic.common.config.ElasticCommonConfigConstants
+import io.lenses.streamreactor.connect.elastic.common.dlq.DlqGate
 import io.lenses.streamreactor.connect.elastic.common.sink.AbstractElasticSinkTask
 import io.lenses.streamreactor.connect.elastic.common.writer.JsonBulkWriter
 import io.lenses.streamreactor.connect.opensearch.config.OpenSearchConfig
@@ -33,7 +34,11 @@ class OpenSearchSinkTask extends AbstractElasticSinkTask with StrictLogging {
 
   override protected def progressEnabledKey: String = ElasticCommonConfigConstants.PROGRESS_COUNTER_ENABLED
 
-  override protected def createWriter(conf: Map[String, String]): JsonBulkWriter = {
+  override protected def itemErrorModeConfigKey: String = OpenSearchConfigConstants.BULK_ITEM_ERRORS_KEY
+
+  override protected def strictItemErrorsConfigKey: String = OpenSearchConfigConstants.BULK_STRICT_ITEM_ERRORS_KEY
+
+  override protected def createWriter(conf: Map[String, String], dlqGate: DlqGate): JsonBulkWriter = {
     OpenSearchConfig.config.parse(conf.asJava)
     val osConfig = OpenSearchConfig(conf.asJava)
     val settings = OpenSearchSettings(osConfig)
@@ -57,6 +62,6 @@ class OpenSearchSinkTask extends AbstractElasticSinkTask with StrictLogging {
       )
     }
 
-    OpenSearchWriter(osConfig)
+    OpenSearchWriter(osConfig, dlqGate)
   }
 }

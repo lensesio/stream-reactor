@@ -71,10 +71,20 @@ object PrimaryKeyExtractor {
           n.textValue()
         case _: NullNode =>
           checkValidPath()
-          null
+          // A PK resolving to a JSON null is a bad record, not a legitimate id: silently
+          // returning null here used to let `pks.mkString` turn it into the literal string
+          // "null", indexing the document under a bogus, collision-prone id. Throw instead, so
+          // it is treated the same as any other PK extraction failure (divertible under
+          // bulk.item.errors=drop/dlq, fatal otherwise) — mirroring the Struct overload below,
+          // which already throws "Field 'x' is null" for the equivalent condition.
+          throw new IllegalArgumentException(
+            s"Invalid field selection for '$prefix${path.mkString(".")}'. Resolves to a JSON null, which cannot be used as a primary key value.",
+          )
         case _: MissingNode =>
           checkValidPath()
-          null
+          throw new IllegalArgumentException(
+            s"Invalid field selection for '$prefix${path.mkString(".")}'. Resolves to a missing field, which cannot be used as a primary key value.",
+          )
 
         case node: ObjectNode =>
           if (p.isEmpty) {

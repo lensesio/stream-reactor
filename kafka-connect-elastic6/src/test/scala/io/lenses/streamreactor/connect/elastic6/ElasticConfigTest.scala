@@ -15,8 +15,10 @@
  */
 package io.lenses.streamreactor.connect.elastic6
 
+import io.lenses.streamreactor.connect.elastic.common.config.ItemErrorMode
 import io.lenses.streamreactor.connect.elastic6.config.ElasticConfig
 import io.lenses.streamreactor.connect.elastic6.config.ElasticConfigConstants
+import io.lenses.streamreactor.connect.elastic6.config.ElasticSettings
 import org.apache.kafka.common.config.ConfigException
 
 class ElasticConfigTest extends TestBase {
@@ -52,5 +54,20 @@ class ElasticConfigTest extends TestBase {
       getElasticSinkConfigProps() + (ElasticConfigConstants.WRITE_TIMEOUT_CONFIG -> "750"),
     )
     config.getInt(ElasticConfigConstants.WRITE_TIMEOUT_CONFIG) shouldBe 750
+  }
+
+  // ES6's ConfigDef never registers bulk.item.errors at all (unlike ES7/OpenSearch), and
+  // KElastic6BulkClient never populates BulkItemError.position — itemErrorMode stays pinned to
+  // Fail regardless of what a user sets that (ignored) key to.
+
+  "ElasticSettings should stay pinned to ItemErrorMode.Fail even when the (ignored) bulk.item.errors key is set to drop" in {
+    val unknownKey = s"${ElasticConfigConstants.CONNECTOR_PREFIX}.bulk.item.errors"
+    val config     = new ElasticConfig(getElasticSinkConfigProps() + (unknownKey -> "drop"))
+    ElasticSettings(config).itemErrorMode shouldBe ItemErrorMode.Fail
+  }
+
+  "ElasticSettings should default to ItemErrorMode.Fail with no bulk.item.errors key set at all" in {
+    val config = new ElasticConfig(getElasticSinkConfigProps())
+    ElasticSettings(config).itemErrorMode shouldBe ItemErrorMode.Fail
   }
 }

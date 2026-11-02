@@ -54,6 +54,21 @@ object CreateIndex {
       createIndexName(kcql, index)
     }
 
+  /**
+   * Construction-time path used by [[io.lenses.streamreactor.connect.elastic.common.writer.JsonBulkWriter]]:
+   * takes `targetType`/`indexSuffix` already resolved once into [[io.lenses.streamreactor.connect.elastic.common.KcqlValues]],
+   * avoiding re-parsing for AUTOCREATE KCQLs.
+   */
+  def getIndexNameForAutoCreate(
+    targetType:  TargetType,
+    indexSuffix: Option[CustomIndexName],
+  ): Either[IllegalArgumentException, String] =
+    Option(targetType).collect {
+      case static: StaticTargetType => static.getTarget
+    }.toRight(new IllegalArgumentException(
+      "AutoCreate can not be used in conjunction with targets for keys, values or headers",
+    )).map(index => createIndexName(indexSuffix, index))
+
   def getIndexName(kcql: Kcql, r: SinkRecord): Either[IllegalArgumentException, String] =
     for {
       targetType: TargetType <- convertToScalaEither(kcql.getTargetType)
@@ -63,6 +78,24 @@ object CreateIndex {
     } yield {
       createIndexName(kcql, index)
     }
+
+  /**
+   * Per-record path used by [[io.lenses.streamreactor.connect.elastic.common.writer.JsonBulkWriter]]:
+   * `targetType`/`indexSuffix` are resolved ONCE at writer construction (see
+   * [[io.lenses.streamreactor.connect.elastic.common.KcqlValues]]) rather than re-parsed from the
+   * `Kcql` on every record — `Kcql.getTargetType()` re-parses the target string, and
+   * `CustomIndexName.parseIndexName` re-parses `WITHINDEXSUFFIX` char-by-char, on every call.
+   * Only [[extractTargetFromMessage]] (header/key/value routing) still runs per record, since
+   * that genuinely depends on the record.
+   */
+  def getIndexName(
+    targetType:  TargetType,
+    indexSuffix: Option[CustomIndexName],
+    r:           SinkRecord,
+  ): Either[IllegalArgumentException, String] =
+    extractTargetFromMessage(r, targetType)
+      .leftMap(e => new IllegalArgumentException(e))
+      .map(index => createIndexName(indexSuffix, index))
 
   private def extractTargetFromMessage(r: SinkRecord, targetType: TargetType) =
     targetType match {
@@ -99,5 +132,11 @@ object CreateIndex {
     Option(kcql.getIndexSuffix).fold(index) { indexNameSuffix =>
       s"$index${CustomIndexName.parseIndexName(indexNameSuffix)}"
     }
+
+  private def createIndexName(indexSuffix: Option[CustomIndexName], index: String): String =
+    // CustomIndexName.toString (not called here directly, via interpolation) re-evaluates any
+    // DateTimeFragment against the current clock, so a pre-parsed, cached CustomIndexName still
+    // renders a fresh date/time per record — only the (KCQL-only) parse itself is done once.
+    indexSuffix.fold(index)(suffix => s"$index$suffix")
 
 }

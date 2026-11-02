@@ -90,6 +90,23 @@ object OpenSearchConfig {
             Importance.MEDIUM,
             BULK_STRICT_ITEM_ERRORS_DOC,
     )
+    // Per-record diversion (drop or DLQ) for permanent bulk item errors
+    .define(
+      BULK_ITEM_ERRORS_KEY,
+      Type.STRING,
+      BULK_ITEM_ERRORS_DEFAULT,
+      ConfigDef.CaseInsensitiveValidString.in("fail", "drop", "dlq"),
+      Importance.HIGH,
+      BULK_ITEM_ERRORS_DOC,
+    )
+    .define(
+      BULK_ITEM_ERRORS_DLQ_TIMEOUT_MS_KEY,
+      Type.LONG,
+      BULK_ITEM_ERRORS_DLQ_TIMEOUT_MS_DEFAULT,
+      ConfigDef.Range.atLeast(1L),
+      Importance.LOW,
+      BULK_ITEM_ERRORS_DLQ_TIMEOUT_MS_DOC,
+    )
     // Connection pool tuning (REST path only)
     .define(MAX_CONNECTIONS_PER_ROUTE_KEY,
             Type.INT,

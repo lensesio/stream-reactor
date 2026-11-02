@@ -15,8 +15,10 @@
  */
 package io.lenses.streamreactor.connect.elastic7
 
+import io.lenses.streamreactor.connect.elastic.common.config.ItemErrorMode
 import io.lenses.streamreactor.connect.elastic7.config.ElasticConfig
 import io.lenses.streamreactor.connect.elastic7.config.ElasticConfigConstants
+import io.lenses.streamreactor.connect.elastic7.config.ElasticSettings
 import org.apache.kafka.common.config.ConfigException
 
 class ElasticConfigTest extends TestBase {
@@ -38,6 +40,39 @@ class ElasticConfigTest extends TestBase {
       getElasticSinkConfigProps() + (ElasticConfigConstants.BULK_STRICT_ITEM_ERRORS_KEY -> "false"),
     )
     config.getBoolean(ElasticConfigConstants.BULK_STRICT_ITEM_ERRORS_KEY) shouldBe false
+  }
+
+  "ElasticSettings should resolve bulk.item.errors into ItemErrorMode.Fail by default" in {
+    val config = new ElasticConfig(getElasticSinkConfigProps())
+    ElasticSettings(config).itemErrorMode shouldBe ItemErrorMode.Fail
+  }
+
+  "ElasticSettings should resolve bulk.item.errors=drop into ItemErrorMode.Drop" in {
+    val config = new ElasticConfig(
+      getElasticSinkConfigProps() + (ElasticConfigConstants.BULK_ITEM_ERRORS_KEY -> "drop"),
+    )
+    ElasticSettings(config).itemErrorMode shouldBe ItemErrorMode.Drop
+  }
+
+  "ElasticSettings should resolve bulk.item.errors=dlq into ItemErrorMode.Dlq" in {
+    val config = new ElasticConfig(
+      getElasticSinkConfigProps() + (ElasticConfigConstants.BULK_ITEM_ERRORS_KEY -> "dlq"),
+    )
+    ElasticSettings(config).itemErrorMode shouldBe ItemErrorMode.Dlq
+  }
+
+  // The ConfigDef validator (CaseInsensitiveValidString.in("fail", "drop", "dlq")) now rejects an
+  // invalid value at ElasticConfig construction — the earliest possible point, e.g. Connect's
+  // /connectors/validate endpoint — rather than only surfacing later at ElasticSettings
+  // resolution (which ItemErrorMode.fromString still guards as a defence-in-depth backstop
+  // for any other caller that bypasses the ConfigDef).
+  "A ElasticConfig should reject an invalid bulk.item.errors value at construction" in {
+    val ex = intercept[ConfigException] {
+      new ElasticConfig(
+        getElasticSinkConfigProps() + (ElasticConfigConstants.BULK_ITEM_ERRORS_KEY -> "maybe"),
+      )
+    }
+    ex.getMessage should include(ElasticConfigConstants.BULK_ITEM_ERRORS_KEY)
   }
 
   "A ElasticConfig should reject write.timeout values that look like pre-migration seconds" in {

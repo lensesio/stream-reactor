@@ -21,6 +21,10 @@ final case class BulkItemError(
   reason:    String,
   errorType: String = "",
   status:    Int    = 0,
+  // 0-based ordinal of this item in the bulk request/response. -1 = unknown: either the backend
+  // doesn't expose one, or response.items().size mismatched the request op count. Per-record
+  // DLQ reporting (ErrantRecordHandler) refuses to map an error with position = -1.
+  position: Int = -1,
 )
 
 final case class BulkResult(took: Long, errors: Boolean, itemErrors: Seq[BulkItemError])

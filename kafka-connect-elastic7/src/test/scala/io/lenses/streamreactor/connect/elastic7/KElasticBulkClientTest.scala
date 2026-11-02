@@ -21,6 +21,7 @@ import com.sksamuel.elastic4s.requests.bulk.BulkError
 import com.sksamuel.elastic4s.requests.bulk.BulkRequest
 import com.sksamuel.elastic4s.requests.bulk.BulkResponse
 import com.sksamuel.elastic4s.requests.bulk.BulkResponseItem
+import io.lenses.streamreactor.connect.elastic.common.bulk.BulkItemErrorClassifier
 import io.lenses.streamreactor.connect.elastic.common.bulk.InsertOp
 import org.mockito.ArgumentMatchersSugar
 import org.mockito.MockitoSugar
@@ -89,6 +90,91 @@ class KElasticBulkClientTest extends AnyWordSpec with Matchers with MockitoSugar
       br.itemErrors.head.errorType shouldBe "es_rejected_execution_exception"
     }
 
+    "populate position from the response's own positional order, NOT item.itemId" in {
+      val ops = Seq(
+        InsertOp(index = "myindex", id = "doc0", json = JsonNodeFactory.instance.objectNode(), pipeline = None),
+        InsertOp(index = "myindex", id = "doc1", json = JsonNodeFactory.instance.objectNode(), pipeline = None),
+      )
+      val err    = bulkError("mapper_parsing_exception", "failed to parse field [foo]")
+      val okItem = bulkItem(id = "doc0", index = "myindex", status = 201, error = None, itemId = 99)
+      // itemId deliberately set to a value that does NOT match its positional index (1) — if
+      // production ever read item.itemId instead of its own zipWithIndex, this would report
+      // position 42 instead of 1, proving which one it actually uses.
+      val badItem     = bulkItem(id = "doc1", index = "myindex", status = 400, error = Some(err), itemId = 42)
+      val (client, _) = setup(strict = true, items = Seq(okItem, badItem))
+
+      val br = client.bulk(ops).get
+      br.itemErrors should have size 1
+      br.itemErrors.head.position shouldBe 1
+    }
+
+    "disable position mapping (position = -1) when response item count does not match the request op count" in {
+      val err  = bulkError("mapper_parsing_exception", "failed to parse field [foo]")
+      val item = bulkItem(id = "doc1", index = "myindex", status = 400, error = Some(err), itemId = 0)
+      // sampleOps has 1 op, but we return 2 response items — a length mismatch.
+      val (client, _) = setup(strict = true, items = Seq(item, item))
+
+      val br = client.bulk(sampleOps).get
+      br.itemErrors should have size 2
+      br.itemErrors.foreach(_.position shouldBe -1)
+    }
+
+    // validateOp characterisation: this codebase's only other bulk client (KOpenSearchClient)
+    // pins these cases in KOpenSearchClientTest, but KElasticBulkClient's own validateOp
+    // (structurally identical, just an "Elasticsearch" vs "OpenSearch" message) had no coverage
+    // of its own here.
+    "return a validation error (400, ConnectorValidationErrorType, non-divertible) for an empty id, " +
+      "without contacting the cluster, even in tolerant mode" in {
+        val elasticClient = mock[KElasticClient]
+        val client        = new KElasticBulkClient(elasticClient, writeTimeoutMillis = 5000, strictItemErrors = false)
+        val ops = Seq(
+          InsertOp(index = "myindex", id = "", json = JsonNodeFactory.instance.objectNode(), pipeline = None),
+        )
+
+        val br = client.bulk(ops).get
+        br.errors shouldBe true
+        br.itemErrors should have size 1
+        val err = br.itemErrors.head
+        err.status shouldBe 400
+        err.errorType shouldBe BulkItemErrorClassifier.ConnectorValidationErrorType
+        BulkItemErrorClassifier.isDivertible(err) shouldBe false
+        err.position shouldBe 0
+        err.reason should include("id must be non-empty")
+        verify(elasticClient, never).execute(any[BulkRequest])
+      }
+
+    "return a validation error (400, ConnectorValidationErrorType) for an empty index" in {
+      val elasticClient = mock[KElasticClient]
+      val client        = new KElasticBulkClient(elasticClient, writeTimeoutMillis = 5000, strictItemErrors = true)
+      val ops = Seq(
+        InsertOp(index = "", id = "doc1", json = JsonNodeFactory.instance.objectNode(), pipeline = None),
+      )
+
+      val br = client.bulk(ops).get
+      br.errors shouldBe true
+      br.itemErrors should have size 1
+      br.itemErrors.head.status shouldBe 400
+      br.itemErrors.head.errorType shouldBe BulkItemErrorClassifier.ConnectorValidationErrorType
+      br.itemErrors.head.reason should include("index must be non-empty")
+    }
+
+    "return a validation error naming Elasticsearch for an id exceeding 512 UTF-8 bytes" in {
+      val elasticClient = mock[KElasticClient]
+      val client        = new KElasticBulkClient(elasticClient, writeTimeoutMillis = 5000, strictItemErrors = true)
+      val longId        = "x" * 513
+      val ops = Seq(
+        InsertOp(index = "myindex", id = longId, json = JsonNodeFactory.instance.objectNode(), pipeline = None),
+      )
+
+      val br = client.bulk(ops).get
+      br.errors shouldBe true
+      br.itemErrors should have size 1
+      br.itemErrors.head.status shouldBe 400
+      br.itemErrors.head.errorType shouldBe BulkItemErrorClassifier.ConnectorValidationErrorType
+      br.itemErrors.head.reason should include("Elasticsearch's 512-byte")
+      verify(elasticClient, never).execute(any[BulkRequest])
+    }
+
     "surface a transport-level error as a Failure" in {
       val elasticClient = mock[KElasticClient]
       val mockResp      = mock[Response[BulkResponse]]
@@ -152,12 +238,19 @@ class KElasticBulkClientTest extends AnyWordSpec with Matchers with MockitoSugar
     err
   }
 
-  private def bulkItem(id: String, index: String, status: Int, error: Option[BulkError]): BulkResponseItem = {
+  private def bulkItem(
+    id:     String,
+    index:  String,
+    status: Int,
+    error:  Option[BulkError],
+    itemId: Int = 0,
+  ): BulkResponseItem = {
     val item = mock[BulkResponseItem]
     when(item.id).thenReturn(id)
     when(item.index).thenReturn(index)
     when(item.status).thenReturn(status)
     when(item.error).thenReturn(error)
+    when(item.itemId).thenReturn(itemId)
     item
   }
 }

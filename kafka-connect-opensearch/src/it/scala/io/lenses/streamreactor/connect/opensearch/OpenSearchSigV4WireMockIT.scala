@@ -61,7 +61,7 @@ import java.time.Duration
  * AWS endpoint. The risk accepted by this compromise is that the SigV4 signature ALGORITHM is
  * not verified end-to-end against a real AWS endpoint; the AWS SDK's own unit tests cover that.
  */
-class OpenSearchSigV4WireMockIT extends AnyFunSuite with Matchers with BeforeAndAfterAll {
+class OpenSearchSigV4WireMockIT extends AnyFunSuite with Matchers with BeforeAndAfterAll with ITResourceRegistry {
 
   private var wireMock: WireMockServer = _
 
@@ -120,10 +120,10 @@ class OpenSearchSigV4WireMockIT extends AnyFunSuite with Matchers with BeforeAnd
       "AKIAIOSFODNN7EXAMPLE",
       "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
     )
-    val apacheClient = ApacheHttpClient.builder()
+    val apacheClient = track(ApacheHttpClient.builder()
       .socketTimeout(Duration.ofMillis(10000))
       .connectionTimeout(Duration.ofMillis(10000))
-      .build()
+      .build())
     val httpClient = new HttpDowngradeClient(apacheClient)
     val options = AwsSdk2TransportOptions.builder()
       .setMapper(new JacksonJsonpMapper())
@@ -140,7 +140,7 @@ class OpenSearchSigV4WireMockIT extends AnyFunSuite with Matchers with BeforeAnd
       KCQL    -> "INSERT INTO idx SELECT * FROM topic",
     )
     val settings = OpenSearchSettings(OpenSearchConfig(settingsProps))
-    val kClient  = new KOpenSearchClient(osClient, settings)
+    val kClient  = track(new KOpenSearchClient(osClient, settings))
     // Trigger the info probe (GET /) so its Authorization header is captured by WireMock.
     // Each test sets up the GET / stub before calling makeSigV4Client.
     kClient.start().fold(throw _, identity)

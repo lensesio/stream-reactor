@@ -18,6 +18,7 @@ package io.lenses.streamreactor.connect.elastic7.config
 import io.lenses.streamreactor.common.util.EitherUtils.unpackOrThrow
 import io.lenses.streamreactor.common.security.StoresInfo
 import io.lenses.streamreactor.connect.elastic.common.config.ElasticCommonSettings
+import io.lenses.streamreactor.connect.elastic.common.config.ItemErrorMode
 
 /**
  * Factory for [[ElasticCommonSettings]] using the elastic7 [[ElasticConfig]] / [[ElasticConfigConstants]].
@@ -35,6 +36,10 @@ object ElasticSettings {
     val httpBasicAuthPassword = config.getString(ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_PASSWORD)
     val batchSize             = config.getInt(ElasticConfigConstants.BATCH_SIZE_CONFIG)
     val strictItemErrors      = config.getBoolean(ElasticConfigConstants.BULK_STRICT_ITEM_ERRORS_KEY)
+    val itemErrorMode =
+      ItemErrorMode.fromString(config.getString(ElasticConfigConstants.BULK_ITEM_ERRORS_KEY))
+    val dlqReportTimeoutMs =
+      config.getLong(ElasticConfigConstants.BULK_ITEM_ERRORS_DLQ_TIMEOUT_MS_KEY).longValue()
 
     ElasticCommonSettings(
       kcqls                 = kcql,
@@ -47,6 +52,8 @@ object ElasticSettings {
       httpBasicAuthPassword = httpBasicAuthPassword,
       storesInfo            = unpackOrThrow(StoresInfo.fromConfig(config)),
       strictItemErrors      = strictItemErrors,
+      itemErrorMode         = itemErrorMode,
+      dlqReportTimeoutMs    = dlqReportTimeoutMs,
     )
   }
 }

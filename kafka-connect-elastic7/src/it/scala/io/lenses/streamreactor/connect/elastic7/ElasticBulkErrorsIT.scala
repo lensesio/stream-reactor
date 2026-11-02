@@ -17,7 +17,11 @@ package io.lenses.streamreactor.connect.elastic7
 
 import com.fasterxml.jackson.databind.node.JsonNodeFactory
 import com.sksamuel.elastic4s.ElasticDsl._
+import io.lenses.streamreactor.connect.elastic.common.bulk.BulkItemErrorClassifier
 import io.lenses.streamreactor.connect.elastic.common.bulk.InsertOp
+import io.lenses.streamreactor.connect.elastic.common.config.ItemErrorMode
+import io.lenses.streamreactor.connect.elastic.common.dlq.DlqGate
+import io.lenses.streamreactor.connect.elastic.common.dlq.RecordRef
 import io.lenses.streamreactor.connect.elastic.common.writer.JsonBulkWriter
 import io.lenses.streamreactor.connect.elastic7.config.ElasticConfig
 import io.lenses.streamreactor.connect.elastic7.config.ElasticConfigConstants._
@@ -26,8 +30,12 @@ import io.lenses.streamreactor.common.errors.FatalConnectException
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaBuilder
 import org.apache.kafka.connect.data.Struct
+import org.apache.kafka.connect.sink.ErrantRecordReporter
 import org.apache.kafka.connect.sink.SinkRecord
 import org.scalatest.BeforeAndAfterAll
+
+import java.util.concurrent.CompletableFuture
+import scala.collection.mutable
 
 /**
  * Integration tests for ES7 bulk item-error handling against a real Elasticsearch 7 container.
@@ -122,6 +130,320 @@ class ElasticBulkErrorsIT extends ITBase with BeforeAndAfterAll {
 
       val ex = intercept[FatalConnectException](writer.write(Vector(record)))
       ex.getMessage should include("item-level error")
+    }
+  }
+
+  /** Records every (record, cause) it was asked to report and always acknowledges immediately. */
+  private class CapturingReporter extends ErrantRecordReporter {
+    val received: mutable.Buffer[(SinkRecord, Throwable)] = mutable.Buffer.empty
+    override def report(record: SinkRecord, error: Throwable): java.util.concurrent.Future[Void] = {
+      received += (record -> error)
+      CompletableFuture.completedFuture[Void](null)
+    }
+  }
+
+  "JsonBulkWriter in dlq mode with a DLQ available" should {
+    "report the mapping-conflict record to the DLQ instead of throwing, and still index the good record" in {
+      val index = s"writer-skip-${System.nanoTime()}"
+      createIndexWithIntegerMapping(index)
+
+      val settings = settingsFor(index).copy(itemErrorMode = ItemErrorMode.Dlq)
+      val reporter = new CapturingReporter
+      val writer = new JsonBulkWriter(
+        KElasticBulkClient(new HttpKElasticClient(client), settings),
+        settings,
+        DlqGate(Some(reporter), dlqTopicConfigured = true),
+      )
+
+      val schema: Schema =
+        SchemaBuilder.struct()
+          .field("id", Schema.STRING_SCHEMA)
+          .field("field", Schema.STRING_SCHEMA)
+          .build()
+      val goodRecord =
+        new SinkRecord("topic",
+                       0,
+                       Schema.STRING_SCHEMA,
+                       "k1",
+                       schema,
+                       new Struct(schema).put("id", "good").put(
+                         "field",
+                         "123",
+                       ),
+                       0L,
+        )
+      val badRecord =
+        new SinkRecord(
+          "topic",
+          0,
+          Schema.STRING_SCHEMA,
+          "k2",
+          schema,
+          new Struct(schema).put("id", "bad").put("field", "not-a-number"),
+          1L,
+        )
+
+      val reported = writer.write(Vector(goodRecord, badRecord))
+
+      reported shouldBe Set(RecordRef.of(badRecord))
+      reporter.received.map(_._1) shouldBe Seq(badRecord)
+      reporter.received.head._2.getMessage.toLowerCase should include("mapper")
+
+      // The good record in the same batch was actually written, not swept up by the failure.
+      val fetched = client.execute(get(index, "good")).await
+      fetched.result.exists shouldBe true
+    }
+  }
+
+  "JsonBulkWriter in drop mode with NO DLQ configured" should {
+    "discard the mapping-conflict record instead of throwing, and still index the good record" in {
+      val index = s"writer-drop-${System.nanoTime()}"
+      createIndexWithIntegerMapping(index)
+
+      // No DlqGate at all — JsonBulkWriter's default constructor param is DlqGate.disabled —
+      // proving drop mode needs no DLQ topic, no reporter, nothing DLQ-related, against a real
+      // cluster (mirrors the unit-level "drop mode diverts ... without any DLQ configured" test).
+      val settings = settingsFor(index).copy(itemErrorMode = ItemErrorMode.Drop)
+      val writer   = new JsonBulkWriter(KElasticBulkClient(new HttpKElasticClient(client), settings), settings)
+
+      val schema: Schema =
+        SchemaBuilder.struct()
+          .field("id", Schema.STRING_SCHEMA)
+          .field("field", Schema.STRING_SCHEMA)
+          .build()
+      val goodRecord =
+        new SinkRecord("topic",
+                       0,
+                       Schema.STRING_SCHEMA,
+                       "k1",
+                       schema,
+                       new Struct(schema).put("id", "good").put("field", "123"),
+                       0L,
+        )
+      val badRecord =
+        new SinkRecord("topic",
+                       0,
+                       Schema.STRING_SCHEMA,
+                       "k2",
+                       schema,
+                       new Struct(schema).put("id", "bad").put("field", "not-a-number"),
+                       1L,
+        )
+
+      val reported = writer.write(Vector(goodRecord, badRecord))
+
+      reported shouldBe Set(RecordRef.of(badRecord))
+
+      // The good record in the same batch was actually written, not swept up by the failure.
+      val fetched = client.execute(get(index, "good")).await
+      fetched.result.exists shouldBe true
+      // The bad record is genuinely gone — drop has no DLQ, no other trace but the WARN log.
+      val fetchedBad = client.execute(get(index, "bad")).await
+      fetchedBad.result.exists shouldBe false
+    }
+  }
+
+  // Elasticsearch resolves a write alias to its concrete backing index before writing, and
+  // echoes that CONCRETE index in the bulk response `_index` field — never the alias name that
+  // was actually sent (confirmed against a real ES7 cluster below). ErrantRecordHandler maps a
+  // response item back to its record by position, corroborated by `id` only — NOT `index` —
+  // precisely so this alias/concrete-index difference does not cause the mapping to be
+  // refused. See ErrantRecordHandler.scala's scaladoc for the full reasoning.
+  "JsonBulkWriter in dlq mode targeting a write ALIAS" should {
+    "correlate correctly by id and report the mapping-conflict record to the DLQ, even though the response reports the concrete backing index, not the alias" in {
+      val backingIndex = s"alias-backing-${System.nanoTime()}"
+      val aliasName    = s"alias-target-${System.nanoTime()}"
+      createIndexWithIntegerMapping(backingIndex)
+      client.execute(aliases(addAlias(aliasName, backingIndex))).await
+
+      val props = Map(
+        HOSTS                       -> "localhost",
+        PROTOCOL                    -> PROTOCOL_DEFAULT,
+        KCQL                        -> s"INSERT INTO $aliasName SELECT * FROM topic PK id",
+        ERROR_POLICY_CONFIG         -> "THROW",
+        BULK_STRICT_ITEM_ERRORS_KEY -> "true",
+      )
+      val settings = ElasticSettings(ElasticConfig(props)).copy(itemErrorMode = ItemErrorMode.Dlq)
+      val reporter = new CapturingReporter
+      val writer = new JsonBulkWriter(
+        KElasticBulkClient(new HttpKElasticClient(client), settings),
+        settings,
+        DlqGate(Some(reporter), dlqTopicConfigured = true),
+      )
+
+      val schema: Schema =
+        SchemaBuilder.struct()
+          .field("id", Schema.STRING_SCHEMA)
+          .field("field", Schema.STRING_SCHEMA)
+          .build()
+      val goodRecord =
+        new SinkRecord("topic",
+                       0,
+                       Schema.STRING_SCHEMA,
+                       "k1",
+                       schema,
+                       new Struct(schema).put("id", "good").put("field", "123"),
+                       0L,
+        )
+      val badRecord =
+        new SinkRecord("topic",
+                       0,
+                       Schema.STRING_SCHEMA,
+                       "k2",
+                       schema,
+                       new Struct(schema).put("id", "bad").put("field", "not-a-number"),
+                       1L,
+        )
+
+      // Directly probe what the bulk API returns for _index through the alias, independent of
+      // JsonBulkWriter, so a future reader of this test can see the raw evidence.
+      val probe = KElasticBulkClient(new HttpKElasticClient(client), settings)
+        .bulk(Seq(InsertOp(aliasName, "probe-bad", stringDoc("not-a-number"), None, None)))
+        .get
+      probe.errors shouldBe true
+      val reportedIndex = probe.itemErrors.head.index
+      info(s"Bulk response _index through alias '$aliasName' (backing index '$backingIndex') was: '$reportedIndex'")
+      // Confirms the premise this test exists to guard against: ES reports the CONCRETE index,
+      // not the alias. If a future ES version changed this, the assertions below would still
+      // hold either way — id-based mapping works regardless of which index string comes back.
+      reportedIndex shouldBe backingIndex
+
+      val reported = writer.write(Vector(goodRecord, badRecord))
+
+      reported shouldBe Set(RecordRef.of(badRecord))
+      reporter.received.map(_._1) shouldBe Seq(badRecord)
+      reporter.received.head._2.getMessage.toLowerCase should include("mapper")
+
+      // The good record in the same batch was actually written, not swept up by the failure.
+      val fetched = client.execute(get(backingIndex, "good")).await
+      fetched.result.exists shouldBe true
+    }
+  }
+
+  "JsonBulkWriter in dlq mode against a write-blocked index" should {
+    "fail the task instead of diverting anything to the DLQ, even for otherwise-valid documents" in {
+      val index  = s"blocked-${System.nanoTime()}"
+      val create = client.execute(createIndex(index)).await
+      if (create.isError) {
+        throw new IllegalStateException(s"Failed to create index $index: ${create.error.reason}")
+      }
+      client.execute(updateSettings(index, settings = Map("index.blocks.write" -> "true"))).await
+
+      val props = Map(
+        HOSTS                       -> "localhost",
+        PROTOCOL                    -> PROTOCOL_DEFAULT,
+        KCQL                        -> s"INSERT INTO $index SELECT * FROM topic PK id",
+        ERROR_POLICY_CONFIG         -> "THROW",
+        BULK_STRICT_ITEM_ERRORS_KEY -> "true",
+      )
+      val settings = ElasticSettings(ElasticConfig(props)).copy(itemErrorMode = ItemErrorMode.Dlq)
+      val reporter = new CapturingReporter
+      val writer = new JsonBulkWriter(
+        KElasticBulkClient(new HttpKElasticClient(client), settings),
+        settings,
+        DlqGate(Some(reporter), dlqTopicConfigured = true),
+      )
+
+      val schema: Schema =
+        SchemaBuilder.struct().field("id", Schema.STRING_SCHEMA).field("field", Schema.STRING_SCHEMA).build()
+      // A perfectly valid document — the block is on the INDEX, not the document.
+      val goodRecord =
+        new SinkRecord("topic",
+                       0,
+                       Schema.STRING_SCHEMA,
+                       "k1",
+                       schema,
+                       new Struct(schema).put("id", "good").put("field", "123"),
+                       0L,
+        )
+
+      val thrown = intercept[FatalConnectException](writer.write(Vector(goodRecord)))
+      thrown.getMessage.toLowerCase should include("cluster_block_exception")
+      // Nothing was diverted — a batch-wide condition must never partially divert a batch.
+      reporter.received shouldBe empty
+    }
+  }
+
+  // Pins BulkItemErrorClassifier.isBatchWide's errorType/reason guard against the WORDING a real
+  // ES7 cluster actually returns — the guard previously matched only two hand-written test
+  // fixtures and had never been exercised against a live response (see the classifier's
+  // scaladoc for why the exclusion must hold even though both faults are HTTP 400).
+  "a closed index" should {
+    "return a batch-wide 400 index_closed_exception that BulkItemErrorClassifier refuses to divert" in {
+      val index  = s"closed-${System.nanoTime()}"
+      val create = client.execute(createIndex(index)).await
+      if (create.isError) {
+        throw new IllegalStateException(s"Failed to create index $index: ${create.error.reason}")
+      }
+      client.execute(closeIndex(index)).await
+
+      val bulk   = KElasticBulkClient(new HttpKElasticClient(client), settingsFor(index))
+      val result = bulk.bulk(Seq(InsertOp(index, "1", numericDoc(1), None, None)))
+
+      result.isSuccess shouldBe true
+      result.get.errors shouldBe true
+      val error = result.get.itemErrors.head
+      error.status shouldBe 400
+      error.errorType.toLowerCase should include("closed")
+      BulkItemErrorClassifier.isDivertible(error) shouldBe false
+    }
+  }
+
+  "a missing ingest pipeline" should {
+    "return a batch-wide 400 illegal_argument_exception that BulkItemErrorClassifier refuses to divert" in {
+      val index  = s"pipeline-missing-${System.nanoTime()}"
+      val create = client.execute(createIndex(index)).await
+      if (create.isError) {
+        throw new IllegalStateException(s"Failed to create index $index: ${create.error.reason}")
+      }
+
+      val bulk = KElasticBulkClient(new HttpKElasticClient(client), settingsFor(index))
+      val result =
+        bulk.bulk(Seq(InsertOp(index, "1", numericDoc(1), Some("does-not-exist-pipeline"), None)))
+
+      result.isSuccess shouldBe true
+      result.get.errors shouldBe true
+      val error = result.get.itemErrors.head
+      error.status shouldBe 400
+      error.reason.toLowerCase should include("pipeline with id")
+      BulkItemErrorClassifier.isDivertible(error) shouldBe false
+    }
+  }
+
+  "JsonBulkWriter in dlq mode against a closed index" should {
+    "fail the task instead of diverting anything to the DLQ, even for otherwise-valid documents" in {
+      val index  = s"closed-writer-${System.nanoTime()}"
+      val create = client.execute(createIndex(index)).await
+      if (create.isError) {
+        throw new IllegalStateException(s"Failed to create index $index: ${create.error.reason}")
+      }
+      client.execute(closeIndex(index)).await
+
+      val settings = settingsFor(index).copy(itemErrorMode = ItemErrorMode.Dlq)
+      val reporter = new CapturingReporter
+      val writer = new JsonBulkWriter(
+        KElasticBulkClient(new HttpKElasticClient(client), settings),
+        settings,
+        DlqGate(Some(reporter), dlqTopicConfigured = true),
+      )
+
+      val schema: Schema =
+        SchemaBuilder.struct().field("id", Schema.STRING_SCHEMA).field("field", Schema.STRING_SCHEMA).build()
+      // A perfectly valid document — the fault is on the INDEX (closed), not the document.
+      val goodRecord =
+        new SinkRecord("topic",
+                       0,
+                       Schema.STRING_SCHEMA,
+                       "k1",
+                       schema,
+                       new Struct(schema).put("id", "good").put("field", "123"),
+                       0L,
+        )
+
+      val thrown = intercept[FatalConnectException](writer.write(Vector(goodRecord)))
+      thrown.getMessage.toLowerCase should include("closed")
+      // Nothing was diverted — a batch-wide condition must never partially divert a batch.
+      reporter.received shouldBe empty
     }
   }
 }

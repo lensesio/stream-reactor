@@ -15,6 +15,7 @@
  */
 package io.lenses.streamreactor.connect.elastic7
 
+import io.lenses.streamreactor.connect.elastic.common.dlq.DlqGate
 import io.lenses.streamreactor.connect.elastic.common.sink.AbstractElasticSinkTask
 import io.lenses.streamreactor.connect.elastic.common.writer.JsonBulkWriter
 import io.lenses.streamreactor.connect.elastic7.config.ElasticConfig
@@ -30,8 +31,12 @@ class ElasticSinkTask extends AbstractElasticSinkTask {
 
   override protected def progressEnabledKey: String = ElasticConfigConstants.PROGRESS_COUNTER_ENABLED
 
-  override protected def createWriter(conf: Map[String, String]): JsonBulkWriter = {
+  override protected def itemErrorModeConfigKey: String = ElasticConfigConstants.BULK_ITEM_ERRORS_KEY
+
+  override protected def strictItemErrorsConfigKey: String = ElasticConfigConstants.BULK_STRICT_ITEM_ERRORS_KEY
+
+  override protected def createWriter(conf: Map[String, String], dlqGate: DlqGate): JsonBulkWriter = {
     ElasticConfig.config.parse(conf.asJava)
-    ElasticWriter(ElasticConfig(conf))
+    ElasticWriter(ElasticConfig(conf), dlqGate)
   }
 }

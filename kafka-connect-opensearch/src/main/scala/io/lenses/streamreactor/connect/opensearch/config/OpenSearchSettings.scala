@@ -19,6 +19,7 @@ import com.typesafe.scalalogging.StrictLogging
 import io.lenses.streamreactor.common.util.EitherUtils.unpackOrThrow
 import io.lenses.streamreactor.common.security.StoresInfo
 import io.lenses.streamreactor.connect.elastic.common.config.ElasticCommonSettings
+import io.lenses.streamreactor.connect.elastic.common.config.ItemErrorMode
 import io.lenses.streamreactor.connect.opensearch.auth.JwtTokenSource
 import io.lenses.streamreactor.connect.opensearch.config.OpenSearchConfigConstants._
 import org.apache.kafka.common.config.ConfigException
@@ -83,7 +84,9 @@ object OpenSearchSettings extends StrictLogging {
     val username = config.getString(CLIENT_HTTP_BASIC_AUTH_USERNAME)
     val password = config.getPassword(CLIENT_HTTP_BASIC_AUTH_PASSWORD).value()
 
-    val strictItemErrors = config.getBoolean(BULK_STRICT_ITEM_ERRORS_KEY)
+    val strictItemErrors   = config.getBoolean(BULK_STRICT_ITEM_ERRORS_KEY)
+    val itemErrorMode      = ItemErrorMode.fromString(config.getString(BULK_ITEM_ERRORS_KEY))
+    val dlqReportTimeoutMs = config.getLong(BULK_ITEM_ERRORS_DLQ_TIMEOUT_MS_KEY).longValue()
 
     // --- Validations ---
 
@@ -266,6 +269,8 @@ object OpenSearchSettings extends StrictLogging {
       httpBasicAuthPassword = password,
       storesInfo            = storesInfo,
       strictItemErrors      = strictItemErrors,
+      itemErrorMode         = itemErrorMode,
+      dlqReportTimeoutMs    = dlqReportTimeoutMs,
     )
 
     val jwtTokenSource =

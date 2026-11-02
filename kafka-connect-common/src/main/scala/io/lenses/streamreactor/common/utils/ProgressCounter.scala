@@ -32,6 +32,9 @@ case class ProgressCounter(periodMillis: Int = 60000) extends StrictLogging {
   private var timestamp: Long = 0
   private val counter = mutable.Map.empty[String, Long]
 
+  /** Running totals by topic since the last periodic flush.  Snapshot only — do not mutate. */
+  def countsByTopic: Map[String, Long] = counter.toMap
+
   def update[T <: ConnectRecord[T]](records: Iterable[ConnectRecord[T]]): Unit = {
     val newTimestamp = System.currentTimeMillis()
 

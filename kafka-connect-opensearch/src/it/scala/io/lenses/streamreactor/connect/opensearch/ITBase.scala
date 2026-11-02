@@ -53,7 +53,13 @@ import scala.util.Try
  *  - A polling helper for asserting document counts
  *  - Common test record helpers
  */
-trait ITBase extends AnyFunSuite with Matchers with BeforeAndAfterAll with Eventually with StrictLogging {
+trait ITBase
+    extends AnyFunSuite
+    with Matchers
+    with BeforeAndAfterAll
+    with ITResourceRegistry
+    with Eventually
+    with StrictLogging {
 
   override implicit val patienceConfig: PatienceConfig =
     PatienceConfig(timeout = Span(60, Seconds), interval = Span(2, Seconds))
@@ -121,7 +127,7 @@ trait ITBase extends AnyFunSuite with Matchers with BeforeAndAfterAll with Event
     val settings  = OpenSearchSettings(config)
     val transport = OpenSearchTransportFactory.create(settings)
     val osClient  = new OpenSearchClient(transport)
-    new KOpenSearchClient(osClient, settings)
+    track(new KOpenSearchClient(osClient, settings))
   }
 
   protected def bulkWrite(kClient: KOpenSearchClient, ops: Seq[BulkOp]): BulkResult =

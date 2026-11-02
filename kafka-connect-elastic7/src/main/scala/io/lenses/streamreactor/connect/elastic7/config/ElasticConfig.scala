@@ -204,6 +204,30 @@ object ElasticConfig {
       ConfigDef.Width.SHORT,
       ElasticConfigConstants.BULK_STRICT_ITEM_ERRORS_KEY,
     )
+    .define(
+      ElasticConfigConstants.BULK_ITEM_ERRORS_KEY,
+      Type.STRING,
+      ElasticConfigConstants.BULK_ITEM_ERRORS_DEFAULT,
+      ConfigDef.CaseInsensitiveValidString.in("fail", "drop", "dlq"),
+      Importance.HIGH,
+      ElasticConfigConstants.BULK_ITEM_ERRORS_DOC,
+      "Error",
+      5,
+      ConfigDef.Width.SHORT,
+      ElasticConfigConstants.BULK_ITEM_ERRORS_KEY,
+    )
+    .define(
+      ElasticConfigConstants.BULK_ITEM_ERRORS_DLQ_TIMEOUT_MS_KEY,
+      Type.LONG,
+      ElasticConfigConstants.BULK_ITEM_ERRORS_DLQ_TIMEOUT_MS_DEFAULT,
+      ConfigDef.Range.atLeast(1L),
+      Importance.LOW,
+      ElasticConfigConstants.BULK_ITEM_ERRORS_DLQ_TIMEOUT_MS_DOC,
+      "Error",
+      6,
+      ConfigDef.Width.SHORT,
+      ElasticConfigConstants.BULK_ITEM_ERRORS_DLQ_TIMEOUT_MS_KEY,
+    )
     .withClientSslSupport()
 }
 

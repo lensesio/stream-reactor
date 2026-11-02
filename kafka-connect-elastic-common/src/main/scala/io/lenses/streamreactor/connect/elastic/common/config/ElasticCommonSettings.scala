@@ -34,4 +34,10 @@ case class ElasticCommonSettings(
   httpBasicAuthPassword: String     = ElasticCommonConfigConstants.CLIENT_HTTP_BASIC_AUTH_PASSWORD_DEFAULT,
   storesInfo:            StoresInfo = new StoresInfo(COption.none(), COption.none(), COption.none()),
   strictItemErrors:      Boolean    = ElasticCommonConfigConstants.BULK_STRICT_ITEM_ERRORS_DEFAULT,
+  // ES6: key not registered in ConfigDef (bulk client doesn't populate BulkItemError.position).
+  // Unknown properties are silently ignored by Kafka Connect, so itemErrorMode stays Fail
+  // regardless of what a user sets.
+  itemErrorMode: ItemErrorMode = ItemErrorMode.Fail,
+  // ES6: not registered either — irrelevant when itemErrorMode can never be Dlq.
+  dlqReportTimeoutMs: Long = ElasticCommonConfigConstants.BULK_ITEM_ERRORS_DLQ_TIMEOUT_MS_DEFAULT,
 )

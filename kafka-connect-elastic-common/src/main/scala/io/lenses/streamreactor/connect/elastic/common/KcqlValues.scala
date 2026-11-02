@@ -15,12 +15,26 @@
  */
 package io.lenses.streamreactor.connect.elastic.common
 
+import io.lenses.kcql.targettype.TargetType
 import io.lenses.sql.Field
 import io.lenses.streamreactor.connect.elastic.common.NullValueBehavior.NullValueBehavior
+import io.lenses.streamreactor.connect.elastic.common.indexname.CustomIndexName
 
+/**
+ * `targetType` and `indexSuffix` are resolved once at [[io.lenses.streamreactor.connect.elastic.common.writer.JsonBulkWriter]]
+ * construction, from KCQL-only inputs (`Kcql.getTargetType()`, `Kcql.getIndexSuffix()`) that
+ * never vary per record. `targetType` has no default: `CreateIndex.extractTargetFromMessage`
+ * pattern-matches on it with no default case, so a `null` would produce a `MatchError` — which is
+ * `NonFatal`, and therefore silently DIVERTIBLE under `bulk.item.errors=drop`/`dlq` rather than
+ * failing loudly, exactly the kind of KCQL-level fault this file's construction-time validation
+ * exists to prevent. `JsonBulkWriter` always supplies a real one; tests exercising
+ * `Transform`/`TransformAndExtractPK` directly must supply a placeholder explicitly.
+ */
 case class KcqlValues(
   fields:               Seq[Field],
   ignoredFields:        Seq[Field],
   primaryKeysPath:      Seq[Vector[String]],
   behaviorOnNullValues: NullValueBehavior,
+  targetType:           TargetType,
+  indexSuffix:          Option[CustomIndexName] = None,
 )

@@ -81,10 +81,20 @@ object ElasticCommonConfigConstants {
   val ERROR_POLICY_DOC: String =
     """Specifies the action to be taken if an error occurs while inserting the data
       |There are two available options:
-      |NOOP - the error is swallowed
+      |NOOP - most errors are swallowed and processing continues; data-integrity errors are the
+      |exception — a bulk transport failure (e.g. connection reset, timeout) and a permanent
+      |per-item bulk error (under bulk.strict.item.errors=true) are always propagated and fail
+      |the task, because NOOP must never silently advance offsets past a record whose write
+      |outcome is unknown.
       |THROW - the error is allowed to propagate.
       |RETRY - The exception causes the Connect framework to retry the message. The number of retries is based on
-      |The error will be logged automatically""".stripMargin
+      |The error will be logged automatically
+      |UPGRADE NOTE: before per-record bulk.item.errors diversion, NOOP swallowed a bulk transport
+      |failure (e.g. connection reset, timeout - no per-item response received at all) with only a
+      |WARN, advancing offsets past a batch that may never have been written. It now fails the task
+      |instead (RETRY still retries it while retries remain). Permanent per-item bulk errors already
+      |failed the task under NOOP and are unchanged. If you need the task to keep running through
+      |occasional poison records, use bulk.item.errors=drop or dlq instead.""".stripMargin
   val ERROR_POLICY_DEFAULT = "THROW"
 
   val BATCH_SIZE_SUFFIX = BATCH_SIZE_PROP_SUFFIX
@@ -123,4 +133,33 @@ object ElasticCommonConfigConstants {
       |When false, only HTTP-transport errors are surfaced; per-item failures are logged at WARN and dropped.
       |WARNING: Setting bulk.strict.item.errors=false swallows rejected documents and advances Kafka offsets past them.""".stripMargin
   val BULK_STRICT_ITEM_ERRORS_DEFAULT = true
+
+  val BULK_ITEM_ERRORS_SUFFIX = "bulk.item.errors"
+  val BULK_ITEM_ERRORS_DOC =
+    """Controls what happens to a record that fails with either a permanent, per-document bulk
+      |error (HTTP 400, e.g. a mapper conflict) or a writer-stage failure - the record never
+      |became a bulk operation at all, e.g. a missing/invalid header, key, or value used for its
+      |primary key or index target, or a malformed payload.
+      |fail (default): the connector throws and the task stops with offsets uncommitted (no data loss).
+      |drop: the failing record(s) are discarded (logged at WARN, one summary line per put()) and
+      |offsets advance, keeping the task running. No dead-letter queue is required.
+      |dlq: the failing record(s) are reported to the dead-letter queue and offsets advance, keeping the
+      |task running. Takes effect only when errors.deadletterqueue.topic.name is set, errors.tolerance=all
+      |and bulk.strict.item.errors=true; otherwise it behaves as fail.
+      |Both drop and dlq divert per-document HTTP 400 bulk rejections and per-record writer-stage
+      |failures, but never a batch-wide bulk failure (write-blocked/missing index, auth errors) or a
+      |KCQL/config fault that would fail every record identically (e.g. a nested header PK path,
+      |UPSERT with no PK, or an unparseable KCQL target - these are rejected at start() instead).
+      |DLQ delivery is at-least-once.""".stripMargin
+  val BULK_ITEM_ERRORS_DEFAULT = "fail"
+
+  val BULK_ITEM_ERRORS_DLQ_TIMEOUT_MS_SUFFIX = "bulk.item.errors.dlq.timeout.ms"
+  val BULK_ITEM_ERRORS_DLQ_TIMEOUT_MS_DOC =
+    """Bound, per bulk.item.errors=dlq report call, on how long to wait for Kafka Connect's DLQ
+      |producer to acknowledge a diverted record before giving up and failing the batch instead
+      |(the batch is then redelivered — see bulk.item.errors). Applies once per group of records
+      |reported together, not once per individual record.
+      |Keep well below max.poll.interval.ms: a bulk.item.errors=dlq batch can block for up to
+      |this long once per put(). Default 30000 (30 seconds).""".stripMargin
+  val BULK_ITEM_ERRORS_DLQ_TIMEOUT_MS_DEFAULT: Long = 30000L
 }

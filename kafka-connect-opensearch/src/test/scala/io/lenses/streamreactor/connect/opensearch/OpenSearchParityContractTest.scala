@@ -43,6 +43,14 @@ import org.scalatest.matchers.should.Matchers
  *
  * 5. `write.timeout` is milliseconds on ES6, ES7 and OpenSearch (default 300000 = 5 minutes).
  *    ES6/ES7 additionally reject 1..120 as likely pre-migration seconds; OpenSearch does not.
+ *
+ * `bulk.item.errors` resolution (fail/drop/dlq -> [[ItemErrorMode]]) is intentionally NOT
+ * covered here: this module doesn't depend on kafka-connect-elastic7, so there is no way for a
+ * test in this file to actually exercise ES7's resolution and compare it against OpenSearch's —
+ * doing so would just be two independent assertions with "matching ES7" in the test name and
+ * nothing enforcing that they stay in sync. See `OpenSearchConfigTest` for OpenSearch's own
+ * `bulk.item.errors` resolution coverage, and `ElasticConfigTest` (kafka-connect-elastic7) for
+ * ES7's.
  */
 class OpenSearchParityContractTest extends AnyFunSuite with Matchers {
 

@@ -65,13 +65,10 @@ object ElasticConfigConstants {
   val NBR_OF_RETIRES_DEFAULT = 20
 
   val ERROR_POLICY_CONFIG = s"${CONNECTOR_PREFIX}.${ERROR_POLICY_PROP_SUFFIX}"
+  // Single source of truth for the doc text (including the NOOP upgrade-behaviour note) so ES6,
+  // ES7 and OpenSearch never drift out of sync — all three share JsonBulkWriter.handleTransportFailure.
   val ERROR_POLICY_DOC: String =
-    """Specifies the action to be taken if an error occurs while inserting the data
-      |There are two available options:
-      |NOOP - the error is swallowed
-      |THROW - the error is allowed to propagate.
-      |RETRY - The exception causes the Connect framework to retry the message. The number of retries is based on
-      |The error will be logged automatically""".stripMargin
+    io.lenses.streamreactor.connect.elastic.common.config.ElasticCommonConfigConstants.ERROR_POLICY_DOC
   val ERROR_POLICY_DEFAULT = "THROW"
 
   val BATCH_SIZE_CONFIG = s"$CONNECTOR_PREFIX.$BATCH_SIZE_PROP_SUFFIX"
@@ -113,5 +110,19 @@ object ElasticConfigConstants {
     io.lenses.streamreactor.connect.elastic.common.config.ElasticCommonConfigConstants.BULK_STRICT_ITEM_ERRORS_DOC
   val BULK_STRICT_ITEM_ERRORS_DEFAULT =
     io.lenses.streamreactor.connect.elastic.common.config.ElasticCommonConfigConstants.BULK_STRICT_ITEM_ERRORS_DEFAULT
+
+  val BULK_ITEM_ERRORS_KEY =
+    s"$CONNECTOR_PREFIX.${io.lenses.streamreactor.connect.elastic.common.config.ElasticCommonConfigConstants.BULK_ITEM_ERRORS_SUFFIX}"
+  val BULK_ITEM_ERRORS_DOC =
+    io.lenses.streamreactor.connect.elastic.common.config.ElasticCommonConfigConstants.BULK_ITEM_ERRORS_DOC
+  val BULK_ITEM_ERRORS_DEFAULT =
+    io.lenses.streamreactor.connect.elastic.common.config.ElasticCommonConfigConstants.BULK_ITEM_ERRORS_DEFAULT
+
+  val BULK_ITEM_ERRORS_DLQ_TIMEOUT_MS_KEY =
+    s"$CONNECTOR_PREFIX.${io.lenses.streamreactor.connect.elastic.common.config.ElasticCommonConfigConstants.BULK_ITEM_ERRORS_DLQ_TIMEOUT_MS_SUFFIX}"
+  val BULK_ITEM_ERRORS_DLQ_TIMEOUT_MS_DOC =
+    io.lenses.streamreactor.connect.elastic.common.config.ElasticCommonConfigConstants.BULK_ITEM_ERRORS_DLQ_TIMEOUT_MS_DOC
+  val BULK_ITEM_ERRORS_DLQ_TIMEOUT_MS_DEFAULT =
+    io.lenses.streamreactor.connect.elastic.common.config.ElasticCommonConfigConstants.BULK_ITEM_ERRORS_DLQ_TIMEOUT_MS_DEFAULT
 
 }

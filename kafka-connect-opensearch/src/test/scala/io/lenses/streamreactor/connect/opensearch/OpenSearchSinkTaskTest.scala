@@ -21,11 +21,13 @@ import ch.qos.logback.classic.spi.ILoggingEvent
 import ch.qos.logback.core.read.ListAppender
 import io.lenses.streamreactor.common.errors.NoopErrorPolicy
 import io.lenses.streamreactor.connect.elastic.common.config.ElasticCommonSettings
+import io.lenses.streamreactor.connect.elastic.common.dlq.DlqGate
 import io.lenses.streamreactor.connect.elastic.common.writer.JsonBulkWriter
 import io.lenses.streamreactor.connect.opensearch.config.OpenSearchConfigConstants._
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.config.ConfigException
+import org.apache.kafka.connect.sink.ErrantRecordReporter
 import org.apache.kafka.connect.sink.SinkTaskContext
 import org.mockito.ArgumentMatchersSugar
 import org.mockito.MockitoSugar
@@ -54,13 +56,17 @@ class OpenSearchSinkTaskTest extends AnyFunSuite with Matchers with MockitoSugar
     ES_PORT -> "9200",
   )
 
-  private def mockContext(extraConfigs: Map[String, String] = Map.empty): SinkTaskContext = {
+  private def mockContext(
+    extraConfigs: Map[String, String]          = Map.empty,
+    reporter:     Option[ErrantRecordReporter] = None,
+  ): SinkTaskContext = {
     val ctx = mock[SinkTaskContext]
     if (extraConfigs.isEmpty)
       when(ctx.configs()).thenReturn(emptyMap[String, String])
     else
       when(ctx.configs()).thenReturn(extraConfigs.asJava)
     when(ctx.assignment()).thenReturn(java.util.Collections.emptySet[TopicPartition]())
+    when(ctx.errantRecordReporter()).thenReturn(reporter.orNull)
     ctx
   }
 
@@ -68,12 +74,18 @@ class OpenSearchSinkTaskTest extends AnyFunSuite with Matchers with MockitoSugar
    * A subclass that replaces createWriter with a no-op stub, letting us test lifecycle
    * methods (flush, stop, context-config precedence) without a live cluster.
    *
-   * The capturedConf field captures the conf map that would have been passed to createWriter.
+   * The capturedConf/capturedGate fields capture what would have been passed to createWriter —
+   * capturedGate specifically so a test can prove the resolved [[DlqGate]] is actually threaded
+   * through by THIS connector's createWriter, not just by the shared AbstractElasticSinkTask
+   * (OpenSearchSinkTask could otherwise pass DlqGate.disabled unconditionally and every other
+   * test in this file would still pass).
    */
   class StubbedTask(writerStub: JsonBulkWriter) extends OpenSearchSinkTask {
     var capturedConf: Map[String, String] = Map.empty
-    override protected def createWriter(conf: Map[String, String]): JsonBulkWriter = {
+    var capturedGate: DlqGate             = DlqGate.disabled
+    override protected def createWriter(conf: Map[String, String], dlqGate: DlqGate): JsonBulkWriter = {
       capturedConf = conf
+      capturedGate = dlqGate
       writerStub
     }
   }
@@ -107,6 +119,31 @@ class OpenSearchSinkTaskTest extends AnyFunSuite with Matchers with MockitoSugar
     }
     verify(writerStub, never).write(any[Vector[org.apache.kafka.connect.sink.SinkRecord]])
     verify(writerStub, never).close()
+  }
+
+  // ---- DlqGate wiring: OpenSearchSinkTask.createWriter must thread the REAL resolved gate ----
+
+  test("start() threads an enabled DlqGate through to createWriter when a reporter and DLQ topic are both present") {
+    val writerStub = writerStubWithSettings()
+    val task       = new StubbedTask(writerStub)
+    task.initialize(mockContext(
+      extraConfigs = Map(DlqGate.DlqTopicNameConfigKey -> "my-dlq-topic"),
+      reporter     = Some(mock[ErrantRecordReporter]),
+    ))
+    task.start((baseProps + (KCQL -> "INSERT INTO idx SELECT * FROM topic")).asJava)
+
+    task.capturedGate.enabled shouldBe true
+    task.capturedGate.reporter shouldBe defined
+    task.capturedGate.dlqTopicConfigured shouldBe true
+  }
+
+  test("start() threads a disabled DlqGate through to createWriter when no DLQ topic is configured") {
+    val writerStub = writerStubWithSettings()
+    val task       = new StubbedTask(writerStub)
+    task.initialize(mockContext(reporter = Some(mock[ErrantRecordReporter])))
+    task.start((baseProps + (KCQL -> "INSERT INTO idx SELECT * FROM topic")).asJava)
+
+    task.capturedGate.enabled shouldBe false
   }
 
   // ---- Parity row 70: context.configs() takes precedence over props ------------------
