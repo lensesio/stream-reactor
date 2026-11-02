@@ -26,11 +26,13 @@ import io.lenses.streamreactor.connect.elastic.common.dlq.DlqGate
 import io.lenses.streamreactor.connect.elastic.common.dlq.RecordRef
 import io.lenses.streamreactor.connect.elastic.common.writer.JsonBulkWriter
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
+import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.connect.sink.SinkRecord
 import org.apache.kafka.connect.sink.SinkTask
 
 import java.util
+import java.util.Locale
 import scala.jdk.CollectionConverters.IterableHasAsScala
 import scala.jdk.CollectionConverters.MapHasAsScala
 
@@ -85,8 +87,10 @@ abstract class AbstractElasticSinkTask extends SinkTask with StrictLogging with 
    * always pins `itemErrorMode` to [[ItemErrorMode.Fail]].
    *
    * When `false`, [[validateItemErrorConfiguration]] emits a single WARN if the user set
-   * `bulk.item.errors` to anything other than `fail`, telling them the setting is ignored, and
-   * skips the mode-specific warnings that would otherwise imply the mode is active.
+   * `bulk.item.errors` to anything other than `fail` (compared trimmed and case-insensitively,
+   * WITHOUT validating it — an unrecognised value warns rather than throws, since the key has no
+   * ConfigDef entry and is ignored anyway), telling them the setting is ignored, and skips the
+   * mode-specific warnings that would otherwise imply the mode is active.
    */
   protected def supportsItemErrorDiversion: Boolean = true
 
@@ -152,25 +156,30 @@ abstract class AbstractElasticSinkTask extends SinkTask with StrictLogging with 
    * would via a real `ConfigDef.parse`.
    */
   private def validateItemErrorConfiguration(confMap: Map[String, String], dlqGate: DlqGate): Unit = {
-    val rawValue      = confMap.getOrElse(itemErrorModeConfigKey, ElasticCommonConfigConstants.BULK_ITEM_ERRORS_DEFAULT)
-    val itemErrorMode = ItemErrorMode.fromString(rawValue)
+    val rawValue = confMap.getOrElse(itemErrorModeConfigKey, ElasticCommonConfigConstants.BULK_ITEM_ERRORS_DEFAULT)
 
     // ES6: bulk.item.errors is not registered in ConfigDef and ElasticSettings always pins
     // itemErrorMode to Fail. Kafka Connect still passes unregistered properties through to the
-    // task config map, so a user CAN set the key — but it has no effect. Warn once and skip the
-    // mode-specific warnings that would otherwise imply the mode is active.
-    if (!supportsItemErrorDiversion && itemErrorMode != ItemErrorMode.Fail) {
-      logger.warn(
-        s"bulk.item.errors=$rawValue is set but this connector does not support per-record diversion " +
-          "(the bulk client does not expose per-item positions). The setting is ignored — the connector " +
-          "will behave as bulk.item.errors=fail regardless.",
-      )
+    // task config map, so a user CAN set the key — but it has no effect. Checked BEFORE
+    // ItemErrorMode.fromString: with no ConfigDef validator behind the key, an unrecognised value
+    // (e.g. a typo) must warn, not throw — the setting is ignored either way. Warn once for any
+    // value other than fail and skip the mode-specific warnings that would otherwise imply the
+    // mode is active (and the strict-flag parse below: ES6's ConfigDef validates that itself in
+    // createWriter, and no ES6 warning depends on it).
+    if (!supportsItemErrorDiversion) {
+      val normalized = Option(rawValue).map(_.trim.toLowerCase(Locale.ROOT)).getOrElse(ItemErrorMode.Fail.configValue)
+      if (normalized != ItemErrorMode.Fail.configValue) {
+        logger.warn(
+          s"bulk.item.errors=$rawValue is set but this connector does not support per-record diversion " +
+            "(the bulk client does not expose per-item positions). The setting is ignored — the connector " +
+            "will behave as bulk.item.errors=fail regardless.",
+        )
+      }
       return
     }
 
-    val strictItemErrors = confMap.get(strictItemErrorsConfigKey)
-      .map(_.toBoolean)
-      .getOrElse(ElasticCommonConfigConstants.BULK_STRICT_ITEM_ERRORS_DEFAULT)
+    val itemErrorMode    = ItemErrorMode.fromString(rawValue)
+    val strictItemErrors = parseStrictItemErrors(confMap)
 
     itemErrorMode match {
       case ItemErrorMode.Fail => // silent — identical to the pre-diversion behaviour
@@ -237,6 +246,25 @@ abstract class AbstractElasticSinkTask extends SinkTask with StrictLogging with 
         }
     }
   }
+
+  /**
+   * Parses `bulk.strict.item.errors` from the raw confMap exactly as Kafka's `ConfigDef` BOOLEAN
+   * type does (trim, then case-insensitive "true"/"false"), so a value ConfigDef accepts — e.g.
+   * `" TRUE "` — cannot crash here. Absent (or null) falls back to
+   * `BULK_STRICT_ITEM_ERRORS_DEFAULT`. Any other value throws the same [[ConfigException]]
+   * `ConfigDef.parse` would; in practice connector validation, or the `ConfigDef.parse` inside
+   * [[createWriter]], rejects it anyway — throwing here keeps the error identical and avoids
+   * emitting warnings derived from a value that is about to be rejected.
+   */
+  private def parseStrictItemErrors(confMap: Map[String, String]): Boolean =
+    confMap.get(strictItemErrorsConfigKey) match {
+      case None | Some(null) => ElasticCommonConfigConstants.BULK_STRICT_ITEM_ERRORS_DEFAULT
+      case Some(raw) =>
+        val trimmed = raw.trim
+        if (trimmed.equalsIgnoreCase("true")) true
+        else if (trimmed.equalsIgnoreCase("false")) false
+        else throw new ConfigException(strictItemErrorsConfigKey, raw, "Expected value to be either true or false")
+    }
 
   override def put(records: util.Collection[SinkRecord]): Unit = {
     require(writer.nonEmpty, "Writer is not set!")

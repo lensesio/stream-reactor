@@ -15,6 +15,8 @@
  */
 package io.lenses.streamreactor.connect.elastic6
 
+import io.lenses.streamreactor.connect.elastic.common.config.ElasticCommonConfigConstants
+import io.lenses.streamreactor.connect.elastic6.config.ElasticConfigConstants
 import org.apache.kafka.connect.sink.SinkTaskContext
 import org.mockito.MockitoSugar
 
@@ -38,6 +40,17 @@ class ElasticSinkTaskTest extends TestBase with MockitoSugar {
     //simulate the call from Connect
     //task.put(testRecords.asJava)
     //stop task
+    task.stop()
+  }
+
+  "A ElasticSinkTask should start, not throw, when bulk.item.errors holds an unrecognised value (ES6 ignores it)" in {
+    val context = mock[SinkTaskContext]
+    when(context.assignment()).thenReturn(getAssignment)
+    val config = getElasticSinkConfigProps() +
+      (s"${ElasticConfigConstants.CONNECTOR_PREFIX}.${ElasticCommonConfigConstants.BULK_ITEM_ERRORS_SUFFIX}" -> "dorp")
+    val task = new ElasticSinkTask()
+    task.initialize(context)
+    noException should be thrownBy task.start(config.asJava)
     task.stop()
   }
 }

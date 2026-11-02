@@ -30,6 +30,7 @@ import io.lenses.streamreactor.connect.elastic.common.dlq.DlqGate
 import io.lenses.streamreactor.connect.elastic.common.dlq.RecordRef
 import io.lenses.streamreactor.connect.elastic.common.writer.JsonBulkWriter
 import org.apache.kafka.common.TopicPartition
+import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.sink.ErrantRecordReporter
 import org.apache.kafka.connect.sink.SinkRecord
@@ -346,6 +347,50 @@ class AbstractElasticSinkTaskTest extends AnyFunSuite with Matchers with Mockito
       diversionSupported = false,
       forbid             = Seq("setting is ignored", "bulk.item.errors=drop", DlqGate.DlqTopicNameConfigKey),
     ),
+    WarnCase(
+      // Previously ItemErrorMode.fromString ran first and threw ConfigException at start(); on ES6
+      // the key is unregistered and ignored, so a typo must only warn. (start() throwing fails this test.)
+      "when diversion is unsupported, an unrecognised bulk.item.errors value does not throw and emits the 'ignored' WARN",
+      ElasticCommonSettings(kcqls = Seq.empty, errorPolicy = new NoopErrorPolicy),
+      Map(ItemErrorModeKey -> "dorp"),
+      reporter           = false,
+      diversionSupported = false,
+      expect             = Seq("setting is ignored", "bulk.item.errors=dorp"),
+      forbid             = Seq("is active", DlqGate.DlqTopicNameConfigKey, DlqGate.ErrorsToleranceConfigKey),
+    ),
+    WarnCase(
+      "when diversion is unsupported and bulk.item.errors=fail is set explicitly, no 'ignored' WARN is emitted",
+      ElasticCommonSettings(kcqls = Seq.empty, errorPolicy = new NoopErrorPolicy),
+      Map(ItemErrorModeKey -> "fail"),
+      reporter           = false,
+      diversionSupported = false,
+      forbid             = Seq("setting is ignored", "bulk.item.errors=", "bulk.strict.item.errors"),
+    ),
+    WarnCase(
+      "when diversion is unsupported, 'fail' is matched trimmed and case-insensitively (' FAIL ' emits no WARN)",
+      ElasticCommonSettings(kcqls = Seq.empty, errorPolicy = new NoopErrorPolicy),
+      Map(ItemErrorModeKey -> " FAIL "),
+      reporter           = false,
+      diversionSupported = false,
+      forbid             = Seq("setting is ignored", "bulk.item.errors=", "bulk.strict.item.errors"),
+    ),
+    WarnCase(
+      // ConfigDef BOOLEAN trims and is case-insensitive; " TRUE " passes ConfigDef, so it must not
+      // crash here (previously _.toBoolean threw IllegalArgumentException). Parsed as true -> no strict WARN.
+      "bulk.strict.item.errors=' TRUE ' is parsed like ConfigDef (trimmed, case-insensitive) and does not throw",
+      dropSettings(strictItemErrors = true),
+      Map(ItemErrorModeKey -> "drop", StrictItemErrorsKey -> " TRUE "),
+      reporter = false,
+      expect   = Seq("bulk.item.errors=drop"),
+      forbid   = Seq("bulk.strict.item.errors=false"),
+    ),
+    WarnCase(
+      "bulk.strict.item.errors=' False ' is parsed as false (trimmed, case-insensitive) and emits the strict WARN",
+      dropSettings(strictItemErrors = false),
+      Map(ItemErrorModeKey -> "drop", StrictItemErrorsKey -> " False "),
+      reporter = false,
+      expect   = Seq("bulk.strict.item.errors=false"),
+    ),
   )
 
   warnCases.foreach { c =>
@@ -364,6 +409,25 @@ class AbstractElasticSinkTaskTest extends AnyFunSuite with Matchers with Mockito
         withClue(s"did not expect any WARN containing '$s': ")(warnings.exists(_.contains(s)) shouldBe false),
       )
     }
+  }
+
+  test("an invalid bulk.strict.item.errors value fails start() with ConfigDef's ConfigException, before createWriter") {
+    val task = new CapturingTask(writerStub(dropSettings()))
+    task.initialize(mockContext(configs = Map(ItemErrorModeKey -> "drop", StrictItemErrorsKey -> "yes")))
+
+    val e = intercept[ConfigException](task.start(emptyMap[String, String]()))
+    e.getMessage should include(StrictItemErrorsKey)
+    e.getMessage should include("Expected value to be either true or false")
+    task.capturedConf shouldBe empty // createWriter was never reached
+  }
+
+  test("when diversion IS supported, an unrecognised bulk.item.errors value still fails start() with ConfigException") {
+    val task = new CapturingTask(writerStub())
+    task.initialize(mockContext(configs = Map(ItemErrorModeKey -> "dorp")))
+
+    val e = intercept[ConfigException](task.start(emptyMap[String, String]()))
+    e.getMessage should include("dorp")
+    task.capturedConf shouldBe empty
   }
 
   // Value must be valid, NON-EMPTY JSON (schema-less string path goes straight to
