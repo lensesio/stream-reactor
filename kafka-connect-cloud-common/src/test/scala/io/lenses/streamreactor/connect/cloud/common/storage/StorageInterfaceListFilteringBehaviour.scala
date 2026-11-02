@@ -33,10 +33,9 @@ import org.scalatest.matchers.should.Matchers
  * filtering will fail here.
  *
  * Deliberately NOT covered here: pagination/resume-marker semantics for a page that is
- * *entirely* filtered out. S3 and GCS diverge there by design (S3's marker is derived from the
- * filtered sequence and yields no marker for an all-filtered page; GCS keeps the raw last
- * object as its marker so offset-based pagination still advances). That divergence is exercised
- * by backend-specific regression tests, not this shared contract.
+ * *entirely* filtered out. Both S3 (LC-344) and GCS keep the raw last object as their marker so
+ * pagination still advances; that is exercised by backend-specific regression tests, not this
+ * shared contract.
  *
  * Also not covered: unknown/null object size. GCS fails open (keeps the object when
  * Blob.getSize is null) so a listing that omits size cannot silently starve the source; S3's
