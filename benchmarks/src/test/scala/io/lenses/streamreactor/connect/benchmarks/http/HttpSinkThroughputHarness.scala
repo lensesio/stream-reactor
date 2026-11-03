@@ -94,18 +94,29 @@ class HttpSinkThroughputHarness {
     )
 
     for {
-      config <- IO(HttpSinkConfig.from(fullProps)).rethrow
+      config  <- IO(HttpSinkConfig.from(fullProps)).rethrow
       metrics <- IO(new HttpSinkMetrics())
       template = RawTemplate(config.endpoint, config.content, config.headers, config.nullPayloadHandler)
       sender =
-        new NoAuthenticationHttpRequestSender(sinkName, config.method.toHttp4sMethod, stubClient(egressLatency), metrics)
+        new NoAuthenticationHttpRequestSender(sinkName,
+                                              config.method.toHttp4sMethod,
+                                              stubClient(egressLatency),
+                                              metrics,
+        )
       batchPolicy = config.batch.toBatchPolicy
-      writerAndQueue  <- buildWriter(sender, template, batchPolicy, config.maxQueueSize, config.maxQueueOfferTimeout)
+      writerAndQueue <- buildWriter(
+        sender,
+        template,
+        batchPolicy,
+        config.maxQueueSize,
+        config.maxQueueOfferTimeout,
+        metrics,
+      )
       (writer, queue)  = writerAndQueue
       batchCount       = batchPolicy.conditions.collectFirst { case Count(c) => c.toInt }.getOrElse(records.length)
       expectedRequests = math.ceil(records.length.toDouble / math.max(1, batchCount)).toInt
-      heapBefore <- IO(HeapSampler.usedHeapBytes())
-      start      <- IO.monotonic
+      heapBefore      <- IO(HeapSampler.usedHeapBytes())
+      start           <- IO.monotonic
       // The consumer fiber runs for the duration of the `use` block and is cancelled on exit.
       // `elapsed` is captured inside the block so the cancellation is excluded from the timed window.
       elapsed <- writer.consume().background.use { _ =>
@@ -145,6 +156,7 @@ class HttpSinkThroughputHarness {
     batchPolicy:          BatchPolicy,
     maxQueueSize:         Int,
     maxQueueOfferTimeout: FiniteDuration,
+    metrics:              HttpSinkMetrics,
   ): IO[(HttpWriter, Queue[IO, NonEmptySeq[RenderedRecord]])] =
     for {
       recordsQueue     <- Queue.unbounded[IO, NonEmptySeq[RenderedRecord]]
@@ -166,6 +178,7 @@ class HttpSinkThroughputHarness {
         errorReporter        = NoopReporters.error,
         successReporter      = NoopReporters.success,
         commitContextRef     = commitContextRef,
+        metrics              = metrics,
       )
     } yield (writer, recordsQueue)
 
@@ -174,8 +187,8 @@ class HttpSinkThroughputHarness {
       case None => IO.unit
       case Some(nes) =>
         template.renderRecords(nes) match {
-          case Left(err)        => IO.raiseError(err)
-          case Right(rendered)  => writer.add(rendered)
+          case Left(err)       => IO.raiseError(err)
+          case Right(rendered) => writer.add(rendered)
         }
     }
 

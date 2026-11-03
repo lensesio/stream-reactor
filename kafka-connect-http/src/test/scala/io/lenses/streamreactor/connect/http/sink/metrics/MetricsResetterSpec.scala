@@ -63,6 +63,12 @@ class MetricsResetterSpec extends AnyFunSuite with Matchers {
 
     override def getOtherErrorsCount: Long = ???
 
+    override def getBatchCountTriggerCount: Long = ???
+
+    override def getBatchSizeTriggerCount: Long = ???
+
+    override def getTimeIntervalTriggerCount: Long = ???
+
     /**
      * Record the time taken to process a request
      */
@@ -75,6 +81,12 @@ class MetricsResetterSpec extends AnyFunSuite with Matchers {
     override def increment5xxCount(): Unit = ???
 
     override def incrementOtherErrorsCount(): Unit = ???
+
+    override def incrementBatchCountTriggerCount(): Unit = ???
+
+    override def incrementBatchSizeTriggerCount(): Unit = ???
+
+    override def incrementTimeIntervalTriggerCount(): Unit = ???
 
     override def getP50RequestTimeMs: Long = ???
 

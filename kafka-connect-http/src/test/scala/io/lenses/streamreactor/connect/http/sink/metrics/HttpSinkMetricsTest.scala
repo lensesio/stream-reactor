@@ -79,6 +79,19 @@ class HttpSinkMetricsTest extends AnyFunSuite with Matchers {
     metrics.getOtherErrorsCount shouldBe 1L
   }
 
+  test("HttpSinkMetrics should track cumulative batch trigger counts") {
+    val metrics = new HttpSinkMetrics()
+
+    metrics.incrementBatchCountTriggerCount()
+    metrics.incrementBatchSizeTriggerCount()
+    metrics.incrementBatchSizeTriggerCount()
+    metrics.incrementTimeIntervalTriggerCount()
+
+    metrics.getBatchCountTriggerCount shouldBe 1L
+    metrics.getBatchSizeTriggerCount shouldBe 2L
+    metrics.getTimeIntervalTriggerCount shouldBe 1L
+  }
+
   test("HttpSinkMetrics should handle large request times") {
     val metrics = new HttpSinkMetrics()
 

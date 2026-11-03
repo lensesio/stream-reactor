@@ -25,7 +25,11 @@ import cats.implicits.none
 import cats.implicits.toFoldableOps
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.common.batch.BatchPolicy
+import io.lenses.streamreactor.common.batch.BatchPolicyCondition
+import io.lenses.streamreactor.common.batch.Count
+import io.lenses.streamreactor.common.batch.FileSize
 import io.lenses.streamreactor.common.batch.HttpCommitContext
+import io.lenses.streamreactor.common.batch.Interval
 import io.lenses.streamreactor.common.batch.OffsetMergeUtils
 import io.lenses.streamreactor.common.utils.CyclopsToScalaOption.convertToCyclopsOption
 import io.lenses.streamreactor.connect.cloud.common.model.Offset
@@ -33,6 +37,7 @@ import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
 import io.lenses.streamreactor.connect.http.sink.client.HttpRequestSender
 import io.lenses.streamreactor.connect.http.sink.client.HttpResponseFailure
 import io.lenses.streamreactor.connect.http.sink.client.HttpResponseSuccess
+import io.lenses.streamreactor.connect.http.sink.metrics.HttpSinkMetricsMBean
 import io.lenses.streamreactor.connect.http.sink.reporter.model.HttpFailureConnectorSpecificRecordData
 import io.lenses.streamreactor.connect.http.sink.reporter.model.HttpSuccessConnectorSpecificRecordData
 import io.lenses.streamreactor.connect.http.sink.tpl.ProcessedTemplate
@@ -72,6 +77,7 @@ object HttpWriter {
     tidyJson:             Boolean,
     errorReporter:        ReportingController[HttpFailureConnectorSpecificRecordData],
     successReporter:      ReportingController[HttpSuccessConnectorSpecificRecordData],
+    metrics:              HttpSinkMetricsMBean,
   ): IO[HttpWriter] =
     for {
       recordsQueue     <- Queue.unbounded[IO, NonEmptySeq[RenderedRecord]]
@@ -93,6 +99,7 @@ object HttpWriter {
       errorReporter        = errorReporter,
       successReporter      = successReporter,
       commitContextRef     = commitContextRef,
+      metrics              = metrics,
     )
 }
 
@@ -141,6 +148,7 @@ class HttpWriter(
   errorReporter:        ReportingController[HttpFailureConnectorSpecificRecordData],
   successReporter:      ReportingController[HttpSuccessConnectorSpecificRecordData],
   commitContextRef:     Ref[IO, HttpCommitContext],
+  metrics:              HttpSinkMetricsMBean,
 ) extends LazyLogging {
 
   // TODO: feedback to kafka a warning if the queue gets too large
@@ -254,7 +262,7 @@ class HttpWriter(
         // by `maxQueueSize`.
         processChunk(acc, chunk) *> loop(acc)
       case None =>
-        flushIfNonEmpty(acc) *> loop(acc)
+        IO(acc.markIntervalTrigger()) *> IO.defer(flushIfNonEmpty(acc)) *> loop(acc)
     }
 
   /**
@@ -378,10 +386,11 @@ class HttpWriter(
       case None => IO.unit
       case Some(batch) =>
         val flushedCount = batch.length.toLong
+        val triggers     = acc.flushTriggers
         // Log the once-per-flush explanation here (not in the batch policy) so the line describes the
         // batch actually being sent, covering hard, greedy and interval-deadline flushes uniformly.
         IO(acc.logFlush()) *> IO.uncancelable { poll =>
-          poll(sendBatch(batch).attempt).flatMap {
+          poll(sendBatch(batch, triggers).attempt).flatMap {
             case Right(_) =>
               val flushedCtx = acc.flushedContext().resetErrors
               // These records have left the pipeline (sent), so return their permits to the semaphore.
@@ -394,7 +403,7 @@ class HttpWriter(
   // Cancellation and permit accounting behave exactly as described on `flush` above.
   private def flushSingle(acc: BatchAccumulator, record: RenderedRecord): IO[Unit] =
     IO(acc.logFlushSingle(record)) *> IO.uncancelable { poll =>
-      poll(sendBatch(NonEmptySeq.of(record)).attempt).flatMap {
+      poll(sendBatch(NonEmptySeq.of(record), acc.flushTriggers).attempt).flatMap {
         case Right(_) =>
           val flushedCtx = acc.candidateContextFor(record).resetErrors
           // The single record has left the pipeline (sent), so return its permit to the semaphore.
@@ -424,13 +433,27 @@ class HttpWriter(
           commitContextRef.get.flatMap(ctx => IO(acc.resetTo(ctx))) *> permits.releaseN(flushedCount)
     }
 
-  private def sendBatch(records: NonEmptySeq[RenderedRecord]): IO[ProcessedTemplate] =
+  private def sendBatch(
+    records:  NonEmptySeq[RenderedRecord],
+    triggers: Set[BatchPolicyCondition],
+  ): IO[ProcessedTemplate] =
     for {
-      _          <- IO.delay(logger.debug(s"[$sinkName] flushing batch of ${records.length}"))
-      processed  <- IO.fromEither(template.process(records, tidyJson))
+      _         <- IO.delay(logger.debug(s"[$sinkName] flushing batch of ${records.length}"))
+      processed <- IO.fromEither(template.process(records, tidyJson))
+      // Keep this after rendering (exclude template failures) and before submission (include failed
+      // HTTP attempts). Counters are deliberately attempt-level under at-least-once redelivery.
+      _          <- IO.delay(recordBatchTriggers(triggers))
       httpResult <- sender.sendHttpRequest(processed)
       _          <- reportResult(records, processed, httpResult)
     } yield processed
+
+  private def recordBatchTriggers(triggers: Set[BatchPolicyCondition]): Unit =
+    triggers.foreach {
+      case _: Count    => metrics.incrementBatchCountTriggerCount()
+      case _: FileSize => metrics.incrementBatchSizeTriggerCount()
+      case _: Interval => metrics.incrementTimeIntervalTriggerCount()
+      case condition => logger.warn(s"[$sinkName] No batch-trigger metric is defined for $condition")
+    }
 
   def preCommit(
     initialOffsetAndMetaMap: Map[TopicPartition, OffsetAndMetadata],

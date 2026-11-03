@@ -126,6 +126,7 @@ object HttpWriterManager extends StrictLogging {
       config.successReportingController,
       config.maxQueueSize,
       config.maxQueueOfferTimeout,
+      metrics,
     )
   }
 
@@ -202,6 +203,7 @@ class HttpWriterManager(
   successReportingController: ReportingController[HttpSuccessConnectorSpecificRecordData],
   maxQueueSize:               Int,
   maxQueueOfferTimeout:       FiniteDuration,
+  metrics:                    HttpSinkMetricsMBean,
 )(
   implicit
   t: Temporal[IO],
@@ -237,6 +239,7 @@ class HttpWriterManager(
         tidyJson             = tidyJson,
         errorReporter        = errorReportingController,
         successReporter      = successReportingController,
+        metrics              = metrics,
       )
       errCallback <- errCallbackRef.get
       _           <- startConsumer(writer, errCallback)

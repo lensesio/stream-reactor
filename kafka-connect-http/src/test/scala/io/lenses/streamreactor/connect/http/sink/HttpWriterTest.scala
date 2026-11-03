@@ -45,6 +45,8 @@ import io.lenses.streamreactor.connect.http.sink.client.HttpRequestSender
 import io.lenses.streamreactor.connect.http.sink.client.HttpResponseFailure
 import io.lenses.streamreactor.connect.http.sink.client.HttpResponseSuccess
 import io.lenses.streamreactor.connect.http.sink.config.ErrorNullPayloadHandler
+import io.lenses.streamreactor.connect.http.sink.metrics.HttpSinkMetrics
+import io.lenses.streamreactor.connect.http.sink.metrics.HttpSinkMetricsMBean
 import io.lenses.streamreactor.connect.http.sink.reporter.model.HttpFailureConnectorSpecificRecordData
 import io.lenses.streamreactor.connect.http.sink.reporter.model.HttpSuccessConnectorSpecificRecordData
 import io.lenses.streamreactor.connect.http.sink.tpl.Headers
@@ -90,6 +92,7 @@ class HttpWriterTest extends AsyncIOSpec with AsyncFunSuiteLike with Matchers wi
     template:         TemplateType          = successTemplate(),
     errorThreshold:   Int                   = 5,
     permits:          Option[Semaphore[IO]] = None,
+    metrics:          HttpSinkMetricsMBean  = new HttpSinkMetrics(),
     commitContextRef: Ref[IO, HttpCommitContext],
     offsetMapRef:     Ref[IO, Map[TopicPartition, Offset]],
   ): IO[(HttpWriter, Queue[IO, NonEmptySeq[RenderedRecord]])] =
@@ -112,6 +115,7 @@ class HttpWriterTest extends AsyncIOSpec with AsyncFunSuiteLike with Matchers wi
         errorReporter        = mock[ReportingController[HttpFailureConnectorSpecificRecordData]],
         successReporter      = mock[ReportingController[HttpSuccessConnectorSpecificRecordData]],
         commitContextRef     = commitContextRef,
+        metrics              = metrics,
       )
       (writer, queue)
     }
@@ -170,6 +174,23 @@ class HttpWriterTest extends AsyncIOSpec with AsyncFunSuiteLike with Matchers wi
                    Headers(Seq.empty, copyMessageHeaders = false),
                    ErrorNullPayloadHandler,
     )
+
+  private def failingTemplate(): TemplateType =
+    new TemplateType {
+      override def endpoint: String  = "http://bench.invalid"
+      override def headers:  Headers = Headers(Seq.empty, copyMessageHeaders = false)
+
+      override def renderRecords(
+        records: NonEmptySeq[SinkRecord],
+      ): Either[SubstitutionError, NonEmptySeq[RenderedRecord]] =
+        Left(SubstitutionError("renderRecords is not exercised by this test"))
+
+      override def process(
+        records:  NonEmptySeq[RenderedRecord],
+        tidyJson: Boolean,
+      ): Either[SubstitutionError, ProcessedTemplate] =
+        Left(SubstitutionError("template processing failed"))
+    }
 
   // A template that records the exact records handed to `process` for each flush, so a test can
   // assert on how the chunk was split into batches. `SimpleTemplate.process` only reads `records.head`,
@@ -264,6 +285,58 @@ class HttpWriterTest extends AsyncIOSpec with AsyncFunSuiteLike with Matchers wi
       verify(sender).sendHttpRequest(any[ProcessedTemplate])
       ctx.committedOffsets should contain(topicPartition -> Offset(101))
       ctx.count shouldBe 0L
+    }
+  }
+
+  test("batch trigger metrics include failed HTTP submissions") {
+    val metrics = new HttpSinkMetrics()
+    for {
+      commitContextRef <- Ref.of[IO, HttpCommitContext](HttpCommitContext.default(sinkName))
+      offsetMapRef     <- Ref.of[IO, Map[TopicPartition, Offset]](Map.empty)
+      writerAndQueue <- buildWriter(
+        BatchPolicy(logger, Count(2), FileSize(14L)),
+        sender           = failingSender(),
+        metrics          = metrics,
+        commitContextRef = commitContextRef,
+        offsetMapRef     = offsetMapRef,
+      )
+      (writer, _) = writerAndQueue
+      fiber      <- writer.consume().start
+      _          <- writer.add(NonEmptySeq.of(record1, record2))
+      _          <- eventually(IO(metrics.getBatchCountTriggerCount))(_ == 1L)
+      _          <- fiber.cancel
+    } yield {
+      metrics.getBatchCountTriggerCount shouldBe 1L
+      metrics.getBatchSizeTriggerCount shouldBe 1L
+      metrics.getTimeIntervalTriggerCount shouldBe 0L
+    }
+  }
+
+  test("batch trigger metrics exclude template failures before the endpoint request") {
+    val metrics = new HttpSinkMetrics()
+    val sender  = successSender()
+    for {
+      commitContextRef <- Ref.of[IO, HttpCommitContext](HttpCommitContext.default(sinkName))
+      offsetMapRef     <- Ref.of[IO, Map[TopicPartition, Offset]](Map.empty)
+      writerAndQueue <- buildWriter(
+        BatchPolicy(logger, Count(2)),
+        sender           = sender,
+        template         = failingTemplate(),
+        metrics          = metrics,
+        commitContextRef = commitContextRef,
+        offsetMapRef     = offsetMapRef,
+      )
+      (writer, _) = writerAndQueue
+      fiber      <- writer.consume().start
+      _          <- writer.add(NonEmptySeq.of(record1, record2))
+      _          <- eventually(commitContextRef.get)(_.errors.nonEmpty)
+      _          <- fiber.cancel
+    } yield {
+      metrics.getBatchCountTriggerCount shouldBe 0L
+      metrics.getBatchSizeTriggerCount shouldBe 0L
+      metrics.getTimeIntervalTriggerCount shouldBe 0L
+      verify(sender, never).sendHttpRequest(any[ProcessedTemplate])
+      succeed
     }
   }
 
@@ -695,6 +768,7 @@ class HttpWriterTest extends AsyncIOSpec with AsyncFunSuiteLike with Matchers wi
   // guards the not-yet-elapsed deadline path for an interval-only policy.)
   test("an interval-only not-yet-elapsed policy flushes all accumulated records once the deadline fires") {
     val captured = new ConcurrentLinkedQueue[Seq[RenderedRecord]]()
+    val metrics  = new HttpSinkMetrics()
     TestControl.executeEmbed(
       for {
         commitContextRef <- Ref.of[IO, HttpCommitContext](contextAt(0L))
@@ -702,6 +776,7 @@ class HttpWriterTest extends AsyncIOSpec with AsyncFunSuiteLike with Matchers wi
         writerAndQueue <- buildWriter(
           BatchPolicy(logger, Interval(Duration.ofMillis(500), notElapsedClock)),
           template         = recordingTemplate(captured),
+          metrics          = metrics,
           commitContextRef = commitContextRef,
           offsetMapRef     = offsetMapRef,
         )
@@ -710,7 +785,10 @@ class HttpWriterTest extends AsyncIOSpec with AsyncFunSuiteLike with Matchers wi
         _          <- writer.add(NonEmptySeq.of(record1, record2, record3))
         _          <- eventually(commitContextRef.get)(_.committedOffsets.nonEmpty)
         _          <- fiber.cancel
-      } yield captured.asScala.toList.map(_.toList) shouldBe List(List(record1, record2, record3)),
+      } yield {
+        captured.asScala.toList.map(_.toList) shouldBe List(List(record1, record2, record3))
+        metrics.getTimeIntervalTriggerCount shouldBe 1L
+      },
     )
   }
 
@@ -745,6 +823,7 @@ class HttpWriterTest extends AsyncIOSpec with AsyncFunSuiteLike with Matchers wi
   // third record and it is not stranded into its own greedy flush.
   test("a hard count trigger still cuts the batch at the configured count when the interval has elapsed") {
     val captured = new ConcurrentLinkedQueue[Seq[RenderedRecord]]()
+    val metrics  = new HttpSinkMetrics()
     TestControl.executeEmbed(
       for {
         commitContextRef <- Ref.of[IO, HttpCommitContext](contextAt(0L))
@@ -752,6 +831,7 @@ class HttpWriterTest extends AsyncIOSpec with AsyncFunSuiteLike with Matchers wi
         writerAndQueue <- buildWriter(
           BatchPolicy(logger, Count(2), Interval(Duration.ofSeconds(1), elapsedClock)),
           template         = recordingTemplate(captured),
+          metrics          = metrics,
           commitContextRef = commitContextRef,
           offsetMapRef     = offsetMapRef,
         )
@@ -760,7 +840,11 @@ class HttpWriterTest extends AsyncIOSpec with AsyncFunSuiteLike with Matchers wi
         _          <- writer.add(NonEmptySeq.of(record1, record2, record3))
         _          <- eventually(commitContextRef.get)(_.committedOffsets.nonEmpty)
         _          <- fiber.cancel
-      } yield captured.asScala.toList.map(_.toList) shouldBe List(List(record1, record2)),
+      } yield {
+        captured.asScala.toList.map(_.toList) shouldBe List(List(record1, record2))
+        metrics.getBatchCountTriggerCount shouldBe 1L
+        metrics.getTimeIntervalTriggerCount shouldBe 1L
+      },
     )
   }
 

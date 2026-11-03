@@ -17,6 +17,7 @@ package io.lenses.streamreactor.connect.http.sink
 
 import cats.data.NonEmptySeq
 import io.lenses.streamreactor.common.batch.BatchPolicy
+import io.lenses.streamreactor.common.batch.BatchPolicyCondition
 import io.lenses.streamreactor.common.batch.BatchResult
 import io.lenses.streamreactor.common.batch.HttpCommitContext
 import io.lenses.streamreactor.common.batch.Interval
@@ -55,9 +56,13 @@ final class BatchAccumulator(
   private var carried:     HttpCommitContext = initialContext
   private var recordCount: Long              = 0L
   private var recordBytes: Long              = 0L
+  private var triggeredConditions = Set.empty[BatchPolicyCondition]
+
+  private val intervalConditionOpt: Option[Interval] =
+    batchPolicy.conditions.collectFirst { case interval: Interval => interval }
 
   private val intervalMillisOpt: Option[Long] =
-    batchPolicy.conditions.collectFirst { case Interval(interval, _) => interval.toMillis }
+    intervalConditionOpt.map { case Interval(interval, _) => interval.toMillis }
 
   // Reused across offer() calls; safe because a single fiber owns this accumulator.
   private val evalContext = new BatchAccumulator.MutableCommitContext
@@ -76,6 +81,7 @@ final class BatchAccumulator(
     evalContext.count    = recordCount + 1L
     evalContext.fileSize = recordBytes + record.length.toLong
     val result = batchPolicy.shouldBatch(evalContext)
+    triggeredConditions ++= result.triggeredConditions
     if (result.fitsInBatch) {
       recordBuffer += record
       recordCount += 1L
@@ -83,6 +89,13 @@ final class BatchAccumulator(
     }
     result
   }
+
+  /** Conditions satisfied while selecting the current batch; these are non-exclusive metrics. */
+  def flushTriggers: Set[BatchPolicyCondition] = triggeredConditions
+
+  /** Records a timer-driven flush, which occurs without evaluating a candidate record. */
+  def markIntervalTrigger(): Unit =
+    intervalConditionOpt.foreach(triggeredConditions += _)
 
   /**
    * Emits the batch policy's once-per-flush explanation for the batch currently accumulated. Unlike
@@ -137,6 +150,7 @@ final class BatchAccumulator(
     recordBuffer.clear()
     recordCount                      = 0L
     recordBytes                      = 0L
+    triggeredConditions              = Set.empty
     carried                          = context
     evalContext.createdTimestamp     = context.createdTimestamp
     evalContext.lastFlushedTimestamp = context.lastFlushedTimestamp

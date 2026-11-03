@@ -42,10 +42,9 @@ case class BatchPolicy(logger: Logger, conditions: BatchPolicyCondition*) {
   require(conditions.nonEmpty, "BatchPolicy requires at least one condition")
 
   def shouldBatch(context: CommitContext): BatchResult = {
-    // Hot path: fold the conditions with three flags, allocating no intermediate collections and no
-    // log strings. This is a pure decision function -- the flush explanation is logged by the flush
-    // sites (see `logFlush`), which know the batch actually being sent, rather than here where only
-    // the candidate batch is visible.
+    // Hot path: fold the conditions with three flags and no log strings. A small set is retained
+    // only when one or more conditions are satisfied, so the HTTP sink can attribute its
+    // non-exclusive, per-submission trigger metrics to every satisfied condition.
     //
     // `triggerReached`/`greedyTriggerReached` are ORed (any condition reaching its limit is enough to
     // flush); `fitsInBatch` is ANDed (the record fits only if *every* condition agrees it does), so
@@ -58,13 +57,15 @@ case class BatchPolicy(logger: Logger, conditions: BatchPolicyCondition*) {
     var triggerReached       = false
     var greedyTriggerReached = false
     var fitsInBatch          = true
+    var triggeredConditions  = Set.empty[BatchPolicyCondition]
     conditions.foreach { condition =>
       val r = condition.eval(context)
       if (r.triggerReached) triggerReached             = true
       if (r.greedyTriggerReached) greedyTriggerReached = true
       if (!r.fitsInBatch) fitsInBatch                  = false
+      if (r.triggerReached || r.greedyTriggerReached) triggeredConditions += condition
     }
-    BatchResult(fitsInBatch, triggerReached, greedyTriggerReached)
+    BatchResult(fitsInBatch, triggerReached, greedyTriggerReached, triggeredConditions)
   }
 
   /**
@@ -93,6 +94,9 @@ case class BatchResult(
   // convenient point (after packing anything already queued) rather than being forced immediately
   // like `triggerReached`.
   greedyTriggerReached: Boolean,
+  // Conditions satisfied by this candidate. Multiple conditions can be present; HTTP submission
+  // metrics deliberately count each satisfied condition rather than selecting a single winner.
+  triggeredConditions: Set[BatchPolicyCondition] = Set.empty,
 )
 
 object HttpBatchPolicy extends LazyLogging {

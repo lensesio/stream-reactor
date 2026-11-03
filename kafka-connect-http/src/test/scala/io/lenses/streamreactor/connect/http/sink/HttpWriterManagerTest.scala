@@ -30,6 +30,7 @@ import io.lenses.streamreactor.connect.http.sink.client.HttpRequestSender
 import io.lenses.streamreactor.connect.http.sink.client.HttpResponseFailure
 import io.lenses.streamreactor.connect.http.sink.client.HttpResponseSuccess
 import io.lenses.streamreactor.connect.http.sink.config.ErrorNullPayloadHandler
+import io.lenses.streamreactor.connect.http.sink.metrics.HttpSinkMetrics
 import io.lenses.streamreactor.connect.http.sink.reporter.model.HttpFailureConnectorSpecificRecordData
 import io.lenses.streamreactor.connect.http.sink.reporter.model.HttpSuccessConnectorSpecificRecordData
 import io.lenses.streamreactor.connect.http.sink.tpl.Headers
@@ -119,6 +120,7 @@ class HttpWriterManagerTest extends AnyFunSuiteLike with Matchers with EitherVal
       successReportingController = successController,
       maxQueueSize               = 10,
       maxQueueOfferTimeout       = 1.minute,
+      metrics                    = new HttpSinkMetrics(),
     )
 
   test("shutdown does not close the reporting controllers until it is actually run") {
