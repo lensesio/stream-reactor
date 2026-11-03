@@ -21,6 +21,7 @@ import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.Importance
 import org.apache.kafka.common.config.ConfigDef.Range
 import org.apache.kafka.common.config.ConfigDef.Type
+import org.apache.kafka.common.config.ConfigException
 import org.http4s.Status.BadGateway
 import org.http4s.Status.GatewayTimeout
 import org.http4s.Status.InternalServerError
@@ -29,6 +30,8 @@ import org.http4s.Status.ServiceUnavailable
 import org.http4s.Status.TooManyRequests
 
 import scala.jdk.CollectionConverters._
+
+import java.util.Locale
 
 object HttpSinkConfigDef {
 
@@ -189,6 +192,25 @@ object HttpSinkConfigDef {
       |Whether to copy Kafka message headers into the HTTP request. Default is false.
       |""".stripMargin
   val CopyMessageHeadersDefault = false
+
+  val CompressionTypeProp: String = "connect.http.compression.type"
+  val CompressionTypeDoc: String =
+    """
+      |Compression to apply to the rendered request body. Options are `none` and `gzip`. When
+      |`gzip`, the connector sets `Content-Encoding: gzip`; any configured `Content-Type` is preserved.
+      |""".stripMargin
+  val CompressionTypeDefault = "none"
+  val CompressionTypeValidator: ConfigDef.Validator = new ConfigDef.Validator {
+    private val allowed = Set("none", "gzip")
+
+    override def ensureValid(name: String, value: Object): Unit =
+      value match {
+        case string: String if allowed.contains(string.toLowerCase(Locale.ROOT)) => ()
+        case _ => throw new ConfigException(name, value, "Expected one of: none, gzip")
+      }
+
+    override def toString: String = "[none, gzip] (case-insensitive)"
+  }
 
   val config: ConfigDef = {
     val configDef = new ConfigDef()
@@ -360,6 +382,14 @@ object HttpSinkConfigDef {
         CopyMessageHeadersDefault,
         Importance.HIGH,
         CopyMessageHeadersDoc,
+      )
+      .define(
+        CompressionTypeProp,
+        Type.STRING,
+        CompressionTypeDefault,
+        CompressionTypeValidator,
+        Importance.MEDIUM,
+        CompressionTypeDoc,
       )
     ReporterConfig.withErrorRecordReportingSupport(configDef)
     ReporterConfig.withSuccessRecordReportingSupport(configDef)

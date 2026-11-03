@@ -24,8 +24,11 @@ import io.lenses.streamreactor.connect.http.sink.client.oauth2.AccessToken
 import io.lenses.streamreactor.connect.http.sink.client.oauth2.AccessTokenProvider
 import io.lenses.streamreactor.connect.http.sink.client.oauth2.OAuth2AccessTokenProvider
 import io.lenses.streamreactor.connect.http.sink.client.oauth2.cache.CachedAccessTokenProvider
+import io.lenses.streamreactor.connect.http.sink.config.CompressionType
 import io.lenses.streamreactor.connect.http.sink.metrics.HttpSinkMetricsMBean
 import io.lenses.streamreactor.connect.http.sink.tpl.ProcessedTemplate
+import fs2.Chunk
+import fs2.Stream
 import org.http4s.EntityDecoder
 import org.http4s._
 import org.http4s.client.Client
@@ -33,24 +36,28 @@ import org.http4s.headers.Authorization
 import org.http4s.headers.`Content-Type`
 import org.typelevel.ci.CIString
 
+import java.nio.charset.StandardCharsets
+
 class NoAuthenticationHttpRequestSender(
-  sinkName: String,
-  method:   Method,
-  client:   Client[IO],
-  metrics:  HttpSinkMetricsMBean,
-) extends HttpRequestSender(sinkName, method, client, metrics) {
+  sinkName:    String,
+  method:      Method,
+  client:      Client[IO],
+  metrics:     HttpSinkMetricsMBean,
+  compression: CompressionType = CompressionType.None,
+) extends HttpRequestSender(sinkName, method, client, metrics, compression) {
 
   override protected def updateRequest(request: Request[IO]): IO[Request[IO]] = IO.pure(request)
 }
 
 class BasicAuthenticationHttpRequestSender(
-  sinkName: String,
-  method:   Method,
-  client:   Client[IO],
-  username: String,
-  password: String,
-  metrics:  HttpSinkMetricsMBean,
-) extends HttpRequestSender(sinkName, method, client, metrics) {
+  sinkName:    String,
+  method:      Method,
+  client:      Client[IO],
+  username:    String,
+  password:    String,
+  metrics:     HttpSinkMetricsMBean,
+  compression: CompressionType = CompressionType.None,
+) extends HttpRequestSender(sinkName, method, client, metrics, compression) {
 
   override protected def updateRequest(request: Request[IO]): IO[Request[IO]] =
     IO.pure(request.putHeaders(Authorization(BasicCredentials(username, password))))
@@ -62,7 +69,8 @@ class OAuth2AuthenticationHttpRequestSender(
   client:        Client[IO],
   tokenProvider: AccessTokenProvider[IO],
   metrics:       HttpSinkMetricsMBean,
-) extends HttpRequestSender(sinkName, method, client, metrics) {
+  compression:   CompressionType = CompressionType.None,
+) extends HttpRequestSender(sinkName, method, client, metrics, compression) {
 
   override protected def updateRequest(request: Request[IO]): IO[Request[IO]] =
     for {
@@ -78,11 +86,12 @@ object HttpRequestSender {
     client:         Client[IO],
     authentication: Authentication,
     metrics:        HttpSinkMetricsMBean,
+    compression:    CompressionType = CompressionType.None,
   ): IO[HttpRequestSender] =
     authentication match {
-      case NoAuthentication => IO(new NoAuthenticationHttpRequestSender(sinkName, method, client, metrics))
+      case NoAuthentication => IO(new NoAuthenticationHttpRequestSender(sinkName, method, client, metrics, compression))
       case BasicAuthentication(username, password) =>
-        IO(new BasicAuthenticationHttpRequestSender(sinkName, method, client, username, password, metrics))
+        IO(new BasicAuthenticationHttpRequestSender(sinkName, method, client, username, password, metrics, compression))
       case OAuth2Authentication(uri, clientId, clientSecret, tokenProperty, clientScope, clientHeaders) =>
         val rawHeaders = clientHeaders.map { case (k, v) => Header.Raw(CIString(k), v) }
         val tokenProvider =
@@ -90,15 +99,22 @@ object HttpRequestSender {
         for {
           ref                <- Ref.of[IO, Option[AccessToken]](none)
           cachedTokenProvider = new CachedAccessTokenProvider(tokenProvider, ref)
-        } yield new OAuth2AuthenticationHttpRequestSender(sinkName, method, client, cachedTokenProvider, metrics)
+        } yield new OAuth2AuthenticationHttpRequestSender(sinkName,
+                                                          method,
+                                                          client,
+                                                          cachedTokenProvider,
+                                                          metrics,
+                                                          compression,
+        )
     }
 }
 
 abstract class HttpRequestSender(
-  sinkName: String,
-  method:   Method,
-  client:   Client[IO],
-  metrics:  HttpSinkMetricsMBean,
+  sinkName:    String,
+  method:      Method,
+  client:      Client[IO],
+  metrics:     HttpSinkMetricsMBean,
+  compression: CompressionType,
 ) extends LazyLogging {
 
   private case class HeaderInfo(contentType: Option[`Content-Type`], headers: Headers)
@@ -134,6 +150,25 @@ abstract class HttpRequestSender(
 
   protected def updateRequest(request: Request[IO]): IO[Request[IO]]
 
+  private def buildRequest(uri: Uri, headers: Headers, content: String): IO[Request[IO]] =
+    IO {
+      val request = Request[IO](method = method, uri = uri, headers = headers)
+      compression match {
+        case CompressionType.None => request.withEntity(content)
+        case CompressionType.Gzip =>
+          val compressed = PayloadCompressor.gzip(content.getBytes(StandardCharsets.UTF_8))
+          request
+            .withBodyStream(Stream.chunk(Chunk.array(compressed)))
+            .removeHeader(CIString("Content-Length"))
+            .removeHeader(CIString("Content-Encoding"))
+            .putHeaders(
+              `Content-Type`(MediaType.text.plain).withCharset(Charset.`UTF-8`),
+              Header.Raw(CIString("Content-Encoding"), "gzip"),
+              Header.Raw(CIString("Content-Length"), compressed.length.toString),
+            )
+      }
+    }
+
   /**
    * Sends an HTTP request based on the provided processed template.
    *
@@ -155,14 +190,7 @@ abstract class HttpRequestSender(
 
       clientHeaders: HeaderInfo <- IO.fromEither(buildHeaders(tpl.headers))
 
-      request <- IO {
-        Request[IO](
-          method  = method,
-          uri     = uri,
-          headers = clientHeaders.headers,
-        )
-          .withEntity(processedTemplate.content)
-      }
+      request               <- buildRequest(uri, clientHeaders.headers, processedTemplate.content)
       requestWithContentType = clientHeaders.contentType.fold(request)(request.withContentType)
       // Add authentication if present
       authenticatedRequest <- updateRequest(requestWithContentType)

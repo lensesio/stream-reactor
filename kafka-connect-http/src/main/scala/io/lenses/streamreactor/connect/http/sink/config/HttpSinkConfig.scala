@@ -42,6 +42,7 @@ import java.net.MalformedURLException
 import java.net.URL
 import java.time.Clock
 import java.time.Duration
+import java.util.Locale
 import scala.concurrent.duration.FiniteDuration
 import scala.jdk.CollectionConverters._
 import scala.util.Try
@@ -83,6 +84,19 @@ object BatchConfig {
 case class TimeoutConfig(
   connectionTimeoutMs: Int,
 )
+
+sealed trait CompressionType
+case object CompressionType {
+  case object None extends CompressionType
+  case object Gzip extends CompressionType
+
+  def from(name: String): Either[Throwable, CompressionType] =
+    name.toLowerCase(Locale.ROOT) match {
+      case "none" => Right(None)
+      case "gzip" => Right(Gzip)
+      case _      => Left(new IllegalArgumentException(s"Invalid compression type: $name"))
+    }
+}
 
 sealed trait RetryMode
 case object RetryMode {
@@ -173,6 +187,7 @@ case class HttpSinkConfig(
   successReportingController: ReportingController[HttpSuccessConnectorSpecificRecordData],
   maxQueueSize:               Int,
   maxQueueOfferTimeout:       FiniteDuration,
+  compression:                CompressionType = CompressionType.None,
 )
 
 object HttpSinkConfig {
@@ -234,6 +249,7 @@ object HttpSinkConfig {
         connectConfig.getLong(HttpSinkConfigDef.MaxQueueOfferTimeoutProp),
         scala.concurrent.duration.MILLISECONDS,
       )
+      compression <- CompressionType.from(connectConfig.getString(HttpSinkConfigDef.CompressionTypeProp))
     } yield HttpSinkConfig(
       method,
       endpoint,
@@ -252,6 +268,7 @@ object HttpSinkConfig {
       successReportingController,
       maxQueueSize,
       maxQueueOfferTimeout,
+      compression,
     )
   }
 
