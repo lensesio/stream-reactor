@@ -43,6 +43,7 @@ class HttpSinkConfigTest extends AnyFunSuiteLike with Matchers with EitherValues
         HttpSinkConfigDef.HttpMethodProp         -> "put",
         HttpSinkConfigDef.HttpEndpointProp       -> "http://myaddress.example.com",
         HttpSinkConfigDef.HttpRequestContentProp -> "<note>\n<to>Dave</to>\n<from>Jason</from>\n<body>Hooray for Kafka Connect!</body>\n</note>",
+        HttpSinkConfigDef.RequestTimeoutMsProp   -> "123",
         ERROR_REPORTING_ENABLED_PROP             -> "false",
         SUCCESS_REPORTING_ENABLED_PROP           -> "false",
       ),
@@ -70,10 +71,30 @@ class HttpSinkConfigTest extends AnyFunSuiteLike with Matchers with EitherValues
         HttpSinkConfigDef.RetriesOnStatusCodesDefault,
       ),
     )
-    httpSinkConfig.timeout should be(TimeoutConfig(HttpSinkConfigDef.ConnectionTimeoutMsDefault))
+    httpSinkConfig.timeout should be(
+      TimeoutConfig(HttpSinkConfigDef.ConnectionTimeoutMsDefault, 123),
+    )
     httpSinkConfig.tidyJson should be(false)
     httpSinkConfig.errorReportingController == null shouldBe false
     httpSinkConfig.successReportingController == null shouldBe false
+  }
+
+  test("request timeout must be positive") {
+    for (timeout <- List("0", "-1")) {
+      val error = intercept[ConfigException] {
+        HttpSinkConfig.from(
+          Map(
+            HttpSinkConfigDef.HttpMethodProp         -> "post",
+            HttpSinkConfigDef.HttpEndpointProp       -> "http://example.test",
+            HttpSinkConfigDef.HttpRequestContentProp -> "content",
+            HttpSinkConfigDef.RequestTimeoutMsProp   -> timeout,
+            ERROR_REPORTING_ENABLED_PROP             -> "false",
+            SUCCESS_REPORTING_ENABLED_PROP           -> "false",
+          ),
+        )
+      }
+      error.getMessage should include(HttpSinkConfigDef.RequestTimeoutMsProp)
+    }
   }
 
   test("fails if the method is not supported") {
@@ -138,7 +159,9 @@ class HttpSinkConfigTest extends AnyFunSuiteLike with Matchers with EitherValues
         List(500, 502),
       ),
     )
-    httpSinkConfig.timeout should be(TimeoutConfig(HttpSinkConfigDef.ConnectionTimeoutMsDefault))
+    httpSinkConfig.timeout should be(
+      TimeoutConfig(HttpSinkConfigDef.ConnectionTimeoutMsDefault, HttpSinkConfigDef.RequestTimeoutMsDefault),
+    )
     httpSinkConfig.tidyJson should be(true)
     httpSinkConfig.errorReportingController == null shouldBe false
     httpSinkConfig.successReportingController == null shouldBe false
@@ -180,7 +203,9 @@ class HttpSinkConfigTest extends AnyFunSuiteLike with Matchers with EitherValues
         HttpSinkConfigDef.RetriesOnStatusCodesDefault,
       ),
     )
-    httpSinkConfig.timeout should be(TimeoutConfig(HttpSinkConfigDef.ConnectionTimeoutMsDefault))
+    httpSinkConfig.timeout should be(
+      TimeoutConfig(HttpSinkConfigDef.ConnectionTimeoutMsDefault, HttpSinkConfigDef.RequestTimeoutMsDefault),
+    )
     httpSinkConfig.tidyJson should be(true)
     httpSinkConfig.errorReportingController == null shouldBe false
     httpSinkConfig.successReportingController == null shouldBe false

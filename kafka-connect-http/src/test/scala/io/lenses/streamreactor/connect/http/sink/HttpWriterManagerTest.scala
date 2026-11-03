@@ -19,17 +19,23 @@ import cats.data.NonEmptySeq
 import cats.effect.Deferred
 import cats.effect.IO
 import cats.effect.Ref
+import cats.effect.Resource
 import cats.effect.std.Semaphore
 import cats.effect.unsafe.implicits.global
 import cats.implicits.catsSyntaxEitherId
 import com.typesafe.scalalogging.LazyLogging
+import fs2.Stream
 import io.lenses.streamreactor.common.batch.BatchPolicy
 import io.lenses.streamreactor.common.batch.Count
 import io.lenses.streamreactor.connect.cloud.common.model.Topic
 import io.lenses.streamreactor.connect.http.sink.client.HttpRequestSender
 import io.lenses.streamreactor.connect.http.sink.client.HttpResponseFailure
 import io.lenses.streamreactor.connect.http.sink.client.HttpResponseSuccess
+import io.lenses.streamreactor.connect.http.sink.client.NoAuthenticationHttpRequestSender
 import io.lenses.streamreactor.connect.http.sink.config.ErrorNullPayloadHandler
+import io.lenses.streamreactor.connect.http.sink.config.FixedRetryConfig
+import io.lenses.streamreactor.connect.http.sink.config.HttpSinkConfig
+import io.lenses.streamreactor.connect.http.sink.metrics.HttpSinkMetrics
 import io.lenses.streamreactor.connect.http.sink.reporter.model.HttpFailureConnectorSpecificRecordData
 import io.lenses.streamreactor.connect.http.sink.reporter.model.HttpSuccessConnectorSpecificRecordData
 import io.lenses.streamreactor.connect.http.sink.tpl.Headers
@@ -39,8 +45,11 @@ import io.lenses.streamreactor.connect.http.sink.tpl.SimpleTemplate
 import io.lenses.streamreactor.connect.http.sink.tpl.TemplateType
 import io.lenses.streamreactor.connect.reporting.ReportingController
 import org.http4s.Response
+import org.http4s.Method
 import org.http4s.Status
 import org.http4s.WaitQueueTimeoutException
+import org.http4s.client.Client
+import org.http4s.client.middleware.Retry
 import org.mockito.ArgumentMatchers.any
 import org.mockito.MockitoSugar
 import org.mockito.invocation.InvocationOnMock
@@ -75,6 +84,67 @@ class HttpWriterManagerTest extends AnyFunSuiteLike with Matchers with EitherVal
     val statusCodes = Set(408, 429)
 
     HttpWriterManager.isErrorOrRetriableStatus(Left(WaitQueueTimeoutException), statusCodes) should be(false)
+  }
+
+  test("request timeouts are retried as transport failures") {
+    val config   = mock[HttpSinkConfig]
+    val metrics  = new HttpSinkMetrics()
+    val attempts = new java.util.concurrent.atomic.AtomicInteger()
+    when(config.retries).thenReturn(FixedRetryConfig(maxRetries = 1, intervalMs = 0, onStatusCodes = Nil))
+
+    val client = Client[IO] { _ =>
+      Resource.eval(IO(attempts.incrementAndGet()) *> IO.never[Response[IO]])
+    }
+    val sender = new NoAuthenticationHttpRequestSender(
+      "test",
+      Method.POST,
+      Retry(HttpWriterManager.buildRetriablePolicy("test", config))(
+        HttpWriterManager.withRequestTimeout(client, 10.millis),
+      ),
+      metrics,
+    )
+
+    val result = sender.sendHttpRequest(ProcessedTemplate("http://example.test", "content", List.empty)).unsafeRunSync()
+
+    result.isLeft shouldBe true
+    attempts.get() shouldBe 2
+  }
+
+  test("a stalled response body fails within the request timeout") {
+    val metrics = new HttpSinkMetrics()
+    val client = Client[IO] { _ =>
+      Resource.pure(Response[IO](Status.Ok).withBodyStream(Stream.never[IO]))
+    }
+    val sender = new NoAuthenticationHttpRequestSender(
+      "test",
+      Method.POST,
+      HttpWriterManager.withRequestTimeout(client, 10.millis),
+      metrics,
+    )
+
+    val result = sender.sendHttpRequest(ProcessedTemplate("http://example.test", "content", List.empty)).unsafeRunSync()
+
+    result.isLeft shouldBe true
+  }
+
+  test("response body shares the request timeout with the header wait") {
+    val metrics = new HttpSinkMetrics()
+    val response = Response[IO](Status.Ok).withBodyStream(
+      Stream.sleep_[IO](150.millis) ++ Stream.emit('x'.toByte).covary[IO],
+    )
+    val client = Client[IO] { _ =>
+      Resource.eval(IO.sleep(100.millis).as(response))
+    }
+    val sender = new NoAuthenticationHttpRequestSender(
+      "test",
+      Method.POST,
+      HttpWriterManager.withRequestTimeout(client, 200.millis),
+      metrics,
+    )
+
+    val result = sender.sendHttpRequest(ProcessedTemplate("http://example.test", "content", List.empty)).unsafeRunSync()
+
+    result.isLeft shouldBe true
   }
 
   // Covers the PR-review finding: `HttpSinkTask.stop()` used to close the reporting controllers
