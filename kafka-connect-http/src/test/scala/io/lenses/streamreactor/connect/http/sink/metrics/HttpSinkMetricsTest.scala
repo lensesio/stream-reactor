@@ -79,6 +79,26 @@ class HttpSinkMetricsTest extends AnyFunSuite with Matchers {
     metrics.getOtherErrorsCount shouldBe 1L
   }
 
+  test("response-code counters preserve response buckets and include unlisted statuses") {
+    val metrics = new HttpSinkMetrics()
+
+    List(200, 429, 429, 503, 304, 418).foreach(metrics.recordHttpResponseStatus)
+
+    metrics.getHttp200Count shouldBe 1L
+    metrics.getHttp429Count shouldBe 2L
+    metrics.getHttp503Count shouldBe 1L
+    metrics.getHttp304Count shouldBe 1L
+    metrics.getOtherHttpStatusCodeCount shouldBe 1L
+    metrics.get2xxCount shouldBe 1L
+    metrics.get4xxCount shouldBe 3L
+    metrics.get5xxCount shouldBe 1L
+    metrics.getOtherErrorsCount shouldBe 1L
+
+    metrics.resetRequestTime()
+    metrics.getHttp429Count shouldBe 2L
+    metrics.getOtherHttpStatusCodeCount shouldBe 1L
+  }
+
   test("HttpSinkMetrics should handle large request times") {
     val metrics = new HttpSinkMetrics()
 
