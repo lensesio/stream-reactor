@@ -163,6 +163,7 @@ class AwsS3StorageInterface(
                                                      .bucket(bucket)
                                                      .key(path)
                                                      .ifNoneMatch("*")
+                                                     .checksumAlgorithm(ChecksumAlgorithm.CRC32)
                                                      .contentLength(file.length())
                                                      .build(),
                                                    file.toPath,
@@ -337,6 +338,7 @@ class AwsS3StorageInterface(
       .builder()
       .bucket(bucket)
       .key(path)
+      .checksumAlgorithm(ChecksumAlgorithm.CRC32)
       .contentLength(content.length.toLong)
 
     Try {
@@ -386,6 +388,7 @@ class AwsS3StorageInterface(
       .builder()
       .bucket(bucket)
       .key(path)
+      .checksumAlgorithm(ChecksumAlgorithm.CRC32)
       .contentLength(content.length.toLong)
     objectProtection match {
       case NoOverwriteExistingObject(_) => putObjectReqBuilder.ifNoneMatch("*")
@@ -526,6 +529,7 @@ class AwsS3StorageInterface(
       .ifNoneMatch("*")
       .bucket(bucket)
       .key(ensureEndsWithSlash(path))
+      .checksumAlgorithm(ChecksumAlgorithm.CRC32)
       .contentLength(0)
       .build()
 
