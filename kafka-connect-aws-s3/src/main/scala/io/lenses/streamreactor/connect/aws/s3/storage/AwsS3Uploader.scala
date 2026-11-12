@@ -22,6 +22,7 @@ import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.consumers.Uploader
 import software.amazon.awssdk.core.sync.RequestBody
 import software.amazon.awssdk.services.s3.S3Client
+import software.amazon.awssdk.services.s3.model.ChecksumAlgorithm
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest
 import software.amazon.awssdk.services.s3.model.PutObjectRequest
 
@@ -38,6 +39,7 @@ class AwsS3Uploader(s3Client: S3Client, connectorTaskId: ConnectorTaskId) extend
         PutObjectRequest.builder()
           .bucket(bucket)
           .key(path)
+          .checksumAlgorithm(ChecksumAlgorithm.CRC32)
           .contentLength(source.remaining())
           .build(),
         RequestBody.fromByteBuffer(source),
