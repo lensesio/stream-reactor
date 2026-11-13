@@ -814,7 +814,7 @@ Before LC-349 only the minimum age protected those temps.
 
 #### The fix
 
-**Re-stage (Bug A).** `stage(batchUuid)` on a writer that is `Staged` for a *different* batch id uploads its kept local file again under the new id, before the CAS (`Writer.stage` / `Writer.restage`, [`Writer.scala:181-182, 260`](../kafka-connect-cloud-common/src/main/scala/io/lenses/streamreactor/connect/cloud/common/sink/writer/Writer.scala)). The same batch id is still a no-op.
+**Re-stage (Bug A).** `stage(batchUuid)` on a writer that is `Staged` for a *different* batch id uploads its kept local file again under the new id, before the CAS ([`Writer.stage` / `Writer.restage`](../kafka-connect-cloud-common/src/main/scala/io/lenses/streamreactor/connect/cloud/common/sink/writer/Writer.scala)). The same batch id is still a no-op.
 
 - The destination is frozen. The re-stage reuses the recorded `(bucket, finalPath)`, offsets and record count, and never calls the namer again, because a custom `FileNamerFactory` may answer differently on a second call.
 - There is no HEAD check on the old temp. It would race the sweep, and re-uploading is correct whether the old temp exists or not.
@@ -823,9 +823,9 @@ Before LC-349 only the minimum age protected those temps.
 
 **M′: deletes are serialised with commits, per partition (Bug B).** One `BatchCommitLocks` instance, built in `WriterManagerCreator`, is shared by the commit manager and the index manager. It holds one fair `ReentrantLock` per topic-partition. Entries are created on first use and never removed, so a revoke and reassign cannot hand a commit a different lock from the one an old sweep is holding ([`BatchCommitLocks.scala`](../kafka-connect-cloud-common/src/main/scala/io/lenses/streamreactor/connect/cloud/common/sink/seek/BatchCommitLocks.scala)).
 
-- **The commit holds the lock** for the whole of stage → CAS → copy chain → finalise ([`WriterCommitManager.scala:205`](../kafka-connect-cloud-common/src/main/scala/io/lenses/streamreactor/connect/cloud/common/sink/writer/WriterCommitManager.scala)).
+- **The commit holds the lock** for the whole of stage → CAS → copy chain → finalise ([`WriterCommitManager.commitBatch`](../kafka-connect-cloud-common/src/main/scala/io/lenses/streamreactor/connect/cloud/common/sink/writer/WriterCommitManager.scala)).
 - **The sweep reads and lists outside the lock.** The first master read, the LIST and the age/reference filter run without it, as before.
-- **Each delete chunk runs under the lock**, after a fresh read ([`IndexManagerV2.scala:501, 551`](../kafka-connect-cloud-common/src/main/scala/io/lenses/streamreactor/connect/cloud/common/sink/seek/IndexManagerV2.scala)):
+- **Each delete chunk runs under the lock**, after a fresh read ([`IndexManagerV2.sweepOrphansUnder` / `deleteChunkUnderCommitLock`](../kafka-connect-cloud-common/src/main/scala/io/lenses/streamreactor/connect/cloud/common/sink/seek/IndexManagerV2.scala)):
   1. take the partition lock with `lockInterruptibly()`;
   2. check that this instance still holds the partition (the owned-partitions set, below);
   3. read the master lock again, fresh;
@@ -841,18 +841,18 @@ Before LC-349 only the minimum age protected those temps.
   - from a commit that failed after its CAS: the fresh read references it, so it is dropped from the chunk.
 
   Temps uploaded after the LIST are not in the listing.
-- **A commit waits at most one master GET plus one `deleteFiles` chunk** of up to `gc.batch.size` keys, never a whole sweep pass. The lock is fair, so a commit that queues while a chunk runs gets the lock before the sweep's next chunk.
+- **A commit waits at most one master GET plus one `deleteFiles` chunk** of up to `gc.batch.size` keys, never a whole sweep pass. Each of those two calls includes the storage SDK's own retry and timeout budget, and the wait counts towards `put()` time and therefore towards `max.poll.interval.ms`. The lock is fair, so a commit that queues while a chunk runs gets the lock before the sweep's next chunk.
 - The lock is only ever taken and released inside one synchronous block, never across an `IO` boundary.
 
 **The owner fence (Bug C).** A chunk is deleted only if the fresh master lock's `owner` equals this instance's `lockOwner` (`ConnectorTaskId.lockUuid`, a random id per task instance). `open()` always rewrites the owner to its own id (see [Master-lock bump at `open()`](#master-lock-bump-at-open-both-modes)), so a stale or zombie instance's sweep sees another owner. It logs the WARN `lock owned by another instance; batch temp sweep skipped` and deletes nothing for that partition.
 
-**The owned-partitions signal.** `IndexManagerV2` keeps a concurrent `ownedPartitions` set, and the per-chunk check is `ownedPartitions.contains(tp)`. The same check applies to the `open()` sweep and to the periodic sweep.
+**The owned-partitions signal.** `IndexManagerV2` keeps a concurrent `ownedPartitions` set, and the per-chunk check is `ownedPartitions.contains(tp)`. The same check applies to the `open()` sweep and to the periodic sweep. `sweepBatchTemps` also checks it before the pre-LIST master read, so a partition already released costs no I/O; the per-chunk check still covers a release that lands mid-pass.
 
-- `open(tp)` adds the partition at its very start, before recovery and before the `open()` sweep ([`IndexManagerV2.scala:378`](../kafka-connect-cloud-common/src/main/scala/io/lenses/streamreactor/connect/cloud/common/sink/seek/IndexManagerV2.scala)).
-- It is removed by `IndexManager.releasePartitions(tps)`, which `CloudSinkTask.close(partitions)` calls next to `suspendBackgroundWork()` ([`CloudSinkTask.scala:342`](../kafka-connect-cloud-common/src/main/scala/io/lenses/streamreactor/connect/cloud/common/sink/CloudSinkTask.scala)). The trait's default is a no-op.
-- It is also removed by `clearTopicPartitionState`, which runs for `open()`'s pruning of revoked partitions and for the rollback of a failed `open()` (`IndexManagerV2.scala:1452`).
-- `close()` clears the whole set first, before it waits for the sweep thread (`IndexManagerV2.scala:1985`). A sweep that outlives the 5 s wait therefore deletes nothing more.
-- The scheduler's existing `if (acceptingWork)` gate on each periodic tick is unchanged (`IndexManagerV2.scala:272`).
+- `open(tp)` adds the partition at its very start, before recovery and before the `open()` sweep ([`IndexManagerV2.open`](../kafka-connect-cloud-common/src/main/scala/io/lenses/streamreactor/connect/cloud/common/sink/seek/IndexManagerV2.scala)).
+- It is removed by `IndexManager.releasePartitions(tps)`, which `CloudSinkTask.close(partitions)` calls next to `suspendBackgroundWork()` ([`CloudSinkTask.close`](../kafka-connect-cloud-common/src/main/scala/io/lenses/streamreactor/connect/cloud/common/sink/CloudSinkTask.scala)). The trait's default is a no-op. This is the primary removal path: Connect calls `close(partitions)` for every revoked partition.
+- It is also removed by `IndexManagerV2.clearTopicPartitionState`, which runs for the rollback of a failed `open()` and for `open()`'s pruning of revoked partitions. That pruning only reaches partitions in `seekedOffsets`, i.e. those with a committed master offset, so it is a backstop for `releasePartitions`, not a replacement.
+- `close()` clears the whole set first, before it waits for the sweep thread (`IndexManagerV2.close`). A sweep that outlives the 5 s wait therefore deletes nothing more.
+- The scheduler's existing `if (acceptingWork)` gate on each periodic tick is unchanged (`IndexManagerV2.startExecutors`).
 
 A direct signal is needed because neither existing flag means "this task holds the partition now": `seekedOffsets` means "has a committed master offset", and `acceptingWork` is task-wide and false throughout `open()`.
 

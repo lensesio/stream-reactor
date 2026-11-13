@@ -483,7 +483,11 @@ class BatchTempSweepTest extends AnyFunSuiteLike with Matchers with EitherValues
     } finally im.close()
   }
 
-  test("[M'4] with gcBatchSize=1 a commit that queues during the first chunk gets the lock before the rest") {
+  // Proves chunk-granular interleaving only: the sweep releases the partition lock between chunks,
+  // so a commit that queued during one chunk runs before the remaining chunks and never overlaps a
+  // delete. It does not prove fairness (a non-fair lock also passes here); that the lock is fair is
+  // pinned by "the lock is fair" in BatchCommitLocksTest.
+  test("[M'4] with gcBatchSize=1 the sweep releases the lock between chunks, so a queued commit runs in between") {
     val st = new HookedStorage
     storage = st
     seedMaster(99)
@@ -587,6 +591,48 @@ class BatchTempSweepTest extends AnyFunSuiteLike with Matchers with EitherValues
           } finally im.close()
         }
     }
+  }
+
+  test("[M'6b] a partition released before the pass costs the periodic sweep no master read and no LIST") {
+    val masterGets = new ConcurrentLinkedQueue[String]()
+    val tempLists  = new ConcurrentLinkedQueue[String]()
+    val st = new HookedStorage {
+      override def listFileMetaRecursive(
+        b:      String,
+        prefix: Option[String],
+      ): Either[FileListError, Option[ListOfMetadataResponse[FakeFileMetadata]]] = {
+        prefix.filter(_.startsWith(".temp-upload/")).foreach(tempLists.add)
+        super.listFileMetaRecursive(b, prefix)
+      }
+
+      override def getBlobAsObject[O](
+        b: String,
+        p: String,
+      )(
+        implicit
+        d: Decoder[O],
+      ): Either[FileLoadError, ObjectWithETag[O]] = {
+        if (p == masterPath) masterGets.add(p)
+        super.getBlobAsObject(b, p)
+      }
+    }
+    storage = st
+    seedMaster(99)
+    val im = buildLockedIndexManager(st, BatchCommitLocks())
+    try {
+      im.open(Set(tp)).value
+      writeTemp(orphan, ageSecondsAgo = ageSeconds + 60)
+      im.releasePartitions(Set(tp))
+      masterGets.clear()
+      tempLists.clear()
+
+      im.sweepAllBatchTemps()
+
+      masterGets shouldBe empty
+      tempLists shouldBe empty
+      st.tempDeleteCalls shouldBe empty
+      st.snapshot(bucket).keys should contain(orphan)
+    } finally im.close()
   }
 
   test("[M'7] an unreadable master lock on the per-chunk fresh read stops the pass") {

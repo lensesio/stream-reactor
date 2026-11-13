@@ -108,10 +108,13 @@ class IndexManagerV2(
   // Visibility: private[seek] so tests in this package can observe eTag-cache invariants.
   private[seek] val topicPartitionToETags = TrieMap.empty[TopicPartition, String]
 
-  // LC-349: the partitions this instance currently holds -- the batch temp sweep's per-chunk
-  // ownership check. Added at the very start of `open(tp)` (before recovery and the open() sweep),
-  // removed by `releasePartitions` (CloudSinkTask.close(partitions)), by `clearTopicPartitionState`
-  // (open()'s revoked-partition pruning and failed-open rollback), and cleared by `close()`.
+  // LC-349: the partitions this instance currently holds -- the batch temp sweep's ownership check
+  // (before its pre-LIST master read and again per delete chunk). Added at the very start of
+  // `open(tp)` (before recovery and the open() sweep) and cleared by `close()`. Removed primarily by
+  // `releasePartitions` (CloudSinkTask.close(partitions), called for every revoked partition), and
+  // also by `clearTopicPartitionState`: a failed-open rollback, and open()'s revoked-partition
+  // pruning -- which only reaches partitions in `seekedOffsets` (those with a committed offset), so
+  // it is a backstop, not the main path.
   // Neither `seekedOffsets` ("has a committed offset") nor `acceptingWork` (false throughout
   // open()) means "currently held". Concurrent: open() adds from parallel fibers and the sweep
   // thread reads it.
@@ -412,36 +415,43 @@ class IndexManagerV2(
    * The same checks apply at `open()` and on the periodic sweep.
    */
   private def sweepBatchTemps(topicPartition: TopicPartition, bucketAndPrefix: CloudLocation): Unit =
-    try {
-      val prefix       = s".temp-upload/${connectorTaskId.name}/${topicPartition.topic}/${topicPartition.partition}/"
-      val ageThreshold = Instant.now().minusSeconds(gcSweepMinAgeSeconds.toLong)
-      // Exclusion: any Copy source still recorded in the master lock's PendingState. On the
-      // at-`open()` path this is purely defensive (a resolved open leaves pendingState = None),
-      // but on the periodic `sweepAllBatchTemps` path it keeps a live commit's in-flight Copy
-      // sources out of the orphan set, so an unreadable lock must NOT be read as "nothing is
-      // referenced". Fail closed and skip the cycle, exactly as `isSweepDueForPartition` does for
-      // the sweep marker; the next sweep retries.
-      val masterPath = generateLockFilePath(connectorTaskId, topicPartition, directoryFileName)
-      readMasterForSweep(bucketAndPrefix.bucket, masterPath) match {
-        case Left(err) =>
-          logger.warn(
-            s"[${connectorTaskId.show}] Batch temp sweep skipped for $topicPartition: master lock unreadable, " +
-              s"cannot tell in-flight Copy sources from orphans: ${err.message()}",
-          )
-        case Right(master) =>
-          sweepOrphansUnder(
-            topicPartition,
-            bucketAndPrefix,
-            masterPath,
-            prefix,
-            ageThreshold,
-            referencedCopySources(master),
-          )
+    if (!ownedPartitions.contains(topicPartition)) {
+      // Released or revoked: skip the master read and the LIST too, not just the deletes. The
+      // per-chunk check in `deleteChunkUnderCommitLock` still covers a release that lands mid-pass.
+      logger.debug(
+        s"[${connectorTaskId.show}] Batch temp sweep skipped for $topicPartition: partition not held by this task",
+      )
+    } else
+      try {
+        val prefix       = s".temp-upload/${connectorTaskId.name}/${topicPartition.topic}/${topicPartition.partition}/"
+        val ageThreshold = Instant.now().minusSeconds(gcSweepMinAgeSeconds.toLong)
+        // Exclusion: any Copy source still recorded in the master lock's PendingState. On the
+        // at-`open()` path this is purely defensive (a resolved open leaves pendingState = None),
+        // but on the periodic `sweepAllBatchTemps` path it keeps a live commit's in-flight Copy
+        // sources out of the orphan set, so an unreadable lock must NOT be read as "nothing is
+        // referenced". Fail closed and skip the cycle, exactly as `isSweepDueForPartition` does for
+        // the sweep marker; the next sweep retries.
+        val masterPath = generateLockFilePath(connectorTaskId, topicPartition, directoryFileName)
+        readMasterForSweep(bucketAndPrefix.bucket, masterPath) match {
+          case Left(err) =>
+            logger.warn(
+              s"[${connectorTaskId.show}] Batch temp sweep skipped for $topicPartition: master lock unreadable, " +
+                s"cannot tell in-flight Copy sources from orphans: ${err.message()}",
+            )
+          case Right(master) =>
+            sweepOrphansUnder(
+              topicPartition,
+              bucketAndPrefix,
+              masterPath,
+              prefix,
+              ageThreshold,
+              referencedCopySources(master),
+            )
+        }
+      } catch {
+        case NonFatal(e) =>
+          logger.warn(s"[${connectorTaskId.show}] Batch temp sweep threw for $topicPartition; ignoring", e)
       }
-    } catch {
-      case NonFatal(e) =>
-        logger.warn(s"[${connectorTaskId.show}] Batch temp sweep threw for $topicPartition; ignoring", e)
-    }
 
   /**
    * Reads the master lock for the sweep. `Right(None)` when there is no lock, or a 0-byte lock
