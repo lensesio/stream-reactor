@@ -7,7 +7,7 @@
   - Files: none.
 
 ## S1: Re-stage (Bug A)
-- [ ] **T2: IT harness and Case 1 "retry after sweep" (red)**
+- [x] **T2: IT harness and Case 1 "retry after sweep" (red)**
   - Acceptance:
     - New `S3BatchRestageAfterSweepTest`, built on `S3ProxyContainerTest`.
     - It uses an IT-only `S3SinkTask` subclass and an `AwsS3StorageInterface` subclass with two armable faults: on `uploadFile` by suffix, and on `mvFile` by source (persistent while armed). The state is reset in `beforeEach`.
@@ -29,7 +29,7 @@
   - Verify: `sbt "project aws-s3" "it:testOnly *S3BatchRestageAfterSweepTest"` is **red**: a `FatalConnectException` on the retry, and a fresh task's `open()` fails with `…both missing`. Save the output.
   - Files: `kafka-connect-aws-s3/src/it/scala/io/lenses/streamreactor/connect/aws/s3/sink/S3BatchRestageAfterSweepTest.scala` (new).
 
-- [ ] **T3: Unit tests for the re-stage contract (red)**
+- [x] **T3: Unit tests for the re-stage contract (red)**
   - Acceptance:
     - `WriterStageTest`:
       - same id → 0 storage calls;
@@ -41,7 +41,7 @@
   - Verify: `sbt "project cloud-common" "testOnly *WriterStageTest *WriterCommitManagerBatchTest"`. The new tests are red.
   - Files: `WriterStageTest.scala`, `WriterCommitManagerBatchTest.scala`.
 
-- [ ] **T4: Re-stage fix and the allowed fixture updates**
+- [x] **T4: Re-stage fix and the allowed fixture updates**
   - Acceptance:
     - `Staged` gets a `batchUuid` field (set by `toStaged`) and `restaged(tempPath, eTag, batchUuid)`.
     - `Writer.stage` re-stages a `Staged` writer from another batch: frozen `(bucket, finalPath)`, no namer re-run, no HEAD check, and the in-flight metric stays balanced. On failure the state stays the old `Staged`.
