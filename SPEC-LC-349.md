@@ -76,11 +76,15 @@ With the default 24h minimum age this needs a day-long commit or a day of clock 
 
   Temps uploaded after the LIST are not in the listing.
 - **Threading.** The lock is only ever taken and released inside one synchronous thunk, never across an `IO` boundary.
-- **`open()` path (decided during S2).** `sweepBatchTemps` takes a `requireLiveOwnership` flag.
-  - The periodic `sweepAllBatchTemps` passes `true` and gets the full per-chunk check.
-  - The `open()` call site passes `false`. It skips **only** the `acceptingWork`/`seekedOffsets` check, and keeps the lock, the fresh read, the owner fence and the dropping of referenced entries.
-  - Why: during `open()`, `acceptingWork` is still `false` (it is set after every partition's `open()` returns, `IndexManagerV2.scala:331`), and new partitions are not yet in `seekedOffsets`. So the full check would stop open-time reaping.
-  - Why this is safe: the task thread is opening that partition at that moment, and the owner fence still stops a zombie.
+- **Ownership signal (revised after S2; replaces the `requireLiveOwnership` flag).**
+  - `IndexManagerV2` keeps an explicit concurrent `ownedPartitions` set.
+    - `open(tp)` adds `tp` at its start, before recovery and the `open()` sweep.
+    - A new `IndexManager.releasePartitions(tps)` hook, a no-op by default, removes them. It is called from `CloudSinkTask.close(partitions)` next to `suspendBackgroundWork()`, and the set is cleared on `stop`/`close`.
+    - `open()`'s pruning of revoked partitions also removes them.
+  - Before each chunk, the per-chunk check is `ownedPartitions.contains(tp)`, the same check for both the `open()` and the periodic sweep. The flag and the per-chunk `acceptingWork`/`seekedOffsets` check are removed.
+  - The scheduler's existing `if (acceptingWork)` gate on the periodic tick is unchanged.
+  - Why: `seekedOffsets` means "has a committed offset", not "currently held", and `acceptingWork` is false throughout `open()`. A direct signal works at startup without a special case.
+- **Missing or 0-byte lock on the fresh read (decided):** delete the chunk, as the code did before S2. Temp paths are unique per attempt (they include a random batch id), an in-flight commit holds the partition lock, and another process cannot commit without the lock. So an unreferenced temp is a true orphan. Any other read error still fails closed.
 - **Known pre-existing gap.** The periodic sweep only visits partitions in `seekedOffsets`, which means partitions with a committed master offset. A partition that never committed has its orphans reaped only at `open()`. This is documented, not changed.
 
 **3. Owner fencing on the fresh read (fixes Bug C).** A chunk is deleted only if the fresh master lock's `owner == lockOwner`. `lockOwner` is `ConnectorTaskId.lockUuid`, unique to each instance, and `open()` always bumps the owner (`IndexManagerV2.scala:570, 634`). On a mismatch the pass stops for that partition and logs a WARN: "lock owned by another instance; batch temp sweep skipped". So a stale or zombie sweep never deletes the current owner's temps.
