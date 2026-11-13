@@ -1,6 +1,7 @@
 package io.lenses.streamreactor.connect.aws.s3.sink
 
 import io.lenses.streamreactor.common.config.base.const.TraitConfigConst.ERROR_POLICY_PROP_SUFFIX
+import io.lenses.streamreactor.common.errors.FatalConnectException
 import io.lenses.streamreactor.connect.aws.s3.sink.config.S3SinkConfig
 import io.lenses.streamreactor.connect.aws.s3.storage.AwsS3StorageInterface
 import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
@@ -9,7 +10,9 @@ import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnu
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.FlushInterval
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.FlushSize
 import io.lenses.streamreactor.connect.cloud.common.model.Offset
+import io.lenses.streamreactor.connect.cloud.common.model.UploadableString
 import io.lenses.streamreactor.connect.cloud.common.model.UploadableFile
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.CopyOperation
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexFile
 import io.lenses.streamreactor.connect.cloud.common.storage.FileMoveError
 import io.lenses.streamreactor.connect.cloud.common.storage.UploadError
@@ -23,6 +26,7 @@ import org.apache.kafka.connect.errors.RetriableException
 import org.apache.kafka.connect.sink.SinkRecord
 import org.apache.kafka.connect.sink.SinkTaskContext
 import org.mockito.MockitoSugar
+import org.scalatest.Assertion
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.EitherValues
 import org.scalatest.concurrent.Eventually
@@ -31,8 +35,11 @@ import org.scalatest.time.Millis
 import org.scalatest.time.Seconds
 import org.scalatest.time.Span
 import software.amazon.awssdk.services.s3.S3Client
+import software.amazon.awssdk.services.s3.model.HeadObjectRequest
 
+import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.atomic.AtomicReference
+import scala.jdk.CollectionConverters.CollectionHasAsScala
 import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.jdk.CollectionConverters.MapHasAsScala
 import scala.jdk.CollectionConverters.SeqHasAsJava
@@ -50,6 +57,7 @@ import scala.util.Try
 final class StorageFaults {
   private val failUploadWhere = new AtomicReference[Option[String => Boolean]](None)
   private val failMoveWhere   = new AtomicReference[Option[String => Boolean]](None)
+  private val uploads         = new ConcurrentLinkedQueue[String]()
 
   /** Fail every `uploadFile` whose destination path ends with `suffix`. */
   def armUploadFailureBySuffix(suffix: String): Unit = failUploadWhere.set(Some(_.endsWith(suffix)))
@@ -62,7 +70,13 @@ final class StorageFaults {
 
   def disarmUpload(): Unit = failUploadWhere.set(None)
   def disarmMove():   Unit = failMoveWhere.set(None)
-  def reset(): Unit = { disarmUpload(); disarmMove() }
+  def reset(): Unit = { disarmUpload(); disarmMove(); uploads.clear() }
+
+  /** Records a successful `uploadFile` (data files only: lock writes do not go through it). */
+  def recordUpload(path: String): Unit = { val _ = uploads.add(path) }
+
+  /** Every path successfully uploaded via `uploadFile` since the last `reset()`. */
+  def uploadedPaths: List[String] = uploads.asScala.toList
 
   def uploadShouldFail(path: String): Boolean = failUploadWhere.get().exists(_(path))
   def moveShouldFail(source: String): Boolean = failMoveWhere.get().exists(_(source))
@@ -78,7 +92,11 @@ final class FaultInjectingAwsS3StorageInterface(
   override def uploadFile(source: UploadableFile, bucket: String, path: String): Either[UploadError, String] =
     if (faults.uploadShouldFail(path))
       Left(UploadFailedError(new RuntimeException(s"injected transient upload failure: $bucket/$path"), source.file))
-    else super.uploadFile(source, bucket, path)
+    else {
+      val result = super.uploadFile(source, bucket, path)
+      result.foreach(_ => faults.recordUpload(path))
+      result
+    }
 
   override def mvFile(
     oldBucket: String,
@@ -265,5 +283,192 @@ class S3BatchRestageAfterSweepTest
 
     task.close(Seq(kafkaTp).asJava)
     task.stop()
+  }
+
+  // ---------------------------------------------------------------------------------------------
+  // Restart paths after a re-staged batch commit (LC-349 AC3a, AC3b). Both start like Case 1: a
+  // committed seed batch, a partial stage failure, and the periodic sweep reaping A's unreferenced
+  // temp. The retry then re-stages and CASes, and a copy fails after the CAS (Fatal). A fresh task
+  // must resume the chain from the persisted PendingState.
+  // ---------------------------------------------------------------------------------------------
+
+  /** Seed batch committed, then attempt 1 fails staging B, then the sweep reaps A's temp. */
+  private def seedThenPartialStageThenSweep(task: FaultInjectingS3SinkTask): Unit = {
+    task.put(seed.asJava)
+    masterLock().committedOffset shouldBe Some(Offset(1))
+
+    faults.armUploadFailureWhere(p => p.startsWith(".temp-upload/") && p.contains("/name=B/"))
+    intercept[RetriableException] {
+      task.put(records.asJava)
+    }
+    tempsFor("A") should have size 1
+    tempsFor("B") shouldBe empty
+    eventually {
+      tempsFor("A") shouldBe empty
+    }(sweepPatience, implicitly, implicitly)
+    faults.disarmUpload()
+  }
+
+  private def copySources(lock: IndexFile): List[String] =
+    lock.pendingState.toList.flatMap(_.pendingOperations.toList).collect { case c: CopyOperation => c.source }
+
+  private def exists(key: String): Boolean = listBucketPath(BucketName, key).contains(key)
+
+  /**
+   * Proves at least `passes` periodic sweep passes ran, without sleeping: plants an aged-out,
+   * unreferenced sentinel temp under the partition's batch temp prefix and waits until the sweep
+   * reaps it, `passes` times in a row.
+   */
+  private def awaitSweepPasses(passes: Int, partitionTempPrefix: String): Unit =
+    (1 to passes).foreach { n =>
+      val sentinel = s"${partitionTempPrefix}sentinel-$n/marker.json"
+      storageInterface.writeStringToFile(BucketName, sentinel, UploadableString("sentinel")).value
+      exists(sentinel) shouldBe true
+      eventually {
+        exists(sentinel) shouldBe false
+      }(sweepPatience, implicitly, implicitly)
+    }
+
+  /** `.temp-upload/<connector>/<topic>/<partition>/` taken from an existing batch temp key. */
+  private def partitionTempPrefixOf(tempKey: String): String =
+    tempKey.split('/').take(4).mkString("", "/", "/")
+
+  private def eTagOf(key: String): String =
+    client.headObject(HeadObjectRequest.builder().bucket(BucketName).key(key).build()).eTag()
+
+  private def assertBatchLandedOnce(): Assertion = {
+    val finals = finalKeys()
+    finals should have size 3
+    val sFiles = finals.filter(_.contains("/name=S/"))
+    val aFiles = finals.filter(_.contains("/name=A/"))
+    val bFiles = finals.filter(_.contains("/name=B/"))
+    sFiles should have size 1
+    aFiles should have size 1
+    bFiles should have size 1
+    remoteFileAsString(BucketName, sFiles.head) shouldBe expectedS
+    remoteFileAsString(BucketName, aFiles.head) shouldBe expectedA
+    remoteFileAsString(BucketName, bFiles.head) shouldBe expectedB
+    tempKeys() shouldBe empty
+    val lock = masterLock()
+    lock.pendingState shouldBe None
+    lock.committedOffset shouldBe Some(Offset(4))
+  }
+
+  /** Starts and opens a fresh task; on failure, reports the persisted state for diagnosis. */
+  private def restartedTask(): FaultInjectingS3SinkTask = {
+    val fresh = newTask()
+    fresh.start(props)
+    Try(fresh.open(Seq(kafkaTp).asJava)) match {
+      case Success(_) => fresh
+      case Failure(openErr) =>
+        val pending = Try(masterLock().pendingState)
+        val sources = Try(copySources(masterLock()).map(s => s -> exists(s)))
+        val _       = Try(fresh.stop())
+        fail(
+          s"fresh task open() failed with ${openErr.getClass.getName}: ${openErr.getMessage}; " +
+            s"persisted PendingState=$pending; copy sources (exists?)=$sources",
+          openErr,
+        )
+    }
+  }
+
+  it should "survive a failed copy of A after the retry's CAS and resume on restart (Case 2a)" in {
+    val task = newTask()
+    task.start(props)
+    task.open(Seq(kafkaTp).asJava)
+    seedThenPartialStageThenSweep(task)
+
+    // Attempt 2: the retry re-stages and CASes; the copy of A (the chain's first op) fails.
+    faults.armMoveFailureBySource(p => p.startsWith(".temp-upload/") && p.contains("/name=A/"))
+    val retryErr = intercept[Throwable] {
+      task.put(records.asJava)
+    }
+    retryErr shouldBe a[FatalConnectException]
+
+    // Past the CAS: the lock records both copies and nothing landed.
+    val pendingAfterFail = masterLock()
+    pendingAfterFail.committedOffset shouldBe Some(Offset(1))
+    val sources = copySources(pendingAfterFail)
+    sources should have size 2
+    finalKeys().filterNot(_.contains("/name=S/")) shouldBe empty
+    // Every persisted copy source exists right after the failure. On unfixed code (no re-stage),
+    // A's source is the temp the sweep already deleted.
+    withClue(s"persisted copy sources (exists?)=${sources.map(s => s -> exists(s))}: ") {
+      sources.forall(exists) shouldBe true
+    }
+
+    // The referenced temps survive at least two further periodic sweep passes.
+    awaitSweepPasses(2, partitionTempPrefixOf(sources.head))
+    sources.foreach(s => withClue(s"referenced temp $s after two sweep passes: ")(exists(s) shouldBe true))
+
+    // Stop, disarm, and restart: a fresh task's open() resumes the chain.
+    Try(task.close(Seq(kafkaTp).asJava))
+    task.stop()
+    faults.disarmMove()
+    val uploadsBeforeRestart = faults.uploadedPaths
+
+    val fresh = restartedTask()
+    try {
+      assertBatchLandedOnce()
+      faults.uploadedPaths shouldBe uploadsBeforeRestart
+
+      // Connect re-delivers the batch (it was never acknowledged): deduplicated, no extra files.
+      fresh.put(records.asJava)
+      fresh.put(java.util.Collections.emptyList[SinkRecord]())
+      assertBatchLandedOnce()
+      faults.uploadedPaths shouldBe uploadsBeforeRestart
+
+      val committed = fresh.preCommit(Map(kafkaTp -> new OffsetAndMetadata(5L)).asJava).asScala
+      committed.get(kafkaTp).map(_.offset()) shouldBe Some(5L)
+    } finally {
+      fresh.close(Seq(kafkaTp).asJava)
+      fresh.stop()
+    }
+  }
+
+  it should "land B on restart after A landed, without rewriting A or re-uploading (Case 2b)" in {
+    val task = newTask()
+    task.start(props)
+    task.open(Seq(kafkaTp).asJava)
+    seedThenPartialStageThenSweep(task)
+
+    // Attempt 2: the retry re-stages and CASes; A's copy lands, then B's copy fails.
+    faults.armMoveFailureBySource(p => p.startsWith(".temp-upload/") && p.contains("/name=B/"))
+    val retryErr = intercept[Throwable] {
+      task.put(records.asJava)
+    }
+    retryErr shouldBe a[FatalConnectException]
+
+    val aFiles = finalKeys().filter(_.contains("/name=A/"))
+    aFiles should have size 1
+    remoteFileAsString(BucketName, aFiles.head) shouldBe expectedA
+    val aETag = eTagOf(aFiles.head)
+    finalKeys().filter(_.contains("/name=B/")) shouldBe empty
+    // The chain recorded A's copy: only B's remains.
+    val remaining = copySources(masterLock())
+    remaining should have size 1
+    remaining.head should include("/name=B/")
+    exists(remaining.head) shouldBe true
+
+    Try(task.close(Seq(kafkaTp).asJava))
+    task.stop()
+    faults.disarmMove()
+    val uploadsBeforeRestart = faults.uploadedPaths
+
+    val fresh = restartedTask()
+    try {
+      assertBatchLandedOnce()
+      eTagOf(aFiles.head) shouldBe aETag
+      faults.uploadedPaths shouldBe uploadsBeforeRestart
+
+      fresh.put(records.asJava)
+      fresh.put(java.util.Collections.emptyList[SinkRecord]())
+      assertBatchLandedOnce()
+      eTagOf(aFiles.head) shouldBe aETag
+      faults.uploadedPaths shouldBe uploadsBeforeRestart
+    } finally {
+      fresh.close(Seq(kafkaTp).asJava)
+      fresh.stop()
+    }
   }
 }

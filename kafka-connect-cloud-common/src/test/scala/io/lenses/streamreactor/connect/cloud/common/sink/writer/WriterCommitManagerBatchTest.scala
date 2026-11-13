@@ -18,7 +18,12 @@ package io.lenses.streamreactor.connect.cloud.common.sink.writer
 import cats.data.Validated
 import cats.implicits.catsSyntaxEitherId
 import io.circe.Encoder
+import io.lenses.streamreactor.common.config.base.intf.ConnectionConfig
+import io.lenses.streamreactor.common.errors.FatalConnectException
+import io.lenses.streamreactor.common.errors.NoopErrorPolicy
+import io.lenses.streamreactor.common.util.JarManifest
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
+import io.lenses.streamreactor.connect.cloud.common.config.traits.CloudSinkConfig
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.FormatWriter
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.schema.SchemaChangeDetector
 import io.lenses.streamreactor.connect.cloud.common.model.Offset
@@ -28,6 +33,7 @@ import io.lenses.streamreactor.connect.cloud.common.model.UploadableFile
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
 import io.lenses.streamreactor.connect.cloud.common.sink.BatchCloudSinkError
+import io.lenses.streamreactor.connect.cloud.common.sink.CloudSinkTask
 import io.lenses.streamreactor.connect.cloud.common.sink.FatalCloudSinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.CommitContext
@@ -36,6 +42,7 @@ import io.lenses.streamreactor.connect.cloud.common.sink.config.PartitionField
 import io.lenses.streamreactor.connect.cloud.common.sink.config.PartitionNamePath
 import io.lenses.streamreactor.connect.cloud.common.sink.config.ValuePartitionField
 import io.lenses.streamreactor.connect.cloud.common.sink.metrics.CloudSinkMetrics
+import io.lenses.streamreactor.connect.cloud.common.sink.naming.KeyNamer
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.ObjectKeyBuilder
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.BatchCommitLocks
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.CommitMode
@@ -46,6 +53,8 @@ import io.lenses.streamreactor.connect.cloud.common.sink.seek.ObjectProtection
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.ObjectWithETag
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.PendingOperationsProcessors
 import io.lenses.streamreactor.connect.cloud.common.storage.FileDeleteError
+import io.lenses.streamreactor.connect.cloud.common.storage.FileMoveError
+import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
 import io.lenses.streamreactor.connect.cloud.common.storage.UploadError
 import io.lenses.streamreactor.connect.cloud.common.storage.UploadFailedError
 import io.lenses.streamreactor.connect.cloud.common.testing.FakeFileMetadata
@@ -62,6 +71,7 @@ import org.scalatest.funsuite.AnyFunSuiteLike
 import org.scalatest.matchers.should.Matchers
 
 import java.io.File
+import java.net.URL
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.util.concurrent.CountDownLatch
@@ -71,6 +81,7 @@ import java.util.concurrent.atomic.AtomicReference
 import java.util.concurrent.locks.LockSupport
 import scala.collection.immutable
 import scala.collection.mutable
+import scala.util.Try
 
 /**
  * The partition-batch commit protocol: stage every non-idle writer on the topic-partition, record
@@ -765,5 +776,121 @@ class WriterCommitManagerBatchTest
         "data/orders/0/b.json",
       )
     } finally im.close()
+  }
+
+  // LC-349 AC3c: the lock update that follows a successful copy fails. The batch is past its CAS,
+  // so the failure is Fatal under every error.policy (NOOP included), the live task discards its
+  // writers, and a restart finishes the batch from the persisted PendingState with no re-upload.
+
+  /** Minimal marker type satisfying `CC <: ConnectionConfig`. */
+  private class AC3cCC extends ConnectionConfig
+
+  /** A `CloudSinkTask` used only to drive the production `handleErrors` / error-policy chain. */
+  private class ErrorChainTask
+      extends CloudSinkTask[FakeFileMetadata, CloudSinkConfig[AC3cCC], AC3cCC, Unit](
+        "test-connector",
+        "",
+        JarManifest.fromUrl(new URL("file:///not-a-jar")),
+      ) {
+    override def createClient(config: AC3cCC): Either[Throwable, Unit] = Right(())
+    override def createStorageInterface(
+      connectorTaskId: ConnectorTaskId,
+      config:          CloudSinkConfig[AC3cCC],
+      cloudClient:     Unit,
+    ): StorageInterface[FakeFileMetadata] = throw new UnsupportedOperationException("not used")
+    override def convertPropsToConfig(
+      connectorTaskId: ConnectorTaskId,
+      props:           Map[String, String],
+    ): Either[Throwable, CloudSinkConfig[AC3cCC]] = Left(new UnsupportedOperationException("not used"))
+  }
+
+  test(
+    "[NL] a lock-update failure after a successful copy is Fatal under NOOP, discards the writers, and a restart completes without re-uploading (LC-349 AC3c)",
+  ) {
+    val failLockUpdateAfterMoveTo = new AtomicReference[Option[String]](None)
+    storage = new RecordingStorage {
+      override def mvFile(
+        oldBucket: String,
+        oldPath:   String,
+        newBucket: String,
+        newPath:   String,
+        maybeEtag: Option[String],
+      ): Either[FileMoveError, Unit] = {
+        val result = super.mvFile(oldBucket, oldPath, newBucket, newPath, maybeEtag)
+        // Once this copy has landed, fail the very next master-lock write: the chain's
+        // "rewrite the lock with the remaining ops" step after it.
+        if (result.isRight && failLockUpdateAfterMoveTo.get().contains(newPath)) {
+          failLockUpdateAfterMoveTo.set(None)
+          val _ = arm(FailWriteAt(bucket, masterLockPath))
+        }
+        result
+      }
+    }
+
+    val im    = buildIndexManager()
+    val fileA = stagingWith("A-bytes")
+    val fileB = stagingWith("B-bytes")
+    val wA    = buildWriter(im, "A", "data/orders/0/a.json")
+    val wB    = buildWriter(im, "B", "data/orders/0/b.json")
+    writing(wA, fileA, 100, 199)
+    writing(wB, fileB, 200, 250)
+
+    val wm = new WriterManager[FakeFileMetadata](
+      commitPolicyFn              = _ => alwaysFlush.asRight,
+      bucketAndPrefixFn           = bucketAndPrefix,
+      keyNamerFn                  = _ => mock[KeyNamer].asRight,
+      stagingFilenameFn           = (_, _) => new File("/tmp/unused").asRight,
+      objKeyBuilderFn             = (_, _) => mock[ObjectKeyBuilder],
+      formatWriterFn              = (_, _) => mock[FormatWriter].asRight,
+      indexManager                = im,
+      transformerF                = Right(_),
+      schemaChangeDetector        = mock[SchemaChangeDetector],
+      skipNullValues              = false,
+      pendingOperationsProcessors = new PendingOperationsProcessors(storage),
+      commitMode                  = CommitMode.Batch,
+    )
+    wm.putWriter(MapKey(tp, pv("A")), wA)
+    wm.putWriter(MapKey(tp, pv("B")), wB)
+    failLockUpdateAfterMoveTo.set(Some("data/orders/0/a.json"))
+
+    val result = wm.commitFlushableWriters()
+
+    // Past the CAS: Fatal, with a rollback of the partition.
+    val err = result.left.value
+    err.fatal should not be empty
+    err.rollBack() shouldBe true
+    err.topicPartitions() should contain(tp)
+    // A landed; the lock still holds the CAS's PendingState (the update recording A's copy failed).
+    finalKeys() shouldBe Seq("data/orders/0/a.json")
+    val aETag   = storage.snapshot(bucket)("data/orders/0/a.json").eTag
+    val pending = masterLock().pendingState.value
+    pending.pendingOperations.toList.collect { case c: CopyOperation => c.destination } shouldBe
+      List("data/orders/0/a.json", "data/orders/0/b.json")
+    masterLock().committedOffset shouldBe Some(Offset(99))
+
+    // NOOP must not swallow it, and the production error chain discards the writers.
+    val task = new ErrorChainTask
+    task.initialize(5, NoopErrorPolicy())
+    task.writerManager   = wm
+    task.connectorTaskId = connectorTaskId
+    val thrown = Try(task.handleTry(Try(task.handleErrors(result)))).failed.toOption
+    thrown.value shouldBe a[FatalConnectException]
+    wm.writerCount shouldBe 0
+    val uploadsBeforeRestart = storage.uploads.get()
+    im.close()
+
+    // Restart: open() resumes from the PendingState. A's copy is a no-op (source gone, destination
+    // present), B's temp is moved. Nothing is uploaded again and A is not rewritten.
+    val restarted = buildIndexManager(seedMasterAt = None)
+    restarted.getSeekedOffsetForTopicPartition(tp) shouldBe Some(Offset(250))
+    storage.uploads.get() shouldBe uploadsBeforeRestart
+    masterLock().pendingState shouldBe None
+    masterLock().committedOffset shouldBe Some(Offset(250))
+    finalKeys() should contain theSameElementsAs Seq("data/orders/0/a.json", "data/orders/0/b.json")
+    storage.snapshot(bucket)("data/orders/0/a.json").eTag shouldBe aETag
+    storage.getBlobAsString(bucket, "data/orders/0/a.json").value shouldBe "A-bytes"
+    storage.getBlobAsString(bucket, "data/orders/0/b.json").value shouldBe "B-bytes"
+    tempKeys() shouldBe empty
+    restarted.close()
   }
 }
