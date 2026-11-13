@@ -62,7 +62,6 @@ import io.lenses.streamreactor.connect.cloud.common.storage.UploadError
 import io.lenses.streamreactor.connect.cloud.common.storage.UploadFailedError
 import io.lenses.streamreactor.connect.cloud.common.testing.FakeFileMetadata
 import io.lenses.streamreactor.connect.cloud.common.testing.InMemoryStorageInterface
-import io.lenses.streamreactor.connect.cloud.common.testing.InMemoryStorageInterface.FailDeleteAt
 import io.lenses.streamreactor.connect.cloud.common.testing.InMemoryStorageInterface.FailMoveAt
 import io.lenses.streamreactor.connect.cloud.common.testing.InMemoryStorageInterface.FailWriteAt
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
@@ -591,10 +590,10 @@ class WriterCommitManagerBatchTest
     im.close()
   }
 
-  test("[ND] a post-commit temp delete failure does not fail the batch; the temp becomes sweep work") {
-    // A provider whose rename is a server-side copy leaves the source object behind, so the
-    // post-commit cleanup delete has something to fail on. That failure is pure hygiene: the
-    // bytes are already at their final path and the offset is already committed.
+  test("[ND] a move that leaves its source behind still commits; the leftover temp is an orphan for the sweep") {
+    // A provider whose rename is a server-side copy that leaves the source object behind. Batch
+    // commit has no post-commit temp delete (mvFile moves the object), so the leftover is not a
+    // commit failure: the bytes are at their final path and the offset is committed.
     storage = new RecordingStorage {
       override def mvFile(
         oldBucket: String,
@@ -606,14 +605,6 @@ class WriterCommitManagerBatchTest
         val copied = super.mvFile(oldBucket, oldPath, newBucket, newPath, maybeEtag)
         copied.foreach(_ => reinstate(oldBucket, oldPath, newBucket, newPath))
         copied
-      }
-
-      // Arm the delete fault on the temp this commit attempt actually uploads. Pre-staging under
-      // a probe id no longer works: commitBatch re-stages under its own batch id (LC-349).
-      override def uploadFile(source: UploadableFile, bucket: String, path: String): Either[UploadError, String] = {
-        val result = super.uploadFile(source, bucket, path)
-        result.foreach(_ => if (path.startsWith(".temp-upload/")) { val _ = arm(FailDeleteAt(bucket, path)) })
-        result
       }
     }
     val im    = buildIndexManager()
@@ -629,9 +620,29 @@ class WriterCommitManagerBatchTest
     finalKeys() shouldBe Seq("data/orders/0/a.json")
     masterLock().pendingState shouldBe None
     masterLock().committedOffset shouldBe Some(Offset(199))
-    // The commit's own temp survived the failed cleanup and is now an orphan for the sweep to reap.
+    // The commit's own temp survived the move and nothing references it.
     storage.snapshot(bucket).keys should contain(commitTemps.head)
     im.close()
+
+    // The next owner's open() sweep (min age 0) reaps it and leaves the committed file alone.
+    val sweeping = {
+      implicit val si: InMemoryStorageInterface = storage
+      new IndexManagerV2(
+        bucketAndPrefixFn           = bucketAndPrefix,
+        pendingOperationsProcessors = new PendingOperationsProcessors(storage),
+        directoryFileName           = directoryName,
+        gcIntervalSeconds           = Int.MaxValue,
+        gcSweepIntervalSeconds      = 0,
+        gcSweepMinAgeSeconds        = 0,
+        gcSweepEnabled              = false,
+        commitMode                  = CommitMode.Batch,
+      )(si, connectorTaskId)
+    }
+    try {
+      sweeping.open(Set(tp)).value shouldBe Map(tp -> Some(Offset(199)))
+      tempKeys() shouldBe empty
+      finalKeys() shouldBe Seq("data/orders/0/a.json")
+    } finally sweeping.close()
   }
 
   test("[B] batch routing pulls every writer on the topic-partition into the commit") {
