@@ -1,7 +1,7 @@
 # Tasks: LC-349
 
 ## Setup
-- [ ] **T1: Create the branch**
+- [x] **T1: Create the branch**
   - Acceptance: `fix/LC-349-restage-swept-batch-temps` exists, based on a freshly fetched `origin/master`. Untracked local files (`SPEC.md`, `.claude/worktrees/`, `kafka-connect-tuning-email.html`) are not committed.
   - Verify: `git log -1` equals `origin/master`.
   - Files: none.
