@@ -555,11 +555,12 @@ class BatchTempSweepTest extends AnyFunSuiteLike with Matchers with EitherValues
     }
   }
 
-  test("[M'6] a periodic sweep deletes nothing once work is suspended or the partition is revoked mid-pass") {
+  test("[M'6] a periodic sweep deletes nothing once the partition is released or revoked, before or mid-pass") {
     val cases: List[(String, (IndexManagerV2, HookedStorage) => Unit)] = List(
-      "suspended before the pass"         -> ((im, _) => im.suspendBackgroundWork()),
-      "suspended between LIST and delete" -> ((im, st) => st.afterTempList.set(() => im.suspendBackgroundWork())),
-      "revoked between LIST and delete"   -> ((im, st) => st.afterTempList.set(() => im.clearTopicPartitionState(tp))),
+      "released before the pass" -> ((im, _) => im.releasePartitions(Set(tp))),
+      "released between LIST and delete" ->
+        ((im, st) => st.afterTempList.set(() => im.releasePartitions(Set(tp)))),
+      "revoked between LIST and delete" -> ((im, st) => st.afterTempList.set(() => im.clearTopicPartitionState(tp))),
     )
     cases.foreach {
       case (label, arrange) =>
@@ -650,5 +651,138 @@ class BatchTempSweepTest extends AnyFunSuiteLike with Matchers with EitherValues
       st.tempDeleteCalls shouldBe empty
       st.snapshot(bucket).keys should contain(orphan)
     } finally if (!closed) im.close()
+  }
+
+  // ---------------------------------------------------------------------------------------------
+  // LC-349 S2b: the per-chunk ownership check is an explicit owned-partitions set. `open(tp)` adds
+  // tp before recovery and the open() sweep; `releasePartitions`, open()'s revoked-partition
+  // pruning and close() remove it. The same check applies to the open() and periodic sweeps.
+  // ---------------------------------------------------------------------------------------------
+
+  test("[S2b-1] a partition released mid-pass is not swept by the open() sweep") {
+    val st = new HookedStorage
+    storage = st
+    seedMaster(99)
+    writeTemp(orphan, ageSecondsAgo = ageSeconds + 60)
+    val im = buildLockedIndexManager(st, BatchCommitLocks())
+    try {
+      // close(partitions) on the task releases tp between the open() sweep's LIST and its delete.
+      st.afterTempList.set(() => im.releasePartitions(Set(tp)))
+
+      im.open(Set(tp)).value shouldBe Map(tp -> Some(Offset(99)))
+
+      st.tempDeleteCalls shouldBe empty
+      st.snapshot(bucket).keys should contain(orphan)
+    } finally im.close()
+  }
+
+  test("[S2b-2] a released partition is not swept by the periodic sweep, even while work is accepted") {
+    val st = new HookedStorage
+    storage = st
+    seedMaster(99)
+    val im = buildLockedIndexManager(st, BatchCommitLocks())
+    try {
+      im.open(Set(tp)).value
+      writeTemp(orphan, ageSecondsAgo = ageSeconds + 60)
+      im.releasePartitions(Set(tp))
+      // Neither acceptingWork nor seekedOffsets says "released": both still read "owned" here.
+      im.acceptingWork shouldBe true
+      im.getSeekedOffsetForTopicPartition(tp) shouldBe Some(Offset(99))
+
+      im.sweepAllBatchTemps()
+
+      st.tempDeleteCalls shouldBe empty
+      st.snapshot(bucket).keys should contain(orphan)
+    } finally im.close()
+  }
+
+  test("[S2b-3] a brand-new partition with no committed offset is swept during its own open() on a fresh instance") {
+    val st = new HookedStorage
+    storage = st
+    // No master lock at all: open() creates it. The partition never committed, so it is not in
+    // seekedOffsets, and acceptingWork is false throughout open().
+    writeTemp(orphan, ageSecondsAgo = ageSeconds + 60)
+    val im = buildLockedIndexManager(st, BatchCommitLocks())
+    try {
+      im.acceptingWork shouldBe false
+      im.open(Set(tp)).value shouldBe Map(tp -> None)
+
+      st.snapshot(bucket).keys should not contain orphan
+      st.tempDeleteCalls should have size 1
+    } finally im.close()
+  }
+
+  test("[S2b-4] revoke then reassign makes the partition sweepable again") {
+    val st = new HookedStorage
+    storage = st
+    seedMaster(99)
+    val im = buildLockedIndexManager(st, BatchCommitLocks())
+    try {
+      im.open(Set(tp)).value
+      writeTemp(orphan, ageSecondsAgo = ageSeconds + 60)
+      im.releasePartitions(Set(tp))
+      im.sweepAllBatchTemps()
+      st.snapshot(bucket).keys should contain(orphan)
+
+      // Reassigned: the open() sweep reaps it...
+      im.open(Set(tp)).value
+      st.snapshot(bucket).keys should not contain orphan
+
+      // ...and so does the periodic sweep afterwards.
+      val later = scopedPrefix + "uuid-later/data/orders/0/later.json"
+      writeTemp(later, ageSecondsAgo = ageSeconds + 60)
+      im.sweepAllBatchTemps()
+      st.snapshot(bucket).keys should not contain later
+    } finally im.close()
+  }
+
+  test("[S2b-5] open()'s pruning of a revoked partition removes it from the owned set") {
+    val st    = new HookedStorage
+    val other = Topic("orders").withPartition(1)
+    storage = st
+    seedMaster(99)
+    val im = buildLockedIndexManager(st, BatchCommitLocks())
+    try {
+      im.open(Set(tp)).value
+      im.ownedPartitions.asScala.toSet shouldBe Set(tp)
+      // tp was revoked; the next open() (for the new assignment) prunes it with the rest of its state.
+      im.open(Set(other)).value
+      im.ownedPartitions.asScala.toSet shouldBe Set(other)
+    } finally im.close()
+  }
+
+  test("[S2b-6] close() clears the owned set: a sweep running after close deletes nothing") {
+    val st = new HookedStorage
+    storage = st
+    seedMaster(99)
+    val im = buildLockedIndexManager(st, BatchCommitLocks())
+    im.open(Set(tp)).value
+    writeTemp(orphan, ageSecondsAgo = ageSeconds + 60)
+
+    im.close()
+    im.ownedPartitions shouldBe empty
+    // A sweep thread that outlived close() (close waits only 5 s) runs its next chunk.
+    im.sweepAllBatchTemps()
+
+    st.tempDeleteCalls shouldBe empty
+    st.snapshot(bucket).keys should contain(orphan)
+  }
+
+  test("[S2b-7] a missing master lock on the fresh read still deletes the chunk (unreferenced temps are orphans)") {
+    val st = new HookedStorage
+    storage = st
+    seedMaster(99)
+    val im = buildLockedIndexManager(st, BatchCommitLocks())
+    try {
+      im.open(Set(tp)).value
+      writeTemp(orphan, ageSecondsAgo = ageSeconds + 60)
+      st.afterTempList.set { () =>
+        val _ = st.deleteFiles(bucket, Seq(masterPath))
+      }
+
+      im.sweepAllBatchTemps()
+
+      st.snapshot(bucket).keys should not contain orphan
+    } finally im.close()
   }
 }

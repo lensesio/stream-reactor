@@ -220,6 +220,17 @@ trait IndexManager {
   def suspendBackgroundWork(): Unit
 
   /**
+   * Signals that this task no longer holds `topicPartitions` (called from
+   * `CloudSinkTask.close(partitions)`). Background work that deletes shared objects -- the
+   * batch-mode `.temp-upload` sweep -- must stop touching them until a later `open()` hands them
+   * back. A no-op by default, so implementations without background work (and Mockito mocks,
+   * which return `Unit` for an unstubbed call) need nothing.
+   *
+   * @param topicPartitions The partitions being released.
+   */
+  def releasePartitions(topicPartitions: Set[TopicPartition]): Unit = ()
+
+  /**
    * Releases any resources held by this IndexManager (e.g. background executors).
    * Called during connector task shutdown.
    */

@@ -108,6 +108,15 @@ class IndexManagerV2(
   // Visibility: private[seek] so tests in this package can observe eTag-cache invariants.
   private[seek] val topicPartitionToETags = TrieMap.empty[TopicPartition, String]
 
+  // LC-349: the partitions this instance currently holds -- the batch temp sweep's per-chunk
+  // ownership check. Added at the very start of `open(tp)` (before recovery and the open() sweep),
+  // removed by `releasePartitions` (CloudSinkTask.close(partitions)), by `clearTopicPartitionState`
+  // (open()'s revoked-partition pruning and failed-open rollback), and cleared by `close()`.
+  // Neither `seekedOffsets` ("has a committed offset") nor `acceptingWork` (false throughout
+  // open()) means "currently held". Concurrent: open() adds from parallel fibers and the sweep
+  // thread reads it.
+  private[seek] val ownedPartitions: java.util.Set[TopicPartition] = ConcurrentHashMap.newKeySet[TopicPartition]()
+
   // Granular lock cache: nested ConcurrentHashMap keyed by TopicPartition, then partitionKey.
   // Lazily populated on first writer access. Not bounded by automatic eviction — entries are
   // removed by cleanUpObsoleteLocks (GC enqueue), evictAllGranularLocks (shutdown/rebalance),
@@ -287,7 +296,7 @@ class IndexManagerV2(
     // on a partition's commit lock restores the flag and must not move on to the next partition.
     for (tp <- seekedOffsets.keys.toList if !Thread.currentThread().isInterrupted) {
       bucketAndPrefixFn(tp) match {
-        case Right(loc) => sweepBatchTemps(tp, loc, requireLiveOwnership = true)
+        case Right(loc) => sweepBatchTemps(tp, loc)
         case Left(err) =>
           logger.warn(
             s"[${connectorTaskId.show}] Scheduled batch temp sweep: could not resolve bucket/prefix for " +
@@ -363,6 +372,10 @@ class IndexManagerV2(
    */
   private def open(topicPartition: TopicPartition): Either[SinkError, Option[Offset]] = {
 
+    // LC-349: held from here on, so the open() sweep below passes the per-chunk ownership check
+    // even for a partition with no committed offset and while `acceptingWork` is still false.
+    // A failed open() rolls this back via `clearTopicPartitionState`.
+    val _    = ownedPartitions.add(topicPartition)
     val path = generateLockFilePath(connectorTaskId, topicPartition, directoryFileName)
     for {
       bucketAndPrefix <- bucketAndPrefixFn(topicPartition)
@@ -378,13 +391,8 @@ class IndexManagerV2(
       // Entirely best-effort -- see `snapshotLegacyLocks` -- it never fails `open()`.
       _ = if (commitMode == CommitMode.Batch) snapshotLegacyLocks(topicPartition, bucketAndPrefix)
       // Batch mode only, strictly after legacy resolution: reap orphaned batch temp objects.
-      // Best-effort — never fails open.
-      // `requireLiveOwnership = false`: `acceptingWork` is only set once every partition's open()
-      // has returned, and a partition with no committed offset is not in `seekedOffsets`, so the
-      // liveness check would stop open-time reaping. The task thread is opening this partition
-      // right now; the per-chunk lock, fresh read and owner fence still apply (LC-349).
-      _ = if (commitMode == CommitMode.Batch)
-        sweepBatchTemps(topicPartition, bucketAndPrefix, requireLiveOwnership = false)
+      // Best-effort — never fails open. Same per-chunk checks as the periodic sweep (LC-349).
+      _ = if (commitMode == CommitMode.Batch) sweepBatchTemps(topicPartition, bucketAndPrefix)
     } yield offset
 
   }
@@ -401,17 +409,9 @@ class IndexManagerV2(
    * [[BatchCommitLocks]] lock. Each delete chunk then runs under it, and re-checks everything a
    * commit could have changed since the LIST -- see [[deleteChunkUnderCommitLock]]. A commit
    * therefore waits for at most one master GET plus one `deleteFiles` chunk, never a whole pass.
-   *
-   * @param requireLiveOwnership `true` for the periodic sweep: each chunk also requires
-   *                             `acceptingWork` and the partition still in `seekedOffsets`, so a
-   *                             sweep outliving a rebalance or `close()` deletes nothing. `false`
-   *                             at `open()`, where neither holds yet for a partition being opened.
+   * The same checks apply at `open()` and on the periodic sweep.
    */
-  private def sweepBatchTemps(
-    topicPartition:       TopicPartition,
-    bucketAndPrefix:      CloudLocation,
-    requireLiveOwnership: Boolean,
-  ): Unit =
+  private def sweepBatchTemps(topicPartition: TopicPartition, bucketAndPrefix: CloudLocation): Unit =
     try {
       val prefix       = s".temp-upload/${connectorTaskId.name}/${topicPartition.topic}/${topicPartition.partition}/"
       val ageThreshold = Instant.now().minusSeconds(gcSweepMinAgeSeconds.toLong)
@@ -436,7 +436,6 @@ class IndexManagerV2(
             prefix,
             ageThreshold,
             referencedCopySources(master),
-            requireLiveOwnership,
           )
       }
     } catch {
@@ -470,13 +469,12 @@ class IndexManagerV2(
    * read does not reference either.
    */
   private def sweepOrphansUnder(
-    topicPartition:       TopicPartition,
-    bucketAndPrefix:      CloudLocation,
-    masterPath:           String,
-    prefix:               String,
-    ageThreshold:         Instant,
-    referenced:           Set[String],
-    requireLiveOwnership: Boolean,
+    topicPartition:  TopicPartition,
+    bucketAndPrefix: CloudLocation,
+    masterPath:      String,
+    prefix:          String,
+    ageThreshold:    Instant,
+    referenced:      Set[String],
   ): Unit =
     storageInterface.listFileMetaRecursive(bucketAndPrefix.bucket, Some(prefix)) match {
       case Right(maybeListing) =>
@@ -501,12 +499,7 @@ class IndexManagerV2(
             while (proceed && chunks.hasNext) {
               val chunk = chunks.next()
               batchCommitLocks.withLockInterruptibly(topicPartition) {
-                deleteChunkUnderCommitLock(topicPartition,
-                                           bucketAndPrefix.bucket,
-                                           masterPath,
-                                           chunk,
-                                           requireLiveOwnership,
-                )
+                deleteChunkUnderCommitLock(topicPartition, bucketAndPrefix.bucket, masterPath, chunk)
               } match {
                 case ChunkOutcome.Stop => proceed = false
                 case ChunkOutcome.Done(d, f) =>
@@ -550,18 +543,21 @@ class IndexManagerV2(
    *
    * The owner fence keeps a stale or zombie instance -- which shares this temp prefix -- from
    * deleting the current owner's temps: `open()` always rewrites the owner to its own `lockOwner`.
+   *
+   * The ownership check is [[ownedPartitions]], not `acceptingWork`/`seekedOffsets`: those mean
+   * "not suspended" and "has a committed offset", and both are false for a brand-new partition
+   * during its own `open()`.
    */
   private def deleteChunkUnderCommitLock(
-    topicPartition:       TopicPartition,
-    bucket:               String,
-    masterPath:           String,
-    chunk:                Seq[String],
-    requireLiveOwnership: Boolean,
+    topicPartition: TopicPartition,
+    bucket:         String,
+    masterPath:     String,
+    chunk:          Seq[String],
   ): ChunkOutcome =
-    if (requireLiveOwnership && !(acceptingWork && seekedOffsets.contains(topicPartition))) {
+    if (!ownedPartitions.contains(topicPartition)) {
       logger.debug(
-        s"[${connectorTaskId.show}] Batch temp sweep for $topicPartition stopped: background work suspended " +
-          "or partition no longer assigned",
+        s"[${connectorTaskId.show}] Batch temp sweep for $topicPartition stopped: partition no longer held " +
+          "by this task",
       )
       ChunkOutcome.Stop
     } else {
@@ -578,6 +574,11 @@ class IndexManagerV2(
               s"batch temp sweep skipped (owner=${master.owner}, this instance=$lockOwner)",
           )
           ChunkOutcome.Stop
+        // `None` (no lock, or a 0-byte lock) references nothing, so the chunk is deleted, as before
+        // LC-349. That is safe: temp paths are unique per attempt (they carry a random batch id),
+        // an in-flight commit on this partition would be holding the lock we hold now, and no
+        // other process can commit -- and so reference a temp -- without the master lock. An
+        // unreferenced temp is therefore a true orphan. Every other read error fails closed above.
         case Right(master) =>
           val nowReferenced = referencedCopySources(master)
           val toDelete      = chunk.filterNot(nowReferenced.contains)
@@ -1449,6 +1450,8 @@ class IndexManagerV2(
 
   /** Removes seeked offset and master-lock eTag for this partition, preventing background threads from operating on stale state. */
   override def clearTopicPartitionState(topicPartition: TopicPartition): Unit = {
+    // Revoked or failed open: the batch temp sweep must stop deleting under it (LC-349).
+    val _ = ownedPartitions.remove(topicPartition)
     seekedOffsets.remove(topicPartition)
     val _ = topicPartitionToETags.remove(topicPartition)
     // A revoked/failed-open partition must re-confirm legacy-lock resolution on its next open()
@@ -1957,6 +1960,16 @@ class IndexManagerV2(
   }
 
   /**
+   * LC-349: the task no longer holds `topicPartitions`; the batch temp sweep (open-time or
+   * periodic, including one already mid-pass) stops at its next delete chunk for them. Other
+   * per-partition state is kept: `seekedOffsets` must survive until the final drain in `close()`.
+   */
+  override def releasePartitions(topicPartitions: Set[TopicPartition]): Unit = {
+    topicPartitions.foreach(ownedPartitions.remove)
+    logger.debug(s"[${connectorTaskId.show}] Released ${topicPartitions.size} partition(s) from the batch temp sweep")
+  }
+
+  /**
    * Shuts down background executors and performs a final synchronous GC drain.
    *
    * Ordering matters: the sweep executor is stopped first (it can enqueue new GC items),
@@ -1968,6 +1981,8 @@ class IndexManagerV2(
    * it bypasses the `acceptingWork` gate and runs regardless of the flag's value.
    */
   override def close(): Unit = {
+    // First, so a sweep that outlives the 5 s executor wait below deletes nothing (LC-349).
+    ownedPartitions.clear()
     val hadExecutors = executorsStarted || gcExecutor.isDefined || sweepExecutorOpt.isDefined
     if (!hadExecutors) {
       logger.info(s"IndexManagerV2 closed for ${connectorTaskId.show} (executors were never started)")
