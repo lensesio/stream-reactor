@@ -659,6 +659,76 @@ class BatchTempSweepTest extends AnyFunSuiteLike with Matchers with EitherValues
     } finally if (!closed) im.close()
   }
 
+  test("[M'8c] an interrupt while waiting on one partition's lock stops the pass: the next partition gets no I/O") {
+    val tp1        = Topic("orders").withPartition(1)
+    val masterGets = new ConcurrentLinkedQueue[String]()
+    val tempLists  = new ConcurrentLinkedQueue[String]()
+    val st = new HookedStorage {
+      override def listFileMetaRecursive(
+        b:      String,
+        prefix: Option[String],
+      ): Either[FileListError, Option[ListOfMetadataResponse[FakeFileMetadata]]] = {
+        prefix.filter(_.startsWith(".temp-upload/")).foreach(tempLists.add)
+        super.listFileMetaRecursive(b, prefix)
+      }
+
+      override def getBlobAsObject[O](
+        b: String,
+        p: String,
+      )(
+        implicit
+        d: Decoder[O],
+      ): Either[FileLoadError, ObjectWithETag[O]] = {
+        if (p.endsWith(".lock")) masterGets.add(p)
+        super.getBlobAsObject(b, p)
+      }
+    }
+    storage = st
+    val partitions = List(tp, tp1)
+    def lockPath(t:   TopicPartition) = IndexManagerV2.generateLockFilePath(connectorTaskId, t, directoryName)
+    def tempPrefix(t: TopicPartition) = s".temp-upload/${connectorTaskId.name}/${t.topic}/${t.partition}/"
+    partitions.foreach { t =>
+      val _ = storage.writeBlobToFile(
+        bucket,
+        lockPath(t),
+        NoOverwriteExistingObject(IndexFile("prev-owner", Some(Offset(99)), None)),
+      ).value
+    }
+    val locks = BatchCommitLocks()
+    val im    = buildLockedIndexManager(st, locks)
+    try {
+      im.open(partitions.toSet).value
+      partitions.foreach(t => writeTemp(tempPrefix(t) + s"uuid-o/data/orders/${t.partition}/o.json", ageSeconds + 60))
+      masterGets.clear()
+      tempLists.clear()
+
+      // Hold both partitions' locks: the pass visits partitions in an unspecified order, and
+      // whichever comes first must block on its lock.
+      val partitionLocks = partitions.map(t => t -> locks.lockFor(t))
+      val sweep          = new SweepThread(im)
+      partitionLocks.foreach(_._2.lock())
+      val first =
+        try {
+          sweep.start()
+          awaitCondition("the sweep to queue on a partition lock")(partitionLocks.exists(_._2.hasQueuedThreads))
+          val queuedOn = partitionLocks.collectFirst { case (t, l) if l.hasQueuedThreads => t }.get
+          sweep.interrupt()
+          sweep.awaitFinished()
+          queuedOn
+        } finally partitionLocks.foreach(_._2.unlock())
+      val next = partitions.filterNot(_ == first).head
+
+      // The first partition was read and listed, then the interrupt stopped the pass before the
+      // next partition issued its pre-LIST master read or its LIST.
+      masterGets.asScala.toList shouldBe List(lockPath(first))
+      tempLists.asScala.toList shouldBe List(tempPrefix(first))
+      masterGets.asScala.toList should not contain lockPath(next)
+      tempLists.asScala.toList should not contain tempPrefix(next)
+      st.tempDeleteCalls shouldBe empty
+      sweep.interruptedFlagAfterPass.get() shouldBe true
+    } finally im.close()
+  }
+
   // ---------------------------------------------------------------------------------------------
   // LC-349 S2b: the per-chunk ownership check is an explicit owned-partitions set. `open(tp)` adds
   // tp before recovery and the open() sweep; `releasePartitions`, open()'s revoked-partition

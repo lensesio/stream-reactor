@@ -18,6 +18,7 @@ package io.lenses.streamreactor.connect.cloud.common.sink.seek
 import cats.data.Validated
 import cats.implicits.catsSyntaxEitherId
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
+import io.lenses.streamreactor.connect.cloud.common.model.Offset
 import io.lenses.streamreactor.connect.cloud.common.model.Topic
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
@@ -40,16 +41,22 @@ class BatchCommitLocksTest extends AnyFunSuiteLike with Matchers with EitherValu
   private val tp0 = Topic("orders").withPartition(0)
   private val tp1 = Topic("orders").withPartition(1)
 
-  private def bucketAndPrefix(topicPartition: TopicPartition): Either[SinkError, CloudLocation] =
-    CloudLocation("test-bucket", Some(s"data/${topicPartition.topic.value}/${topicPartition.partition}/")).asRight
+  private val bucket        = "test-bucket"
+  private val directoryName = ".indexes"
 
-  test("the same lock instance is returned for a partition across revoke and reassign") {
-    implicit val storage: InMemoryStorageInterface = new InMemoryStorageInterface()
-    val locks = BatchCommitLocks()
-    val im = new IndexManagerV2(
+  private def bucketAndPrefix(topicPartition: TopicPartition): Either[SinkError, CloudLocation] =
+    CloudLocation(bucket, Some(s"data/${topicPartition.topic.value}/${topicPartition.partition}/")).asRight
+
+  private def lockedIndexManager(
+    locks: PerPartitionBatchCommitLocks,
+  )(
+    implicit
+    storage: InMemoryStorageInterface,
+  ): IndexManagerV2 =
+    new IndexManagerV2(
       bucketAndPrefixFn           = bucketAndPrefix,
       pendingOperationsProcessors = new PendingOperationsProcessors(storage),
-      directoryFileName           = ".indexes",
+      directoryFileName           = directoryName,
       gcIntervalSeconds           = Int.MaxValue,
       gcSweepIntervalSeconds      = 3600,
       gcSweepMinAgeSeconds        = 3600,
@@ -57,11 +64,45 @@ class BatchCommitLocksTest extends AnyFunSuiteLike with Matchers with EitherValu
       commitMode                  = CommitMode.Batch,
       batchCommitLocks            = locks,
     )(storage, connectorTaskId)
+
+  /** A master lock with a committed offset, so `open(tp)` records `tp` in `seekedOffsets`. */
+  private def seedMaster(tp: TopicPartition)(implicit storage: InMemoryStorageInterface): Unit = {
+    val _ = storage.writeBlobToFile(
+      bucket,
+      IndexManagerV2.generateLockFilePath(connectorTaskId, tp, directoryName),
+      NoOverwriteExistingObject(IndexFile("prev-owner", Some(Offset(99)), None)),
+    ).value
+  }
+
+  test("the same lock instance is returned for a partition across revoke and reassign") {
+    implicit val storage: InMemoryStorageInterface = new InMemoryStorageInterface()
+    seedMaster(tp0)
+    val locks = BatchCommitLocks()
+    val im    = lockedIndexManager(locks)
+    try {
+      im.open(Set(tp0)).value
+      im.getSeekedOffsetForTopicPartition(tp0).isDefined shouldBe true
+      val first = locks.lockFor(tp0)
+      // Revoke tp0: opening a disjoint set prunes its state.
+      im.open(Set(tp1)).value
+      im.getSeekedOffsetForTopicPartition(tp0) shouldBe None
+      im.ownedPartitions.contains(tp0) shouldBe false
+      // Reassign it.
+      im.open(Set(tp0)).value
+      locks.lockFor(tp0) should be theSameInstanceAs first
+    } finally im.close()
+  }
+
+  test("the same lock instance is returned for a partition across release and reopen") {
+    implicit val storage: InMemoryStorageInterface = new InMemoryStorageInterface()
+    seedMaster(tp0)
+    val locks = BatchCommitLocks()
+    val im    = lockedIndexManager(locks)
     try {
       im.open(Set(tp0)).value
       val first = locks.lockFor(tp0)
-      // Revoke tp0 (the open of a disjoint set clears its state), then reassign it.
-      im.open(Set(tp1)).value
+      im.releasePartitions(Set(tp0))
+      im.ownedPartitions.contains(tp0) shouldBe false
       im.open(Set(tp0)).value
       locks.lockFor(tp0) should be theSameInstanceAs first
     } finally im.close()
