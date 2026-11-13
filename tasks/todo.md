@@ -52,7 +52,7 @@
 **CP2:** commit `fix(cloud-sink): re-stage batch temps under the new batch id on retry (LC-349)`.
 
 ## S2: M′ (Bugs B and C)
-- [ ] **T5: `BatchCommitLocks` and M′ sweep tests (red)**
+- [x] **T5: `BatchCommitLocks` and M′ sweep tests (red)**
   - Acceptance:
     - `BatchCommitLocksTest`:
       - the same lock instance is returned per partition across revoke and reassign;
@@ -71,7 +71,7 @@
   - Verify: `sbt "project cloud-common" "testOnly *BatchCommitLocksTest *BatchTempSweepTest"`. The new tests are red, or fail to compile until T6 adds the class.
   - Files: `BatchCommitLocksTest.scala` (new), `BatchTempSweepTest.scala`, and `WriterCommitManagerBatchTest.scala` for scenario 3 if it fits better there.
 
-- [ ] **T6: M′ implementation, wiring and owner fence**
+- [x] **T6: M′ implementation, wiring and owner fence**
   - Acceptance:
     - `BatchCommitLocks`: a `ConcurrentHashMap[TopicPartition, ReentrantLock(true)]`, filled with `computeIfAbsent` and never removed. It offers `withLock(tp)(f)` and `withLockInterruptibly(tp)(f)`, plus `NoOp`.
     - `WriterManagerCreator` builds one instance and passes it to `IndexManagerV2` and to `WriterManager`, which passes it on to `WriterCommitManager`. All of these are constructor parameters with a `NoOp` default.
