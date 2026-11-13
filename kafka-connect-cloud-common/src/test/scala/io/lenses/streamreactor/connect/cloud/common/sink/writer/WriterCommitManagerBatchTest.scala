@@ -600,23 +600,30 @@ class WriterCommitManagerBatchTest
         copied.foreach(_ => reinstate(oldBucket, oldPath, newBucket, newPath))
         copied
       }
+
+      // Arm the delete fault on the temp this commit attempt actually uploads. Pre-staging under
+      // a probe id no longer works: commitBatch re-stages under its own batch id (LC-349).
+      override def uploadFile(source: UploadableFile, bucket: String, path: String): Either[UploadError, String] = {
+        val result = super.uploadFile(source, bucket, path)
+        result.foreach(_ => if (path.startsWith(".temp-upload/")) { val _ = arm(FailDeleteAt(bucket, path)) })
+        result
+      }
     }
     val im    = buildIndexManager()
     val fileA = stagingWith("A")
     val wA    = buildWriter(im, "A", "data/orders/0/a.json")
     writing(wA, fileA, 100, 199)
 
-    val stagedA = wA.stage("probe").value.value
-    storage.arm(FailDeleteAt(bucket, stagedA.tempPath))
-
     commitManager(im, sourceOf("A" -> wA)).commitBatch(tp).value shouldBe (())
 
+    val commitTemps = storage.uploadETags.keys.filter(_.startsWith(".temp-upload/")).toList
+    commitTemps should have size 1
     wA.currentWriteState shouldBe a[NoWriter]
     finalKeys() shouldBe Seq("data/orders/0/a.json")
     masterLock().pendingState shouldBe None
     masterLock().committedOffset shouldBe Some(Offset(199))
-    // The temp survived the failed cleanup and is now an orphan for the sweep to reap.
-    storage.snapshot(bucket).keys should contain(stagedA.tempPath)
+    // The commit's own temp survived the failed cleanup and is now an orphan for the sweep to reap.
+    storage.snapshot(bucket).keys should contain(commitTemps.head)
     im.close()
   }
 
