@@ -398,6 +398,43 @@ class WriterCommitManagerBatchTest
     im.close()
   }
 
+  // LC-349: the orphan sweep may delete a Staged writer's temp between attempts, because nothing
+  // references it until the CAS. The retry must re-stage it rather than record a dangling Copy.
+  test("[NL] the retry after a staging failure commits both files even when the sweep deleted A's temp (LC-349)") {
+    val im    = buildIndexManager()
+    val fileA = stagingWith("A-bytes")
+    val fileB = stagingWith("B-bytes")
+    val wA    = buildWriter(im, "A", "data/orders/0/a.json")
+    val wB    = buildWriter(im, "B", "data/orders/0/b.json")
+    writing(wA, fileA, 100, 199)
+    writing(wB, fileB, 200, 250)
+    storage.failUploadFor.set(Some(fileB))
+
+    val cm = commitManager(im, sourceOf("A" -> wA, "B" -> wB))
+    cm.commitBatch(tp).isLeft shouldBe true
+    val aTempAfterFirst = tempKeys()
+    aTempAfterFirst should have size 1
+
+    // The sweep reaps A's unreferenced temp between the two attempts.
+    storage.deleteFiles(bucket, aTempAfterFirst).value
+    tempKeys() shouldBe empty
+
+    storage.failUploadFor.set(None)
+    cm.commitBatch(tp).value
+
+    finalKeys() should contain theSameElementsAs Seq("data/orders/0/a.json", "data/orders/0/b.json")
+    storage.getBlobAsString(bucket, "data/orders/0/a.json").value shouldBe "A-bytes"
+    storage.getBlobAsString(bucket, "data/orders/0/b.json").value shouldBe "B-bytes"
+    masterLock().pendingState shouldBe None
+    masterLock().committedOffset shouldBe Some(Offset(250))
+    wA.currentWriteState shouldBe a[NoWriter]
+    wB.currentWriteState shouldBe a[NoWriter]
+    tempKeys() shouldBe empty
+    fileA.exists() shouldBe false
+    fileB.exists() shouldBe false
+    im.close()
+  }
+
   test("[NL] a failed CAS is Fatal, changes nothing durable, and a restart replays from the old floor") {
     val im    = buildIndexManager()
     val fileA = stagingWith("A")
