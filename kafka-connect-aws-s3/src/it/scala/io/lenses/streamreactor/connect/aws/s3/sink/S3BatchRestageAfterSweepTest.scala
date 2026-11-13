@@ -220,7 +220,7 @@ class S3BatchRestageAfterSweepTest
     // Attempt 2: storage is healthy again; Connect re-delivers the same records.
     faults.disarmUpload()
     Try(task.put(records.asJava)) match {
-      case Success(_) =>
+      case Success(_)        =>
       case Failure(retryErr) =>
         // Red-path diagnostics: show what the retry persisted, and that a fresh task cannot open.
         val _ = Try(task.stop())

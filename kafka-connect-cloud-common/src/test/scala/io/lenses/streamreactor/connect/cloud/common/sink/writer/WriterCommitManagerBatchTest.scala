@@ -101,10 +101,18 @@ class WriterCommitManagerBatchTest
 
   override def beforeEach(): Unit = storage = new RecordingStorage
 
-  /** Records master-lock payloads and upload calls, and can fail one nominated staging file. */
+  /**
+   * Records master-lock payloads and upload calls, and can fail one nominated staging file.
+   *
+   * Because every batch attempt stages under a fresh batch id (LC-349), a temp path is only known
+   * once the attempt uploads it. `uploadETags` captures each temp's eTag at upload time, and
+   * `failMoveOfTempFor` arms a one-shot `FailMoveAt` on the current attempt's temp for a final path.
+   */
   private class RecordingStorage extends InMemoryStorageInterface {
     val uploads = new AtomicInteger(0)
-    val failUploadFor: AtomicReference[Option[File]] = new AtomicReference(None)
+    val failUploadFor:     AtomicReference[Option[File]]   = new AtomicReference(None)
+    val failMoveOfTempFor: AtomicReference[Option[String]] = new AtomicReference(None)
+    val uploadETags  = mutable.Map.empty[String, String]
     val masterWrites = mutable.ListBuffer.empty[IndexFile]
 
     override def uploadFile(source: UploadableFile, bucket: String, path: String): Either[UploadError, String] = {
@@ -112,7 +120,18 @@ class WriterCommitManagerBatchTest
       failUploadFor.get() match {
         case Some(doomed) if source.file.getAbsolutePath == doomed.getAbsolutePath =>
           UploadFailedError(new RuntimeException("transient: connection reset"), doomed).asLeft
-        case _ => super.uploadFile(source, bucket, path)
+        case _ =>
+          val result = super.uploadFile(source, bucket, path)
+          result.foreach { eTag =>
+            uploadETags += path -> eTag
+            failMoveOfTempFor.get() match {
+              case Some(finalPath) if path.startsWith(".temp-upload/") && path.endsWith(s"/$finalPath") =>
+                failMoveOfTempFor.set(None)
+                val _ = arm(FailMoveAt(bucket, path))
+              case _ =>
+            }
+          }
+          result
       }
     }
 
@@ -295,17 +314,10 @@ class WriterCommitManagerBatchTest
     writing(wA, fileA, 100, 199)
     writing(wB, fileB, 200, 250)
 
-    // eTags recorded at stage() time, captured before the chain consumes the temps.
-    val stagedETags = mutable.Map.empty[String, String]
-    val source      = sourceOf("A" -> wA, "B" -> wB)
-    val cm          = commitManager(im, source)
+    val cm = commitManager(im, sourceOf("A" -> wA, "B" -> wB))
 
-    // Stage explicitly so the temp eTags can be read before the copies delete them.
-    val stagedA = wA.stage("probe").value.value
-    val stagedB = wB.stage("probe").value.value
-    stagedETags += stagedA.tempPath -> stagedA.tempETag
-    stagedETags += stagedB.tempPath -> stagedB.tempETag
-
+    // The temp eTags are captured at upload time (RecordingStorage.uploadETags), before the copies
+    // move the temps away.
     cm.commitBatch(tp).value
 
     val casPayload = storage.masterWrites.head
@@ -317,7 +329,8 @@ class WriterCommitManagerBatchTest
     ops.foreach(_ shouldBe a[CopyOperation])
     val copies = ops.collect { case c: CopyOperation => c }
     copies.map(_.destination) should contain theSameElementsAs Seq("data/orders/0/a.json", "data/orders/0/b.json")
-    copies.foreach(c => c.eTag shouldBe stagedETags(c.source))
+    copies.foreach(c => c.source should startWith(batchTempRoot))
+    copies.foreach(c => c.eTag shouldBe storage.uploadETags(c.source))
     im.close()
   }
 
@@ -370,7 +383,7 @@ class WriterCommitManagerBatchTest
     im.close()
   }
 
-  test("[ND] the retry after a staging failure re-uploads only the writer that failed") {
+  test("[ND] the retry after a staging failure re-stages every writer under the new batch id (LC-349)") {
     val im    = buildIndexManager()
     val fileA = stagingWith("A")
     val fileB = stagingWith("B")
@@ -388,13 +401,19 @@ class WriterCommitManagerBatchTest
     storage.failUploadFor.set(None)
     cm.commitBatch(tp).value
 
-    // Only B was re-uploaded: stage() on the already-Staged A is a no-op.
-    storage.uploads.get() shouldBe (uploadsAfterFirst + 1)
-    // A's temp path is unchanged, so the CopyOperation recorded for it is stable across the retry.
-    storage.masterWrites.head.pendingState.value.pendingOperations.toList
-      .collect { case c: CopyOperation => c.source } should contain(aTempAfterFirst)
+    // Both writers were uploaded under the retry's batch id: A's first temp is unreferenced and the
+    // sweep may have deleted it, so the retry must not trust it (LC-349).
+    storage.uploads.get() shouldBe (uploadsAfterFirst + 2)
+    val copies = storage.masterWrites.head.pendingState.value.pendingOperations.toList
+      .collect { case c: CopyOperation => c }
+    copies.map(_.source) should not contain aTempAfterFirst
+    copies.map(_.source.stripPrefix(batchTempRoot).takeWhile(_ != '/')).distinct should have size 1
+    copies.foreach(c => c.eTag shouldBe storage.uploadETags(c.source))
+    // The destinations are frozen across the retry.
+    copies.map(_.destination) should contain theSameElementsAs Seq("data/orders/0/a.json", "data/orders/0/b.json")
     finalKeys() should contain theSameElementsAs Seq("data/orders/0/a.json", "data/orders/0/b.json")
-    tempKeys() shouldBe empty
+    // The retry's temps were moved; only A's first, now orphaned, temp is left for the sweep.
+    tempKeys() shouldBe Seq(aTempAfterFirst)
     im.close()
   }
 
@@ -480,11 +499,8 @@ class WriterCommitManagerBatchTest
     writing(wB, fileB, 200, 250)
     writing(wC, fileC, 251, 300)
 
-    // Stage first so the middle temp path is known, then fail its copy.
-    wA.stage("probe").value.value
-    val stagedB = wB.stage("probe").value.value
-    wC.stage("probe").value.value
-    storage.arm(FailMoveAt(bucket, stagedB.tempPath))
+    // Fail the copy of the middle writer's temp from the current attempt.
+    storage.failMoveOfTempFor.set(Some("data/orders/0/b.json"))
 
     val result = commitManager(im, sourceOf("A" -> wA, "B" -> wB, "C" -> wC)).commitBatch(tp)
 
@@ -515,12 +531,12 @@ class WriterCommitManagerBatchTest
     val wA    = buildWriter(im, "A", "data/orders/0/a.json")
     writing(wA, fileA, 100, 199)
 
-    val stagedA = wA.stage("probe").value.value
-    storage.arm(FailMoveAt(bucket, stagedA.tempPath))
-    val uploadsAfterStage = storage.uploads.get()
+    // Fail the copy of A's temp from the current attempt.
+    storage.failMoveOfTempFor.set(Some("data/orders/0/a.json"))
 
-    val cm    = commitManager(im, sourceOf("A" -> wA))
-    val first = cm.commitBatch(tp)
+    val cm                = commitManager(im, sourceOf("A" -> wA))
+    val first             = cm.commitBatch(tp)
+    val uploadsAfterStage = storage.uploads.get()
     // A tail CopyOperation failure is Fatal (previously NonFatal) -- the data is already
     // durable at the temp and the lock's PendingState still references it, so recovery is via
     // IndexManagerV2.open() on restart, not an in-process recommitPending retry on the same task.
