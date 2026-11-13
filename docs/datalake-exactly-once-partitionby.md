@@ -793,6 +793,8 @@ When users can hit it:
 | RETRY | Only when the sweep age is lowered, or when `max.retries × retry.interval` exceeds it. |
 | NOOP | Yes, with defaults, if one file's upload keeps failing for longer than the sweep age (24 h by default). |
 
+A transient `stage()` upload failure is now unswallowable (`RetriableIntegrityException`), so under NOOP it fails the task like THROW instead of being logged and skipped. Before, NOOP also dropped the records of the `put()` whose `recommitPending` hit the failure, and the next batch commit advanced the floor past them. RETRY and THROW behave as before.
+
 #### Bug B: the sweep raced a live commit
 
 - **Before the CAS.** A temp that has just been staged is referenced by nothing until the CAS. If later writers take long enough to upload, it ages past the minimum age and the sweep deletes it. Clock skew and coarse `lastModified` timestamps make this more likely.

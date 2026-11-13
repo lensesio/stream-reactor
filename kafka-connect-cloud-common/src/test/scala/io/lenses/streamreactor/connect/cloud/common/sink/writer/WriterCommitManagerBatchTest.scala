@@ -20,7 +20,10 @@ import cats.implicits.catsSyntaxEitherId
 import io.circe.Encoder
 import io.lenses.streamreactor.common.config.base.intf.ConnectionConfig
 import io.lenses.streamreactor.common.errors.FatalConnectException
+import io.lenses.streamreactor.common.errors.ErrorPolicy
 import io.lenses.streamreactor.common.errors.NoopErrorPolicy
+import io.lenses.streamreactor.common.errors.RetriableIntegrityException
+import io.lenses.streamreactor.common.errors.RetryErrorPolicy
 import io.lenses.streamreactor.common.util.JarManifest
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.config.traits.CloudSinkConfig
@@ -62,6 +65,9 @@ import io.lenses.streamreactor.connect.cloud.common.testing.InMemoryStorageInter
 import io.lenses.streamreactor.connect.cloud.common.testing.InMemoryStorageInterface.FailDeleteAt
 import io.lenses.streamreactor.connect.cloud.common.testing.InMemoryStorageInterface.FailMoveAt
 import io.lenses.streamreactor.connect.cloud.common.testing.InMemoryStorageInterface.FailWriteAt
+import org.apache.kafka.clients.consumer.OffsetAndMetadata
+import org.apache.kafka.connect.errors.RetriableException
+import org.apache.kafka.connect.sink.SinkRecord
 import org.mockito.ArgumentMatchersSugar
 import org.mockito.MockitoSugar
 import org.scalatest.BeforeAndAfterEach
@@ -81,6 +87,7 @@ import java.util.concurrent.atomic.AtomicReference
 import java.util.concurrent.locks.LockSupport
 import scala.collection.immutable
 import scala.collection.mutable
+import scala.jdk.CollectionConverters._
 import scala.util.Try
 
 /**
@@ -899,5 +906,118 @@ class WriterCommitManagerBatchTest
     storage.getBlobAsString(bucket, "data/orders/0/b.json").value shouldBe "B-bytes"
     tempKeys() shouldBe empty
     restarted.close()
+  }
+
+  // LC-349 review: a transient stage upload failure must not be swallowed under NOOP. `put()` runs
+  // `recommitPending` before it processes its own records; if that failure were swallowable, NOOP
+  // would log it and return normally, the records of that put would never be written, and the next
+  // successful batch commit would advance the floor past them.
+
+  private def batchWriterManager(im: IndexManagerV2): WriterManager[FakeFileMetadata] =
+    new WriterManager[FakeFileMetadata](
+      commitPolicyFn              = _ => alwaysFlush.asRight,
+      bucketAndPrefixFn           = bucketAndPrefix,
+      keyNamerFn                  = _ => mock[KeyNamer].asRight,
+      stagingFilenameFn           = (_, _) => new File("/tmp/unused").asRight,
+      objKeyBuilderFn             = (_, _) => mock[ObjectKeyBuilder],
+      formatWriterFn              = (_, _) => mock[FormatWriter].asRight,
+      indexManager                = im,
+      transformerF                = Right(_),
+      schemaChangeDetector        = mock[SchemaChangeDetector],
+      skipNullValues              = false,
+      pendingOperationsProcessors = new PendingOperationsProcessors(storage),
+      commitMode                  = CommitMode.Batch,
+    )
+
+  /** `put()` reads the task's config once its `recommitPending` succeeds; `start()` is not run here. */
+  private def errorChainTask(wm: WriterManager[FakeFileMetadata], policy: ErrorPolicy): ErrorChainTask = {
+    val task = new ErrorChainTask
+    task.initialize(5, policy)
+    task.writerManager   = wm
+    task.connectorTaskId = connectorTaskId
+    val config = mock[CloudSinkConfig[AC3cCC]]
+    when(config.latestSchemaForWriteEnabled).thenReturn(false)
+    val field = classOf[CloudSinkTask[_, _, _, _]].getDeclaredFields.find(_.getName.endsWith("config")).value
+    field.setAccessible(true)
+    field.set(task, config)
+    task
+  }
+
+  private def recordsAt(offsets: Range): java.util.List[SinkRecord] =
+    offsets.map(o => new SinkRecord(tp.topic.value, tp.partition, null, null, null, s"C-$o", o.toLong)).asJava
+
+  /**
+   * Seeds a committed batch, then leaves A `Staged` and B `Uploading` after B's stage upload fails,
+   * and arms the next upload of A's staging file to fail transiently.
+   */
+  private def partiallyStagedBatch(): (IndexManagerV2, WriterManager[FakeFileMetadata]) = {
+    val im = buildIndexManager()
+    val wm = batchWriterManager(im)
+
+    val seed  = buildWriter(im, "S", "data/orders/0/seed.json")
+    val fileS = stagingWith("S: 100..199")
+    writing(seed, fileS, 100, 199)
+    wm.putWriter(MapKey(tp, pv("S")), seed)
+    wm.commitFlushableWriters().value
+    masterLock().committedOffset shouldBe Some(Offset(199))
+
+    val fileA = stagingWith("A: 200..249")
+    val fileB = stagingWith("B: 250..300")
+    val wA    = buildWriter(im, "A", "data/orders/0/a.json")
+    val wB    = buildWriter(im, "B", "data/orders/0/b.json")
+    writing(wA, fileA, 200, 249)
+    writing(wB, fileB, 250, 300)
+    wm.putWriter(MapKey(tp, pv("A")), wA)
+    wm.putWriter(MapKey(tp, pv("B")), wB)
+    storage.failUploadFor.set(Some(fileB))
+    wm.commitFlushableWriters().isLeft shouldBe true
+    wA.currentWriteState shouldBe a[Staged]
+    wB.currentWriteState shouldBe a[Uploading]
+
+    // The next put's recommitPending re-stages A under a new batch id, and that upload fails.
+    storage.failUploadFor.set(Some(fileA))
+    (im, wm)
+  }
+
+  private def reportedOffset(task: ErrorChainTask): Long =
+    task.preCommit(
+      Map(tp.toKafka -> new OffsetAndMetadata(1000L)).asJava,
+    ).asScala(tp.toKafka).offset()
+
+  test("[NL] under NOOP a transient batch re-stage failure fails put() and never lets the floor skip its records") {
+    val (im, wm) = partiallyStagedBatch()
+    val task     = errorChainTask(wm, NoopErrorPolicy())
+
+    // put() carries new records C (301..310); its recommitPending fails on A's re-upload first.
+    val putC = Try(task.put(recordsAt(301 to 310)))
+
+    if (putC.isSuccess) {
+      // NOOP swallowed the failure, so Connect moves on: C were never written, and the next poll's
+      // records D land in a writer while the upload is healthy again.
+      storage.failUploadFor.set(None)
+      val wD = buildWriter(im, "D", "data/orders/0/d.json")
+      writing(wD, stagingWith("D: 311..320"), 311, 320)
+      wm.putWriter(MapKey(tp, pv("D")), wD)
+      Try(task.put(java.util.Collections.emptyList[SinkRecord]()))
+    }
+
+    // The offset Connect may commit never moves past the first C record, which was never written.
+    reportedOffset(task) should be <= 301L
+    putC.failed.toOption.value shouldBe a[RetriableIntegrityException]
+    masterLock().committedOffset shouldBe Some(Offset(199))
+    im.close()
+  }
+
+  test("[NL] under RETRY a transient batch re-stage failure is still re-delivered while retries remain") {
+    val (im, wm) = partiallyStagedBatch()
+    val task     = errorChainTask(wm, RetryErrorPolicy())
+
+    val thrown = Try(task.put(recordsAt(301 to 310))).failed.toOption.value
+
+    thrown shouldBe a[RetriableException]
+    thrown should not be a[FatalConnectException]
+    reportedOffset(task) should be <= 301L
+    masterLock().committedOffset shouldBe Some(Offset(199))
+    im.close()
   }
 }

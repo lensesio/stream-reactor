@@ -311,7 +311,7 @@ class WriterStageTest
     storage.keysUnder(bucket, ".temp-upload/").exists(_.endsWith(laterKey)) shouldBe false
   }
 
-  test("[NL] a failed re-upload is NonFatal and leaves the writer in its old Staged state (LC-349)") {
+  test("[NL] a failed re-upload is unswallowable NonFatal and leaves the writer in its old Staged state (LC-349)") {
     val storage = new ToggleFailingStorage
     val file    = stagingFile()
     val metrics = new CloudSinkMetrics()
@@ -324,6 +324,9 @@ class WriterStageTest
     val err       = writer.stage(retryUuid).left.value
 
     err shouldBe a[NonFatalCloudSinkError]
+    // Unswallowable: under NOOP a swallowed stage failure would drop the records of the put() whose
+    // recommitPending raised it.
+    err.asInstanceOf[NonFatalCloudSinkError].swallowable shouldBe false
     err.rollBack() shouldBe false
     storage.uploads.get() shouldBe 2
     writer.currentWriteState shouldBe first
@@ -369,7 +372,9 @@ class WriterStageTest
     file.exists() shouldBe true
   }
 
-  test("[NL] a transient stage upload failure is NonFatal, leaves the writer Uploading and writes nothing") {
+  test(
+    "[NL] a transient stage upload failure is unswallowable NonFatal, leaves the writer Uploading and writes nothing",
+  ) {
     val storage = new FailingUploadStorage(f => UploadFailedError(new RuntimeException("connection reset"), f))
     val file    = stagingFile()
     val writer  = buildWriter(storage, file)
@@ -378,6 +383,7 @@ class WriterStageTest
     val err = writer.stage(batchUuid).left.value
 
     err shouldBe a[NonFatalCloudSinkError]
+    err.asInstanceOf[NonFatalCloudSinkError].swallowable shouldBe false
     err.rollBack() shouldBe false
     writer.currentWriteState shouldBe a[Uploading]
     file.exists() shouldBe true
