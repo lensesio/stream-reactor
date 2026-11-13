@@ -283,9 +283,11 @@ class IndexManagerV2(
    * `open()`/rebalance. Best-effort per TP; one TP's failure does not block the others.
    */
   private[sink] def sweepAllBatchTemps(): Unit =
-    for (tp <- seekedOffsets.keys.toList) {
+    // Stop visiting partitions once interrupted (close() -> shutdownNow): a sweep that was waiting
+    // on a partition's commit lock restores the flag and must not move on to the next partition.
+    for (tp <- seekedOffsets.keys.toList if !Thread.currentThread().isInterrupted) {
       bucketAndPrefixFn(tp) match {
-        case Right(loc) => sweepBatchTemps(tp, loc)
+        case Right(loc) => sweepBatchTemps(tp, loc, requireLiveOwnership = true)
         case Left(err) =>
           logger.warn(
             s"[${connectorTaskId.show}] Scheduled batch temp sweep: could not resolve bucket/prefix for " +
@@ -377,7 +379,12 @@ class IndexManagerV2(
       _ = if (commitMode == CommitMode.Batch) snapshotLegacyLocks(topicPartition, bucketAndPrefix)
       // Batch mode only, strictly after legacy resolution: reap orphaned batch temp objects.
       // Best-effort — never fails open.
-      _ = if (commitMode == CommitMode.Batch) sweepBatchTemps(topicPartition, bucketAndPrefix)
+      // `requireLiveOwnership = false`: `acceptingWork` is only set once every partition's open()
+      // has returned, and a partition with no committed offset is not in `seekedOffsets`, so the
+      // liveness check would stop open-time reaping. The task thread is opening this partition
+      // right now; the per-chunk lock, fresh read and owner fence still apply (LC-349).
+      _ = if (commitMode == CommitMode.Batch)
+        sweepBatchTemps(topicPartition, bucketAndPrefix, requireLiveOwnership = false)
     } yield offset
 
   }
@@ -386,45 +393,51 @@ class IndexManagerV2(
    * Deletes orphaned batch temp objects under this task's connector-scoped prefix
    * `.temp-upload/<connector>/<topic>/<partition>/`. An orphan is any object older than
    * `gcSweepMinAgeSeconds` that is not the source of a `CopyOperation` still referenced by the
-   * master lock's `PendingState`. That exclusion is merely defensive on the at-`open()` call site
-   * (a resolved open leaves `pendingState = None`) but load-bearing on the periodic
-   * `sweepAllBatchTemps` call site, which runs concurrently with live commits — hence the
-   * fail-closed handling of an unreadable lock below. Never touches paths outside the prefix —
-   * granular temps live under `.temp-upload/<topic>/<partition>/` and other connectors under
-   * their own name. Failures are logged, never fatal.
+   * master lock's `PendingState`. Never touches paths outside the prefix -- granular temps live
+   * under `.temp-upload/<topic>/<partition>/` and other connectors under their own name. Failures
+   * are logged, never fatal.
+   *
+   * LC-349 (M'): the master read, the LIST and the age/reference filter run WITHOUT the partition's
+   * [[BatchCommitLocks]] lock. Each delete chunk then runs under it, and re-checks everything a
+   * commit could have changed since the LIST -- see [[deleteChunkUnderCommitLock]]. A commit
+   * therefore waits for at most one master GET plus one `deleteFiles` chunk, never a whole pass.
+   *
+   * @param requireLiveOwnership `true` for the periodic sweep: each chunk also requires
+   *                             `acceptingWork` and the partition still in `seekedOffsets`, so a
+   *                             sweep outliving a rebalance or `close()` deletes nothing. `false`
+   *                             at `open()`, where neither holds yet for a partition being opened.
    */
-  private def sweepBatchTemps(topicPartition: TopicPartition, bucketAndPrefix: CloudLocation): Unit =
+  private def sweepBatchTemps(
+    topicPartition:       TopicPartition,
+    bucketAndPrefix:      CloudLocation,
+    requireLiveOwnership: Boolean,
+  ): Unit =
     try {
       val prefix       = s".temp-upload/${connectorTaskId.name}/${topicPartition.topic}/${topicPartition.partition}/"
       val ageThreshold = Instant.now().minusSeconds(gcSweepMinAgeSeconds.toLong)
       // Exclusion: any Copy source still recorded in the master lock's PendingState. On the
       // at-`open()` path this is purely defensive (a resolved open leaves pendingState = None),
-      // but on the periodic `sweepAllBatchTemps` path it is the ONLY thing keeping a live
-      // commit's in-flight Copy sources out of the orphan set, so an unreadable lock must NOT
-      // be read as "nothing is referenced". Fail closed and skip the cycle, exactly as
-      // `isSweepDueForPartition` does for the sweep marker; the next sweep retries.
+      // but on the periodic `sweepAllBatchTemps` path it keeps a live commit's in-flight Copy
+      // sources out of the orphan set, so an unreadable lock must NOT be read as "nothing is
+      // referenced". Fail closed and skip the cycle, exactly as `isSweepDueForPartition` does for
+      // the sweep marker; the next sweep retries.
       val masterPath = generateLockFilePath(connectorTaskId, topicPartition, directoryFileName)
-      val referencedOrSkip: Either[FileLoadError, Set[String]] =
-        tryOpen(bucketAndPrefix.bucket, masterPath) match {
-          case Right(master) =>
-            master.wrappedObject.pendingState.toList
-              .flatMap(_.pendingOperations.toList)
-              .collect { case c: CopyOperation => c.source }
-              .toSet
-              .asRight
-          // No lock, or a 0-byte lock that cannot carry a PendingState by construction
-          // (see the EmptyFileError arm of `decideOpen`): nothing can be referenced.
-          case Left(_: FileNotFoundError) => Set.empty[String].asRight
-          case Left(_: EmptyFileError) => Set.empty[String].asRight
-          case Left(err) => err.asLeft
-        }
-      referencedOrSkip match {
+      readMasterForSweep(bucketAndPrefix.bucket, masterPath) match {
         case Left(err) =>
           logger.warn(
             s"[${connectorTaskId.show}] Batch temp sweep skipped for $topicPartition: master lock unreadable, " +
               s"cannot tell in-flight Copy sources from orphans: ${err.message()}",
           )
-        case Right(referenced) => sweepOrphansUnder(topicPartition, bucketAndPrefix, prefix, ageThreshold, referenced)
+        case Right(master) =>
+          sweepOrphansUnder(
+            topicPartition,
+            bucketAndPrefix,
+            masterPath,
+            prefix,
+            ageThreshold,
+            referencedCopySources(master),
+            requireLiveOwnership,
+          )
       }
     } catch {
       case NonFatal(e) =>
@@ -432,15 +445,38 @@ class IndexManagerV2(
     }
 
   /**
-   * LIST-and-delete half of [[sweepBatchTemps]]: deletes every object under `prefix` older than
-   * `ageThreshold` that is not in `referenced`.
+   * Reads the master lock for the sweep. `Right(None)` when there is no lock, or a 0-byte lock
+   * that cannot carry a PendingState by construction (see the EmptyFileError arm of `decideOpen`):
+   * nothing can be referenced. Any other failure is a `Left`, and the caller fails closed.
+   */
+  private def readMasterForSweep(bucket: String, masterPath: String): Either[FileLoadError, Option[IndexFile]] =
+    tryOpen(bucket, masterPath) match {
+      case Right(master) => master.wrappedObject.some.asRight
+      case Left(_: FileNotFoundError) => Option.empty[IndexFile].asRight
+      case Left(_: EmptyFileError) => Option.empty[IndexFile].asRight
+      case Left(err) => err.asLeft
+    }
+
+  private def referencedCopySources(master: Option[IndexFile]): Set[String] =
+    master.toList
+      .flatMap(_.pendingState.toList)
+      .flatMap(_.pendingOperations.toList)
+      .collect { case c: CopyOperation => c.source }
+      .toSet
+
+  /**
+   * LIST-and-delete half of [[sweepBatchTemps]]: deletes, chunk by chunk, every object under
+   * `prefix` older than `ageThreshold` that is not in `referenced` and that the per-chunk fresh
+   * read does not reference either.
    */
   private def sweepOrphansUnder(
-    topicPartition:  TopicPartition,
-    bucketAndPrefix: CloudLocation,
-    prefix:          String,
-    ageThreshold:    Instant,
-    referenced:      Set[String],
+    topicPartition:       TopicPartition,
+    bucketAndPrefix:      CloudLocation,
+    masterPath:           String,
+    prefix:               String,
+    ageThreshold:         Instant,
+    referenced:           Set[String],
+    requireLiveOwnership: Boolean,
   ): Unit =
     storageInterface.listFileMetaRecursive(bucketAndPrefix.bucket, Some(prefix)) match {
       case Right(maybeListing) =>
@@ -455,20 +491,38 @@ class IndexManagerV2(
           // Chunked: a single `deleteFiles` call with every orphan can exceed a provider's
           // batch-delete limit (S3 rejects >1000 keys), which would otherwise fail permanently
           // for a high-cardinality partition. Each chunk is independent and idempotent, so a
-          // partial failure just leaves the failed chunk's temps for the next sweep.
+          // partial failure just leaves the failed chunk's temps for the next sweep. The chunk is
+          // also the unit of the commit lock (LC-349): it bounds how long a commit can wait.
           var deleted = 0
           var failed  = 0
-          orphans.grouped(gcBatchSize).foreach { chunk =>
-            storageInterface.deleteFiles(bucketAndPrefix.bucket, chunk) match {
-              case Left(err) =>
-                failed += chunk.size
-                logger.warn(
-                  s"[${connectorTaskId.show}] Batch temp sweep failed to delete ${chunk.size} orphan(s) for " +
-                    s"$topicPartition: ${err.message()}",
+          val chunks  = orphans.grouped(gcBatchSize)
+          var proceed = true
+          try {
+            while (proceed && chunks.hasNext) {
+              val chunk = chunks.next()
+              batchCommitLocks.withLockInterruptibly(topicPartition) {
+                deleteChunkUnderCommitLock(topicPartition,
+                                           bucketAndPrefix.bucket,
+                                           masterPath,
+                                           chunk,
+                                           requireLiveOwnership,
                 )
-              case Right(_) =>
-                deleted += chunk.size
+              } match {
+                case ChunkOutcome.Stop => proceed = false
+                case ChunkOutcome.Done(d, f) =>
+                  deleted += d
+                  failed += f
+              }
             }
+          } catch {
+            case _: InterruptedException =>
+              // shutdownNow() while waiting behind a commit: no delete was issued for this chunk.
+              // Restore the flag so the executor (and sweepAllBatchTemps) see the interrupt.
+              Thread.currentThread().interrupt()
+              logger.info(
+                s"[${connectorTaskId.show}] Batch temp sweep for $topicPartition interrupted while waiting for " +
+                  "the partition's commit lock; stopping",
+              )
           }
           if (deleted > 0) {
             logger.debug(
@@ -481,6 +535,64 @@ class IndexManagerV2(
         logger.warn(
           s"[${connectorTaskId.show}] Batch temp sweep LIST failed for $topicPartition: ${err.message()}",
         )
+    }
+
+  /**
+   * One delete chunk of the batch temp sweep. MUST be called holding `topicPartition`'s
+   * [[BatchCommitLocks]] lock, and is fully synchronous (no `IO`), so the lock never spans an
+   * effect boundary.
+   *
+   * Why it is safe (LC-349): while the lock is held no `commitBatch` is in flight on this
+   * partition, so a temp listed earlier is either from a commit that finished (already moved;
+   * deleting a missing key is a no-op), from one that failed before its CAS (a true orphan: the
+   * retry re-stages under a new batch id), or from one that failed after its CAS (referenced by
+   * the fresh read below, so dropped from the chunk). Temps uploaded after the LIST are not in it.
+   *
+   * The owner fence keeps a stale or zombie instance -- which shares this temp prefix -- from
+   * deleting the current owner's temps: `open()` always rewrites the owner to its own `lockOwner`.
+   */
+  private def deleteChunkUnderCommitLock(
+    topicPartition:       TopicPartition,
+    bucket:               String,
+    masterPath:           String,
+    chunk:                Seq[String],
+    requireLiveOwnership: Boolean,
+  ): ChunkOutcome =
+    if (requireLiveOwnership && !(acceptingWork && seekedOffsets.contains(topicPartition))) {
+      logger.debug(
+        s"[${connectorTaskId.show}] Batch temp sweep for $topicPartition stopped: background work suspended " +
+          "or partition no longer assigned",
+      )
+      ChunkOutcome.Stop
+    } else {
+      readMasterForSweep(bucket, masterPath) match {
+        case Left(err) =>
+          logger.warn(
+            s"[${connectorTaskId.show}] Batch temp sweep stopped for $topicPartition: master lock unreadable on " +
+              s"the pre-delete read, cannot tell in-flight Copy sources from orphans: ${err.message()}",
+          )
+          ChunkOutcome.Stop
+        case Right(Some(master)) if master.owner != lockOwner =>
+          logger.warn(
+            s"[${connectorTaskId.show}] Batch temp sweep for $topicPartition: lock owned by another instance; " +
+              s"batch temp sweep skipped (owner=${master.owner}, this instance=$lockOwner)",
+          )
+          ChunkOutcome.Stop
+        case Right(master) =>
+          val nowReferenced = referencedCopySources(master)
+          val toDelete      = chunk.filterNot(nowReferenced.contains)
+          if (toDelete.isEmpty) ChunkOutcome.Done(0, 0)
+          else
+            storageInterface.deleteFiles(bucket, toDelete) match {
+              case Left(err) =>
+                logger.warn(
+                  s"[${connectorTaskId.show}] Batch temp sweep failed to delete ${toDelete.size} orphan(s) for " +
+                    s"$topicPartition: ${err.message()}",
+                )
+                ChunkOutcome.Done(0, toDelete.size)
+              case Right(_) => ChunkOutcome.Done(toDelete.size, 0)
+            }
+      }
     }
 
   /**
@@ -1893,6 +2005,15 @@ class IndexManagerV2(
 }
 
 object IndexManagerV2 {
+
+  /** Result of one batch temp sweep delete chunk (LC-349). */
+  private sealed trait ChunkOutcome
+  private object ChunkOutcome {
+
+    /** Stop the pass for this partition: not live, lock unreadable, or owned by another instance. */
+    case object Stop extends ChunkOutcome
+    final case class Done(deleted: Int, failed: Int) extends ChunkOutcome
+  }
 
   case class GranularCacheEntry(offset: Option[Offset], eTag: String)
 
