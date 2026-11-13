@@ -79,6 +79,7 @@ class IndexManagerV2(
   gcSweepMaxReads:              Int              = IndexManagerV2.DefaultGcSweepMaxReads,
   private[sink] val commitMode: CommitMode       = CommitMode.Default,
   metrics:                      CloudSinkMetrics = new CloudSinkMetrics(),
+  batchCommitLocks:             BatchCommitLocks = BatchCommitLocks.NoOp,
 )(
   implicit
   storageInterface: StorageInterface[?],
@@ -281,7 +282,7 @@ class IndexManagerV2(
    * reaps orphans for every TP this task currently owns without requiring another
    * `open()`/rebalance. Best-effort per TP; one TP's failure does not block the others.
    */
-  private[seek] def sweepAllBatchTemps(): Unit =
+  private[sink] def sweepAllBatchTemps(): Unit =
     for (tp <- seekedOffsets.keys.toList) {
       bucketAndPrefixFn(tp) match {
         case Right(loc) => sweepBatchTemps(tp, loc)

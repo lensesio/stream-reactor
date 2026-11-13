@@ -23,6 +23,7 @@ import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
 import io.lenses.streamreactor.connect.cloud.common.sink.BatchCloudSinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.metrics.CloudSinkMetrics
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.BatchCommitLocks
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.CommitMode
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexManager
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.PendingOperationsProcessors
@@ -87,6 +88,7 @@ class WriterCommitManager[SM <: FileMetadata](
   pendingOperationsProcessors: PendingOperationsProcessors,
   commitMode:                  CommitMode       = CommitMode.Default,
   metrics:                     CloudSinkMetrics = new CloudSinkMetrics(),
+  batchCommitLocks:            BatchCommitLocks = BatchCommitLocks.NoOp,
 )(
   implicit
   connectorTaskId: ConnectorTaskId,

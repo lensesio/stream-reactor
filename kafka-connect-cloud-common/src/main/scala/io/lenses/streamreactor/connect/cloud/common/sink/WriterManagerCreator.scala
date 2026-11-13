@@ -31,6 +31,7 @@ import io.lenses.streamreactor.connect.cloud.common.sink.config.PartitionField
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.KeyNamer
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.ObjectKeyBuilder
 import io.lenses.streamreactor.connect.cloud.common.sink.metrics.CloudSinkMetrics
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.BatchCommitLocks
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.CommitMode
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexManager
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexManagerV2
@@ -136,6 +137,10 @@ class WriterManagerCreator[MD <: FileMetadata, SC <: CloudSinkConfig[_]] extends
 
     val pendingOperationsProcessors = new PendingOperationsProcessors(storageInterface, metrics)
 
+    // LC-349: ONE instance shared by the index manager (orphan-sweep deletes) and the commit
+    // manager (commitBatch), so both sides of a partition contend on the same lock.
+    val batchCommitLocks: BatchCommitLocks = BatchCommitLocks()
+
     val indexManager: IndexManager = config.indexOptions.map(io =>
       new IndexManagerV2(
         bucketAndPrefixFn,
@@ -149,6 +154,7 @@ class WriterManagerCreator[MD <: FileMetadata, SC <: CloudSinkConfig[_]] extends
         io.gcSweepMaxReads,
         io.commitMode,
         metrics,
+        batchCommitLocks,
       ),
     ).getOrElse(new NoIndexManager())
 
@@ -176,6 +182,7 @@ class WriterManagerCreator[MD <: FileMetadata, SC <: CloudSinkConfig[_]] extends
         pendingOperationsProcessors,
         commitMode,
         metrics,
+        batchCommitLocks,
       )
       (indexManager, writerManager)
     } catch {

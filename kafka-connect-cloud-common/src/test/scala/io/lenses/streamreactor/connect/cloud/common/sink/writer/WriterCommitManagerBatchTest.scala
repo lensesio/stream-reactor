@@ -37,6 +37,7 @@ import io.lenses.streamreactor.connect.cloud.common.sink.config.PartitionNamePat
 import io.lenses.streamreactor.connect.cloud.common.sink.config.ValuePartitionField
 import io.lenses.streamreactor.connect.cloud.common.sink.metrics.CloudSinkMetrics
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.ObjectKeyBuilder
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.BatchCommitLocks
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.CommitMode
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.CopyOperation
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexFile
@@ -44,6 +45,7 @@ import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexManagerV2
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.ObjectProtection
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.ObjectWithETag
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.PendingOperationsProcessors
+import io.lenses.streamreactor.connect.cloud.common.storage.FileDeleteError
 import io.lenses.streamreactor.connect.cloud.common.storage.UploadError
 import io.lenses.streamreactor.connect.cloud.common.storage.UploadFailedError
 import io.lenses.streamreactor.connect.cloud.common.testing.FakeFileMetadata
@@ -62,8 +64,11 @@ import org.scalatest.matchers.should.Matchers
 import java.io.File
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
+import java.util.concurrent.locks.LockSupport
 import scala.collection.immutable
 import scala.collection.mutable
 
@@ -669,4 +674,96 @@ class WriterCommitManagerBatchTest
   // not the batch offset") was removed: it was the same scenario as the equivalent test in
   // WriterManagerPreCommitTest but at the wrong layer (a real WriterManager built inline inside
   // a WriterCommitManager-focused test file) and missing the `never updateMasterLock` assertion.
+
+  test("[M'3] a sweep started while the batch is staging leaves A's fresh temp alone; the commit completes first") {
+    // LC-349 M': the periodic sweep runs with min age 0 while B is uploading, after A has staged.
+    // A's temp is listed and unreferenced (the CAS has not happened yet), so only the partition
+    // lock held by commitBatch keeps the sweep from deleting it.
+    val locks               = BatchCommitLocks()
+    val lock                = locks.lockFor(tp)
+    val sweepFinished       = new CountDownLatch(1)
+    val sweepEscaped        = new AtomicReference[Option[Throwable]](None)
+    val finalsAtSweepDelete = new AtomicReference[Option[Seq[String]]](None)
+    val imRef               = new AtomicReference[IndexManagerV2]()
+
+    val sweepThread = new Thread(() =>
+      try imRef.get().sweepAllBatchTemps()
+      catch { case t: Throwable => sweepEscaped.set(Some(t)) }
+      finally sweepFinished.countDown(),
+    )
+
+    storage = new RecordingStorage {
+      private val bUploadHookArmed = new java.util.concurrent.atomic.AtomicBoolean(true)
+
+      override def uploadFile(source: UploadableFile, b: String, path: String): Either[UploadError, String] = {
+        if (
+          path.startsWith(batchTempRoot) && path.endsWith("/data/orders/0/b.json") && bUploadHookArmed.getAndSet(false)
+        ) {
+          // Only START the sweep and wait until it is either blocked on the partition lock or
+          // done. Never wait for it to finish: commitBatch holds the lock, so that would deadlock.
+          sweepThread.start()
+          val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10)
+          while (!lock.hasQueuedThreads && sweepFinished.getCount > 0) {
+            if (System.nanoTime() > deadline) fail("deadlock guard: sweep neither queued nor finished")
+            LockSupport.parkNanos(TimeUnit.MICROSECONDS.toNanos(100))
+          }
+        }
+        super.uploadFile(source, b, path)
+      }
+
+      override def deleteFiles(b: String, files: Seq[String]): Either[FileDeleteError, Unit] = {
+        if (files.exists(_.startsWith(batchTempRoot))) finalsAtSweepDelete.compareAndSet(None, Some(finalKeys()))
+        super.deleteFiles(b, files)
+      }
+    }
+
+    val im = {
+      implicit val si: InMemoryStorageInterface = storage
+      new IndexManagerV2(
+        bucketAndPrefixFn           = bucketAndPrefix,
+        pendingOperationsProcessors = new PendingOperationsProcessors(storage),
+        directoryFileName           = directoryName,
+        gcIntervalSeconds           = Int.MaxValue,
+        gcSweepIntervalSeconds      = 0,
+        gcSweepMinAgeSeconds        = 0,
+        gcSweepEnabled              = false,
+        commitMode                  = CommitMode.Batch,
+        batchCommitLocks            = locks,
+      )(si, connectorTaskId)
+    }
+    imRef.set(im)
+    try {
+      im.open(Set(tp)).value
+      im.updateMasterLock(tp, Offset(100L)).value
+
+      val fileA = stagingWith("A: 100..199")
+      val fileB = stagingWith("B: 200..250")
+      val wA    = buildWriter(im, "A", "data/orders/0/a.json")
+      val wB    = buildWriter(im, "B", "data/orders/0/b.json")
+      writing(wA, fileA, 100, 199)
+      writing(wB, fileB, 200, 250)
+
+      val cm = new WriterCommitManager[FakeFileMetadata](
+        sourceOf("A" -> wA, "B" -> wB),
+        im,
+        new PendingOperationsProcessors(storage),
+        CommitMode.Batch,
+        new CloudSinkMetrics(),
+        locks,
+      )
+      val result = cm.commitBatch(tp)
+
+      sweepFinished.await(10, TimeUnit.SECONDS) shouldBe true
+      sweepEscaped.get() shouldBe None
+      result.value shouldBe (())
+      finalKeys() should contain theSameElementsAs Seq("data/orders/0/a.json", "data/orders/0/b.json")
+      masterLock().committedOffset shouldBe Some(Offset(250))
+      masterLock().pendingState shouldBe None
+      // The sweep's delete ran only after the commit had landed both files.
+      finalsAtSweepDelete.get().value should contain theSameElementsAs Seq(
+        "data/orders/0/a.json",
+        "data/orders/0/b.json",
+      )
+    } finally im.close()
+  }
 }

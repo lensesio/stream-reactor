@@ -28,6 +28,7 @@ import io.lenses.streamreactor.connect.cloud.common.model.UploadableString
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
 import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
+import io.lenses.streamreactor.connect.cloud.common.storage.FileDeleteError
 import io.lenses.streamreactor.connect.cloud.common.storage.FileListError
 import io.lenses.streamreactor.connect.cloud.common.storage.FileLoadError
 import io.lenses.streamreactor.connect.cloud.common.storage.GeneralFileLoadError
@@ -40,8 +41,21 @@ import org.scalatest.EitherValues
 import org.scalatest.funsuite.AnyFunSuiteLike
 import org.scalatest.matchers.should.Matchers
 
+import ch.qos.logback.classic.Level
+import ch.qos.logback.classic.spi.ILoggingEvent
+import ch.qos.logback.classic.{ Logger => LogbackLogger }
+import ch.qos.logback.core.read.ListAppender
+import org.slf4j.LoggerFactory
+
 import java.time.Instant
+import java.util.concurrent.ConcurrentLinkedQueue
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicReference
+import java.util.concurrent.locks.LockSupport
+import scala.jdk.CollectionConverters._
 
 /**
  * The batch-mode `.temp-upload` orphan sweep. It runs at the end of batch-mode `open()`,
@@ -286,5 +300,355 @@ class BatchTempSweepTest extends AnyFunSuiteLike with Matchers with EitherValues
 
       storage.snapshot(bucket).keys should contain(inFlight)
     } finally im.close()
+  }
+
+  // ---------------------------------------------------------------------------------------------
+  // LC-349 M': the sweep's deletes are serialised with commits per partition (per-chunk lock,
+  // fresh master read, owner fence). Deterministic: latches and storage hooks, no sleeps; bounded
+  // waits are deadlock guards only.
+  // ---------------------------------------------------------------------------------------------
+
+  /**
+   * Storage with seams for the M' scenarios:
+   *  - `afterTempList` runs once, right after the next LIST of a `.temp-upload/` prefix returns,
+   *    i.e. between the sweep's LIST and its first delete chunk;
+   *  - `onTempDelete` runs inside every `deleteFiles` of temp keys, before the delete is applied;
+   *  - `failMasterGet` turns every master-lock GET into a transient failure.
+   */
+  private class HookedStorage extends InMemoryStorageInterface {
+    val tempDeletes = new ConcurrentLinkedQueue[Seq[String]]()
+    val deleting    = new AtomicBoolean(false)
+    val afterTempList:           AtomicReference[() => Unit]          = new AtomicReference(() => ())
+    val onTempDelete:            AtomicReference[Seq[String] => Unit] = new AtomicReference(_ => ())
+    @volatile var failMasterGet: Boolean                              = false
+
+    override def listFileMetaRecursive(
+      b:      String,
+      prefix: Option[String],
+    ): Either[FileListError, Option[ListOfMetadataResponse[FakeFileMetadata]]] = {
+      val result = super.listFileMetaRecursive(b, prefix)
+      if (prefix.exists(_.startsWith(".temp-upload/"))) afterTempList.getAndSet(() => ())()
+      result
+    }
+
+    override def deleteFiles(b: String, files: Seq[String]): Either[FileDeleteError, Unit] =
+      if (files.exists(_.startsWith(".temp-upload/"))) {
+        deleting.set(true)
+        try {
+          tempDeletes.add(files)
+          onTempDelete.get()(files)
+          super.deleteFiles(b, files)
+        } finally deleting.set(false)
+      } else super.deleteFiles(b, files)
+
+    override def getBlobAsObject[O](
+      b: String,
+      p: String,
+    )(
+      implicit
+      d: Decoder[O],
+    ): Either[FileLoadError, ObjectWithETag[O]] =
+      if (p == masterPath && failMasterGet) GeneralFileLoadError(new RuntimeException("boom"), p).asLeft
+      else super.getBlobAsObject(b, p)
+
+    def tempDeleteCalls: List[Seq[String]] = tempDeletes.asScala.toList
+  }
+
+  private def buildLockedIndexManager(
+    st:             InMemoryStorageInterface,
+    locks:          BatchCommitLocks,
+    taskId:         ConnectorTaskId = connectorTaskId,
+    batchSize:      Int             = IndexManagerV2.DefaultGcBatchSize,
+    sweepEnabled:   Boolean         = false,
+    sweepIntervalS: Int             = ageSeconds,
+    minAgeS:        Int             = ageSeconds,
+  ): IndexManagerV2 = {
+    implicit val si: InMemoryStorageInterface = st
+    new IndexManagerV2(
+      bucketAndPrefixFn           = bucketAndPrefix,
+      pendingOperationsProcessors = new PendingOperationsProcessors(st),
+      directoryFileName           = directoryName,
+      gcIntervalSeconds           = Int.MaxValue,
+      gcBatchSize                 = batchSize,
+      gcSweepIntervalSeconds      = sweepIntervalS,
+      gcSweepMinAgeSeconds        = minAgeS,
+      gcSweepEnabled              = sweepEnabled,
+      commitMode                  = CommitMode.Batch,
+      batchCommitLocks            = locks,
+    )(si, taskId)
+  }
+
+  /** Deadlock guard: waits for `cond` without sleeping, failing after a generous bound. */
+  private def awaitCondition(what: String)(cond: => Boolean): Unit = {
+    val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10)
+    while (!cond) {
+      if (System.nanoTime() > deadline) fail(s"deadlock guard: timed out waiting for $what")
+      LockSupport.parkNanos(TimeUnit.MICROSECONDS.toNanos(100))
+    }
+  }
+
+  /** Runs one sweep pass on its own thread and records how it ended. */
+  private class SweepThread(im: IndexManagerV2) extends Thread("m-prime-sweep") {
+    private val done = new CountDownLatch(1)
+    val escaped:                  AtomicReference[Option[Throwable]] = new AtomicReference(None)
+    val interruptedFlagAfterPass: AtomicBoolean                      = new AtomicBoolean(false)
+
+    override def run(): Unit =
+      try {
+        im.sweepAllBatchTemps()
+        interruptedFlagAfterPass.set(Thread.currentThread().isInterrupted)
+      } catch {
+        case t: Throwable => escaped.set(Some(t))
+      } finally done.countDown()
+
+    def finished: Boolean = done.getCount == 0
+
+    def awaitFinished(): Unit = {
+      done.await(10, TimeUnit.SECONDS) shouldBe true
+      val _ = escaped.get() shouldBe None
+    }
+  }
+
+  private def copyOf(temp: String, finalPath: String, st: InMemoryStorageInterface): PendingState =
+    PendingState(Offset(150), NonEmptyList.of(CopyOperation(bucket, temp, finalPath, st.snapshot(bucket)(temp).eTag)))
+
+  private def warningsDuring[A](f: => A): (A, List[String]) = {
+    val logger   = LoggerFactory.getLogger(classOf[IndexManagerV2]).asInstanceOf[LogbackLogger]
+    val appender = new ListAppender[ILoggingEvent]()
+    appender.start()
+    logger.addAppender(appender)
+    try {
+      val a = f
+      (a, appender.list.asScala.toList.filter(_.getLevel == Level.WARN).map(_.getFormattedMessage))
+    } finally {
+      val _ = logger.detachAppender(appender)
+    }
+  }
+
+  private val orphan   = scopedPrefix + "uuid-orphan/data/orders/0/orphan.json"
+  private val inFlight = scopedPrefix + "uuid-live/data/orders/0/live.json"
+  private val liveDest = "data/orders/0/live.json"
+
+  test("[M'1] a commit holding the partition lock makes the sweep's delete wait, then spares what it referenced") {
+    val st = new HookedStorage
+    storage = st
+    seedMaster(99)
+    val locks = BatchCommitLocks()
+    val im    = buildLockedIndexManager(st, locks)
+    try {
+      im.open(Set(tp)).value
+      writeTemp(orphan, ageSecondsAgo   = ageSeconds + 60)
+      writeTemp(inFlight, ageSecondsAgo = ageSeconds + 60)
+
+      val lock  = locks.lockFor(tp)
+      val sweep = new SweepThread(im)
+      lock.lock() // a commit in flight on tp
+      try {
+        sweep.start()
+        awaitCondition("the sweep to queue on the partition lock or finish")(lock.hasQueuedThreads || sweep.finished)
+        st.tempDeleteCalls shouldBe empty
+        // The commit CASes a PendingState referencing a temp the sweep has already listed.
+        im.update(tp, Some(Offset(99)), Some(copyOf(inFlight, liveDest, st))).value
+      } finally lock.unlock()
+      sweep.awaitFinished()
+
+      st.snapshot(bucket).keys should contain(inFlight)
+      st.snapshot(bucket).keys should not contain orphan
+    } finally im.close()
+  }
+
+  test("[M'2] a CAS that lands between the sweep's LIST and its delete spares the referenced temp") {
+    val st = new HookedStorage
+    storage = st
+    seedMaster(99)
+    val im = buildLockedIndexManager(st, BatchCommitLocks())
+    try {
+      im.open(Set(tp)).value
+      writeTemp(orphan, ageSecondsAgo   = ageSeconds + 60)
+      writeTemp(inFlight, ageSecondsAgo = ageSeconds + 60)
+      st.afterTempList.set { () =>
+        val _ = im.update(tp, Some(Offset(99)), Some(copyOf(inFlight, liveDest, st))).value
+      }
+
+      im.sweepAllBatchTemps()
+
+      st.snapshot(bucket).keys should contain(inFlight)
+      st.snapshot(bucket).keys should not contain orphan
+    } finally im.close()
+  }
+
+  test("[M'4] with gcBatchSize=1 a commit that queues during the first chunk gets the lock before the rest") {
+    val st = new HookedStorage
+    storage = st
+    seedMaster(99)
+    val locks = BatchCommitLocks()
+    val im    = buildLockedIndexManager(st, locks, batchSize = 1)
+    try {
+      im.open(Set(tp)).value
+      val orphans = (1 to 3).map(i => scopedPrefix + s"uuid-$i/data/orders/0/o$i.json")
+      orphans.foreach(writeTemp(_, ageSecondsAgo = ageSeconds + 60))
+
+      val lock          = locks.lockFor(tp)
+      val events        = new ConcurrentLinkedQueue[String]()
+      val firstChunkIn  = new CountDownLatch(1)
+      val commitDone    = new AtomicBoolean(false)
+      val commitOverlap = new AtomicBoolean(false)
+      val commit = new Thread(() => {
+        if (firstChunkIn.await(10, TimeUnit.SECONDS)) {
+          locks.withLock(tp) {
+            commitOverlap.set(st.deleting.get())
+            events.add("commit")
+          }
+        }
+        commitDone.set(true)
+      })
+      val first = new AtomicBoolean(true)
+      st.onTempDelete.set { files =>
+        events.add(s"delete:${files.mkString(",")}")
+        if (first.getAndSet(false)) {
+          firstChunkIn.countDown()
+          awaitCondition("the commit to queue on the partition lock")(lock.hasQueuedThreads || commitDone.get())
+        }
+      }
+      commit.start()
+
+      im.sweepAllBatchTemps()
+      commit.join(TimeUnit.SECONDS.toMillis(10))
+
+      commitOverlap.get() shouldBe false
+      events.asScala.toList shouldBe List(
+        s"delete:${orphans(0)}",
+        "commit",
+        s"delete:${orphans(1)}",
+        s"delete:${orphans(2)}",
+      )
+    } finally im.close()
+  }
+
+  test("[M'5] a sweep by an instance that no longer owns the master lock deletes nothing and warns") {
+    val st = new HookedStorage
+    storage = st
+    seedMaster(99)
+    // A zombie / stale instance of the same connector task: same name, so the same temp prefix,
+    // but its own lockUuid. It opened first; the current owner's open() then bumped the owner.
+    val zombieTaskId = ConnectorTaskId(connectorTaskId.name, connectorTaskId.maxTasks, connectorTaskId.taskNo)
+    zombieTaskId.lockUuid should not be connectorTaskId.lockUuid
+    val zombie = buildLockedIndexManager(st, BatchCommitLocks(), taskId = zombieTaskId)
+    val owner  = buildLockedIndexManager(st, BatchCommitLocks())
+    try {
+      zombie.open(Set(tp)).value
+      owner.open(Set(tp)).value
+      writeTemp(orphan, ageSecondsAgo = ageSeconds + 60)
+
+      val (_, warnings) = warningsDuring(zombie.sweepAllBatchTemps())
+
+      st.tempDeleteCalls shouldBe empty
+      st.snapshot(bucket).keys should contain(orphan)
+      warnings.exists(_.contains("lock owned by another instance; batch temp sweep skipped")) shouldBe true
+
+      // The owner's own sweep passes the fence.
+      owner.sweepAllBatchTemps()
+      st.snapshot(bucket).keys should not contain orphan
+    } finally {
+      zombie.close()
+      owner.close()
+    }
+  }
+
+  test("[M'6] a periodic sweep deletes nothing once work is suspended or the partition is revoked mid-pass") {
+    val cases: List[(String, (IndexManagerV2, HookedStorage) => Unit)] = List(
+      "suspended before the pass"         -> ((im, _) => im.suspendBackgroundWork()),
+      "suspended between LIST and delete" -> ((im, st) => st.afterTempList.set(() => im.suspendBackgroundWork())),
+      "revoked between LIST and delete"   -> ((im, st) => st.afterTempList.set(() => im.clearTopicPartitionState(tp))),
+    )
+    cases.foreach {
+      case (label, arrange) =>
+        withClue(label) {
+          val st = new HookedStorage
+          storage = st
+          seedMaster(99)
+          val im = buildLockedIndexManager(st, BatchCommitLocks())
+          try {
+            im.open(Set(tp)).value
+            writeTemp(orphan, ageSecondsAgo = ageSeconds + 60)
+            arrange(im, st)
+
+            im.sweepAllBatchTemps()
+
+            st.tempDeleteCalls shouldBe empty
+            st.snapshot(bucket).keys should contain(orphan)
+          } finally im.close()
+        }
+    }
+  }
+
+  test("[M'7] an unreadable master lock on the per-chunk fresh read stops the pass") {
+    val st = new HookedStorage
+    storage = st
+    seedMaster(99)
+    val im = buildLockedIndexManager(st, BatchCommitLocks())
+    try {
+      im.open(Set(tp)).value
+      writeTemp(orphan, ageSecondsAgo = ageSeconds + 60)
+      // The pre-LIST read succeeds; the fresh read under the lock fails.
+      st.afterTempList.set(() => st.failMasterGet = true)
+
+      im.sweepAllBatchTemps()
+
+      st.tempDeleteCalls shouldBe empty
+      st.snapshot(bucket).keys should contain(orphan)
+    } finally im.close()
+  }
+
+  test("[M'8a] an interrupt while waiting on the partition lock issues no delete and restores the flag") {
+    val st = new HookedStorage
+    storage = st
+    seedMaster(99)
+    val locks = BatchCommitLocks()
+    val im    = buildLockedIndexManager(st, locks)
+    try {
+      im.open(Set(tp)).value
+      writeTemp(orphan, ageSecondsAgo = ageSeconds + 60)
+      val lock  = locks.lockFor(tp)
+      val sweep = new SweepThread(im)
+      lock.lock()
+      try {
+        sweep.start()
+        awaitCondition("the sweep to queue on the partition lock or finish")(lock.hasQueuedThreads || sweep.finished)
+        sweep.interrupt()
+        sweep.awaitFinished()
+      } finally lock.unlock()
+
+      st.tempDeleteCalls shouldBe empty
+      st.snapshot(bucket).keys should contain(orphan)
+      sweep.interruptedFlagAfterPass.get() shouldBe true
+    } finally im.close()
+  }
+
+  test("[M'8b] close() interrupts a scheduled sweep waiting on the partition lock; no delete is issued") {
+    val st = new HookedStorage
+    storage = st
+    seedMaster(99)
+    val locks  = BatchCommitLocks()
+    val im     = buildLockedIndexManager(st, locks, sweepEnabled = true, sweepIntervalS = 1, minAgeS = 1)
+    val lock   = locks.lockFor(tp)
+    var closed = false
+    try {
+      im.open(Set(tp)).value
+      val exec = im.sweepExecutorOpt.getOrElse(fail("the periodic sweep executor was not started"))
+      lock.lock()
+      try {
+        writeTemp(orphan, ageSecondsAgo = 60)
+        awaitCondition("the scheduled sweep to queue on the partition lock or delete")(
+          lock.hasQueuedThreads || !st.tempDeletes.isEmpty,
+        )
+        im.close() // shutdownNow interrupts the waiting sweep thread
+        closed = true
+        exec.isTerminated shouldBe true
+      } finally lock.unlock()
+
+      st.tempDeleteCalls shouldBe empty
+      st.snapshot(bucket).keys should contain(orphan)
+    } finally if (!closed) im.close()
   }
 }
