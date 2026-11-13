@@ -43,7 +43,7 @@ import org.scalatest.matchers.should.Matchers
 
 import ch.qos.logback.classic.Level
 import ch.qos.logback.classic.spi.ILoggingEvent
-import ch.qos.logback.classic.{ Logger => LogbackLogger }
+import ch.qos.logback.classic.LoggerContext
 import ch.qos.logback.core.read.ListAppender
 import org.slf4j.LoggerFactory
 
@@ -413,7 +413,13 @@ class BatchTempSweepTest extends AnyFunSuiteLike with Matchers with EitherValues
     PendingState(Offset(150), NonEmptyList.of(CopyOperation(bucket, temp, finalPath, st.snapshot(bucket)(temp).eTag)))
 
   private def warningsDuring[A](f: => A): (A, List[String]) = {
-    val logger   = LoggerFactory.getLogger(classOf[IndexManagerV2]).asInstanceOf[LogbackLogger]
+    // Resolve the logger through the logback context, never by casting `getLogger`'s result: while
+    // a suite on another thread is still initialising SLF4J, `getLogger` hands out a
+    // `SubstituteLogger`. That initialisation runs under `LoggerFactory`'s class monitor, so taking
+    // the monitor waits for it to finish and the factory is then the bound `LoggerContext`.
+    val context =
+      classOf[LoggerFactory].synchronized(LoggerFactory.getILoggerFactory).asInstanceOf[LoggerContext]
+    val logger   = context.getLogger(classOf[IndexManagerV2])
     val appender = new ListAppender[ILoggingEvent]()
     appender.start()
     logger.addAppender(appender)
