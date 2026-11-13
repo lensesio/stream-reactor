@@ -89,8 +89,10 @@
 
 **CP3:** commit `fix(cloud-sink): serialise batch temp deletes with commits and fence stale sweeps (LC-349)`.
 
+- [x] **S2b: explicit owned-partitions set** (approved follow-up). Replaced the `requireLiveOwnership` flag and the per-chunk `acceptingWork && seekedOffsets.contains(tp)` check with `IndexManagerV2.ownedPartitions` (added at `open(tp)`, removed by the new `IndexManager.releasePartitions` hook from `CloudSinkTask.close(partitions)`, by `clearTopicPartitionState`, and cleared by `close()`). Commit `refactor(cloud-sink): gate batch temp deletes on an explicit owned-partitions set (LC-349)`.
+
 ## S3: Restart variants
-- [ ] **T7: IT Cases 2a and 2b, and unit AC3c**
+- [x] **T7: IT Cases 2a and 2b, and unit AC3c**
   - Acceptance:
     - **2a:** the retry's copy of A fails; the referenced temps survive at least 2 sweep intervals; a fresh task's `open()` resumes; each file lands once; re-delivery creates no extra files.
     - **2b:** B's copy fails after A has landed; on restart B lands, A is not rewritten (same eTag), and nothing is re-uploaded.
