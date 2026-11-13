@@ -103,7 +103,7 @@
 **CP4:** commit `test(aws-s3): restart paths after a re-staged batch commit (LC-349)`.
 
 ## S4: Docs
-- [ ] **T8: Update `docs/` exactly as the spec's "Docs (AC9)" section says**
+- [x] **T8: Update `docs/` exactly as the spec's "Docs (AC9)" section says**
   - Acceptance:
     - Write-pipeline: the table rows, line 204 and line 364 are updated.
     - Partitionby:
@@ -117,7 +117,7 @@
 **CP5:** commit `docs: batch re-staging, sweep/commit serialisation and stuck-task runbook (LC-349)`.
 
 ## S5: Ship
-- [ ] **T9: Full verification and PR draft**
+- [x] **T9: Full verification and PR draft**
   - Acceptance:
     - `sbt headerCreateAll scalafmtAll` leaves no diff, `validateAll` is clean, cloud-common `test` is green, and `aws-s3 it:test` is green.
     - The diff review confirms no safety assertion was weakened.
