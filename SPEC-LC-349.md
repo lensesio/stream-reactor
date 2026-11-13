@@ -75,7 +75,13 @@ With the default 24h minimum age this needs a day-long commit or a day of clock 
   - from a commit that failed after the CAS: referenced by the fresh read, so it is dropped from the chunk.
 
   Temps uploaded after the LIST are not in the listing.
-- **Threading.** The lock is only ever taken and released inside one synchronous thunk, never across an `IO` boundary. The `open()` sweep uses the same code path. It cannot overlap a commit, because both run on the task-driven path, so it never has to wait in practice.
+- **Threading.** The lock is only ever taken and released inside one synchronous thunk, never across an `IO` boundary.
+- **`open()` path (decided during S2).** `sweepBatchTemps` takes a `requireLiveOwnership` flag.
+  - The periodic `sweepAllBatchTemps` passes `true` and gets the full per-chunk check.
+  - The `open()` call site passes `false`. It skips **only** the `acceptingWork`/`seekedOffsets` check, and keeps the lock, the fresh read, the owner fence and the dropping of referenced entries.
+  - Why: during `open()`, `acceptingWork` is still `false` (it is set after every partition's `open()` returns, `IndexManagerV2.scala:331`), and new partitions are not yet in `seekedOffsets`. So the full check would stop open-time reaping.
+  - Why this is safe: the task thread is opening that partition at that moment, and the owner fence still stops a zombie.
+- **Known pre-existing gap.** The periodic sweep only visits partitions in `seekedOffsets`, which means partitions with a committed master offset. A partition that never committed has its orphans reaped only at `open()`. This is documented, not changed.
 
 **3. Owner fencing on the fresh read (fixes Bug C).** A chunk is deleted only if the fresh master lock's `owner == lockOwner`. `lockOwner` is `ConnectorTaskId.lockUuid`, unique to each instance, and `open()` always bumps the owner (`IndexManagerV2.scala:570, 634`). On a mismatch the pass stops for that partition and logs a WARN: "lock owned by another instance; batch temp sweep skipped". So a stale or zombie sweep never deletes the current owner's temps.
 
