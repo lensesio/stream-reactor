@@ -3368,6 +3368,51 @@ class IndexManagerV2Test
     } finally im.close()
   }
 
+  // A predecessor that crashed after the copy step has already produced a final file
+  // up to pendingOffset. If pendingOffset is at or above the master floor, replay re-delivers those
+  // records, and only this lock (resolved at load time) deduplicates them. Deleting it on
+  // committedOffset alone writes them a second time.
+  Seq(200L -> "above", 100L -> "at").foreach {
+    case (pendingOffset, where) =>
+      test(s"sweep does NOT enqueue a PendingState lock whose pendingOffset is $where the master offset") {
+        val tp              = Topic("topic1").withPartition(0)
+        val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
+        val si              = storageMockWithBump()
+        setupSweepMocks(si, tp, bucketAndPrefix)
+
+        val oldTime = Instant.now().minusSeconds(7200)
+        val pendingPath =
+          s"$indexesDirectoryName/${connectorTaskId.name}/.locks/${tp.topic}/${tp.partition}/pending-above.lock"
+        val pendingMeta  = TestFileMetadata(pendingPath, oldTime)
+        val listResponse = ListOfMetadataResponse("bucket", Some("prefix"), Seq(pendingMeta), pendingMeta)
+
+        org.mockito.Mockito.doReturn(Right(Some(listResponse))).when(si).listFileMetaRecursive(anyString(),
+                                                                                               any[Option[String]],
+        )
+
+        val pendingState =
+          PendingState(Offset(pendingOffset), NonEmptyList.one(DeleteOperation("bucket", "some/temp/path", "old-etag")))
+        when(
+          si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("pending-above.lock"))(
+            ArgumentMatchers.eq(indexFileDecoder),
+          ),
+        )
+          .thenReturn(
+            Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(50)), Some(pendingState)), "pending-etag")),
+          )
+        when(si.deleteFiles(anyString(), any[Seq[String]])).thenReturn(Right(()))
+
+        val im = createSweepTestManager(si)
+        try {
+          im.open(Set(tp))
+          im.sweepOrphanedLocks()
+          im.drainGcQueue()
+
+          verify(si, never).deleteFiles(anyString(), any[Seq[String]])
+        } finally im.close()
+      }
+  }
+
   test("sweep writes per-TP markers to each partition's bucket") {
     val tp1 = Topic("topic1").withPartition(0)
     val tp2 = Topic("topic2").withPartition(0)
