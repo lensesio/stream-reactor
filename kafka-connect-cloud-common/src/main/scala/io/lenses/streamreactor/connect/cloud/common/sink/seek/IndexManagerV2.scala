@@ -80,6 +80,8 @@ class IndexManagerV2(
   private[sink] val commitMode: CommitMode       = CommitMode.Default,
   metrics:                      CloudSinkMetrics = new CloudSinkMetrics(),
   batchCommitLocks:             BatchCommitLocks = BatchCommitLocks.NoOp,
+  // Wall-clock source for the ownership-epoch floor (LC-350). Injectable so tests are deterministic.
+  clock: () => Long = () => System.currentTimeMillis(),
 )(
   implicit
   storageInterface: StorageInterface[?],
@@ -119,6 +121,29 @@ class IndexManagerV2(
   // open()) means "currently held". Concurrent: open() adds from parallel fibers and the sweep
   // thread reads it.
   private[seek] val ownedPartitions: java.util.Set[TopicPartition] = ConcurrentHashMap.newKeySet[TopicPartition]()
+  // Ownership epoch this instance holds for each owned TopicPartition (LC-350, spec
+  // ownership-epoch R2). Set once by a successful ownership write in `open()` and cleared with the
+  // rest of the partition state; never changed while the partition is owned, so commit-pool threads
+  // and the GC/sweep threads all see the same value. Concurrent because open() uses parTraverse.
+  private[seek] val tpEpoch = TrieMap.empty[TopicPartition, Long]
+
+  /**
+   * The epoch an ownership write takes over a lock that carried `previous`: one more than
+   * `previous`, floored by wall-clock time. Between new-version owners the `+ 1` makes it strictly
+   * increasing whatever the clocks say; after an older connector version dropped the field
+   * (`previous = None`), the clock keeps it above every epoch written before (ownership-epoch R2).
+   */
+  private def nextEpoch(previous: Option[Long]): Long =
+    math.max(previous.getOrElse(0L) + 1L, clock())
+
+  /** Records the epoch an ownership write in `open()` just landed, then passes the write through. */
+  private def ownershipTaken(
+    topicPartition: TopicPartition,
+    written:        ObjectWithETag[IndexFile],
+  ): ObjectWithETag[IndexFile] = {
+    written.wrappedObject.epoch.foreach(e => tpEpoch.put(topicPartition, e))
+    written
+  }
 
   // Granular lock cache: nested ConcurrentHashMap keyed by TopicPartition, then partitionKey.
   // Lazily populated on first writer access. Not bounded by automatic eviction — entries are
@@ -626,9 +651,9 @@ class IndexManagerV2(
     tryOpenResult match {
 
       case Left(FileNotFoundError(_, _)) =>
-        createNewIndexFileNoOverwrite(topicPartition, path, bucketAndPrefix) match {
+        createNewIndexFileNoOverwrite(topicPartition, path, bucketAndPrefix, nextEpoch(None)) match {
           case Right(written) =>
-            updateDataReturnOffset(topicPartition, written).asRight[SinkError]
+            updateDataReturnOffset(topicPartition, ownershipTaken(topicPartition, written)).asRight[SinkError]
 
           case Left(_: LostCreateRaceError) if attemptsLeft > 1 =>
             // Another task won the create. The lock now exists — re-read and re-decide through
@@ -665,12 +690,12 @@ class IndexManagerV2(
         // exists, so a NoOverwrite write would always 412.
         // NOTE: pendingOperationsProcessors is NOT invoked here — the 0-byte file proves
         // no PendingState was ever durably recorded; the recovery write sets pendingState=None.
-        val idx = IndexFile(lockOwner, Option.empty, Option.empty)
+        val idx = IndexFile(lockOwner, Option.empty, Option.empty, Some(nextEpoch(None)))
         storageInterface.writeBlobToFile(bucketAndPrefix.bucket, path, ObjectWithETag(idx, eTag))
           .leftMap { err: UploadError =>
             new FatalCloudSinkError(err.message(), err.toExceptionOption, topicPartition)
           }
-          .map(updateDataReturnOffset(topicPartition, _))
+          .map(written => updateDataReturnOffset(topicPartition, ownershipTaken(topicPartition, written)))
 
       case Left(fileLoadError: FileLoadError) =>
         new FatalCloudSinkError(fileLoadError.message(), fileLoadError.toExceptionOption, topicPartition).asLeft[
@@ -678,7 +703,11 @@ class IndexManagerV2(
         ]
 
       case Right(ObjectWithETag(
-            IndexFile(_, committedOffset, Some(pendingStateFound @ PendingState(pendingOffset, pendingOperations)), _),
+            IndexFile(_,
+                      committedOffset,
+                      Some(pendingStateFound @ PendingState(pendingOffset, pendingOperations)),
+                      prevEpoch,
+            ),
             eTag,
           )) =>
         // Ownership bump BEFORE driving the chain. Without this, a zombie that CAS'd the
@@ -691,7 +720,9 @@ class IndexManagerV2(
         storageInterface.writeBlobToFile(
           bucketAndPrefix.bucket,
           path,
-          ObjectWithETag(IndexFile(lockOwner, committedOffset, Some(pendingStateFound)), eTag),
+          ObjectWithETag(IndexFile(lockOwner, committedOffset, Some(pendingStateFound), Some(nextEpoch(prevEpoch))),
+                         eTag,
+          ),
         ) match {
           case Left(err) if attemptsLeft > 1 =>
             metrics.incrementMasterLockFailures()
@@ -716,6 +747,8 @@ class IndexManagerV2(
             new FatalCloudSinkError(err.message(), err.toExceptionOption, topicPartition).asLeft[Option[Offset]]
           case Right(bumped) =>
             metrics.incrementMasterLockUpdates()
+            // Seat the epoch before driving the chain: every recovery write stamps it (R3).
+            val _ = ownershipTaken(topicPartition, bumped)
             topicPartitionToETags.put(topicPartition, bumped.eTag)
             pendingOperationsProcessors.processPendingOperations(
               topicPartition,
@@ -742,7 +775,7 @@ class IndexManagerV2(
             }
         }
 
-      case Right(ObjectWithETag(IndexFile(_, committedOffset, None, _), eTag)) =>
+      case Right(ObjectWithETag(IndexFile(_, committedOffset, None, prevEpoch), eTag)) =>
         // Ownership bump. Adopting the eTag without rewriting would leave the previous owner's
         // token valid until this task's first commit, so a zombie could still write the lock in
         // between. Rewriting here moves the fence to ownership change. Content is unchanged apart
@@ -755,11 +788,11 @@ class IndexManagerV2(
         storageInterface.writeBlobToFile(
           bucketAndPrefix.bucket,
           path,
-          ObjectWithETag(IndexFile(lockOwner, committedOffset, None), eTag),
+          ObjectWithETag(IndexFile(lockOwner, committedOffset, None, Some(nextEpoch(prevEpoch))), eTag),
         ) match {
           case Right(written) =>
             metrics.incrementMasterLockUpdates()
-            updateDataReturnOffset(topicPartition, written).asRight[SinkError]
+            updateDataReturnOffset(topicPartition, ownershipTaken(topicPartition, written)).asRight[SinkError]
           case Left(err) if attemptsLeft > 1 =>
             metrics.incrementMasterLockFailures()
             logger.info(
@@ -814,8 +847,9 @@ class IndexManagerV2(
     topicPartition:  TopicPartition,
     path:            String,
     bucketAndPrefix: CloudLocation,
+    epoch:           Long,
   ): Either[SinkError, ObjectWithETag[IndexFile]] = {
-    val idx = IndexFile(lockOwner, Option.empty, Option.empty)
+    val idx = IndexFile(lockOwner, Option.empty, Option.empty, Some(epoch))
     storageInterface.writeBlobToFile(bucketAndPrefix.bucket, path, NoOverwriteExistingObject(idx))
       .leftMap {
         // Lost the create race (another task created the lock first). Surface a recoverable
@@ -1464,6 +1498,7 @@ class IndexManagerV2(
     val _ = ownedPartitions.remove(topicPartition)
     seekedOffsets.remove(topicPartition)
     val _ = topicPartitionToETags.remove(topicPartition)
+    val _ = tpEpoch.remove(topicPartition)
     // A revoked/failed-open partition must re-confirm legacy-lock resolution on its next open()
     // rather than trusting a flag set under the previous (possibly abandoned) ownership episode.
     val _ = legacyResolved.remove(topicPartition)

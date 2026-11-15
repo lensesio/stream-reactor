@@ -113,6 +113,14 @@ class InMemoryStorageInterface(systemName: String = "in-memory") extends Storage
       case None => false
     }
 
+  /**
+   * Store raw bytes at a path with a fresh eTag, bypassing every write path's validation. For
+   * seeding shapes the production writers can't produce, e.g. a 0-byte "poison" lock blob.
+   */
+  def putRaw(bucket: String, path: String, bytes: Array[Byte]): Unit = {
+    val _ = store.put((bucket, path), StoredBlob(bytes, freshETag(), Instant.now()))
+  }
+
   // ---------- StorageInterface methods used by the sink write-path ----------
 
   override def system(): String = systemName

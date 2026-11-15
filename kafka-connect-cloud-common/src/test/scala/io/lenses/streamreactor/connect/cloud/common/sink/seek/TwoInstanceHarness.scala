@@ -29,6 +29,7 @@ import io.lenses.streamreactor.connect.cloud.common.testing.InMemoryStorageInter
 
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicLong
 
 /**
  * N real `IndexManagerV2` instances of the SAME connector sharing one `InMemoryStorageInterface`,
@@ -47,6 +48,9 @@ final class TwoInstanceHarness(instanceCount: Int = 2) extends AutoCloseable {
   val connectorName:     String = "lc350-two-instance"
 
   val storage: InMemoryStorageInterface = new InMemoryStorageInterface()
+
+  /** Shared wall clock (epoch millis) handed to every instance; tests set it explicitly. */
+  val clock: AtomicLong = new AtomicLong(1000L)
 
   implicit private val cloudLocationValidator: CloudLocationValidator =
     (location: CloudLocation) => Validated.valid(location)
@@ -93,6 +97,7 @@ final class TwoInstanceHarness(instanceCount: Int = 2) extends AutoCloseable {
       gcSweepIntervalSeconds      = Int.MaxValue,
       gcSweepMinAgeSeconds        = Int.MaxValue,
       gcSweepEnabled              = false,
+      clock                       = () => clock.get(),
     )(si, taskId)
   }
 }
