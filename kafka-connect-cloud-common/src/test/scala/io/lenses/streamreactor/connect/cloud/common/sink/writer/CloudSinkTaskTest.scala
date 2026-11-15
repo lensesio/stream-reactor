@@ -944,6 +944,67 @@ class CloudSinkTaskTest
     verify(im, times(1)).releasePartitions(Set(tpA, tpB))
   }
 
+  // ── LC-350 ownership-epoch R6: a fenced partition fails the task on the next put() ─────────
+
+  private def fencedPut(
+    policy:     ErrorPolicy,
+    maxRetries: Int,
+    records:    java.util.Collection[org.apache.kafka.connect.sink.SinkRecord],
+  ): (Throwable, WriterManager[FakeFileMetadata]) = {
+    val task = new ConcreteTestSinkTask
+    task.initialize(maxRetries, policy)
+    val wm = mock[WriterManager[FakeFileMetadata]]
+    val im = mock[IndexManager]
+    when(im.fencedPartitions).thenReturn(Set(tpA))
+    task.writerManager   = wm
+    task.indexManager    = im
+    task.connectorTaskId = connectorTaskId
+    (intercept[Throwable](task.put(records)), wm)
+  }
+
+  private val oneRecord: java.util.Collection[org.apache.kafka.connect.sink.SinkRecord] =
+    java.util.List.of(new org.apache.kafka.connect.sink.SinkRecord(tpA.topic.value, 0, null, null, null, "v", 7L))
+
+  Seq[(String, ErrorPolicy, Int)](
+    ("NOOP", NoopErrorPolicy(), 5),
+    ("RETRY", RetryErrorPolicy(), 5),
+    ("RETRY with unlimited retries", RetryErrorPolicy(), Int.MaxValue),
+    ("THROW", ThrowErrorPolicy(), 5),
+  ).foreach {
+    case (name, policy, maxRetries) =>
+      Seq("an empty" -> java.util.List.of[org.apache.kafka.connect.sink.SinkRecord](), "a non-empty" -> oneRecord)
+        .foreach {
+          case (batch, records) =>
+            test(
+              s"LC-350: $batch put() on a fenced partition throws FatalConnectException under $name, before any work",
+            ) {
+              val (thrown, wm) = fencedPut(policy, maxRetries, records)
+
+              thrown shouldBe a[FatalConnectException]
+              thrown should not be a[RetriableIntegrityException]
+              thrown.getMessage should include(tpA.toString)
+              org.mockito.Mockito.verifyNoInteractions(wm)
+            }
+        }
+  }
+
+  test("LC-350: put() on a task with no fenced partitions does not throw for fencing") {
+    val task = new ConcreteTestSinkTask
+    task.initialize(5, NoopErrorPolicy())
+    val wm = mock[WriterManager[FakeFileMetadata]]
+    val im = mock[IndexManager]
+    when(im.fencedPartitions).thenReturn(Set.empty[TopicPartition])
+    when(wm.recommitPending()).thenReturn(().asRight)
+    when(wm.commitFlushableWriters()).thenReturn(().asRight)
+    task.writerManager   = wm
+    task.indexManager    = im
+    task.connectorTaskId = connectorTaskId
+
+    task.put(java.util.List.of[org.apache.kafka.connect.sink.SinkRecord]())
+
+    verify(wm).recommitPending()
+  }
+
   private class ConcreteTestSinkTask
       extends CloudSinkTask[FakeFileMetadata, CloudSinkConfig[StubCC], StubCC, Unit](
         "test-connector",

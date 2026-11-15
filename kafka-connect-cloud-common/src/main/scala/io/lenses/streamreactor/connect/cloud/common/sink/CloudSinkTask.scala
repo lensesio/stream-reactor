@@ -80,7 +80,7 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
 
   private var logMetrics = false
   private[sink] var writerManager: WriterManager[MD] = _
-  private var indexManager:        IndexManager      = _
+  private[sink] var indexManager:  IndexManager      = _
   private var config:              C                 = _
   private var metrics:             CloudSinkMetrics  = _
   private val attachLatestSchemaOptimizer = new AttachLatestSchemaOptimizer()
@@ -171,7 +171,28 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
         }
     }
 
-  override def put(records: util.Collection[SinkRecord]): Unit =
+  override def put(records: util.Collection[SinkRecord]): Unit = {
+    failIfFenced()
+    putRecords(records)
+  }
+
+  /**
+   * Fails the task, before any work, once this instance has found itself fenced on a partition: a
+   * newer owner holds it, so continuing would only withhold offsets forever while the zombie keeps
+   * the slot. Thrown outside `handleTry` as a `FatalConnectException`, which every error policy
+   * rethrows (NOOP would swallow, and RETRY would endlessly re-deliver, any other exception type).
+   * A restart re-opens the partitions and re-takes ownership above the fencing epoch.
+   */
+  private def failIfFenced(): Unit =
+    Option(indexManager).map(_.fencedPartitions).filter(_.nonEmpty).foreach { fenced =>
+      val tps = fenced.toList.map(_.toString).sorted.mkString(", ")
+      throw new FatalConnectException(
+        s"[${Option(connectorTaskId).map(_.show).getOrElse("unknown task")}] Fenced on [$tps]: a newer task " +
+          s"instance owns these partitions. Failing so a restart re-takes ownership.",
+      )
+    }
+
+  private def putRecords(records: util.Collection[SinkRecord]): Unit =
     Metrics.withTimer {
       handleTry {
         Try {

@@ -242,7 +242,14 @@ class WriterManager[SM <: FileMetadata](
   ): ForceWriteOutcome = {
     val firstBufferedOffsets = tpWriters.flatMap(_.getFirstBufferedOffset)
     val committedOffsets     = tpWriters.flatMap(_.getCommittedOffset)
-    if (committedOffsets.isEmpty) {
+    if (indexManager.isFenced(topicPartition)) {
+      // A newer owner holds this partition: its master lock is not ours to write, on close or revoke.
+      logger.warn(
+        s"[${connectorTaskId.show}] Force-${reason} skipped for $topicPartition: this instance is fenced " +
+          s"(a newer owner holds the partition).",
+      )
+      ForceWriteOutcome.NotNeeded
+    } else if (committedOffsets.isEmpty) {
       // No committed offsets yet — durable master-lock floor is already authoritative.
       logger.debug(
         s"[${connectorTaskId.show}] Force-${reason} skipped for $topicPartition: " +
@@ -661,38 +668,47 @@ class WriterManager[SM <: FileMetadata](
         s"globalSafeOffset=$globalSafeOffset < lastWritten=$priorLastWritten — " +
         s"writing a regression would drive same-value GC past locks the next owner needs.",
     )
-    forcedReason.foreach(metrics.incrementMasterLockWriteForced)
-    indexManager.updateMasterLock(topicPartition, Offset(globalSafeOffset)) match {
-      case Left(err) =>
-        metrics.incrementMasterLockFailures()
-        forcedReason.foreach(metrics.incrementMasterLockWriteForcedFailure)
-        logger.error(
-          s"[${connectorTaskId.show}] Master lock update failed for $topicPartition " +
-            s"(forced=${forcedReason.map(_.toString).getOrElse("no")}): ${err.message()}. " +
-            s"Returning no offset to prevent consumer advance.",
-        )
-        false
-      case Right(_) =>
-        metrics.incrementMasterLockUpdates()
-        metrics.clearMasterLockDirty(topicPartition)
-        safeOffsetHighWatermarks.put(topicPartition, globalSafeOffset)
-        advanceLastReturned(topicPartition, globalSafeOffset)
-        lastWrittenMasterSafeOffset.put(topicPartition, globalSafeOffset)
-        logger.debug(
-          s"[${connectorTaskId.show}] Updated master lock for $topicPartition with globalSafeOffset=$globalSafeOffset" +
-            forcedReason.map(r => s" (forced=$r)").getOrElse(""),
-        )
-        val activePartitionKeys: Set[String] = writers
-          .filter { case (key, _) => key.topicPartition == topicPartition }
-          .keys
-          .flatMap(key => WriterManager.derivePartitionKey(key.partitionValues))
-          .toSet
-        indexManager.cleanUpObsoleteLocks(topicPartition, Offset(globalSafeOffset), activePartitionKeys) match {
-          case Left(err) =>
-            logger.warn(s"[${connectorTaskId.show}] Best-effort GC failed for $topicPartition: ${err.message()}")
-          case Right(_) =>
-        }
-        true
+    if (indexManager.isFenced(topicPartition)) {
+      // Already fenced: the master lock belongs to a newer owner. Return no offset; the task fails
+      // on its next put().
+      false
+    } else {
+      forcedReason.foreach(metrics.incrementMasterLockWriteForced)
+      indexManager.updateMasterLock(topicPartition, Offset(globalSafeOffset)) match {
+        case Left(err) =>
+          metrics.incrementMasterLockFailures()
+          forcedReason.foreach(metrics.incrementMasterLockWriteForcedFailure)
+          logger.error(
+            s"[${connectorTaskId.show}] Master lock update failed for $topicPartition " +
+              s"(forced=${forcedReason.map(_.toString).getOrElse("no")}): ${err.message()}. " +
+              s"Returning no offset to prevent consumer advance.",
+          )
+          // Tell a lost CAS against a newer owner apart from a transient failure: the former fences
+          // the partition (the task then fails fast instead of withholding offsets forever).
+          val _ = indexManager.confirmMasterFenced(topicPartition)
+          false
+        case Right(_) =>
+          metrics.incrementMasterLockUpdates()
+          metrics.clearMasterLockDirty(topicPartition)
+          safeOffsetHighWatermarks.put(topicPartition, globalSafeOffset)
+          advanceLastReturned(topicPartition, globalSafeOffset)
+          lastWrittenMasterSafeOffset.put(topicPartition, globalSafeOffset)
+          logger.debug(
+            s"[${connectorTaskId.show}] Updated master lock for $topicPartition with globalSafeOffset=$globalSafeOffset" +
+              forcedReason.map(r => s" (forced=$r)").getOrElse(""),
+          )
+          val activePartitionKeys: Set[String] = writers
+            .filter { case (key, _) => key.topicPartition == topicPartition }
+            .keys
+            .flatMap(key => WriterManager.derivePartitionKey(key.partitionValues))
+            .toSet
+          indexManager.cleanUpObsoleteLocks(topicPartition, Offset(globalSafeOffset), activePartitionKeys) match {
+            case Left(err) =>
+              logger.warn(s"[${connectorTaskId.show}] Best-effort GC failed for $topicPartition: ${err.message()}")
+            case Right(_) =>
+          }
+          true
+      }
     }
   }
 

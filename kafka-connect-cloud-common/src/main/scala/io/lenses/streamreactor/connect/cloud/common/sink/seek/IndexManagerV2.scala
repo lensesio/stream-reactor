@@ -127,11 +127,19 @@ class IndexManagerV2(
   // and the GC/sweep threads all see the same value. Concurrent because open() uses parTraverse.
   private[seek] val tpEpoch = TrieMap.empty[TopicPartition, Long]
 
-  // Partitions this instance has found itself fenced on (it read a lock with a higher epoch than
-  // its own, ownership-epoch R5). Concurrent: marked from the task thread, commit-pool threads and
-  // the GC/sweep threads. Consumed by the task to fail fast (R6).
-  private[seek] val fencedPartitions: java.util.Set[TopicPartition] =
+  // Partitions this instance has found itself fenced on: it read a lock written under a newer
+  // ownership epoch, or lost a master-lock write to a newer owner. Concurrent: marked from the task
+  // thread, commit-pool threads and the GC/sweep threads. The task fails fast while it is non-empty.
+  private val fencedTps: java.util.Set[TopicPartition] =
     java.util.concurrent.ConcurrentHashMap.newKeySet[TopicPartition]()
+
+  override def fencedPartitions: Set[TopicPartition] = fencedTps.asScala.toSet
+
+  override def isFenced(topicPartition: TopicPartition): Boolean = fencedTps.contains(topicPartition)
+
+  /** Marks a partition fenced; the metric counts each partition once. */
+  private def markFenced(topicPartition: TopicPartition): Unit =
+    if (fencedTps.add(topicPartition)) metrics.incrementPartitionsFenced()
 
   /**
    * The epoch an ownership write takes over a lock that carried `previous`: one more than
@@ -172,7 +180,7 @@ class IndexManagerV2(
   ): Either[SinkError, Unit] =
     tpEpoch.get(topicPartition) match {
       case Some(mine) if lock.epoch.getOrElse(0L) > mine =>
-        val _      = fencedPartitions.add(topicPartition)
+        markFenced(topicPartition)
         val theirs = lock.epoch.getOrElse(0L)
         logger.error(
           s"[${connectorTaskId.show}] Fenced on $topicPartition: granular lock $partitionKey carries epoch $theirs " +
@@ -1587,6 +1595,31 @@ class IndexManagerV2(
   // eTag-conditional storage write, to engineer a deterministic zombie rebalance race in tests.
   // See `IndexManagerV2TestHooks` for the install/clear API.
   @volatile private[seek] var testHookPreWriteMasterLockBarrier: () => Unit = () => ()
+
+  /**
+   * After a failed master-lock write: re-read the lock and decide whether a newer owner holds it.
+   * Since our open() bump, any write that lands on the master lock is either ours or another
+   * instance's ownership bump (a previous owner's floor write would fail its CAS against our bump).
+   * So a different owner, or a higher epoch, means this instance has been replaced. A lock that is
+   * still ours, or one that can't be read, is treated as transient, and today's retry-next-cycle
+   * behaviour applies.
+   */
+  override def confirmMasterFenced(topicPartition: TopicPartition): Boolean =
+    (for {
+      mine <- tpEpoch.get(topicPartition)
+      loc  <- bucketAndPrefixFn(topicPartition).toOption
+      lock <- tryOpen(loc.bucket, generateLockFilePath(connectorTaskId, topicPartition, directoryFileName)).toOption
+    } yield lock.wrappedObject.owner != lockOwner || lock.wrappedObject.epoch.getOrElse(0L) > mine) match {
+      case Some(true) =>
+        markFenced(topicPartition)
+        logger.error(
+          s"[${connectorTaskId.show}] Fenced on $topicPartition: the master lock now belongs to another instance " +
+            s"(this instance's lockUuid $lockOwner, epoch ${tpEpoch.get(topicPartition).getOrElse(0L)}). " +
+            s"The task will fail on its next put() so a restart can re-take ownership.",
+        )
+        true
+      case _ => false
+    }
 
   override def updateMasterLock(
     topicPartition:   TopicPartition,

@@ -139,6 +139,13 @@ trait CloudSinkMetricsMBean {
   def getMasterLockFailures: Long
 
   /**
+   * Cumulative topic-partitions this task found itself fenced on (LC-350): it read a lock written
+   * under a newer ownership epoch, or lost a master-lock write to a newer owner. The task fails on
+   * its next `put()`; a restart re-takes ownership. Non-zero means a zombie (this task) was stopped.
+   */
+  def getPartitionsFenced: Long
+
+  /**
    * Cumulative `preCommit` cycles where the dirty-flag gate suppressed the master-lock write
    * (`globalSafeOffset` had not advanced). The ratio
    * `masterLockWriteSkipped / (masterLockWriteSkipped + masterLockUpdates + masterLockFailures)`
@@ -431,6 +438,7 @@ class CloudSinkMetrics() extends CloudSinkMetricsMBean {
 
   private val masterLockUpdates                        = new LongAdder()
   private val masterLockFailures                       = new LongAdder()
+  private val partitionsFenced                         = new LongAdder()
   private val masterLockWriteSkipped                   = new LongAdder()
   private val masterLockWriteForcedRevoke              = new LongAdder()
   private val masterLockWriteForcedStop                = new LongAdder()
@@ -521,6 +529,7 @@ class CloudSinkMetrics() extends CloudSinkMetricsMBean {
 
   override def getMasterLockUpdates:                        Long    = masterLockUpdates.sum()
   override def getMasterLockFailures:                       Long    = masterLockFailures.sum()
+  override def getPartitionsFenced:                         Long    = partitionsFenced.sum()
   override def getMasterLockWriteSkipped:                   Long    = masterLockWriteSkipped.sum()
   override def getMasterLockWriteForcedRevoke:              Long    = masterLockWriteForcedRevoke.sum()
   override def getMasterLockWriteForcedStop:                Long    = masterLockWriteForcedStop.sum()
@@ -622,6 +631,7 @@ class CloudSinkMetrics() extends CloudSinkMetricsMBean {
 
   def incrementMasterLockUpdates():  Unit = masterLockUpdates.increment()
   def incrementMasterLockFailures(): Unit = masterLockFailures.increment()
+  def incrementPartitionsFenced():   Unit = partitionsFenced.increment()
 
   def incrementMasterLockWriteSkipped(): Unit = masterLockWriteSkipped.increment()
 

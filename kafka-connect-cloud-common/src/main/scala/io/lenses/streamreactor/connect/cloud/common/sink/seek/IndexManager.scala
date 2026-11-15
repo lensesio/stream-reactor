@@ -231,6 +231,29 @@ trait IndexManager {
   def releasePartitions(topicPartitions: Set[TopicPartition]): Unit = ()
 
   /**
+   * Topic-partitions this instance has found itself fenced on: a newer owner holds them
+   * (LC-350, ownership-epoch R6). The task fails fast on its next `put()` when this is non-empty.
+   * Always empty when indexing is disabled.
+   */
+  def fencedPartitions: Set[TopicPartition] = Set.empty
+
+  /** Whether this instance has found itself fenced on `topicPartition` (see [[fencedPartitions]]). */
+  def isFenced(topicPartition: TopicPartition): Boolean = {
+    val _ = topicPartition
+    false
+  }
+
+  /**
+   * Called after a master-lock write failed. Re-reads the master lock and returns `true` (marking
+   * the partition fenced) when a newer owner holds it, `false` when the failure was transient
+   * (the lock is still ours, or it can't be read). Defaults to `false` when indexing is disabled.
+   */
+  def confirmMasterFenced(topicPartition: TopicPartition): Boolean = {
+    val _ = topicPartition
+    false
+  }
+
+  /**
    * Releases any resources held by this IndexManager (e.g. background executors).
    * Called during connector task shutdown.
    */

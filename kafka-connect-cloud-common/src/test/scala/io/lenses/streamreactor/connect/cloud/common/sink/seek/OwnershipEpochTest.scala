@@ -351,6 +351,59 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues {
     } finally h.close()
   }
 
+  // ---- R6: a failed master write is checked for fencing -------------------------------------
+
+  test("LC-350 T2: after a slow-first-read zombie takes the master, the owner's failed write confirms it is fenced") {
+    val h = new TwoInstanceHarness(instanceCount = 3)
+    try {
+      h.clock.set(1000L)
+      h.b.open(Set(tp)).value // B: the legitimate owner, epoch 1000
+      h.a.open(Set(tp)).value // A: a slow first read lands after B's bump, epoch 1001
+
+      h.b.updateMasterLock(tp, Offset(10)).isLeft shouldBe true
+      h.b.confirmMasterFenced(tp) shouldBe true
+      h.b.fencedPartitions should contain(tp)
+
+      // B's task fails and restarts as a new instance, which re-opens above A and fences A.
+      val bRestarted = h.instances(2)
+      bRestarted.open(Set(tp)).value
+      bRestarted.tpEpoch.get(tp) shouldBe Some(1002L)
+      h.a.updateMasterLock(tp, Offset(11)).isLeft shouldBe true
+      h.a.confirmMasterFenced(tp) shouldBe true
+      bRestarted.updateMasterLock(tp, Offset(11)).value
+    } finally h.close()
+  }
+
+  test("LC-350 T3: a transient master-write failure is not mistaken for fencing") {
+    val h = new TwoInstanceHarness()
+    try {
+      h.a.open(Set(tp)).value
+      h.storage.arm(
+        io.lenses.streamreactor.connect.cloud.common.testing.InMemoryStorageInterface.FailWriteAt(
+          h.bucket,
+          h.masterLockPath(tp),
+        ),
+      )
+
+      h.a.updateMasterLock(tp, Offset(10)).isLeft shouldBe true
+      h.a.confirmMasterFenced(tp) shouldBe false
+      h.a.fencedPartitions shouldBe empty
+
+      h.a.updateMasterLock(tp, Offset(10)).value
+    } finally h.close()
+  }
+
+  test("an unreadable master during the fencing check is treated as transient, not fenced") {
+    val h = new TwoInstanceHarness()
+    try {
+      h.a.open(Set(tp)).value
+      val _ = h.storage.deleteFile(h.bucket, h.masterLockPath(tp), "")
+
+      h.a.confirmMasterFenced(tp) shouldBe false
+      h.a.fencedPartitions shouldBe empty
+    } finally h.close()
+  }
+
   test("clearing the partition state (revoke / failed open) drops the held epoch") {
     val h = new TwoInstanceHarness()
     try {

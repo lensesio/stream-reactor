@@ -251,6 +251,96 @@ class WriterManagerZombieIntegrationTest
     im.close()
   }
 
+  // ── LC-350 ownership-epoch R6: a master write lost to a newer owner fences the partition ──
+
+  /** Same connector (same lock paths), new `ConnectorTaskId` object => a different `lockUuid`. */
+  private def buildOtherInstance(storage: StorageInterface[FakeFileMetadata]): IndexManagerV2 = {
+    implicit val si: StorageInterface[FakeFileMetadata] = storage
+    val other = ConnectorTaskId(connectorTaskId.name, connectorTaskId.maxTasks, connectorTaskId.taskNo)
+    new IndexManagerV2(
+      bucketAndPrefixFn           = bucketAndPrefix,
+      pendingOperationsProcessors = new PendingOperationsProcessors(storage)(other),
+      directoryFileName           = directoryName,
+      gcIntervalSeconds           = Int.MaxValue,
+      gcSweepIntervalSeconds      = Int.MaxValue,
+      gcSweepMinAgeSeconds        = Int.MaxValue,
+      gcSweepEnabled              = false,
+    )(si, other)
+  }
+
+  test("LC-350: preCommit whose master write loses to a newer owner marks the partition fenced") {
+    val storage = new InMemoryStorageInterface()
+    val metrics = new CloudSinkMetrics()
+    // Shared metrics, as WriterManagerCreator wires them in production.
+    val im = new IndexManagerV2(
+      bucketAndPrefixFn           = bucketAndPrefix,
+      pendingOperationsProcessors = new PendingOperationsProcessors(storage),
+      directoryFileName           = directoryName,
+      gcIntervalSeconds           = Int.MaxValue,
+      gcSweepIntervalSeconds      = Int.MaxValue,
+      gcSweepMinAgeSeconds        = Int.MaxValue,
+      gcSweepEnabled              = false,
+      metrics                     = metrics,
+    )(storage, connectorTaskId)
+    im.open(Set(tp0)).value
+    val wm = buildWriterManager(im, storage, metrics)
+    wm.putWriter(MapKey(tp0, dateA), makeCommittedWriter(tp0, im, storage, committedOffset = Some(Offset(50))))
+
+    // A newer owner of the same partition opens (bumps the master and its epoch).
+    val newer = buildOtherInstance(storage)
+    newer.open(Set(tp0)).value
+
+    wm.preCommit(Map(tp0 -> new OffsetAndMetadata(200))).get(tp0) shouldBe None
+    im.fencedPartitions should contain(tp0)
+    metrics.getPartitionsFenced shouldBe 1L
+
+    wm.close()
+    im.close()
+    newer.close()
+  }
+
+  test("LC-350: a transient master-write failure in preCommit does not fence the partition") {
+    val storage = new InMemoryStorageInterface()
+    val metrics = new CloudSinkMetrics()
+    val im      = buildIndexManager(storage)
+    im.open(Set(tp0)).value
+    val wm = buildWriterManager(im, storage, metrics)
+    wm.putWriter(MapKey(tp0, dateA), makeCommittedWriter(tp0, im, storage, committedOffset = Some(Offset(50))))
+    storage.arm(FailWriteAt(bucket, masterLockPath))
+
+    wm.preCommit(Map(tp0 -> new OffsetAndMetadata(200))).get(tp0) shouldBe None
+    im.fencedPartitions shouldBe empty
+    metrics.getPartitionsFenced shouldBe 0L
+
+    wm.preCommit(Map(tp0 -> new OffsetAndMetadata(200)))(tp0).offset() shouldBe 51L
+
+    wm.close()
+    im.close()
+  }
+
+  test("LC-350: closing a fenced partition skips the forced master write") {
+    val storage = new InMemoryStorageInterface()
+    val metrics = new CloudSinkMetrics()
+    val im      = buildIndexManager(storage)
+    im.open(Set(tp0)).value
+    val wm = buildWriterManager(im, storage, metrics)
+    wm.putWriter(MapKey(tp0, dateA), makeCommittedWriter(tp0, im, storage, committedOffset = Some(Offset(50))))
+    val newer = buildOtherInstance(storage)
+    newer.open(Set(tp0)).value
+    wm.preCommit(Map(tp0 -> new OffsetAndMetadata(200)))
+    im.fencedPartitions should contain(tp0)
+    val failuresBefore = metrics.getMasterLockFailures
+    val masterBefore   = storage.getBlobAsStringAndEtag(bucket, masterLockPath).value
+
+    wm.close()
+
+    metrics.getMasterLockFailures shouldBe failuresBefore
+    storage.getBlobAsStringAndEtag(bucket, masterLockPath).value shouldBe masterBefore
+
+    im.close()
+    newer.close()
+  }
+
   // ── (c) WriteForced(PostCleanUp) one-shot failure → routine dirty-flag retry ──────────
 
   test(
