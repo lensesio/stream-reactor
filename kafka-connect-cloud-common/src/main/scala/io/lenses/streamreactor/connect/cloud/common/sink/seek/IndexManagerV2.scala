@@ -678,7 +678,7 @@ class IndexManagerV2(
         ]
 
       case Right(ObjectWithETag(
-            IndexFile(_, committedOffset, Some(pendingStateFound @ PendingState(pendingOffset, pendingOperations))),
+            IndexFile(_, committedOffset, Some(pendingStateFound @ PendingState(pendingOffset, pendingOperations)), _),
             eTag,
           )) =>
         // Ownership bump BEFORE driving the chain. Without this, a zombie that CAS'd the
@@ -742,7 +742,7 @@ class IndexManagerV2(
             }
         }
 
-      case Right(ObjectWithETag(IndexFile(_, committedOffset, None), eTag)) =>
+      case Right(ObjectWithETag(IndexFile(_, committedOffset, None, _), eTag)) =>
         // Ownership bump. Adopting the eTag without rewriting would leave the previous owner's
         // token valid until this task's first commit, so a zombie could still write the lock in
         // between. Rewriting here moves the fence to ownership change. Content is unchanged apart
@@ -782,7 +782,7 @@ class IndexManagerV2(
             new FatalCloudSinkError(err.message(), err.toExceptionOption, topicPartition).asLeft[Option[Offset]]
         }
 
-      case Right(objectWithetag @ ObjectWithETag(IndexFile(_, _, _), _)) =>
+      case Right(objectWithetag @ ObjectWithETag(IndexFile(_, _, _, _), _)) =>
         updateDataReturnOffset(topicPartition, objectWithetag).asRight[SinkError]
     }
 
@@ -1031,7 +1031,7 @@ class IndexManagerV2(
 
       def attempt(attemptsLeft: Int): Either[SinkError, Option[Offset]] =
         tryOpen(bp.bucket, path) match {
-          case Right(owe @ ObjectWithETag(IndexFile(_, committedOffset, Some(pending)), _)) =>
+          case Right(owe @ ObjectWithETag(IndexFile(_, committedOffset, Some(pending), _), _)) =>
             // Dead-worker recovery: resolve the in-flight chain. The final updateForPartitionKey
             // bumps the eTag, so the lock is fenced too.
             gcPut(topicPartition, partitionKey, GranularCacheEntry(None, owe.eTag))
@@ -1052,7 +1052,7 @@ class IndexManagerV2(
               case l @ Left(_) => l
             }
 
-          case Right(owe @ ObjectWithETag(IndexFile(_, committedOffset, None), _)) =>
+          case Right(owe @ ObjectWithETag(IndexFile(_, committedOffset, None, _), _)) =>
             gcPut(topicPartition, partitionKey, GranularCacheEntry(committedOffset, owe.eTag))
             bumpLegacyLock(topicPartition, partitionKey, committedOffset, MaxLegacyBumpAttempts)
 
@@ -1101,10 +1101,10 @@ class IndexManagerV2(
         bucketAndPrefixFn(topicPartition).flatMap { bp =>
           val path = generateGranularLockFilePath(connectorTaskId, topicPartition, partitionKey, directoryFileName)
           tryOpen(bp.bucket, path) match {
-            case Right(owe @ ObjectWithETag(IndexFile(_, co2, None), _)) =>
+            case Right(owe @ ObjectWithETag(IndexFile(_, co2, None, _), _)) =>
               gcPut(topicPartition, partitionKey, GranularCacheEntry(co2, owe.eTag))
               bumpLegacyLock(topicPartition, partitionKey, co2, attemptsLeft - 1)
-            case Right(owe @ ObjectWithETag(IndexFile(_, co2, Some(pending)), _)) =>
+            case Right(owe @ ObjectWithETag(IndexFile(_, co2, Some(pending), _), _)) =>
               gcPut(topicPartition, partitionKey, GranularCacheEntry(None, owe.eTag))
               pendingOperationsProcessors.processPendingOperations(
                 topicPartition,
@@ -1187,7 +1187,7 @@ class IndexManagerV2(
       result <- tryOpen(bucketAndPrefix.bucket, path) match {
         // Crash recovery: lock contains a PendingState from an interrupted Upload → Copy → Delete commit
         case Right(objectWithEtag @ ObjectWithETag(
-              IndexFile(_, committedOffset, Some(PendingState(pendingOffset, pendingOps))),
+              IndexFile(_, committedOffset, Some(PendingState(pendingOffset, pendingOps)), _),
               _,
             )) =>
           logger.info(s"Lazy-loading granular lock with PendingState for $topicPartition/$partitionKey")
@@ -1207,7 +1207,7 @@ class IndexManagerV2(
           }
 
         // Happy path: no crash recovery needed, cache the resolved offset and eTag directly
-        case Right(objectWithEtag @ ObjectWithETag(IndexFile(_, committedOffset, None), _)) =>
+        case Right(objectWithEtag @ ObjectWithETag(IndexFile(_, committedOffset, None, _), _)) =>
           logger.info(s"Lazy-loaded granular lock for $topicPartition/$partitionKey, offset=$committedOffset")
           gcPut(topicPartition, partitionKey, GranularCacheEntry(committedOffset, objectWithEtag.eTag))
           committedOffset.asRight
@@ -1328,7 +1328,7 @@ class IndexManagerV2(
   ): Either[SinkError, Unit] =
     objectWithEtag match {
       // Crash recovery: previous task crashed mid-commit, resolve pending ops before caching
-      case ObjectWithETag(IndexFile(_, committedOffset, Some(PendingState(pendingOffset, pendingOps))), _) =>
+      case ObjectWithETag(IndexFile(_, committedOffset, Some(PendingState(pendingOffset, pendingOps)), _), _) =>
         logger.info(s"ensureGranularLock found PendingState for $topicPartition/$partitionKey, resolving")
         // Seed cache with offset=None so processPendingOperations can perform conditional writes
         gcPut(topicPartition, partitionKey, GranularCacheEntry(None, objectWithEtag.eTag))
@@ -1345,7 +1345,7 @@ class IndexManagerV2(
         )
 
       // Clean lock: no crash recovery needed, cache offset and eTag directly
-      case ObjectWithETag(IndexFile(_, committedOffset, None), eTag) =>
+      case ObjectWithETag(IndexFile(_, committedOffset, None, _), eTag) =>
         gcPut(topicPartition, partitionKey, GranularCacheEntry(committedOffset, eTag))
         ().asRight
     }
@@ -1952,12 +1952,12 @@ class IndexManagerV2(
       case Left(err) =>
         logger.warn(s"Sweep: failed to read lock file $path: ${err.message()}")
         false
-      case Right(ObjectWithETag(IndexFile(_, Some(committedOffset), pendingState), _))
+      case Right(ObjectWithETag(IndexFile(_, Some(committedOffset), pendingState, _), _))
           if committedOffset.value < masterOffset.value &&
             pendingState.forall(_.pendingOffset.value < masterOffset.value) =>
         gcQueue.add(GcItem(bucket, path, tp, partitionKey))
         true
-      case Right(ObjectWithETag(IndexFile(_, None, None), _)) =>
+      case Right(ObjectWithETag(IndexFile(_, None, None, _), _)) =>
         // Empty lock created by ensureGranularLock but never committed to.
         // classifyLockFile already enforced the age threshold and cache absence,
         // so no active writer is using this file and it carries no durable data.
