@@ -136,12 +136,31 @@ class IndexManagerV2(
   private def nextEpoch(previous: Option[Long]): Long =
     math.max(previous.getOrElse(0L) + 1L, clock())
 
-  /** Records the epoch an ownership write in `open()` just landed, then passes the write through. */
+  /**
+   * The ownership epoch every lock write by this instance stamps (ownership-epoch R3). Set by
+   * `open()`; a write without one is a bug (a path that skipped `open()`, or state cleared under a
+   * live writer), so it fails fatally rather than writing an unstamped lock that would erase the
+   * fence for the next reader.
+   */
+  private def heldEpoch(topicPartition: TopicPartition): Either[SinkError, Long] =
+    tpEpoch.get(topicPartition).toRight(
+      FatalCloudSinkError(
+        s"No ownership epoch held for $topicPartition; refusing an unstamped lock write (LC-350)",
+        topicPartition,
+      ),
+    )
+
+  /**
+   * Records the epoch an ownership write in `open()` just landed, then passes the write through.
+   * Takes the epoch we WROTE rather than reading it back from the storage response, so the held
+   * epoch never depends on how a backend echoes the written object.
+   */
   private def ownershipTaken(
     topicPartition: TopicPartition,
+    epoch:          Long,
     written:        ObjectWithETag[IndexFile],
   ): ObjectWithETag[IndexFile] = {
-    written.wrappedObject.epoch.foreach(e => tpEpoch.put(topicPartition, e))
+    val _ = tpEpoch.put(topicPartition, epoch)
     written
   }
 
@@ -651,9 +670,10 @@ class IndexManagerV2(
     tryOpenResult match {
 
       case Left(FileNotFoundError(_, _)) =>
-        createNewIndexFileNoOverwrite(topicPartition, path, bucketAndPrefix, nextEpoch(None)) match {
+        val epoch = nextEpoch(None)
+        createNewIndexFileNoOverwrite(topicPartition, path, bucketAndPrefix, epoch) match {
           case Right(written) =>
-            updateDataReturnOffset(topicPartition, ownershipTaken(topicPartition, written)).asRight[SinkError]
+            updateDataReturnOffset(topicPartition, ownershipTaken(topicPartition, epoch, written)).asRight[SinkError]
 
           case Left(_: LostCreateRaceError) if attemptsLeft > 1 =>
             // Another task won the create. The lock now exists — re-read and re-decide through
@@ -690,12 +710,13 @@ class IndexManagerV2(
         // exists, so a NoOverwrite write would always 412.
         // NOTE: pendingOperationsProcessors is NOT invoked here — the 0-byte file proves
         // no PendingState was ever durably recorded; the recovery write sets pendingState=None.
-        val idx = IndexFile(lockOwner, Option.empty, Option.empty, Some(nextEpoch(None)))
+        val epoch = nextEpoch(None)
+        val idx   = IndexFile(lockOwner, Option.empty, Option.empty, Some(epoch))
         storageInterface.writeBlobToFile(bucketAndPrefix.bucket, path, ObjectWithETag(idx, eTag))
           .leftMap { err: UploadError =>
             new FatalCloudSinkError(err.message(), err.toExceptionOption, topicPartition)
           }
-          .map(written => updateDataReturnOffset(topicPartition, ownershipTaken(topicPartition, written)))
+          .map(written => updateDataReturnOffset(topicPartition, ownershipTaken(topicPartition, epoch, written)))
 
       case Left(fileLoadError: FileLoadError) =>
         new FatalCloudSinkError(fileLoadError.message(), fileLoadError.toExceptionOption, topicPartition).asLeft[
@@ -717,12 +738,11 @@ class IndexManagerV2(
         // here (owner only; committedOffset/pendingState unchanged) seats the fence first, then
         // the chain is driven with the NEW eTag so our own first step is the one that wins any
         // race against a lingering zombie.
+        val epoch = nextEpoch(prevEpoch)
         storageInterface.writeBlobToFile(
           bucketAndPrefix.bucket,
           path,
-          ObjectWithETag(IndexFile(lockOwner, committedOffset, Some(pendingStateFound), Some(nextEpoch(prevEpoch))),
-                         eTag,
-          ),
+          ObjectWithETag(IndexFile(lockOwner, committedOffset, Some(pendingStateFound), Some(epoch)), eTag),
         ) match {
           case Left(err) if attemptsLeft > 1 =>
             metrics.incrementMasterLockFailures()
@@ -748,7 +768,7 @@ class IndexManagerV2(
           case Right(bumped) =>
             metrics.incrementMasterLockUpdates()
             // Seat the epoch before driving the chain: every recovery write stamps it (R3).
-            val _ = ownershipTaken(topicPartition, bumped)
+            val _ = ownershipTaken(topicPartition, epoch, bumped)
             topicPartitionToETags.put(topicPartition, bumped.eTag)
             pendingOperationsProcessors.processPendingOperations(
               topicPartition,
@@ -785,14 +805,15 @@ class IndexManagerV2(
         // rather than failing `open()` on a single lost race -- the re-read might show the
         // winner's PendingState, which must still be recovered through the arm above, not
         // adopted naively.
+        val epoch = nextEpoch(prevEpoch)
         storageInterface.writeBlobToFile(
           bucketAndPrefix.bucket,
           path,
-          ObjectWithETag(IndexFile(lockOwner, committedOffset, None, Some(nextEpoch(prevEpoch))), eTag),
+          ObjectWithETag(IndexFile(lockOwner, committedOffset, None, Some(epoch)), eTag),
         ) match {
           case Right(written) =>
             metrics.incrementMasterLockUpdates()
-            updateDataReturnOffset(topicPartition, ownershipTaken(topicPartition, written)).asRight[SinkError]
+            updateDataReturnOffset(topicPartition, ownershipTaken(topicPartition, epoch, written)).asRight[SinkError]
           case Left(err) if attemptsLeft > 1 =>
             metrics.incrementMasterLockFailures()
             logger.info(
@@ -890,8 +911,9 @@ class IndexManagerV2(
       eTag <- topicPartitionToETags.get(topicPartition).toRight {
         FatalCloudSinkError("Index not found", topicPartition)
       }
+      epoch <- heldEpoch(topicPartition)
       index = ObjectWithETag(
-        IndexFile(lockOwner, committedOffset, pendingState),
+        IndexFile(lockOwner, committedOffset, pendingState, Some(epoch)),
         eTag,
       )
       blobFileWrite <- storageInterface.writeBlobToFile(
@@ -1095,17 +1117,19 @@ class IndexManagerV2(
 
           case Left(EmptyFileError(_, eTag)) =>
             // Take ownership exactly as ensureGranularLock does.
-            storageInterface.writeBlobToFile(
-              bp.bucket,
-              path,
-              ObjectWithETag(IndexFile(lockOwner, Option.empty, Option.empty), eTag),
-            ).bimap(
-              err => NonFatalCloudSinkError.unswallowable(err.message(), err.toExceptionOption): SinkError,
-              owe => {
-                gcPut(topicPartition, partitionKey, GranularCacheEntry(None, owe.eTag))
-                Option.empty[Offset]
-              },
-            )
+            heldEpoch(topicPartition).flatMap { epoch =>
+              storageInterface.writeBlobToFile(
+                bp.bucket,
+                path,
+                ObjectWithETag(IndexFile(lockOwner, Option.empty, Option.empty, Some(epoch)), eTag),
+              ).bimap(
+                err => NonFatalCloudSinkError.unswallowable(err.message(), err.toExceptionOption): SinkError,
+                owe => {
+                  gcPut(topicPartition, partitionKey, GranularCacheEntry(None, owe.eTag))
+                  Option.empty[Offset]
+                },
+              )
+            }
 
           case Left(err) =>
             NonFatalCloudSinkError.unswallowable(
@@ -1319,9 +1343,10 @@ class IndexManagerV2(
         err
       }
       // Resolve the cached eTag; fails fatally on miss to preserve zombie-task fencing.
-      eTag <- resolveGranularETag(topicPartition, partitionKey)
+      eTag  <- resolveGranularETag(topicPartition, partitionKey)
+      epoch <- heldEpoch(topicPartition)
       index = ObjectWithETag(
-        IndexFile(lockOwner, committedOffset, pendingState),
+        IndexFile(lockOwner, committedOffset, pendingState, Some(epoch)),
         eTag,
       )
       // eTag-conditional write: succeeds only if the stored eTag matches, preventing zombie overwrites
@@ -1408,6 +1433,7 @@ class IndexManagerV2(
       val path = generateGranularLockFilePath(connectorTaskId, topicPartition, partitionKey, directoryFileName)
       for {
         bucketAndPrefix <- bucketAndPrefixFn(topicPartition)
+        epoch           <- heldEpoch(topicPartition)
         _ <- tryOpen(bucketAndPrefix.bucket, path) match {
           // Lock exists in storage: resolve any PendingState and cache the result
           case Right(objectWithEtag) =>
@@ -1415,7 +1441,7 @@ class IndexManagerV2(
 
           // Lock does not exist yet: create an empty one with NoOverwrite precondition
           case Left(_: FileNotFoundError) =>
-            val idx = IndexFile(lockOwner, None, None)
+            val idx = IndexFile(lockOwner, None, None, Some(epoch))
             storageInterface.writeBlobToFile(
               bucketAndPrefix.bucket,
               path,
@@ -1449,7 +1475,7 @@ class IndexManagerV2(
               s"Granular lock for $topicPartition/$partitionKey is a 0-byte poison blob (eTag=$eTag); " +
                 s"overwriting via setIfMatch to recover",
             )
-            val idx = IndexFile(lockOwner, None, None)
+            val idx = IndexFile(lockOwner, None, None, Some(epoch))
             storageInterface.writeBlobToFile(
               bucketAndPrefix.bucket,
               path,
@@ -1539,8 +1565,9 @@ class IndexManagerV2(
       eTag <- topicPartitionToETags.get(topicPartition).toRight {
         FatalCloudSinkError("Master index not found", topicPartition)
       }
+      epoch <- heldEpoch(topicPartition)
       index = ObjectWithETag(
-        IndexFile(lockOwner, committedOffset, None),
+        IndexFile(lockOwner, committedOffset, None, Some(epoch)),
         eTag,
       )
       _ = testHookPreWriteMasterLockBarrier() // test seam — no-op in production
