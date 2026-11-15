@@ -237,6 +237,120 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues {
     } finally h.close()
   }
 
+  // ---- R4/R5: a lock with a higher epoch than ours means we are fenced -----------------------
+
+  test("LC-350 T1: a zombie that idle-evicts and reloads a key B has committed is fenced, not handed B's token") {
+    val h = new TwoInstanceHarness()
+    try {
+      h.clock.set(1000L)
+      h.a.open(Set(tp)).value // A: epoch 1000
+      h.a.ensureGranularLock(tp, pk).value
+      h.a.updateForPartitionKey(tp, pk, Some(Offset(5)), None).value
+
+      h.b.open(Set(tp)).value // B: epoch 1001, the legitimate owner
+      h.b.getSeekedOffsetForPartitionKey(tp, pk).value shouldBe Some(Offset(5))
+      h.b.updateForPartitionKey(tp, pk, Some(Offset(9)), None).value // K now carries epoch 1001
+      val bLock = h.readLock(h.granularLockPath(tp, pk)).value
+
+      // Zombie A: its idle writer for K is evicted, then a new record for K arrives.
+      h.a.evictGranularLock(tp, pk)
+      h.a.getSeekedOffsetForPartitionKey(tp, pk).left.value shouldBe a[
+        io.lenses.streamreactor.connect.cloud.common.sink.FatalCloudSinkError,
+      ]
+      h.a.fencedPartitions.contains(tp) shouldBe true
+
+      // A cached nothing, so it holds no token to write with, and K is untouched.
+      h.a.updateForPartitionKey(tp, pk, Some(Offset(7)), None).isLeft shouldBe true
+      h.readLock(h.granularLockPath(tp, pk)).value shouldBe bLock
+
+      // B is unaffected.
+      h.b.updateForPartitionKey(tp, pk, Some(Offset(12)), None).value shouldBe Some(Offset(12))
+      h.b.fencedPartitions.contains(tp) shouldBe false
+    } finally h.close()
+  }
+
+  test("a zombie's ensureGranularLock over a key B has committed is fenced") {
+    val h = new TwoInstanceHarness()
+    try {
+      h.clock.set(1000L)
+      h.a.open(Set(tp)).value
+      h.b.open(Set(tp)).value
+      h.b.ensureGranularLock(tp, pk).value // created with B's epoch
+
+      h.a.ensureGranularLock(tp, pk).left.value shouldBe a[
+        io.lenses.streamreactor.connect.cloud.common.sink.FatalCloudSinkError,
+      ]
+      h.a.fencedPartitions.contains(tp) shouldBe true
+    } finally h.close()
+  }
+
+  test("a zombie never drives a pending chain on a lock written under a newer epoch") {
+    val h = new TwoInstanceHarness()
+    try {
+      h.clock.set(1000L)
+      h.a.open(Set(tp)).value // epoch 1000
+      h.b.open(Set(tp)).value // epoch 1001
+      val pending = PendingState(
+        Offset(8),
+        NonEmptyList.one(DeleteOperation(h.bucket, "data/topic/0/.temp-upload/in-flight", "temp-etag")),
+      )
+      val _ = h.storage
+        .writeBlobToFile(
+          h.bucket,
+          h.granularLockPath(tp, pk),
+          NoOverwriteExistingObject(IndexFile(h.lockUuid(1), Some(Offset(3)), Some(pending), Some(1001L))),
+        )
+        .value
+      val before = h.readLock(h.granularLockPath(tp, pk)).value
+
+      h.a.getSeekedOffsetForPartitionKey(tp, pk).isLeft shouldBe true
+
+      h.readLock(h.granularLockPath(tp, pk)).value shouldBe before
+    } finally h.close()
+  }
+
+  test("locks at or below our epoch load as before (no fence)") {
+    val h = new TwoInstanceHarness()
+    try {
+      h.clock.set(1000L)
+      h.a.open(Set(tp)).value
+      h.a.ensureGranularLock(tp, pk).value
+      h.a.updateForPartitionKey(tp, pk, Some(Offset(5)), None).value
+      h.b.open(Set(tp)).value // newer owner loads the older-epoch lock
+
+      h.b.getSeekedOffsetForPartitionKey(tp, pk).value shouldBe Some(Offset(5))
+      h.b.fencedPartitions.contains(tp) shouldBe false
+
+      h.a.evictGranularLock(tp, pk) // ... and so does a reload of our own lock
+      h.b.evictGranularLock(tp, pk)
+      h.b.getSeekedOffsetForPartitionKey(tp, pk).value shouldBe Some(Offset(5))
+    } finally h.close()
+  }
+
+  test("clock skew after an old-version reset: the owner is fenced, a restart past the lock's epoch succeeds") {
+    val h = new TwoInstanceHarness(instanceCount = 3)
+    try {
+      // An earlier new-version owner with a fast clock stamped K at 5000; an old version then
+      // rewrote the master without the field.
+      seedMaster(h, IndexFile("old-version-owner", Some(Offset(2)), None))
+      val _ = h.storage
+        .writeBlobToFile(
+          h.bucket,
+          h.granularLockPath(tp, pk),
+          NoOverwriteExistingObject(IndexFile("fast-clock-owner", Some(Offset(4)), None, Some(5000L))),
+        )
+        .value
+
+      h.clock.set(1000L) // this worker's clock is behind
+      h.instances(1).open(Set(tp)).value
+      h.instances(1).getSeekedOffsetForPartitionKey(tp, pk).isLeft shouldBe true
+
+      h.clock.set(6000L) // restart (new instance) once the clock has passed the lock's epoch
+      h.instances(2).open(Set(tp)).value
+      h.instances(2).getSeekedOffsetForPartitionKey(tp, pk).value shouldBe Some(Offset(4))
+    } finally h.close()
+  }
+
   test("clearing the partition state (revoke / failed open) drops the held epoch") {
     val h = new TwoInstanceHarness()
     try {

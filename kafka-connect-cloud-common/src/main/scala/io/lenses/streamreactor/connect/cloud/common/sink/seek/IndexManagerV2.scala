@@ -127,6 +127,12 @@ class IndexManagerV2(
   // and the GC/sweep threads all see the same value. Concurrent because open() uses parTraverse.
   private[seek] val tpEpoch = TrieMap.empty[TopicPartition, Long]
 
+  // Partitions this instance has found itself fenced on (it read a lock with a higher epoch than
+  // its own, ownership-epoch R5). Concurrent: marked from the task thread, commit-pool threads and
+  // the GC/sweep threads. Consumed by the task to fail fast (R6).
+  private[seek] val fencedPartitions: java.util.Set[TopicPartition] =
+    java.util.concurrent.ConcurrentHashMap.newKeySet[TopicPartition]()
+
   /**
    * The epoch an ownership write takes over a lock that carried `previous`: one more than
    * `previous`, floored by wall-clock time. Between new-version owners the `+ 1` makes it strictly
@@ -149,6 +155,36 @@ class IndexManagerV2(
         topicPartition,
       ),
     )
+
+  /**
+   * The ownership-epoch read rule (ownership-epoch R4/R5). A granular lock carrying a higher epoch
+   * than the one this instance holds was written by a newer owner of the partition, so this
+   * instance has been fenced: it must not cache the lock's token (that would hand a zombie the new
+   * owner's fencing token), must not drive its pending chain, and must not write. The partition is
+   * marked fenced so the task fails fast (R6). Locks at or below our epoch pass unchanged; a missing
+   * epoch reads as 0. With no held epoch (not opened) there is nothing to compare, and any later
+   * write fails on `heldEpoch` anyway.
+   */
+  private def rejectIfFenced(
+    topicPartition: TopicPartition,
+    partitionKey:   String,
+    lock:           IndexFile,
+  ): Either[SinkError, Unit] =
+    tpEpoch.get(topicPartition) match {
+      case Some(mine) if lock.epoch.getOrElse(0L) > mine =>
+        val _      = fencedPartitions.add(topicPartition)
+        val theirs = lock.epoch.getOrElse(0L)
+        logger.error(
+          s"[${connectorTaskId.show}] Fenced on $topicPartition: granular lock $partitionKey carries epoch $theirs " +
+            s"(owner ${lock.owner}) > this instance's epoch $mine (lockUuid $lockOwner). A newer owner holds the " +
+            s"partition; refusing to load or write it (LC-350).",
+        )
+        FatalCloudSinkError(
+          s"Fenced on $topicPartition: lock $partitionKey epoch $theirs > held epoch $mine",
+          topicPartition,
+        ).asLeft
+      case _ => ().asRight
+    }
 
   /**
    * Records the epoch an ownership write in `open()` just landed, then passes the write through.
@@ -1242,7 +1278,10 @@ class IndexManagerV2(
     val path = generateGranularLockFilePath(connectorTaskId, topicPartition, partitionKey, directoryFileName)
     for {
       bucketAndPrefix <- bucketAndPrefixFn(topicPartition)
-      result <- tryOpen(bucketAndPrefix.bucket, path) match {
+      opened           = tryOpen(bucketAndPrefix.bucket, path)
+      _ <-
+        opened.fold(_ => ().asRight[SinkError], owe => rejectIfFenced(topicPartition, partitionKey, owe.wrappedObject))
+      result <- opened match {
         // Crash recovery: lock contains a PendingState from an interrupted Upload → Copy → Delete commit
         case Right(objectWithEtag @ ObjectWithETag(
               IndexFile(_, committedOffset, Some(PendingState(pendingOffset, pendingOps)), _),
@@ -1385,28 +1424,30 @@ class IndexManagerV2(
     partitionKey:   String,
     objectWithEtag: ObjectWithETag[IndexFile],
   ): Either[SinkError, Unit] =
-    objectWithEtag match {
-      // Crash recovery: previous task crashed mid-commit, resolve pending ops before caching
-      case ObjectWithETag(IndexFile(_, committedOffset, Some(PendingState(pendingOffset, pendingOps)), _), _) =>
-        logger.info(s"ensureGranularLock found PendingState for $topicPartition/$partitionKey, resolving")
-        // Seed cache with offset=None so processPendingOperations can perform conditional writes
-        gcPut(topicPartition, partitionKey, GranularCacheEntry(None, objectWithEtag.eTag))
-        val fnUpdate: (TopicPartition, Option[Offset], Option[PendingState]) => Either[SinkError, Option[Offset]] =
-          (tp, co, ps) => updateForPartitionKey(tp, partitionKey, co, ps)
-        pendingOperationsProcessors.processPendingOperations(
-          topicPartition,
-          committedOffset,
-          PendingState(pendingOffset, pendingOps),
-          fnUpdate,
-        ).bimap(
-          { err => gcRemove(topicPartition, partitionKey); err },
-          _ => (),
-        )
+    rejectIfFenced(topicPartition, partitionKey, objectWithEtag.wrappedObject).flatMap { _ =>
+      objectWithEtag match {
+        // Crash recovery: previous task crashed mid-commit, resolve pending ops before caching
+        case ObjectWithETag(IndexFile(_, committedOffset, Some(PendingState(pendingOffset, pendingOps)), _), _) =>
+          logger.info(s"ensureGranularLock found PendingState for $topicPartition/$partitionKey, resolving")
+          // Seed cache with offset=None so processPendingOperations can perform conditional writes
+          gcPut(topicPartition, partitionKey, GranularCacheEntry(None, objectWithEtag.eTag))
+          val fnUpdate: (TopicPartition, Option[Offset], Option[PendingState]) => Either[SinkError, Option[Offset]] =
+            (tp, co, ps) => updateForPartitionKey(tp, partitionKey, co, ps)
+          pendingOperationsProcessors.processPendingOperations(
+            topicPartition,
+            committedOffset,
+            PendingState(pendingOffset, pendingOps),
+            fnUpdate,
+          ).bimap(
+            { err => gcRemove(topicPartition, partitionKey); err },
+            _ => (),
+          )
 
-      // Clean lock: no crash recovery needed, cache offset and eTag directly
-      case ObjectWithETag(IndexFile(_, committedOffset, None, _), eTag) =>
-        gcPut(topicPartition, partitionKey, GranularCacheEntry(committedOffset, eTag))
-        ().asRight
+        // Clean lock: no crash recovery needed, cache offset and eTag directly
+        case ObjectWithETag(IndexFile(_, committedOffset, None, _), eTag) =>
+          gcPut(topicPartition, partitionKey, GranularCacheEntry(committedOffset, eTag))
+          ().asRight
+      }
     }
 
   /**
