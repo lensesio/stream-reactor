@@ -3368,6 +3368,150 @@ class IndexManagerV2Test
     } finally im.close()
   }
 
+  // A predecessor that crashed after the copy step has already produced a final file
+  // up to pendingOffset. If pendingOffset is at or above the master floor, replay re-delivers those
+  // records, and only this lock (resolved at load time) deduplicates them. Deleting it on
+  // committedOffset alone writes them a second time.
+  Seq(200L -> "above", 100L -> "at").foreach {
+    case (pendingOffset, where) =>
+      test(s"sweep does NOT enqueue a PendingState lock whose pendingOffset is $where the master offset") {
+        val tp              = Topic("topic1").withPartition(0)
+        val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
+        val si              = storageMockWithBump()
+        setupSweepMocks(si, tp, bucketAndPrefix)
+
+        val oldTime = Instant.now().minusSeconds(7200)
+        val pendingPath =
+          s"$indexesDirectoryName/${connectorTaskId.name}/.locks/${tp.topic}/${tp.partition}/pending-above.lock"
+        val pendingMeta  = TestFileMetadata(pendingPath, oldTime)
+        val listResponse = ListOfMetadataResponse("bucket", Some("prefix"), Seq(pendingMeta), pendingMeta)
+
+        org.mockito.Mockito.doReturn(Right(Some(listResponse))).when(si).listFileMetaRecursive(anyString(),
+                                                                                               any[Option[String]],
+        )
+
+        val pendingState =
+          PendingState(Offset(pendingOffset), NonEmptyList.one(DeleteOperation("bucket", "some/temp/path", "old-etag")))
+        when(
+          si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("pending-above.lock"))(
+            ArgumentMatchers.eq(indexFileDecoder),
+          ),
+        )
+          .thenReturn(
+            Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(50)), Some(pendingState)), "pending-etag")),
+          )
+        when(si.deleteFiles(anyString(), any[Seq[String]])).thenReturn(Right(()))
+
+        val im = createSweepTestManager(si)
+        try {
+          im.open(Set(tp))
+          im.sweepOrphanedLocks()
+          im.drainGcQueue()
+
+          verify(si, never).deleteFiles(anyString(), any[Seq[String]])
+        } finally im.close()
+      }
+  }
+
+  // Sets up a single aged granular lock under a master at offset 100 (see setupSweepMocks)
+  // and returns the storage mock plus the lock path. pendingOffset = None writes no PendingState.
+  private def setupPendingLockSweep(
+    tp:              TopicPartition,
+    committedOffset: Long,
+    pendingOffset:   Option[Long],
+  ): (StorageInterface[_], String) = {
+    val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
+    val si              = storageMockWithBump()
+    setupSweepMocks(si, tp, bucketAndPrefix)
+
+    val oldTime = Instant.now().minusSeconds(7200)
+    val pendingPath =
+      s"$indexesDirectoryName/${connectorTaskId.name}/.locks/${tp.topic}/${tp.partition}/pending-key.lock"
+    val pendingMeta  = TestFileMetadata(pendingPath, oldTime)
+    val listResponse = ListOfMetadataResponse("bucket", Some("prefix"), Seq(pendingMeta), pendingMeta)
+
+    org.mockito.Mockito.doReturn(Right(Some(listResponse))).when(si).listFileMetaRecursive(anyString(),
+                                                                                           any[Option[String]],
+    )
+
+    val pendingState = pendingOffset.map(po =>
+      PendingState(Offset(po), NonEmptyList.one(DeleteOperation("bucket", "some/temp/path", "old-etag"))),
+    )
+    when(
+      si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("pending-key.lock"))(
+        ArgumentMatchers.eq(indexFileDecoder),
+      ),
+    )
+      .thenReturn(
+        Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(committedOffset)), pendingState), "pending-etag")),
+      )
+    when(si.deleteFiles(anyString(), any[Seq[String]])).thenReturn(Right(()))
+    (si, pendingPath)
+  }
+
+  // Pairs with the "at the master offset" case above: the threshold is strictly below the
+  // master, so the pending chain one record below it is never replayed and is safe to sweep.
+  test("sweep enqueues a PendingState lock whose pendingOffset is one below the master offset") {
+    val tp                = Topic("topic1").withPartition(0)
+    val (si, pendingPath) = setupPendingLockSweep(tp, committedOffset = 50, pendingOffset = Some(99L))
+
+    val im = createSweepTestManager(si)
+    try {
+      im.open(Set(tp))
+      im.sweepOrphanedLocks()
+      im.gcQueueSize shouldBe 1
+      im.drainGcQueue()
+
+      verify(si, times(1)).deleteFiles(anyString(), ArgumentMatchers.eq(Seq(pendingPath)))
+    } finally im.close()
+  }
+
+  // No PendingState here, so only the committedOffset guard decides. A PendingState variant cannot
+  // isolate that guard: a real chain has pendingOffset > committedOffset, which is already at or
+  // above the master, so the pendingOffset guard would reject the lock on its own.
+  Seq(100L -> "at", 150L -> "above").foreach {
+    case (committedOffset, where) =>
+      test(s"sweep does NOT enqueue a lock without PendingState whose committedOffset is $where the master offset") {
+        val tp      = Topic("topic1").withPartition(0)
+        val (si, _) = setupPendingLockSweep(tp, committedOffset = committedOffset, pendingOffset = None)
+
+        val im = createSweepTestManager(si)
+        try {
+          im.open(Set(tp))
+          im.sweepOrphanedLocks()
+          im.gcQueueSize shouldBe 0
+          im.drainGcQueue()
+
+          verify(si, never).deleteFiles(anyString(), any[Seq[String]])
+        } finally im.close()
+      }
+  }
+
+  // A lock retained because its pending chain reaches the master floor must not leak: once the
+  // master advances past pendingOffset the chain is no longer replayed and a later sweep removes it.
+  test("sweep removes a retained PendingState lock once the master offset advances past its pendingOffset") {
+    val tp                = Topic("topic1").withPartition(0)
+    val (si, pendingPath) = setupPendingLockSweep(tp, committedOffset = 50, pendingOffset = Some(200L))
+
+    val im = createSweepTestManager(si)
+    try {
+      im.open(Set(tp))
+      im.sweepOrphanedLocks()
+      im.gcQueueSize shouldBe 0
+      im.drainGcQueue()
+      verify(si, never).deleteFiles(anyString(), any[Seq[String]])
+
+      // The master lock stores globalSafeOffset - 1, so this moves the master offset to 201.
+      im.updateMasterLock(tp, Offset(202)) shouldBe Right(())
+
+      im.sweepOrphanedLocks()
+      im.gcQueueSize shouldBe 1
+      im.drainGcQueue()
+
+      verify(si, times(1)).deleteFiles(anyString(), ArgumentMatchers.eq(Seq(pendingPath)))
+    } finally im.close()
+  }
+
   test("sweep writes per-TP markers to each partition's bucket") {
     val tp1 = Topic("topic1").withPartition(0)
     val tp2 = Topic("topic2").withPartition(0)

@@ -1927,9 +1927,13 @@ class IndexManagerV2(
    * `context.offset(tp, masterOffset)` replays that record, and the granular lock is needed
    * by `shouldSkip` to deduplicate it (the one-record-overlap invariant).
    *
-   * Lock files with PendingState are also safe to sweep when their committedOffset is
-   * below the master: the master lock can only advance past an offset once all writers have
-   * committed it.
+   * A lock with a PendingState is swept only when its `pendingOffset` is ALSO strictly below
+   * `masterOffset`. A predecessor that crashed after the copy step has already produced a final
+   * file up to `pendingOffset` while `committedOffset` stays old, and the master floor can pass
+   * `committedOffset` without this key ever being loaded (and so recovered) by the new owner.
+   * Replay starts at `masterOffset`, so a pending chain at or above it re-delivers records that
+   * only this lock (resolved at load time) can deduplicate. Deleting it would write them twice.
+   * A pending chain wholly below the floor is never replayed, so sweeping it is safe.
    */
   private def readAndEnqueue(
     bucket:       String,
@@ -1948,8 +1952,9 @@ class IndexManagerV2(
       case Left(err) =>
         logger.warn(s"Sweep: failed to read lock file $path: ${err.message()}")
         false
-      case Right(ObjectWithETag(IndexFile(_, Some(committedOffset), _), _))
-          if committedOffset.value < masterOffset.value =>
+      case Right(ObjectWithETag(IndexFile(_, Some(committedOffset), pendingState), _))
+          if committedOffset.value < masterOffset.value &&
+            pendingState.forall(_.pendingOffset.value < masterOffset.value) =>
         gcQueue.add(GcItem(bucket, path, tp, partitionKey))
         true
       case Right(ObjectWithETag(IndexFile(_, None, None), _)) =>
