@@ -260,6 +260,9 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues {
         io.lenses.streamreactor.connect.cloud.common.sink.FatalCloudSinkError,
       ]
       h.a.fencedPartitions.contains(tp) shouldBe true
+      // Nothing was cached by the rejected load: a second lookup is rejected again, not served.
+      h.a.granularCacheSize shouldBe 0
+      h.a.getSeekedOffsetForPartitionKey(tp, pk).isLeft shouldBe true
 
       // A cached nothing, so it holds no token to write with, and K is untouched.
       h.a.updateForPartitionKey(tp, pk, Some(Offset(7)), None).isLeft shouldBe true
