@@ -546,4 +546,32 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues {
       h.readLock(h.granularLockPath(tp, pk)).value shouldBe before
     } finally h.close()
   }
+
+  test("GC deletes queued before a fence do not survive a re-open that re-takes the partition") {
+    val h = new TwoInstanceHarness()
+    try {
+      h.clock.set(1000L)
+      h.a.open(Set(tp)).value
+      h.a.ensureGranularLock(tp, pk).value
+      h.a.updateForPartitionKey(tp, pk, Some(Offset(3)), None).value
+      h.a.updateMasterLock(tp, Offset(10)).value
+      h.a.cleanUpObsoleteLocks(tp, Offset(10), Set.empty).value // queues the key's lock
+
+      h.b.open(Set(tp)).value
+      h.b.getSeekedOffsetForPartitionKey(tp, pk).value
+      h.b.updateForPartitionKey(tp, pk, Some(Offset(12)), None).value
+      h.a.updateMasterLock(tp, Offset(11)).isLeft shouldBe true
+      h.a.confirmMasterFenced(tp) shouldBe true
+
+      // A rebalance re-assigns the partition to the fenced instance before its GC drains.
+      h.a.evictAllGranularLocks(tp)
+      h.a.open(Set(tp)).value
+      val lockAfterReopen = h.readLock(h.granularLockPath(tp, pk)).value
+      lockAfterReopen.wrappedObject.committedOffset shouldBe Some(Offset(12))
+
+      h.a.drainGcQueue()
+
+      h.readLock(h.granularLockPath(tp, pk)).value shouldBe lockAfterReopen
+    } finally h.close()
+  }
 }

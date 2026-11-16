@@ -218,7 +218,10 @@ class IndexManagerV2(
     val _ = tpEpoch.put(topicPartition, epoch)
     // A fresh ownership write re-takes the partition above every epoch seen so far, so a fence
     // from an earlier ownership episode (e.g. before a rebalance re-assigned it here) no longer applies.
-    val _ = fencedTps.remove(topicPartition)
+    // Deletes queued while a newer owner held the partition were selected against locks it may
+    // since have rewritten at the same path, so a fenced episode's queue is dropped rather than
+    // drained under the new ownership.
+    dropFence(topicPartition)
     written
   }
 
@@ -288,6 +291,16 @@ class IndexManagerV2(
   private[seek] def granularCacheSize: Int = granularCacheSizeCounter.get()
 
   private val gcQueue: ConcurrentLinkedQueue[GcItem] = new ConcurrentLinkedQueue()
+
+  /**
+   * Clears `tp`'s fence, if any, together with the GC items queued for it: those were selected
+   * while a newer owner held the partition. An unfenced partition keeps its queue.
+   */
+  private def dropFence(tp: TopicPartition): Unit =
+    if (fencedTps.remove(tp) != null) {
+      val _ = gcQueue.removeIf(_.topicPartition == tp)
+      metrics.setGcQueueDepth(gcQueue.size())
+    }
 
   // Exposed for testing only; not part of the public API.
   private[seek] def gcQueueSize: Int = gcQueue.size()
@@ -1606,7 +1619,7 @@ class IndexManagerV2(
     val _ = topicPartitionToETags.remove(topicPartition)
     val _ = tpEpoch.remove(topicPartition)
     // A revoked partition is no longer this task's to fail on; a re-open decides ownership afresh.
-    val _ = fencedTps.remove(topicPartition)
+    dropFence(topicPartition)
     // A revoked/failed-open partition must re-confirm legacy-lock resolution on its next open()
     // rather than trusting a flag set under the previous (possibly abandoned) ownership episode.
     val _ = legacyResolved.remove(topicPartition)
