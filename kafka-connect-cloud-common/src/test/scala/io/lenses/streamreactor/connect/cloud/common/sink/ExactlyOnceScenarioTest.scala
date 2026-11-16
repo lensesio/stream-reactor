@@ -1051,9 +1051,10 @@ object ExactlyOnceScenarioTest {
       case Rebalance(newAssignment) =>
         // Snapshot per-tp K so we can enforce a floor after the new generation opens.
         kHighWatermark.foreach { case (tp, k) => pendingRebalanceFloor(tp) = k }
-        // Close + reopen with the new assignment. We reuse the IndexManagerV2 -- production
-        // CloudSinkTask does too, just calling open() with the new set. clearTopicPartitionState
-        // for revoked TPs happens inside IndexManagerV2.open's stale-state pruning.
+        // Close + reopen with the new assignment, as an eager rebalance does. We reuse the
+        // IndexManagerV2 -- production CloudSinkTask does too: close(partitions) releases every
+        // partition it is given, and open() re-takes ownership of the new set.
+        im.closePartitions(assignment)
         openOrFail(newAssignment)
         assignment = newAssignment
         currentGenerationLastK.clear()

@@ -342,7 +342,7 @@ class IndexManagerV2(
   //    delete then removes the new owner's lock. Conditional deletes, which close this window,
   //    land in a later change.
   //  - sweepOrphanedLocks: LIST/GET plus a sweep-marker write; the GcItems it enqueues for a
-  //    revoked partition are dropped when open() clears its state, or discarded by the next drain,
+  //    revoked partition are dropped when its close clears its state, or discarded by the next drain,
   //    but a run still in flight can re-queue them after that (the same limitation).
   @volatile private[seek] var acceptingWork = false
 
@@ -465,25 +465,10 @@ class IndexManagerV2(
   override def open(topicPartitions: Set[TopicPartition]): Either[SinkError, Map[TopicPartition, Option[Offset]]] = {
     startExecutors()
 
-    // Prune state for partitions that were in the previous assignment but are not in the
-    // new one (revoked during a rebalance). During shutdown close() is followed by stop(),
-    // not open(), so this branch is never reached on the shutdown path -- seekedOffsets
-    // remain populated for the final drainGcQueue() in IndexManagerV2.close().
-    // Ownership state, not just seekedOffsets: a partition whose master lock never recorded an
-    // offset has a held epoch, an eTag and possibly a fence, but no seeked offset.
-    val stalePartitions =
-      (seekedOffsets.keys ++ tpEpoch.keys ++ topicPartitionToETags.keys ++ fencedPartitions).toSet -- topicPartitions
-    if (stalePartitions.nonEmpty) {
-      logger.info(
-        s"[${connectorTaskId.show}] Clearing stale state for ${stalePartitions.size} revoked partition(s) " +
-          s"from previous assignment: ${stalePartitions.mkString(", ")}",
-      )
-      stalePartitions.foreach { tp =>
-        evictAllGranularLocks(tp)
-        clearTopicPartitionState(tp)
-      }
-    }
-
+    // Only the partitions given are touched. Kafka Connect passes open() the newly assigned
+    // partitions only (on a cooperative rebalance, partitions kept across it are not passed
+    // again), so a partition missing here is not a revoked one: revoked partitions arrive through
+    // close(partitions) and are released by `closePartitions`.
     val result = topicPartitions.toList
       .parTraverse(tp => EitherT(IO(open(tp))).map(tp -> _))
       .map(_.toMap)
@@ -500,10 +485,7 @@ class IndexManagerV2(
         // Left, but successful fibers have already committed their in-memory state.
         // Roll back every partition in the requested set so the index manager is
         // left in a clean pre-open state and a subsequent open() starts fresh.
-        topicPartitions.foreach { tp =>
-          evictAllGranularLocks(tp)
-          clearTopicPartitionState(tp)
-        }
+        topicPartitions.foreach(releasePartition)
         l
     }
   }
@@ -1656,7 +1638,49 @@ class IndexManagerV2(
     metrics.setGranularCacheSize(granularCacheSize)
   }
 
-  /** Removes seeked offset and master-lock eTag for this partition, preventing background threads from operating on stale state. */
+  /**
+   * Releases the partitions Kafka Connect is closing (see `IndexManager.closePartitions`). GC
+   * deletes queued for a partition are drained first, while the partition is still this task's,
+   * but only when a re-read of the master lock still shows this instance's lockUuid and held
+   * epoch: after a handover this instance never noticed (partitions lost, then closed late), the
+   * queued paths may by now hold another owner's locks, so they are dropped instead. Everything
+   * else is then cleared: seeked offset, master eTag, held epoch, granular cache, fence, queued
+   * GC items and legacy-resolution flag. A drain or sweep run already in flight can still
+   * re-queue items afterwards; conditional deletes close that.
+   */
+  override def closePartitions(topicPartitions: Set[TopicPartition]): Unit =
+    if (topicPartitions.nonEmpty) {
+      val queued          = gcQueue.asScala.map(_.topicPartition).toSet.intersect(topicPartitions)
+      val (held, notHeld) = queued.partition(stillHeld)
+      if (held.nonEmpty) drainGcItems(pollGcItemsFor(held))
+      if (notHeld.nonEmpty) {
+        logger.info(
+          s"[${connectorTaskId.show}] Dropping queued GC deletes for ${notHeld.mkString(", ")} on close: the master " +
+            s"lock no longer shows this instance's lockUuid and held epoch (or could not be read).",
+        )
+      }
+      topicPartitions.foreach(releasePartition)
+      logger.debug(s"[${connectorTaskId.show}] Released ${topicPartitions.size} closed partition(s)")
+    }
+
+  /** Drops every piece of in-memory state held for `tp`: granular cache and partition state. */
+  private def releasePartition(tp: TopicPartition): Unit = {
+    evictAllGranularLocks(tp)
+    clearTopicPartitionState(tp)
+  }
+
+  /**
+   * Whether the master lock still shows this instance as `tp`'s owner under its held epoch. Not
+   * fenced, an epoch held, and a readable lock carrying both; anything else reads as "not ours".
+   */
+  private def stillHeld(tp: TopicPartition): Boolean =
+    !isFenced(tp) && (for {
+      mine <- tpEpoch.get(tp)
+      loc  <- bucketAndPrefixFn(tp).toOption
+      lock <- tryOpen(loc.bucket, generateLockFilePath(connectorTaskId, tp, directoryFileName)).toOption
+    } yield lock.wrappedObject.owner == lockOwner && lock.wrappedObject.epoch.contains(mine)).contains(true)
+
+  /** Removes this partition's seeked offset, eTag, held epoch, fence and queued GC items, so background threads stop operating on it. */
   override def clearTopicPartitionState(topicPartition: TopicPartition): Unit = {
     // Revoked or failed open: the batch temp sweep must stop deleting under it (LC-349).
     val _ = ownedPartitions.remove(topicPartition)
@@ -1874,9 +1898,17 @@ class IndexManagerV2(
    *  3. Delete each batch via `storageInterface.deleteFiles`; on failure, re-enqueue items
    *     up to `MaxGcRetries` times. Failures are logged but never propagated.
    */
-  private[seek] def drainGcQueue(): Unit = {
-    // Phase 1: drain queue, applying partition-revoked and key-reclaimed filters
-    val eligible = Iterator.continually(gcQueue.poll()).takeWhile(_ != null).filter { item =>
+  private[seek] def drainGcQueue(): Unit =
+    drainGcItems(Iterator.continually(gcQueue.poll()).takeWhile(_ != null))
+
+  /** Removes and returns the queued GC items of `tps`; items other threads poll first are skipped. */
+  private def pollGcItemsFor(tps: Set[TopicPartition]): Iterator[GcItem] =
+    gcQueue.asScala.toList.filter(i => tps.contains(i.topicPartition) && gcQueue.remove(i)).iterator
+
+  /** Phases 1-3 of [[drainGcQueue]] for items already taken off the queue. */
+  private def drainGcItems(polled: Iterator[GcItem]): Unit = {
+    // Phase 1: apply partition-revoked and key-reclaimed filters
+    val eligible = polled.filter { item =>
       if (!seekedOffsets.contains(item.topicPartition)) {
         logger.debug(
           s"GC discarding ${item.topicPartition}/${item.partitionKey}: partition no longer owned by this task",
@@ -2266,8 +2298,8 @@ class IndexManagerV2(
    *
    * Ordering matters: the sweep executor is stopped first (it can enqueue new GC items),
    * then the GC executor, then a final synchronous `drainGcQueue()` flushes any items
-   * that were enqueued but not yet drained. `seekedOffsets` must still be populated at
-   * this point so the drain can distinguish owned partitions from revoked ones.
+   * that were enqueued but not yet drained, for partitions still held. On the normal
+   * close(partitions) → stop() path `closePartitions` has already drained and released them.
    *
    * The final `drainGcQueue()` call is direct (not through the scheduled lambda), so
    * it bypasses the `acceptingWork` gate and runs regardless of the flag's value.

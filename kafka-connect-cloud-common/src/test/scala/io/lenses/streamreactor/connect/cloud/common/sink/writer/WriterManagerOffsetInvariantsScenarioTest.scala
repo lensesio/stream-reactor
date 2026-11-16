@@ -218,6 +218,8 @@ class WriterManagerOffsetInvariantsScenarioTest
     override def clearTopicPartitionState(topicPartition: TopicPartition): Unit = {
       val _ = masterStateCleared.add(topicPartition)
     }
+    override def closePartitions(topicPartitions: Set[TopicPartition]): Unit =
+      topicPartitions.foreach(clearTopicPartitionState)
     override def suspendBackgroundWork(): Unit = ()
     override def close():                 Unit = ()
 

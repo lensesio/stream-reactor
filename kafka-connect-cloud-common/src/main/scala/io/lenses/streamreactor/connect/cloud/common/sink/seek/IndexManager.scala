@@ -202,20 +202,28 @@ trait IndexManager {
   ): Unit
 
   /**
-   * Removes all in-memory state for a topic partition (seeked offsets, eTags).
-   * Called during partition revocation (rebalance) and task shutdown to prevent
-   * background threads (e.g. the orphan sweep) from operating on stale partitions.
+   * Removes all in-memory partition state for a topic partition (seeked offset, eTags, held
+   * epoch, fence, queued GC items). Called by `closePartitions` on revocation and by a failed
+   * `open()` rolling back, so background threads (e.g. the orphan sweep) stop operating on it.
    *
    * @param topicPartition The `TopicPartition` whose state should be cleared.
    */
   def clearTopicPartitionState(topicPartition: TopicPartition): Unit
 
   /**
+   * Releases partitions this task is closing. Kafka Connect's `SinkTask.close(partitions)` passes
+   * exactly the partitions being revoked (all of them on an eager rebalance or on shutdown, only
+   * the revoked ones on a cooperative rebalance), so this is the one place partition state is
+   * dropped on a revoke; `open()` never infers a revocation from what it was not given.
+   */
+  def closePartitions(topicPartitions: Set[TopicPartition]): Unit
+
+  /**
    * Signals that partitions are being closed and background threads should skip work
    * until the next `open()` call. This is a best-effort gate: it prevents new scheduled
    * invocations of `drainGcQueue` and `sweepOrphanedLocks` from starting, but cannot
-   * stop an already-running invocation. In-flight executions are benign -- see the
-   * architecture doc for the full safety argument.
+   * stop an already-running invocation, whose by-path deletes can still land after a handover
+   * -- see the architecture doc for the remaining window.
    */
   def suspendBackgroundWork(): Unit
 

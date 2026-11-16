@@ -344,12 +344,14 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
    * may be changing, eg, in a re-balance. Therefore, we must commit our open files
    * for those (topic,partitions) to ensure no records are lost.
    *
-   * seekedOffsets in IndexManagerV2 is deliberately NOT cleared here. During shutdown,
-   * Kafka Connect calls close(allPartitions) before stop(). If seekedOffsets were cleared
-   * here, the final drainGcQueue() in IndexManagerV2.close() (called from stop()) would
-   * discard every queued item as "partition no longer owned", and obsolete lock files would
-   * never be deleted. During rebalance (close + open without stop), stale seekedOffsets
-   * entries for revoked partitions are purged at the start of IndexManagerV2.open().
+   * `partitions` is exactly the set being revoked: every assigned partition on an eager rebalance
+   * and before `stop()`, only the revoked ones on a cooperative rebalance. It is the only source
+   * of truth for a revoke: `open()` receives only newly assigned partitions and never infers one.
+   * After the writers are closed (a forced master-lock write still needs the partition's
+   * ownership state), `indexManager.closePartitions` drains the GC deletes queued for those
+   * partitions while they are still provably this instance's, then drops all their state
+   * (seeked offset, eTags, held epoch, granular cache, fence), so a revoked fenced partition no
+   * longer fails the next `put()` for the partitions this task keeps.
    */
   override def close(partitions: util.Collection[KafkaTopicPartition]): Unit = {
     logger.debug(
@@ -359,14 +361,13 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
     )
     Option(metrics).foreach(_.incrementRebalanceClosesTotal())
 
-    // Suspend background GC/sweep threads before closing writers. This is a best-effort
-    // gate that prevents new scheduled invocations from starting during the close → open
-    // rebalance window. An already-running invocation is not interrupted: its deletes are by
-    // path and unconditional, so a lock it selected before a handover can be rewritten by the
-    // new owner before the delete lands (conditional deletes land in a later change; see
-    // IndexManagerV2.acceptingWork). On shutdown (close → stop), the flag
-    // stays false until the executors are shut down in IndexManagerV2.close(), which
-    // calls drainGcQueue() directly and bypasses the gate.
+    // Suspend background GC/sweep threads before closing writers. This is a best-effort gate
+    // that prevents new scheduled invocations from starting until the next open(). An
+    // already-running invocation is not interrupted: its deletes are by path and unconditional,
+    // so a lock it selected before a handover can be rewritten by the new owner before the
+    // delete lands (conditional deletes land in a later change; see
+    // IndexManagerV2.acceptingWork). On shutdown (close → stop), the flag stays false until the
+    // executors are shut down in IndexManagerV2.close().
     Option(indexManager).foreach(_.suspendBackgroundWork())
     // LC-349: these partitions are no longer held; the batch temp sweep -- even one already
     // mid-pass, which the gate above cannot stop -- must not delete under them.
@@ -374,6 +375,8 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
       partitions.asScala.map(tp => TopicPartition(Topic(tp.topic), tp.partition)).toSet,
     ))
     Option(writerManager).foreach(_.close())
+    val closed = Option(partitions).map(_.asScala.map(tp => TopicPartition(Topic(tp.topic), tp.partition)).toSet)
+    Option(indexManager).foreach(im => im.closePartitions(closed.getOrElse(Set.empty)))
   }
 
   override def stop(): Unit = {
@@ -394,9 +397,9 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
     writerManager = null
 
     // indexManager.close() shuts down background executors and performs a final synchronous
-    // drainGcQueue(). seekedOffsets is still populated (close() does not clear it), so the
-    // drain correctly identifies owned partitions. The state is GC'd with the indexManager
-    // reference immediately after.
+    // drainGcQueue() for any partition still held. The close(partitions) before stop() has
+    // already drained and released the closed partitions' queued GC deletes. The state is GC'd
+    // with the indexManager reference immediately after.
     Try(Option(indexManager).foreach(_.close())).failed.foreach { t =>
       logger.warn(s"[$taskIdStr] indexManager.close() failed during stop()", t)
     }

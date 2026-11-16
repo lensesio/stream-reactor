@@ -514,32 +514,121 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues {
     } finally h.close()
   }
 
-  test("a revoked fenced partition whose master never recorded an offset is dropped by an open of other partitions") {
+  // ---- close(partitions) is the only revoke; open() only takes ownership ------------------
+
+  private val other = Topic("topic").withPartition(1)
+
+  test("opening newly assigned partitions leaves a retained partition's ownership and cache untouched") {
     val h = new TwoInstanceHarness()
     try {
       h.clock.set(1000L)
       h.a.open(Set(tp)).value
       h.a.ensureGranularLock(tp, pk).value
+      // Nothing committed to the master yet, so no seeked offset is held for the retained partition.
+      h.a.getSeekedOffsetForTopicPartition(tp) shouldBe None
+      val epoch = h.a.tpEpoch.get(tp)
+      val eTag  = h.a.topicPartitionToETags.get(tp)
+
+      // A cooperative rebalance adds `other` and keeps `tp`: open() receives only the added partition.
+      h.a.open(Set(other)).value
+
+      h.a.tpEpoch.get(tp) shouldBe epoch
+      h.a.topicPartitionToETags.get(tp) shouldBe eTag
+      h.a.granularCacheSize shouldBe 1
+      h.a.updateForPartitionKey(tp, pk, Some(Offset(5)), None).value shouldBe Some(Offset(5))
+      h.a.updateMasterLock(tp, Offset(6)).value
+    } finally h.close()
+  }
+
+  test("closing a revoked fenced partition clears its fence and state and leaves the other partitions working") {
+    val h = new TwoInstanceHarness()
+    try {
+      h.clock.set(1000L)
+      h.a.open(Set(tp, other)).value
+      h.a.ensureGranularLock(tp, pk).value
       h.a.updateForPartitionKey(tp, pk, Some(Offset(5)), None).value
       h.b.open(Set(tp)).value
       h.a.updateMasterLock(tp, Offset(6)).isLeft shouldBe true
       h.a.confirmMasterFenced(tp) shouldBe true
-      h.a.fencedPartitions should contain(tp)
       // The master floor was never written, so no seeked offset is held for the partition.
       h.a.getSeekedOffsetForTopicPartition(tp) shouldBe None
 
-      // A rebalance revokes it and assigns a different partition.
-      h.a.suspendBackgroundWork()
-      h.a.evictAllGranularLocks(tp)
-      val newlyAssigned = Topic("topic").withPartition(1)
-      h.a.open(Set(newlyAssigned)).value
+      h.a.closePartitions(Set(tp))
 
       h.a.fencedPartitions shouldBe empty
+      h.a.fencingReason(tp) shouldBe None
       h.a.tpEpoch.get(tp) shouldBe None
       h.a.topicPartitionToETags.get(tp) shouldBe None
-      h.a.ensureGranularLock(newlyAssigned, pk).value
-      h.a.updateForPartitionKey(newlyAssigned, pk, Some(Offset(1)), None).value shouldBe Some(Offset(1))
-      h.a.updateMasterLock(newlyAssigned, Offset(2)).value
+      h.a.granularCacheSize shouldBe 0
+      h.a.tpEpoch.get(other) shouldBe defined
+      h.a.ensureGranularLock(other, pk).value
+      h.a.updateForPartitionKey(other, pk, Some(Offset(1)), None).value shouldBe Some(Offset(1))
+      h.a.updateMasterLock(other, Offset(2)).value
+    } finally h.close()
+  }
+
+  test("an eager rebalance (close all, then open all) re-takes ownership of every partition with a new epoch") {
+    val h = new TwoInstanceHarness()
+    try {
+      h.clock.set(1000L)
+      h.a.open(Set(tp, other)).value
+      h.a.ensureGranularLock(tp, pk).value
+      h.a.updateForPartitionKey(tp, pk, Some(Offset(3)), None).value
+      h.a.updateMasterLock(tp, Offset(4)).value
+      val before = h.a.tpEpoch(tp)
+
+      h.a.closePartitions(Set(tp, other))
+      h.a.tpEpoch shouldBe empty
+      h.a.topicPartitionToETags shouldBe empty
+      h.a.getSeekedOffsetForTopicPartition(tp) shouldBe None
+
+      h.a.open(Set(tp, other)).value shouldBe Map(tp -> Some(Offset(3)), other -> None)
+      h.a.tpEpoch(tp) should be > before
+      storedMaster(h).epoch shouldBe h.a.tpEpoch.get(tp)
+      h.a.ensureGranularLock(tp, pk).value
+      h.a.updateForPartitionKey(tp, pk, Some(Offset(7)), None).value shouldBe Some(Offset(7))
+      h.a.updateMasterLock(tp, Offset(8)).value
+    } finally h.close()
+  }
+
+  test("GC deletes queued before a close are drained by the close while the partition is still ours") {
+    val h = new TwoInstanceHarness()
+    try {
+      h.clock.set(1000L)
+      h.a.open(Set(tp)).value
+      h.a.ensureGranularLock(tp, pk).value
+      h.a.updateForPartitionKey(tp, pk, Some(Offset(3)), None).value
+      h.a.updateMasterLock(tp, Offset(10)).value
+      h.a.cleanUpObsoleteLocks(tp, Offset(10), Set.empty).value
+
+      h.a.closePartitions(Set(tp))
+
+      h.readLock(h.granularLockPath(tp, pk)).isLeft shouldBe true
+      h.a.gcQueueSize shouldBe 0
+    } finally h.close()
+  }
+
+  test("GC deletes queued before a handover this instance never noticed are dropped by its close, not drained") {
+    val h = new TwoInstanceHarness()
+    try {
+      h.clock.set(1000L)
+      h.a.open(Set(tp)).value
+      h.a.ensureGranularLock(tp, pk).value
+      h.a.updateForPartitionKey(tp, pk, Some(Offset(3)), None).value
+      h.a.updateMasterLock(tp, Offset(10)).value
+      h.a.cleanUpObsoleteLocks(tp, Offset(10), Set.empty).value // queues the key's lock
+
+      // The partitions were lost: B took the partition over before this instance's close ran.
+      h.b.open(Set(tp)).value
+      h.b.getSeekedOffsetForPartitionKey(tp, pk).value
+      h.b.updateForPartitionKey(tp, pk, Some(Offset(12)), None).value
+      val bLock = h.readLock(h.granularLockPath(tp, pk)).value
+      h.a.fencedPartitions shouldBe empty
+
+      h.a.closePartitions(Set(tp))
+
+      h.readLock(h.granularLockPath(tp, pk)).value shouldBe bLock
+      h.a.gcQueueSize shouldBe 0
     } finally h.close()
   }
 
@@ -788,7 +877,7 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues {
     } finally h.close()
   }
 
-  test("GC deletes queued before a plain close and re-open by the same owner are still drained") {
+  test("GC deletes queued before a re-open by the same owner without a close are still drained") {
     val h = new TwoInstanceHarness()
     try {
       h.clock.set(1000L)

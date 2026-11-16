@@ -32,7 +32,7 @@ For a map of which tests exercise each stage of this pipeline (default path and 
 
 Called by Kafka Connect when partitions are assigned to this task instance (on startup and after every rebalance).
 
-1. `IndexManagerV2.open(topicPartitions)` prunes stale state for partitions that are no longer owned (rebalance case), then reads the **master lock file** from cloud storage for each newly assigned partition.
+1. `IndexManagerV2.open(topicPartitions)` reads the **master lock file** from cloud storage for each partition it is given and takes ownership of it. It touches no other partition: Kafka Connect passes `open()` only newly assigned partitions, and revoked partitions are released by `close(partitions)` (see "Task shutdown" and "Rebalance" in the exactly-once architecture doc).
 2. For each partition whose master lock has a `committedOffset`, `context.offset(tp, committedOffset)` is called to seek the consumer to that offset. The consumer will deliver from `committedOffset` onward; `shouldSkip` deduplicates the one-record overlap.
 3. No granular locks are read at this point -- they are loaded lazily the first time a record for a given partition key arrives.
 4. If indexing is off (`NoIndexManager`), `open` returns empty offsets for every partition and no seeking occurs.

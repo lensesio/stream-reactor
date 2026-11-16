@@ -760,8 +760,9 @@ class WriterManager[SM <: FileMetadata](
     indexManager.evictAllGranularLocks(topicPartition)
     // `clearTopicPartitionState` is NOT called: the partition is still owned by this task,
     // the master lock in storage is unchanged, and clearing `seekedOffsets` / the master eTag
-    // would break the eTag fence on the next `updateMasterLock`. Only `IndexManagerV2.open()`
-    // (stalePartitions / failure-rollback branches) calls `clearTopicPartitionState`.
+    // would break the eTag fence on the next `updateMasterLock`. Only
+    // `IndexManager.closePartitions` (revoke) and a failed `IndexManagerV2.open()` rollback call
+    // `clearTopicPartitionState`.
   }
 
   private def evictIdleWriters(topicPartition: TopicPartition, exclude: Option[MapKey]): Unit = {

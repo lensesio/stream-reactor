@@ -3794,7 +3794,7 @@ class IndexManagerV2Test
     } finally im.close()
   }
 
-  test("open() clears stale seekedOffsets from revoked partitions after rebalance") {
+  test("closePartitions() clears seekedOffsets for exactly the revoked partitions; open() of new ones keeps the rest") {
     val tp0             = Topic("topic1").withPartition(0)
     val tp1             = Topic("topic1").withPartition(1)
     val tp2             = Topic("topic1").withPartition(2)
@@ -3823,18 +3823,19 @@ class IndexManagerV2Test
       im.getSeekedOffsetForTopicPartition(tp0) shouldBe Some(Offset(100))
       im.getSeekedOffsetForTopicPartition(tp1) shouldBe Some(Offset(100))
 
-      // Rebalance: tp0 revoked, tp2 added → new assignment {tp1, tp2}
-      im.open(Set(tp1, tp2))
+      // Cooperative rebalance: tp0 revoked (close receives only it), tp2 added (open receives only it)
+      im.closePartitions(Set(tp0))
+      im.open(Set(tp2))
 
-      // tp0 should have been pruned
+      // tp0 was cleared by its close
       im.getSeekedOffsetForTopicPartition(tp0) shouldBe None
-      // tp1 should still be present (re-opened)
+      // tp1 is still present (retained, neither closed nor re-opened)
       im.getSeekedOffsetForTopicPartition(tp1) shouldBe Some(Offset(100))
       // tp2 should be present (newly opened)
       im.getSeekedOffsetForTopicPartition(tp2) shouldBe Some(Offset(100))
 
       // Sweep should NOT process tp0 (no longer in seekedOffsets).
-      // After pruning, only tp1 and tp2 remain, so the sweep should list exactly 2 partitions.
+      // After the close, only tp1 and tp2 remain, so the sweep should list exactly 2 partitions.
       when(
         si.getBlobAsObject[IndexManagerV2.SweepMarker](
           anyString(),
@@ -3880,7 +3881,7 @@ class IndexManagerV2Test
     } finally im.close()
   }
 
-  test("open() clears granular cache entries for revoked partitions") {
+  test("closePartitions() clears granular cache entries for the revoked partitions") {
     val tp0             = Topic("topic1").withPartition(0)
     val tp1             = Topic("topic1").withPartition(1)
     val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
@@ -3911,8 +3912,8 @@ class IndexManagerV2Test
       im.getSeekedOffsetForPartitionKey(tp0, "pk-a") shouldBe Right(Some(Offset(80)))
       im.granularCacheSize shouldBe 1
 
-      // Rebalance: tp0 revoked → new assignment {tp1}
-      im.open(Set(tp1))
+      // Rebalance: tp0 revoked
+      im.closePartitions(Set(tp0))
 
       // Granular cache for tp0 should be evicted
       im.granularCacheSize shouldBe 0
@@ -3946,8 +3947,9 @@ class IndexManagerV2Test
       im.open(Set(tp0, tp1))
       im.acceptingWork shouldBe true
 
-      // Simulate close() calling suspendBackgroundWork()
+      // Simulate close(Set(tp0)): suspendBackgroundWork(), then release the revoked partition
       im.suspendBackgroundWork()
+      im.closePartitions(Set(tp0))
       im.acceptingWork shouldBe false
 
       // Set up sweep mocks -- these should NOT be called while suspended
