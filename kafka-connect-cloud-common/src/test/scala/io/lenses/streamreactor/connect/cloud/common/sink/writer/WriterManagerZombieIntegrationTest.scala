@@ -33,12 +33,14 @@ import io.lenses.streamreactor.connect.cloud.common.sink.config.ValuePartitionFi
 import io.lenses.streamreactor.connect.cloud.common.sink.metrics.CloudSinkMetrics
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.KeyNamer
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.ObjectKeyBuilder
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexFile
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexManagerV2
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.PendingOperationsProcessors
 import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
 import io.lenses.streamreactor.connect.cloud.common.testing.FakeFileMetadata
 import io.lenses.streamreactor.connect.cloud.common.testing.InMemoryStorageInterface
 import io.lenses.streamreactor.connect.cloud.common.testing.InMemoryStorageInterface.FailWriteAt
+import io.lenses.streamreactor.connect.cloud.common.testing.InMemoryStorageInterface.LoseWriteResponseAt
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.mockito.ArgumentMatchersSugar
 import org.mockito.MockitoSugar
@@ -339,6 +341,33 @@ class WriterManagerZombieIntegrationTest
     metrics.getPartitionsFenced shouldBe 0L
 
     wm.preCommit(Map(tp0 -> new OffsetAndMetadata(200)))(tp0).offset() shouldBe 51L
+
+    wm.close()
+    im.close()
+  }
+
+  test("a master write in preCommit that landed but lost its response recovers on the next preCommit") {
+    val storage = new InMemoryStorageInterface()
+    val metrics = new CloudSinkMetrics()
+    val im      = buildIndexManager(storage)
+    im.open(Set(tp0)).value
+    val wm = buildWriterManager(im, storage, metrics)
+    wm.putWriter(MapKey(tp0, dateA), makeCommittedWriter(tp0, im, storage, committedOffset = Some(Offset(50))))
+    storage.arm(LoseWriteResponseAt(bucket, masterLockPath))
+
+    wm.preCommit(Map(tp0 -> new OffsetAndMetadata(200))).get(tp0) shouldBe None
+    im.fencedPartitions shouldBe empty
+    storage.getBlobAsObject[IndexFile](bucket, masterLockPath).value.wrappedObject.committedOffset shouldBe
+      Some(Offset(50))
+
+    // The writers move on; the following preCommits write the master lock again.
+    wm.putWriter(MapKey(tp0, dateA), makeCommittedWriter(tp0, im, storage, committedOffset = Some(Offset(100))))
+    val offsets = (1 to 3).map(_ => wm.preCommit(Map(tp0 -> new OffsetAndMetadata(200))).get(tp0).map(_.offset()))
+    offsets shouldBe Seq(Some(101L), Some(101L), Some(101L))
+    metrics.getMasterLockFailures shouldBe 1L
+    storage.getBlobAsObject[IndexFile](bucket, masterLockPath).value.wrappedObject.committedOffset shouldBe
+      Some(Offset(100))
+    im.getSeekedOffsetForTopicPartition(tp0) shouldBe Some(Offset(100))
 
     wm.close()
     im.close()

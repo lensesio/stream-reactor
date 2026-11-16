@@ -229,10 +229,17 @@ class InMemoryStorageInterface(systemName: String = "in-memory") extends Storage
     takeFirstHook { case h: FailWriteAt if h.matches(bucket, path) => h } match {
       case Some(h) => h.asUploadError(bucket, path).asLeft
       case None    =>
-        // CorruptETag persists normally but reports a wrong eTag back to the caller.
-        val cachedOverride = takeFirstHook { case h: CorruptETag if h.matches(bucket, path) => h }
-          .map(_ => freshETag())
-        persist(bucket, path, objectProtection, freshETag(), cachedOverride)
+        takeFirstHook { case h: LoseWriteResponseAt if h.matches(bucket, path) => h } match {
+          case Some(h) =>
+            // The write is applied, but the caller only sees an error (lost response).
+            persist(bucket, path, objectProtection, freshETag(), None)
+              .flatMap(_ => h.asUploadError(bucket, path).asLeft)
+          case None =>
+            // CorruptETag persists normally but reports a wrong eTag back to the caller.
+            val cachedOverride = takeFirstHook { case h: CorruptETag if h.matches(bucket, path) => h }
+              .map(_ => freshETag())
+            persist(bucket, path, objectProtection, freshETag(), cachedOverride)
+        }
     }
 
   override def getMetadata(bucket: String, path: String): Either[FileLoadError, ObjectMetadata] =
@@ -442,6 +449,18 @@ object InMemoryStorageInterface {
    */
   final case class CorruptETag(bucket: String, path: String) extends Hook {
     def matches(b: String, p: String): Boolean = b == bucket && p == path
+  }
+
+  /**
+   * Apply the next `writeBlobToFile` to `(bucket, path)` (with its normal conditional-write
+   * semantics), then report a failure to the caller anyway: the write landed but its response
+   * was lost, e.g. a timeout whose SDK retry then fails its precondition against the object the
+   * first attempt already changed.
+   */
+  final case class LoseWriteResponseAt(bucket: String, path: String) extends Hook {
+    def matches(b: String, p: String): Boolean = b == bucket && p == path
+    override def asUploadError(b: String, p: String): UploadError =
+      FileCreateError(new IllegalStateException(s"injected lost write response: $b/$p"), p)
   }
 
   /**

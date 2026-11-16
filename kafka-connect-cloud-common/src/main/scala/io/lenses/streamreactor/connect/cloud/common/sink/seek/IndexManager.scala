@@ -251,8 +251,11 @@ trait IndexManager {
 
   /**
    * Called after a master-lock write failed. Re-reads the master lock and returns `true` (marking
-   * the partition fenced) when a newer owner holds it, `false` when the failure was transient
-   * (the lock is still ours, or it can't be read). Defaults to `false` when indexing is disabled.
+   * the partition fenced) when a newer owner holds it, `false` otherwise. When the stored lock is
+   * this instance's own write that landed although its response was lost (our owner and epoch,
+   * a new version), that version is adopted so the next write succeeds; when the lock is still
+   * the cached version, or can't be read, the failure is transient and nothing changes.
+   * Defaults to `false` when indexing is disabled.
    */
   def confirmMasterFenced(topicPartition: TopicPartition): Boolean = {
     val _ = topicPartition

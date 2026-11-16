@@ -1682,7 +1682,9 @@ class IndexManagerV2(
    * may read this lock file. When `globalSafeOffset == 0`, `None` avoids the false claim
    * that offset 0 is committed and prevents HWM inflation on restart. The eTag is
    * deliberately NOT refreshed on write failure -- this preserves fencing against zombie
-   * tasks (see architecture doc).
+   * tasks (see architecture doc). After a failure the caller runs `confirmMasterFenced`,
+   * which is the only place that may move the cached eTag to a re-read version, and only
+   * when that version is provably this instance's own write.
    */
   // TEST-ONLY SEAM — DO NOT WIRE FROM PRODUCTION CODE.
   // No-op by default. Fires inside `updateMasterLock`, between the cached-eTag read and the
@@ -1694,19 +1696,34 @@ class IndexManagerV2(
    * After a failed master-lock write: re-read the lock and decide whether a newer owner holds it.
    * Since our open() bump, any write that lands on the master lock is either ours or another
    * instance's ownership bump (a previous owner's floor write would fail its CAS against our bump).
-   * So a different owner, or a higher epoch, means this instance has been replaced. A lock that is
-   * still ours, or one that can't be read, is treated as transient, and today's retry-next-cycle
-   * behaviour applies.
+   * The re-read has four outcomes:
+   *
+   *  - a different owner, or a higher epoch: this instance has been replaced; the partition is
+   *    marked fenced and `true` is returned.
+   *  - our owner and our epoch, no pending state, but an eTag other than the cached one: the
+   *    failed write landed and only its response was lost (e.g. a timeout whose SDK retry then
+   *    failed its precondition against the object the first attempt had already changed).
+   *    `lockOwner` is unique to this instance and the epoch was assigned by this instance's own
+   *    open(), so the stored version can only be our own write; it is adopted (cached eTag, and the
+   *    seeked offset moved forward to its committed offset, never back) so the next cycle's write
+   *    succeeds. Without this every later write would fail its CAS against the stale cached eTag
+   *    and the partition would never return an offset again.
+   *  - our owner and our epoch with the cached eTag, a lower epoch (not expected), or any other
+   *    shape of our own lock: transient; nothing is changed and the next cycle retries.
+   *  - the lock can't be read: transient, likewise.
+   *
+   * Runs on the task thread (from preCommit), as `updateMasterLock` does. In the modes that
+   * write the master lock through `updateMasterLock` (granular PARTITIONBY), nothing else writes
+   * the master lock or its cached eTag while the partition is owned, so the adopt cannot race
+   * another writer of that cache entry.
    */
   override def confirmMasterFenced(topicPartition: TopicPartition): Boolean =
     (for {
       mine <- tpEpoch.get(topicPartition)
       loc  <- bucketAndPrefixFn(topicPartition).toOption
       lock <- tryOpen(loc.bucket, generateLockFilePath(connectorTaskId, topicPartition, directoryFileName)).toOption
-    } yield (lock.wrappedObject, mine)).filter {
-      case (lock, mine) => lock.owner != lockOwner || lock.epoch.getOrElse(0L) > mine
-    } match {
-      case Some((lock, mine)) =>
+    } yield (lock, mine)) match {
+      case Some((ObjectWithETag(lock, _), mine)) if lock.owner != lockOwner || lock.epoch.getOrElse(0L) > mine =>
         markFenced(
           topicPartition,
           s"master lock owner ${lock.owner} epoch ${lock.epoch.getOrElse(0L)}, held epoch $mine",
@@ -1718,8 +1735,26 @@ class IndexManagerV2(
             s"The task will fail on its next put() so a restart can re-take ownership.",
         )
         true
+      case Some((stored @ ObjectWithETag(lock, storedETag), mine))
+          if lock.epoch.contains(mine) && lock.pendingState.isEmpty &&
+            !topicPartitionToETags.get(topicPartition).contains(storedETag) =>
+        adoptOwnMasterWrite(topicPartition, stored)
+        false
       case _ => false
     }
+
+  /** Caches a master-lock version this instance provably wrote itself; see `confirmMasterFenced`. */
+  private def adoptOwnMasterWrite(topicPartition: TopicPartition, stored: ObjectWithETag[IndexFile]): Unit = {
+    topicPartitionToETags.put(topicPartition, stored.eTag)
+    stored.wrappedObject.committedOffset.foreach { o =>
+      if (seekedOffsets.get(topicPartition).forall(_.value < o.value)) seekedOffsets.put(topicPartition, o)
+    }
+    logger.warn(
+      s"[${connectorTaskId.show}] Master lock write for $topicPartition landed but its response was lost: the " +
+        s"stored lock carries this instance's lockUuid and epoch with a new version, so that version was adopted " +
+        s"(committedOffset ${stored.wrappedObject.committedOffset.map(_.value)}). The next write proceeds from it.",
+    )
+  }
 
   override def updateMasterLock(
     topicPartition:   TopicPartition,
@@ -1751,11 +1786,11 @@ class IndexManagerV2(
         index,
       ) match {
         case Left(err: UploadError) =>
-          // Do NOT re-read the master lock to refresh the cached eTag. For transient
-          // errors the eTag is still valid and the next cycle will succeed. For eTag
-          // mismatches (another task modified the lock) the stale eTag causes repeated
-          // failures -- this is correct fencing behavior that prevents a zombie task
-          // from overwriting the new task's master lock.
+          // Do NOT blindly re-read the master lock to refresh the cached eTag here: adopting
+          // whatever is stored would hand a zombie the newer owner's fencing token. The caller
+          // runs `confirmMasterFenced`, which re-reads and decides: a newer owner fences the
+          // partition; our own write whose response was lost is adopted so the next cycle
+          // succeeds; anything else is transient and the unchanged eTag is retried next cycle.
           logger.warn(s"Master lock write failed for $topicPartition (possible fencing by new task): ${err.message()}")
           (new FatalCloudSinkError(err.message(), err.toExceptionOption, topicPartition): SinkError).asLeft
         case Right(objectWithEtag) =>

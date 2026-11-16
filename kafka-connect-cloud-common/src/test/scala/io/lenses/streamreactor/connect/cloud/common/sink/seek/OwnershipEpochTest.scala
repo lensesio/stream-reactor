@@ -390,11 +390,87 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues {
         ),
       )
 
+      val cachedBefore = h.a.topicPartitionToETags.get(tp)
+
       h.a.updateMasterLock(tp, Offset(10)).isLeft shouldBe true
       h.a.confirmMasterFenced(tp) shouldBe false
       h.a.fencedPartitions shouldBe empty
+      h.a.topicPartitionToETags.get(tp) shouldBe cachedBefore
+      Some(h.readLock(h.masterLockPath(tp)).value.eTag) shouldBe cachedBefore
 
       h.a.updateMasterLock(tp, Offset(10)).value
+    } finally h.close()
+  }
+
+  test("a master write that landed but lost its response is adopted on the fencing check, and later writes succeed") {
+    val h = new TwoInstanceHarness()
+    try {
+      h.a.open(Set(tp)).value
+      h.storage.arm(
+        io.lenses.streamreactor.connect.cloud.common.testing.InMemoryStorageInterface.LoseWriteResponseAt(
+          h.bucket,
+          h.masterLockPath(tp),
+        ),
+      )
+
+      h.a.updateMasterLock(tp, Offset(10)).isLeft shouldBe true
+      storedMaster(h).committedOffset shouldBe Some(Offset(9)) // the write did land
+
+      h.a.confirmMasterFenced(tp) shouldBe false
+      h.a.fencedPartitions shouldBe empty
+      h.a.topicPartitionToETags.get(tp) shouldBe Some(h.readLock(h.masterLockPath(tp)).value.eTag)
+      h.a.getSeekedOffsetForTopicPartition(tp) shouldBe Some(Offset(9))
+
+      // Three more floor-write cycles, each re-checked on failure as preCommit does.
+      val written = (1 to 3).map { i =>
+        val result = h.a.updateMasterLock(tp, Offset(10L + i * 10L))
+        if (result.isLeft) h.a.confirmMasterFenced(tp) shouldBe false
+        result.isRight
+      }
+      written shouldBe Seq(true, true, true)
+      storedMaster(h).committedOffset shouldBe Some(Offset(39))
+      h.a.getSeekedOffsetForTopicPartition(tp) shouldBe Some(Offset(39))
+    } finally h.close()
+  }
+
+  test("a newer owner that opens after our lost-response master write still fences us") {
+    val h = new TwoInstanceHarness()
+    try {
+      h.clock.set(1000L)
+      h.a.open(Set(tp)).value
+      h.storage.arm(
+        io.lenses.streamreactor.connect.cloud.common.testing.InMemoryStorageInterface.LoseWriteResponseAt(
+          h.bucket,
+          h.masterLockPath(tp),
+        ),
+      )
+      h.a.updateMasterLock(tp, Offset(10)).isLeft shouldBe true
+      h.b.open(Set(tp)).value
+
+      h.a.confirmMasterFenced(tp) shouldBe true
+      h.a.fencedPartitions should contain(tp)
+      h.a.updateMasterLock(tp, Offset(20)).isLeft shouldBe true
+      storedMaster(h).owner shouldBe h.lockUuid(1)
+    } finally h.close()
+  }
+
+  test("a master lock with our owner but a lower epoch is not adopted and does not fence") {
+    val h = new TwoInstanceHarness()
+    try {
+      h.clock.set(1000L)
+      h.a.open(Set(tp)).value
+      val cachedBefore = h.a.topicPartitionToETags.get(tp)
+      val current      = h.readLock(h.masterLockPath(tp)).value
+      val _ = h.storage.writeBlobToFile(
+        h.bucket,
+        h.masterLockPath(tp),
+        ObjectWithETag(IndexFile(h.lockUuid(0), Some(Offset(99)), None, Some(999L)), current.eTag),
+      ).value
+
+      h.a.confirmMasterFenced(tp) shouldBe false
+      h.a.fencedPartitions shouldBe empty
+      h.a.topicPartitionToETags.get(tp) shouldBe cachedBefore
+      h.a.getSeekedOffsetForTopicPartition(tp) should not be Some(Offset(99))
     } finally h.close()
   }
 
