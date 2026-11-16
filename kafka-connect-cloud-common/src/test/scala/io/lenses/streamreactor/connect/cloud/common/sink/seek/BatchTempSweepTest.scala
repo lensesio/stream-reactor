@@ -565,6 +565,34 @@ class BatchTempSweepTest extends AnyFunSuiteLike with Matchers with EitherValues
     }
   }
 
+  test("a takeover between the sweep's LIST and its delete chunk fences the sweeping instance") {
+    val st = new HookedStorage
+    storage = st
+    seedMaster(99)
+    val zombie = buildLockedIndexManager(st, BatchCommitLocks())
+    try {
+      zombie.open(Set(tp)).value
+      writeTemp(orphan, ageSecondsAgo = ageSeconds + 60)
+      // The pre-LIST read still shows this instance's own lock; a new owner's ownership write lands
+      // before the first delete chunk's fresh read.
+      st.afterTempList.set { () =>
+        val _ = st.deleteFiles(bucket, Seq(masterPath)).value
+        val _ = st.writeBlobToFile(
+          bucket,
+          masterPath,
+          NoOverwriteExistingObject(IndexFile("new-owner", Some(Offset(99)), None, Some(Long.MaxValue))),
+        ).value
+      }
+
+      val (_, warnings) = warningsDuring(zombie.sweepAllBatchTemps())
+
+      st.tempDeleteCalls shouldBe empty
+      st.snapshot(bucket).keys should contain(orphan)
+      zombie.fencedPartitions should contain(tp)
+      warnings.exists(_.contains("lock owned by another instance; batch temp sweep skipped")) shouldBe true
+    } finally zombie.close()
+  }
+
   test("[M'6] a periodic sweep deletes nothing once the partition is closed or its state cleared, before or mid-pass") {
     val cases: List[(String, (IndexManagerV2, HookedStorage) => Unit)] = List(
       "closed before the pass" -> ((im, _) => im.closePartitions(Set(tp))),
