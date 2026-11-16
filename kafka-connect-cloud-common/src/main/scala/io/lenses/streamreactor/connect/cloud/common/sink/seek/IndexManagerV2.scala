@@ -572,19 +572,53 @@ class IndexManagerV2(
                 s"cannot tell in-flight Copy sources from orphans: ${err.message()}",
             )
           case Right(master) =>
-            sweepOrphansUnder(
-              topicPartition,
-              bucketAndPrefix,
-              masterPath,
-              prefix,
-              ageThreshold,
-              referencedCopySources(master),
-            )
+            sweepFenceReason(topicPartition, master) match {
+              case Some(reason) =>
+                logger.warn(s"[${connectorTaskId.show}] Batch temp sweep for $topicPartition: $reason")
+              case None =>
+                sweepOrphansUnder(
+                  topicPartition,
+                  bucketAndPrefix,
+                  masterPath,
+                  prefix,
+                  ageThreshold,
+                  referencedCopySources(master),
+                )
+            }
         }
       } catch {
         case NonFatal(e) =>
           logger.warn(s"[${connectorTaskId.show}] Batch temp sweep threw for $topicPartition; ignoring", e)
       }
+
+  /**
+   * The ownership rule of `confirmMasterFenced`, applied to a master lock the batch temp sweep has
+   * just read (at no extra GET): the temp prefix is shared by every instance of this task, so a
+   * sweep under a newer owner's master would delete its uploaded-but-not-yet-recorded temps.
+   * `Some(reason)` means skip: no ownership epoch is held for the partition, or the lock was
+   * written by another instance or under a higher epoch (which also marks the partition fenced).
+   * No lock, or a 0-byte one, carries no owner, so it passes, as before.
+   */
+  private def sweepFenceReason(topicPartition: TopicPartition, master: Option[IndexFile]): Option[String] =
+    master.flatMap { m =>
+      tpEpoch.get(topicPartition) match {
+        case None =>
+          "no ownership epoch is held for the partition; batch temp sweep skipped".some
+        case Some(mine) if m.owner != lockOwner || m.epoch.getOrElse(0L) > mine =>
+          markFenced(
+            topicPartition,
+            s"master lock owner ${m.owner} epoch ${m.epoch.getOrElse(0L)}, held epoch $mine",
+          )
+          logger.error(
+            s"[${connectorTaskId.show}] Fenced on $topicPartition: the batch temp sweep read a master lock " +
+              s"written by another instance (owner ${m.owner}, epoch ${m.epoch.getOrElse(0L)}; " +
+              s"this instance's lockUuid $lockOwner, epoch $mine). The task will fail on its next put().",
+          )
+          (s"lock owned by another instance; batch temp sweep skipped (owner=${m.owner}, " +
+            s"epoch=${m.epoch.getOrElse(0L)}, this instance=$lockOwner, held epoch=$mine)").some
+        case Some(_) => None
+      }
+    }
 
   /**
    * Reads the master lock for the sweep. `Right(None)` when there is no lock, or a 0-byte lock
@@ -685,7 +719,9 @@ class IndexManagerV2(
    * the fresh read below, so dropped from the chunk). Temps uploaded after the LIST are not in it.
    *
    * The owner fence keeps a stale or zombie instance -- which shares this temp prefix -- from
-   * deleting the current owner's temps: `open()` always rewrites the owner to its own `lockOwner`.
+   * deleting the current owner's temps: `open()` always rewrites the owner to its own `lockOwner`
+   * and takes a new ownership epoch, and a lock showing either marks this instance fenced (see
+   * `sweepFenceReason`).
    *
    * The ownership check is [[ownedPartitions]], not `acceptingWork`/`seekedOffsets`: those mean
    * "not suspended" and "has a committed offset", and both are false for a brand-new partition
@@ -711,31 +747,33 @@ class IndexManagerV2(
               s"the pre-delete read, cannot tell in-flight Copy sources from orphans: ${err.message()}",
           )
           ChunkOutcome.Stop
-        case Right(Some(master)) if master.owner != lockOwner =>
-          logger.warn(
-            s"[${connectorTaskId.show}] Batch temp sweep for $topicPartition: lock owned by another instance; " +
-              s"batch temp sweep skipped (owner=${master.owner}, this instance=$lockOwner)",
-          )
-          ChunkOutcome.Stop
         // `None` (no lock, or a 0-byte lock) references nothing, so the chunk is deleted, as before
         // LC-349. That is safe: temp paths are unique per attempt (they carry a random batch id),
         // an in-flight commit on this partition would be holding the lock we hold now, and no
         // other process can commit -- and so reference a temp -- without the master lock. An
         // unreferenced temp is therefore a true orphan. Every other read error fails closed above.
+        // A lock held by another instance, or under a newer epoch, fences this one: same rule as
+        // the pre-LIST read.
         case Right(master) =>
-          val nowReferenced = referencedCopySources(master)
-          val toDelete      = chunk.filterNot(nowReferenced.contains)
-          if (toDelete.isEmpty) ChunkOutcome.Done(0, 0)
-          else
-            storageInterface.deleteFiles(bucket, toDelete) match {
-              case Left(err) =>
-                logger.warn(
-                  s"[${connectorTaskId.show}] Batch temp sweep failed to delete ${toDelete.size} orphan(s) for " +
-                    s"$topicPartition: ${err.message()}",
-                )
-                ChunkOutcome.Done(0, toDelete.size)
-              case Right(_) => ChunkOutcome.Done(toDelete.size, 0)
-            }
+          sweepFenceReason(topicPartition, master) match {
+            case Some(reason) =>
+              logger.warn(s"[${connectorTaskId.show}] Batch temp sweep for $topicPartition: $reason")
+              ChunkOutcome.Stop
+            case None =>
+              val nowReferenced = referencedCopySources(master)
+              val toDelete      = chunk.filterNot(nowReferenced.contains)
+              if (toDelete.isEmpty) ChunkOutcome.Done(0, 0)
+              else
+                storageInterface.deleteFiles(bucket, toDelete) match {
+                  case Left(err) =>
+                    logger.warn(
+                      s"[${connectorTaskId.show}] Batch temp sweep failed to delete ${toDelete.size} orphan(s) for " +
+                        s"$topicPartition: ${err.message()}",
+                    )
+                    ChunkOutcome.Done(0, toDelete.size)
+                  case Right(_) => ChunkOutcome.Done(toDelete.size, 0)
+                }
+          }
       }
     }
 

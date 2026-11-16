@@ -1008,6 +1008,59 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues {
     } finally h.close()
   }
 
+  test("a periodic batch temp sweep that reads a newer owner's master lock is fenced and deletes nothing") {
+    val h = new TwoInstanceHarness(commitMode = CommitMode.Batch, sweepEnabled = true, sweepSeconds = 3600)
+    try {
+      h.clock.set(1000L)
+      seedMaster(h, IndexFile("previous-owner", Some(Offset(9)), None))
+      h.a.open(Set(tp)).value
+      // B takes the partition over; A has not noticed yet.
+      h.b.open(Set(tp)).value
+      h.a.fencedPartitions shouldBe empty
+      // An aged temp under the shared prefix: B's upload that its master lock does not reference yet.
+      val temp = h.batchTempPrefix(tp) + "batch-uuid/data/topic/0/staged.json"
+      h.storage.writeStringToFile(h.bucket, temp, UploadableString("payload")).value
+      h.storage.setLastModified(h.bucket, temp, longAgo) shouldBe true
+      val masterReads = h.storage.readCount(h.bucket, h.masterLockPath(tp))
+
+      h.a.sweepAllBatchTemps()
+
+      h.storage.pathExists(h.bucket, temp).value shouldBe true
+      h.a.fencedPartitions should contain(tp)
+      // The sweep's own master read decided it: no extra GET.
+      h.storage.readCount(h.bucket, h.masterLockPath(tp)) shouldBe masterReads + 1
+      h.a.update(tp, Some(Offset(10)), None).isLeft shouldBe true
+    } finally h.close()
+  }
+
+  test("the periodic batch temp sweep skips a partition fenced while its master lock is still ours") {
+    val h = new TwoInstanceHarness(commitMode = CommitMode.Batch, sweepEnabled = true, sweepSeconds = 3600)
+    try {
+      h.clock.set(1000L)
+      seedMaster(h, IndexFile("previous-owner", Some(Offset(9)), None))
+      // A granular lock written by a newer owner fences this open's legacy snapshot; the master
+      // lock still carries this instance's own bump, so only the fence keeps the sweep out.
+      val _ = h.storage
+        .writeBlobToFile(
+          h.bucket,
+          h.granularLockPath(tp, pk),
+          NoOverwriteExistingObject(IndexFile(h.lockUuid(1), Some(Offset(9)), None, Some(5000L))),
+        )
+        .value
+      h.a.open(Set(tp)).value
+      h.a.fencedPartitions should contain(tp)
+      storedMaster(h).owner shouldBe h.lockUuid(0)
+      h.a.getSeekedOffsetForTopicPartition(tp) shouldBe Some(Offset(9))
+      val temp = h.batchTempPrefix(tp) + "batch-uuid/data/topic/0/staged.json"
+      h.storage.writeStringToFile(h.bucket, temp, UploadableString("payload")).value
+      h.storage.setLastModified(h.bucket, temp, longAgo) shouldBe true
+
+      h.a.sweepAllBatchTemps()
+
+      h.storage.pathExists(h.bucket, temp).value shouldBe true
+    } finally h.close()
+  }
+
   test("the batch temp sweep at the end of open skips a partition the open found itself fenced on") {
     val h = new TwoInstanceHarness(commitMode = CommitMode.Batch, sweepSeconds = 3600)
     try {
