@@ -23,6 +23,7 @@ import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
 import io.lenses.streamreactor.connect.cloud.common.sink.BatchCloudSinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.metrics.CloudSinkMetrics
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.BatchCommitLocks
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.CommitMode
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexManager
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.PendingOperationsProcessors
@@ -87,6 +88,7 @@ class WriterCommitManager[SM <: FileMetadata](
   pendingOperationsProcessors: PendingOperationsProcessors,
   commitMode:                  CommitMode       = CommitMode.Default,
   metrics:                     CloudSinkMetrics = new CloudSinkMetrics(),
+  batchCommitLocks:            BatchCommitLocks = BatchCommitLocks.NoOp,
 )(
   implicit
   connectorTaskId: ConnectorTaskId,
@@ -176,8 +178,10 @@ class WriterCommitManager[SM <: FileMetadata](
    *
    *  1. Stage all writers. Uploads happen before anything durable is recorded, so a failure here
    *     leaves no trace beyond orphan temps and every writer keeps its state and staging file.
-   *     Results are collected rather than short-circuited: staging is idempotent, so doing the
-   *     work now minimises what a retry has to redo.
+   *     Results are collected rather than short-circuited, so every writer's failure is reported
+   *     at once. Staging is idempotent only per batch attempt: a retry uses a new batch id and
+   *     re-stages every writer, including ones already `Staged` by the failed attempt, because
+   *     nothing referenced their temps and the orphan sweep may have deleted them (LC-349).
    *  2. CAS a single `PendingState(P, [Copy x N])` onto the master lock. This is the commit point;
    *     it is also the fence, because the write is conditional on the master eTag.
    *  3. Drive the chain. Each copy that succeeds rewrites the lock with the remaining ops, so a
@@ -191,8 +195,17 @@ class WriterCommitManager[SM <: FileMetadata](
    * `storageInterface.mvFile`, which MOVES the object on all three backends (copy + delete
    * source) -- by the time the chain returns `Right`, every temp is already gone. Any temp left
    * behind by a partial failure becomes a candidate for the `.temp-upload` orphan sweep.
+   *
+   * The whole protocol runs holding `topicPartition`'s [[BatchCommitLocks]] lock (LC-349). The
+   * orphan sweep takes the same lock per delete chunk and re-reads the master lock under it, so it
+   * can never delete a temp of a batch that is staging (before the CAS references it) or that a
+   * CAS referenced after the sweep's LIST. The wait here is bounded by one sweep chunk. Everything
+   * inside is synchronous, so the lock never spans an `IO` boundary.
    */
-  private[writer] def commitBatch(topicPartition: TopicPartition): Either[SinkError, Unit] = {
+  private[writer] def commitBatch(topicPartition: TopicPartition): Either[SinkError, Unit] =
+    batchCommitLocks.withLock(topicPartition)(commitBatchHoldingLock(topicPartition))
+
+  private def commitBatchHoldingLock(topicPartition: TopicPartition): Either[SinkError, Unit] = {
     val writers = source.iteratorForTopicPartition(topicPartition).map(_._2).filterNot(_.isIdle).toList
     if (writers.isEmpty) ().asRight
     else {

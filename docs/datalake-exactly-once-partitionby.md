@@ -695,7 +695,8 @@ sequenceDiagram
     participant POP as PendingOperationsProcessors
     participant IM as IndexManagerV2 master lock
     participant S as Storage
-    WCM->>W: stage(batchUuid) each (idempotent on Staged)
+    Note over WCM: holds the partition's BatchCommitLocks lock from here to finalizeCommit (LC-349)
+    WCM->>W: stage(batchUuid) each (no-op if Staged for this batchUuid; re-stage if Staged by an earlier attempt)
     W->>S: upload to .temp-upload/connector/topic/partition/batchUuid/finalPath
     Note over WCM: any Left -> return BatchCloudSinkError, no CAS, all writers keep state and staging files
     WCM->>IM: update(tp, seekedOffset(tp), Some(PendingState(P, [Copy_1..Copy_N])))
@@ -738,13 +739,13 @@ Error classification in batch mode drives `handleErrors` exactly as the existing
 
 | Failure | Classification | Writer state after | Recovery | Data outcome |
 |---|---|---|---|---|
-| `stage()` upload transient (`UploadFailedError`) | `NonFatal`, `rollBack = false` | `Uploading`, staging kept | `recommitPending` re-drives the batch; `stage()` is idempotent | no loss  |
+| `stage()` upload transient (`UploadFailedError`) | `NonFatal`, `rollBack = false` | failed writer `Uploading`, staged ones `Staged`, staging kept | `recommitPending` re-drives the batch under a new `batchUuid`; every writer re-uploads, including already-`Staged` ones (see [LC-349](#batch-temps-retries-and-the-orphan-sweep-lc-349)) | no loss  |
 | `stage()` `NonExistingFileError` (staging gone) | `Fatal`, `rollBack = true` | `Uploading` until `cleanUp` | restart replays from master | no loss  |
 | `complete()` IOException | `Fatal` | — | restart from master | no loss  |
 | CAS `update` failure | `Fatal` | `Staged`; temps kept, staging deleted by cleanUp | restart replays from master, temps become sweep candidates | no loss  |
 | mid-chain `Copy` failure | `Fatal` | `Staged` | restart resumes from the recorded remaining ops | one object per path  |
 | last `Copy` failure | `Fatal` | `Staged` | restart (`IndexManagerV2.open`) resumes the chain without re-uploading | one object per path  |
-| last `Delete` failure | `NonFatal`, WARN only | `NoWriter` | temp becomes a sweep candidate | no impact (hygiene-only) |
+| lock update after a successful `Copy` | `Fatal` | discarded by `cleanUp` | restart resumes from the last persisted remaining ops; a landed copy is an idempotent no-op | one object per path  |
 
 ### Zombie safety
 
@@ -754,7 +755,148 @@ The docs' existing zombie guarantees hold in batch mode, by the master-eTag CAS 
 - **CAS-then-crash**: a zombie that CAS'd and copied some files leaves a resumable `PendingState`; the new owner completes it, and the zombie's resumed `mvFile`s are idempotent no-ops while its next `update` is fenced. One object per path, no duplication.
 - **Rollback (batch → granular)**: the granular owner's open fences the batch zombie's CAS.
 - **Master-level fence**: the ownership bump at `open()` is mode-independent, so a granular zombie is fenced at a batch owner's open the same way a batch zombie is fenced at a granular owner's open — pinned at the `IndexManagerV2` level by the fencing tests.
-- **Orphan temps**: up to N temps per fenced or rebalanced batch, bounded by the at-`open()` sweep and, if `gc.sweep.enabled`, an equivalent periodic sweep.
+- **Orphan temps**: up to N temps per fenced or rebalanced batch, reaped by the at-`open()` sweep and, if `gc.sweep.enabled`, an equivalent periodic sweep. A zombie's sweep cannot delete the new owner's temps: every delete chunk is fenced on the master lock's owner (see [Batch temps, retries and the orphan sweep (LC-349)](#batch-temps-retries-and-the-orphan-sweep-lc-349)).
+
+### Batch temps, retries and the orphan sweep (LC-349)
+
+This section applies only when exactly-once (indexing) is on and `commit.mode=batch`. With indexing off, a single upload writes directly to the final path, so there are no temps, no master lock and no sweep, and none of this applies. With indexing on, in either mode, bytes never go directly to a final path.
+
+**The moving parts.** A batch commit (`WriterCommitManager.commitBatch(tp)`) has these steps:
+
+1. It picks a fresh random `batchUuid`.
+2. It runs `stage(batchUuid)` on every non-idle writer, one after another. Each call uploads the writer's local staging file to `.temp-upload/<connector>/<topic>/<partition>/<batchUuid>/<finalPath>`, and the writer becomes `Staged`. The local file is kept until the batch is finalised.
+3. Only if every stage succeeded, it CASes the master lock with a `PendingState` of `Copy` operations, one per temp. That CAS is the only commit point. Before it, nothing durable references the temps.
+4. It runs the copy chain. Each `mvFile` moves one temp to its final path, and the lock is rewritten with the remaining copies after each one.
+5. It finalises the writers.
+
+The **orphan sweep** (`IndexManagerV2.sweepBatchTemps`) cleans up temps that a failed attempt left behind:
+
+1. It reads the master lock to learn which temps the `PendingState` still references.
+2. It LISTs the partition's temp prefix.
+3. It deletes, in chunks of `gc.batch.size`, every listed temp that is older than `gc.sweep.min.age.seconds` and not referenced.
+
+It runs at the end of every `open()`. When `gc.sweep.enabled` is set (the default), it also runs every `gc.sweep.interval.seconds` on its own thread. The temp prefix is shared by every instance of the connector, because it is keyed by the connector name, not by the task.
+
+#### Bug A: a retry trusted a temp the sweep had deleted
+
+1. A batch stages writer A, then B's upload fails with a transient error. A is `Staged` and its temp exists, but nothing references it, because no CAS happened.
+2. The sweep runs, sees A's temp as an aged, unreferenced orphan, and deletes it.
+3. The retry (`recommitPending` → `commitBatch`) calls `stage()` again. On a writer that was already `Staged` this used to be a no-op, so A kept its old temp path.
+4. The CAS records a `Copy` whose source is gone and whose destination was never written. `mvFile` fails with "both missing" on S3, GCS and Azure alike, which is Fatal.
+5. Every restart's `open()` replays the same `PendingState` and fails the same way. The task is stuck until someone repairs it by hand (see the [runbook](#field-repair-runbook-stuck-batch-task-lc-349)).
+
+When users can hit it:
+
+| `error.policy` | Affected? |
+|---|---|
+| THROW (default) | No. The stage failure fails the task, the restart discards the `Staged` writers, and the records are re-delivered from Kafka. |
+| RETRY | Only when the sweep age is lowered, or when `max.retries × retry.interval` exceeds it. |
+| NOOP | Yes, with defaults, if one file's upload keeps failing for longer than the sweep age (24 h by default). |
+
+A transient `stage()` upload failure is now unswallowable (`RetriableIntegrityException`), so under NOOP it fails the task like THROW instead of being logged and skipped. Before, NOOP also dropped the records of the `put()` whose `recommitPending` hit the failure, and the next batch commit advanced the floor past them. RETRY and THROW behave as before.
+
+#### Bug B: the sweep raced a live commit
+
+- **Before the CAS.** A temp that has just been staged is referenced by nothing until the CAS. If later writers take long enough to upload, it ages past the minimum age and the sweep deletes it. Clock skew and coarse `lastModified` timestamps make this more likely.
+- **Across the CAS.** A sweep reads the master lock, then a commit's CAS references a temp, then the sweep deletes that temp, because its earlier read did not reference it.
+
+Either way the copy chain later moves a missing source, which is Fatal and replayed by every `open()`, as in Bug A. With the default 24 h minimum age this needs a day-long commit or a day of clock skew. With a low tuned value it is realistic.
+
+#### Bug C: stale and zombie sweeps
+
+Because the temp prefix is shared, a sweep that no longer owns the partition can delete the current owner's temps:
+
+- a sweep thread that outlives `close()`, which waits only 5 s for it;
+- a sweep already mid-pass during a rebalance, because `acceptingWork` is checked once per tick, not once per partition;
+- a zombie task on another worker that still thinks it owns the partition.
+
+Before LC-349 only the minimum age protected those temps.
+
+#### The fix
+
+**Re-stage (Bug A).** `stage(batchUuid)` on a writer that is `Staged` for a *different* batch id uploads its kept local file again under the new id, before the CAS ([`Writer.stage` / `Writer.restage`](../kafka-connect-cloud-common/src/main/scala/io/lenses/streamreactor/connect/cloud/common/sink/writer/Writer.scala)). The same batch id is still a no-op.
+
+- The destination is frozen. The re-stage reuses the recorded `(bucket, finalPath)`, offsets and record count, and never calls the namer again, because a custom `FileNamerFactory` may answer differently on a second call.
+- There is no HEAD check on the old temp. It would race the sweep, and re-uploading is correct whether the old temp exists or not.
+- If the re-upload fails, the writer stays in its old `Staged` state, and the next attempt re-stages again.
+- The old temp becomes an ordinary orphan for the sweep.
+
+**M′: deletes are serialised with commits, per partition (Bug B).** One `BatchCommitLocks` instance, built in `WriterManagerCreator`, is shared by the commit manager and the index manager. It holds one fair `ReentrantLock` per topic-partition. Entries are created on first use and never removed, so a revoke and reassign cannot hand a commit a different lock from the one an old sweep is holding ([`BatchCommitLocks.scala`](../kafka-connect-cloud-common/src/main/scala/io/lenses/streamreactor/connect/cloud/common/sink/seek/BatchCommitLocks.scala)).
+
+- **The commit holds the lock** for the whole of stage → CAS → copy chain → finalise ([`WriterCommitManager.commitBatch`](../kafka-connect-cloud-common/src/main/scala/io/lenses/streamreactor/connect/cloud/common/sink/writer/WriterCommitManager.scala)).
+- **The sweep reads and lists outside the lock.** The first master read, the LIST and the age/reference filter run without it, as before.
+- **Each delete chunk runs under the lock**, after a fresh read ([`IndexManagerV2.sweepOrphansUnder` / `deleteChunkUnderCommitLock`](../kafka-connect-cloud-common/src/main/scala/io/lenses/streamreactor/connect/cloud/common/sink/seek/IndexManagerV2.scala)):
+  1. take the partition lock with `lockInterruptibly()`;
+  2. check that this instance still holds the partition (the owned-partitions set, below);
+  3. read the master lock again, fresh;
+  4. apply the owner fence (below);
+  5. drop every chunk entry that the fresh read references;
+  6. call `deleteFiles` on the rest;
+  7. release the lock.
+
+  If a check fails, the pass stops for that partition.
+- **Why this is safe.** While the sweep holds the lock, no commit is in flight on that partition. So a temp that was listed earlier is in one of these states:
+  - from a commit that finished: it has already been moved, and deleting a missing key does nothing;
+  - from a commit that failed before its CAS: a true orphan, because the retry re-stages under a new id;
+  - from a commit that failed after its CAS: the fresh read references it, so it is dropped from the chunk.
+
+  Temps uploaded after the LIST are not in the listing.
+- **A commit waits at most one master GET plus one `deleteFiles` chunk** of up to `gc.batch.size` keys, never a whole sweep pass. Each of those two calls includes the storage SDK's own retry and timeout budget, and the wait counts towards `put()` time and therefore towards `max.poll.interval.ms`. The lock is fair, so a commit that queues while a chunk runs gets the lock before the sweep's next chunk.
+- The lock is only ever taken and released inside one synchronous block, never across an `IO` boundary.
+
+**The owner fence (Bug C).** A chunk is deleted only if the fresh master lock's `owner` equals this instance's `lockOwner` (`ConnectorTaskId.lockUuid`, a random id per task instance). `open()` always rewrites the owner to its own id (see [Master-lock bump at `open()`](#master-lock-bump-at-open-both-modes)), so a stale or zombie instance's sweep sees another owner. It logs the WARN `lock owned by another instance; batch temp sweep skipped` and deletes nothing for that partition.
+
+**The owned-partitions signal.** `IndexManagerV2` keeps a concurrent `ownedPartitions` set, and the per-chunk check is `ownedPartitions.contains(tp)`. The same check applies to the `open()` sweep and to the periodic sweep. `sweepBatchTemps` also checks it before the pre-LIST master read, so a partition already released costs no I/O; the per-chunk check still covers a release that lands mid-pass.
+
+- `open(tp)` adds the partition at its very start, before recovery and before the `open()` sweep ([`IndexManagerV2.open`](../kafka-connect-cloud-common/src/main/scala/io/lenses/streamreactor/connect/cloud/common/sink/seek/IndexManagerV2.scala)).
+- It is removed by `IndexManager.releasePartitions(tps)`, which `CloudSinkTask.close(partitions)` calls next to `suspendBackgroundWork()` ([`CloudSinkTask.close`](../kafka-connect-cloud-common/src/main/scala/io/lenses/streamreactor/connect/cloud/common/sink/CloudSinkTask.scala)). The trait's default is a no-op. This is the primary removal path: Connect calls `close(partitions)` for every revoked partition.
+- It is also removed by `IndexManagerV2.clearTopicPartitionState`, which runs for the rollback of a failed `open()` and for `open()`'s pruning of revoked partitions. That pruning only reaches partitions in `seekedOffsets`, i.e. those with a committed master offset, so it is a backstop for `releasePartitions`, not a replacement.
+- `close()` clears the whole set first, before it waits for the sweep thread (`IndexManagerV2.close`). A sweep that outlives the 5 s wait therefore deletes nothing more.
+- The scheduler's existing `if (acceptingWork)` gate on each periodic tick is unchanged (`IndexManagerV2.startExecutors`).
+
+A direct signal is needed because neither existing flag means "this task holds the partition now": `seekedOffsets` means "has a committed master offset", and `acceptingWork` is task-wide and false throughout `open()`.
+
+**A missing or 0-byte master lock on the fresh read still deletes the chunk**, as the sweep did before LC-349. There is no owner to compare, and an unreferenced temp is a true orphan:
+
+- temp paths are unique per attempt, because they contain a random batch id;
+- an in-flight commit on this partition would be holding the lock the sweep now holds;
+- no other process can commit, and so reference a temp, without writing the master lock.
+
+Every other read error fails closed: the pass stops for that partition with a WARN, and the next sweep retries.
+
+**Interrupts on shutdown.** `close()` calls `shutdownNow()` on the sweep executor, which interrupts the sweep thread.
+
+- A sweep waiting for a partition lock behind a commit gets an `InterruptedException`. It issues no delete for that chunk, restores the interrupt flag and stops the pass.
+- `sweepAllBatchTemps` then visits no further partitions.
+- The commit side takes the lock with an uninterruptible `lock()`, so shutdown never aborts a commit half-way through acquiring it.
+
+**Known pre-existing gap.** The periodic sweep only visits partitions in `seekedOffsets`, meaning partitions with a committed master offset. A partition that has never committed has its orphans reaped only at `open()`. This is documented, not changed.
+
+**Cooperative-assignor note.** `open()`'s pruning removes every partition that is in `seekedOffsets` but not in the set being opened. That assumes `open()` receives the task's full assignment. Under an incremental cooperative rebalance, `open()` receives only the newly added partitions, so the pruning also drops still-held partitions from `ownedPartitions`. For the sweep, this errs toward deleting nothing: those partitions are not swept again until their next `open()`.
+
+**Cost.**
+
+- One extra upload per already-staged file on each retry of a partially staged batch.
+- The old temps become orphans until the sweep reaps them.
+- One extra master GET per delete chunk.
+- A commit can wait for one delete chunk.
+
+Pinned by [`WriterStageTest`](../kafka-connect-cloud-common/src/test/scala/io/lenses/streamreactor/connect/cloud/common/sink/writer/WriterStageTest.scala), [`WriterCommitManagerBatchTest`](../kafka-connect-cloud-common/src/test/scala/io/lenses/streamreactor/connect/cloud/common/sink/writer/WriterCommitManagerBatchTest.scala), [`BatchCommitLocksTest`](../kafka-connect-cloud-common/src/test/scala/io/lenses/streamreactor/connect/cloud/common/sink/seek/BatchCommitLocksTest.scala), [`BatchTempSweepTest`](../kafka-connect-cloud-common/src/test/scala/io/lenses/streamreactor/connect/cloud/common/sink/seek/BatchTempSweepTest.scala) and the S3 IT [`S3BatchRestageAfterSweepTest`](../kafka-connect-aws-s3/src/it/scala/io/lenses/streamreactor/connect/aws/s3/sink/S3BatchRestageAfterSweepTest.scala).
+
+### Field-repair runbook: stuck batch task (LC-349)
+
+Use this for a batch-mode task stuck by Bug A on a version without the fix, or by any other cause that left a `PendingState` pointing at temps that no longer exist. The connector does not repair this automatically.
+
+1. **Recognise the stuck task.** Every start fails in `open()` with a `FileMoveError` whose message reads `Source <bucket>/<temp> and destination <bucket>/<final> both missing`. S3 and GCS also log `mvFile: both source (...) and destination (...) are missing; cannot complete move`. The partition's master lock is at `<indexes-dir>/<connector>/.locks/Topic(<topic>)/<partition>.lock` (see [Lock file layout](#lock-file-layout)). On disk the topic segment is written literally as `Topic(<topic>)`, for example `.locks/Topic(orders)/3.lock`, and batch temps live under `.temp-upload/<connector>/Topic(<topic>)/<partition>/`. The lock has a `pendingState` whose `CopyOperation` sources under `.temp-upload/` are absent from the bucket.
+2. **Stop the connector**, and confirm every task is stopped. Then back up the master lock and every final object the `PendingState` names that already exists.
+3. **Inventory what already landed.** The remaining `PendingState` lists only the copies not yet done: earlier copies in the chain already moved their files and were removed from the list. Use the final paths and the offset range, from the lock's `committedOffset` (the floor) to `pendingOffset`, to work out which files of the batch exist.
+4. **Confirm that Kafka still retains** the records from the committed floor (`committedOffset + 1`) onwards for that partition. If it does not, go to step 6.
+5. **Clear the `PendingState` without advancing the committed offset.** Rewrite the master lock with the same `owner` and `committedOffset` and with no `pendingState`. Never set `committedOffset` to `pendingOffset`: that would skip records whose files never landed. Start the connector. It re-consumes from the floor and writes the batch again.
+6. **If replay is impossible** because the records have aged out of Kafka, escalate. Do not clear the lock: the records in the gap cannot be rewritten.
+7. **Caveats.**
+   - Duplicates are possible: a file that already landed before the failure is written again by the replay, usually under a new name.
+   - On GCS, a copy to an existing destination carries a generation-match precondition, and a replayed file may replace an existing object.
+   - Under wall-clock PARTITIONBY keys, replayed records may land in different files or partitions from the first attempt.
 
 ### Switching modes
 
@@ -769,7 +911,7 @@ Batch mode does **not** fix, and explicitly documents, the following (see also [
 - **Misplacement** under wall-clock keys for batches that never reached the CAS: records buffered under one wall-clock key and replayed under another still land in the later bucket. Batch mode removes *loss*, not *misplacement*.
 - **Migration duplicate window**: every record in `(masterAtSwitch, maxLegacyLockAtSwitch]` is re-written once during a granular → batch migration (see [Switching modes](#switching-modes)). Avoidable operationally by flushing and idling the connector before the switch.
 - **Non-atomic visibility** of a batch's N files: the N copies are applied sequentially, so a reader can observe a partially-visible batch between the first and last copy.
-- **Up to N orphan temps** per fenced or rebalanced batch, bounded by the orphan sweep's age threshold (`gc.sweep.min.age.seconds`).
+- **Up to N orphan temps** per failed attempt (a fenced, rebalanced or partially staged batch; a retry also orphans each re-staged writer's old temp). They are reaped once unreferenced and older than `gc.sweep.min.age.seconds`: at every `open()`, and every `gc.sweep.interval.seconds` when `gc.sweep.enabled` is set (the default). A sweep deletes only for partitions this instance holds and only while the master lock names this instance as owner. The periodic pass visits only partitions with a committed master offset, so a partition that never committed is reaped only at `open()` (see [Batch temps, retries and the orphan sweep (LC-349)](#batch-temps-retries-and-the-orphan-sweep-lc-349)).
 - **Granular-mode zombie creating a brand-new key** after the new owner's snapshot commits under that key unfenced (mitigated by the stop-first switch procedure).
 - **S3 unconditional purge delete**: `deleteFile` ignores the eTag on S3, so the legacy-lock purge is unconditional there; bounded by the stop-first procedure.
 - **GCS `mvFile` ignores the source eTag**, so temp-path uniqueness (the `batchUuid` segment) is load-bearing for correctness on GCS.
@@ -890,7 +1032,7 @@ See "Orphaned lock sweep" under "Garbage collection" for the full sweep architec
 |----------|---------|-------------|
 | `connect.<prefix>.exactly.once.commit.mode` | `granular` | `granular` (per-key locks, requires deterministic PARTITIONBY) or `batch` (all writers on a Kafka partition commit together through one master-lock CAS; routing-independent). Switching modes requires the connector to be stopped first. See [Partition-batch commit mode](#partition-batch-commit-mode-commitmodebatch). |
 
-In `batch` mode the `indexes.gc.*` and `indexes.gc.sweep.*` keys are **inert** (batch mode creates no granular locks, so neither the GC drain nor the granular-lock sweep runs) **except** `indexes.gc.sweep.min.age.seconds`, which gates the batch `.temp-upload` orphan sweep.
+In `batch` mode no granular locks are created, so neither the GC drain nor the granular-lock sweep runs, and `indexes.gc.interval.seconds` and `indexes.gc.sweep.max.reads` are **inert**. Four keys drive the batch `.temp-upload` orphan sweep instead: `indexes.gc.sweep.min.age.seconds` is its age gate (at `open()` and periodically); `indexes.gc.sweep.enabled` (default `true`) turns on its periodic pass and `indexes.gc.sweep.interval.seconds` sets how often it runs; `indexes.gc.batch.size` is its delete-chunk size, and so also bounds how long a commit can wait on the sweep (see [Batch temps, retries and the orphan sweep (LC-349)](#batch-temps-retries-and-the-orphan-sweep-lc-349)). The `open()`-time sweep always runs, whatever `gc.sweep.enabled` says.
 
 **Cost considerations**: LIST API calls are proportional to the number of owned partitions per sweep cycle (one call per partition). GET calls are globally capped at `gcSweepMaxReads`. Since the default sweep interval is 24 hours, the cost burst is infrequent. Operators with very high partition counts (thousands per task) should be aware of the LIST cost spike and can increase the sweep interval or disable the sweep if necessary.
 
@@ -977,7 +1119,7 @@ When the connector is deployed fresh against an Azure Data Lake Storage Gen2 con
 In batch mode the rows above still hold, but the mechanism differs on four points (see [Partition-batch commit mode](#partition-batch-commit-mode-commitmodebatch)):
 
 - **Writer accumulation / commit unit.** All non-idle writers on a Kafka partition commit together through one master-lock CAS, not per-key. Deduplication is a topic-partition-level floor, not a per-key granular lock — so a crash/replay under a *different* key is deduplicated correctly (no silent loss). Pinned by `BatchCommitScenarioTest`.
-- **GC.** Granular-lock GC and the granular-lock sweep do not run (no granular locks are created). A separate `.temp-upload` orphan sweep reaps aged batch temps at `open()` and, if `gc.sweep.enabled`, on a periodic schedule mirroring the granular sweep. Pinned by [`BatchTempSweepTest`](../kafka-connect-cloud-common/src/test/scala/io/lenses/streamreactor/connect/cloud/common/sink/seek/BatchTempSweepTest.scala).
+- **GC.** Granular-lock GC and the granular-lock sweep do not run (no granular locks are created). A separate `.temp-upload` orphan sweep reaps aged batch temps at `open()` and, if `gc.sweep.enabled`, on a periodic schedule mirroring the granular sweep. Its deletes are serialised with commits per partition and fenced on the master lock's owner (LC-349). Pinned by [`BatchTempSweepTest`](../kafka-connect-cloud-common/src/test/scala/io/lenses/streamreactor/connect/cloud/common/sink/seek/BatchTempSweepTest.scala).
 - **Migration.** A granular → batch switch fences (eTag-bumps or resolves) every legacy lock at `open()` and purges them immediately once fenced — deduplication is master-only and never consults them, so nothing is gated on a batch watermark. Pinned by [`CommitModeSwitchTest`](../kafka-connect-cloud-common/src/test/scala/io/lenses/streamreactor/connect/cloud/common/sink/seek/CommitModeSwitchTest.scala).
 - **Rollback.** A batch → granular switch is completed by the existing `processPendingOperations` (the pending chain is `[Copy x N]`), and the `createWriter` `max` hardening prevents a stale legacy lock from re-writing a committed record. Pinned by [`CommitModeSwitchTest`](../kafka-connect-cloud-common/src/test/scala/io/lenses/streamreactor/connect/cloud/common/sink/seek/CommitModeSwitchTest.scala).
 

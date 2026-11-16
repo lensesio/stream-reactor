@@ -337,6 +337,11 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
     // stays false until the executors are shut down in IndexManagerV2.close(), which
     // calls drainGcQueue() directly and bypasses the gate.
     Option(indexManager).foreach(_.suspendBackgroundWork())
+    // LC-349: these partitions are no longer held; the batch temp sweep -- even one already
+    // mid-pass, which the gate above cannot stop -- must not delete under them.
+    Option(indexManager).foreach(_.releasePartitions(
+      partitions.asScala.map(tp => TopicPartition(Topic(tp.topic), tp.partition)).toSet,
+    ))
     Option(writerManager).foreach(_.close())
   }
 

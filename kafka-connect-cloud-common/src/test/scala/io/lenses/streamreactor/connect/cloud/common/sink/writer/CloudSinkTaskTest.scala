@@ -926,6 +926,24 @@ class CloudSinkTaskTest
     val _ = tmpFile.delete()
   }
 
+  // LC-349: close(partitions) must tell the IndexManager the partitions are released, so a batch
+  // temp sweep that is already mid-pass stops deleting under them.
+  test("close(partitions) releases exactly those partitions on the IndexManager") {
+    val im   = mock[IndexManager]
+    val task = new ConcreteTestSinkTask
+    task.connectorTaskId = connectorTaskId
+    // `indexManager` is set by start(), which needs a real cloud config; inject the mock instead.
+    val field = classOf[CloudSinkTask[_, _, _, _]].getDeclaredFields
+      .find(_.getName.endsWith("indexManager"))
+      .getOrElse(fail("CloudSinkTask has no indexManager field"))
+    field.setAccessible(true)
+    field.set(task, im)
+
+    task.close(java.util.Arrays.asList(tpA.toKafka, tpB.toKafka))
+
+    verify(im, times(1)).releasePartitions(Set(tpA, tpB))
+  }
+
   private class ConcreteTestSinkTask
       extends CloudSinkTask[FakeFileMetadata, CloudSinkConfig[StubCC], StubCC, Unit](
         "test-connector",

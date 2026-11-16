@@ -111,12 +111,23 @@ class WriterStageTest
     }
   }
 
+  /** Succeeds until `failing` is set, then fails every upload with a transient error. */
+  private class ToggleFailingStorage extends CountingStorage {
+    @volatile var failing: Boolean = false
+    override def uploadFile(source: UploadableFile, bucket: String, path: String): Either[UploadError, String] =
+      if (failing) {
+        uploads.incrementAndGet()
+        UploadFailedError(new RuntimeException("connection reset"), source.file).asLeft
+      } else super.uploadFile(source, bucket, path)
+  }
+
   private def buildWriter(
     storage:      InMemoryStorageInterface,
     file:         File,
     formatWriter: FormatWriter     = null,
     metrics:      CloudSinkMetrics = new CloudSinkMetrics(),
     keyPath:      Option[String]   = Some(finalPath),
+    keyBuilder:   ObjectKeyBuilder = null,
   ): Writer[FakeFileMetadata] = {
     val idx = mock[IndexManager]
     when(idx.indexingEnabled).thenReturn(true)
@@ -126,9 +137,12 @@ class WriterStageTest
     when(idx.update(any[TopicPartition], any[Option[Offset]], any[Option[PendingState]]))
       .thenAnswer((_: TopicPartition, co: Option[Offset], _: Option[PendingState]) => co.asRight[SinkError])
 
-    val okb = mock[ObjectKeyBuilder]
-    when(okb.build(any[Offset], any[Offset], any[Long], any[Long], any[Long]))
-      .thenReturn(CloudLocation(bucket, path = keyPath).asRight)
+    val okb = Option(keyBuilder).getOrElse {
+      val m = mock[ObjectKeyBuilder]
+      when(m.build(any[Offset], any[Offset], any[Long], any[Long], any[Long]))
+        .thenReturn(CloudLocation(bucket, path = keyPath).asRight)
+      m
+    }
 
     val fw = Option(formatWriter).getOrElse {
       val m = mock[FormatWriter]
@@ -212,7 +226,7 @@ class WriterStageTest
     staged.copyOp.eTag shouldBe staged.tempETag
   }
 
-  test("[ND] stage on an already-Staged writer is idempotent and performs no storage call") {
+  test("[ND] stage on an already-Staged writer with the same batch id is idempotent and performs no storage call") {
     val storage = new CountingStorage
     val file    = stagingFile()
     val fw      = mock[FormatWriter]
@@ -223,11 +237,125 @@ class WriterStageTest
     val first = writer.stage(batchUuid).value.value
     storage.uploads.get() shouldBe 1
 
-    val second = writer.stage("a-different-batch-uuid").value.value
+    val second = writer.stage(batchUuid).value.value
 
     storage.uploads.get() shouldBe 1
     second shouldBe first
+    writer.currentWriteState shouldBe first
     storage.keysUnder(bucket, s".temp-upload/") should have size 1
+  }
+
+  // LC-349: a writer left Staged by an earlier, partially failed batch has a temp that nothing
+  // references, so the orphan sweep may already have deleted it. The retry must not trust it.
+  test("[ND] stage on a Staged writer from a different batch re-uploads once under the new batch id (LC-349)") {
+    val storage = new CountingStorage
+    val file    = stagingFile()
+    val metrics = new CloudSinkMetrics()
+    val writer  = buildWriter(storage, file, metrics = metrics)
+    writer.forceWriteState(uploadingState(file))
+
+    val first = writer.stage(batchUuid).value.value
+    storage.uploads.get() shouldBe 1
+
+    val retryUuid = "b0000000-0000-0000-0000-0000000000aa"
+    val restaged  = writer.stage(retryUuid).value.value
+
+    storage.uploads.get() shouldBe 2
+    restaged.tempPath shouldBe tempPrefix(retryUuid) + finalPath
+    restaged.tempETag shouldBe storage.snapshot(bucket)(restaged.tempPath).eTag
+    restaged.tempETag should not be first.tempETag
+    // Everything the CopyOperation's destination and the batch offsets depend on is frozen.
+    restaged.bucket shouldBe first.bucket
+    restaged.finalPath shouldBe first.finalPath
+    restaged.file shouldBe first.file
+    restaged.firstBufferedOffset shouldBe first.firstBufferedOffset
+    restaged.uncommittedOffset shouldBe first.uncommittedOffset
+    restaged.earliestRecordTimestamp shouldBe first.earliestRecordTimestamp
+    restaged.latestRecordTimestamp shouldBe first.latestRecordTimestamp
+    restaged.recordCount shouldBe first.recordCount
+    restaged.commitState shouldBe first.commitState
+    restaged.copyOp.source shouldBe restaged.tempPath
+    restaged.copyOp.destination shouldBe finalPath
+    writer.currentWriteState shouldBe restaged
+    // The local staging file is kept until finalizeCommit; the old temp is left as an orphan.
+    file.exists() shouldBe true
+    storage.snapshot(bucket).keys should contain(first.tempPath)
+    metrics.getInFlightUploads shouldBe 0
+
+    // Re-staging under the same (new) id is again a no-op.
+    writer.stage(retryUuid).value.value shouldBe restaged
+    storage.uploads.get() shouldBe 2
+  }
+
+  test("[ND] re-stage keeps the frozen final path even when the namer would now answer differently (LC-349)") {
+    val storage  = new CountingStorage
+    val file     = stagingFile()
+    val okb      = mock[ObjectKeyBuilder]
+    val laterKey = "data/topic-x/0/a-different-name.jsonl"
+    when(okb.build(any[Offset], any[Offset], any[Long], any[Long], any[Long]))
+      .thenReturn(
+        CloudLocation(bucket, path = Some(finalPath)).asRight,
+        CloudLocation(bucket, path = Some(laterKey)).asRight,
+      )
+    val writer = buildWriter(storage, file, keyBuilder = okb)
+    writer.forceWriteState(uploadingState(file))
+
+    writer.stage(batchUuid).value.value.finalPath shouldBe finalPath
+
+    val retryUuid = "b0000000-0000-0000-0000-0000000000bb"
+    val restaged  = writer.stage(retryUuid).value.value
+
+    restaged.finalPath shouldBe finalPath
+    restaged.tempPath shouldBe tempPrefix(retryUuid) + finalPath
+    verify(okb, times(1)).build(any[Offset], any[Offset], any[Long], any[Long], any[Long])
+    storage.keysUnder(bucket, ".temp-upload/").exists(_.endsWith(laterKey)) shouldBe false
+  }
+
+  test("[NL] a failed re-upload is unswallowable NonFatal and leaves the writer in its old Staged state (LC-349)") {
+    val storage = new ToggleFailingStorage
+    val file    = stagingFile()
+    val metrics = new CloudSinkMetrics()
+    val writer  = buildWriter(storage, file, metrics = metrics)
+    writer.forceWriteState(uploadingState(file))
+    val first = writer.stage(batchUuid).value.value
+
+    storage.failing = true
+    val retryUuid = "b0000000-0000-0000-0000-0000000000cc"
+    val err       = writer.stage(retryUuid).left.value
+
+    err shouldBe a[NonFatalCloudSinkError]
+    // Unswallowable: under NOOP a swallowed stage failure would drop the records of the put() whose
+    // recommitPending raised it.
+    err.asInstanceOf[NonFatalCloudSinkError].swallowable shouldBe false
+    err.rollBack() shouldBe false
+    storage.uploads.get() shouldBe 2
+    writer.currentWriteState shouldBe first
+    file.exists() shouldBe true
+    storage.keysUnder(bucket, tempPrefix(retryUuid)) shouldBe empty
+    metrics.getInFlightUploads shouldBe 0
+    metrics.getFilesFailedTotal shouldBe 1L
+
+    // Recovery: the next attempt re-stages under its own id.
+    storage.failing = false
+    val nextUuid = "b0000000-0000-0000-0000-0000000000cd"
+    writer.stage(nextUuid).value.value.tempPath shouldBe tempPrefix(nextUuid) + finalPath
+  }
+
+  test("[NL] re-stage with the local staging file gone is Fatal and names the staging path (LC-349)") {
+    val storage = new CountingStorage
+    val file    = stagingFile()
+    val writer  = buildWriter(storage, file)
+    writer.forceWriteState(uploadingState(file))
+    val first = writer.stage(batchUuid).value.value
+    file.delete() shouldBe true
+
+    val err = writer.stage("b0000000-0000-0000-0000-0000000000dd").left.value
+
+    err shouldBe a[FatalCloudSinkError]
+    err.rollBack() shouldBe true
+    err.topicPartitions() shouldBe Set(tp)
+    err.message() should include(file.getAbsolutePath)
+    writer.currentWriteState shouldBe first
   }
 
   test("[NL] stage on an Uploading writer (a previously failed upload) uploads and keeps the local file") {
@@ -244,7 +372,9 @@ class WriterStageTest
     file.exists() shouldBe true
   }
 
-  test("[NL] a transient stage upload failure is NonFatal, leaves the writer Uploading and writes nothing") {
+  test(
+    "[NL] a transient stage upload failure is unswallowable NonFatal, leaves the writer Uploading and writes nothing",
+  ) {
     val storage = new FailingUploadStorage(f => UploadFailedError(new RuntimeException("connection reset"), f))
     val file    = stagingFile()
     val writer  = buildWriter(storage, file)
@@ -253,6 +383,7 @@ class WriterStageTest
     val err = writer.stage(batchUuid).left.value
 
     err shouldBe a[NonFatalCloudSinkError]
+    err.asInstanceOf[NonFatalCloudSinkError].swallowable shouldBe false
     err.rollBack() shouldBe false
     writer.currentWriteState shouldBe a[Uploading]
     file.exists() shouldBe true

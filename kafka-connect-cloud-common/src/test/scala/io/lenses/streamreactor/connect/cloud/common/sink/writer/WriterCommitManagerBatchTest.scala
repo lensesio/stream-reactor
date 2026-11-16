@@ -18,7 +18,15 @@ package io.lenses.streamreactor.connect.cloud.common.sink.writer
 import cats.data.Validated
 import cats.implicits.catsSyntaxEitherId
 import io.circe.Encoder
+import io.lenses.streamreactor.common.config.base.intf.ConnectionConfig
+import io.lenses.streamreactor.common.errors.FatalConnectException
+import io.lenses.streamreactor.common.errors.ErrorPolicy
+import io.lenses.streamreactor.common.errors.NoopErrorPolicy
+import io.lenses.streamreactor.common.errors.RetriableIntegrityException
+import io.lenses.streamreactor.common.errors.RetryErrorPolicy
+import io.lenses.streamreactor.common.util.JarManifest
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
+import io.lenses.streamreactor.connect.cloud.common.config.traits.CloudSinkConfig
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.FormatWriter
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.schema.SchemaChangeDetector
 import io.lenses.streamreactor.connect.cloud.common.model.Offset
@@ -28,6 +36,7 @@ import io.lenses.streamreactor.connect.cloud.common.model.UploadableFile
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
 import io.lenses.streamreactor.connect.cloud.common.sink.BatchCloudSinkError
+import io.lenses.streamreactor.connect.cloud.common.sink.CloudSinkTask
 import io.lenses.streamreactor.connect.cloud.common.sink.FatalCloudSinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.CommitContext
@@ -36,7 +45,9 @@ import io.lenses.streamreactor.connect.cloud.common.sink.config.PartitionField
 import io.lenses.streamreactor.connect.cloud.common.sink.config.PartitionNamePath
 import io.lenses.streamreactor.connect.cloud.common.sink.config.ValuePartitionField
 import io.lenses.streamreactor.connect.cloud.common.sink.metrics.CloudSinkMetrics
+import io.lenses.streamreactor.connect.cloud.common.sink.naming.KeyNamer
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.ObjectKeyBuilder
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.BatchCommitLocks
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.CommitMode
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.CopyOperation
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexFile
@@ -44,13 +55,18 @@ import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexManagerV2
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.ObjectProtection
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.ObjectWithETag
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.PendingOperationsProcessors
+import io.lenses.streamreactor.connect.cloud.common.storage.FileDeleteError
+import io.lenses.streamreactor.connect.cloud.common.storage.FileMoveError
+import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
 import io.lenses.streamreactor.connect.cloud.common.storage.UploadError
 import io.lenses.streamreactor.connect.cloud.common.storage.UploadFailedError
 import io.lenses.streamreactor.connect.cloud.common.testing.FakeFileMetadata
 import io.lenses.streamreactor.connect.cloud.common.testing.InMemoryStorageInterface
-import io.lenses.streamreactor.connect.cloud.common.testing.InMemoryStorageInterface.FailDeleteAt
 import io.lenses.streamreactor.connect.cloud.common.testing.InMemoryStorageInterface.FailMoveAt
 import io.lenses.streamreactor.connect.cloud.common.testing.InMemoryStorageInterface.FailWriteAt
+import org.apache.kafka.clients.consumer.OffsetAndMetadata
+import org.apache.kafka.connect.errors.RetriableException
+import org.apache.kafka.connect.sink.SinkRecord
 import org.mockito.ArgumentMatchersSugar
 import org.mockito.MockitoSugar
 import org.scalatest.BeforeAndAfterEach
@@ -60,12 +76,18 @@ import org.scalatest.funsuite.AnyFunSuiteLike
 import org.scalatest.matchers.should.Matchers
 
 import java.io.File
+import java.net.URL
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
+import java.util.concurrent.locks.LockSupport
 import scala.collection.immutable
 import scala.collection.mutable
+import scala.jdk.CollectionConverters._
+import scala.util.Try
 
 /**
  * The partition-batch commit protocol: stage every non-idle writer on the topic-partition, record
@@ -101,10 +123,18 @@ class WriterCommitManagerBatchTest
 
   override def beforeEach(): Unit = storage = new RecordingStorage
 
-  /** Records master-lock payloads and upload calls, and can fail one nominated staging file. */
+  /**
+   * Records master-lock payloads and upload calls, and can fail one nominated staging file.
+   *
+   * Because every batch attempt stages under a fresh batch id (LC-349), a temp path is only known
+   * once the attempt uploads it. `uploadETags` captures each temp's eTag at upload time, and
+   * `failMoveOfTempFor` arms a one-shot `FailMoveAt` on the current attempt's temp for a final path.
+   */
   private class RecordingStorage extends InMemoryStorageInterface {
     val uploads = new AtomicInteger(0)
-    val failUploadFor: AtomicReference[Option[File]] = new AtomicReference(None)
+    val failUploadFor:     AtomicReference[Option[File]]   = new AtomicReference(None)
+    val failMoveOfTempFor: AtomicReference[Option[String]] = new AtomicReference(None)
+    val uploadETags  = mutable.Map.empty[String, String]
     val masterWrites = mutable.ListBuffer.empty[IndexFile]
 
     override def uploadFile(source: UploadableFile, bucket: String, path: String): Either[UploadError, String] = {
@@ -112,7 +142,18 @@ class WriterCommitManagerBatchTest
       failUploadFor.get() match {
         case Some(doomed) if source.file.getAbsolutePath == doomed.getAbsolutePath =>
           UploadFailedError(new RuntimeException("transient: connection reset"), doomed).asLeft
-        case _ => super.uploadFile(source, bucket, path)
+        case _ =>
+          val result = super.uploadFile(source, bucket, path)
+          result.foreach { eTag =>
+            uploadETags += path -> eTag
+            failMoveOfTempFor.get() match {
+              case Some(finalPath) if path.startsWith(".temp-upload/") && path.endsWith(s"/$finalPath") =>
+                failMoveOfTempFor.set(None)
+                val _ = arm(FailMoveAt(bucket, path))
+              case _ =>
+            }
+          }
+          result
       }
     }
 
@@ -295,17 +336,10 @@ class WriterCommitManagerBatchTest
     writing(wA, fileA, 100, 199)
     writing(wB, fileB, 200, 250)
 
-    // eTags recorded at stage() time, captured before the chain consumes the temps.
-    val stagedETags = mutable.Map.empty[String, String]
-    val source      = sourceOf("A" -> wA, "B" -> wB)
-    val cm          = commitManager(im, source)
+    val cm = commitManager(im, sourceOf("A" -> wA, "B" -> wB))
 
-    // Stage explicitly so the temp eTags can be read before the copies delete them.
-    val stagedA = wA.stage("probe").value.value
-    val stagedB = wB.stage("probe").value.value
-    stagedETags += stagedA.tempPath -> stagedA.tempETag
-    stagedETags += stagedB.tempPath -> stagedB.tempETag
-
+    // The temp eTags are captured at upload time (RecordingStorage.uploadETags), before the copies
+    // move the temps away.
     cm.commitBatch(tp).value
 
     val casPayload = storage.masterWrites.head
@@ -317,7 +351,8 @@ class WriterCommitManagerBatchTest
     ops.foreach(_ shouldBe a[CopyOperation])
     val copies = ops.collect { case c: CopyOperation => c }
     copies.map(_.destination) should contain theSameElementsAs Seq("data/orders/0/a.json", "data/orders/0/b.json")
-    copies.foreach(c => c.eTag shouldBe stagedETags(c.source))
+    copies.foreach(c => c.source should startWith(batchTempRoot))
+    copies.foreach(c => c.eTag shouldBe storage.uploadETags(c.source))
     im.close()
   }
 
@@ -370,7 +405,7 @@ class WriterCommitManagerBatchTest
     im.close()
   }
 
-  test("[ND] the retry after a staging failure re-uploads only the writer that failed") {
+  test("[ND] the retry after a staging failure re-stages every writer under the new batch id (LC-349)") {
     val im    = buildIndexManager()
     val fileA = stagingWith("A")
     val fileB = stagingWith("B")
@@ -388,13 +423,56 @@ class WriterCommitManagerBatchTest
     storage.failUploadFor.set(None)
     cm.commitBatch(tp).value
 
-    // Only B was re-uploaded: stage() on the already-Staged A is a no-op.
-    storage.uploads.get() shouldBe (uploadsAfterFirst + 1)
-    // A's temp path is unchanged, so the CopyOperation recorded for it is stable across the retry.
-    storage.masterWrites.head.pendingState.value.pendingOperations.toList
-      .collect { case c: CopyOperation => c.source } should contain(aTempAfterFirst)
+    // Both writers were uploaded under the retry's batch id: A's first temp is unreferenced and the
+    // sweep may have deleted it, so the retry must not trust it (LC-349).
+    storage.uploads.get() shouldBe (uploadsAfterFirst + 2)
+    val copies = storage.masterWrites.head.pendingState.value.pendingOperations.toList
+      .collect { case c: CopyOperation => c }
+    copies.map(_.source) should not contain aTempAfterFirst
+    copies.map(_.source.stripPrefix(batchTempRoot).takeWhile(_ != '/')).distinct should have size 1
+    copies.foreach(c => c.eTag shouldBe storage.uploadETags(c.source))
+    // The destinations are frozen across the retry.
+    copies.map(_.destination) should contain theSameElementsAs Seq("data/orders/0/a.json", "data/orders/0/b.json")
     finalKeys() should contain theSameElementsAs Seq("data/orders/0/a.json", "data/orders/0/b.json")
+    // The retry's temps were moved; only A's first, now orphaned, temp is left for the sweep.
+    tempKeys() shouldBe Seq(aTempAfterFirst)
+    im.close()
+  }
+
+  // LC-349: the orphan sweep may delete a Staged writer's temp between attempts, because nothing
+  // references it until the CAS. The retry must re-stage it rather than record a dangling Copy.
+  test("[NL] the retry after a staging failure commits both files even when the sweep deleted A's temp (LC-349)") {
+    val im    = buildIndexManager()
+    val fileA = stagingWith("A-bytes")
+    val fileB = stagingWith("B-bytes")
+    val wA    = buildWriter(im, "A", "data/orders/0/a.json")
+    val wB    = buildWriter(im, "B", "data/orders/0/b.json")
+    writing(wA, fileA, 100, 199)
+    writing(wB, fileB, 200, 250)
+    storage.failUploadFor.set(Some(fileB))
+
+    val cm = commitManager(im, sourceOf("A" -> wA, "B" -> wB))
+    cm.commitBatch(tp).isLeft shouldBe true
+    val aTempAfterFirst = tempKeys()
+    aTempAfterFirst should have size 1
+
+    // The sweep reaps A's unreferenced temp between the two attempts.
+    storage.deleteFiles(bucket, aTempAfterFirst).value
     tempKeys() shouldBe empty
+
+    storage.failUploadFor.set(None)
+    cm.commitBatch(tp).value
+
+    finalKeys() should contain theSameElementsAs Seq("data/orders/0/a.json", "data/orders/0/b.json")
+    storage.getBlobAsString(bucket, "data/orders/0/a.json").value shouldBe "A-bytes"
+    storage.getBlobAsString(bucket, "data/orders/0/b.json").value shouldBe "B-bytes"
+    masterLock().pendingState shouldBe None
+    masterLock().committedOffset shouldBe Some(Offset(250))
+    wA.currentWriteState shouldBe a[NoWriter]
+    wB.currentWriteState shouldBe a[NoWriter]
+    tempKeys() shouldBe empty
+    fileA.exists() shouldBe false
+    fileB.exists() shouldBe false
     im.close()
   }
 
@@ -443,11 +521,8 @@ class WriterCommitManagerBatchTest
     writing(wB, fileB, 200, 250)
     writing(wC, fileC, 251, 300)
 
-    // Stage first so the middle temp path is known, then fail its copy.
-    wA.stage("probe").value.value
-    val stagedB = wB.stage("probe").value.value
-    wC.stage("probe").value.value
-    storage.arm(FailMoveAt(bucket, stagedB.tempPath))
+    // Fail the copy of the middle writer's temp from the current attempt.
+    storage.failMoveOfTempFor.set(Some("data/orders/0/b.json"))
 
     val result = commitManager(im, sourceOf("A" -> wA, "B" -> wB, "C" -> wC)).commitBatch(tp)
 
@@ -478,12 +553,12 @@ class WriterCommitManagerBatchTest
     val wA    = buildWriter(im, "A", "data/orders/0/a.json")
     writing(wA, fileA, 100, 199)
 
-    val stagedA = wA.stage("probe").value.value
-    storage.arm(FailMoveAt(bucket, stagedA.tempPath))
-    val uploadsAfterStage = storage.uploads.get()
+    // Fail the copy of A's temp from the current attempt.
+    storage.failMoveOfTempFor.set(Some("data/orders/0/a.json"))
 
-    val cm    = commitManager(im, sourceOf("A" -> wA))
-    val first = cm.commitBatch(tp)
+    val cm                = commitManager(im, sourceOf("A" -> wA))
+    val first             = cm.commitBatch(tp)
+    val uploadsAfterStage = storage.uploads.get()
     // A tail CopyOperation failure is Fatal (previously NonFatal) -- the data is already
     // durable at the temp and the lock's PendingState still references it, so recovery is via
     // IndexManagerV2.open() on restart, not an in-process recommitPending retry on the same task.
@@ -515,10 +590,10 @@ class WriterCommitManagerBatchTest
     im.close()
   }
 
-  test("[ND] a post-commit temp delete failure does not fail the batch; the temp becomes sweep work") {
-    // A provider whose rename is a server-side copy leaves the source object behind, so the
-    // post-commit cleanup delete has something to fail on. That failure is pure hygiene: the
-    // bytes are already at their final path and the offset is already committed.
+  test("[ND] a move that leaves its source behind still commits; the leftover temp is an orphan for the sweep") {
+    // A provider whose rename is a server-side copy that leaves the source object behind. Batch
+    // commit has no post-commit temp delete (mvFile moves the object), so the leftover is not a
+    // commit failure: the bytes are at their final path and the offset is committed.
     storage = new RecordingStorage {
       override def mvFile(
         oldBucket: String,
@@ -537,18 +612,37 @@ class WriterCommitManagerBatchTest
     val wA    = buildWriter(im, "A", "data/orders/0/a.json")
     writing(wA, fileA, 100, 199)
 
-    val stagedA = wA.stage("probe").value.value
-    storage.arm(FailDeleteAt(bucket, stagedA.tempPath))
-
     commitManager(im, sourceOf("A" -> wA)).commitBatch(tp).value shouldBe (())
 
+    val commitTemps = storage.uploadETags.keys.filter(_.startsWith(".temp-upload/")).toList
+    commitTemps should have size 1
     wA.currentWriteState shouldBe a[NoWriter]
     finalKeys() shouldBe Seq("data/orders/0/a.json")
     masterLock().pendingState shouldBe None
     masterLock().committedOffset shouldBe Some(Offset(199))
-    // The temp survived the failed cleanup and is now an orphan for the sweep to reap.
-    storage.snapshot(bucket).keys should contain(stagedA.tempPath)
+    // The commit's own temp survived the move and nothing references it.
+    storage.snapshot(bucket).keys should contain(commitTemps.head)
     im.close()
+
+    // The next owner's open() sweep (min age 0) reaps it and leaves the committed file alone.
+    val sweeping = {
+      implicit val si: InMemoryStorageInterface = storage
+      new IndexManagerV2(
+        bucketAndPrefixFn           = bucketAndPrefix,
+        pendingOperationsProcessors = new PendingOperationsProcessors(storage),
+        directoryFileName           = directoryName,
+        gcIntervalSeconds           = Int.MaxValue,
+        gcSweepIntervalSeconds      = 0,
+        gcSweepMinAgeSeconds        = 0,
+        gcSweepEnabled              = false,
+        commitMode                  = CommitMode.Batch,
+      )(si, connectorTaskId)
+    }
+    try {
+      sweeping.open(Set(tp)).value shouldBe Map(tp -> Some(Offset(199)))
+      tempKeys() shouldBe empty
+      finalKeys() shouldBe Seq("data/orders/0/a.json")
+    } finally sweeping.close()
   }
 
   test("[B] batch routing pulls every writer on the topic-partition into the commit") {
@@ -616,4 +710,325 @@ class WriterCommitManagerBatchTest
   // not the batch offset") was removed: it was the same scenario as the equivalent test in
   // WriterManagerPreCommitTest but at the wrong layer (a real WriterManager built inline inside
   // a WriterCommitManager-focused test file) and missing the `never updateMasterLock` assertion.
+
+  test("[M'3] a sweep started while the batch is staging leaves A's fresh temp alone; the commit completes first") {
+    // LC-349 M': the periodic sweep runs with min age 0 while B is uploading, after A has staged.
+    // A's temp is listed and unreferenced (the CAS has not happened yet), so only the partition
+    // lock held by commitBatch keeps the sweep from deleting it.
+    val locks               = BatchCommitLocks()
+    val lock                = locks.lockFor(tp)
+    val sweepFinished       = new CountDownLatch(1)
+    val sweepEscaped        = new AtomicReference[Option[Throwable]](None)
+    val finalsAtSweepDelete = new AtomicReference[Option[Seq[String]]](None)
+    val imRef               = new AtomicReference[IndexManagerV2]()
+
+    val sweepThread = new Thread(() =>
+      try imRef.get().sweepAllBatchTemps()
+      catch { case t: Throwable => sweepEscaped.set(Some(t)) }
+      finally sweepFinished.countDown(),
+    )
+
+    storage = new RecordingStorage {
+      private val bUploadHookArmed = new java.util.concurrent.atomic.AtomicBoolean(true)
+
+      override def uploadFile(source: UploadableFile, b: String, path: String): Either[UploadError, String] = {
+        if (
+          path.startsWith(batchTempRoot) && path.endsWith("/data/orders/0/b.json") && bUploadHookArmed.getAndSet(false)
+        ) {
+          // Only START the sweep and wait until it is either blocked on the partition lock or
+          // done. Never wait for it to finish: commitBatch holds the lock, so that would deadlock.
+          sweepThread.start()
+          val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10)
+          while (!lock.hasQueuedThreads && sweepFinished.getCount > 0) {
+            if (System.nanoTime() > deadline) fail("deadlock guard: sweep neither queued nor finished")
+            LockSupport.parkNanos(TimeUnit.MICROSECONDS.toNanos(100))
+          }
+        }
+        super.uploadFile(source, b, path)
+      }
+
+      override def deleteFiles(b: String, files: Seq[String]): Either[FileDeleteError, Unit] = {
+        if (files.exists(_.startsWith(batchTempRoot))) finalsAtSweepDelete.compareAndSet(None, Some(finalKeys()))
+        super.deleteFiles(b, files)
+      }
+    }
+
+    val im = {
+      implicit val si: InMemoryStorageInterface = storage
+      new IndexManagerV2(
+        bucketAndPrefixFn           = bucketAndPrefix,
+        pendingOperationsProcessors = new PendingOperationsProcessors(storage),
+        directoryFileName           = directoryName,
+        gcIntervalSeconds           = Int.MaxValue,
+        gcSweepIntervalSeconds      = 0,
+        gcSweepMinAgeSeconds        = 0,
+        gcSweepEnabled              = false,
+        commitMode                  = CommitMode.Batch,
+        batchCommitLocks            = locks,
+      )(si, connectorTaskId)
+    }
+    imRef.set(im)
+    try {
+      im.open(Set(tp)).value
+      im.updateMasterLock(tp, Offset(100L)).value
+
+      val fileA = stagingWith("A: 100..199")
+      val fileB = stagingWith("B: 200..250")
+      val wA    = buildWriter(im, "A", "data/orders/0/a.json")
+      val wB    = buildWriter(im, "B", "data/orders/0/b.json")
+      writing(wA, fileA, 100, 199)
+      writing(wB, fileB, 200, 250)
+
+      val cm = new WriterCommitManager[FakeFileMetadata](
+        sourceOf("A" -> wA, "B" -> wB),
+        im,
+        new PendingOperationsProcessors(storage),
+        CommitMode.Batch,
+        new CloudSinkMetrics(),
+        locks,
+      )
+      val result = cm.commitBatch(tp)
+
+      sweepFinished.await(10, TimeUnit.SECONDS) shouldBe true
+      sweepEscaped.get() shouldBe None
+      result.value shouldBe (())
+      finalKeys() should contain theSameElementsAs Seq("data/orders/0/a.json", "data/orders/0/b.json")
+      masterLock().committedOffset shouldBe Some(Offset(250))
+      masterLock().pendingState shouldBe None
+      // The sweep's delete ran only after the commit had landed both files.
+      finalsAtSweepDelete.get().value should contain theSameElementsAs Seq(
+        "data/orders/0/a.json",
+        "data/orders/0/b.json",
+      )
+    } finally im.close()
+  }
+
+  // LC-349 AC3c: the lock update that follows a successful copy fails. The batch is past its CAS,
+  // so the failure is Fatal under every error.policy (NOOP included), the live task discards its
+  // writers, and a restart finishes the batch from the persisted PendingState with no re-upload.
+
+  /** Minimal marker type satisfying `CC <: ConnectionConfig`. */
+  private class AC3cCC extends ConnectionConfig
+
+  /** A `CloudSinkTask` used only to drive the production `handleErrors` / error-policy chain. */
+  private class ErrorChainTask
+      extends CloudSinkTask[FakeFileMetadata, CloudSinkConfig[AC3cCC], AC3cCC, Unit](
+        "test-connector",
+        "",
+        JarManifest.fromUrl(new URL("file:///not-a-jar")),
+      ) {
+    override def createClient(config: AC3cCC): Either[Throwable, Unit] = Right(())
+    override def createStorageInterface(
+      connectorTaskId: ConnectorTaskId,
+      config:          CloudSinkConfig[AC3cCC],
+      cloudClient:     Unit,
+    ): StorageInterface[FakeFileMetadata] = throw new UnsupportedOperationException("not used")
+    override def convertPropsToConfig(
+      connectorTaskId: ConnectorTaskId,
+      props:           Map[String, String],
+    ): Either[Throwable, CloudSinkConfig[AC3cCC]] = Left(new UnsupportedOperationException("not used"))
+  }
+
+  test(
+    "[NL] a lock-update failure after a successful copy is Fatal under NOOP, discards the writers, and a restart completes without re-uploading (LC-349 AC3c)",
+  ) {
+    val failLockUpdateAfterMoveTo = new AtomicReference[Option[String]](None)
+    storage = new RecordingStorage {
+      override def mvFile(
+        oldBucket: String,
+        oldPath:   String,
+        newBucket: String,
+        newPath:   String,
+        maybeEtag: Option[String],
+      ): Either[FileMoveError, Unit] = {
+        val result = super.mvFile(oldBucket, oldPath, newBucket, newPath, maybeEtag)
+        // Once this copy has landed, fail the very next master-lock write: the chain's
+        // "rewrite the lock with the remaining ops" step after it.
+        if (result.isRight && failLockUpdateAfterMoveTo.get().contains(newPath)) {
+          failLockUpdateAfterMoveTo.set(None)
+          val _ = arm(FailWriteAt(bucket, masterLockPath))
+        }
+        result
+      }
+    }
+
+    val im    = buildIndexManager()
+    val fileA = stagingWith("A-bytes")
+    val fileB = stagingWith("B-bytes")
+    val wA    = buildWriter(im, "A", "data/orders/0/a.json")
+    val wB    = buildWriter(im, "B", "data/orders/0/b.json")
+    writing(wA, fileA, 100, 199)
+    writing(wB, fileB, 200, 250)
+
+    val wm = new WriterManager[FakeFileMetadata](
+      commitPolicyFn              = _ => alwaysFlush.asRight,
+      bucketAndPrefixFn           = bucketAndPrefix,
+      keyNamerFn                  = _ => mock[KeyNamer].asRight,
+      stagingFilenameFn           = (_, _) => new File("/tmp/unused").asRight,
+      objKeyBuilderFn             = (_, _) => mock[ObjectKeyBuilder],
+      formatWriterFn              = (_, _) => mock[FormatWriter].asRight,
+      indexManager                = im,
+      transformerF                = Right(_),
+      schemaChangeDetector        = mock[SchemaChangeDetector],
+      skipNullValues              = false,
+      pendingOperationsProcessors = new PendingOperationsProcessors(storage),
+      commitMode                  = CommitMode.Batch,
+    )
+    wm.putWriter(MapKey(tp, pv("A")), wA)
+    wm.putWriter(MapKey(tp, pv("B")), wB)
+    failLockUpdateAfterMoveTo.set(Some("data/orders/0/a.json"))
+
+    val result = wm.commitFlushableWriters()
+
+    // Past the CAS: Fatal, with a rollback of the partition.
+    val err = result.left.value
+    err.fatal should not be empty
+    err.rollBack() shouldBe true
+    err.topicPartitions() should contain(tp)
+    // A landed; the lock still holds the CAS's PendingState (the update recording A's copy failed).
+    finalKeys() shouldBe Seq("data/orders/0/a.json")
+    val aETag   = storage.snapshot(bucket)("data/orders/0/a.json").eTag
+    val pending = masterLock().pendingState.value
+    pending.pendingOperations.toList.collect { case c: CopyOperation => c.destination } shouldBe
+      List("data/orders/0/a.json", "data/orders/0/b.json")
+    masterLock().committedOffset shouldBe Some(Offset(99))
+
+    // NOOP must not swallow it, and the production error chain discards the writers.
+    val task = new ErrorChainTask
+    task.initialize(5, NoopErrorPolicy())
+    task.writerManager   = wm
+    task.connectorTaskId = connectorTaskId
+    val thrown = Try(task.handleTry(Try(task.handleErrors(result)))).failed.toOption
+    thrown.value shouldBe a[FatalConnectException]
+    wm.writerCount shouldBe 0
+    val uploadsBeforeRestart = storage.uploads.get()
+    im.close()
+
+    // Restart: open() resumes from the PendingState. A's copy is a no-op (source gone, destination
+    // present), B's temp is moved. Nothing is uploaded again and A is not rewritten.
+    val restarted = buildIndexManager(seedMasterAt = None)
+    restarted.getSeekedOffsetForTopicPartition(tp) shouldBe Some(Offset(250))
+    storage.uploads.get() shouldBe uploadsBeforeRestart
+    masterLock().pendingState shouldBe None
+    masterLock().committedOffset shouldBe Some(Offset(250))
+    finalKeys() should contain theSameElementsAs Seq("data/orders/0/a.json", "data/orders/0/b.json")
+    storage.snapshot(bucket)("data/orders/0/a.json").eTag shouldBe aETag
+    storage.getBlobAsString(bucket, "data/orders/0/a.json").value shouldBe "A-bytes"
+    storage.getBlobAsString(bucket, "data/orders/0/b.json").value shouldBe "B-bytes"
+    tempKeys() shouldBe empty
+    restarted.close()
+  }
+
+  // LC-349 review: a transient stage upload failure must not be swallowed under NOOP. `put()` runs
+  // `recommitPending` before it processes its own records; if that failure were swallowable, NOOP
+  // would log it and return normally, the records of that put would never be written, and the next
+  // successful batch commit would advance the floor past them.
+
+  private def batchWriterManager(im: IndexManagerV2): WriterManager[FakeFileMetadata] =
+    new WriterManager[FakeFileMetadata](
+      commitPolicyFn              = _ => alwaysFlush.asRight,
+      bucketAndPrefixFn           = bucketAndPrefix,
+      keyNamerFn                  = _ => mock[KeyNamer].asRight,
+      stagingFilenameFn           = (_, _) => new File("/tmp/unused").asRight,
+      objKeyBuilderFn             = (_, _) => mock[ObjectKeyBuilder],
+      formatWriterFn              = (_, _) => mock[FormatWriter].asRight,
+      indexManager                = im,
+      transformerF                = Right(_),
+      schemaChangeDetector        = mock[SchemaChangeDetector],
+      skipNullValues              = false,
+      pendingOperationsProcessors = new PendingOperationsProcessors(storage),
+      commitMode                  = CommitMode.Batch,
+    )
+
+  /** `put()` reads the task's config once its `recommitPending` succeeds; `start()` is not run here. */
+  private def errorChainTask(wm: WriterManager[FakeFileMetadata], policy: ErrorPolicy): ErrorChainTask = {
+    val task = new ErrorChainTask
+    task.initialize(5, policy)
+    task.writerManager   = wm
+    task.connectorTaskId = connectorTaskId
+    val config = mock[CloudSinkConfig[AC3cCC]]
+    when(config.latestSchemaForWriteEnabled).thenReturn(false)
+    val field = classOf[CloudSinkTask[_, _, _, _]].getDeclaredFields.find(_.getName.endsWith("config")).value
+    field.setAccessible(true)
+    field.set(task, config)
+    task
+  }
+
+  private def recordsAt(offsets: Range): java.util.List[SinkRecord] =
+    offsets.map(o => new SinkRecord(tp.topic.value, tp.partition, null, null, null, s"C-$o", o.toLong)).asJava
+
+  /**
+   * Seeds a committed batch, then leaves A `Staged` and B `Uploading` after B's stage upload fails,
+   * and arms the next upload of A's staging file to fail transiently.
+   */
+  private def partiallyStagedBatch(): (IndexManagerV2, WriterManager[FakeFileMetadata]) = {
+    val im = buildIndexManager()
+    val wm = batchWriterManager(im)
+
+    val seed  = buildWriter(im, "S", "data/orders/0/seed.json")
+    val fileS = stagingWith("S: 100..199")
+    writing(seed, fileS, 100, 199)
+    wm.putWriter(MapKey(tp, pv("S")), seed)
+    wm.commitFlushableWriters().value
+    masterLock().committedOffset shouldBe Some(Offset(199))
+
+    val fileA = stagingWith("A: 200..249")
+    val fileB = stagingWith("B: 250..300")
+    val wA    = buildWriter(im, "A", "data/orders/0/a.json")
+    val wB    = buildWriter(im, "B", "data/orders/0/b.json")
+    writing(wA, fileA, 200, 249)
+    writing(wB, fileB, 250, 300)
+    wm.putWriter(MapKey(tp, pv("A")), wA)
+    wm.putWriter(MapKey(tp, pv("B")), wB)
+    storage.failUploadFor.set(Some(fileB))
+    wm.commitFlushableWriters().isLeft shouldBe true
+    wA.currentWriteState shouldBe a[Staged]
+    wB.currentWriteState shouldBe a[Uploading]
+
+    // The next put's recommitPending re-stages A under a new batch id, and that upload fails.
+    storage.failUploadFor.set(Some(fileA))
+    (im, wm)
+  }
+
+  private def reportedOffset(task: ErrorChainTask): Long =
+    task.preCommit(
+      Map(tp.toKafka -> new OffsetAndMetadata(1000L)).asJava,
+    ).asScala(tp.toKafka).offset()
+
+  test("[NL] under NOOP a transient batch re-stage failure fails put() and never lets the floor skip its records") {
+    val (im, wm) = partiallyStagedBatch()
+    val task     = errorChainTask(wm, NoopErrorPolicy())
+
+    // put() carries new records C (301..310); its recommitPending fails on A's re-upload first.
+    val putC = Try(task.put(recordsAt(301 to 310)))
+
+    if (putC.isSuccess) {
+      // NOOP swallowed the failure, so Connect moves on: C were never written, and the next poll's
+      // records D land in a writer while the upload is healthy again.
+      storage.failUploadFor.set(None)
+      val wD = buildWriter(im, "D", "data/orders/0/d.json")
+      writing(wD, stagingWith("D: 311..320"), 311, 320)
+      wm.putWriter(MapKey(tp, pv("D")), wD)
+      Try(task.put(java.util.Collections.emptyList[SinkRecord]()))
+    }
+
+    // The offset Connect may commit never moves past the first C record, which was never written.
+    reportedOffset(task) should be <= 301L
+    putC.failed.toOption.value shouldBe a[RetriableIntegrityException]
+    masterLock().committedOffset shouldBe Some(Offset(199))
+    im.close()
+  }
+
+  test("[NL] under RETRY a transient batch re-stage failure is still re-delivered while retries remain") {
+    val (im, wm) = partiallyStagedBatch()
+    val task     = errorChainTask(wm, RetryErrorPolicy())
+
+    val thrown = Try(task.put(recordsAt(301 to 310))).failed.toOption.value
+
+    thrown shouldBe a[RetriableException]
+    thrown should not be a[FatalConnectException]
+    reportedOffset(task) should be <= 301L
+    masterLock().committedOffset shouldBe Some(Offset(199))
+    im.close()
+  }
 }

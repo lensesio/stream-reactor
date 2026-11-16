@@ -34,6 +34,7 @@ import io.lenses.streamreactor.connect.cloud.common.sink.metrics.CloudSinkMetric
 import io.lenses.streamreactor.connect.cloud.common.sink.metrics.ForcedWriteReason
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.KeyNamer
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.ObjectKeyBuilder
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.BatchCommitLocks
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.CommitMode
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexManager
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.PendingOperationsProcessors
@@ -105,6 +106,7 @@ class WriterManager[SM <: FileMetadata](
   pendingOperationsProcessors:  PendingOperationsProcessors,
   private[sink] val commitMode: CommitMode       = CommitMode.Default,
   metrics:                      CloudSinkMetrics = new CloudSinkMetrics(),
+  batchCommitLocks:             BatchCommitLocks = BatchCommitLocks.NoOp,
 )(
   implicit
   connectorTaskId: ConnectorTaskId,
@@ -125,7 +127,14 @@ class WriterManager[SM <: FileMetadata](
   }
 
   private val writerCommitManager =
-    new WriterCommitManager[SM](writerSource, indexManager, pendingOperationsProcessors, commitMode, metrics)
+    new WriterCommitManager[SM](
+      writerSource,
+      indexManager,
+      pendingOperationsProcessors,
+      commitMode,
+      metrics,
+      batchCommitLocks,
+    )
 
   // Highest globalSafeOffset ever reported to Kafka Connect per TP. Prevents regression on
   // idle-writer eviction. See docs/datalake-exactly-once-partitionby.md ("globalSafeOffset regression").

@@ -93,8 +93,13 @@ class PendingOperationsProcessors(
    *
    *  - `NonExistingFileError` -> `FatalCloudSinkError` carrying [[buildOperatorMessage]], because a
    *    task-private staging file disappearing means buffered records would be silently lost.
-   *  - any other `UploadError` -> `NonFatalCloudSinkError`, so the staging file survives and
-   *    `recommitPending` can retry.
+   *  - any other `UploadError` -> an unswallowable `NonFatalCloudSinkError`, so the staging file
+   *    survives and `recommitPending` can retry. Unswallowable, unlike the `Upload` arm: this runs
+   *    from `recommitPending` at the top of `put()`, before that put's own records are processed.
+   *    Under `error.policy=NOOP` a swallowable error would let `put()` return without writing them,
+   *    and the next batch commit would advance the floor past them. As unswallowable,
+   *    `CloudSinkTask.handleErrors` raises `RetriableIntegrityException`: RETRY re-delivers while
+   *    retries remain, NOOP and THROW fail the task so the restart replays from the committed floor.
    *
    * @return the temp object's eTag on success.
    */
@@ -118,7 +123,7 @@ class PendingOperationsProcessors(
             s"deferring to recommitPending: ${uploadErr.message()}",
           uploadErr.toExceptionOption.orNull,
         )
-        NonFatalCloudSinkError(uploadErr.message(), uploadErr.toExceptionOption).asLeft
+        NonFatalCloudSinkError.unswallowable(uploadErr.message(), uploadErr.toExceptionOption).asLeft
     }
 
   /**

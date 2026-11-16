@@ -109,9 +109,16 @@ case class Uploading(
    * Records the outcome of a successful `stage()`: the bytes are durable at `tempPath` with
    * `tempETag`, and `finalPath` is the destination the later `CopyOperation` must use. Computing
    * the object key once, here, is what makes the copy recorded in the master lock's `PendingState`
-   * independent of anything the writer does afterwards.
+   * independent of anything the writer does afterwards. `batchUuid` is the batch attempt the temp
+   * was uploaded for (see [[Staged.batchUuid]]).
    */
-  def toStaged(bucket: String, tempPath: String, tempETag: String, finalPath: String): Staged = {
+  def toStaged(
+    bucket:    String,
+    tempPath:  String,
+    tempETag:  String,
+    finalPath: String,
+    batchUuid: String,
+  ): Staged = {
     logger.debug("state transition: Uploading => Staged")
     Staged(
       commitState,
@@ -125,6 +132,7 @@ case class Uploading(
       tempPath,
       tempETag,
       finalPath,
+      batchUuid,
     )
   }
 
@@ -136,6 +144,10 @@ case class Uploading(
  *
  * Only reachable in `CommitMode.Batch`. The local staging file is deliberately retained until
  * `finalizeCommit`, so a failure anywhere before the CAS can be retried without re-formatting.
+ *
+ * `batchUuid` is the batch attempt whose temp path `tempPath` belongs to. A later attempt with a
+ * different id re-uploads the local file under its own id (see `Writer.stage`, LC-349). The default
+ * matches no real attempt, so a `Staged` built without one is always re-staged: the safe direction.
  */
 case class Staged(
   commitState:             CommitState,
@@ -149,6 +161,7 @@ case class Staged(
   tempPath:                String,
   tempETag:                String,
   finalPath:               String,
+  batchUuid:               String = "",
 ) extends WriteState(commitState)
     with LazyLogging {
 
@@ -158,6 +171,17 @@ case class Staged(
   // on all three backends (copy + delete source). By the time the commit chain returns `Right`,
   // every temp this writer staged is already gone -- a separate post-commit delete would be
   // dead code (see WriterCommitManager.commitBatch's doc).
+
+  /**
+   * Records a re-upload of the same local file to `newTempPath` for the batch attempt
+   * `newBatchUuid`. Only the temp coordinates change: `bucket`, `finalPath`, offsets, timestamps
+   * and record count are frozen at the first `stage()`, so the retried `CopyOperation` lands the
+   * same bytes at the same destination.
+   */
+  def restaged(newTempPath: String, newTempETag: String, newBatchUuid: String): Staged = {
+    logger.debug(s"state transition: Staged => Staged (re-staged from batch $batchUuid to $newBatchUuid)")
+    copy(tempPath = newTempPath, tempETag = newTempETag, batchUuid = newBatchUuid)
+  }
 
   /**
    * The batch offset `newOffset` is the max `uncommittedOffset` across the batch, so it is normally
