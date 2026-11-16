@@ -305,4 +305,84 @@ class GranularFenceTest extends AnyFunSuite with Matchers with EitherValues with
       b.updateForPartitionKey(tp, pk, Some(Offset(9)), None).value shouldBe Some(Offset(9))
     } finally h.close()
   }
+
+  // ---- cost and observability ---------------------------------------------------------
+
+  test("loading N older-epoch keys costs one read and one write each, and a commit after it costs the same as before") {
+    val h = new TwoInstanceHarness()
+    try {
+      h.clock.set(1000L)
+      val keys = (1 to 3).map(i => s"date=2024-01-0$i")
+      h.a.open(Set(tp)).value
+      keys.foreach { k =>
+        h.a.ensureGranularLock(tp, k).value
+        h.a.updateForPartitionKey(tp, k, Some(Offset(5)), None).value
+      }
+      h.b.open(Set(tp)).value
+      def counts(k: String): (Int, Int) = {
+        val path = h.granularLockPath(tp, k)
+        (h.storage.readCount(h.bucket, path), h.storage.writeCount(h.bucket, path))
+      }
+      val beforeLoad = keys.map(counts)
+
+      keys.foreach(k => h.b.ensureGranularLock(tp, k).value)
+      keys.foreach(k => h.b.getSeekedOffsetForPartitionKey(tp, k).value shouldBe Some(Offset(5)))
+      val afterLoad = keys.map(counts)
+      afterLoad shouldBe beforeLoad.map { case (r, w) => (r + 1, w + 1) }
+
+      keys.foreach(k => h.b.updateForPartitionKey(tp, k, Some(Offset(9)), None).value)
+      keys.map(counts) shouldBe afterLoad.map { case (r, w) => (r, w + 1) }
+      h.metrics(1).getGranularLockOwnershipBumps shouldBe 3L
+      h.metrics(1).getGranularLockOwnershipBumpRaces shouldBe 0L
+    } finally h.close()
+  }
+
+  test("reloading a key at the held epoch counts no take-over") {
+    val h = new TwoInstanceHarness()
+    try {
+      h.b.open(Set(tp)).value
+      h.b.ensureGranularLock(tp, pk).value
+      h.b.evictGranularLock(tp, pk)
+      h.b.getSeekedOffsetForPartitionKey(tp, pk).value
+
+      h.metrics(1).getGranularLockOwnershipBumps shouldBe 0L
+      h.metrics(1).getGranularLockOwnershipBumpRaces shouldBe 0L
+    } finally h.close()
+  }
+
+  test("a lost take-over race counts the failed write and the take-over that then lands") {
+    val h = new TwoInstanceHarness()
+    try {
+      h.clock.set(1000L)
+      zombieHoldsToken(h, offset = 5)
+      h.b.open(Set(tp)).value
+      beforeWriteBy(h, h.lockUuid(1)) {
+        val _ = h.a.updateForPartitionKey(tp, pk, Some(Offset(7)), None).value
+      }
+
+      h.b.getSeekedOffsetForPartitionKey(tp, pk).value shouldBe Some(Offset(7))
+
+      h.metrics(1).getGranularLockOwnershipBumpRaces shouldBe 1L
+      h.metrics(1).getGranularLockOwnershipBumps shouldBe 1L
+    } finally h.close()
+  }
+
+  test("a take-over that loses every attempt counts every failed write and no take-over") {
+    val h = new TwoInstanceHarness()
+    try {
+      h.clock.set(1000L)
+      zombieHoldsToken(h, offset = 5)
+      h.b.open(Set(tp)).value
+      (6 to 8).foreach { offset =>
+        beforeWriteBy(h, h.lockUuid(1)) {
+          val _ = h.a.updateForPartitionKey(tp, pk, Some(Offset(offset.toLong)), None).value
+        }
+      }
+
+      h.b.getSeekedOffsetForPartitionKey(tp, pk).isLeft shouldBe true
+
+      h.metrics(1).getGranularLockOwnershipBumpRaces shouldBe 3L
+      h.metrics(1).getGranularLockOwnershipBumps shouldBe 0L
+    } finally h.close()
+  }
 }

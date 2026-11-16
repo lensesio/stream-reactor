@@ -151,6 +151,21 @@ trait CloudSinkMetricsMBean {
   def getPartitionsFenced: Long
 
   /**
+   * Cumulative granular-lock take-overs: a key whose lock was written under an older ownership
+   * epoch was rewritten with this task's epoch when it loaded the key, so tokens an older instance
+   * still holds for it stop being valid. At most one per loaded key per ownership episode, so it
+   * rises after each rebalance or restart as keys receive records again.
+   */
+  def getGranularLockOwnershipBumps: Long
+
+  /**
+   * Cumulative failed granular-lock take-over writes: another instance wrote the key between this
+   * task's read and its take-over (or the write's response was lost). Each is followed by a re-read
+   * and a fresh decision, within a small budget. A steady rate points at overlapping task instances.
+   */
+  def getGranularLockOwnershipBumpRaces: Long
+
+  /**
    * Cumulative `preCommit` cycles where the dirty-flag gate suppressed the master-lock write
    * (`globalSafeOffset` had not advanced). The ratio
    * `masterLockWriteSkipped / (masterLockWriteSkipped + masterLockUpdates + masterLockFailures)`
@@ -444,6 +459,8 @@ class CloudSinkMetrics() extends CloudSinkMetricsMBean {
   private val masterLockUpdates                        = new LongAdder()
   private val masterLockFailures                       = new LongAdder()
   private val partitionsFenced                         = new LongAdder()
+  private val granularLockOwnershipBumps               = new LongAdder()
+  private val granularLockOwnershipBumpRaces           = new LongAdder()
   private val masterLockWriteSkipped                   = new LongAdder()
   private val masterLockWriteForcedRevoke              = new LongAdder()
   private val masterLockWriteForcedStop                = new LongAdder()
@@ -535,6 +552,8 @@ class CloudSinkMetrics() extends CloudSinkMetricsMBean {
   override def getMasterLockUpdates:                        Long    = masterLockUpdates.sum()
   override def getMasterLockFailures:                       Long    = masterLockFailures.sum()
   override def getPartitionsFenced:                         Long    = partitionsFenced.sum()
+  override def getGranularLockOwnershipBumps:               Long    = granularLockOwnershipBumps.sum()
+  override def getGranularLockOwnershipBumpRaces:           Long    = granularLockOwnershipBumpRaces.sum()
   override def getMasterLockWriteSkipped:                   Long    = masterLockWriteSkipped.sum()
   override def getMasterLockWriteForcedRevoke:              Long    = masterLockWriteForcedRevoke.sum()
   override def getMasterLockWriteForcedStop:                Long    = masterLockWriteForcedStop.sum()
@@ -635,9 +654,11 @@ class CloudSinkMetrics() extends CloudSinkMetricsMBean {
   def incrementGcDeleteFailures(): Unit = gcDeleteFailures.increment()
   def incrementGcDeleteRetries(count: Long): Unit = gcDeleteRetries.add(count)
 
-  def incrementMasterLockUpdates():  Unit = masterLockUpdates.increment()
-  def incrementMasterLockFailures(): Unit = masterLockFailures.increment()
-  def incrementPartitionsFenced():   Unit = partitionsFenced.increment()
+  def incrementMasterLockUpdates():              Unit = masterLockUpdates.increment()
+  def incrementMasterLockFailures():             Unit = masterLockFailures.increment()
+  def incrementPartitionsFenced():               Unit = partitionsFenced.increment()
+  def incrementGranularLockOwnershipBumps():     Unit = granularLockOwnershipBumps.increment()
+  def incrementGranularLockOwnershipBumpRaces(): Unit = granularLockOwnershipBumpRaces.increment()
 
   def incrementMasterLockWriteSkipped(): Unit = masterLockWriteSkipped.increment()
 

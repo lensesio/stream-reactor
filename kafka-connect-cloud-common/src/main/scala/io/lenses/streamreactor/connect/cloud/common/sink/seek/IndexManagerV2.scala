@@ -1703,6 +1703,7 @@ class IndexManagerV2(
       val bump = read.wrappedObject.copy(owner = lockOwner, epoch = Some(mine))
       storageInterface.writeBlobToFile(bucket, path, ObjectWithETag(bump, read.eTag)) match {
         case Right(bumped) =>
+          metrics.incrementGranularLockOwnershipBumps()
           logger.debug(
             s"[${connectorTaskId.show}] Took over granular lock $topicPartition/$partitionKey " +
               s"(epoch ${read.wrappedObject.epoch.getOrElse(0L)} -> $mine)",
@@ -1710,6 +1711,7 @@ class IndexManagerV2(
           // What we wrote, under the new token: never depend on how a backend echoes the object.
           ObjectWithETag(bump, bumped.eTag).asRight
         case Left(err) if attemptsLeft > 1 =>
+          metrics.incrementGranularLockOwnershipBumpRaces()
           logger.info(
             s"[${connectorTaskId.show}] Lost the race taking over granular lock $topicPartition/$partitionKey " +
               s"(${err.message()}); re-reading (attempts left: ${attemptsLeft - 1})",
@@ -1727,6 +1729,7 @@ class IndexManagerV2(
               ).asLeft
           }
         case Left(err) =>
+          metrics.incrementGranularLockOwnershipBumpRaces()
           val error = new FatalCloudSinkError(
             s"Exhausted take-over attempts for granular lock $topicPartition/$partitionKey: ${err.message()}",
             err.toExceptionOption,
