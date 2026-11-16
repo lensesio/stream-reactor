@@ -576,6 +576,50 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues {
     } finally h.close()
   }
 
+  test("GC deletes queued before an unnoticed handover do not survive the re-open that takes the partition back") {
+    val h = new TwoInstanceHarness()
+    try {
+      h.clock.set(1000L)
+      h.a.open(Set(tp)).value
+      h.a.ensureGranularLock(tp, pk).value
+      h.a.updateForPartitionKey(tp, pk, Some(Offset(3)), None).value
+      h.a.updateMasterLock(tp, Offset(10)).value
+      h.a.cleanUpObsoleteLocks(tp, Offset(10), Set.empty).value // queues the key's lock
+
+      // The partition moves to B and back while this instance reads and writes nothing.
+      h.b.open(Set(tp)).value
+      h.b.getSeekedOffsetForPartitionKey(tp, pk).value
+      h.b.updateForPartitionKey(tp, pk, Some(Offset(12)), None).value
+      h.a.fencedPartitions shouldBe empty
+
+      h.a.evictAllGranularLocks(tp)
+      h.a.open(Set(tp)).value
+      val lockAfterReopen = h.readLock(h.granularLockPath(tp, pk)).value
+
+      h.a.drainGcQueue()
+
+      h.readLock(h.granularLockPath(tp, pk)).value shouldBe lockAfterReopen
+    } finally h.close()
+  }
+
+  test("GC deletes queued before a plain close and re-open by the same owner are still drained") {
+    val h = new TwoInstanceHarness()
+    try {
+      h.clock.set(1000L)
+      h.a.open(Set(tp)).value
+      h.a.ensureGranularLock(tp, pk).value
+      h.a.updateForPartitionKey(tp, pk, Some(Offset(3)), None).value
+      h.a.updateMasterLock(tp, Offset(10)).value
+      h.a.cleanUpObsoleteLocks(tp, Offset(10), Set.empty).value
+
+      h.a.evictAllGranularLocks(tp)
+      h.a.open(Set(tp)).value
+      h.a.drainGcQueue()
+
+      h.readLock(h.granularLockPath(tp, pk)).isLeft shouldBe true
+    } finally h.close()
+  }
+
   test("once a legacy snapshot read fences the partition, no later legacy lock's pending chain is driven") {
     val h = new TwoInstanceHarness(commitMode = CommitMode.Batch)
     try {

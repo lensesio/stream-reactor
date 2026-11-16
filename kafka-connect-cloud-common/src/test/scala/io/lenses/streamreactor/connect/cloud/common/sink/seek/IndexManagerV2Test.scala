@@ -4028,7 +4028,12 @@ class IndexManagerV2Test
       // deleteFiles must NOT have been called — the item is still in the queue
       verify(si, never).deleteFiles(anyString(), any[Seq[String]])
 
-      // Resume via open() and drain should now process the queued item
+      // Resume via open() and drain should now process the queued item. The master lock still
+      // carries the epoch this instance wrote (no other owner in between), so the queue is kept.
+      when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith("0.lock"))(
+        ArgumentMatchers.eq(indexFileDecoder),
+      ))
+        .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(100)), None, im.tpEpoch.get(tp)), "etag")))
       im.open(Set(tp))
       im.acceptingWork shouldBe true
       when(si.deleteFiles(anyString(), any[Seq[String]])).thenReturn(Right(()))

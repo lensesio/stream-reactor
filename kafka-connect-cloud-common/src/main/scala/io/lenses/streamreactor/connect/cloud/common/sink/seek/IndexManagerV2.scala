@@ -214,14 +214,18 @@ class IndexManagerV2(
     topicPartition: TopicPartition,
     epoch:          Long,
     written:        ObjectWithETag[IndexFile],
+    previous:       Option[Long],
   ): ObjectWithETag[IndexFile] = {
-    val _ = tpEpoch.put(topicPartition, epoch)
+    val held = tpEpoch.put(topicPartition, epoch)
     // A fresh ownership write re-takes the partition above every epoch seen so far, so a fence
-    // from an earlier ownership episode (e.g. before a rebalance re-assigned it here) no longer applies.
-    // Deletes queued while a newer owner held the partition were selected against locks it may
-    // since have rewritten at the same path, so a fenced episode's queue is dropped rather than
-    // drained under the new ownership.
-    dropFence(topicPartition)
+    // from an earlier ownership episode (e.g. before a rebalance re-assigned it here) no longer
+    // applies. GC deletes queued in that episode were selected against locks another owner may
+    // since have rewritten at the same path, so they are dropped rather than drained under the new
+    // ownership whenever another owner held the partition in between: this instance was fenced,
+    // or the lock no longer carries the epoch it held (a handover it never noticed). After a
+    // plain close/open by this instance the lock still carries its epoch and the queue is kept.
+    val handedOver = held.isDefined && previous != held
+    dropFence(topicPartition, dropQueue = handedOver)
     written
   }
 
@@ -293,14 +297,17 @@ class IndexManagerV2(
   private val gcQueue: ConcurrentLinkedQueue[GcItem] = new ConcurrentLinkedQueue()
 
   /**
-   * Clears `tp`'s fence, if any, together with the GC items queued for it: those were selected
-   * while a newer owner held the partition. An unfenced partition keeps its queue.
+   * Clears `tp`'s fence, if any, together with the GC items queued for it when it was fenced or
+   * `dropQueue` is set: those were selected while another owner may have held the partition.
    */
-  private def dropFence(tp: TopicPartition): Unit =
-    if (fencedTps.remove(tp) != null) {
+  private def dropFence(tp: TopicPartition, dropQueue: Boolean): Unit = {
+    // Purge before lifting the fence: while it is up, a concurrent drain discards what it polls.
+    if (dropQueue || fencedTps.containsKey(tp)) {
       val _ = gcQueue.removeIf(_.topicPartition == tp)
       metrics.setGcQueueDepth(gcQueue.size())
     }
+    val _ = fencedTps.remove(tp)
+  }
 
   // Exposed for testing only; not part of the public API.
   private[seek] def gcQueueSize: Int = gcQueue.size()
@@ -745,7 +752,9 @@ class IndexManagerV2(
         val epoch = nextEpoch(None)
         createNewIndexFileNoOverwrite(topicPartition, path, bucketAndPrefix, epoch) match {
           case Right(written) =>
-            updateDataReturnOffset(topicPartition, ownershipTaken(topicPartition, epoch, written)).asRight[SinkError]
+            updateDataReturnOffset(topicPartition, ownershipTaken(topicPartition, epoch, written, None)).asRight[
+              SinkError,
+            ]
 
           case Left(_: LostCreateRaceError) if attemptsLeft > 1 =>
             // Another task won the create. The lock now exists — re-read and re-decide through
@@ -788,7 +797,7 @@ class IndexManagerV2(
           .leftMap { err: UploadError =>
             new FatalCloudSinkError(err.message(), err.toExceptionOption, topicPartition)
           }
-          .map(written => updateDataReturnOffset(topicPartition, ownershipTaken(topicPartition, epoch, written)))
+          .map(written => updateDataReturnOffset(topicPartition, ownershipTaken(topicPartition, epoch, written, None)))
 
       case Left(fileLoadError: FileLoadError) =>
         new FatalCloudSinkError(fileLoadError.message(), fileLoadError.toExceptionOption, topicPartition).asLeft[
@@ -840,7 +849,7 @@ class IndexManagerV2(
           case Right(bumped) =>
             metrics.incrementMasterLockUpdates()
             // Seat the epoch before driving the chain: every recovery write stamps it.
-            val _ = ownershipTaken(topicPartition, epoch, bumped)
+            val _ = ownershipTaken(topicPartition, epoch, bumped, prevEpoch)
             topicPartitionToETags.put(topicPartition, bumped.eTag)
             pendingOperationsProcessors.processPendingOperations(
               topicPartition,
@@ -885,7 +894,9 @@ class IndexManagerV2(
         ) match {
           case Right(written) =>
             metrics.incrementMasterLockUpdates()
-            updateDataReturnOffset(topicPartition, ownershipTaken(topicPartition, epoch, written)).asRight[SinkError]
+            updateDataReturnOffset(topicPartition, ownershipTaken(topicPartition, epoch, written, prevEpoch)).asRight[
+              SinkError,
+            ]
           case Left(err) if attemptsLeft > 1 =>
             metrics.incrementMasterLockFailures()
             logger.info(
@@ -1622,7 +1633,9 @@ class IndexManagerV2(
     val _ = topicPartitionToETags.remove(topicPartition)
     val _ = tpEpoch.remove(topicPartition)
     // A revoked partition is no longer this task's to fail on; a re-open decides ownership afresh.
-    dropFence(topicPartition)
+    // A revoked partition's queued items would be discarded by the drain anyway; dropping them
+    // here keeps them from surviving into a later re-assignment.
+    dropFence(topicPartition, dropQueue = true)
     // A revoked/failed-open partition must re-confirm legacy-lock resolution on its next open()
     // rather than trusting a flag set under the previous (possibly abandoned) ownership episode.
     val _ = legacyResolved.remove(topicPartition)
