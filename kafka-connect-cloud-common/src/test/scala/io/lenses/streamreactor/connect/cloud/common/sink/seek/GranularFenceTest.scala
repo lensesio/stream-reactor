@@ -21,6 +21,8 @@ import io.lenses.streamreactor.connect.cloud.common.model.Topic
 import io.lenses.streamreactor.connect.cloud.common.model.UploadableString
 import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
 import io.lenses.streamreactor.connect.cloud.common.testing.InMemoryStorageInterface.FailMoveAt
+import io.lenses.streamreactor.connect.cloud.common.testing.InMemoryStorageInterface.LoseWriteResponseAt
+import io.lenses.streamreactor.connect.cloud.common.testing.InMemoryStorageInterface.OnWriteAt
 import org.scalatest.Assertion
 import org.scalatest.EitherValues
 import org.scalatest.OptionValues
@@ -142,7 +144,7 @@ class GranularFenceTest extends AnyFunSuite with Matchers with EitherValues with
       x0.ensureGranularLock(tp, pk).value
       x0.updateForPartitionKey(tp, pk, Some(Offset(5)), None).value
       x1.open(Set(tp)).value // 1001, never loads the key
-      b.open(Set(tp)).value // 1002
+      b.open(Set(tp)).value  // 1002
 
       b.getSeekedOffsetForPartitionKey(tp, pk).value shouldBe Some(Offset(5))
       val bLock = stored(h)
@@ -156,7 +158,9 @@ class GranularFenceTest extends AnyFunSuite with Matchers with EitherValues with
 
   // ---- pending chains -----------------------------------------------------------------
 
-  test("a new owner bumps an older-epoch pending lock before its chain, so the zombie's token is dead even if the chain fails") {
+  test(
+    "a new owner bumps an older-epoch pending lock before its chain, so the zombie's token is dead even if the chain fails",
+  ) {
     val h = new TwoInstanceHarness()
     try {
       h.clock.set(1000L)
@@ -182,6 +186,123 @@ class GranularFenceTest extends AnyFunSuite with Matchers with EitherValues with
       h.b.getSeekedOffsetForPartitionKey(tp, pk).value shouldBe Some(Offset(8))
       stored(h).wrappedObject shouldBe IndexFile(h.lockUuid(1), Some(Offset(8)), None, Some(1001L))
       h.storage.pathExists(h.bucket, "data/topic/0/final").value shouldBe true
+    } finally h.close()
+  }
+
+  // ---- a lost take-over race --------------------------------------------------------
+
+  /** Runs `action` just before the next write to `pk`'s lock by `owner`, after its read. */
+  private def beforeWriteBy(h: TwoInstanceHarness, owner: String)(action: => Unit): Unit = {
+    val _ = h.storage.arm(
+      OnWriteAt(h.bucket, lockPath(h), () => action, { case idx: IndexFile => idx.owner == owner; case _ => false }),
+    )
+  }
+
+  test("a zombie commit between the new owner's read and its take-over write is re-read and taken over") {
+    val h = new TwoInstanceHarness()
+    try {
+      h.clock.set(1000L)
+      zombieHoldsToken(h, offset = 5)
+      h.b.open(Set(tp)).value
+      beforeWriteBy(h, h.lockUuid(1)) {
+        val _ = h.a.updateForPartitionKey(tp, pk, Some(Offset(7)), None).value
+      }
+
+      h.b.getSeekedOffsetForPartitionKey(tp, pk).value shouldBe Some(Offset(7))
+      stored(h).wrappedObject shouldBe IndexFile(h.lockUuid(1), Some(Offset(7)), None, Some(1001L))
+
+      h.a.updateForPartitionKey(tp, pk, Some(Offset(9)), None).isLeft shouldBe true
+      h.b.updateForPartitionKey(tp, pk, Some(Offset(9)), None).value shouldBe Some(Offset(9))
+    } finally h.close()
+  }
+
+  test(
+    "a zombie that finishes its pending chain during the take-over leaves one final object, adopted by the new owner",
+  ) {
+    val h = new TwoInstanceHarness()
+    try {
+      h.clock.set(1000L)
+      zombieHoldsToken(h, offset = 3)
+      val (temp, tempETag) = stageTemp(h, "in-flight")
+      val finalPath        = "data/topic/0/final"
+      val pending          = PendingState(Offset(8), NonEmptyList.one(CopyOperation(h.bucket, temp, finalPath, tempETag)))
+      h.a.updateForPartitionKey(tp, pk, Some(Offset(3)), Some(pending)).value
+      h.b.open(Set(tp)).value
+      // B reads the pending lock; before its take-over lands, A completes its own chain.
+      beforeWriteBy(h, h.lockUuid(1)) {
+        h.storage.mvFile(h.bucket, temp, h.bucket, finalPath, Some(tempETag)).value
+        val _ = h.a.updateForPartitionKey(tp, pk, Some(Offset(8)), None).value
+      }
+
+      h.b.getSeekedOffsetForPartitionKey(tp, pk).value shouldBe Some(Offset(8))
+
+      stored(h).wrappedObject shouldBe IndexFile(h.lockUuid(1), Some(Offset(8)), None, Some(1001L))
+      h.storage.pathExists(h.bucket, finalPath).value shouldBe true
+      h.storage.pathExists(h.bucket, temp).value shouldBe false
+      h.a.updateForPartitionKey(tp, pk, Some(Offset(9)), None).isLeft shouldBe true
+    } finally h.close()
+  }
+
+  test("a take-over that loses every attempt fails fatally and caches nothing") {
+    val h = new TwoInstanceHarness()
+    try {
+      h.clock.set(1000L)
+      zombieHoldsToken(h, offset = 5)
+      h.b.open(Set(tp)).value
+      (6 to 8).foreach { offset =>
+        beforeWriteBy(h, h.lockUuid(1)) {
+          val _ = h.a.updateForPartitionKey(tp, pk, Some(Offset(offset.toLong)), None).value
+        }
+      }
+
+      refusedWith(h.b.getSeekedOffsetForPartitionKey(tp, pk), "Exhausted")
+
+      stored(h).wrappedObject shouldBe IndexFile(h.lockUuid(0), Some(Offset(8)), None, Some(1000L))
+      refusedWith(h.b.updateForPartitionKey(tp, pk, Some(Offset(9)), None), "not in cache")
+      h.b.fencedPartitions shouldBe empty
+    } finally h.close()
+  }
+
+  test("a take-over whose response is lost is adopted on the re-read, with no second write") {
+    val h = new TwoInstanceHarness()
+    try {
+      h.clock.set(1000L)
+      zombieHoldsToken(h, offset = 5)
+      h.b.open(Set(tp)).value
+      val writesBefore = h.storage.writeCount(h.bucket, lockPath(h))
+      val _            = h.storage.arm(LoseWriteResponseAt(h.bucket, lockPath(h)))
+
+      h.b.getSeekedOffsetForPartitionKey(tp, pk).value shouldBe Some(Offset(5))
+
+      h.storage.writeCount(h.bucket, lockPath(h)) shouldBe writesBefore + 1
+      stored(h).wrappedObject shouldBe IndexFile(h.lockUuid(1), Some(Offset(5)), None, Some(1001L))
+      h.b.updateForPartitionKey(tp, pk, Some(Offset(9)), None).value shouldBe Some(Offset(9))
+      h.a.updateForPartitionKey(tp, pk, Some(Offset(7)), None).isLeft shouldBe true
+    } finally h.close()
+  }
+
+  test("a stale loader paused before its take-over write is fenced by the newer owner's take-over, with no write") {
+    val h = new TwoInstanceHarness(instanceCount = 3)
+    try {
+      val x0 = h.instances(0)
+      val a  = h.instances(1)
+      val b  = h.instances(2)
+      h.clock.set(1000L)
+      x0.open(Set(tp)).value // 1000
+      x0.ensureGranularLock(tp, pk).value
+      x0.updateForPartitionKey(tp, pk, Some(Offset(5)), None).value
+      a.open(Set(tp)).value // 1001
+      // A reads the key and pauses before its take-over; meanwhile B opens and takes the key over.
+      beforeWriteBy(h, h.lockUuid(1)) {
+        b.open(Set(tp)).value // 1002
+        val _ = b.getSeekedOffsetForPartitionKey(tp, pk).value
+      }
+
+      refusedWith(a.getSeekedOffsetForPartitionKey(tp, pk), "epoch 1002 > held epoch 1001")
+
+      a.fencedPartitions should contain(tp)
+      stored(h).wrappedObject shouldBe IndexFile(h.lockUuid(2), Some(Offset(5)), None, Some(1002L))
+      b.updateForPartitionKey(tp, pk, Some(Offset(9)), None).value shouldBe Some(Offset(9))
     } finally h.close()
   }
 }

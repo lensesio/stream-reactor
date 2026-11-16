@@ -80,6 +80,9 @@ class InMemoryStorageInterface(systemName: String = "in-memory", contentETags: B
   // Counts content reads per key (see `readCount`), for tests asserting a path was never read.
   private val reads = new ConcurrentHashMap[(String, String), AtomicInteger]()
 
+  // Counts `writeBlobToFile` calls per key (see `writeCount`).
+  private val writes = new ConcurrentHashMap[(String, String), AtomicInteger]()
+
   // ---------- public test helpers ----------
 
   /** Register a one-shot crash-injection hook. Returns the same instance for chaining. */
@@ -134,6 +137,13 @@ class InMemoryStorageInterface(systemName: String = "in-memory", contentETags: B
    */
   def readCount(bucket: String, path: String): Int =
     Option(reads.get((bucket, path))).map(_.get()).getOrElse(0)
+
+  /**
+   * How many `writeBlobToFile` calls a key has received (lock writes), whether they succeeded,
+   * failed their precondition or were failed by a hook.
+   */
+  def writeCount(bucket: String, path: String): Int =
+    Option(writes.get((bucket, path))).map(_.get()).getOrElse(0)
 
   // ---------- StorageInterface methods used by the sink write-path ----------
 
@@ -242,7 +252,11 @@ class InMemoryStorageInterface(systemName: String = "in-memory", contentETags: B
   )(
     implicit
     encoder: Encoder[O],
-  ): Either[UploadError, ObjectWithETag[O]] =
+  ): Either[UploadError, ObjectWithETag[O]] = {
+    val _ = writes.computeIfAbsent((bucket, path), _ => new AtomicInteger(0)).incrementAndGet()
+    takeFirstHook {
+      case h: OnWriteAt if h.matches(bucket, path) && h.onlyIf(objectProtection.wrappedObject) => h
+    }.foreach(_.action())
     takeFirstHook { case h: FailWriteAt if h.matches(bucket, path) => h } match {
       case Some(h) => h.asUploadError(bucket, path).asLeft
       case None =>
@@ -258,6 +272,7 @@ class InMemoryStorageInterface(systemName: String = "in-memory", contentETags: B
             persist(bucket, path, objectProtection, freshETag(), cachedOverride)
         }
     }
+  }
 
   override def getMetadata(bucket: String, path: String): Either[FileLoadError, ObjectMetadata] =
     Option(store.get((bucket, path))) match {
@@ -501,6 +516,21 @@ object InMemoryStorageInterface {
    * when another thread's step lands between a read and the decision taken on it.
    */
   final case class AfterReadAt(bucket: String, path: String, action: () => Unit) extends Hook {
+    def matches(b: String, p: String): Boolean = b == bucket && p == path
+  }
+
+  /**
+   * Run `action` on the next `writeBlobToFile` to `(bucket, path)` whose object satisfies `onlyIf`,
+   * before the write is applied: a deterministic point to land another instance's write between a
+   * caller's read and its conditional write. `onlyIf` keeps the action's own writes to the same
+   * path from consuming the hook.
+   */
+  final case class OnWriteAt(
+    bucket: String,
+    path:   String,
+    action: () => Unit,
+    onlyIf: Any => Boolean = _ => true,
+  ) extends Hook {
     def matches(b: String, p: String): Boolean = b == bucket && p == path
   }
 

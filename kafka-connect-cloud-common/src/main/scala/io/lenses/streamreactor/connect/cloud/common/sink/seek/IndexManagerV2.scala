@@ -1662,38 +1662,79 @@ class IndexManagerV2(
    *
    * A lock already at the held epoch was written by this instance (an idle eviction and reload) and
    * is returned unchanged, with no write. Must run after `rejectIfFenced`, so a newer epoch never
-   * reaches it. Returns the version to cache and drive from: the object written, under the token
-   * the write returned.
+   * reaches it. A lost write race is re-read and decided again (`takeOverAttempt`). Returns the
+   * version to cache and drive from: the object written, under the token the write returned.
    */
   private def takeOverGranularLock(
     topicPartition: TopicPartition,
     partitionKey:   String,
     read:           ObjectWithETag[IndexFile],
   ): Either[SinkError, ObjectWithETag[IndexFile]] =
-    heldEpoch(topicPartition).flatMap { mine =>
-      if (read.wrappedObject.epoch.getOrElse(0L) >= mine) read.asRight
-      else
-        bucketAndPrefixFn(topicPartition).flatMap { bp =>
-          val path = generateGranularLockFilePath(connectorTaskId, topicPartition, partitionKey, directoryFileName)
-          val bump = read.wrappedObject.copy(owner = lockOwner, epoch = Some(mine))
-          storageInterface.writeBlobToFile(bp.bucket, path, ObjectWithETag(bump, read.eTag)) match {
-            case Right(bumped) =>
-              logger.debug(
-                s"[${connectorTaskId.show}] Took over granular lock $topicPartition/$partitionKey " +
-                  s"(epoch ${read.wrappedObject.epoch.getOrElse(0L)} -> $mine)",
-              )
-              // What we wrote, under the new token: never depend on how a backend echoes the object.
-              ObjectWithETag(bump, bumped.eTag).asRight
-            case Left(err) =>
-              val error = new FatalCloudSinkError(
-                s"Failed to take over granular lock $topicPartition/$partitionKey: ${err.message()}",
-                err.toExceptionOption,
-                topicPartition,
-              )
-              logger.error(error.message)
-              error.asLeft
+    for {
+      mine  <- heldEpoch(topicPartition)
+      bp    <- bucketAndPrefixFn(topicPartition)
+      path   = generateGranularLockFilePath(connectorTaskId, topicPartition, partitionKey, directoryFileName)
+      taken <- takeOverAttempt(topicPartition, partitionKey, bp.bucket, path, mine, read, MaxLegacyBumpAttempts)
+    } yield taken
+
+  /**
+   * One take-over write of `read`, and on failure a re-read that applies the epoch rule again to
+   * whatever is stored: a failed write means another instance wrote the key between our read and
+   * our write, or that our own write landed with its response lost.
+   *  - a newer epoch fences this instance (never re-taken over), which is what keeps a paused stale
+   *    loader from overwriting the newer owner that took the key over meanwhile;
+   *  - our own epoch is our landed write: it is used as stored, with no second write;
+   *  - an older epoch (a zombie commit, or a transient failure) is taken over again.
+   * At most `attemptsLeft` writes. Running out is fatal; a re-read that fails (missing key, 0-byte
+   * blob, transient read error) is an unswallowable non-fatal error, as ensureGranularLock's own
+   * re-reads are. Neither caches anything.
+   */
+  private def takeOverAttempt(
+    topicPartition: TopicPartition,
+    partitionKey:   String,
+    bucket:         String,
+    path:           String,
+    mine:           Long,
+    read:           ObjectWithETag[IndexFile],
+    attemptsLeft:   Int,
+  ): Either[SinkError, ObjectWithETag[IndexFile]] =
+    if (read.wrappedObject.epoch.getOrElse(0L) >= mine) read.asRight
+    else {
+      val bump = read.wrappedObject.copy(owner = lockOwner, epoch = Some(mine))
+      storageInterface.writeBlobToFile(bucket, path, ObjectWithETag(bump, read.eTag)) match {
+        case Right(bumped) =>
+          logger.debug(
+            s"[${connectorTaskId.show}] Took over granular lock $topicPartition/$partitionKey " +
+              s"(epoch ${read.wrappedObject.epoch.getOrElse(0L)} -> $mine)",
+          )
+          // What we wrote, under the new token: never depend on how a backend echoes the object.
+          ObjectWithETag(bump, bumped.eTag).asRight
+        case Left(err) if attemptsLeft > 1 =>
+          logger.info(
+            s"[${connectorTaskId.show}] Lost the race taking over granular lock $topicPartition/$partitionKey " +
+              s"(${err.message()}); re-reading (attempts left: ${attemptsLeft - 1})",
+          )
+          tryOpen(bucket, path) match {
+            case Right(reread) =>
+              rejectIfFenced(topicPartition, partitionKey, reread.wrappedObject).flatMap { _ =>
+                takeOverAttempt(topicPartition, partitionKey, bucket, path, mine, reread, attemptsLeft - 1)
+              }
+            case Left(readErr) =>
+              NonFatalCloudSinkError.unswallowable(
+                s"Failed to re-read granular lock $topicPartition/$partitionKey after a lost take-over race: " +
+                  readErr.message(),
+                readErr.toExceptionOption,
+              ).asLeft
           }
-        }
+        case Left(err) =>
+          val error = new FatalCloudSinkError(
+            s"Exhausted take-over attempts for granular lock $topicPartition/$partitionKey: ${err.message()}",
+            err.toExceptionOption,
+            topicPartition,
+          )
+          logger.error(error.message)
+          error.asLeft
+      }
     }
 
   /**
