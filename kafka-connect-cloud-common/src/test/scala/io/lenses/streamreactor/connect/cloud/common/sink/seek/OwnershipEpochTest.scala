@@ -458,6 +458,30 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues {
     } finally h.close()
   }
 
+  test("a fenced instance's GC drain does not delete a lock the newer owner now holds") {
+    val h = new TwoInstanceHarness()
+    try {
+      h.clock.set(1000L)
+      h.a.open(Set(tp)).value
+      h.a.ensureGranularLock(tp, pk).value
+      h.a.updateForPartitionKey(tp, pk, Some(Offset(3)), None).value
+      h.a.updateMasterLock(tp, Offset(10)).value
+      // Below the floor and no active writer: queued for deletion.
+      h.a.cleanUpObsoleteLocks(tp, Offset(10), Set.empty).value
+
+      h.b.open(Set(tp)).value
+      h.b.getSeekedOffsetForPartitionKey(tp, pk).value
+      h.b.updateForPartitionKey(tp, pk, Some(Offset(12)), None).value
+      val bLock = h.readLock(h.granularLockPath(tp, pk)).value
+      h.a.updateMasterLock(tp, Offset(11)).isLeft shouldBe true
+      h.a.confirmMasterFenced(tp) shouldBe true
+
+      h.a.drainGcQueue()
+
+      h.readLock(h.granularLockPath(tp, pk)).value shouldBe bLock
+    } finally h.close()
+  }
+
   // ---- once fenced, nothing more is written or cached --------------------------------------
 
   test("once fenced on one key, a commit to another cached key the new owner has not touched is refused") {

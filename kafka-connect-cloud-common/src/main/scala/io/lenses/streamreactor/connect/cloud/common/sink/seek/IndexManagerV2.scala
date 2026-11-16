@@ -1787,6 +1787,12 @@ class IndexManagerV2(
         )
         metrics.incrementGcLocksSkippedRevoked()
         false
+      } else if (isFenced(item.topicPartition)) {
+        // A newer owner holds the partition: its locks are not ours to delete (by path, a delete
+        // could remove a lock the newer owner has since rewritten).
+        logger.debug(s"GC discarding ${item.topicPartition}/${item.partitionKey}: this instance is fenced")
+        metrics.incrementGcLocksSkippedRevoked()
+        false
       } else if (item.kind == GcKind.Lock && gcContainsKey(item.topicPartition, item.partitionKey)) {
         // Only `.lock` items honour the cache-reclaim filter: a populated
         // granularCache entry means a new writer has taken the live `.lock`
@@ -1904,7 +1910,7 @@ class IndexManagerV2(
         // no record has been durably committed yet, so there are no granular locks
         // that could be eligible for GC below `masterOffset`. The `.foreach` on
         // `seekedOffsets.get(tp)` is therefore a no-op when `globalSafeOffset == 0`.
-        for (tp <- Random.shuffle(seekedOffsets.keys.toList) if readsRemaining > 0) {
+        for (tp <- Random.shuffle(seekedOffsets.keys.toList) if readsRemaining > 0 && !isFenced(tp)) {
           seekedOffsets.get(tp).foreach { masterOffset =>
             bucketAndPrefixFn(tp) match {
               case Right(loc) =>
