@@ -416,6 +416,48 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues {
     } finally h.close()
   }
 
+  test("clearing the partition state of a revoked fenced partition drops the fence") {
+    val h = new TwoInstanceHarness()
+    try {
+      h.clock.set(1000L)
+      h.a.open(Set(tp)).value
+      h.b.open(Set(tp)).value
+      h.b.ensureGranularLock(tp, pk).value
+      h.a.ensureGranularLock(tp, pk).isLeft shouldBe true
+      h.a.fencedPartitions should contain(tp)
+
+      h.a.clearTopicPartitionState(tp)
+
+      h.a.fencedPartitions shouldBe empty
+      h.a.fencingReason(tp) shouldBe None
+    } finally h.close()
+  }
+
+  test("a fenced instance whose partition is re-assigned to it re-takes ownership, drops the fence and writes again") {
+    val h = new TwoInstanceHarness()
+    try {
+      h.clock.set(1000L)
+      h.a.open(Set(tp)).value // epoch 1000
+      h.b.open(Set(tp)).value // epoch 1001
+      h.b.ensureGranularLock(tp, pk).value
+      h.a.ensureGranularLock(tp, pk).isLeft shouldBe true
+      h.a.fencedPartitions should contain(tp)
+
+      // A rebalance re-assigns the partition to this instance (close + open, same instance).
+      h.a.evictAllGranularLocks(tp)
+      h.a.open(Set(tp)).value
+      h.a.tpEpoch.get(tp) shouldBe Some(1002L)
+
+      h.a.fencedPartitions shouldBe empty
+      h.a.ensureGranularLock(tp, pk).value
+      h.a.updateForPartitionKey(tp, pk, Some(Offset(4)), None).value shouldBe Some(Offset(4))
+      h.a.updateMasterLock(tp, Offset(4)).value
+      // The previous owner is now the fenced one.
+      h.b.updateMasterLock(tp, Offset(5)).isLeft shouldBe true
+      h.b.confirmMasterFenced(tp) shouldBe true
+    } finally h.close()
+  }
+
   // ---- once fenced, nothing more is written or cached --------------------------------------
 
   test("a fenced partition reports the epochs involved") {

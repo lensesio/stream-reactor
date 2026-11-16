@@ -207,6 +207,9 @@ class IndexManagerV2(
     written:        ObjectWithETag[IndexFile],
   ): ObjectWithETag[IndexFile] = {
     val _ = tpEpoch.put(topicPartition, epoch)
+    // A fresh ownership write re-takes the partition above every epoch seen so far, so a fence
+    // from an earlier ownership episode (e.g. before a rebalance re-assigned it here) no longer applies.
+    val _ = fencedTps.remove(topicPartition)
     written
   }
 
@@ -1576,6 +1579,8 @@ class IndexManagerV2(
     seekedOffsets.remove(topicPartition)
     val _ = topicPartitionToETags.remove(topicPartition)
     val _ = tpEpoch.remove(topicPartition)
+    // A revoked partition is no longer this task's to fail on; a re-open decides ownership afresh.
+    val _ = fencedTps.remove(topicPartition)
     // A revoked/failed-open partition must re-confirm legacy-lock resolution on its next open()
     // rather than trusting a flag set under the previous (possibly abandoned) ownership episode.
     val _ = legacyResolved.remove(topicPartition)
