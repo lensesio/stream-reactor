@@ -1474,4 +1474,39 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues wit
       h.a.heldEpochOf(tp) shouldBe Some(1000L)
     } finally h.close()
   }
+
+  // An older connector version takes over without writing an epoch (read as 0, below ours): only
+  // the owner tells the lock is no longer ours.
+
+  test("a master lock rewritten by an older-version owner (no epoch) fences us on the fencing check") {
+    val h = new TwoInstanceHarness()
+    try {
+      h.clock.set(1000L)
+      h.a.open(Set(tp)).value
+      val _ = overwriteMaster(h, IndexFile("old-version-owner", Some(Offset(9)), None))
+
+      h.a.confirmMasterFenced(tp) shouldBe true
+
+      h.a.fencedPartitions should contain(tp)
+      h.a.fencingReason(tp).getOrElse("") should include("owner old-version-owner")
+    } finally h.close()
+  }
+
+  test("a batch temp sweep that reads an older-version owner's master (no epoch) is fenced and deletes nothing") {
+    val h = new TwoInstanceHarness(commitMode = CommitMode.Batch, sweepEnabled = true, sweepSeconds = 3600)
+    try {
+      h.clock.set(1000L)
+      seedMaster(h, IndexFile("previous-owner", Some(Offset(9)), None))
+      h.a.open(Set(tp)).value
+      val _    = overwriteMaster(h, IndexFile("old-version-owner", Some(Offset(9)), None))
+      val temp = h.batchTempPrefix(tp) + "batch-uuid/data/topic/0/staged.json"
+      h.storage.writeStringToFile(h.bucket, temp, UploadableString("payload")).value
+      h.storage.setLastModified(h.bucket, temp, longAgo) shouldBe true
+
+      h.a.sweepAllBatchTemps()
+
+      h.storage.pathExists(h.bucket, temp).value shouldBe true
+      h.a.fencedPartitions should contain(tp)
+    } finally h.close()
+  }
 }
