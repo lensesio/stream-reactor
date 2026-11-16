@@ -162,11 +162,7 @@ class IndexManagerV2(
     if (isFenced(topicPartition))
       // Once fenced, this instance writes nothing more for the partition, on any key: a key the
       // newer owner has not touched yet would otherwise still accept the zombie's write.
-      FatalCloudSinkError(
-        s"Fenced on $topicPartition (${fencingReason(topicPartition).getOrElse("a newer owner holds it")}); " +
-          s"refusing a lock write",
-        topicPartition,
-      ).asLeft
+      fencedRefusal(topicPartition, "a lock write").asLeft
     else
       tpEpoch.get(topicPartition).toRight(
         FatalCloudSinkError(
@@ -175,6 +171,23 @@ class IndexManagerV2(
         ),
       )
 
+  /** The error every refusal on a partition already marked fenced returns. */
+  private def fencedRefusal(topicPartition: TopicPartition, refused: String): SinkError =
+    FatalCloudSinkError(
+      s"Fenced on $topicPartition (${fencingReason(topicPartition).getOrElse("a newer owner holds it")}); " +
+        s"refusing $refused",
+      topicPartition,
+    )
+
+  /**
+   * Once a partition is marked fenced, this instance loads, recovers and serves no key of it, cached
+   * or not: a key whose lock still carries this instance's epoch would otherwise pass the read rule
+   * and have its pending chain driven (deleting data objects) before any write guard fires.
+   */
+  private def refuseIfFenced(topicPartition: TopicPartition, partitionKey: String): Either[SinkError, Unit] =
+    if (isFenced(topicPartition)) fencedRefusal(topicPartition, s"to load lock $partitionKey").asLeft
+    else ().asRight
+
   /**
    * The ownership-epoch read rule. A granular lock carrying a higher epoch
    * than the one this instance holds was written by a newer owner of the partition, so this
@@ -182,9 +195,16 @@ class IndexManagerV2(
    * owner's fencing token), must not drive its pending chain, and must not write. The partition is
    * marked fenced so the task fails fast. Locks at or below our epoch pass unchanged; a missing
    * epoch reads as 0. With no held epoch (not opened) there is nothing to compare, and any later
-   * write fails on `heldEpoch` anyway.
+   * write fails on `heldEpoch` anyway. A partition already marked fenced refuses every lock.
    */
   private def rejectIfFenced(
+    topicPartition: TopicPartition,
+    partitionKey:   String,
+    lock:           IndexFile,
+  ): Either[SinkError, Unit] =
+    refuseIfFenced(topicPartition, partitionKey).flatMap(_ => rejectNewerEpoch(topicPartition, partitionKey, lock))
+
+  private def rejectNewerEpoch(
     topicPartition: TopicPartition,
     partitionKey:   String,
     lock:           IndexFile,
@@ -1298,13 +1318,15 @@ class IndexManagerV2(
     topicPartition: TopicPartition,
     partitionKey:   String,
   ): Either[SinkError, Option[Offset]] =
-    gcGet(topicPartition, partitionKey) match {
-      case Some(cached) =>
-        metrics.incrementGranularCacheHits()
-        cached.offset.asRight
-      case None =>
-        metrics.incrementGranularCacheMisses()
-        loadGranularLock(topicPartition, partitionKey)
+    refuseIfFenced(topicPartition, partitionKey).flatMap { _ =>
+      gcGet(topicPartition, partitionKey) match {
+        case Some(cached) =>
+          metrics.incrementGranularCacheHits()
+          cached.offset.asRight
+        case None =>
+          metrics.incrementGranularCacheMisses()
+          loadGranularLock(topicPartition, partitionKey)
+      }
     }
 
   /**
@@ -1534,8 +1556,10 @@ class IndexManagerV2(
     topicPartition: TopicPartition,
     partitionKey:   String,
   ): Either[SinkError, Unit] =
+    // A fenced partition serves no key, cached or not.
+    if (isFenced(topicPartition)) refuseIfFenced(topicPartition, partitionKey)
     // Fast path: cache hit means the lock file already exists and its eTag is tracked
-    if (gcContainsKey(topicPartition, partitionKey)) {
+    else if (gcContainsKey(topicPartition, partitionKey)) {
       metrics.incrementGranularCacheHits()
       ().asRight
     } else {

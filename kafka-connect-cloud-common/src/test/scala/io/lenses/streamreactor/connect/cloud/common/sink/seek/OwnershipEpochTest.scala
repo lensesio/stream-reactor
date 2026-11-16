@@ -19,6 +19,7 @@ import cats.data.NonEmptyList
 import io.lenses.streamreactor.connect.cloud.common.model.Offset
 import io.lenses.streamreactor.connect.cloud.common.model.Topic
 import io.lenses.streamreactor.connect.cloud.common.model.UploadableString
+import org.scalatest.Assertion
 import org.scalatest.EitherValues
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
@@ -538,6 +539,83 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues {
       ]
       h.a.updateMasterLock(tp, Offset(4)).isLeft shouldBe true
       h.readLock(h.granularLockPath(tp, other)).value shouldBe otherBefore
+    } finally h.close()
+  }
+
+  /**
+   * Fences A on `pk` (B has written it), then seeds `other` with a lock carrying A's own epoch and
+   * a pending Delete of a real temp object, so only the partition-wide fence can refuse it.
+   */
+  private def fencedWithOwnEpochPendingKey(h: TwoInstanceHarness, other: String, temp: String): Assertion = {
+    h.clock.set(1000L)
+    h.a.open(Set(tp)).value
+    h.storage.writeStringToFile(h.bucket, temp, UploadableString("payload")).value
+    val tempETag = h.storage.getBlobAsStringAndEtag(h.bucket, temp).value._2
+    val pending  = PendingState(Offset(8), NonEmptyList.one(DeleteOperation(h.bucket, temp, tempETag)))
+    val _ = h.storage
+      .writeBlobToFile(
+        h.bucket,
+        h.granularLockPath(tp, other),
+        NoOverwriteExistingObject(IndexFile(h.lockUuid(0), Some(Offset(3)), Some(pending), h.a.tpEpoch.get(tp))),
+      )
+      .value
+    h.b.open(Set(tp)).value
+    h.b.ensureGranularLock(tp, pk).value
+    h.a.ensureGranularLock(tp, pk).isLeft shouldBe true
+    h.a.fencedPartitions should contain(tp)
+  }
+
+  test("once fenced, loading another key refuses its pending chain and leaves its temp object in place") {
+    val h = new TwoInstanceHarness()
+    try {
+      val other = "date=2024-01-02"
+      val temp  = "data/topic/0/.temp-upload/own-epoch-pending"
+      fencedWithOwnEpochPendingKey(h, other, temp)
+      val before = h.readLock(h.granularLockPath(tp, other)).value
+
+      h.a.getSeekedOffsetForPartitionKey(tp, other).left.value shouldBe a[
+        io.lenses.streamreactor.connect.cloud.common.sink.FatalCloudSinkError,
+      ]
+
+      h.storage.pathExists(h.bucket, temp).value shouldBe true
+      h.readLock(h.granularLockPath(tp, other)).value shouldBe before
+      h.a.granularCacheSize shouldBe 0
+    } finally h.close()
+  }
+
+  test("once fenced, ensureGranularLock on another key refuses its pending chain and leaves its temp object") {
+    val h = new TwoInstanceHarness()
+    try {
+      val other = "date=2024-01-02"
+      val temp  = "data/topic/0/.temp-upload/own-epoch-pending"
+      fencedWithOwnEpochPendingKey(h, other, temp)
+      val before = h.readLock(h.granularLockPath(tp, other)).value
+
+      h.a.ensureGranularLock(tp, other).left.value shouldBe a[
+        io.lenses.streamreactor.connect.cloud.common.sink.FatalCloudSinkError,
+      ]
+
+      h.storage.pathExists(h.bucket, temp).value shouldBe true
+      h.readLock(h.granularLockPath(tp, other)).value shouldBe before
+      h.a.granularCacheSize shouldBe 0
+    } finally h.close()
+  }
+
+  test("once fenced, a key cached before the fence is no longer served") {
+    val h = new TwoInstanceHarness()
+    try {
+      val other = "date=2024-01-02"
+      h.clock.set(1000L)
+      h.a.open(Set(tp)).value
+      h.a.ensureGranularLock(tp, other).value
+      h.a.updateForPartitionKey(tp, other, Some(Offset(3)), None).value
+      h.b.open(Set(tp)).value
+      h.b.ensureGranularLock(tp, pk).value
+      h.a.ensureGranularLock(tp, pk).isLeft shouldBe true
+      h.a.fencedPartitions should contain(tp)
+
+      h.a.getSeekedOffsetForPartitionKey(tp, other).isLeft shouldBe true
+      h.a.ensureGranularLock(tp, other).isLeft shouldBe true
     } finally h.close()
   }
 
