@@ -353,8 +353,10 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
    * dropped and re-delivered from the durable floor to the next owner); a retained partition keeps
    * its writers, staging files, buffers and offset barriers, because Connect never rewinds it.
    * After those writers are closed (a forced master-lock write still needs the partition's
-   * ownership state), `indexManager.closePartitions` drops the GC deletes queued for those
-   * partitions without running them (their obsolete locks are left for the orphan sweep), then
+   * ownership state), `indexManager.closePartitions` takes those partitions out of the batch temp
+   * sweep (a pass already running stops at its next delete chunk for them; until then it can only
+   * reap true orphans, under the partition's commit lock and owner fence), drops the GC deletes
+   * queued for them without running them (their obsolete locks are left for the orphan sweep), then
    * drops all their state (seeked offset, eTags, held epoch, granular cache, fence), so a revoked
    * fenced partition no longer fails the next `put()` for the partitions this task keeps. The
    * release runs even if closing the writers throws.
@@ -380,9 +382,6 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
       .getOrElse(Set.empty[TopicPartition])
     try {
       Option(indexManager).foreach(_.suspendBackgroundWork())
-      // LC-349: these partitions are no longer held; the batch temp sweep -- even one already
-      // mid-pass, which the gate above cannot stop -- must not delete under them.
-      Option(indexManager).foreach(_.releasePartitions(closed))
       // Exactly the closed partitions: a cooperative revoke keeps the others' writers and buffers.
       Option(writerManager).foreach(_.close(closed, ForcedWriteReason.Revoke))
     } finally Option(indexManager).foreach(_.closePartitions(closed))

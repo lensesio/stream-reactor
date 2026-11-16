@@ -214,7 +214,10 @@ trait IndexManager {
    * Releases partitions this task is closing. Kafka Connect's `SinkTask.close(partitions)` passes
    * exactly the partitions being revoked (all of them on an eager rebalance or on shutdown, only
    * the revoked ones on a cooperative rebalance), so this is the one place partition state is
-   * dropped on a revoke; `open()` never infers a revocation from what it was not given. GC deletes
+   * dropped on a revoke; `open()` never infers a revocation from what it was not given. The
+   * partitions stop being swept first: background work that deletes shared objects (the batch-mode
+   * `.temp-upload` sweep, including a pass already running that `suspendBackgroundWork` cannot
+   * stop) touches nothing more under them until a later `open()` hands them back. GC deletes
    * queued for the closing partitions are dropped, not run: their obsolete locks are left in
    * storage for the orphan sweep.
    */
@@ -229,17 +232,6 @@ trait IndexManager {
    * -- see the architecture doc for the remaining window.
    */
   def suspendBackgroundWork(): Unit
-
-  /**
-   * Signals that this task no longer holds `topicPartitions` (called from
-   * `CloudSinkTask.close(partitions)`). Background work that deletes shared objects -- the
-   * batch-mode `.temp-upload` sweep -- must stop touching them until a later `open()` hands them
-   * back. A no-op by default, so implementations without background work (and Mockito mocks,
-   * which return `Unit` for an unstubbed call) need nothing.
-   *
-   * @param topicPartitions The partitions being released.
-   */
-  def releasePartitions(topicPartitions: Set[TopicPartition]): Unit = ()
 
   /**
    * Topic-partitions this instance has found itself fenced on: a newer owner holds them.

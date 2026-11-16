@@ -74,26 +74,27 @@ class BatchCommitLocksTest extends AnyFunSuiteLike with Matchers with EitherValu
     ).value
   }
 
-  test("the same lock instance is returned for a partition across revoke and reassign") {
+  test("the same lock instance is returned for a partition across a cooperative revoke and reassign") {
     implicit val storage: InMemoryStorageInterface = new InMemoryStorageInterface()
     seedMaster(tp0)
     val locks = BatchCommitLocks()
     val im    = lockedIndexManager(locks)
     try {
-      im.open(Set(tp0)).value
+      im.open(Set(tp0, tp1)).value
       im.getSeekedOffsetForTopicPartition(tp0).isDefined shouldBe true
       val first = locks.lockFor(tp0)
-      // Revoke tp0: opening a disjoint set prunes its state.
-      im.open(Set(tp1)).value
+      // Revoke tp0 only, as close(partitions) does on a cooperative rebalance; tp1 is kept.
+      im.closePartitions(Set(tp0))
       im.getSeekedOffsetForTopicPartition(tp0) shouldBe None
       im.ownedPartitions.contains(tp0) shouldBe false
+      im.ownedPartitions.contains(tp1) shouldBe true
       // Reassign it.
       im.open(Set(tp0)).value
       locks.lockFor(tp0) should be theSameInstanceAs first
     } finally im.close()
   }
 
-  test("the same lock instance is returned for a partition across release and reopen") {
+  test("the same lock instance is returned for a partition across a close of every partition and reopen") {
     implicit val storage: InMemoryStorageInterface = new InMemoryStorageInterface()
     seedMaster(tp0)
     val locks = BatchCommitLocks()
@@ -101,8 +102,8 @@ class BatchCommitLocksTest extends AnyFunSuiteLike with Matchers with EitherValu
     try {
       im.open(Set(tp0)).value
       val first = locks.lockFor(tp0)
-      im.releasePartitions(Set(tp0))
-      im.ownedPartitions.contains(tp0) shouldBe false
+      im.closePartitions(Set(tp0))
+      im.ownedPartitions shouldBe empty
       im.open(Set(tp0)).value
       locks.lockFor(tp0) should be theSameInstanceAs first
     } finally im.close()

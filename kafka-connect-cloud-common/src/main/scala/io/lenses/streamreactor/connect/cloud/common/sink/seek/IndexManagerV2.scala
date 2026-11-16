@@ -113,15 +113,14 @@ class IndexManagerV2(
 
   // LC-349: the partitions this instance currently holds -- the batch temp sweep's ownership check
   // (before its pre-LIST master read and again per delete chunk). Added at the very start of
-  // `open(tp)` (before recovery and the open() sweep) and cleared by `close()`. Removed primarily by
-  // `releasePartitions` (CloudSinkTask.close(partitions), called for every revoked partition), and
-  // also by `clearTopicPartitionState`: a failed-open rollback, and open()'s revoked-partition
-  // pruning -- which only reaches partitions in `seekedOffsets` (those with a committed offset), so
-  // it is a backstop, not the main path.
+  // `open(tp)` (before recovery and the open() sweep) and cleared by `close()`. Removed first thing
+  // by `closePartitions` (CloudSinkTask.close(partitions), called with exactly the revoked
+  // partitions), and by `clearTopicPartitionState` on a failed-open rollback.
   // Neither `seekedOffsets` ("has a committed offset") nor `acceptingWork` (false throughout
   // open()) means "currently held". Concurrent: open() adds from parallel fibers and the sweep
   // thread reads it.
   private[seek] val ownedPartitions: java.util.Set[TopicPartition] = ConcurrentHashMap.newKeySet[TopicPartition]()
+
   // Ownership epoch this instance holds for each owned TopicPartition. Set once by a successful ownership write in `open()` and cleared with the
   // rest of the partition state; never changed while the partition is owned, so commit-pool threads
   // and the GC/sweep threads all see the same value. Concurrent because open() uses parTraverse.
@@ -1690,17 +1689,19 @@ class IndexManagerV2(
   }
 
   /**
-   * Releases the partitions Kafka Connect is closing (see `IndexManager.closePartitions`). The GC
-   * deletes queued for them are dropped, not drained: they are deletes by path, and the writer
-   * close that runs first has evicted the granular cache, the only thing that tells the drain a
-   * queued key has since been reclaimed and rewritten (deleting it would remove the key's dedup
-   * floor). Obsolete locks dropped here stay in storage for the orphan sweep. Every other piece of
+   * Releases the partitions Kafka Connect is closing (see `IndexManager.closePartitions`). They
+   * leave `ownedPartitions` first, so a batch temp sweep -- even one already mid-pass -- stops at
+   * its next delete chunk for them. The GC deletes queued for them are then dropped, not drained:
+   * they are deletes by path, and the writer close that runs first has evicted the granular cache,
+   * the only thing that tells the drain a queued key has since been reclaimed and rewritten
+   * (deleting it would remove the key's dedup floor). Obsolete locks dropped here stay in storage for the orphan sweep. Every other piece of
    * partition state is then cleared: seeked offset, master eTag, held epoch, granular cache, fence
    * and legacy-resolution flag. The release runs even if dropping the queue throws. A drain or
    * sweep run already in flight can still re-queue items afterwards; conditional deletes close that.
    */
   override def closePartitions(topicPartitions: Set[TopicPartition]): Unit =
     if (topicPartitions.nonEmpty) {
+      topicPartitions.foreach(ownedPartitions.remove)
       try dropQueuedGcItems(topicPartitions)
       finally {
         val failures = topicPartitions.toList.flatMap(tp => Try(releasePartition(tp)).failed.toOption)
@@ -2344,16 +2345,6 @@ class IndexManagerV2(
   override def suspendBackgroundWork(): Unit = {
     acceptingWork = false
     logger.debug(s"[${connectorTaskId.show}] Background work suspended (acceptingWork=false)")
-  }
-
-  /**
-   * LC-349: the task no longer holds `topicPartitions`; the batch temp sweep (open-time or
-   * periodic, including one already mid-pass) stops at its next delete chunk for them. Other
-   * per-partition state is kept: `seekedOffsets` must survive until the final drain in `close()`.
-   */
-  override def releasePartitions(topicPartitions: Set[TopicPartition]): Unit = {
-    topicPartitions.foreach(ownedPartitions.remove)
-    logger.debug(s"[${connectorTaskId.show}] Released ${topicPartitions.size} partition(s) from the batch temp sweep")
   }
 
   /**

@@ -565,12 +565,13 @@ class BatchTempSweepTest extends AnyFunSuiteLike with Matchers with EitherValues
     }
   }
 
-  test("[M'6] a periodic sweep deletes nothing once the partition is released or revoked, before or mid-pass") {
+  test("[M'6] a periodic sweep deletes nothing once the partition is closed or its state cleared, before or mid-pass") {
     val cases: List[(String, (IndexManagerV2, HookedStorage) => Unit)] = List(
-      "released before the pass" -> ((im, _) => im.releasePartitions(Set(tp))),
-      "released between LIST and delete" ->
-        ((im, st) => st.afterTempList.set(() => im.releasePartitions(Set(tp)))),
-      "revoked between LIST and delete" -> ((im, st) => st.afterTempList.set(() => im.clearTopicPartitionState(tp))),
+      "closed before the pass" -> ((im, _) => im.closePartitions(Set(tp))),
+      "closed between LIST and delete" ->
+        ((im, st) => st.afterTempList.set(() => im.closePartitions(Set(tp)))),
+      "state cleared between LIST and delete" ->
+        ((im, st) => st.afterTempList.set(() => im.clearTopicPartitionState(tp))),
     )
     cases.foreach {
       case (label, arrange) =>
@@ -593,7 +594,7 @@ class BatchTempSweepTest extends AnyFunSuiteLike with Matchers with EitherValues
     }
   }
 
-  test("[M'6b] a partition released before the pass costs the periodic sweep no master read and no LIST") {
+  test("[M'6b] a partition closed before the pass costs the periodic sweep no master read and no LIST") {
     val masterGets = new ConcurrentLinkedQueue[String]()
     val tempLists  = new ConcurrentLinkedQueue[String]()
     val st = new HookedStorage {
@@ -622,7 +623,7 @@ class BatchTempSweepTest extends AnyFunSuiteLike with Matchers with EitherValues
     try {
       im.open(Set(tp)).value
       writeTemp(orphan, ageSecondsAgo = ageSeconds + 60)
-      im.releasePartitions(Set(tp))
+      im.closePartitions(Set(tp))
       masterGets.clear()
       tempLists.clear()
 
@@ -777,11 +778,11 @@ class BatchTempSweepTest extends AnyFunSuiteLike with Matchers with EitherValues
 
   // ---------------------------------------------------------------------------------------------
   // LC-349 S2b: the per-chunk ownership check is an explicit owned-partitions set. `open(tp)` adds
-  // tp before recovery and the open() sweep; `releasePartitions`, open()'s revoked-partition
-  // pruning and close() remove it. The same check applies to the open() and periodic sweeps.
+  // tp before recovery and the open() sweep; `closePartitions` (close(partitions)) and close()
+  // remove it, and open() never does. The same check applies to the open() and periodic sweeps.
   // ---------------------------------------------------------------------------------------------
 
-  test("[S2b-1] a partition released mid-pass is not swept by the open() sweep") {
+  test("[S2b-1] a partition closed mid-pass is not swept by the open() sweep") {
     val st = new HookedStorage
     storage = st
     seedMaster(99)
@@ -789,7 +790,7 @@ class BatchTempSweepTest extends AnyFunSuiteLike with Matchers with EitherValues
     val im = buildLockedIndexManager(st, BatchCommitLocks())
     try {
       // close(partitions) on the task releases tp between the open() sweep's LIST and its delete.
-      st.afterTempList.set(() => im.releasePartitions(Set(tp)))
+      st.afterTempList.set(() => im.closePartitions(Set(tp)))
 
       im.open(Set(tp)).value shouldBe Map(tp -> Some(Offset(99)))
 
@@ -798,18 +799,20 @@ class BatchTempSweepTest extends AnyFunSuiteLike with Matchers with EitherValues
     } finally im.close()
   }
 
-  test("[S2b-2] a released partition is not swept by the periodic sweep, even while work is accepted") {
-    val st = new HookedStorage
+  test("[S2b-2] a closed partition is not swept by the periodic sweep, even while work is accepted") {
+    val st    = new HookedStorage
+    val other = Topic("orders").withPartition(1)
     storage = st
     seedMaster(99)
     val im = buildLockedIndexManager(st, BatchCommitLocks())
     try {
-      im.open(Set(tp)).value
+      im.open(Set(tp, other)).value
       writeTemp(orphan, ageSecondsAgo = ageSeconds + 60)
-      im.releasePartitions(Set(tp))
-      // Neither acceptingWork nor seekedOffsets says "released": both still read "owned" here.
+      // A cooperative revoke of tp alone: the task keeps `other`, so work stays accepted.
+      im.closePartitions(Set(tp))
       im.acceptingWork shouldBe true
-      im.getSeekedOffsetForTopicPartition(tp) shouldBe Some(Offset(99))
+      im.ownedPartitions.asScala.toSet shouldBe Set(other)
+      im.getSeekedOffsetForTopicPartition(tp) shouldBe None
 
       im.sweepAllBatchTemps()
 
@@ -842,7 +845,7 @@ class BatchTempSweepTest extends AnyFunSuiteLike with Matchers with EitherValues
     try {
       im.open(Set(tp)).value
       writeTemp(orphan, ageSecondsAgo = ageSeconds + 60)
-      im.releasePartitions(Set(tp))
+      im.closePartitions(Set(tp))
       im.sweepAllBatchTemps()
       st.snapshot(bucket).keys should contain(orphan)
 
@@ -858,7 +861,7 @@ class BatchTempSweepTest extends AnyFunSuiteLike with Matchers with EitherValues
     } finally im.close()
   }
 
-  test("[S2b-5] open()'s pruning of a revoked partition removes it from the owned set") {
+  test("[S2b-5] only closePartitions removes a partition from the owned set; open() of another set does not") {
     val st    = new HookedStorage
     val other = Topic("orders").withPartition(1)
     storage = st
@@ -867,8 +870,11 @@ class BatchTempSweepTest extends AnyFunSuiteLike with Matchers with EitherValues
     try {
       im.open(Set(tp)).value
       im.ownedPartitions.asScala.toSet shouldBe Set(tp)
-      // tp was revoked; the next open() (for the new assignment) prunes it with the rest of its state.
+      // A cooperative rebalance that adds `other` passes open() only the added partition: tp is kept.
       im.open(Set(other)).value
+      im.ownedPartitions.asScala.toSet shouldBe Set(tp, other)
+      // close(partitions) is the only source of truth for a revoke.
+      im.closePartitions(Set(tp))
       im.ownedPartitions.asScala.toSet shouldBe Set(other)
     } finally im.close()
   }
