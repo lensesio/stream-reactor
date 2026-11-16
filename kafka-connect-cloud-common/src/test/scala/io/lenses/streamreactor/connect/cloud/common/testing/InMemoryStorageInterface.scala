@@ -74,6 +74,9 @@ class InMemoryStorageInterface(systemName: String = "in-memory") extends Storage
   // Counts uploadFile calls for DropUploadAfterCount.
   private val uploadCount = new AtomicInteger(0)
 
+  // Counts content reads (with eTag) per key, for tests asserting a path was never read.
+  private val reads = new ConcurrentHashMap[(String, String), AtomicInteger]()
+
   // ---------- public test helpers ----------
 
   /** Register a one-shot crash-injection hook. Returns the same instance for chaining. */
@@ -120,6 +123,10 @@ class InMemoryStorageInterface(systemName: String = "in-memory") extends Storage
   def putRaw(bucket: String, path: String, bytes: Array[Byte]): Unit = {
     val _ = store.put((bucket, path), StoredBlob(bytes, freshETag(), Instant.now()))
   }
+
+  /** How many times `getBlobAsStringAndEtag` (and so `getBlobAsObject`) has read a key. */
+  def readCount(bucket: String, path: String): Int =
+    Option(reads.get((bucket, path))).map(_.get()).getOrElse(0)
 
   // ---------- StorageInterface methods used by the sink write-path ----------
 
@@ -203,11 +210,13 @@ class InMemoryStorageInterface(systemName: String = "in-memory") extends Storage
       case None       => Left(FileNotFoundError(new IOException(s"No such key: $bucket/$path"), path))
     }
 
-  override def getBlobAsStringAndEtag(bucket: String, path: String): Either[FileLoadError, (String, String)] =
+  override def getBlobAsStringAndEtag(bucket: String, path: String): Either[FileLoadError, (String, String)] = {
+    val _ = reads.computeIfAbsent((bucket, path), _ => new AtomicInteger(0)).incrementAndGet()
     Option(store.get((bucket, path))) match {
       case Some(blob) => Right((new String(blob.bytes, StandardCharsets.UTF_8), blob.eTag))
       case None       => Left(FileNotFoundError(new IOException(s"No such key: $bucket/$path"), path))
     }
+  }
 
   override def writeBlobToFile[O](
     bucket:           String,

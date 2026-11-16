@@ -749,10 +749,13 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues {
         ),
       )
       val laterBefore = h.readLock(h.granularLockPath(tp, later)).value
+      val laterReads  = h.storage.readCount(h.bucket, h.granularLockPath(tp, later))
 
       h.a.open(Set(tp)).value
 
       h.a.fencedPartitions should contain(tp)
+      // The snapshot stops at the fencing lock: the later key's lock is not even read.
+      h.storage.readCount(h.bucket, h.granularLockPath(tp, later)) shouldBe laterReads
       h.storage.pathExists(h.bucket, temp).value shouldBe true
       h.readLock(h.granularLockPath(tp, later)).value shouldBe laterBefore
     } finally h.close()
