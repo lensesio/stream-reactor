@@ -37,6 +37,7 @@ import io.lenses.streamreactor.connect.cloud.common.sink.conversion.ValueToSinkD
 import io.lenses.streamreactor.connect.cloud.common.sink.optimization.AttachLatestSchemaOptimizer
 import io.lenses.streamreactor.connect.cloud.common.sink.metrics.CloudSinkMetrics
 import io.lenses.streamreactor.connect.cloud.common.sink.metrics.CloudSinkMetricsRegistrar
+import io.lenses.streamreactor.connect.cloud.common.sink.metrics.ForcedWriteReason
 import io.lenses.streamreactor.connect.cloud.common.sink.metrics.StorageInterfaceWithMetrics
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexManager
 import io.lenses.streamreactor.connect.cloud.common.sink.writer.WriterManager
@@ -348,7 +349,10 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
    * `partitions` is exactly the set being revoked: every assigned partition on an eager rebalance
    * and before `stop()`, only the revoked ones on a cooperative rebalance. It is the only source
    * of truth for a revoke: `open()` receives only newly assigned partitions and never infers one.
-   * After the writers are closed (a forced master-lock write still needs the partition's
+   * Only the writers of `partitions` are closed (flushing nothing: their buffered records are
+   * dropped and re-delivered from the durable floor to the next owner); a retained partition keeps
+   * its writers, staging files, buffers and offset barriers, because Connect never rewinds it.
+   * After those writers are closed (a forced master-lock write still needs the partition's
    * ownership state), `indexManager.closePartitions` drops the GC deletes queued for those
    * partitions without running them (their obsolete locks are left for the orphan sweep), then
    * drops all their state (seeked offset, eTags, held epoch, granular cache, fence), so a revoked
@@ -370,14 +374,17 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
     // delete lands (conditional deletes land in a later change; see
     // IndexManagerV2.acceptingWork). On shutdown (close → stop), the flag stays false until the
     // executors are shut down in IndexManagerV2.close().
-    val closed = Option(partitions).map(_.asScala.map(tp => TopicPartition(Topic(tp.topic), tp.partition)).toSet)
+    val closed = Option(partitions)
+      .map(_.asScala.map(tp => TopicPartition(Topic(tp.topic), tp.partition)).toSet)
+      .getOrElse(Set.empty[TopicPartition])
     try {
       Option(indexManager).foreach(_.suspendBackgroundWork())
       // LC-349: these partitions are no longer held; the batch temp sweep -- even one already
       // mid-pass, which the gate above cannot stop -- must not delete under them.
-      Option(indexManager).foreach(_.releasePartitions(closed.getOrElse(Set.empty)))
-      Option(writerManager).foreach(_.close())
-    } finally Option(indexManager).foreach(im => im.closePartitions(closed.getOrElse(Set.empty)))
+      Option(indexManager).foreach(_.releasePartitions(closed))
+      // Exactly the closed partitions: a cooperative revoke keeps the others' writers and buffers.
+      Option(writerManager).foreach(_.close(closed, ForcedWriteReason.Revoke))
+    } finally Option(indexManager).foreach(_.closePartitions(closed))
   }
 
   override def stop(): Unit = {

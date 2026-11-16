@@ -82,18 +82,18 @@ In PARTITIONBY mode, `preCommit` also writes the master lock (`updateMasterLock`
 
 ### `close(partitions)`
 
-Called before a rebalance or before `stop()`.
+Called before a rebalance or before `stop()`, with exactly the partitions being closed: all of them on an eager rebalance and before `stop()`, only the revoked ones on a cooperative rebalance (which skips `open()` when nothing is added and never rewinds a retained partition).
 
 1. Suspends background GC/sweep threads (best-effort volatile flag).
 2. Calls `IndexManager.releasePartitions(partitions)`. In batch mode this removes the partitions from `IndexManagerV2`'s owned-partitions set, so the `.temp-upload` orphan sweep, including a pass already running that the flag in step 1 cannot stop, deletes nothing more under them (LC-349). It is a no-op for other index managers.
-3. Calls `WriterManager.close()`: each `Writer.close()` is called. A writer in `Writing` state flushes its `FormatWriter` and deletes the local staging file (buffered records are discarded; they will be re-delivered after the rebalance because the consumer offset has not advanced past them). A writer in `Uploading` state also deletes the local staging file (the master lock protects re-delivery, see "Rebalance while in Uploading" below).
-4. `seekedOffsets` in `IndexManagerV2` is **not** cleared here. On the normal `close → stop` path, those entries are needed by the final `drainGcQueue` in `IndexManagerV2.close()`. On the `close → open` rebalance path, `IndexManagerV2.open()` prunes them when it processes the new partition set.
+3. Calls `WriterManager.close(partitions, Revoke)`: `Writer.close()` is called for the writers of exactly those partitions, and only their per-partition offset state is cleared. A writer in `Writing` state flushes its `FormatWriter` and deletes the local staging file (buffered records are discarded; they will be re-delivered to the next owner because the consumer offset has not advanced past them). A writer in `Uploading` state also deletes the local staging file (the master lock protects re-delivery, see "Rebalance while in Uploading" below). Writers, staging files and buffered records of partitions that are not being closed are left untouched: a cooperative rebalance never re-delivers them.
+4. `IndexManager.closePartitions(partitions)` (in a `finally`) drops the GC deletes queued for those partitions without running them (the obsolete locks are left for the orphan sweep) and releases their index state: seeked offset, master eTag, held epoch, granular cache and fence.
 
 ### `stop()`
 
 Called when the task is being torn down.
 
-1. `WriterManager.close()` is called defensively (idempotent; no-op if already closed by `close()`).
+1. `WriterManager.closeForStop()` is called defensively (a no-op for partitions already closed by `close()`).
 2. `IndexManagerV2.close()` shuts down the GC and sweep `ScheduledExecutorService` threads and performs a final synchronous `drainGcQueue()`.
 3. Metrics are unregistered.
 

@@ -1023,7 +1023,7 @@ class CloudSinkTaskTest
     task.close(java.util.List.of(tpB.toKafka))
 
     val order = org.mockito.Mockito.inOrder(wm, im)
-    order.verify(wm).close(any[ForcedWriteReason])
+    order.verify(wm).close(Set(tpB), ForcedWriteReason.Revoke)
     order.verify(im).closePartitions(Set(tpB))
     verify(im, never).open(any[Set[TopicPartition]])
   }
@@ -1033,7 +1033,9 @@ class CloudSinkTaskTest
     task.initialize(5, NoopErrorPolicy())
     val wm = mock[WriterManager[FakeFileMetadata]]
     val im = mock[IndexManager]
-    when(wm.close(any[ForcedWriteReason])).thenThrow(new IllegalStateException("writer close failed"))
+    when(wm.close(any[Set[TopicPartition]], any[ForcedWriteReason])).thenThrow(new IllegalStateException(
+      "writer close failed",
+    ))
     task.writerManager   = wm
     task.indexManager    = im
     task.connectorTaskId = connectorTaskId

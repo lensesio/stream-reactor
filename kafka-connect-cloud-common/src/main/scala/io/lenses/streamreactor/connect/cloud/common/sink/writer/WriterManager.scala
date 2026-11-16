@@ -214,6 +214,7 @@ class WriterManager[SM <: FileMetadata](
     lastReturnedSafeOffset.remove(topicPartition)
     forceWriteAfterCleanUp.remove(topicPartition)
     maxBufferedOffset.remove(topicPartition)
+    metrics.clearMasterLockDirty(topicPartition)
     // Materialise keys to a list so the map mutation does not invalidate the iterator.
     val keysToRemove = writers
       .view.filterKeys(_.topicPartition == topicPartition)
@@ -330,8 +331,26 @@ class WriterManager[SM <: FileMetadata](
     )
 
   /**
-   * Rebalance / shutdown close: runs `closePartition` for every owned TP then bulk-clears
-   * all per-TP state. The default `Revoke` tag matches `CloudSinkTask.close(partitions)`.
+   * Partition-scoped close, used by `CloudSinkTask.close(partitions)`: runs `closePartition` for
+   * exactly `topicPartitions`, including a partition that has residual offset or force state but
+   * no current writer. Every other partition's writers, staging files, buffers, high watermarks,
+   * force flags and safe-offset barriers are left untouched: on a cooperative revoke Kafka Connect
+   * neither re-opens nor rewinds a retained partition, so anything discarded for it here would
+   * never be re-delivered.
+   */
+  def close(topicPartitions: Set[TopicPartition], reason: ForcedWriteReason): Unit = {
+    logger.debug(
+      s"[{}] Received call to WriterManager.close for {}",
+      connectorTaskId.show,
+      topicPartitions.mkString(","): Any,
+    )
+    topicPartitions.foreach(closePartition(_, reason))
+    metrics.setWriterCount(writers.size)
+  }
+
+  /**
+   * Whole-task close (task stop): runs `closePartition` for every TP with a writer, then
+   * bulk-clears all per-TP state, including TPs that have state but no current writer.
    */
   def close(reason: ForcedWriteReason = ForcedWriteReason.Revoke): Unit = {
     logger.debug(s"[{}] Received call to WriterManager.close", connectorTaskId.show)
@@ -800,6 +819,12 @@ class WriterManager[SM <: FileMetadata](
   private[writer] def writerCount: Int = writers.size
 
   private[writer] def writerFor(key: MapKey): Option[Writer[SM]] = writers.get(key)
+
+  /** Every topic-partition this manager holds a writer or any per-partition state for. */
+  private[writer] def trackedTopicPartitions: Set[TopicPartition] =
+    writers.keySet.map(_.topicPartition).toSet ++ tpIndex.keySet ++ safeOffsetHighWatermarks.keySet ++
+      lastWrittenMasterSafeOffset.keySet ++ lastReturnedSafeOffset.keySet ++ forceWriteAfterCleanUp ++
+      maxBufferedOffset.keySet
 
   private[writer] def putWriter(key: MapKey, writer: Writer[SM]): Unit = {
     val _ = writers.put(key, writer)
