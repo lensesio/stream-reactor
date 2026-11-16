@@ -754,4 +754,78 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues {
       h.readLock(h.granularLockPath(tp, later)).value shouldBe laterBefore
     } finally h.close()
   }
+
+  // ---- a fenced partition is never swept -------------------------------------------------
+
+  private val longAgo = java.time.Instant.now().minusSeconds(7200L)
+
+  test("the granular orphan sweep skips a fenced partition: nothing is queued and no sweep marker is written") {
+    val h = new TwoInstanceHarness(sweepEnabled = true, sweepSeconds = 3600)
+    try {
+      val orphan = "date=2024-01-02"
+      h.clock.set(1000L)
+      h.a.open(Set(tp)).value
+      h.a.ensureGranularLock(tp, orphan).value
+      h.a.updateForPartitionKey(tp, orphan, Some(Offset(3)), None).value
+      h.a.updateMasterLock(tp, Offset(10)).value
+      // The key's writer went idle: below the floor, uncached and aged, so it reads as an orphan.
+      h.a.evictGranularLock(tp, orphan)
+      h.storage.setLastModified(h.bucket, h.granularLockPath(tp, orphan), longAgo) shouldBe true
+
+      h.b.open(Set(tp)).value
+      h.a.updateMasterLock(tp, Offset(11)).isLeft shouldBe true
+      h.a.confirmMasterFenced(tp) shouldBe true
+      val lockBefore = h.readLock(h.granularLockPath(tp, orphan)).value
+
+      h.a.sweepOrphanedLocks()
+
+      h.a.gcQueueSize shouldBe 0
+      h.storage.pathExists(h.bucket, h.sweepMarkerPath(tp)).value shouldBe false
+      h.a.drainGcQueue()
+      h.readLock(h.granularLockPath(tp, orphan)).value shouldBe lockBefore
+    } finally h.close()
+  }
+
+  test("the periodic batch temp sweep skips a fenced partition") {
+    val h = new TwoInstanceHarness(commitMode = CommitMode.Batch, sweepEnabled = true, sweepSeconds = 3600)
+    try {
+      h.clock.set(1000L)
+      seedMaster(h, IndexFile("previous-owner", Some(Offset(9)), None))
+      h.a.open(Set(tp)).value
+      h.b.open(Set(tp)).value
+      h.a.updateMasterLock(tp, Offset(10)).isLeft shouldBe true
+      h.a.confirmMasterFenced(tp) shouldBe true
+      // An aged, unreferenced temp staged after both opens: an orphan to any unfenced sweep.
+      val temp = h.batchTempPrefix(tp) + "batch-uuid/data/topic/0/staged.json"
+      h.storage.writeStringToFile(h.bucket, temp, UploadableString("payload")).value
+      h.storage.setLastModified(h.bucket, temp, longAgo) shouldBe true
+
+      h.a.sweepAllBatchTemps()
+
+      h.storage.pathExists(h.bucket, temp).value shouldBe true
+    } finally h.close()
+  }
+
+  test("the batch temp sweep at the end of open skips a partition the open found itself fenced on") {
+    val h = new TwoInstanceHarness(commitMode = CommitMode.Batch, sweepSeconds = 3600)
+    try {
+      h.clock.set(1000L)
+      // A granular lock written by a newer owner fences this open's legacy snapshot.
+      val _ = h.storage
+        .writeBlobToFile(
+          h.bucket,
+          h.granularLockPath(tp, pk),
+          NoOverwriteExistingObject(IndexFile(h.lockUuid(1), Some(Offset(9)), None, Some(5000L))),
+        )
+        .value
+      val temp = h.batchTempPrefix(tp) + "batch-uuid/data/topic/0/staged.json"
+      h.storage.writeStringToFile(h.bucket, temp, UploadableString("payload")).value
+      h.storage.setLastModified(h.bucket, temp, longAgo) shouldBe true
+
+      h.a.open(Set(tp)).value
+
+      h.a.fencedPartitions should contain(tp)
+      h.storage.pathExists(h.bucket, temp).value shouldBe true
+    } finally h.close()
+  }
 }

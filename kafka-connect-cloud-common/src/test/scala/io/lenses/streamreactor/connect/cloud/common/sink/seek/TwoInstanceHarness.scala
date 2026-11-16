@@ -37,11 +37,17 @@ import java.util.concurrent.atomic.AtomicLong
  * and therefore its own random `lockUuid`, exactly like two task instances of one connector task
  * on different workers (the zombie scenario).
  *
- * GC and sweep are disabled (all intervals `Int.MaxValue`) so nothing runs in the background
- * unless a test drives `drainGcQueue()` / `sweepOrphanedLocks()` itself.
+ * GC and sweep never run in the background (all intervals `Int.MaxValue` by default) unless a test
+ * drives `drainGcQueue()` / `sweepOrphanedLocks()` / `sweepAllBatchTemps()` itself. `sweepEnabled`
+ * turns the sweeps on for such direct calls; `sweepSeconds` is both the sweep interval and the
+ * minimum object age, so a test ages an object past it with `storage.setLastModified`.
  */
-final class TwoInstanceHarness(instanceCount: Int = 2, commitMode: CommitMode = CommitMode.Default)
-    extends AutoCloseable {
+final class TwoInstanceHarness(
+  instanceCount: Int        = 2,
+  commitMode:    CommitMode = CommitMode.Default,
+  sweepEnabled:  Boolean    = false,
+  sweepSeconds:  Int        = Int.MaxValue,
+) extends AutoCloseable {
   require(instanceCount >= 2, s"a multi-instance harness needs at least 2 instances, got $instanceCount")
 
   val bucket:            String = "test-bucket"
@@ -75,6 +81,13 @@ final class TwoInstanceHarness(instanceCount: Int = 2, commitMode: CommitMode = 
   def granularLockPath(tp: TopicPartition, partitionKey: String): String =
     IndexManagerV2.generateGranularLockFilePath(taskIds.head, tp, partitionKey, directoryFileName)
 
+  def sweepMarkerPath(tp: TopicPartition): String =
+    IndexManagerV2.generateSweepMarkerPath(taskIds.head, tp, directoryFileName)
+
+  /** The connector-scoped prefix batch mode stages temp objects under, built as `Writer` builds it. */
+  def batchTempPrefix(tp: TopicPartition): String =
+    s".temp-upload/$connectorName/${tp.topic}/${tp.partition}/"
+
   /** Reads a lock straight from storage (content + current eTag), bypassing every instance's cache. */
   def readLock(path: String): Either[FileLoadError, ObjectWithETag[IndexFile]] =
     storage.getBlobAsObject[IndexFile](bucket, path)
@@ -95,9 +108,9 @@ final class TwoInstanceHarness(instanceCount: Int = 2, commitMode: CommitMode = 
       pendingOperationsProcessors = new PendingOperationsProcessors(storage),
       directoryFileName           = directoryFileName,
       gcIntervalSeconds           = Int.MaxValue,
-      gcSweepIntervalSeconds      = Int.MaxValue,
-      gcSweepMinAgeSeconds        = Int.MaxValue,
-      gcSweepEnabled              = false,
+      gcSweepIntervalSeconds      = sweepSeconds,
+      gcSweepMinAgeSeconds        = sweepSeconds,
+      gcSweepEnabled              = sweepEnabled,
       clock                       = () => clock.get(),
       commitMode                  = commitMode,
     )(si, taskId)
