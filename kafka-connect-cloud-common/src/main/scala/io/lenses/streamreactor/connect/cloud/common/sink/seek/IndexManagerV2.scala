@@ -1496,36 +1496,10 @@ class IndexManagerV2(
       // No held epoch: not ours, touch nothing -- no read, no cache entry, no pending chain.
       _               <- heldEpoch(topicPartition)
       bucketAndPrefix <- bucketAndPrefixFn(topicPartition)
-      opened           = tryOpen(bucketAndPrefix.bucket, path)
-      _ <-
-        opened.fold(_ => ().asRight[SinkError], owe => rejectIfFenced(topicPartition, partitionKey, owe.wrappedObject))
-      result <- opened match {
-        // Crash recovery: lock contains a PendingState from an interrupted Upload → Copy → Delete commit
-        case Right(objectWithEtag @ ObjectWithETag(
-              IndexFile(_, committedOffset, Some(PendingState(pendingOffset, pendingOps)), _),
-              _,
-            )) =>
-          logger.info(s"Lazy-loading granular lock with PendingState for $topicPartition/$partitionKey")
-          // Seed cache with offset=None and the current eTag so processPendingOperations
-          // can perform conditional writes; the resolved offset replaces None on success
-          gcPut(topicPartition, partitionKey, GranularCacheEntry(None, objectWithEtag.eTag))
-          val fnUpdate: (TopicPartition, Option[Offset], Option[PendingState]) => Either[SinkError, Option[Offset]] =
-            (tp, co, ps) => updateForPartitionKey(tp, partitionKey, co, ps)
-          pendingOperationsProcessors.processPendingOperations(
-            topicPartition,
-            committedOffset,
-            PendingState(pendingOffset, pendingOps),
-            fnUpdate,
-          ).left.map { err =>
-            gcRemove(topicPartition, partitionKey)
-            err
-          }
-
-        // Happy path: no crash recovery needed, cache the resolved offset and eTag directly
-        case Right(objectWithEtag @ ObjectWithETag(IndexFile(_, committedOffset, None, _), _)) =>
-          logger.info(s"Lazy-loaded granular lock for $topicPartition/$partitionKey, offset=$committedOffset")
-          gcPut(topicPartition, partitionKey, GranularCacheEntry(committedOffset, objectWithEtag.eTag))
-          committedOffset.asRight
+      result <- tryOpen(bucketAndPrefix.bucket, path) match {
+        // Lock exists: take it over if an older owner wrote it, resolve any PendingState, cache.
+        case Right(objectWithEtag) =>
+          resolveAndCacheGranularLock(topicPartition, partitionKey, objectWithEtag)
 
         // Expected for brand-new partition keys that have never been committed
         case Left(_: FileNotFoundError) =>
@@ -1632,40 +1606,94 @@ class IndexManagerV2(
   }
 
   /**
-   * Caches a granular lock read from storage, resolving any PendingState first.
-   * When PendingState is present the pending upload/copy/delete operations are
-   * completed (or rolled back) via processPendingOperations before the resolved
-   * offset is cached. This mirrors the handling in loadGranularLock.
+   * Caches a granular lock read from storage, resolving any PendingState first, and returns the
+   * resolved committed offset. Used by every path that loads an existing lock (`loadGranularLock`
+   * and `ensureGranularLock`, including its lost-race re-reads).
+   *
+   * The ownership-epoch read rule runs first (a newer epoch fences this instance). A lock written
+   * under an older epoch is then taken over (`takeOverGranularLock`) before anything is cached or
+   * driven, so every token an older instance still holds for the key stops being valid.
+   *
+   * When PendingState is present the pending upload/copy/delete operations are completed (or rolled
+   * back) via processPendingOperations before the resolved offset is cached. On failure the cache
+   * entry is removed so a later access retries cleanly from storage.
    */
   private def resolveAndCacheGranularLock(
     topicPartition: TopicPartition,
     partitionKey:   String,
-    objectWithEtag: ObjectWithETag[IndexFile],
-  ): Either[SinkError, Unit] =
-    rejectIfFenced(topicPartition, partitionKey, objectWithEtag.wrappedObject).flatMap { _ =>
-      objectWithEtag match {
-        // Crash recovery: previous task crashed mid-commit, resolve pending ops before caching
-        case ObjectWithETag(IndexFile(_, committedOffset, Some(PendingState(pendingOffset, pendingOps)), _), _) =>
-          logger.info(s"ensureGranularLock found PendingState for $topicPartition/$partitionKey, resolving")
-          // Seed cache with offset=None so processPendingOperations can perform conditional writes
-          gcPut(topicPartition, partitionKey, GranularCacheEntry(None, objectWithEtag.eTag))
+    read:           ObjectWithETag[IndexFile],
+  ): Either[SinkError, Option[Offset]] =
+    rejectIfFenced(topicPartition, partitionKey, read.wrappedObject)
+      .flatMap(_ => takeOverGranularLock(topicPartition, partitionKey, read))
+      .flatMap {
+        // Crash recovery: an earlier commit stopped mid-chain; resolve pending ops before caching
+        case owe @ ObjectWithETag(IndexFile(_, committedOffset, Some(pendingState), _), _) =>
+          logger.info(s"Loaded granular lock with PendingState for $topicPartition/$partitionKey, resolving")
+          // Seed cache with offset=None and the current eTag so processPendingOperations can
+          // perform conditional writes; the resolved offset replaces None on success
+          gcPut(topicPartition, partitionKey, GranularCacheEntry(None, owe.eTag))
           val fnUpdate: (TopicPartition, Option[Offset], Option[PendingState]) => Either[SinkError, Option[Offset]] =
             (tp, co, ps) => updateForPartitionKey(tp, partitionKey, co, ps)
           pendingOperationsProcessors.processPendingOperations(
             topicPartition,
             committedOffset,
-            PendingState(pendingOffset, pendingOps),
+            pendingState,
             fnUpdate,
-          ).bimap(
-            { err => gcRemove(topicPartition, partitionKey); err },
-            _ => (),
-          )
+          ).left.map { err =>
+            gcRemove(topicPartition, partitionKey)
+            err
+          }
 
         // Clean lock: no crash recovery needed, cache offset and eTag directly
-        case ObjectWithETag(IndexFile(_, committedOffset, None, _), eTag) =>
-          gcPut(topicPartition, partitionKey, GranularCacheEntry(committedOffset, eTag))
-          ().asRight
+        case owe @ ObjectWithETag(IndexFile(_, committedOffset, None, _), _) =>
+          logger.info(s"Loaded granular lock for $topicPartition/$partitionKey, offset=$committedOffset")
+          gcPut(topicPartition, partitionKey, GranularCacheEntry(committedOffset, owe.eTag))
+          committedOffset.asRight
       }
+
+  /**
+   * Takes over a granular lock written under an older ownership epoch than the one this instance
+   * holds: rewrites it with this instance's owner and epoch, committed offset and pending state
+   * unchanged, conditional on the token just read. Loading a key is the first thing a new owner
+   * does before it routes a record to it, so from then on every token an older instance holds for
+   * the key is invalid (its next CAS fails), and a reload by that instance reads the newer epoch
+   * and is fenced by the read rule. Without this a zombie that still holds the token it used
+   * before the rebalance would win its next commit on the key and the legitimate owner would fail.
+   *
+   * A lock already at the held epoch was written by this instance (an idle eviction and reload) and
+   * is returned unchanged, with no write. Must run after `rejectIfFenced`, so a newer epoch never
+   * reaches it. Returns the version to cache and drive from: the object written, under the token
+   * the write returned.
+   */
+  private def takeOverGranularLock(
+    topicPartition: TopicPartition,
+    partitionKey:   String,
+    read:           ObjectWithETag[IndexFile],
+  ): Either[SinkError, ObjectWithETag[IndexFile]] =
+    heldEpoch(topicPartition).flatMap { mine =>
+      if (read.wrappedObject.epoch.getOrElse(0L) >= mine) read.asRight
+      else
+        bucketAndPrefixFn(topicPartition).flatMap { bp =>
+          val path = generateGranularLockFilePath(connectorTaskId, topicPartition, partitionKey, directoryFileName)
+          val bump = read.wrappedObject.copy(owner = lockOwner, epoch = Some(mine))
+          storageInterface.writeBlobToFile(bp.bucket, path, ObjectWithETag(bump, read.eTag)) match {
+            case Right(bumped) =>
+              logger.debug(
+                s"[${connectorTaskId.show}] Took over granular lock $topicPartition/$partitionKey " +
+                  s"(epoch ${read.wrappedObject.epoch.getOrElse(0L)} -> $mine)",
+              )
+              // What we wrote, under the new token: never depend on how a backend echoes the object.
+              ObjectWithETag(bump, bumped.eTag).asRight
+            case Left(err) =>
+              val error = new FatalCloudSinkError(
+                s"Failed to take over granular lock $topicPartition/$partitionKey: ${err.message()}",
+                err.toExceptionOption,
+                topicPartition,
+              )
+              logger.error(error.message)
+              error.asLeft
+          }
+        }
     }
 
   /**
@@ -1698,7 +1726,7 @@ class IndexManagerV2(
         _ <- tryOpen(bucketAndPrefix.bucket, path) match {
           // Lock exists in storage: resolve any PendingState and cache the result
           case Right(objectWithEtag) =>
-            resolveAndCacheGranularLock(topicPartition, partitionKey, objectWithEtag)
+            resolveAndCacheGranularLock(topicPartition, partitionKey, objectWithEtag).void
 
           // Lock does not exist yet: create an empty one with NoOverwrite precondition
           case Left(_: FileNotFoundError) =>
@@ -1719,7 +1747,7 @@ class IndexManagerV2(
               )
               tryOpen(bucketAndPrefix.bucket, path) match {
                 case Right(existing) =>
-                  resolveAndCacheGranularLock(topicPartition, partitionKey, existing)
+                  resolveAndCacheGranularLock(topicPartition, partitionKey, existing).void
                 // Transient cloud error on re-read after NoOverwrite race: retried by Kafka Connect
                 // under RETRY; fail-fast under NOOP/THROW to avoid swallowing integrity state.
                 case Left(retryErr) =>
@@ -1749,7 +1777,7 @@ class IndexManagerV2(
               // content into the previously-empty slot. Re-read to populate the cache.
               tryOpen(bucketAndPrefix.bucket, path) match {
                 case Right(existing) =>
-                  resolveAndCacheGranularLock(topicPartition, partitionKey, existing)
+                  resolveAndCacheGranularLock(topicPartition, partitionKey, existing).void
                 case Left(retryErr) =>
                   NonFatalCloudSinkError.unswallowable(retryErr.message(), retryErr.toExceptionOption).asLeft
               }

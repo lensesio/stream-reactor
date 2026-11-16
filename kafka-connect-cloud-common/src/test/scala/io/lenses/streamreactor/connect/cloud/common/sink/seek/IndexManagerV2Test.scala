@@ -1115,12 +1115,18 @@ class IndexManagerV2Test
     val result = im.ensureGranularLock(tp, "date%3D12_00")
     result shouldBe Right(())
 
-    // writeBlobToFile should NOT have been called for the granular lock path since the file already existed
-    verify(si, never).writeBlobToFile[IndexFile](
+    // The file already existed, so it is not created. Its one write is the take-over by this
+    // instance's epoch, conditional on the token just read, with the offset unchanged.
+    val written = ArgumentCaptor.forClass(classOf[ObjectProtection[IndexFile]])
+    verify(si, times(1)).writeBlobToFile[IndexFile](
       anyString(),
       ArgumentMatchers.contains("/0/date%3D12_00.lock"),
-      any[NoOverwriteExistingObject[IndexFile]],
+      written.capture(),
     )(ArgumentMatchers.eq(indexFileEncoder))
+    written.getValue shouldBe ObjectWithETag(
+      IndexFile(connectorTaskId.lockUuid, Some(Offset(50)), None, im.heldEpochOf(tp)),
+      "existing-granular-etag",
+    )
 
     try {
       // The cache should be populated from the tryOpen, so getSeekedOffsetForPartitionKey is a cache hit
@@ -1407,11 +1413,17 @@ class IndexManagerV2Test
       val captor = ArgumentCaptor.forClass(classOf[ObjectWithETag[IndexFile]])
       import org.mockito.Mockito.{ times => mtimes }
       import org.mockito.Mockito.{ verify => mverify }
-      mverify(si, mtimes(1)).writeBlobToFile[IndexFile](
+      // Two writes: the take-over by this instance's epoch (pending state kept, conditional on the
+      // token read), then the chain's clear of the pending state.
+      mverify(si, mtimes(2)).writeBlobToFile[IndexFile](
         anyString(),
         ArgumentMatchers.contains(s"/0/$pk.lock"),
         captor.capture(),
       )(ArgumentMatchers.eq(indexFileEncoder))
+      val takeOver = captor.getAllValues.get(0)
+      takeOver.eTag shouldBe "granular-etag"
+      takeOver.wrappedObject.pendingState.map(_.pendingOffset) shouldBe Some(Offset(500))
+      takeOver.wrappedObject.epoch shouldBe im.heldEpochOf(Topic("topic1").withPartition(0))
       captor.getValue.wrappedObject.pendingState shouldBe None
       captor.getValue.wrappedObject.committedOffset shouldBe Some(Offset(450))
 
@@ -1449,11 +1461,17 @@ class IndexManagerV2Test
       val captor = ArgumentCaptor.forClass(classOf[ObjectWithETag[IndexFile]])
       import org.mockito.Mockito.{ times => mtimes }
       import org.mockito.Mockito.{ verify => mverify }
-      mverify(si, mtimes(1)).writeBlobToFile[IndexFile](
+      // Two writes: the take-over by this instance's epoch (pending state kept, conditional on the
+      // token read), then the chain's clear of the pending state.
+      mverify(si, mtimes(2)).writeBlobToFile[IndexFile](
         anyString(),
         ArgumentMatchers.contains(s"/0/$pk.lock"),
         captor.capture(),
       )(ArgumentMatchers.eq(indexFileEncoder))
+      val takeOver = captor.getAllValues.get(0)
+      takeOver.eTag shouldBe "granular-etag"
+      takeOver.wrappedObject.pendingState.map(_.pendingOffset) shouldBe Some(Offset(500))
+      takeOver.wrappedObject.epoch shouldBe im.heldEpochOf(Topic("topic1").withPartition(0))
       captor.getValue.wrappedObject.pendingState shouldBe None
       captor.getValue.wrappedObject.committedOffset shouldBe Some(Offset(450))
 
@@ -1513,14 +1531,21 @@ class IndexManagerV2Test
         ArgumentMatchers.eq(indexFileDecoder),
       )
 
-    // Write fails (another task created it between read and write)
-    org.mockito.Mockito.doReturn(Left(FileCreateError(new Exception("conflict"), "granular-path")))
-      .when(si).writeBlobToFile[IndexFile](anyString(),
-                                           ArgumentMatchers.contains("/0/pk-conflict.lock"),
-                                           any[NoOverwriteExistingObject[IndexFile]],
-      )(
-        ArgumentMatchers.eq(indexFileEncoder),
-      )
+    // The create fails (another task created it between read and write); the take-over of the
+    // lock the re-read finds (an older owner's, with no epoch) succeeds.
+    org.mockito.Mockito.doAnswer { (invocation: org.mockito.invocation.InvocationOnMock) =>
+      invocation.getArguments.toList.collectFirst { case p: ObjectProtection[IndexFile] @unchecked => p } match {
+        case Some(_: NoOverwriteExistingObject[IndexFile] @unchecked) =>
+          Left(FileCreateError(new Exception("conflict"), "granular-path"))
+        case Some(p) => Right(ObjectWithETag(p.wrappedObject, "taken-over-etag"))
+        case None    => Left(FileCreateError(new Exception("no protection argument"), "granular-path"))
+      }
+    }.when(si).writeBlobToFile[IndexFile](anyString(),
+                                          ArgumentMatchers.contains("/0/pk-conflict.lock"),
+                                          any[ObjectProtection[IndexFile]],
+    )(
+      ArgumentMatchers.eq(indexFileEncoder),
+    )
 
     when(
       pp.processPendingOperations(

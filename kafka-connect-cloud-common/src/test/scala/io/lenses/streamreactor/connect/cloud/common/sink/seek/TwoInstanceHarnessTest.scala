@@ -48,7 +48,9 @@ class TwoInstanceHarnessTest extends AnyFunSuite with Matchers with EitherValues
       master.owner shouldBe h.lockUuid(1)
 
       h.b.getSeekedOffsetForPartitionKey(tp, pk).value shouldBe Some(Offset(5))
-      h.readLock(h.granularLockPath(tp, pk)).value.wrappedObject.owner shouldBe h.lockUuid(0)
+      // B's load takes the key over under its own epoch (offset unchanged).
+      h.readLock(h.granularLockPath(tp, pk)).value.wrappedObject shouldBe
+        IndexFile(h.lockUuid(1), Some(Offset(5)), None, h.b.heldEpochOf(tp))
     } finally h.close()
   }
 }
