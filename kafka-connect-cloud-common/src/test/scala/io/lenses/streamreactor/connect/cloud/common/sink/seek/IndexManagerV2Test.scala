@@ -4035,7 +4035,7 @@ class IndexManagerV2Test
       when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith("0.lock"))(
         ArgumentMatchers.eq(indexFileDecoder),
       ))
-        .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(100)), None, im.tpEpoch.get(tp)), "etag")))
+        .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(100)), None, im.heldEpochOf(tp)), "etag")))
       im.open(Set(tp))
       im.acceptingWork shouldBe true
       when(si.deleteFiles(anyString(), any[Seq[String]])).thenReturn(Right(()))

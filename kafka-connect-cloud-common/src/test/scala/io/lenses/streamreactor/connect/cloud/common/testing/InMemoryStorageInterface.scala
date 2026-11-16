@@ -44,7 +44,9 @@ import scala.jdk.CollectionConverters._
  *
  * Design points:
  *
- *  - Blobs are keyed by `(bucket, path)` and tracked with a fresh UUID `eTag` per write.
+ *  - Blobs are keyed by `(bucket, path)` and tracked with a fresh UUID `eTag` per write, or, with
+ *    `contentETags`, an eTag derived from the bytes (as S3 reports for a single-part PUT), so
+ *    rewriting identical bytes yields the same eTag.
  *  - Conditional writes (`NoOverwriteExistingObject`, `ObjectWithETag`) implement the same
  *    semantics the production S3/GCS/ADL backends use:
  *      - `NoOverwriteExistingObject` -> `If-None-Match: *`. Succeeds only when the key is
@@ -63,7 +65,8 @@ import scala.jdk.CollectionConverters._
  * next matching write/upload/move/delete and are then consumed. Hooks default to none, so
  * happy-path scenarios need no setup.
  */
-class InMemoryStorageInterface(systemName: String = "in-memory") extends StorageInterface[FakeFileMetadata] {
+class InMemoryStorageInterface(systemName: String = "in-memory", contentETags: Boolean = false)
+    extends StorageInterface[FakeFileMetadata] {
 
   private val store: ConcurrentHashMap[(String, String), StoredBlob] =
     new ConcurrentHashMap[(String, String), StoredBlob]()
@@ -74,7 +77,7 @@ class InMemoryStorageInterface(systemName: String = "in-memory") extends Storage
   // Counts uploadFile calls for DropUploadAfterCount.
   private val uploadCount = new AtomicInteger(0)
 
-  // Counts content reads (with eTag) per key, for tests asserting a path was never read.
+  // Counts content reads per key (see `readCount`), for tests asserting a path was never read.
   private val reads = new ConcurrentHashMap[(String, String), AtomicInteger]()
 
   // ---------- public test helpers ----------
@@ -124,7 +127,11 @@ class InMemoryStorageInterface(systemName: String = "in-memory") extends Storage
     val _ = store.put((bucket, path), StoredBlob(bytes, freshETag(), Instant.now()))
   }
 
-  /** How many times `getBlobAsStringAndEtag` (and so `getBlobAsObject`) has read a key. */
+  /**
+   * How many times a key's content has been read: `getBlob`, `getBlobAsString` and
+   * `getBlobAsStringAndEtag` (and so `getBlobAsObject`), whether or not the key existed. Metadata,
+   * existence and listing calls (`getMetadata`, `pathExists`, `list*`) are not counted.
+   */
   def readCount(bucket: String, path: String): Int =
     Option(reads.get((bucket, path))).map(_.get()).getOrElse(0)
 
@@ -198,20 +205,24 @@ class InMemoryStorageInterface(systemName: String = "in-memory") extends Storage
     lastModified.map(FakeFileMetadata(fileName, _))
       .orElse(Option(store.get((bucket, fileName))).map(b => FakeFileMetadata(fileName, b.lastModified)))
 
-  override def getBlob(bucket: String, path: String): Either[FileLoadError, InputStream] =
+  override def getBlob(bucket: String, path: String): Either[FileLoadError, InputStream] = {
+    recordRead(bucket, path)
     Option(store.get((bucket, path))) match {
       case Some(blob) => Right(new ByteArrayInputStream(blob.bytes))
       case None       => Left(FileNotFoundError(new IOException(s"No such key: $bucket/$path"), path))
     }
+  }
 
-  override def getBlobAsString(bucket: String, path: String): Either[FileLoadError, String] =
+  override def getBlobAsString(bucket: String, path: String): Either[FileLoadError, String] = {
+    recordRead(bucket, path)
     Option(store.get((bucket, path))) match {
       case Some(blob) => Right(new String(blob.bytes, StandardCharsets.UTF_8))
       case None       => Left(FileNotFoundError(new IOException(s"No such key: $bucket/$path"), path))
     }
+  }
 
   override def getBlobAsStringAndEtag(bucket: String, path: String): Either[FileLoadError, (String, String)] = {
-    val _ = reads.computeIfAbsent((bucket, path), _ => new AtomicInteger(0)).incrementAndGet()
+    recordRead(bucket, path)
     Option(store.get((bucket, path))) match {
       case Some(blob) => Right((new String(blob.bytes, StandardCharsets.UTF_8), blob.eTag))
       case None       => Left(FileNotFoundError(new IOException(s"No such key: $bucket/$path"), path))
@@ -228,7 +239,7 @@ class InMemoryStorageInterface(systemName: String = "in-memory") extends Storage
   ): Either[UploadError, ObjectWithETag[O]] =
     takeFirstHook { case h: FailWriteAt if h.matches(bucket, path) => h } match {
       case Some(h) => h.asUploadError(bucket, path).asLeft
-      case None    =>
+      case None =>
         takeFirstHook { case h: LoseWriteResponseAt if h.matches(bucket, path) => h } match {
           case Some(h) =>
             // The write is applied, but the caller only sees an error (lost response).
@@ -344,6 +355,18 @@ class InMemoryStorageInterface(systemName: String = "in-memory") extends Storage
 
   private def freshETag(): String = UUID.randomUUID().toString
 
+  /** Counts the read, then runs an armed `OnReadAt` action before the caller sees the content. */
+  private def recordRead(bucket: String, path: String): Unit = {
+    val _ = reads.computeIfAbsent((bucket, path), _ => new AtomicInteger(0)).incrementAndGet()
+    takeFirstHook { case h: OnReadAt if h.matches(bucket, path) => h }.foreach(_.action())
+  }
+
+  /** The eTag a write of `bytes` gets: fresh per write, or the bytes' digest with `contentETags`. */
+  private def eTagFor(bytes: Array[Byte], fresh: String): String =
+    if (contentETags)
+      java.security.MessageDigest.getInstance("MD5").digest(bytes).map(b => f"${b & 0xff}%02x").mkString
+    else fresh
+
   private def persist[O](
     bucket:             String,
     path:               String,
@@ -377,13 +400,15 @@ class InMemoryStorageInterface(systemName: String = "in-memory") extends Storage
             ).asLeft
           case _ =>
             val bytes = encodeBytes(objectProtection.wrappedObject)
-            store.put((bucket, path), StoredBlob(bytes, realETag, Instant.now()))
-            Right(ObjectWithETag(objectProtection.wrappedObject, cachedETagOverride.getOrElse(realETag)))
+            val eTag  = eTagFor(bytes, realETag)
+            store.put((bucket, path), StoredBlob(bytes, eTag, Instant.now()))
+            Right(ObjectWithETag(objectProtection.wrappedObject, cachedETagOverride.getOrElse(eTag)))
         }
       case _ =>
         val bytes = encodeBytes(objectProtection.wrappedObject)
-        store.put((bucket, path), StoredBlob(bytes, realETag, Instant.now()))
-        Right(ObjectWithETag(objectProtection.wrappedObject, cachedETagOverride.getOrElse(realETag)))
+        val eTag  = eTagFor(bytes, realETag)
+        store.put((bucket, path), StoredBlob(bytes, eTag, Instant.now()))
+        Right(ObjectWithETag(objectProtection.wrappedObject, cachedETagOverride.getOrElse(eTag)))
     }
   }
 
@@ -452,13 +477,22 @@ object InMemoryStorageInterface {
   }
 
   /**
+   * Run `action` on the next content read of `(bucket, path)`, before the read sees the store: a
+   * deterministic point to interleave another thread's step (e.g. a concurrent fence or close)
+   * between a caller's check and its use of what it read.
+   */
+  final case class OnReadAt(bucket: String, path: String, action: () => Unit) extends Hook {
+    def matches(b: String, p: String): Boolean = b == bucket && p == path
+  }
+
+  /**
    * Apply the next `writeBlobToFile` to `(bucket, path)` (with its normal conditional-write
    * semantics), then report a failure to the caller anyway: the write landed but its response
    * was lost, e.g. a timeout whose SDK retry then fails its precondition against the object the
    * first attempt already changed.
    */
   final case class LoseWriteResponseAt(bucket: String, path: String) extends Hook {
-    def matches(b: String, p: String): Boolean = b == bucket && p == path
+    def matches(b:                String, p: String): Boolean = b == bucket && p == path
     override def asUploadError(b: String, p: String): UploadError =
       FileCreateError(new IllegalStateException(s"injected lost write response: $b/$p"), p)
   }

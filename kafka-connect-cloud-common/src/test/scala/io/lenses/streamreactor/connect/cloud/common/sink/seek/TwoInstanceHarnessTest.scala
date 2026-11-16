@@ -21,12 +21,6 @@ import org.scalatest.EitherValues
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
-import java.util.concurrent.Executors
-import scala.concurrent.Await
-import scala.concurrent.ExecutionContext
-import scala.concurrent.Future
-import scala.concurrent.duration._
-
 class TwoInstanceHarnessTest extends AnyFunSuite with Matchers with EitherValues {
 
   private val tp = Topic("topic").withPartition(0)
@@ -56,20 +50,5 @@ class TwoInstanceHarnessTest extends AnyFunSuite with Matchers with EitherValues
       h.b.getSeekedOffsetForPartitionKey(tp, pk).value shouldBe Some(Offset(5))
       h.readLock(h.granularLockPath(tp, pk)).value.wrappedObject.owner shouldBe h.lockUuid(0)
     } finally h.close()
-  }
-
-  test("Gate pauses one thread until released") {
-    val gate = new TwoInstanceHarness.Gate
-    val pool = Executors.newSingleThreadExecutor()
-    implicit val ec: ExecutionContext = ExecutionContext.fromExecutor(pool)
-    try {
-      val paused = Future { gate.pause(); "resumed" }
-      gate.awaitReached()
-      paused.isCompleted shouldBe false
-      gate.release()
-      Await.result(paused, 5.seconds) shouldBe "resumed"
-    } finally {
-      val _ = pool.shutdownNow()
-    }
   }
 }

@@ -124,7 +124,10 @@ class IndexManagerV2(
   // Ownership epoch this instance holds for each owned TopicPartition. Set once by a successful ownership write in `open()` and cleared with the
   // rest of the partition state; never changed while the partition is owned, so commit-pool threads
   // and the GC/sweep threads all see the same value. Concurrent because open() uses parTraverse.
-  private[seek] val tpEpoch = TrieMap.empty[TopicPartition, Long]
+  private val tpEpoch = TrieMap.empty[TopicPartition, Long]
+
+  /** The ownership epoch held for `topicPartition`, if any (read-only view for tests). */
+  private[seek] def heldEpochOf(topicPartition: TopicPartition): Option[Long] = tpEpoch.get(topicPartition)
 
   // Partitions this instance has found itself fenced on: it read a lock written under a newer
   // ownership epoch, or lost a master-lock write to a newer owner. Concurrent: marked from the task
@@ -2533,6 +2536,15 @@ object IndexManagerV2 {
 
     def clearPreWriteMasterLockBarrier(im: IndexManagerV2): Unit =
       im.testHookPreWriteMasterLockBarrier = () => ()
+
+    /**
+     * Drops the held ownership epoch alone, leaving the cached eTags in place: the state of the bug
+     * (a write path that skipped `open()`, or state cleared under a live writer) the unstamped-write
+     * refusal guards against. No production path clears the epoch without the eTag.
+     */
+    def dropHeldEpoch(im: IndexManagerV2, topicPartition: TopicPartition): Unit = {
+      val _ = im.tpEpoch.remove(topicPartition)
+    }
   }
 
 }

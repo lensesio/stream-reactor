@@ -28,8 +28,6 @@ import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
 import io.lenses.streamreactor.connect.cloud.common.testing.FakeFileMetadata
 import io.lenses.streamreactor.connect.cloud.common.testing.InMemoryStorageInterface
 
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicLong
 
 /**
@@ -42,6 +40,8 @@ import java.util.concurrent.atomic.AtomicLong
  * drives `drainGcQueue()` / `sweepOrphanedLocks()` / `sweepAllBatchTemps()` itself. `sweepEnabled`
  * turns the sweeps on for such direct calls; `sweepSeconds` is both the sweep interval and the
  * minimum object age, so a test ages an object past it with `storage.setLastModified`.
+ * `contentETags` makes the shared store derive eTags from the bytes written (see
+ * `InMemoryStorageInterface`).
  */
 final class TwoInstanceHarness(
   instanceCount: Int        = 2,
@@ -49,6 +49,7 @@ final class TwoInstanceHarness(
   sweepEnabled:  Boolean    = false,
   sweepSeconds:  Int        = Int.MaxValue,
   gcSeconds:     Int        = Int.MaxValue,
+  contentETags:  Boolean    = false,
 ) extends AutoCloseable {
   require(instanceCount >= 2, s"a multi-instance harness needs at least 2 instances, got $instanceCount")
 
@@ -56,7 +57,7 @@ final class TwoInstanceHarness(
   val directoryFileName: String = ".indexes2"
   val connectorName:     String = "ownership-two-instance"
 
-  val storage: InMemoryStorageInterface = new InMemoryStorageInterface()
+  val storage: InMemoryStorageInterface = new InMemoryStorageInterface(contentETags = contentETags)
 
   /** Shared wall clock (epoch millis) handed to every instance; tests set it explicitly. */
   val clock: AtomicLong = new AtomicLong(1000L)
@@ -120,32 +121,5 @@ final class TwoInstanceHarness(
       commitMode                  = commitMode,
       metrics                     = instanceMetrics,
     )(si, taskId)
-  }
-}
-
-object TwoInstanceHarness {
-
-  val DefaultAwaitSeconds: Long = 10L
-
-  /**
-   * A one-shot pause point for barrier hooks: the paused thread calls `pause()`, which signals
-   * `reached` and blocks until the test calls `release()`. Every wait is bounded, so a broken
-   * interleaving fails the test instead of hanging the build.
-   */
-  final class Gate {
-    private val reachedLatch = new CountDownLatch(1)
-    private val releaseLatch = new CountDownLatch(1)
-
-    def pause(): Unit = {
-      reachedLatch.countDown()
-      if (!releaseLatch.await(DefaultAwaitSeconds, TimeUnit.SECONDS))
-        throw new IllegalStateException(s"Gate was not released within ${DefaultAwaitSeconds}s")
-    }
-
-    def awaitReached(): Unit =
-      if (!reachedLatch.await(DefaultAwaitSeconds, TimeUnit.SECONDS))
-        throw new IllegalStateException(s"Gate was not reached within ${DefaultAwaitSeconds}s")
-
-    def release(): Unit = releaseLatch.countDown()
   }
 }

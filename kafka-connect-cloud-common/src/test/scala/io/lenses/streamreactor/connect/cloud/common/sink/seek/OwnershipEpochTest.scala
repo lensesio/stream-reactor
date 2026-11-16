@@ -22,11 +22,12 @@ import io.lenses.streamreactor.connect.cloud.common.model.UploadableString
 import io.lenses.streamreactor.connect.cloud.common.testing.InMemoryStorageInterface.FailMoveAt
 import org.scalatest.Assertion
 import org.scalatest.EitherValues
+import org.scalatest.OptionValues
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
 /** Ownership epoch: assigned on open, stamped on every lock write, and enforced on every load. */
-class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues {
+class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues with OptionValues {
 
   private val tp = Topic("topic").withPartition(0)
 
@@ -44,7 +45,7 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues {
       h.a.open(Set(tp)).value
 
       storedMaster(h).epoch shouldBe Some(1000L)
-      h.a.tpEpoch.get(tp) shouldBe Some(1000L)
+      h.a.heldEpochOf(tp) shouldBe Some(1000L)
     } finally h.close()
   }
 
@@ -57,7 +58,7 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues {
       h.a.open(Set(tp)).value shouldBe Map(tp -> Some(Offset(41)))
 
       storedMaster(h) shouldBe IndexFile(h.lockUuid(0), Some(Offset(41)), None, Some(1000L))
-      h.a.tpEpoch.get(tp) shouldBe Some(1000L)
+      h.a.heldEpochOf(tp) shouldBe Some(1000L)
     } finally h.close()
   }
 
@@ -70,7 +71,7 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues {
       h.a.open(Set(tp)).value
 
       storedMaster(h).epoch shouldBe Some(5001L)
-      h.a.tpEpoch.get(tp) shouldBe Some(5001L)
+      h.a.heldEpochOf(tp) shouldBe Some(5001L)
     } finally h.close()
   }
 
@@ -83,7 +84,7 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues {
       h.a.open(Set(tp)).value
 
       storedMaster(h).epoch shouldBe Some(1000L)
-      h.a.tpEpoch.get(tp) shouldBe Some(1000L)
+      h.a.heldEpochOf(tp) shouldBe Some(1000L)
     } finally h.close()
   }
 
@@ -99,7 +100,7 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues {
 
       h.a.open(Set(tp)).value shouldBe Map(tp -> Some(Offset(50)))
 
-      h.a.tpEpoch.get(tp) shouldBe Some(7001L)
+      h.a.heldEpochOf(tp) shouldBe Some(7001L)
     } finally h.close()
   }
 
@@ -111,9 +112,9 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues {
       h.instances(1).open(Set(tp)).value
       h.instances(2).open(Set(tp)).value
 
-      h.instances(0).tpEpoch.get(tp) shouldBe Some(1000L)
-      h.instances(1).tpEpoch.get(tp) shouldBe Some(1001L)
-      h.instances(2).tpEpoch.get(tp) shouldBe Some(1002L)
+      h.instances(0).heldEpochOf(tp) shouldBe Some(1000L)
+      h.instances(1).heldEpochOf(tp) shouldBe Some(1001L)
+      h.instances(2).heldEpochOf(tp) shouldBe Some(1002L)
       storedMaster(h).epoch shouldBe Some(1002L)
     } finally h.close()
   }
@@ -131,7 +132,7 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues {
       h.a.open(Set(tp)).value
       h.a.ensureGranularLock(tp, pk).value
 
-      storedGranular(h).epoch shouldBe h.a.tpEpoch.get(tp)
+      storedGranular(h).epoch shouldBe h.a.heldEpochOf(tp)
     } finally h.close()
   }
 
@@ -143,7 +144,7 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues {
 
       h.a.ensureGranularLock(tp, pk).value
 
-      storedGranular(h).epoch shouldBe h.a.tpEpoch.get(tp)
+      storedGranular(h).epoch shouldBe h.a.heldEpochOf(tp)
     } finally h.close()
   }
 
@@ -154,7 +155,7 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues {
       h.a.ensureGranularLock(tp, pk).value
       h.a.updateForPartitionKey(tp, pk, Some(Offset(5)), None).value
 
-      storedGranular(h) shouldBe IndexFile(h.lockUuid(0), Some(Offset(5)), None, h.a.tpEpoch.get(tp))
+      storedGranular(h) shouldBe IndexFile(h.lockUuid(0), Some(Offset(5)), None, h.a.heldEpochOf(tp))
     } finally h.close()
   }
 
@@ -164,7 +165,7 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues {
       h.a.open(Set(tp)).value
       h.a.updateMasterLock(tp, Offset(10)).value
 
-      storedMaster(h).epoch shouldBe h.a.tpEpoch.get(tp)
+      storedMaster(h).epoch shouldBe h.a.heldEpochOf(tp)
       storedMaster(h).committedOffset shouldBe Some(Offset(9))
     } finally h.close()
   }
@@ -175,7 +176,7 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues {
       h.a.open(Set(tp)).value
       h.a.update(tp, Some(Offset(12)), None).value
 
-      storedMaster(h) shouldBe IndexFile(h.lockUuid(0), Some(Offset(12)), None, h.a.tpEpoch.get(tp))
+      storedMaster(h) shouldBe IndexFile(h.lockUuid(0), Some(Offset(12)), None, h.a.heldEpochOf(tp))
     } finally h.close()
   }
 
@@ -212,7 +213,7 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues {
 
       h.a.getSeekedOffsetForPartitionKey(tp, pk).value shouldBe Some(Offset(8))
 
-      storedGranular(h) shouldBe IndexFile(h.lockUuid(0), Some(Offset(8)), None, h.a.tpEpoch.get(tp))
+      storedGranular(h) shouldBe IndexFile(h.lockUuid(0), Some(Offset(8)), None, h.a.heldEpochOf(tp))
     } finally h.close()
   }
 
@@ -279,7 +280,7 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues {
       remainingOps(stored).map { case c: CopyOperation => c.source; case other => other.toString } shouldBe
         List(second)
       stored.owner shouldBe h.lockUuid(0)
-      stored.epoch shouldBe h.a.tpEpoch.get(tp)
+      stored.epoch shouldBe h.a.heldEpochOf(tp)
       stored.epoch shouldBe defined
     } finally h.close()
   }
@@ -291,7 +292,7 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues {
       h.a.ensureGranularLock(tp, pk).value
       val masterBefore   = h.readLock(h.masterLockPath(tp)).value
       val granularBefore = h.readLock(h.granularLockPath(tp, pk)).value
-      val _              = h.a.tpEpoch.remove(tp)
+      IndexManagerV2.IndexManagerV2TestHooks.dropHeldEpoch(h.a, tp)
 
       h.a.updateMasterLock(tp, Offset(10)).left.value shouldBe a[
         io.lenses.streamreactor.connect.cloud.common.sink.FatalCloudSinkError,
@@ -472,7 +473,7 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues {
       // B's task fails and restarts as a new instance, which re-opens above A and fences A.
       val bRestarted = h.instances(2)
       bRestarted.open(Set(tp)).value
-      bRestarted.tpEpoch.get(tp) shouldBe Some(1002L)
+      bRestarted.heldEpochOf(tp) shouldBe Some(1002L)
       h.a.updateMasterLock(tp, Offset(11)).isLeft shouldBe true
       h.a.confirmMasterFenced(tp) shouldBe true
       bRestarted.updateMasterLock(tp, Offset(11)).value
@@ -589,11 +590,11 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues {
     val h = new TwoInstanceHarness()
     try {
       h.a.open(Set(tp)).value
-      h.a.tpEpoch.get(tp) shouldBe defined
+      h.a.heldEpochOf(tp) shouldBe defined
 
       h.a.clearTopicPartitionState(tp)
 
-      h.a.tpEpoch.get(tp) shouldBe None
+      h.a.heldEpochOf(tp) shouldBe None
     } finally h.close()
   }
 
@@ -626,13 +627,13 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues {
       h.a.ensureGranularLock(tp, pk).value
       // Nothing committed to the master yet, so no seeked offset is held for the retained partition.
       h.a.getSeekedOffsetForTopicPartition(tp) shouldBe None
-      val epoch = h.a.tpEpoch.get(tp)
+      val epoch = h.a.heldEpochOf(tp)
       val eTag  = h.a.topicPartitionToETags.get(tp)
 
       // A cooperative rebalance adds `other` and keeps `tp`: open() receives only the added partition.
       h.a.open(Set(other)).value
 
-      h.a.tpEpoch.get(tp) shouldBe epoch
+      h.a.heldEpochOf(tp) shouldBe epoch
       h.a.topicPartitionToETags.get(tp) shouldBe eTag
       h.a.granularCacheSize shouldBe 1
       h.a.updateForPartitionKey(tp, pk, Some(Offset(5)), None).value shouldBe Some(Offset(5))
@@ -657,10 +658,10 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues {
 
       h.a.fencedPartitions shouldBe empty
       h.a.fencingReason(tp) shouldBe None
-      h.a.tpEpoch.get(tp) shouldBe None
+      h.a.heldEpochOf(tp) shouldBe None
       h.a.topicPartitionToETags.get(tp) shouldBe None
       h.a.granularCacheSize shouldBe 0
-      h.a.tpEpoch.get(other) shouldBe defined
+      h.a.heldEpochOf(other) shouldBe defined
       h.a.ensureGranularLock(other, pk).value
       h.a.updateForPartitionKey(other, pk, Some(Offset(1)), None).value shouldBe Some(Offset(1))
       h.a.updateMasterLock(other, Offset(2)).value
@@ -675,16 +676,17 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues {
       h.a.ensureGranularLock(tp, pk).value
       h.a.updateForPartitionKey(tp, pk, Some(Offset(3)), None).value
       h.a.updateMasterLock(tp, Offset(4)).value
-      val before = h.a.tpEpoch(tp)
+      val before = h.a.heldEpochOf(tp).value
 
       h.a.closePartitions(Set(tp, other))
-      h.a.tpEpoch shouldBe empty
+      h.a.heldEpochOf(tp) shouldBe None
+      h.a.heldEpochOf(other) shouldBe None
       h.a.topicPartitionToETags shouldBe empty
       h.a.getSeekedOffsetForTopicPartition(tp) shouldBe None
 
       h.a.open(Set(tp, other)).value shouldBe Map(tp -> Some(Offset(3)), other -> None)
-      h.a.tpEpoch(tp) should be > before
-      storedMaster(h).epoch shouldBe h.a.tpEpoch.get(tp)
+      h.a.heldEpochOf(tp).value should be > before
+      storedMaster(h).epoch shouldBe h.a.heldEpochOf(tp)
       h.a.ensureGranularLock(tp, pk).value
       h.a.updateForPartitionKey(tp, pk, Some(Offset(7)), None).value shouldBe Some(Offset(7))
       h.a.updateMasterLock(tp, Offset(8)).value
@@ -836,7 +838,7 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues {
       // A rebalance re-assigns the partition to this instance (close + open, same instance).
       h.a.evictAllGranularLocks(tp)
       h.a.open(Set(tp)).value
-      h.a.tpEpoch.get(tp) shouldBe Some(1002L)
+      h.a.heldEpochOf(tp) shouldBe Some(1002L)
 
       h.a.fencedPartitions shouldBe empty
       h.a.ensureGranularLock(tp, pk).value
@@ -915,7 +917,7 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues {
       .writeBlobToFile(
         h.bucket,
         h.granularLockPath(tp, other),
-        NoOverwriteExistingObject(IndexFile(h.lockUuid(0), Some(Offset(3)), Some(pending), h.a.tpEpoch.get(tp))),
+        NoOverwriteExistingObject(IndexFile(h.lockUuid(0), Some(Offset(3)), Some(pending), h.a.heldEpochOf(tp))),
       )
       .value
     h.b.open(Set(tp)).value
