@@ -184,12 +184,20 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
    * A restart re-opens the partitions and re-takes ownership above the fencing epoch.
    */
   private def failIfFenced(): Unit =
-    Option(indexManager).map(_.fencedPartitions).filter(_.nonEmpty).foreach { fenced =>
-      val tps = fenced.toList.map(_.toString).sorted.mkString(", ")
-      throw new FatalConnectException(
-        s"[${Option(connectorTaskId).map(_.show).getOrElse("unknown task")}] Fenced on [$tps]: a newer task " +
-          s"instance owns these partitions. Failing so a restart re-takes ownership.",
-      )
+    Option(indexManager).foreach { im =>
+      val fenced = im.fencedPartitions
+      if (fenced.nonEmpty) {
+        val tps = fenced.toList
+          .map(tp => s"$tp${im.fencingReason(tp).map(r => s" ($r)").getOrElse("")}")
+          .sorted
+          .mkString(", ")
+        val task = Option(connectorTaskId)
+        throw new FatalConnectException(
+          s"[${task.map(_.show).getOrElse("unknown task")}] Fenced on [$tps]: a newer task instance owns these " +
+            s"partitions (this instance's lockUuid ${task.map(_.lockUuid).getOrElse("unknown")}). " +
+            s"Failing so a restart re-takes ownership.",
+        )
+      }
     }
 
   private def putRecords(records: util.Collection[SinkRecord]): Unit =

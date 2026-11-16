@@ -415,4 +415,21 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues {
       h.a.tpEpoch.get(tp) shouldBe None
     } finally h.close()
   }
+
+  // ---- once fenced, nothing more is written or cached --------------------------------------
+
+  test("a fenced partition reports the epochs involved") {
+    val h = new TwoInstanceHarness()
+    try {
+      h.clock.set(1000L)
+      h.a.open(Set(tp)).value // epoch 1000
+      h.b.open(Set(tp)).value // epoch 1001
+      h.b.ensureGranularLock(tp, pk).value
+
+      h.a.ensureGranularLock(tp, pk).isLeft shouldBe true
+
+      h.a.fencingReason(tp).getOrElse("") should (include("1001") and include("1000"))
+      h.b.fencingReason(tp) shouldBe None
+    } finally h.close()
+  }
 }

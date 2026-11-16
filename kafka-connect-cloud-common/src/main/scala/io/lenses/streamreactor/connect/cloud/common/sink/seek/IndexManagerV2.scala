@@ -129,16 +129,19 @@ class IndexManagerV2(
   // Partitions this instance has found itself fenced on: it read a lock written under a newer
   // ownership epoch, or lost a master-lock write to a newer owner. Concurrent: marked from the task
   // thread, commit-pool threads and the GC/sweep threads. The task fails fast while it is non-empty.
-  private val fencedTps: java.util.Set[TopicPartition] =
-    java.util.concurrent.ConcurrentHashMap.newKeySet[TopicPartition]()
+  // The value is the first reason seen (the epochs involved), for the task-failure message.
+  private val fencedTps =
+    new java.util.concurrent.ConcurrentHashMap[TopicPartition, String]()
 
-  override def fencedPartitions: Set[TopicPartition] = fencedTps.asScala.toSet
+  override def fencedPartitions: Set[TopicPartition] = fencedTps.keySet().asScala.toSet
 
-  override def isFenced(topicPartition: TopicPartition): Boolean = fencedTps.contains(topicPartition)
+  override def isFenced(topicPartition: TopicPartition): Boolean = fencedTps.containsKey(topicPartition)
 
-  /** Marks a partition fenced; the metric counts each partition once. */
-  private def markFenced(topicPartition: TopicPartition): Unit =
-    if (fencedTps.add(topicPartition)) metrics.incrementPartitionsFenced()
+  override def fencingReason(topicPartition: TopicPartition): Option[String] = Option(fencedTps.get(topicPartition))
+
+  /** Marks a partition fenced; the metric counts each partition once and the first reason is kept. */
+  private def markFenced(topicPartition: TopicPartition, reason: String): Unit =
+    if (fencedTps.putIfAbsent(topicPartition, reason) == null) metrics.incrementPartitionsFenced()
 
   /**
    * The epoch an ownership write takes over a lock that carried `previous`: one more than
@@ -179,8 +182,8 @@ class IndexManagerV2(
   ): Either[SinkError, Unit] =
     tpEpoch.get(topicPartition) match {
       case Some(mine) if lock.epoch.getOrElse(0L) > mine =>
-        markFenced(topicPartition)
         val theirs = lock.epoch.getOrElse(0L)
+        markFenced(topicPartition, s"lock $partitionKey epoch $theirs > held epoch $mine")
         logger.error(
           s"[${connectorTaskId.show}] Fenced on $topicPartition: granular lock $partitionKey carries epoch $theirs " +
             s"(owner ${lock.owner}) > this instance's epoch $mine (lockUuid $lockOwner). A newer owner holds the " +
@@ -1608,12 +1611,18 @@ class IndexManagerV2(
       mine <- tpEpoch.get(topicPartition)
       loc  <- bucketAndPrefixFn(topicPartition).toOption
       lock <- tryOpen(loc.bucket, generateLockFilePath(connectorTaskId, topicPartition, directoryFileName)).toOption
-    } yield lock.wrappedObject.owner != lockOwner || lock.wrappedObject.epoch.getOrElse(0L) > mine) match {
-      case Some(true) =>
-        markFenced(topicPartition)
+    } yield (lock.wrappedObject, mine)).filter {
+      case (lock, mine) => lock.owner != lockOwner || lock.epoch.getOrElse(0L) > mine
+    } match {
+      case Some((lock, mine)) =>
+        markFenced(
+          topicPartition,
+          s"master lock owner ${lock.owner} epoch ${lock.epoch.getOrElse(0L)}, held epoch $mine",
+        )
         logger.error(
           s"[${connectorTaskId.show}] Fenced on $topicPartition: the master lock now belongs to another instance " +
-            s"(this instance's lockUuid $lockOwner, epoch ${tpEpoch.get(topicPartition).getOrElse(0L)}). " +
+            s"(owner ${lock.owner}, epoch ${lock.epoch.getOrElse(0L)}; this instance's lockUuid $lockOwner, " +
+            s"epoch $mine). " +
             s"The task will fail on its next put() so a restart can re-take ownership.",
         )
         true

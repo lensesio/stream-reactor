@@ -231,7 +231,7 @@ trait IndexManager {
   def releasePartitions(topicPartitions: Set[TopicPartition]): Unit = ()
 
   /**
-   * Topic-partitions this instance has found itself fenced on: a newer owner holds them
+   * Topic-partitions this instance has found itself fenced on: a newer owner holds them.
    * The task fails fast on its next `put()` when this is non-empty.
    * Always empty when indexing is disabled.
    */
@@ -241,6 +241,12 @@ trait IndexManager {
   def isFenced(topicPartition: TopicPartition): Boolean = {
     val _ = topicPartition
     false
+  }
+
+  /** Why this instance is fenced on `topicPartition` (the epochs involved), if it is. */
+  def fencingReason(topicPartition: TopicPartition): Option[String] = {
+    val _ = topicPartition
+    None
   }
 
   /**

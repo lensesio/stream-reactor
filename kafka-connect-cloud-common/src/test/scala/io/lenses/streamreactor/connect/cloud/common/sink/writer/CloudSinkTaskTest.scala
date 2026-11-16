@@ -956,6 +956,7 @@ class CloudSinkTaskTest
     val wm = mock[WriterManager[FakeFileMetadata]]
     val im = mock[IndexManager]
     when(im.fencedPartitions).thenReturn(Set(tpA))
+    when(im.fencingReason(tpA)).thenReturn(Some("lock k epoch 9 > held epoch 3"))
     task.writerManager   = wm
     task.indexManager    = im
     task.connectorTaskId = connectorTaskId
@@ -983,6 +984,8 @@ class CloudSinkTaskTest
               thrown shouldBe a[FatalConnectException]
               thrown should not be a[RetriableIntegrityException]
               thrown.getMessage should include(tpA.toString)
+              thrown.getMessage should include("lock k epoch 9 > held epoch 3")
+              thrown.getMessage should include(connectorTaskId.lockUuid)
               org.mockito.Mockito.verifyNoInteractions(wm)
             }
         }
