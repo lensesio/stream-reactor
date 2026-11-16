@@ -102,9 +102,11 @@ trait CloudSinkMetricsMBean {
   def getGcLocksSkippedReclaimed: Long
 
   /**
-   * Cumulative count of enqueued locks skipped at drain time because the topic-partition was
-   * revoked (rebalanced away) before the drain ran, or because this task is fenced on it (a newer
-   * owner holds it). Expected during rebalances.
+   * Cumulative count of enqueued locks never deleted because the topic-partition was revoked or
+   * closed: dropped from the queue when the partition is closed (rebalance or shutdown), or skipped
+   * at drain time because the partition is no longer owned or this task is fenced on it (a newer
+   * owner holds it). The obsolete locks stay in storage for the orphan sweep. Expected during
+   * rebalances.
    */
   def getGcLocksSkippedRevoked: Long
 
@@ -629,7 +631,8 @@ class CloudSinkMetrics() extends CloudSinkMetricsMBean {
   def incrementGcLocksDeleted(count:  Long): Unit = gcLocksDeleted.add(count)
   def incrementGcLocksSkippedReclaimed(): Unit = gcLocksSkippedReclaimed.increment()
   def incrementGcLocksSkippedRevoked():   Unit = gcLocksSkippedRevoked.increment()
-  def incrementGcDeleteFailures():        Unit = gcDeleteFailures.increment()
+  def incrementGcLocksSkippedRevoked(count: Long): Unit = gcLocksSkippedRevoked.add(count)
+  def incrementGcDeleteFailures(): Unit = gcDeleteFailures.increment()
   def incrementGcDeleteRetries(count: Long): Unit = gcDeleteRetries.add(count)
 
   def incrementMasterLockUpdates():  Unit = masterLockUpdates.increment()

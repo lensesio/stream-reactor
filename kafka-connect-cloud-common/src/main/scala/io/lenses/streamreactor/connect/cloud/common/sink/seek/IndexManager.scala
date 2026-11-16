@@ -214,7 +214,9 @@ trait IndexManager {
    * Releases partitions this task is closing. Kafka Connect's `SinkTask.close(partitions)` passes
    * exactly the partitions being revoked (all of them on an eager rebalance or on shutdown, only
    * the revoked ones on a cooperative rebalance), so this is the one place partition state is
-   * dropped on a revoke; `open()` never infers a revocation from what it was not given.
+   * dropped on a revoke; `open()` never infers a revocation from what it was not given. GC deletes
+   * queued for the closing partitions are dropped, not run: their obsolete locks are left in
+   * storage for the orphan sweep.
    */
   def closePartitions(topicPartitions: Set[TopicPartition]): Unit
 

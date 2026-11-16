@@ -1028,6 +1028,21 @@ class CloudSinkTaskTest
     verify(im, never).open(any[Set[TopicPartition]])
   }
 
+  test("close() still releases the closed partitions when closing the writers throws") {
+    val task = new ConcreteTestSinkTask
+    task.initialize(5, NoopErrorPolicy())
+    val wm = mock[WriterManager[FakeFileMetadata]]
+    val im = mock[IndexManager]
+    when(wm.close(any[ForcedWriteReason])).thenThrow(new IllegalStateException("writer close failed"))
+    task.writerManager   = wm
+    task.indexManager    = im
+    task.connectorTaskId = connectorTaskId
+
+    intercept[IllegalStateException](task.close(java.util.List.of(tpB.toKafka)))
+
+    verify(im).closePartitions(Set(tpB))
+  }
+
   test("close() of a revoked fenced partition releases it, so the next put() for the remaining partitions proceeds") {
     val h = new io.lenses.streamreactor.connect.cloud.common.sink.seek.TwoInstanceHarness()
     try {

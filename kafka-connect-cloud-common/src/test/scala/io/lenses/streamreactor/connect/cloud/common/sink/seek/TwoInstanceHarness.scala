@@ -22,6 +22,7 @@ import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
 import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
+import io.lenses.streamreactor.connect.cloud.common.sink.metrics.CloudSinkMetrics
 import io.lenses.streamreactor.connect.cloud.common.storage.FileLoadError
 import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
 import io.lenses.streamreactor.connect.cloud.common.testing.FakeFileMetadata
@@ -65,7 +66,10 @@ final class TwoInstanceHarness(
   /** One task id per instance: same name/taskNo (same lock paths), distinct `lockUuid`. */
   val taskIds: Vector[ConnectorTaskId] = Vector.fill(instanceCount)(ConnectorTaskId(connectorName, 1, 0))
 
-  val instances: Vector[IndexManagerV2] = taskIds.map(buildIndexManager)
+  /** One metrics registry per instance, so a test can read what an instance counted. */
+  val metrics: Vector[CloudSinkMetrics] = Vector.fill(instanceCount)(new CloudSinkMetrics())
+
+  val instances: Vector[IndexManagerV2] = taskIds.zip(metrics).map { case (id, m) => buildIndexManager(id, m) }
 
   def a: IndexManagerV2 = instances(0)
   def b: IndexManagerV2 = instances(1)
@@ -100,7 +104,7 @@ final class TwoInstanceHarness(
       catch { case _: Throwable => () }
     }
 
-  private def buildIndexManager(taskId: ConnectorTaskId): IndexManagerV2 = {
+  private def buildIndexManager(taskId: ConnectorTaskId, instanceMetrics: CloudSinkMetrics): IndexManagerV2 = {
     implicit val si:  StorageInterface[FakeFileMetadata] = storage
     implicit val tid: ConnectorTaskId                    = taskId
     new IndexManagerV2(
@@ -113,6 +117,7 @@ final class TwoInstanceHarness(
       gcSweepEnabled              = sweepEnabled,
       clock                       = () => clock.get(),
       commitMode                  = commitMode,
+      metrics                     = instanceMetrics,
     )(si, taskId)
   }
 }

@@ -349,10 +349,11 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
    * and before `stop()`, only the revoked ones on a cooperative rebalance. It is the only source
    * of truth for a revoke: `open()` receives only newly assigned partitions and never infers one.
    * After the writers are closed (a forced master-lock write still needs the partition's
-   * ownership state), `indexManager.closePartitions` drains the GC deletes queued for those
-   * partitions while they are still provably this instance's, then drops all their state
-   * (seeked offset, eTags, held epoch, granular cache, fence), so a revoked fenced partition no
-   * longer fails the next `put()` for the partitions this task keeps.
+   * ownership state), `indexManager.closePartitions` drops the GC deletes queued for those
+   * partitions without running them (their obsolete locks are left for the orphan sweep), then
+   * drops all their state (seeked offset, eTags, held epoch, granular cache, fence), so a revoked
+   * fenced partition no longer fails the next `put()` for the partitions this task keeps. The
+   * release runs even if closing the writers throws.
    */
   override def close(partitions: util.Collection[KafkaTopicPartition]): Unit = {
     logger.debug(
@@ -369,15 +370,14 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
     // delete lands (conditional deletes land in a later change; see
     // IndexManagerV2.acceptingWork). On shutdown (close → stop), the flag stays false until the
     // executors are shut down in IndexManagerV2.close().
-    Option(indexManager).foreach(_.suspendBackgroundWork())
-    // LC-349: these partitions are no longer held; the batch temp sweep -- even one already
-    // mid-pass, which the gate above cannot stop -- must not delete under them.
-    Option(indexManager).foreach(_.releasePartitions(
-      partitions.asScala.map(tp => TopicPartition(Topic(tp.topic), tp.partition)).toSet,
-    ))
-    Option(writerManager).foreach(_.close())
     val closed = Option(partitions).map(_.asScala.map(tp => TopicPartition(Topic(tp.topic), tp.partition)).toSet)
-    Option(indexManager).foreach(im => im.closePartitions(closed.getOrElse(Set.empty)))
+    try {
+      Option(indexManager).foreach(_.suspendBackgroundWork())
+      // LC-349: these partitions are no longer held; the batch temp sweep -- even one already
+      // mid-pass, which the gate above cannot stop -- must not delete under them.
+      Option(indexManager).foreach(_.releasePartitions(closed.getOrElse(Set.empty)))
+      Option(writerManager).foreach(_.close())
+    } finally Option(indexManager).foreach(im => im.closePartitions(closed.getOrElse(Set.empty)))
   }
 
   override def stop(): Unit = {
@@ -399,8 +399,8 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
 
     // indexManager.close() shuts down background executors and performs a final synchronous
     // drainGcQueue() for any partition still held. The close(partitions) before stop() has
-    // already drained and released the closed partitions' queued GC deletes. The state is GC'd
-    // with the indexManager reference immediately after.
+    // already dropped the closed partitions' queued GC deletes (left for the orphan sweep) and
+    // released them. The state is GC'd with the indexManager reference immediately after.
     Try(Option(indexManager).foreach(_.close())).failed.foreach { t =>
       logger.warn(s"[$taskIdStr] indexManager.close() failed during stop()", t)
     }

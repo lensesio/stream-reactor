@@ -691,7 +691,12 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues {
     } finally h.close()
   }
 
-  test("GC deletes queued before a close are drained by the close while the partition is still ours") {
+  // Shutdown/revoke cleanup promise: closing a partition no longer deletes its queued obsolete
+  // locks. The queued deletes are by path, and the writer close that runs first evicts the granular
+  // cache, which is the only thing telling the drain that a queued key has since been reclaimed and
+  // rewritten. The obsolete locks a close drops stay in storage for the orphan sweep.
+
+  test("closing a partition drops its queued GC deletes: the obsolete lock is left for the orphan sweep") {
     val h = new TwoInstanceHarness()
     try {
       h.clock.set(1000L)
@@ -700,11 +705,61 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues {
       h.a.updateForPartitionKey(tp, pk, Some(Offset(3)), None).value
       h.a.updateMasterLock(tp, Offset(10)).value
       h.a.cleanUpObsoleteLocks(tp, Offset(10), Set.empty).value
+      h.a.gcQueueSize shouldBe 1
 
       h.a.closePartitions(Set(tp))
 
-      h.readLock(h.granularLockPath(tp, pk)).isLeft shouldBe true
+      h.readLock(h.granularLockPath(tp, pk)).value.wrappedObject.committedOffset shouldBe Some(Offset(3))
       h.a.gcQueueSize shouldBe 0
+      h.metrics(0).getGcLocksSkippedRevoked shouldBe 1L
+      h.metrics(0).getGcLocksDeleted shouldBe 0L
+    } finally h.close()
+  }
+
+  test("a reclaimed key's lock rewritten above the master survives the writer close and the partition close") {
+    val h = new TwoInstanceHarness()
+    try {
+      h.clock.set(1000L)
+      h.a.open(Set(tp)).value
+      h.a.ensureGranularLock(tp, pk).value
+      h.a.updateForPartitionKey(tp, pk, Some(Offset(3)), None).value
+      h.a.updateMasterLock(tp, Offset(9)).value
+      h.a.cleanUpObsoleteLocks(tp, Offset(9), Set.empty).value // queues the key's lock path
+      // The key comes back before the drain: a new writer reclaims it and commits up to 12, above
+      // the master, so the lock is now the key's only dedup floor for offsets 9..12.
+      h.a.ensureGranularLock(tp, pk).value
+      h.a.updateForPartitionKey(tp, pk, Some(Offset(12)), None).value
+      val current = h.readLock(h.granularLockPath(tp, pk)).value
+      current.wrappedObject.committedOffset shouldBe Some(Offset(12))
+
+      // CloudSinkTask.close(partitions): the writer close evicts the key's cache entry first.
+      h.a.evictAllGranularLocks(tp)
+      h.a.closePartitions(Set(tp))
+
+      h.readLock(h.granularLockPath(tp, pk)).value shouldBe current
+      h.a.gcQueueSize shouldBe 0
+    } finally h.close()
+  }
+
+  test("closing one partition drops only its queued GC deletes; a retained partition's are still drained") {
+    val h = new TwoInstanceHarness()
+    try {
+      h.clock.set(1000L)
+      h.a.open(Set(tp, other)).value
+      Seq(tp, other).foreach { p =>
+        h.a.ensureGranularLock(p, pk).value
+        h.a.updateForPartitionKey(p, pk, Some(Offset(3)), None).value
+        h.a.updateMasterLock(p, Offset(10)).value
+        h.a.cleanUpObsoleteLocks(p, Offset(10), Set.empty).value
+      }
+      h.a.gcQueueSize shouldBe 2
+
+      h.a.closePartitions(Set(tp))
+      h.a.gcQueueSize shouldBe 1
+      h.a.drainGcQueue()
+
+      h.readLock(h.granularLockPath(tp, pk)).isRight shouldBe true
+      h.readLock(h.granularLockPath(other, pk)).isLeft shouldBe true
     } finally h.close()
   }
 
