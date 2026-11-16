@@ -40,7 +40,8 @@ import java.util.concurrent.atomic.AtomicLong
  * GC and sweep are disabled (all intervals `Int.MaxValue`) so nothing runs in the background
  * unless a test drives `drainGcQueue()` / `sweepOrphanedLocks()` itself.
  */
-final class TwoInstanceHarness(instanceCount: Int = 2) extends AutoCloseable {
+final class TwoInstanceHarness(instanceCount: Int = 2, commitMode: CommitMode = CommitMode.Default)
+    extends AutoCloseable {
   require(instanceCount >= 2, s"a multi-instance harness needs at least 2 instances, got $instanceCount")
 
   val bucket:            String = "test-bucket"
@@ -98,6 +99,7 @@ final class TwoInstanceHarness(instanceCount: Int = 2) extends AutoCloseable {
       gcSweepMinAgeSeconds        = Int.MaxValue,
       gcSweepEnabled              = false,
       clock                       = () => clock.get(),
+      commitMode                  = commitMode,
     )(si, taskId)
   }
 }

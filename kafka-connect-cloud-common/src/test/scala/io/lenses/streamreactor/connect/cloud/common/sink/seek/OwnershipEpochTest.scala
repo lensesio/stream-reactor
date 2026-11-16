@@ -501,4 +501,25 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues {
       h.b.fencingReason(tp) shouldBe None
     } finally h.close()
   }
+
+  test("a batch open whose legacy-lock snapshot reads a newer-epoch lock is fenced and neither bumps nor purges it") {
+    val h = new TwoInstanceHarness(commitMode = CommitMode.Batch)
+    try {
+      h.clock.set(1000L)
+      // A granular lock written by a newer owner after this instance's ownership write.
+      val _ = h.storage
+        .writeBlobToFile(
+          h.bucket,
+          h.granularLockPath(tp, pk),
+          NoOverwriteExistingObject(IndexFile(h.lockUuid(1), Some(Offset(9)), None, Some(5000L))),
+        )
+        .value
+      val before = h.readLock(h.granularLockPath(tp, pk)).value
+
+      h.a.open(Set(tp)).value
+
+      h.a.fencedPartitions should contain(tp)
+      h.readLock(h.granularLockPath(tp, pk)).value shouldBe before
+    } finally h.close()
+  }
 }

@@ -1133,6 +1133,21 @@ class IndexManagerV2(
   }
 
   /**
+   * Applies the ownership-epoch read rule to a legacy snapshot read before anything is cached:
+   * `Left` when the lock was written under a newer epoch (this instance is fenced), otherwise the
+   * read itself, unchanged.
+   */
+  private def fencedOnRead[A](
+    topicPartition: TopicPartition,
+    partitionKey:   String,
+    read:           Either[A, ObjectWithETag[IndexFile]],
+  ): Either[SinkError, Either[A, ObjectWithETag[IndexFile]]] =
+    read match {
+      case Right(owe) => rejectIfFenced(topicPartition, partitionKey, owe.wrappedObject).map(_ => read)
+      case Left(_)    => read.asRight
+    }
+
+  /**
    * Loads (fences) one legacy granular lock: resolves an in-flight `PendingState` or bumps a
    * clean lock's eTag, taking ownership of a poison blob if found. On a lost race resolving a
    * pending chain (a live granular zombie also driving it), re-reads and retries up to
@@ -1144,8 +1159,9 @@ class IndexManagerV2(
       val path = generateGranularLockFilePath(connectorTaskId, topicPartition, partitionKey, directoryFileName)
 
       def attempt(attemptsLeft: Int): Either[SinkError, Option[Offset]] =
-        tryOpen(bp.bucket, path) match {
-          case Right(owe @ ObjectWithETag(IndexFile(_, committedOffset, Some(pending), _), _)) =>
+        fencedOnRead(topicPartition, partitionKey, tryOpen(bp.bucket, path)) match {
+          case Left(fenced)                                                                           => fenced.asLeft
+          case Right(Right(owe @ ObjectWithETag(IndexFile(_, committedOffset, Some(pending), _), _))) =>
             // Dead-worker recovery: resolve the in-flight chain. The final updateForPartitionKey
             // bumps the eTag, so the lock is fenced too.
             gcPut(topicPartition, partitionKey, GranularCacheEntry(None, owe.eTag))
@@ -1166,14 +1182,14 @@ class IndexManagerV2(
               case l @ Left(_) => l
             }
 
-          case Right(owe @ ObjectWithETag(IndexFile(_, committedOffset, None, _), _)) =>
+          case Right(Right(owe @ ObjectWithETag(IndexFile(_, committedOffset, None, _), _))) =>
             gcPut(topicPartition, partitionKey, GranularCacheEntry(committedOffset, owe.eTag))
             bumpLegacyLock(topicPartition, partitionKey, committedOffset, MaxLegacyBumpAttempts)
 
-          case Left(_: FileNotFoundError) =>
+          case Right(Left(_: FileNotFoundError)) =>
             Option.empty[Offset].asRight
 
-          case Left(EmptyFileError(_, eTag)) =>
+          case Right(Left(EmptyFileError(_, eTag))) =>
             // Take ownership exactly as ensureGranularLock does.
             heldEpoch(topicPartition).flatMap { epoch =>
               storageInterface.writeBlobToFile(
@@ -1189,7 +1205,7 @@ class IndexManagerV2(
               )
             }
 
-          case Left(err) =>
+          case Right(Left(err)) =>
             NonFatalCloudSinkError.unswallowable(
               s"Failed to load legacy granular lock $topicPartition/$partitionKey: ${err.message()}",
               err.toExceptionOption,
@@ -1216,11 +1232,12 @@ class IndexManagerV2(
       case Left(_) if attemptsLeft > 1 =>
         bucketAndPrefixFn(topicPartition).flatMap { bp =>
           val path = generateGranularLockFilePath(connectorTaskId, topicPartition, partitionKey, directoryFileName)
-          tryOpen(bp.bucket, path) match {
-            case Right(owe @ ObjectWithETag(IndexFile(_, co2, None, _), _)) =>
+          fencedOnRead(topicPartition, partitionKey, tryOpen(bp.bucket, path)) match {
+            case Left(fenced) => fenced.asLeft
+            case Right(Right(owe @ ObjectWithETag(IndexFile(_, co2, None, _), _))) =>
               gcPut(topicPartition, partitionKey, GranularCacheEntry(co2, owe.eTag))
               bumpLegacyLock(topicPartition, partitionKey, co2, attemptsLeft - 1)
-            case Right(owe @ ObjectWithETag(IndexFile(_, co2, Some(pending), _), _)) =>
+            case Right(Right(owe @ ObjectWithETag(IndexFile(_, co2, Some(pending), _), _))) =>
               gcPut(topicPartition, partitionKey, GranularCacheEntry(None, owe.eTag))
               pendingOperationsProcessors.processPendingOperations(
                 topicPartition,
@@ -1228,7 +1245,7 @@ class IndexManagerV2(
                 pending,
                 (tp, co, ps) => updateForPartitionKey(tp, partitionKey, co, ps),
               )
-            case Left(rerr) =>
+            case Right(Left(rerr)) =>
               new FatalCloudSinkError(rerr.message(), rerr.toExceptionOption, topicPartition).asLeft
           }
         }
