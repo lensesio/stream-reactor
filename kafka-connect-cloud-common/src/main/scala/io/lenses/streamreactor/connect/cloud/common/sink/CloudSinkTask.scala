@@ -368,7 +368,8 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
     Option(metrics).foreach(_.incrementRebalanceClosesTotal())
 
     // Suspend background GC/sweep threads before closing writers. This is a best-effort gate
-    // that prevents new scheduled invocations from starting until the next open(). An
+    // that prevents new scheduled invocations from starting until the next open(), or until
+    // closePartitions returns with partitions still held (a revoke-only rebalance has no open()). An
     // already-running invocation is not interrupted: its deletes are by path and unconditional,
     // so a lock it selected before a handover can be rewritten by the new owner before the
     // delete lands (conditional deletes land in a later change; see

@@ -603,6 +603,10 @@ class IndexManagerV2(
    * `Some(reason)` means skip: no ownership epoch is held for the partition, or the lock was
    * written by another instance or under a higher epoch (which also marks the partition fenced).
    * No lock, or a 0-byte one, carries no owner, so it passes, as before.
+   *
+   * Applied to the pre-LIST read and again to each delete chunk's fresh read. It is a guard, not
+   * complete fencing: a takeover between a chunk's read and its by-path delete is not seen by that
+   * delete; the age threshold keeps a new owner's fresh temps out of it.
    */
   private def sweepFenceReason(topicPartition: TopicPartition, master: Option[IndexFile]): Option[String] =
     master.flatMap { m =>
