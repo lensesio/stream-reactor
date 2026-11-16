@@ -180,7 +180,8 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
    * Fails the task, before any work, once this instance has found itself fenced on a partition: a
    * newer owner holds it, so continuing would only withhold offsets forever while the zombie keeps
    * the slot. Thrown outside `handleTry` as a `FatalConnectException`, which every error policy
-   * rethrows (NOOP would swallow, and RETRY would endlessly re-deliver, any other exception type).
+   * rethrows: NOOP would swallow an ordinary `ConnectException`, and RETRY would re-deliver the
+   * batch as retriable until its retries are exhausted (never, with unlimited retries).
    * A restart re-opens the partitions and re-takes ownership above the fencing epoch.
    */
   private def failIfFenced(): Unit =
