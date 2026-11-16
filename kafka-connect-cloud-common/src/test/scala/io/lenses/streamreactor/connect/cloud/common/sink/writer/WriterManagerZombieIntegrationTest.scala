@@ -251,7 +251,7 @@ class WriterManagerZombieIntegrationTest
     im.close()
   }
 
-  // ── LC-350 ownership-epoch R6: a master write lost to a newer owner fences the partition ──
+  // ── a master write lost to a newer owner fences the partition ──
 
   /** Same connector (same lock paths), new `ConnectorTaskId` object => a different `lockUuid`. */
   private def buildOtherInstance(storage: StorageInterface[FakeFileMetadata]): IndexManagerV2 = {
@@ -268,7 +268,7 @@ class WriterManagerZombieIntegrationTest
     )(si, other)
   }
 
-  test("LC-350: preCommit whose master write loses to a newer owner marks the partition fenced") {
+  test("preCommit whose master write loses to a newer owner marks the partition fenced") {
     val storage = new InMemoryStorageInterface()
     val metrics = new CloudSinkMetrics()
     // Shared metrics, as WriterManagerCreator wires them in production.
@@ -299,7 +299,7 @@ class WriterManagerZombieIntegrationTest
     newer.close()
   }
 
-  test("LC-350: a transient master-write failure in preCommit does not fence the partition") {
+  test("a transient master-write failure in preCommit does not fence the partition") {
     val storage = new InMemoryStorageInterface()
     val metrics = new CloudSinkMetrics()
     val im      = buildIndexManager(storage)
@@ -318,7 +318,7 @@ class WriterManagerZombieIntegrationTest
     im.close()
   }
 
-  test("LC-350: closing a fenced partition skips the forced master write") {
+  test("closing a fenced partition skips the forced master write") {
     val storage = new InMemoryStorageInterface()
     val metrics = new CloudSinkMetrics()
     val im      = buildIndexManager(storage)

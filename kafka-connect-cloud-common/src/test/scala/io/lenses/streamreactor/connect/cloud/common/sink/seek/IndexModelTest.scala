@@ -64,7 +64,7 @@ class IndexModelTest extends AnyFunSuiteLike with Matchers with EitherValues {
     decodedIndexFile shouldEqual indexFile
   }
 
-  // LC-350 ownership epoch (spec ownership-epoch R1): optional, written only when set, so locks
+  // Ownership epoch: optional, written only when set, so locks
   // without an epoch stay byte-identical to the pre-epoch format, and older readers still decode.
 
   test("an index file without an epoch encodes exactly as the pre-epoch format (no epoch key)") {

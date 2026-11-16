@@ -35,7 +35,7 @@ import java.util.concurrent.atomic.AtomicLong
  * N real `IndexManagerV2` instances of the SAME connector sharing one `InMemoryStorageInterface`,
  * so they read and CAS the same lock files. Each instance gets its own `ConnectorTaskId` object,
  * and therefore its own random `lockUuid`, exactly like two task instances of one connector task
- * on different workers (the zombie scenario, LC-350).
+ * on different workers (the zombie scenario).
  *
  * GC and sweep are disabled (all intervals `Int.MaxValue`) so nothing runs in the background
  * unless a test drives `drainGcQueue()` / `sweepOrphanedLocks()` itself.

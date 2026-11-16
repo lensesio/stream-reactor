@@ -22,7 +22,7 @@ import org.scalatest.EitherValues
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
-/** LC-350 spec ownership-epoch: epoch assignment on open (R2). */
+/** Ownership epoch: assigned on open, stamped on every lock write, and enforced on every load. */
 class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues {
 
   private val tp = Topic("topic").withPartition(0)
@@ -115,7 +115,7 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues {
     } finally h.close()
   }
 
-  // ---- R3: every lock write stamps the held epoch -------------------------------------------
+  // ---- every lock write stamps the held epoch -------------------------------------------
 
   private val pk = "date=2024-01-01"
 
@@ -237,9 +237,9 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues {
     } finally h.close()
   }
 
-  // ---- R4/R5: a lock with a higher epoch than ours means we are fenced -----------------------
+  // ---- a lock with a higher epoch than ours means we are fenced -----------------------
 
-  test("LC-350 T1: a zombie that idle-evicts and reloads a key B has committed is fenced, not handed B's token") {
+  test("a zombie that idle-evicts and reloads a key B has committed is fenced, not handed B's token") {
     val h = new TwoInstanceHarness()
     try {
       h.clock.set(1000L)
@@ -351,9 +351,9 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues {
     } finally h.close()
   }
 
-  // ---- R6: a failed master write is checked for fencing -------------------------------------
+  // ---- a failed master write is checked for fencing -------------------------------------
 
-  test("LC-350 T2: after a slow-first-read zombie takes the master, the owner's failed write confirms it is fenced") {
+  test("after a slow-first-read zombie takes the master, the owner's failed write confirms it is fenced") {
     val h = new TwoInstanceHarness(instanceCount = 3)
     try {
       h.clock.set(1000L)
@@ -374,7 +374,7 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues {
     } finally h.close()
   }
 
-  test("LC-350 T3: a transient master-write failure is not mistaken for fencing") {
+  test("a transient master-write failure is not mistaken for fencing") {
     val h = new TwoInstanceHarness()
     try {
       h.a.open(Set(tp)).value

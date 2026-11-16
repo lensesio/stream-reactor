@@ -139,7 +139,7 @@ trait CloudSinkMetricsMBean {
   def getMasterLockFailures: Long
 
   /**
-   * Cumulative topic-partitions this task found itself fenced on (LC-350): it read a lock written
+   * Cumulative topic-partitions this task found itself fenced on: it read a lock written
    * under a newer ownership epoch, or lost a master-lock write to a newer owner. The task fails on
    * its next `put()`; a restart re-takes ownership. Non-zero means a zombie (this task) was stopped.
    */

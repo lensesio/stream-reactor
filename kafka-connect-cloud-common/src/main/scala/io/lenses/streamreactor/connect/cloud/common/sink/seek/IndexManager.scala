@@ -232,7 +232,7 @@ trait IndexManager {
 
   /**
    * Topic-partitions this instance has found itself fenced on: a newer owner holds them
-   * (LC-350, ownership-epoch R6). The task fails fast on its next `put()` when this is non-empty.
+   * The task fails fast on its next `put()` when this is non-empty.
    * Always empty when indexing is disabled.
    */
   def fencedPartitions: Set[TopicPartition] = Set.empty

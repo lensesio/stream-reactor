@@ -944,7 +944,7 @@ class CloudSinkTaskTest
     verify(im, times(1)).releasePartitions(Set(tpA, tpB))
   }
 
-  // ── LC-350 ownership-epoch R6: a fenced partition fails the task on the next put() ─────────
+  // ── a fenced partition fails the task on the next put() ─────────
 
   private def fencedPut(
     policy:     ErrorPolicy,
@@ -976,7 +976,7 @@ class CloudSinkTaskTest
         .foreach {
           case (batch, records) =>
             test(
-              s"LC-350: $batch put() on a fenced partition throws FatalConnectException under $name, before any work",
+              s"$batch put() on a fenced partition throws FatalConnectException under $name, before any work",
             ) {
               val (thrown, wm) = fencedPut(policy, maxRetries, records)
 
@@ -988,7 +988,7 @@ class CloudSinkTaskTest
         }
   }
 
-  test("LC-350: put() on a task with no fenced partitions does not throw for fencing") {
+  test("put() on a task with no fenced partitions does not throw for fencing") {
     val task = new ConcreteTestSinkTask
     task.initialize(5, NoopErrorPolicy())
     val wm = mock[WriterManager[FakeFileMetadata]]

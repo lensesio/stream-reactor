@@ -80,7 +80,7 @@ class IndexManagerV2(
   private[sink] val commitMode: CommitMode       = CommitMode.Default,
   metrics:                      CloudSinkMetrics = new CloudSinkMetrics(),
   batchCommitLocks:             BatchCommitLocks = BatchCommitLocks.NoOp,
-  // Wall-clock source for the ownership-epoch floor (LC-350). Injectable so tests are deterministic.
+  // Wall-clock source for the ownership-epoch floor. Injectable so tests are deterministic.
   clock: () => Long = () => System.currentTimeMillis(),
 )(
   implicit
@@ -121,8 +121,7 @@ class IndexManagerV2(
   // open()) means "currently held". Concurrent: open() adds from parallel fibers and the sweep
   // thread reads it.
   private[seek] val ownedPartitions: java.util.Set[TopicPartition] = ConcurrentHashMap.newKeySet[TopicPartition]()
-  // Ownership epoch this instance holds for each owned TopicPartition (LC-350, spec
-  // ownership-epoch R2). Set once by a successful ownership write in `open()` and cleared with the
+  // Ownership epoch this instance holds for each owned TopicPartition. Set once by a successful ownership write in `open()` and cleared with the
   // rest of the partition state; never changed while the partition is owned, so commit-pool threads
   // and the GC/sweep threads all see the same value. Concurrent because open() uses parTraverse.
   private[seek] val tpEpoch = TrieMap.empty[TopicPartition, Long]
@@ -145,13 +144,13 @@ class IndexManagerV2(
    * The epoch an ownership write takes over a lock that carried `previous`: one more than
    * `previous`, floored by wall-clock time. Between new-version owners the `+ 1` makes it strictly
    * increasing whatever the clocks say; after an older connector version dropped the field
-   * (`previous = None`), the clock keeps it above every epoch written before (ownership-epoch R2).
+   * (`previous = None`), the clock keeps it above every epoch written before.
    */
   private def nextEpoch(previous: Option[Long]): Long =
     math.max(previous.getOrElse(0L) + 1L, clock())
 
   /**
-   * The ownership epoch every lock write by this instance stamps (ownership-epoch R3). Set by
+   * The ownership epoch every lock write by this instance stamps. Set by
    * `open()`; a write without one is a bug (a path that skipped `open()`, or state cleared under a
    * live writer), so it fails fatally rather than writing an unstamped lock that would erase the
    * fence for the next reader.
@@ -159,17 +158,17 @@ class IndexManagerV2(
   private def heldEpoch(topicPartition: TopicPartition): Either[SinkError, Long] =
     tpEpoch.get(topicPartition).toRight(
       FatalCloudSinkError(
-        s"No ownership epoch held for $topicPartition; refusing an unstamped lock write (LC-350)",
+        s"No ownership epoch held for $topicPartition; refusing an unstamped lock write",
         topicPartition,
       ),
     )
 
   /**
-   * The ownership-epoch read rule (ownership-epoch R4/R5). A granular lock carrying a higher epoch
+   * The ownership-epoch read rule. A granular lock carrying a higher epoch
    * than the one this instance holds was written by a newer owner of the partition, so this
    * instance has been fenced: it must not cache the lock's token (that would hand a zombie the new
    * owner's fencing token), must not drive its pending chain, and must not write. The partition is
-   * marked fenced so the task fails fast (R6). Locks at or below our epoch pass unchanged; a missing
+   * marked fenced so the task fails fast. Locks at or below our epoch pass unchanged; a missing
    * epoch reads as 0. With no held epoch (not opened) there is nothing to compare, and any later
    * write fails on `heldEpoch` anyway.
    */
@@ -185,7 +184,7 @@ class IndexManagerV2(
         logger.error(
           s"[${connectorTaskId.show}] Fenced on $topicPartition: granular lock $partitionKey carries epoch $theirs " +
             s"(owner ${lock.owner}) > this instance's epoch $mine (lockUuid $lockOwner). A newer owner holds the " +
-            s"partition; refusing to load or write it (LC-350).",
+            s"partition; refusing to load or write it.",
         )
         FatalCloudSinkError(
           s"Fenced on $topicPartition: lock $partitionKey epoch $theirs > held epoch $mine",
@@ -811,7 +810,7 @@ class IndexManagerV2(
             new FatalCloudSinkError(err.message(), err.toExceptionOption, topicPartition).asLeft[Option[Offset]]
           case Right(bumped) =>
             metrics.incrementMasterLockUpdates()
-            // Seat the epoch before driving the chain: every recovery write stamps it (R3).
+            // Seat the epoch before driving the chain: every recovery write stamps it.
             val _ = ownershipTaken(topicPartition, epoch, bumped)
             topicPartitionToETags.put(topicPartition, bumped.eTag)
             pendingOperationsProcessors.processPendingOperations(

@@ -112,7 +112,7 @@ case class PendingState(
  * @param owner           The owner of the index file.
  * @param committedOffset The last committed offset, if available.
  * @param pendingState    The optional state of pending operations, if any.
- * @param epoch           The writer's ownership epoch for this topic-partition (LC-350). `None` for
+ * @param epoch           The writer's ownership epoch for this topic-partition. `None` for
  *                        locks written by versions that predate epochs. It is omitted from the JSON
  *                        when `None`, so such locks stay byte-identical to the pre-epoch format, and
  *                        older readers (circe ignores unknown fields) still decode locks that carry it.
