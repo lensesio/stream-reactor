@@ -18,6 +18,7 @@ package io.lenses.streamreactor.connect.cloud.common.sink.seek
 import cats.data.NonEmptyList
 import io.lenses.streamreactor.connect.cloud.common.model.Offset
 import io.lenses.streamreactor.connect.cloud.common.model.Topic
+import io.lenses.streamreactor.connect.cloud.common.model.UploadableString
 import org.scalatest.EitherValues
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
@@ -572,6 +573,34 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues {
       h.a.drainGcQueue()
 
       h.readLock(h.granularLockPath(tp, pk)).value shouldBe lockAfterReopen
+    } finally h.close()
+  }
+
+  test("once a legacy snapshot read fences the partition, no later legacy lock's pending chain is driven") {
+    val h = new TwoInstanceHarness(commitMode = CommitMode.Batch)
+    try {
+      h.clock.set(1000L)
+      val later = "date=2024-01-02" // listed after `pk`
+      val temp  = "data/topic/0/.temp-upload/in-flight"
+      h.storage.writeStringToFile(h.bucket, temp, UploadableString("payload")).value
+      val tempETag = h.storage.getBlobAsStringAndEtag(h.bucket, temp).value._2
+      val seed = (key: String, idx: IndexFile) =>
+        h.storage.writeBlobToFile(h.bucket, h.granularLockPath(tp, key), NoOverwriteExistingObject(idx)).value
+      val _ = seed(pk, IndexFile(h.lockUuid(1), Some(Offset(9)), None, Some(5000L)))
+      val _ = seed(
+        later,
+        IndexFile("old-owner",
+                  Some(Offset(2)),
+                  Some(PendingState(Offset(4), NonEmptyList.one(DeleteOperation(h.bucket, temp, tempETag)))),
+        ),
+      )
+      val laterBefore = h.readLock(h.granularLockPath(tp, later)).value
+
+      h.a.open(Set(tp)).value
+
+      h.a.fencedPartitions should contain(tp)
+      h.storage.pathExists(h.bucket, temp).value shouldBe true
+      h.readLock(h.granularLockPath(tp, later)).value shouldBe laterBefore
     } finally h.close()
   }
 }

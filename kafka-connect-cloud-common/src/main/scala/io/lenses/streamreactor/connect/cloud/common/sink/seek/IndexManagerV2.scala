@@ -412,7 +412,7 @@ class IndexManagerV2(
   private[sink] def sweepAllBatchTemps(): Unit =
     // Stop visiting partitions once interrupted (close() -> shutdownNow): a sweep that was waiting
     // on a partition's commit lock restores the flag and must not move on to the next partition.
-    for (tp <- seekedOffsets.keys.toList if !Thread.currentThread().isInterrupted) {
+    for (tp <- seekedOffsets.keys.toList if !Thread.currentThread().isInterrupted && !isFenced(tp)) {
       bucketAndPrefixFn(tp) match {
         case Right(loc) => sweepBatchTemps(tp, loc)
         case Left(err) =>
@@ -510,7 +510,8 @@ class IndexManagerV2(
       _ = if (commitMode == CommitMode.Batch) snapshotLegacyLocks(topicPartition, bucketAndPrefix)
       // Batch mode only, strictly after legacy resolution: reap orphaned batch temp objects.
       // Best-effort — never fails open. Same per-chunk checks as the periodic sweep (LC-349).
-      _ = if (commitMode == CommitMode.Batch) sweepBatchTemps(topicPartition, bucketAndPrefix)
+      _ = if (commitMode == CommitMode.Batch && !isFenced(topicPartition))
+        sweepBatchTemps(topicPartition, bucketAndPrefix)
     } yield offset
 
   }
@@ -1076,8 +1077,10 @@ class IndexManagerV2(
             if (lockKeys.isEmpty) {
               val _ = legacyResolved.put(topicPartition, true)
             } else {
+              // Once a read fences the partition, touch no further key (not even a pending chain's
+              // data operations); the keys left count as unresolved, so nothing is purged.
               val failedKeys = lockKeys.filter { pk =>
-                loadLegacy(topicPartition, pk) match {
+                isFenced(topicPartition) || (loadLegacy(topicPartition, pk) match {
                   case Right(_) => false
                   case Left(err) =>
                     logger.warn(
@@ -1085,7 +1088,7 @@ class IndexManagerV2(
                         s"$topicPartition/$pk; will retry on the next open(): ${err.message()}",
                     )
                     true
-                }
+                })
               }
               if (failedKeys.isEmpty) {
                 purgeLegacyLocks(topicPartition, bucketAndPrefix, lockKeys)
