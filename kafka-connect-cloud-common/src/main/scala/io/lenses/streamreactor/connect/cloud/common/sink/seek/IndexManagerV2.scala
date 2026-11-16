@@ -194,8 +194,9 @@ class IndexManagerV2(
    * instance has been fenced: it must not cache the lock's token (that would hand a zombie the new
    * owner's fencing token), must not drive its pending chain, and must not write. The partition is
    * marked fenced so the task fails fast. Locks at or below our epoch pass unchanged; a missing
-   * epoch reads as 0. With no held epoch (not opened) there is nothing to compare, and any later
-   * write fails on `heldEpoch` anyway. A partition already marked fenced refuses every lock.
+   * epoch reads as 0. Every load first requires a held epoch (`heldEpoch`, before the read): a
+   * partition this instance does not hold (never opened, or closed) is not ours, so nothing of it
+   * is read, cached or recovered. A partition already marked fenced refuses every lock.
    */
   private def rejectIfFenced(
     topicPartition: TopicPartition,
@@ -1191,7 +1192,8 @@ class IndexManagerV2(
    * (`snapshotLegacyLocks`) treats a final failure as non-fatal and retries on the next `open()`.
    */
   private def loadLegacy(topicPartition: TopicPartition, partitionKey: String): Either[SinkError, Option[Offset]] =
-    bucketAndPrefixFn(topicPartition).flatMap { bp =>
+    // No held epoch: not ours, touch nothing (see `rejectNewerEpoch`).
+    heldEpoch(topicPartition).flatMap(_ => bucketAndPrefixFn(topicPartition)).flatMap { bp =>
       val path = generateGranularLockFilePath(connectorTaskId, topicPartition, partitionKey, directoryFileName)
 
       def attempt(attemptsLeft: Int): Either[SinkError, Option[Offset]] =
@@ -1354,6 +1356,8 @@ class IndexManagerV2(
     // Deterministic path derived from connector task ID, topic-partition, and partition key
     val path = generateGranularLockFilePath(connectorTaskId, topicPartition, partitionKey, directoryFileName)
     for {
+      // No held epoch: not ours, touch nothing -- no read, no cache entry, no pending chain.
+      _               <- heldEpoch(topicPartition)
       bucketAndPrefix <- bucketAndPrefixFn(topicPartition)
       opened           = tryOpen(bucketAndPrefix.bucket, path)
       _ <-

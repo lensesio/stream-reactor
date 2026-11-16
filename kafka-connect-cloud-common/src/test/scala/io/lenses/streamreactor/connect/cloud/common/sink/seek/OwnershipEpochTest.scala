@@ -239,6 +239,37 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues {
     } finally h.close()
   }
 
+  test("with no held epoch, loading a key refuses it: no pending chain is driven and nothing is cached") {
+    val h = new TwoInstanceHarness()
+    try {
+      h.a.open(Set(tp)).value
+      val temp = "data/topic/0/.temp-upload/in-flight"
+      h.storage.writeStringToFile(h.bucket, temp, UploadableString("payload")).value
+      val tempETag = h.storage.getBlobAsStringAndEtag(h.bucket, temp).value._2
+      val pending  = PendingState(Offset(4), NonEmptyList.one(DeleteOperation(h.bucket, temp, tempETag)))
+      val _ = h.storage
+        .writeBlobToFile(h.bucket,
+                         h.granularLockPath(tp, pk),
+                         NoOverwriteExistingObject(IndexFile("old-owner", Some(Offset(2)), Some(pending))),
+        )
+        .value
+      val before = h.readLock(h.granularLockPath(tp, pk)).value
+      // The partition's state is gone (closed, or a failed open rolled back): it is not ours.
+      h.a.clearTopicPartitionState(tp)
+
+      h.a.getSeekedOffsetForPartitionKey(tp, pk).left.value shouldBe a[
+        io.lenses.streamreactor.connect.cloud.common.sink.FatalCloudSinkError,
+      ]
+      // An instance that never opened the partition refuses it the same way.
+      h.b.getSeekedOffsetForPartitionKey(tp, pk).isLeft shouldBe true
+
+      h.storage.pathExists(h.bucket, temp).value shouldBe true
+      h.a.granularCacheSize shouldBe 0
+      h.b.granularCacheSize shouldBe 0
+      h.readLock(h.granularLockPath(tp, pk)).value shouldBe before
+    } finally h.close()
+  }
+
   // ---- a lock with a higher epoch than ours means we are fenced -----------------------
 
   test("a zombie that idle-evicts and reloads a key B has committed is fenced, not handed B's token") {
