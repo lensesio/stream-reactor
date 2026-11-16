@@ -52,7 +52,7 @@ final class TwoInstanceHarness(
 
   val bucket:            String = "test-bucket"
   val directoryFileName: String = ".indexes2"
-  val connectorName:     String = "lc350-two-instance"
+  val connectorName:     String = "ownership-two-instance"
 
   val storage: InMemoryStorageInterface = new InMemoryStorageInterface()
 
