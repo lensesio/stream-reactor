@@ -139,7 +139,10 @@ class IndexManagerV2(
 
   override def fencingReason(topicPartition: TopicPartition): Option[String] = Option(fencedTps.get(topicPartition))
 
-  /** Marks a partition fenced; the metric counts each partition once and the first reason is kept. */
+  /**
+   * Marks a partition fenced, keeping the first reason. The metric counts fencing episodes: once
+   * per fence, so a partition fenced, re-owned (which lifts the fence) and fenced again counts twice.
+   */
   private def markFenced(topicPartition: TopicPartition, reason: String): Unit =
     if (fencedTps.putIfAbsent(topicPartition, reason) == null) metrics.incrementPartitionsFenced()
 
@@ -1959,7 +1962,7 @@ class IndexManagerV2(
         false
       } else if (isFenced(item.topicPartition)) {
         // A newer owner holds the partition: its locks are not ours to delete (by path, a delete
-        // could remove a lock the newer owner has since rewritten).
+        // could remove a lock the newer owner has since rewritten). Counted with the revoked skips.
         logger.debug(s"GC discarding ${item.topicPartition}/${item.partitionKey}: this instance is fenced")
         metrics.incrementGcLocksSkippedRevoked()
         false

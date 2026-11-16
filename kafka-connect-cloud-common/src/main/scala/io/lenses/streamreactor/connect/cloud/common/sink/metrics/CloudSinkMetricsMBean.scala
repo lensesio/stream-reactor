@@ -102,8 +102,9 @@ trait CloudSinkMetricsMBean {
   def getGcLocksSkippedReclaimed: Long
 
   /**
-   * Cumulative count of enqueued locks skipped because the topic-partition was revoked
-   * (rebalanced away) before the background drain ran. Expected during rebalances.
+   * Cumulative count of enqueued locks skipped at drain time because the topic-partition was
+   * revoked (rebalanced away) before the drain ran, or because this task is fenced on it (a newer
+   * owner holds it). Expected during rebalances.
    */
   def getGcLocksSkippedRevoked: Long
 
@@ -139,9 +140,11 @@ trait CloudSinkMetricsMBean {
   def getMasterLockFailures: Long
 
   /**
-   * Cumulative topic-partitions this task found itself fenced on: it read a lock written
-   * under a newer ownership epoch, or lost a master-lock write to a newer owner. The task fails on
-   * its next `put()`; a restart re-takes ownership. Non-zero means a zombie (this task) was stopped.
+   * Cumulative fencing episodes: each time this task found itself fenced on a topic-partition (it
+   * read a lock written under a newer ownership epoch, or found another owner or a newer epoch on
+   * the master lock). A partition fenced, re-owned and fenced again counts twice. The task fails on
+   * its next `put()`; a restart re-takes ownership. Usually a stopped zombie (this task), but a
+   * large clock skew can also raise it; see docs/datalake-exactly-once-partitionby.md.
    */
   def getPartitionsFenced: Long
 
