@@ -535,6 +535,10 @@ class WriterManager[SM <: FileMetadata](
     val tpWriters = writersForTopicPartition(topicPartition)
     if (tpWriters.isEmpty) {
       None
+    } else if (indexManager.isFenced(topicPartition)) {
+      // A newer owner holds this partition: return no offset, whatever the master-lock decision
+      // would have been (a Skip would otherwise hand Connect an offset). The task fails on its next put().
+      None
     } else {
       val firstBufferedOffsets = tpWriters.flatMap(_.getFirstBufferedOffset)
       val committedOffsets     = tpWriters.flatMap(_.getCommittedOffset)

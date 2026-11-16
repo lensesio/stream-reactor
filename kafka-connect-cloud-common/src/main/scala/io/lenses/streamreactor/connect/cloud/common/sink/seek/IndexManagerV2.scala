@@ -159,12 +159,21 @@ class IndexManagerV2(
    * fence for the next reader.
    */
   private def heldEpoch(topicPartition: TopicPartition): Either[SinkError, Long] =
-    tpEpoch.get(topicPartition).toRight(
+    if (isFenced(topicPartition))
+      // Once fenced, this instance writes nothing more for the partition, on any key: a key the
+      // newer owner has not touched yet would otherwise still accept the zombie's write.
       FatalCloudSinkError(
-        s"No ownership epoch held for $topicPartition; refusing an unstamped lock write",
+        s"Fenced on $topicPartition (${fencingReason(topicPartition).getOrElse("a newer owner holds it")}); " +
+          s"refusing a lock write",
         topicPartition,
-      ),
-    )
+      ).asLeft
+    else
+      tpEpoch.get(topicPartition).toRight(
+        FatalCloudSinkError(
+          s"No ownership epoch held for $topicPartition; refusing an unstamped lock write",
+          topicPartition,
+        ),
+      )
 
   /**
    * The ownership-epoch read rule. A granular lock carrying a higher epoch

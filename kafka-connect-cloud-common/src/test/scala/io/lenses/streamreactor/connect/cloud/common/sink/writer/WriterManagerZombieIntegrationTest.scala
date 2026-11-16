@@ -299,6 +299,32 @@ class WriterManagerZombieIntegrationTest
     newer.close()
   }
 
+  test("preCommit returns no offset for a fenced partition even when the master write would be skipped") {
+    val storage = new InMemoryStorageInterface()
+    val metrics = new CloudSinkMetrics()
+    val im      = buildIndexManager(storage)
+    im.open(Set(tp0)).value
+    val wm = buildWriterManager(im, storage, metrics)
+    wm.putWriter(MapKey(tp0, dateA), makeCommittedWriter(tp0, im, storage, committedOffset = Some(Offset(50))))
+    wm.preCommit(Map(tp0 -> new OffsetAndMetadata(200)))(tp0).offset() shouldBe 51L
+
+    // A newer owner opens and writes the key's granular lock; this instance then reloads it.
+    val pk    = WriterManager.derivePartitionKey(dateA).getOrElse(fail("no partition key"))
+    val newer = buildOtherInstance(storage)
+    newer.open(Set(tp0)).value
+    newer.ensureGranularLock(tp0, pk).value
+    im.evictGranularLock(tp0, pk)
+    im.getSeekedOffsetForPartitionKey(tp0, pk).isLeft shouldBe true
+    im.fencedPartitions should contain(tp0)
+
+    // Nothing changed since the last write, so the master-lock decision is Skip.
+    wm.preCommit(Map(tp0 -> new OffsetAndMetadata(200))).get(tp0) shouldBe None
+
+    wm.close()
+    im.close()
+    newer.close()
+  }
+
   test("a transient master-write failure in preCommit does not fence the partition") {
     val storage = new InMemoryStorageInterface()
     val metrics = new CloudSinkMetrics()

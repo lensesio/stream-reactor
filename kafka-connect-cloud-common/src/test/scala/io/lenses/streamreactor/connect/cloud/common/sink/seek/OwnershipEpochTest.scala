@@ -460,6 +460,33 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues {
 
   // ---- once fenced, nothing more is written or cached --------------------------------------
 
+  test("once fenced on one key, a commit to another cached key the new owner has not touched is refused") {
+    val h = new TwoInstanceHarness()
+    try {
+      val other = "date=2024-01-02"
+      h.clock.set(1000L)
+      h.a.open(Set(tp)).value
+      h.a.ensureGranularLock(tp, pk).value
+      h.a.ensureGranularLock(tp, other).value
+      h.a.updateForPartitionKey(tp, other, Some(Offset(3)), None).value
+
+      h.b.open(Set(tp)).value
+      h.b.getSeekedOffsetForPartitionKey(tp, pk).value
+      h.b.updateForPartitionKey(tp, pk, Some(Offset(9)), None).value
+
+      h.a.evictGranularLock(tp, pk)
+      h.a.getSeekedOffsetForPartitionKey(tp, pk).isLeft shouldBe true
+      h.a.fencedPartitions should contain(tp)
+      val otherBefore = h.readLock(h.granularLockPath(tp, other)).value
+
+      h.a.updateForPartitionKey(tp, other, Some(Offset(4)), None).left.value shouldBe a[
+        io.lenses.streamreactor.connect.cloud.common.sink.FatalCloudSinkError,
+      ]
+      h.a.updateMasterLock(tp, Offset(4)).isLeft shouldBe true
+      h.readLock(h.granularLockPath(tp, other)).value shouldBe otherBefore
+    } finally h.close()
+  }
+
   test("a fenced partition reports the epochs involved") {
     val h = new TwoInstanceHarness()
     try {
