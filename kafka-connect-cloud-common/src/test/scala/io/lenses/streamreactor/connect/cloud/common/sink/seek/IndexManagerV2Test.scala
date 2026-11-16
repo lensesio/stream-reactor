@@ -3947,9 +3947,9 @@ class IndexManagerV2Test
       im.open(Set(tp0, tp1))
       im.acceptingWork shouldBe true
 
-      // Simulate close(Set(tp0)): suspendBackgroundWork(), then release the revoked partition
+      // Simulate an eager close of every partition: suspendBackgroundWork(), then release them all
       im.suspendBackgroundWork()
-      im.closePartitions(Set(tp0))
+      im.closePartitions(Set(tp0, tp1))
       im.acceptingWork shouldBe false
 
       // Set up sweep mocks -- these should NOT be called while suspended

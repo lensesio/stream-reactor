@@ -222,7 +222,8 @@ trait IndexManager {
 
   /**
    * Signals that partitions are being closed and background threads should skip work
-   * until the next `open()` call. This is a best-effort gate: it prevents new scheduled
+   * until the next `open()` call, or until `closePartitions` returns with partitions still held
+   * (a cooperative revoke that adds nothing has no `open()`). This is a best-effort gate: it prevents new scheduled
    * invocations of `drainGcQueue` and `sweepOrphanedLocks` from starting, but cannot
    * stop an already-running invocation, whose by-path deletes can still land after a handover
    * -- see the architecture doc for the remaining window.

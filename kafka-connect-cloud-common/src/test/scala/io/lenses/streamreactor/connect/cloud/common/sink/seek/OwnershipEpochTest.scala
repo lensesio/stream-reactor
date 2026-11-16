@@ -763,6 +763,42 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues {
     } finally h.close()
   }
 
+  test("a revoke-only close resumes scheduled GC for the partitions still held, with no open() after it") {
+    val h = new TwoInstanceHarness(gcSeconds = 1)
+    try {
+      h.clock.set(1000L)
+      h.a.open(Set(tp, other)).value
+      // CloudSinkTask.close(partitions) suspends background work first; queue the retained
+      // partition's obsolete lock only then, so no tick before the close can delete it.
+      h.a.suspendBackgroundWork()
+      h.a.ensureGranularLock(tp, pk).value
+      h.a.updateForPartitionKey(tp, pk, Some(Offset(3)), None).value
+      h.a.updateMasterLock(tp, Offset(10)).value
+      h.a.cleanUpObsoleteLocks(tp, Offset(10), Set.empty).value
+
+      // Cooperative revoke of `other` only: Connect skips open() when nothing is added.
+      h.a.closePartitions(Set(other))
+
+      h.a.acceptingWork shouldBe true
+      val deadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(10)
+      while (h.readLock(h.granularLockPath(tp, pk)).isRight && System.nanoTime() < deadline) Thread.sleep(50)
+      h.readLock(h.granularLockPath(tp, pk)).isLeft shouldBe true
+    } finally h.close()
+  }
+
+  test("closing every held partition keeps scheduled background work suspended") {
+    val h = new TwoInstanceHarness()
+    try {
+      h.clock.set(1000L)
+      h.a.open(Set(tp, other)).value
+      h.a.suspendBackgroundWork()
+
+      h.a.closePartitions(Set(tp, other))
+
+      h.a.acceptingWork shouldBe false
+    } finally h.close()
+  }
+
   test("GC deletes queued before a handover this instance never noticed are dropped by its close, not drained") {
     val h = new TwoInstanceHarness()
     try {

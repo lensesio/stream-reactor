@@ -48,6 +48,7 @@ final class TwoInstanceHarness(
   commitMode:    CommitMode = CommitMode.Default,
   sweepEnabled:  Boolean    = false,
   sweepSeconds:  Int        = Int.MaxValue,
+  gcSeconds:     Int        = Int.MaxValue,
 ) extends AutoCloseable {
   require(instanceCount >= 2, s"a multi-instance harness needs at least 2 instances, got $instanceCount")
 
@@ -111,7 +112,7 @@ final class TwoInstanceHarness(
       bucketAndPrefixFn           = bucketAndPrefix,
       pendingOperationsProcessors = new PendingOperationsProcessors(storage),
       directoryFileName           = directoryFileName,
-      gcIntervalSeconds           = Int.MaxValue,
+      gcIntervalSeconds           = gcSeconds,
       gcSweepIntervalSeconds      = sweepSeconds,
       gcSweepMinAgeSeconds        = sweepSeconds,
       gcSweepEnabled              = sweepEnabled,

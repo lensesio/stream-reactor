@@ -339,7 +339,8 @@ class IndexManagerV2(
 
   // Best-effort gate: when false, scheduled invocations of drainGcQueue / sweepOrphanedLocks
   // are skipped. Set to false by suspendBackgroundWork() (called from CloudSinkTask.close()),
-  // set to true at the end of open(). This cannot stop an already-running invocation -- the
+  // set to true at the end of open(), and again at the end of closePartitions() when this
+  // instance still holds a partition (a revoke-only cooperative rebalance has no open()). This cannot stop an already-running invocation -- the
   // volatile provides visibility, not mutual exclusion. In-flight executions are not fully safe:
   //  - drainGcQueue: deletes items selected before the rebalance as obsolete (offset below
   //    globalSafeOffset). The delete is by path and unconditional, so if the partition is handed
@@ -1700,8 +1701,22 @@ class IndexManagerV2(
       finally {
         val failures = topicPartitions.toList.flatMap(tp => Try(releasePartition(tp)).failed.toOption)
         logger.debug(s"[${connectorTaskId.show}] Released ${topicPartitions.size} closed partition(s)")
+        resumeIfStillOwning()
         failures.headOption.foreach(throw _)
       }
+    }
+
+  /**
+   * Re-opens the background-work gate `CloudSinkTask.close` suspended, when this instance still
+   * holds an ownership epoch for some partition. A cooperative revoke that adds nothing calls
+   * `close(revoked)` only -- Connect skips `open()` -- so without this the GC drain and sweeps of
+   * the retained partitions would stay off until the next rebalance. After a close of every held
+   * partition (an eager rebalance, or before `stop()`) the gate stays shut until `open()`.
+   */
+  private def resumeIfStillOwning(): Unit =
+    if (executorsStarted && tpEpoch.nonEmpty) {
+      acceptingWork = true
+      logger.debug(s"[${connectorTaskId.show}] Background work resumed for the partitions still held")
     }
 
   /** Removes the GC items queued for `tps` without deleting anything; counted as revoked skips. */
