@@ -3414,11 +3414,11 @@ class IndexManagerV2Test
   }
 
   // Sets up a single aged granular lock under a master at offset 100 (see setupSweepMocks)
-  // and returns the storage mock plus the lock path.
+  // and returns the storage mock plus the lock path. pendingOffset = None writes no PendingState.
   private def setupPendingLockSweep(
     tp:              TopicPartition,
     committedOffset: Long,
-    pendingOffset:   Long,
+    pendingOffset:   Option[Long],
   ): (StorageInterface[_], String) = {
     val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
     val si              = storageMockWithBump()
@@ -3434,15 +3434,16 @@ class IndexManagerV2Test
                                                                                            any[Option[String]],
     )
 
-    val pendingState =
-      PendingState(Offset(pendingOffset), NonEmptyList.one(DeleteOperation("bucket", "some/temp/path", "old-etag")))
+    val pendingState = pendingOffset.map(po =>
+      PendingState(Offset(po), NonEmptyList.one(DeleteOperation("bucket", "some/temp/path", "old-etag"))),
+    )
     when(
       si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("pending-key.lock"))(
         ArgumentMatchers.eq(indexFileDecoder),
       ),
     )
       .thenReturn(
-        Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(committedOffset)), Some(pendingState)), "pending-etag")),
+        Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(committedOffset)), pendingState), "pending-etag")),
       )
     when(si.deleteFiles(anyString(), any[Seq[String]])).thenReturn(Right(()))
     (si, pendingPath)
@@ -3452,7 +3453,7 @@ class IndexManagerV2Test
   // master, so the pending chain one record below it is never replayed and is safe to sweep.
   test("sweep enqueues a PendingState lock whose pendingOffset is one below the master offset") {
     val tp                = Topic("topic1").withPartition(0)
-    val (si, pendingPath) = setupPendingLockSweep(tp, committedOffset = 50, pendingOffset = 99)
+    val (si, pendingPath) = setupPendingLockSweep(tp, committedOffset = 50, pendingOffset = Some(99L))
 
     val im = createSweepTestManager(si)
     try {
@@ -3465,11 +3466,14 @@ class IndexManagerV2Test
     } finally im.close()
   }
 
+  // No PendingState here, so only the committedOffset guard decides. A PendingState variant cannot
+  // isolate that guard: a real chain has pendingOffset > committedOffset, which is already at or
+  // above the master, so the pendingOffset guard would reject the lock on its own.
   Seq(100L -> "at", 150L -> "above").foreach {
     case (committedOffset, where) =>
-      test(s"sweep does NOT enqueue a PendingState lock whose committedOffset is $where the master offset") {
+      test(s"sweep does NOT enqueue a lock without PendingState whose committedOffset is $where the master offset") {
         val tp      = Topic("topic1").withPartition(0)
-        val (si, _) = setupPendingLockSweep(tp, committedOffset = committedOffset, pendingOffset = 200)
+        val (si, _) = setupPendingLockSweep(tp, committedOffset = committedOffset, pendingOffset = None)
 
         val im = createSweepTestManager(si)
         try {
@@ -3487,7 +3491,7 @@ class IndexManagerV2Test
   // master advances past pendingOffset the chain is no longer replayed and a later sweep removes it.
   test("sweep removes a retained PendingState lock once the master offset advances past its pendingOffset") {
     val tp                = Topic("topic1").withPartition(0)
-    val (si, pendingPath) = setupPendingLockSweep(tp, committedOffset = 50, pendingOffset = 200)
+    val (si, pendingPath) = setupPendingLockSweep(tp, committedOffset = 50, pendingOffset = Some(200L))
 
     val im = createSweepTestManager(si)
     try {
