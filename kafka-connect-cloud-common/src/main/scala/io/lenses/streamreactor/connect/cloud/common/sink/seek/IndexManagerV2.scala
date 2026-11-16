@@ -335,11 +335,15 @@ class IndexManagerV2(
   // Best-effort gate: when false, scheduled invocations of drainGcQueue / sweepOrphanedLocks
   // are skipped. Set to false by suspendBackgroundWork() (called from CloudSinkTask.close()),
   // set to true at the end of open(). This cannot stop an already-running invocation -- the
-  // volatile provides visibility, not mutual exclusion. In-flight executions are benign:
-  //  - drainGcQueue: processes items enqueued before the rebalance, which were correctly
-  //    identified as obsolete (offset below globalSafeOffset). Deleting them is safe.
-  //  - sweepOrphanedLocks: read-only LIST/GET on revoked partitions; any enqueued GcItems
-  //    are discarded by the next drain after open() prunes seekedOffsets.
+  // volatile provides visibility, not mutual exclusion. In-flight executions are not fully safe:
+  //  - drainGcQueue: deletes items selected before the rebalance as obsolete (offset below
+  //    globalSafeOffset). The delete is by path and unconditional, so if the partition is handed
+  //    over meanwhile, the new owner can rewrite a selected lock before the delete lands, and the
+  //    delete then removes the new owner's lock. Conditional deletes, which close this window,
+  //    land in a later change.
+  //  - sweepOrphanedLocks: LIST/GET plus a sweep-marker write; the GcItems it enqueues for a
+  //    revoked partition are dropped when open() clears its state, or discarded by the next drain,
+  //    but a run still in flight can re-queue them after that (the same limitation).
   @volatile private[seek] var acceptingWork = false
 
   // Executors are deferred to startExecutors() (called from open()) so that if
