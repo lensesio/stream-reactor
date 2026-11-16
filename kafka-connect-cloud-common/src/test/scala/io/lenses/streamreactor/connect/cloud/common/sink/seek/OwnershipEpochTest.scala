@@ -16,13 +16,20 @@
 package io.lenses.streamreactor.connect.cloud.common.sink.seek
 
 import cats.data.NonEmptyList
+import cats.data.Validated
+import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.model.Offset
 import io.lenses.streamreactor.connect.cloud.common.model.Topic
+import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
+import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
+import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
 import io.lenses.streamreactor.connect.cloud.common.model.UploadableString
 import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
+import io.lenses.streamreactor.connect.cloud.common.testing.InMemoryStorageInterface
 import io.lenses.streamreactor.connect.cloud.common.testing.InMemoryStorageInterface.FailDeleteAt
 import io.lenses.streamreactor.connect.cloud.common.testing.InMemoryStorageInterface.FailMoveAt
 import io.lenses.streamreactor.connect.cloud.common.testing.InMemoryStorageInterface.LoseWriteResponseAt
+import io.lenses.streamreactor.connect.cloud.common.testing.InMemoryStorageInterface.OnReadAt
 import org.scalatest.Assertion
 import org.scalatest.EitherValues
 import org.scalatest.OptionValues
@@ -879,6 +886,58 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues wit
     } finally h.close()
   }
 
+  test("a close whose release of one partition throws still releases the rest, rethrows, and stops its sweep") {
+    implicit val validator: CloudLocationValidator = (l: CloudLocation) => Validated.valid(l)
+    val storage     = new InMemoryStorageInterface()
+    val taskId      = ConnectorTaskId("release-failure", 1, 0)
+    val failing     = other
+    val failRelease = new java.util.concurrent.atomic.AtomicBoolean(false)
+    val im = new IndexManagerV2(
+      bucketAndPrefixFn =
+        (p: TopicPartition) => Right(CloudLocation("test-bucket", Some(s"data/${p.topic.value}/${p.partition}/"))),
+      pendingOperationsProcessors = new PendingOperationsProcessors(storage)(taskId),
+      directoryFileName           = ".indexes2",
+      gcSweepEnabled              = true,
+      gcSweepIntervalSeconds      = 3600,
+      gcSweepMinAgeSeconds        = 3600,
+      commitMode                  = CommitMode.Batch,
+    )(storage, taskId) {
+      // The first step of releasing a partition; a failure here skips the rest of its release.
+      override def evictAllGranularLocks(topicPartition: TopicPartition): Unit =
+        if (failRelease.get() && topicPartition == failing) throw new IllegalStateException("release failed")
+        else super.evictAllGranularLocks(topicPartition)
+    }
+    try {
+      Seq(tp, failing).foreach { p =>
+        val _ = storage.writeBlobToFile(
+          "test-bucket",
+          IndexManagerV2.generateLockFilePath(taskId, p, ".indexes2"),
+          NoOverwriteExistingObject(IndexFile("previous-owner", Some(Offset(9)), None)),
+        ).value
+      }
+      im.open(Set(tp, failing)).value
+      // An aged, unreferenced temp of the partition whose release fails: an orphan to any sweep of it.
+      val temp = s".temp-upload/release-failure/${failing.topic}/${failing.partition}/batch-uuid/staged.json"
+      storage.writeStringToFile("test-bucket", temp, UploadableString("payload")).value
+      storage.setLastModified("test-bucket", temp, java.time.Instant.now().minusSeconds(7200L)) shouldBe true
+      failRelease.set(true)
+
+      intercept[IllegalStateException](im.closePartitions(Set(tp, failing))).getMessage shouldBe "release failed"
+
+      // The other partition was released all the same.
+      im.heldEpochOf(tp) shouldBe None
+      im.getSeekedOffsetForTopicPartition(tp) shouldBe None
+      // The failing one kept its state, but it left the owned set before its release ran, so a
+      // sweep (which still visits it) deletes nothing under it.
+      im.getSeekedOffsetForTopicPartition(failing) shouldBe Some(Offset(9))
+      im.sweepAllBatchTemps()
+      storage.pathExists("test-bucket", temp).value shouldBe true
+    } finally {
+      failRelease.set(false)
+      im.close()
+    }
+  }
+
   test("GC deletes queued before a handover this instance never noticed are dropped by its close, not drained") {
     val h = new TwoInstanceHarness()
     try {
@@ -1335,6 +1394,69 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues wit
       h.storage.pathExists(h.bucket, temp).value shouldBe true
       h.a.fencedPartitions should contain(tp)
       h.a.fencingReason(tp).getOrElse("") should include("epoch 1001, held epoch 1000")
+    } finally h.close()
+  }
+
+  test("a batch temp sweep whose partition is released during a delete chunk's master read deletes nothing") {
+    val h = new TwoInstanceHarness(commitMode = CommitMode.Batch, sweepEnabled = true, sweepSeconds = 3600)
+    try {
+      h.clock.set(1000L)
+      seedMaster(h, IndexFile("previous-owner", Some(Offset(9)), None))
+      h.a.open(Set(tp)).value
+      val temp = h.batchTempPrefix(tp) + "batch-uuid/data/topic/0/staged.json"
+      h.storage.writeStringToFile(h.bucket, temp, UploadableString("payload")).value
+      h.storage.setLastModified(h.bucket, temp, longAgo) shouldBe true
+      // The pre-LIST master read passes. The chunk's owned-set check passes too, then another
+      // thread's close clears the partition state while the chunk re-reads the master: only the
+      // missing held epoch is left to stop the delete.
+      val masterPath = h.masterLockPath(tp)
+      def clearOnNextMasterRead(): Unit = {
+        val _ = h.storage.arm(OnReadAt(h.bucket, masterPath, () => h.a.clearTopicPartitionState(tp)))
+      }
+      h.storage.arm(OnReadAt(h.bucket, masterPath, () => clearOnNextMasterRead()))
+
+      h.a.sweepAllBatchTemps()
+
+      h.a.heldEpochOf(tp) shouldBe None
+      h.storage.pathExists(h.bucket, temp).value shouldBe true
+    } finally h.close()
+  }
+
+  test("a fence that lands while a key's lock is being read refuses the load: its pending chain is not driven") {
+    val h = new TwoInstanceHarness()
+    try {
+      val sibling = "date=2024-01-02"
+      h.clock.set(1000L)
+      h.a.open(Set(tp)).value // epoch 1000
+      // `pk` carries this instance's own epoch, with a pending Delete of a real temp object: the
+      // epoch read rule alone would accept it and drive the Delete.
+      val temp = "data/topic/0/.temp-upload/own-epoch-pending"
+      h.storage.writeStringToFile(h.bucket, temp, UploadableString("payload")).value
+      val tempETag = h.storage.getBlobAsStringAndEtag(h.bucket, temp).value._2
+      val pending  = PendingState(Offset(8), NonEmptyList.one(DeleteOperation(h.bucket, temp, tempETag)))
+      val _ = h.storage
+        .writeBlobToFile(
+          h.bucket,
+          h.granularLockPath(tp, pk),
+          NoOverwriteExistingObject(IndexFile(h.lockUuid(0), Some(Offset(3)), Some(pending), Some(1000L))),
+        )
+        .value
+      h.b.open(Set(tp)).value
+      h.b.ensureGranularLock(tp, sibling).value // the sibling key carries B's epoch
+      val before = h.readLock(h.granularLockPath(tp, pk)).value
+      // After this load's own fence check, while it reads pk's lock, another thread's load of the
+      // sibling key fences the partition.
+      def loadSibling(): Unit = {
+        val _ = h.a.getSeekedOffsetForPartitionKey(tp, sibling)
+      }
+      h.storage.arm(OnReadAt(h.bucket, h.granularLockPath(tp, pk), () => loadSibling()))
+
+      refusedWith(h.a.getSeekedOffsetForPartitionKey(tp, pk), "Fenced on")
+
+      h.a.fencedPartitions should contain(tp)
+      h.storage.pathExists(h.bucket, temp).value shouldBe true
+      h.readLock(h.granularLockPath(tp, pk)).value shouldBe before
+      h.a.granularCacheSize shouldBe 0
     } finally h.close()
   }
 

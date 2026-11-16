@@ -202,7 +202,8 @@ class IndexManagerV2(
    * marked fenced so the task fails fast. Locks at or below our epoch pass unchanged; a missing
    * epoch reads as 0. Every load first requires a held epoch (`heldEpoch`, before the read): a
    * partition this instance does not hold (never opened, or closed) is not ours, so nothing of it
-   * is read, cached or recovered. A partition already marked fenced refuses every lock.
+   * is read, cached or recovered. A partition already marked fenced refuses every lock, checked again
+   * here after the read: another thread (a commit, GC or sweep) may have fenced it while the lock was read.
    */
   private def rejectIfFenced(
     topicPartition: TopicPartition,
@@ -1147,10 +1148,11 @@ class IndexManagerV2(
             if (lockKeys.isEmpty) {
               val _ = legacyResolved.put(topicPartition, true)
             } else {
-              // Once a read fences the partition, touch no further key (not even a pending chain's
-              // data operations); the keys left count as unresolved, so nothing is purged.
+              // Once a read fences the partition, no further key is touched (not even read, nor a
+              // pending chain's data operations): `loadLegacy` refuses before reading anything (its
+              // `heldEpoch` check). The keys left count as unresolved, so nothing is purged.
               val failedKeys = lockKeys.filter { pk =>
-                isFenced(topicPartition) || (loadLegacy(topicPartition, pk) match {
+                loadLegacy(topicPartition, pk) match {
                   case Right(_) => false
                   case Left(err) =>
                     logger.warn(
@@ -1158,7 +1160,7 @@ class IndexManagerV2(
                         s"$topicPartition/$pk; will retry on the next open(): ${err.message()}",
                     )
                     true
-                })
+                }
               }
               if (failedKeys.isEmpty) {
                 purgeLegacyLocks(topicPartition, bucketAndPrefix, lockKeys)
