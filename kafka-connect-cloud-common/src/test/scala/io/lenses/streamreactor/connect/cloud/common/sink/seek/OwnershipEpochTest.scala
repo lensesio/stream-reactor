@@ -358,12 +358,12 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues {
 
   // ---- a failed master write is checked for fencing -------------------------------------
 
-  test("after a slow-first-read zombie takes the master, the owner's failed write confirms it is fenced") {
+  test("after a sequential takeover by another instance, the owner's failed master write confirms it is fenced") {
     val h = new TwoInstanceHarness(instanceCount = 3)
     try {
       h.clock.set(1000L)
       h.b.open(Set(tp)).value // B: the legitimate owner, epoch 1000
-      h.a.open(Set(tp)).value // A: a slow first read lands after B's bump, epoch 1001
+      h.a.open(Set(tp)).value // A: opens after B (a sequential takeover), epoch 1001
 
       h.b.updateMasterLock(tp, Offset(10)).isLeft shouldBe true
       h.b.confirmMasterFenced(tp) shouldBe true
