@@ -91,8 +91,10 @@ class IndexModelTest extends AnyFunSuiteLike with Matchers with EitherValues {
       None
   }
 
-  test("a pre-epoch reader (three-field decoder) still decodes a lock that carries an epoch") {
-    // Stand-in for an older connector version: same derived decoder, without the epoch field.
+  test("format compatibility: an older connector version's decoder still reads a lock that carries an epoch") {
+    // Not production code under test: this pins the rolling-upgrade assumption the epoch relies on.
+    // An older version decodes locks with the same derived decoder, minus the epoch field, and
+    // must ignore the new key rather than fail on it.
     final case class PreEpochIndexFile(
       owner:           String,
       committedOffset: Option[Offset],

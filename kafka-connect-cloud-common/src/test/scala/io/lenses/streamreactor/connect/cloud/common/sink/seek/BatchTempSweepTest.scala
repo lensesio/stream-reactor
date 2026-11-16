@@ -598,6 +598,9 @@ class BatchTempSweepTest extends AnyFunSuiteLike with Matchers with EitherValues
       "closed before the pass" -> ((im, _) => im.closePartitions(Set(tp))),
       "closed between LIST and delete" ->
         ((im, st) => st.afterTempList.set(() => im.closePartitions(Set(tp)))),
+      // Cleared state is stopped twice over: the chunk's owned-set check fails first, and the
+      // missing held epoch would stop the chunk's fence check after it. The latter is pinned on
+      // its own in OwnershipEpochTest (state cleared during the chunk's master read).
       "state cleared between LIST and delete" ->
         ((im, st) => st.afterTempList.set(() => im.clearTopicPartitionState(tp))),
     )
@@ -832,19 +835,26 @@ class BatchTempSweepTest extends AnyFunSuiteLike with Matchers with EitherValues
     val other = Topic("orders").withPartition(1)
     storage = st
     seedMaster(99)
+    val _ = st.writeBlobToFile(
+      bucket,
+      IndexManagerV2.generateLockFilePath(connectorTaskId, other, directoryName),
+      NoOverwriteExistingObject(IndexFile("prev-owner", Some(Offset(5)), None)),
+    ).value
+    val otherOrphan =
+      s".temp-upload/${connectorTaskId.name}/${other.topic}/${other.partition}/uuid-orphan/data/orders/1/orphan.json"
     val im = buildLockedIndexManager(st, BatchCommitLocks())
     try {
       im.open(Set(tp, other)).value
-      writeTemp(orphan, ageSecondsAgo = ageSeconds + 60)
+      writeTemp(orphan, ageSecondsAgo      = ageSeconds + 60)
+      writeTemp(otherOrphan, ageSecondsAgo = ageSeconds + 60)
       // A cooperative revoke of tp alone: the task keeps `other`, so work stays accepted.
       im.closePartitions(Set(tp))
       im.acceptingWork shouldBe true
-      im.ownedPartitions.asScala.toSet shouldBe Set(other)
-      im.getSeekedOffsetForTopicPartition(tp) shouldBe None
 
       im.sweepAllBatchTemps()
 
-      st.tempDeleteCalls shouldBe empty
+      // The retained partition is still swept; the closed one is not.
+      st.snapshot(bucket).keys should not contain otherOrphan
       st.snapshot(bucket).keys should contain(orphan)
     } finally im.close()
   }

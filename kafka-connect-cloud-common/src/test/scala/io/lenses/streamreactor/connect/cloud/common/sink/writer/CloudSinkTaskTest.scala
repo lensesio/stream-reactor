@@ -946,7 +946,7 @@ class CloudSinkTaskTest
     policy:     ErrorPolicy,
     maxRetries: Int,
     records:    java.util.Collection[org.apache.kafka.connect.sink.SinkRecord],
-  ): (Throwable, WriterManager[FakeFileMetadata]) = {
+  ): (Throwable, WriterManager[FakeFileMetadata], ConcreteTestSinkTask) = {
     val task = new ConcreteTestSinkTask
     task.initialize(maxRetries, policy)
     val wm = mock[WriterManager[FakeFileMetadata]]
@@ -956,35 +956,32 @@ class CloudSinkTaskTest
     task.writerManager   = wm
     task.indexManager    = im
     task.connectorTaskId = connectorTaskId
-    (intercept[Throwable](task.put(records)), wm)
+    (intercept[Throwable](task.put(records)), wm, task)
   }
 
   private val oneRecord: java.util.Collection[org.apache.kafka.connect.sink.SinkRecord] =
     java.util.List.of(new org.apache.kafka.connect.sink.SinkRecord(tpA.topic.value, 0, null, null, null, "v", 7L))
 
-  Seq[(String, ErrorPolicy, Int)](
-    ("NOOP", NoopErrorPolicy(), 5),
-    ("RETRY", RetryErrorPolicy(), 5),
-    ("RETRY with unlimited retries", RetryErrorPolicy(), Int.MaxValue),
-    ("THROW", ThrowErrorPolicy(), 5),
+  // The fence check runs before `handleTry`, so no error policy ever sees the failure: NOOP would
+  // swallow it, RETRY would re-deliver it (forever with unlimited retries). The untouched retry
+  // count shows it never went through the policy. THROW is not listed: it rethrows either way.
+  Seq[(String, ErrorPolicy, Int, java.util.Collection[org.apache.kafka.connect.sink.SinkRecord])](
+    ("an empty put() under NOOP", NoopErrorPolicy(), 5, java.util.List.of[org.apache.kafka.connect.sink.SinkRecord]()),
+    ("a non-empty put() under NOOP", NoopErrorPolicy(), 5, oneRecord),
+    ("a non-empty put() under RETRY with unlimited retries", RetryErrorPolicy(), Int.MaxValue, oneRecord),
   ).foreach {
-    case (name, policy, maxRetries) =>
-      Seq("an empty" -> java.util.List.of[org.apache.kafka.connect.sink.SinkRecord](), "a non-empty" -> oneRecord)
-        .foreach {
-          case (batch, records) =>
-            test(
-              s"$batch put() on a fenced partition throws FatalConnectException under $name, before any work",
-            ) {
-              val (thrown, wm) = fencedPut(policy, maxRetries, records)
+    case (name, policy, maxRetries, records) =>
+      test(s"$name on a fenced partition throws FatalConnectException before any work, bypassing the policy") {
+        val (thrown, wm, task) = fencedPut(policy, maxRetries, records)
 
-              thrown shouldBe a[FatalConnectException]
-              thrown should not be a[RetriableIntegrityException]
-              thrown.getMessage should include(tpA.toString)
-              thrown.getMessage should include("lock k epoch 9 > held epoch 3")
-              thrown.getMessage should include(connectorTaskId.lockUuid)
-              org.mockito.Mockito.verifyNoInteractions(wm)
-            }
-        }
+        thrown shouldBe a[FatalConnectException]
+        thrown should not be a[RetriableIntegrityException]
+        thrown.getMessage should include(tpA.toString)
+        thrown.getMessage should include("lock k epoch 9 > held epoch 3")
+        thrown.getMessage should include(connectorTaskId.lockUuid)
+        org.mockito.Mockito.verifyNoInteractions(wm)
+        task.getErrorTrackerRetries shouldBe maxRetries
+      }
   }
 
   test("put() on a task with no fenced partitions does not throw for fencing") {

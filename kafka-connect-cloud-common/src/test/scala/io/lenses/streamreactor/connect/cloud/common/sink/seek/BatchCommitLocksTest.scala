@@ -85,9 +85,10 @@ class BatchCommitLocksTest extends AnyFunSuiteLike with Matchers with EitherValu
       val first = locks.lockFor(tp0)
       // Revoke tp0 only, as close(partitions) does on a cooperative rebalance; tp1 is kept.
       im.closePartitions(Set(tp0))
+      // tp0 is released and no longer writable; the kept tp1 still is.
       im.getSeekedOffsetForTopicPartition(tp0) shouldBe None
-      im.ownedPartitions.contains(tp0) shouldBe false
-      im.ownedPartitions.contains(tp1) shouldBe true
+      im.update(tp0, Some(Offset(100)), None).left.value.message() should include("Index not found")
+      im.update(tp1, Some(Offset(1)), None).value shouldBe Some(Offset(1))
       // Reassign it.
       im.open(Set(tp0)).value
       locks.lockFor(tp0) should be theSameInstanceAs first
@@ -103,7 +104,7 @@ class BatchCommitLocksTest extends AnyFunSuiteLike with Matchers with EitherValu
       im.open(Set(tp0)).value
       val first = locks.lockFor(tp0)
       im.closePartitions(Set(tp0))
-      im.ownedPartitions shouldBe empty
+      im.update(tp0, Some(Offset(100)), None).left.value.message() should include("Index not found")
       im.open(Set(tp0)).value
       locks.lockFor(tp0) should be theSameInstanceAs first
     } finally im.close()
