@@ -1634,7 +1634,8 @@ class IndexManagerV2(
     val _ = tpEpoch.remove(topicPartition)
     // A revoked partition is no longer this task's to fail on; a re-open decides ownership afresh.
     // A revoked partition's queued items would be discarded by the drain anyway; dropping them
-    // here keeps them from surviving into a later re-assignment.
+    // here keeps the queued ones from surviving into a later re-assignment. A drain or sweep run
+    // already in flight can still re-queue items afterwards; conditional deletes close that.
     dropFence(topicPartition, dropQueue = true)
     // A revoked/failed-open partition must re-confirm legacy-lock resolution on its next open()
     // rather than trusting a flag set under the previous (possibly abandoned) ownership episode.
