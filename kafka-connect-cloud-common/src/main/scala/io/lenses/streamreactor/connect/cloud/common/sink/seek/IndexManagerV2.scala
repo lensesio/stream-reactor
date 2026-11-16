@@ -445,7 +445,10 @@ class IndexManagerV2(
     // new one (revoked during a rebalance). During shutdown close() is followed by stop(),
     // not open(), so this branch is never reached on the shutdown path -- seekedOffsets
     // remain populated for the final drainGcQueue() in IndexManagerV2.close().
-    val stalePartitions = seekedOffsets.keys.toSet -- topicPartitions
+    // Ownership state, not just seekedOffsets: a partition whose master lock never recorded an
+    // offset has a held epoch, an eTag and possibly a fence, but no seeked offset.
+    val stalePartitions =
+      (seekedOffsets.keys ++ tpEpoch.keys ++ topicPartitionToETags.keys ++ fencedPartitions).toSet -- topicPartitions
     if (stalePartitions.nonEmpty) {
       logger.info(
         s"[${connectorTaskId.show}] Clearing stale state for ${stalePartitions.size} revoked partition(s) " +

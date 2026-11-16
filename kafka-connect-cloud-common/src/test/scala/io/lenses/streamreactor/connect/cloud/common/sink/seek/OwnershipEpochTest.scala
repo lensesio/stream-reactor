@@ -434,6 +434,35 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues {
     } finally h.close()
   }
 
+  test("a revoked fenced partition whose master never recorded an offset is dropped by an open of other partitions") {
+    val h = new TwoInstanceHarness()
+    try {
+      h.clock.set(1000L)
+      h.a.open(Set(tp)).value
+      h.a.ensureGranularLock(tp, pk).value
+      h.a.updateForPartitionKey(tp, pk, Some(Offset(5)), None).value
+      h.b.open(Set(tp)).value
+      h.a.updateMasterLock(tp, Offset(6)).isLeft shouldBe true
+      h.a.confirmMasterFenced(tp) shouldBe true
+      h.a.fencedPartitions should contain(tp)
+      // The master floor was never written, so no seeked offset is held for the partition.
+      h.a.getSeekedOffsetForTopicPartition(tp) shouldBe None
+
+      // A rebalance revokes it and assigns a different partition.
+      h.a.suspendBackgroundWork()
+      h.a.evictAllGranularLocks(tp)
+      val newlyAssigned = Topic("topic").withPartition(1)
+      h.a.open(Set(newlyAssigned)).value
+
+      h.a.fencedPartitions shouldBe empty
+      h.a.tpEpoch.get(tp) shouldBe None
+      h.a.topicPartitionToETags.get(tp) shouldBe None
+      h.a.ensureGranularLock(newlyAssigned, pk).value
+      h.a.updateForPartitionKey(newlyAssigned, pk, Some(Offset(1)), None).value shouldBe Some(Offset(1))
+      h.a.updateMasterLock(newlyAssigned, Offset(2)).value
+    } finally h.close()
+  }
+
   test("a fenced instance whose partition is re-assigned to it re-takes ownership, drops the fence and writes again") {
     val h = new TwoInstanceHarness()
     try {
