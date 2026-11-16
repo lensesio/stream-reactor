@@ -49,6 +49,7 @@ import io.lenses.streamreactor.connect.cloud.common.sink.seek.PendingOperationsP
 import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
 import io.lenses.streamreactor.connect.cloud.common.testing.FakeFileMetadata
 import io.lenses.streamreactor.connect.cloud.common.testing.InMemoryStorageInterface
+import io.lenses.streamreactor.connect.cloud.common.testing.InMemoryStorageInterface.FailWriteAt
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.mockito.ArgumentMatchersSugar
 import org.mockito.MockitoSugar
@@ -439,6 +440,34 @@ class CooperativeRevokeCloseTest
       Try(other.close()).getOrElse(())
       f.close()
     }
+  }
+
+  test("closing a partition clears its master-lock dirty state and leaves the retained partition's") {
+    val f = new Fixture(CommitMode.Granular, partitionBy = true)
+    try {
+      f.im.open(Set(retained, revoked)).value
+      f.write(retained, 0)
+      f.write(revoked, 0)
+      f.flushAll()
+      // Both partitions' master writes fail this cycle, so both stay dirty.
+      Seq(retained, revoked).foreach { tp =>
+        // The master lock path, as IndexManagerV2.generateLockFilePath builds it.
+        f.storage.arm(FailWriteAt(bucket,
+                                  s"$directoryName/${connectorTaskId.name}/.locks/${tp.topic}/${tp.partition}.lock",
+        ))
+      }
+      f.preCommit(retained) shouldBe None
+      f.preCommit(revoked) shouldBe None
+      f.metrics.getMasterLockDirty shouldBe true
+
+      f.task.close(java.util.List.of(revoked.toKafka))
+
+      // The retained partition is still dirty: its write is still owed.
+      f.metrics.getMasterLockDirty shouldBe true
+      // Its next write lands and clears its own dirty state; nothing of the revoked one's is left.
+      f.preCommit(retained) shouldBe Some(1L)
+      f.metrics.getMasterLockDirty shouldBe false
+    } finally f.close()
   }
 
   test("closing a partition with no current writer clears its residual offset and force state") {

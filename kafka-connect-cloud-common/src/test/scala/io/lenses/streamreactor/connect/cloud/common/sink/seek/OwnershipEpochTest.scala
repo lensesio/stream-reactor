@@ -19,7 +19,10 @@ import cats.data.NonEmptyList
 import io.lenses.streamreactor.connect.cloud.common.model.Offset
 import io.lenses.streamreactor.connect.cloud.common.model.Topic
 import io.lenses.streamreactor.connect.cloud.common.model.UploadableString
+import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
+import io.lenses.streamreactor.connect.cloud.common.testing.InMemoryStorageInterface.FailDeleteAt
 import io.lenses.streamreactor.connect.cloud.common.testing.InMemoryStorageInterface.FailMoveAt
+import io.lenses.streamreactor.connect.cloud.common.testing.InMemoryStorageInterface.LoseWriteResponseAt
 import org.scalatest.Assertion
 import org.scalatest.EitherValues
 import org.scalatest.OptionValues
@@ -37,6 +40,16 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues wit
 
   private def storedMaster(h: TwoInstanceHarness): IndexFile =
     h.readLock(h.masterLockPath(tp)).value.wrappedObject
+
+  /** Asserts `result` is a refusal whose message carries `text`. */
+  private def refusedWith(result: Either[SinkError, Any], text: String): Assertion =
+    result.left.value.message() should include(text)
+
+  /** Overwrites the master lock with `idx` (conditional on its current eTag), as another write would. */
+  private def overwriteMaster(h: TwoInstanceHarness, idx: IndexFile): ObjectWithETag[IndexFile] = {
+    val current = h.readLock(h.masterLockPath(tp)).value
+    h.storage.writeBlobToFile(h.bucket, h.masterLockPath(tp), ObjectWithETag(idx, current.eTag)).value
+  }
 
   test("opening a brand-new partition creates the master lock with epoch = clock") {
     val h = new TwoInstanceHarness()
@@ -91,16 +104,16 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues wit
   test("opening over a master lock with a PendingState bumps the epoch before recovery") {
     val h = new TwoInstanceHarness()
     try {
-      val pending = PendingState(
-        Offset(50),
-        NonEmptyList.one(DeleteOperation(h.bucket, "data/topic/0/.temp-upload/never-existed", "temp-etag")),
-      )
-      seedMaster(h, IndexFile("crashed-owner", Some(Offset(41)), Some(pending), Some(7000L)))
       h.clock.set(1000L)
+      val (chain, first, _) = twoCopyChain(h, pendingOffset = 50L)
+      seedMaster(h, IndexFile("crashed-owner", Some(Offset(41)), Some(chain), Some(7000L)))
+      // Recovery fails on its very first step, so no chain checkpoint (update) ever runs: whatever
+      // is stored afterwards is the ownership bump's own write.
+      val _ = h.storage.arm(FailMoveAt(h.bucket, first))
 
-      h.a.open(Set(tp)).value shouldBe Map(tp -> Some(Offset(50)))
+      h.a.open(Set(tp)).isLeft shouldBe true
 
-      h.a.heldEpochOf(tp) shouldBe Some(7001L)
+      storedMaster(h) shouldBe IndexFile(h.lockUuid(0), Some(Offset(41)), Some(chain), Some(7001L))
     } finally h.close()
   }
 
@@ -218,11 +231,11 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues wit
   }
 
   /**
-   * Stages two temp objects and returns a two-Copy chain over them. When the second Copy is made to
-   * fail, the chain stops after its first checkpoint, which leaves the intermediate PendingState
-   * write (the remaining Copy) persisted in the lock.
+   * Stages two temp objects and returns a two-Copy chain over them, with the two temp paths. When
+   * the second Copy is made to fail, the chain stops after its first checkpoint, which leaves the
+   * intermediate PendingState write (the remaining Copy) persisted in the lock.
    */
-  private def twoCopyChain(h: TwoInstanceHarness, pendingOffset: Long): (PendingState, String) = {
+  private def twoCopyChain(h: TwoInstanceHarness, pendingOffset: Long): (PendingState, String, String) = {
     def stage(name: String): (String, String) = {
       val temp = s"data/topic/0/.temp-upload/$name"
       h.storage.writeStringToFile(h.bucket, temp, UploadableString(name)).value
@@ -236,7 +249,7 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues wit
                       CopyOperation(h.bucket, t2, "data/topic/0/second", e2),
       ),
     )
-    chain -> t2
+    (chain, t1, t2)
   }
 
   private def remainingOps(idx: IndexFile): List[FileOperation] =
@@ -246,7 +259,7 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues wit
     val h = new TwoInstanceHarness()
     try {
       h.clock.set(1000L)
-      val (chain, second) = twoCopyChain(h, pendingOffset = 50L)
+      val (chain, _, second) = twoCopyChain(h, pendingOffset = 50L)
       seedMaster(h, IndexFile("crashed-owner", Some(Offset(41)), Some(chain), Some(7000L)))
       val _ = h.storage.arm(FailMoveAt(h.bucket, second))
 
@@ -265,7 +278,7 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues wit
     val h = new TwoInstanceHarness()
     try {
       h.a.open(Set(tp)).value
-      val (chain, second) = twoCopyChain(h, pendingOffset = 8L)
+      val (chain, _, second) = twoCopyChain(h, pendingOffset = 8L)
       val _ = h.storage
         .writeBlobToFile(h.bucket,
                          h.granularLockPath(tp, pk),
@@ -292,17 +305,15 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues wit
       h.a.ensureGranularLock(tp, pk).value
       val masterBefore   = h.readLock(h.masterLockPath(tp)).value
       val granularBefore = h.readLock(h.granularLockPath(tp, pk)).value
+      // No production path clears the epoch while the master eTag stays cached (both are set by the
+      // ownership write and cleared together), so the master writes' epoch check is reachable only
+      // through the bug it guards against; the hook drops the epoch alone to stand in for it. The
+      // realistic path, state cleared under a cached granular key, is covered by the next test.
       IndexManagerV2.IndexManagerV2TestHooks.dropHeldEpoch(h.a, tp)
 
-      h.a.updateMasterLock(tp, Offset(10)).left.value shouldBe a[
-        io.lenses.streamreactor.connect.cloud.common.sink.FatalCloudSinkError,
-      ]
-      h.a.update(tp, Some(Offset(12)), None).left.value shouldBe a[
-        io.lenses.streamreactor.connect.cloud.common.sink.FatalCloudSinkError,
-      ]
-      h.a.updateForPartitionKey(tp, pk, Some(Offset(5)), None).left.value shouldBe a[
-        io.lenses.streamreactor.connect.cloud.common.sink.FatalCloudSinkError,
-      ]
+      refusedWith(h.a.updateMasterLock(tp, Offset(10)), "No ownership epoch held")
+      refusedWith(h.a.update(tp, Some(Offset(12)), None), "No ownership epoch held")
+      refusedWith(h.a.updateForPartitionKey(tp, pk, Some(Offset(5)), None), "No ownership epoch held")
 
       h.readLock(h.masterLockPath(tp)).value shouldBe masterBefore
       h.readLock(h.granularLockPath(tp, pk)).value shouldBe granularBefore
@@ -327,11 +338,9 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues wit
       // The partition's state is gone (closed, or a failed open rolled back): it is not ours.
       h.a.clearTopicPartitionState(tp)
 
-      h.a.getSeekedOffsetForPartitionKey(tp, pk).left.value shouldBe a[
-        io.lenses.streamreactor.connect.cloud.common.sink.FatalCloudSinkError,
-      ]
+      refusedWith(h.a.getSeekedOffsetForPartitionKey(tp, pk), "No ownership epoch held")
       // An instance that never opened the partition refuses it the same way.
-      h.b.getSeekedOffsetForPartitionKey(tp, pk).isLeft shouldBe true
+      refusedWith(h.b.getSeekedOffsetForPartitionKey(tp, pk), "No ownership epoch held")
 
       h.storage.pathExists(h.bucket, temp).value shouldBe true
       h.a.granularCacheSize shouldBe 0
@@ -357,16 +366,14 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues wit
 
       // Zombie A: its idle writer for K is evicted, then a new record for K arrives.
       h.a.evictGranularLock(tp, pk)
-      h.a.getSeekedOffsetForPartitionKey(tp, pk).left.value shouldBe a[
-        io.lenses.streamreactor.connect.cloud.common.sink.FatalCloudSinkError,
-      ]
+      refusedWith(h.a.getSeekedOffsetForPartitionKey(tp, pk), "epoch 1001 > held epoch 1000")
       h.a.fencedPartitions.contains(tp) shouldBe true
       // Nothing was cached by the rejected load: a second lookup is rejected again, not served.
       h.a.granularCacheSize shouldBe 0
-      h.a.getSeekedOffsetForPartitionKey(tp, pk).isLeft shouldBe true
+      refusedWith(h.a.getSeekedOffsetForPartitionKey(tp, pk), "Fenced on")
 
       // A cached nothing, so it holds no token to write with, and K is untouched.
-      h.a.updateForPartitionKey(tp, pk, Some(Offset(7)), None).isLeft shouldBe true
+      refusedWith(h.a.updateForPartitionKey(tp, pk, Some(Offset(7)), None), "not in cache")
       h.readLock(h.granularLockPath(tp, pk)).value shouldBe bLock
 
       // B is unaffected.
@@ -383,9 +390,7 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues wit
       h.b.open(Set(tp)).value
       h.b.ensureGranularLock(tp, pk).value // created with B's epoch
 
-      h.a.ensureGranularLock(tp, pk).left.value shouldBe a[
-        io.lenses.streamreactor.connect.cloud.common.sink.FatalCloudSinkError,
-      ]
+      refusedWith(h.a.ensureGranularLock(tp, pk), "epoch 1001 > held epoch 1000")
       h.a.fencedPartitions.contains(tp) shouldBe true
     } finally h.close()
   }
@@ -396,10 +401,10 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues wit
       h.clock.set(1000L)
       h.a.open(Set(tp)).value // epoch 1000
       h.b.open(Set(tp)).value // epoch 1001
-      val pending = PendingState(
-        Offset(8),
-        NonEmptyList.one(DeleteOperation(h.bucket, "data/topic/0/.temp-upload/in-flight", "temp-etag")),
-      )
+      val temp = "data/topic/0/.temp-upload/in-flight"
+      h.storage.writeStringToFile(h.bucket, temp, UploadableString("payload")).value
+      val tempETag = h.storage.getBlobAsStringAndEtag(h.bucket, temp).value._2
+      val pending  = PendingState(Offset(8), NonEmptyList.one(DeleteOperation(h.bucket, temp, tempETag)))
       val _ = h.storage
         .writeBlobToFile(
           h.bucket,
@@ -409,8 +414,9 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues wit
         .value
       val before = h.readLock(h.granularLockPath(tp, pk)).value
 
-      h.a.getSeekedOffsetForPartitionKey(tp, pk).isLeft shouldBe true
+      refusedWith(h.a.getSeekedOffsetForPartitionKey(tp, pk), "epoch 1001 > held epoch 1000")
 
+      h.storage.pathExists(h.bucket, temp).value shouldBe true
       h.readLock(h.granularLockPath(tp, pk)).value shouldBe before
     } finally h.close()
   }
@@ -422,14 +428,18 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues wit
       h.a.open(Set(tp)).value
       h.a.ensureGranularLock(tp, pk).value
       h.a.updateForPartitionKey(tp, pk, Some(Offset(5)), None).value
-      h.b.open(Set(tp)).value // newer owner loads the older-epoch lock
+      h.b.open(Set(tp)).value // epoch 1001: the newer owner loads the lower-epoch lock
 
       h.b.getSeekedOffsetForPartitionKey(tp, pk).value shouldBe Some(Offset(5))
       h.b.fencedPartitions.contains(tp) shouldBe false
 
-      h.a.evictGranularLock(tp, pk) // ... and so does a reload of our own lock
+      // B writes the key itself, so the lock now carries B's own epoch; an idle eviction and reload
+      // of a lock at exactly the held epoch is not a fence either.
+      h.b.updateForPartitionKey(tp, pk, Some(Offset(7)), None).value
+      h.readLock(h.granularLockPath(tp, pk)).value.wrappedObject.epoch shouldBe h.b.heldEpochOf(tp)
       h.b.evictGranularLock(tp, pk)
-      h.b.getSeekedOffsetForPartitionKey(tp, pk).value shouldBe Some(Offset(5))
+      h.b.getSeekedOffsetForPartitionKey(tp, pk).value shouldBe Some(Offset(7))
+      h.b.fencedPartitions.contains(tp) shouldBe false
     } finally h.close()
   }
 
@@ -449,7 +459,7 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues wit
 
       h.clock.set(1000L) // this worker's clock is behind
       h.instances(1).open(Set(tp)).value
-      h.instances(1).getSeekedOffsetForPartitionKey(tp, pk).isLeft shouldBe true
+      refusedWith(h.instances(1).getSeekedOffsetForPartitionKey(tp, pk), "epoch 5000 > held epoch 1000")
 
       h.clock.set(6000L) // restart (new instance) once the clock has passed the lock's epoch
       h.instances(2).open(Set(tp)).value
@@ -550,7 +560,7 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues wit
 
       h.a.confirmMasterFenced(tp) shouldBe true
       h.a.fencedPartitions should contain(tp)
-      h.a.updateMasterLock(tp, Offset(20)).isLeft shouldBe true
+      refusedWith(h.a.updateMasterLock(tp, Offset(20)), "Fenced on")
       storedMaster(h).owner shouldBe h.lockUuid(1)
     } finally h.close()
   }
@@ -575,6 +585,82 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues wit
     } finally h.close()
   }
 
+  test("a master lock with our owner and epoch but a pending state is not adopted") {
+    val h = new TwoInstanceHarness()
+    try {
+      h.clock.set(1000L)
+      h.a.open(Set(tp)).value
+      h.a.updateMasterLock(tp, Offset(10)).value
+      val cachedBefore = h.a.topicPartitionToETags.get(tp)
+      val pending = PendingState(
+        Offset(99),
+        NonEmptyList.one(DeleteOperation(h.bucket, "data/topic/0/.temp-upload/in-flight", "temp-etag")),
+      )
+      // Our lockUuid and epoch, a new version, but a pending chain: not the shape of a floor write.
+      val stored = overwriteMaster(h, IndexFile(h.lockUuid(0), Some(Offset(99)), Some(pending), Some(1000L)))
+      Some(stored.eTag) should not be cachedBefore
+
+      h.a.confirmMasterFenced(tp) shouldBe false
+
+      h.a.fencedPartitions shouldBe empty
+      h.a.topicPartitionToETags.get(tp) shouldBe cachedBefore
+      h.a.getSeekedOffsetForTopicPartition(tp) shouldBe Some(Offset(9))
+    } finally h.close()
+  }
+
+  test("adopting our own landed master write moves the seeked offset forward only, never back") {
+    val h = new TwoInstanceHarness()
+    try {
+      h.clock.set(1000L)
+      seedMaster(h, IndexFile("previous-owner", Some(Offset(41)), None))
+      h.a.open(Set(tp)).value shouldBe Map(tp -> Some(Offset(41)))
+      // Our lockUuid and epoch, no pending state, a new version, but a floor below the seeked offset.
+      val stored = overwriteMaster(h, IndexFile(h.lockUuid(0), Some(Offset(20)), None, Some(1000L)))
+
+      h.a.confirmMasterFenced(tp) shouldBe false
+
+      h.a.fencedPartitions shouldBe empty
+      h.a.topicPartitionToETags.get(tp) shouldBe Some(stored.eTag)
+      h.a.getSeekedOffsetForTopicPartition(tp) shouldBe Some(Offset(41))
+    } finally h.close()
+  }
+
+  test("a master lock with our owner but a higher epoch fences us") {
+    val h = new TwoInstanceHarness()
+    try {
+      h.clock.set(1000L)
+      h.a.open(Set(tp)).value
+      val _ = overwriteMaster(h, IndexFile(h.lockUuid(0), Some(Offset(9)), None, Some(1001L)))
+
+      h.a.confirmMasterFenced(tp) shouldBe true
+
+      h.a.fencedPartitions should contain(tp)
+      h.a.fencingReason(tp).getOrElse("") should include("epoch 1001, held epoch 1000")
+      refusedWith(h.a.updateMasterLock(tp, Offset(20)), "Fenced on")
+    } finally h.close()
+  }
+
+  test("a lost-response master write whose bytes equal the stored lock leaves the cached eTag valid") {
+    // Content-derived eTags (S3's single-part PUT): rewriting identical bytes keeps the eTag, so the
+    // write that landed is indistinguishable from the version already cached and nothing is adopted.
+    val h = new TwoInstanceHarness(contentETags = true)
+    try {
+      h.a.open(Set(tp)).value
+      h.a.updateMasterLock(tp, Offset(10)).value
+      val cached = h.a.topicPartitionToETags.get(tp)
+      h.storage.arm(LoseWriteResponseAt(h.bucket, h.masterLockPath(tp)))
+
+      h.a.updateMasterLock(tp, Offset(10)).isLeft shouldBe true
+      Some(h.readLock(h.masterLockPath(tp)).value.eTag) shouldBe cached
+
+      h.a.confirmMasterFenced(tp) shouldBe false
+      h.a.fencedPartitions shouldBe empty
+      h.a.topicPartitionToETags.get(tp) shouldBe cached
+      h.a.updateMasterLock(tp, Offset(20)).value
+      storedMaster(h).committedOffset shouldBe Some(Offset(19))
+    } finally h.close()
+  }
+
   test("an unreadable master during the fencing check is treated as transient, not fenced") {
     val h = new TwoInstanceHarness()
     try {
@@ -586,32 +672,19 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues wit
     } finally h.close()
   }
 
-  test("clearing the partition state (revoke / failed open) drops the held epoch") {
+  test("clearing the partition state drops the held epoch: a key still cached can no longer be written") {
     val h = new TwoInstanceHarness()
     try {
       h.a.open(Set(tp)).value
-      h.a.heldEpochOf(tp) shouldBe defined
+      h.a.ensureGranularLock(tp, pk).value
+      h.a.updateForPartitionKey(tp, pk, Some(Offset(5)), None).value
+      val before = h.readLock(h.granularLockPath(tp, pk)).value
 
+      // Only the partition state goes; the key's cached eTag is still there to write with.
       h.a.clearTopicPartitionState(tp)
 
-      h.a.heldEpochOf(tp) shouldBe None
-    } finally h.close()
-  }
-
-  test("clearing the partition state of a revoked fenced partition drops the fence") {
-    val h = new TwoInstanceHarness()
-    try {
-      h.clock.set(1000L)
-      h.a.open(Set(tp)).value
-      h.b.open(Set(tp)).value
-      h.b.ensureGranularLock(tp, pk).value
-      h.a.ensureGranularLock(tp, pk).isLeft shouldBe true
-      h.a.fencedPartitions should contain(tp)
-
-      h.a.clearTopicPartitionState(tp)
-
-      h.a.fencedPartitions shouldBe empty
-      h.a.fencingReason(tp) shouldBe None
+      refusedWith(h.a.updateForPartitionKey(tp, pk, Some(Offset(7)), None), "No ownership epoch held")
+      h.readLock(h.granularLockPath(tp, pk)).value shouldBe before
     } finally h.close()
   }
 
@@ -651,17 +724,14 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues wit
       h.b.open(Set(tp)).value
       h.a.updateMasterLock(tp, Offset(6)).isLeft shouldBe true
       h.a.confirmMasterFenced(tp) shouldBe true
-      // The master floor was never written, so no seeked offset is held for the partition.
-      h.a.getSeekedOffsetForTopicPartition(tp) shouldBe None
 
       h.a.closePartitions(Set(tp))
 
+      // Not this task's to fail on any more, and nothing of it is served or written.
       h.a.fencedPartitions shouldBe empty
       h.a.fencingReason(tp) shouldBe None
-      h.a.heldEpochOf(tp) shouldBe None
-      h.a.topicPartitionToETags.get(tp) shouldBe None
-      h.a.granularCacheSize shouldBe 0
-      h.a.heldEpochOf(other) shouldBe defined
+      refusedWith(h.a.getSeekedOffsetForPartitionKey(tp, pk), "No ownership epoch held")
+      refusedWith(h.a.updateMasterLock(tp, Offset(7)), "Master index not found")
       h.a.ensureGranularLock(other, pk).value
       h.a.updateForPartitionKey(other, pk, Some(Offset(1)), None).value shouldBe Some(Offset(1))
       h.a.updateMasterLock(other, Offset(2)).value
@@ -789,15 +859,23 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues wit
   }
 
   test("closing every held partition keeps scheduled background work suspended") {
-    val h = new TwoInstanceHarness()
+    // A one-second sweep tick: every scheduled run the gate lets through counts a sweep run.
+    val h = new TwoInstanceHarness(sweepEnabled = true, sweepSeconds = 1)
     try {
       h.clock.set(1000L)
       h.a.open(Set(tp, other)).value
       h.a.suspendBackgroundWork()
+      val runsBefore = h.metrics(0).getSweepRuns
 
       h.a.closePartitions(Set(tp, other))
 
-      h.a.acceptingWork shouldBe false
+      Thread.sleep(2500L) // past two ticks
+      h.metrics(0).getSweepRuns shouldBe runsBefore
+      // The gate, not a stopped scheduler, held it back: the next open() lets the ticks run again.
+      h.a.open(Set(tp)).value
+      val deadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(10)
+      while (h.metrics(0).getSweepRuns == runsBefore && System.nanoTime() < deadline) Thread.sleep(50)
+      h.metrics(0).getSweepRuns should be > runsBefore
     } finally h.close()
   }
 
@@ -891,14 +969,12 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues wit
       h.b.updateForPartitionKey(tp, pk, Some(Offset(9)), None).value
 
       h.a.evictGranularLock(tp, pk)
-      h.a.getSeekedOffsetForPartitionKey(tp, pk).isLeft shouldBe true
+      refusedWith(h.a.getSeekedOffsetForPartitionKey(tp, pk), "epoch 1001 > held epoch 1000")
       h.a.fencedPartitions should contain(tp)
       val otherBefore = h.readLock(h.granularLockPath(tp, other)).value
 
-      h.a.updateForPartitionKey(tp, other, Some(Offset(4)), None).left.value shouldBe a[
-        io.lenses.streamreactor.connect.cloud.common.sink.FatalCloudSinkError,
-      ]
-      h.a.updateMasterLock(tp, Offset(4)).isLeft shouldBe true
+      refusedWith(h.a.updateForPartitionKey(tp, other, Some(Offset(4)), None), "Fenced on")
+      refusedWith(h.a.updateMasterLock(tp, Offset(4)), "Fenced on")
       h.readLock(h.granularLockPath(tp, other)).value shouldBe otherBefore
     } finally h.close()
   }
@@ -934,9 +1010,7 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues wit
       fencedWithOwnEpochPendingKey(h, other, temp)
       val before = h.readLock(h.granularLockPath(tp, other)).value
 
-      h.a.getSeekedOffsetForPartitionKey(tp, other).left.value shouldBe a[
-        io.lenses.streamreactor.connect.cloud.common.sink.FatalCloudSinkError,
-      ]
+      refusedWith(h.a.getSeekedOffsetForPartitionKey(tp, other), "Fenced on")
 
       h.storage.pathExists(h.bucket, temp).value shouldBe true
       h.readLock(h.granularLockPath(tp, other)).value shouldBe before
@@ -952,9 +1026,7 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues wit
       fencedWithOwnEpochPendingKey(h, other, temp)
       val before = h.readLock(h.granularLockPath(tp, other)).value
 
-      h.a.ensureGranularLock(tp, other).left.value shouldBe a[
-        io.lenses.streamreactor.connect.cloud.common.sink.FatalCloudSinkError,
-      ]
+      refusedWith(h.a.ensureGranularLock(tp, other), "Fenced on")
 
       h.storage.pathExists(h.bucket, temp).value shouldBe true
       h.readLock(h.granularLockPath(tp, other)).value shouldBe before
@@ -975,8 +1047,8 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues wit
       h.a.ensureGranularLock(tp, pk).isLeft shouldBe true
       h.a.fencedPartitions should contain(tp)
 
-      h.a.getSeekedOffsetForPartitionKey(tp, other).isLeft shouldBe true
-      h.a.ensureGranularLock(tp, other).isLeft shouldBe true
+      refusedWith(h.a.getSeekedOffsetForPartitionKey(tp, other), "Fenced on")
+      refusedWith(h.a.ensureGranularLock(tp, other), "Fenced on")
     } finally h.close()
   }
 
@@ -1191,7 +1263,7 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues wit
       h.a.fencedPartitions should contain(tp)
       // The sweep's own master read decided it: no extra GET.
       h.storage.readCount(h.bucket, h.masterLockPath(tp)) shouldBe masterReads + 1
-      h.a.update(tp, Some(Offset(10)), None).isLeft shouldBe true
+      refusedWith(h.a.update(tp, Some(Offset(10)), None), "Fenced on")
     } finally h.close()
   }
 
@@ -1243,6 +1315,41 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues wit
 
       h.a.fencedPartitions should contain(tp)
       h.storage.pathExists(h.bucket, temp).value shouldBe true
+    } finally h.close()
+  }
+
+  test("a batch temp sweep that reads our own owner on the master under a higher epoch is fenced and deletes nothing") {
+    val h = new TwoInstanceHarness(commitMode = CommitMode.Batch, sweepEnabled = true, sweepSeconds = 3600)
+    try {
+      h.clock.set(1000L)
+      seedMaster(h, IndexFile("previous-owner", Some(Offset(9)), None))
+      h.a.open(Set(tp)).value // epoch 1000
+      // Same lockUuid, newer epoch: only the epoch tells this lock is not ours any more.
+      val _    = overwriteMaster(h, IndexFile(h.lockUuid(0), Some(Offset(9)), None, Some(1001L)))
+      val temp = h.batchTempPrefix(tp) + "batch-uuid/data/topic/0/staged.json"
+      h.storage.writeStringToFile(h.bucket, temp, UploadableString("payload")).value
+      h.storage.setLastModified(h.bucket, temp, longAgo) shouldBe true
+
+      h.a.sweepAllBatchTemps()
+
+      h.storage.pathExists(h.bucket, temp).value shouldBe true
+      h.a.fencedPartitions should contain(tp)
+      h.a.fencingReason(tp).getOrElse("") should include("epoch 1001, held epoch 1000")
+    } finally h.close()
+  }
+
+  test("a 0-byte legacy lock read by a batch open is overwritten with the held epoch") {
+    val h = new TwoInstanceHarness(commitMode = CommitMode.Batch)
+    try {
+      h.clock.set(1000L)
+      h.storage.putRaw(h.bucket, h.granularLockPath(tp, pk), Array.emptyByteArray)
+      // Keep the lock past the purge that follows a fully resolved snapshot, to read what was written.
+      h.storage.arm(FailDeleteAt(h.bucket, h.granularLockPath(tp, pk)))
+
+      h.a.open(Set(tp)).value
+
+      storedGranular(h) shouldBe IndexFile(h.lockUuid(0), None, None, Some(1000L))
+      h.a.heldEpochOf(tp) shouldBe Some(1000L)
     } finally h.close()
   }
 }
