@@ -19,6 +19,7 @@ import cats.data.NonEmptyList
 import io.lenses.streamreactor.connect.cloud.common.model.Offset
 import io.lenses.streamreactor.connect.cloud.common.model.Topic
 import io.lenses.streamreactor.connect.cloud.common.model.UploadableString
+import io.lenses.streamreactor.connect.cloud.common.testing.InMemoryStorageInterface.FailMoveAt
 import org.scalatest.Assertion
 import org.scalatest.EitherValues
 import org.scalatest.funsuite.AnyFunSuite
@@ -212,6 +213,74 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues {
       h.a.getSeekedOffsetForPartitionKey(tp, pk).value shouldBe Some(Offset(8))
 
       storedGranular(h) shouldBe IndexFile(h.lockUuid(0), Some(Offset(8)), None, h.a.tpEpoch.get(tp))
+    } finally h.close()
+  }
+
+  /**
+   * Stages two temp objects and returns a two-Copy chain over them. When the second Copy is made to
+   * fail, the chain stops after its first checkpoint, which leaves the intermediate PendingState
+   * write (the remaining Copy) persisted in the lock.
+   */
+  private def twoCopyChain(h: TwoInstanceHarness, pendingOffset: Long): (PendingState, String) = {
+    def stage(name: String): (String, String) = {
+      val temp = s"data/topic/0/.temp-upload/$name"
+      h.storage.writeStringToFile(h.bucket, temp, UploadableString(name)).value
+      temp -> h.storage.getBlobAsStringAndEtag(h.bucket, temp).value._2
+    }
+    val (t1, e1) = stage("first")
+    val (t2, e2) = stage("second")
+    val chain = PendingState(
+      Offset(pendingOffset),
+      NonEmptyList.of(CopyOperation(h.bucket, t1, "data/topic/0/first", e1),
+                      CopyOperation(h.bucket, t2, "data/topic/0/second", e2),
+      ),
+    )
+    chain -> t2
+  }
+
+  private def remainingOps(idx: IndexFile): List[FileOperation] =
+    idx.pendingState.toList.flatMap(_.pendingOperations.toList)
+
+  test("an intermediate master PendingState checkpoint (update) carries the held epoch") {
+    val h = new TwoInstanceHarness()
+    try {
+      h.clock.set(1000L)
+      val (chain, second) = twoCopyChain(h, pendingOffset = 50L)
+      seedMaster(h, IndexFile("crashed-owner", Some(Offset(41)), Some(chain), Some(7000L)))
+      val _ = h.storage.arm(FailMoveAt(h.bucket, second))
+
+      h.a.open(Set(tp)).isLeft shouldBe true
+
+      // Interrupted after the first Copy: the stored lock is the checkpoint holding the second one.
+      val stored = storedMaster(h)
+      remainingOps(stored).map { case c: CopyOperation => c.source; case other => other.toString } shouldBe
+        List(second)
+      stored.owner shouldBe h.lockUuid(0)
+      stored.epoch shouldBe Some(7001L)
+    } finally h.close()
+  }
+
+  test("an intermediate granular PendingState checkpoint (updateForPartitionKey) carries the held epoch") {
+    val h = new TwoInstanceHarness()
+    try {
+      h.a.open(Set(tp)).value
+      val (chain, second) = twoCopyChain(h, pendingOffset = 8L)
+      val _ = h.storage
+        .writeBlobToFile(h.bucket,
+                         h.granularLockPath(tp, pk),
+                         NoOverwriteExistingObject(IndexFile("crashed", Some(Offset(3)), Some(chain))),
+        )
+        .value
+      val _ = h.storage.arm(FailMoveAt(h.bucket, second))
+
+      h.a.getSeekedOffsetForPartitionKey(tp, pk).isLeft shouldBe true
+
+      val stored = storedGranular(h)
+      remainingOps(stored).map { case c: CopyOperation => c.source; case other => other.toString } shouldBe
+        List(second)
+      stored.owner shouldBe h.lockUuid(0)
+      stored.epoch shouldBe h.a.tpEpoch.get(tp)
+      stored.epoch shouldBe defined
     } finally h.close()
   }
 
