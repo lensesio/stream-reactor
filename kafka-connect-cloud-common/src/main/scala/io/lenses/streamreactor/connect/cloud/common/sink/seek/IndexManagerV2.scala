@@ -1663,7 +1663,8 @@ class IndexManagerV2(
    * A lock already at the held epoch was written by this instance (an idle eviction and reload) and
    * is returned unchanged, with no write. Must run after `rejectIfFenced`, so a newer epoch never
    * reaches it. A lost write race is re-read and decided again (`takeOverAttempt`). Returns the
-   * version to cache and drive from: the object written, under the token the write returned.
+   * version to cache and drive from: the object written, under the token the write returned, or,
+   * when only the write's response was lost, the object as re-read.
    */
   private def takeOverGranularLock(
     topicPartition: TopicPartition,
@@ -1680,14 +1681,17 @@ class IndexManagerV2(
   /**
    * One take-over write of `read`, and on failure a re-read that applies the epoch rule again to
    * whatever is stored: a failed write means another instance wrote the key between our read and
-   * our write, or that our own write landed with its response lost.
+   * our write, that our own write landed with its response lost, or a transient write error.
    *  - a newer epoch fences this instance (never re-taken over), which is what keeps a paused stale
    *    loader from overwriting the newer owner that took the key over meanwhile;
-   *  - our own epoch is our landed write: it is used as stored, with no second write;
-   *  - an older epoch (a zombie commit, or a transient failure) is taken over again.
-   * At most `attemptsLeft` writes. Running out is fatal; a re-read that fails (missing key, 0-byte
-   * blob, transient read error) is an unswallowable non-fatal error, as ensureGranularLock's own
-   * re-reads are. Neither caches anything.
+   *  - our own epoch is our landed write: it is used as stored, with no second write, and counts as
+   *    a take-over;
+   *  - an older epoch (a zombie commit, or a transient failure) is taken over again while writes
+   *    remain, and is fatal once they are spent.
+   * At most `attemptsLeft` writes, and every failed one, the last included, is re-read, so a final
+   * write that landed with its response lost is adopted rather than failed. A re-read that fails
+   * (missing key, 0-byte blob, transient read error) is an unswallowable non-fatal error, as
+   * ensureGranularLock's own re-reads are. Neither failure caches anything.
    */
   private def takeOverAttempt(
     topicPartition: TopicPartition,
@@ -1710,16 +1714,34 @@ class IndexManagerV2(
           )
           // What we wrote, under the new token: never depend on how a backend echoes the object.
           ObjectWithETag(bump, bumped.eTag).asRight
-        case Left(err) if attemptsLeft > 1 =>
+        case Left(err) =>
           metrics.incrementGranularLockOwnershipBumpRaces()
           logger.info(
             s"[${connectorTaskId.show}] Lost the race taking over granular lock $topicPartition/$partitionKey " +
-              s"(${err.message()}); re-reading (attempts left: ${attemptsLeft - 1})",
+              s"(${err.message()}); re-reading (writes left: ${attemptsLeft - 1})",
           )
           tryOpen(bucket, path) match {
             case Right(reread) =>
               rejectIfFenced(topicPartition, partitionKey, reread.wrappedObject).flatMap { _ =>
-                takeOverAttempt(topicPartition, partitionKey, bucket, path, mine, reread, attemptsLeft - 1)
+                if (reread.wrappedObject.epoch.getOrElse(0L) >= mine) {
+                  // Our own write landed and only its response was lost.
+                  metrics.incrementGranularLockOwnershipBumps()
+                  logger.debug(
+                    s"[${connectorTaskId.show}] Confirmed take-over of granular lock $topicPartition/$partitionKey " +
+                      s"on re-read (epoch $mine)",
+                  )
+                  reread.asRight
+                } else if (attemptsLeft > 1)
+                  takeOverAttempt(topicPartition, partitionKey, bucket, path, mine, reread, attemptsLeft - 1)
+                else {
+                  val error = new FatalCloudSinkError(
+                    s"Exhausted take-over attempts for granular lock $topicPartition/$partitionKey: ${err.message()}",
+                    err.toExceptionOption,
+                    topicPartition,
+                  )
+                  logger.error(error.message)
+                  error.asLeft
+                }
               }
             case Left(readErr) =>
               NonFatalCloudSinkError.unswallowable(
@@ -1728,15 +1750,6 @@ class IndexManagerV2(
                 readErr.toExceptionOption,
               ).asLeft
           }
-        case Left(err) =>
-          metrics.incrementGranularLockOwnershipBumpRaces()
-          val error = new FatalCloudSinkError(
-            s"Exhausted take-over attempts for granular lock $topicPartition/$partitionKey: ${err.message()}",
-            err.toExceptionOption,
-            topicPartition,
-          )
-          logger.error(error.message)
-          error.asLeft
       }
     }
 

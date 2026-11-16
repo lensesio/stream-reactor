@@ -153,15 +153,18 @@ trait CloudSinkMetricsMBean {
   /**
    * Cumulative granular-lock take-overs: a key whose lock was written under an older ownership
    * epoch was rewritten with this task's epoch when it loaded the key, so tokens an older instance
-   * still holds for it stop being valid. At most one per loaded key per ownership episode, so it
-   * rises after each rebalance or restart as keys receive records again.
+   * still holds for it stop being valid. Includes a take-over whose write landed but whose
+   * response was lost, confirmed by the re-read that follows it. At most one per loaded key per
+   * ownership episode, so it rises after each rebalance or restart as keys receive records again.
    */
   def getGranularLockOwnershipBumps: Long
 
   /**
-   * Cumulative failed granular-lock take-over writes: another instance wrote the key between this
-   * task's read and its take-over (or the write's response was lost). Each is followed by a re-read
-   * and a fresh decision, within a small budget. A steady rate points at overlapping task instances.
+   * Cumulative failed granular-lock take-over writes, of any cause: another instance wrote the key
+   * between this task's read and its take-over, the write landed but its response was lost, or a
+   * transient write error. Each is followed by a re-read and a fresh decision, within a small
+   * budget. Because transient write errors count too, a steady rate alone does not prove
+   * overlapping task instances.
    */
   def getGranularLockOwnershipBumpRaces: Long
 

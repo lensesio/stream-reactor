@@ -285,6 +285,33 @@ class GranularFenceTest extends AnyFunSuite with Matchers with EitherValues with
     } finally h.close()
   }
 
+  test("a take-over whose last allowed write lands with its response lost is adopted, with no further write") {
+    val h = new TwoInstanceHarness()
+    try {
+      h.clock.set(1000L)
+      zombieHoldsToken(h, offset = 5)
+      h.b.open(Set(tp)).value
+      (6 to 7).foreach { offset =>
+        beforeWriteBy(h, h.lockUuid(1)) {
+          val _ = h.a.updateForPartitionKey(tp, pk, Some(Offset(offset.toLong)), None).value
+        }
+      }
+      beforeWriteBy(h, h.lockUuid(1)) {
+        val _ = h.storage.arm(LoseWriteResponseAt(h.bucket, lockPath(h)))
+      }
+      val writesBefore = h.storage.writeCount(h.bucket, lockPath(h))
+
+      h.b.getSeekedOffsetForPartitionKey(tp, pk).value shouldBe Some(Offset(7))
+
+      // Two zombie commits and three take-over writes, the last of which landed.
+      h.storage.writeCount(h.bucket, lockPath(h)) shouldBe writesBefore + 5
+      stored(h).wrappedObject shouldBe IndexFile(h.lockUuid(1), Some(Offset(7)), None, Some(1001L))
+      h.b.fencedPartitions shouldBe empty
+      h.b.updateForPartitionKey(tp, pk, Some(Offset(9)), None).value shouldBe Some(Offset(9))
+      h.a.updateForPartitionKey(tp, pk, Some(Offset(8)), None).isLeft shouldBe true
+    } finally h.close()
+  }
+
   test("a take-over whose re-read fails is an unswallowable non-fatal error and caches nothing") {
     val h = new TwoInstanceHarness()
     try {
@@ -389,6 +416,43 @@ class GranularFenceTest extends AnyFunSuite with Matchers with EitherValues with
       h.b.getSeekedOffsetForPartitionKey(tp, pk).value shouldBe Some(Offset(7))
 
       h.metrics(1).getGranularLockOwnershipBumpRaces shouldBe 1L
+      h.metrics(1).getGranularLockOwnershipBumps shouldBe 1L
+    } finally h.close()
+  }
+
+  test("a take-over whose response is lost counts the failed write and the take-over it confirms") {
+    val h = new TwoInstanceHarness()
+    try {
+      h.clock.set(1000L)
+      zombieHoldsToken(h, offset = 5)
+      h.b.open(Set(tp)).value
+      val _ = h.storage.arm(LoseWriteResponseAt(h.bucket, lockPath(h)))
+
+      h.b.getSeekedOffsetForPartitionKey(tp, pk).value shouldBe Some(Offset(5))
+
+      h.metrics(1).getGranularLockOwnershipBumpRaces shouldBe 1L
+      h.metrics(1).getGranularLockOwnershipBumps shouldBe 1L
+    } finally h.close()
+  }
+
+  test("a take-over whose last allowed write lands with its response lost counts every failed write and one take-over") {
+    val h = new TwoInstanceHarness()
+    try {
+      h.clock.set(1000L)
+      zombieHoldsToken(h, offset = 5)
+      h.b.open(Set(tp)).value
+      (6 to 7).foreach { offset =>
+        beforeWriteBy(h, h.lockUuid(1)) {
+          val _ = h.a.updateForPartitionKey(tp, pk, Some(Offset(offset.toLong)), None).value
+        }
+      }
+      beforeWriteBy(h, h.lockUuid(1)) {
+        val _ = h.storage.arm(LoseWriteResponseAt(h.bucket, lockPath(h)))
+      }
+
+      h.b.getSeekedOffsetForPartitionKey(tp, pk).value shouldBe Some(Offset(7))
+
+      h.metrics(1).getGranularLockOwnershipBumpRaces shouldBe 3L
       h.metrics(1).getGranularLockOwnershipBumps shouldBe 1L
     } finally h.close()
   }
