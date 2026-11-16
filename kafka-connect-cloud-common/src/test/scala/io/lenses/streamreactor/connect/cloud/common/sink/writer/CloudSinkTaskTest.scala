@@ -1009,24 +1009,7 @@ class CloudSinkTaskTest
     verify(wm).recommitPending()
   }
 
-  // ── close(partitions) releases exactly the revoked partitions ─────────
-
-  test("close() releases exactly the partitions it is given, after the writers are closed") {
-    val task = new ConcreteTestSinkTask
-    task.initialize(5, NoopErrorPolicy())
-    val wm = mock[WriterManager[FakeFileMetadata]]
-    val im = mock[IndexManager]
-    task.writerManager   = wm
-    task.indexManager    = im
-    task.connectorTaskId = connectorTaskId
-
-    task.close(java.util.List.of(tpB.toKafka))
-
-    val order = org.mockito.Mockito.inOrder(wm, im)
-    order.verify(wm).close(Set(tpB), ForcedWriteReason.Revoke)
-    order.verify(im).closePartitions(Set(tpB))
-    verify(im, never).open(any[Set[TopicPartition]])
-  }
+  // ── close(partitions) is exception-safe (real-path close tests: CooperativeRevokeCloseTest) ─────────
 
   test("close() still releases the closed partitions when closing the writers throws") {
     val task = new ConcreteTestSinkTask
@@ -1042,36 +1025,8 @@ class CloudSinkTaskTest
 
     intercept[IllegalStateException](task.close(java.util.List.of(tpB.toKafka)))
 
+    verify(wm).close(Set(tpB), ForcedWriteReason.Revoke)
     verify(im).closePartitions(Set(tpB))
-  }
-
-  test("close() of a revoked fenced partition releases it, so the next put() for the remaining partitions proceeds") {
-    val h = new io.lenses.streamreactor.connect.cloud.common.sink.seek.TwoInstanceHarness()
-    try {
-      val fencedTp = Topic("topic").withPartition(0)
-      val kept     = Topic("topic").withPartition(1)
-      val pk       = "date=2024-01-01"
-      h.a.open(Set(fencedTp, kept)).value
-      h.b.open(Set(fencedTp)).value
-      h.b.ensureGranularLock(fencedTp, pk).value
-      h.a.ensureGranularLock(fencedTp, pk).isLeft shouldBe true
-      h.a.fencedPartitions shouldBe Set(fencedTp)
-
-      val task = new ConcreteTestSinkTask
-      task.initialize(5, NoopErrorPolicy())
-      val wm = mock[WriterManager[FakeFileMetadata]]
-      when(wm.recommitPending()).thenReturn(().asRight)
-      when(wm.commitFlushableWriters()).thenReturn(().asRight)
-      task.writerManager   = wm
-      task.indexManager    = h.a
-      task.connectorTaskId = connectorTaskId
-
-      task.close(java.util.List.of(fencedTp.toKafka))
-      task.put(java.util.List.of[org.apache.kafka.connect.sink.SinkRecord]())
-
-      verify(wm).recommitPending()
-      h.a.fencedPartitions shouldBe empty
-    } finally h.close()
   }
 
   private class ConcreteTestSinkTask

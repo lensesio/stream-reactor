@@ -239,8 +239,25 @@ class CooperativeRevokeCloseTest
         }
         .sorted
 
+    /** Another instance of the same task (same lock paths, its own lockUuid) on the same storage. */
+    def otherInstance(): IndexManagerV2 = {
+      implicit val si: StorageInterface[FakeFileMetadata] = storage
+      new IndexManagerV2(
+        bucketAndPrefixFn           = bucketAndPrefix,
+        pendingOperationsProcessors = new PendingOperationsProcessors(storage),
+        directoryFileName           = directoryName,
+        gcIntervalSeconds           = Int.MaxValue,
+        gcSweepIntervalSeconds      = Int.MaxValue,
+        gcSweepMinAgeSeconds        = Int.MaxValue,
+        gcSweepEnabled              = false,
+        commitMode                  = commitMode,
+      )(si, ConnectorTaskId(connectorTaskId.name, connectorTaskId.maxTasks, connectorTaskId.taskNo))
+    }
+
     def close(): Unit = Try(im.close()).getOrElse(())
   }
+
+  private def keyOf(value: String): String = WriterManager.derivePartitionKey(Map(keyField -> value)).get
 
   private val combos: Seq[(CommitMode, Boolean)] =
     for {
@@ -280,8 +297,8 @@ class CooperativeRevokeCloseTest
           // Cooperative revoke of `revoked` only: no open() follows, the retained position is not rewound.
           f.task.close(java.util.List.of(revoked.toKafka))
 
-          val writerKept         = f.wm.writerFor(retainedKey).exists(w => retainedWriter.exists(_ eq w))
-          val stagingKept        = retainedStaging.exists(_.exists())
+          val writerKept           = f.wm.writerFor(retainedKey).exists(w => retainedWriter.exists(_ eq w))
+          val stagingKept          = retainedStaging.exists(_.exists())
           val preCommitAfterRevoke = f.preCommit(retained)
 
           // Connect keeps delivering the retained partition from where it was.
@@ -341,8 +358,10 @@ class CooperativeRevokeCloseTest
       }
   }
 
-  test("a cooperative close of a partition with a mixed committed/buffered PARTITIONBY key set force-writes its " +
-    "master lock and counts it under the revoke reason") {
+  test(
+    "a cooperative close of a partition with a mixed committed/buffered PARTITIONBY key set force-writes its " +
+      "master lock and counts it under the revoke reason",
+  ) {
     val f = new Fixture(CommitMode.Granular, partitionBy = true)
     try {
       f.im.open(Set(retained, revoked)).value
@@ -359,6 +378,67 @@ class CooperativeRevokeCloseTest
       f.metrics.getMasterLockWriteForcedRevoke shouldBe 1L
       f.wm.writerFor(f.mapKey(retained, "a")) shouldBe defined
     } finally f.close()
+  }
+
+  test(
+    "close() releases exactly the given partitions in both managers, the writers first, and keeps the " +
+      "retained partition's writer, index state and granular cache",
+  ) {
+    val f = new Fixture(CommitMode.Granular, partitionBy = true)
+    try {
+      f.im.open(Set(retained, revoked)).value
+      f.write(retained, 0)
+      f.write(revoked, 0)
+      f.flushAll()
+      f.preCommit(retained) shouldBe Some(1L)
+      f.write(retained, 1)
+      f.write(revoked, 1)
+      val retainedWriter = f.wm.writerFor(f.mapKey(retained))
+
+      f.task.close(java.util.List.of(revoked.toKafka))
+
+      // Writers first: the revoked partition's forced master write still found its ownership state.
+      f.metrics.getMasterLockWriteForcedRevoke shouldBe 1L
+      f.metrics.getMasterLockWriteForcedRevokeFailures shouldBe 0L
+      // Revoked: writers and index state gone; nothing of it is loaded any more.
+      f.wm.writerFor(f.mapKey(revoked)) shouldBe None
+      f.wm.trackedTopicPartitions should not contain revoked
+      f.im.getSeekedOffsetForTopicPartition(revoked) shouldBe None
+      f.im.ensureGranularLock(revoked, keyOf("a")).isLeft shouldBe true
+      // Retained: same writer, same master floor, granular cache entry still served from memory.
+      f.wm.writerFor(f.mapKey(retained)).exists(w => retainedWriter.exists(_ eq w)) shouldBe true
+      f.im.getSeekedOffsetForTopicPartition(retained) shouldBe Some(Offset(0L))
+      val hits = f.metrics.getGranularCacheHits
+      f.im.getSeekedOffsetForPartitionKey(retained, keyOf("a")).value shouldBe Some(Offset(0L))
+      f.metrics.getGranularCacheHits shouldBe hits + 1
+    } finally f.close()
+  }
+
+  test("close() of a revoked fenced partition lifts the fence, so put() proceeds and the retained partition " +
+    "keeps writing") {
+    val f     = new Fixture(CommitMode.Granular, partitionBy = true)
+    val other = f.otherInstance()
+    try {
+      f.im.open(Set(retained, revoked)).value
+      f.write(retained, 0)
+      // A newer owner takes `revoked` over; this instance finds out on its next read of a lock.
+      other.open(Set(revoked)).value
+      other.ensureGranularLock(revoked, keyOf("a")).value
+      f.im.ensureGranularLock(revoked, keyOf("a")).isLeft shouldBe true
+      f.im.fencedPartitions shouldBe Set(revoked)
+
+      f.task.close(java.util.List.of(revoked.toKafka))
+
+      f.im.fencedPartitions shouldBe empty
+      f.task.put(java.util.List.of[org.apache.kafka.connect.sink.SinkRecord]())
+      f.write(retained, 1)
+      f.flushAll()
+      f.durableOffsets(retained) shouldBe Seq(0L, 1L)
+      f.preCommit(retained) shouldBe Some(2L)
+    } finally {
+      Try(other.close()).getOrElse(())
+      f.close()
+    }
   }
 
   test("closing a partition with no current writer clears its residual offset and force state") {
