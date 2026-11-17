@@ -566,12 +566,15 @@ class IndexManagerV2(
     val path = generateLockFilePath(connectorTaskId, topicPartition, directoryFileName)
     for {
       bucketAndPrefix <- bucketAndPrefixFn(topicPartition)
+      firstRead        = tryOpen(bucketAndPrefix.bucket, path)
       offset <- decideOpen(
         topicPartition,
         path,
         bucketAndPrefix,
-        tryOpen(bucketAndPrefix.bucket, path),
+        firstRead,
         MaxOpenCreateRaceAttempts,
+        observedEpoch = readEpoch(firstRead),
+        lastWritten   = None,
       )
       // Batch mode only, strictly after master resolution and the ownership bump: fence every
       // legacy granular lock left by a granular-mode deployment and purge them once resolved.
@@ -890,8 +893,18 @@ class IndexManagerV2(
    * `processPendingOperations`, not a naive eTag adoption — that is what makes recovery
    * correct, see the architecture note on the reverted create-race adoption fix).
    *
+   * A re-read (after a lost write) is only routed back through the arms while it still carries the
+   * ownership epoch this open first observed: writes that keep the epoch (the previous owner
+   * advancing its floor) don't change who owns the partition, so retrying over them is legitimate.
+   * Any other epoch can only come from another instance's ownership write after our first read,
+   * and that instance is the one most recently assigned the partition: taking the lock back from
+   * it would make this instance the zombie and fence the legitimate owner. The open fails instead
+   * (see `openOwnershipLost`).
+   *
    * @param tryOpenResult The result of `tryOpen` for this lock path.
    * @param attemptsLeft  Bounded re-read budget for the lost-create-race cycle.
+   * @param observedEpoch The epoch of this open's first read (0 if absent, 0-byte or unstamped).
+   * @param lastWritten   The epoch the write that just failed tried to stamp; `None` on the first read.
    */
   private def decideOpen(
     topicPartition:  TopicPartition,
@@ -899,8 +912,16 @@ class IndexManagerV2(
     bucketAndPrefix: CloudLocation,
     tryOpenResult:   Either[FileLoadError, ObjectWithETag[IndexFile]],
     attemptsLeft:    Int,
+    observedEpoch:   Long,
+    lastWritten:     Option[Long],
   ): Either[SinkError, Option[Offset]] =
     tryOpenResult match {
+
+      case Right(ObjectWithETag(lock, _)) if lastWritten.isDefined && lock.epoch.getOrElse(0L) != observedEpoch =>
+        openOwnershipLost(topicPartition, path, observedEpoch, lock.epoch.getOrElse(0L), lock.owner).asLeft
+
+      case Left(EmptyFileError(_, _)) if lastWritten.isDefined && observedEpoch != 0L =>
+        openOwnershipLost(topicPartition, path, observedEpoch, 0L, "<0-byte lock>").asLeft
 
       case Left(FileNotFoundError(_, _)) =>
         val epoch = nextEpoch(None)
@@ -923,6 +944,8 @@ class IndexManagerV2(
               bucketAndPrefix,
               tryOpen(bucketAndPrefix.bucket, path),
               attemptsLeft - 1,
+              observedEpoch,
+              lastWritten = Some(epoch),
             )
 
           case Left(_: LostCreateRaceError) =>
@@ -992,6 +1015,8 @@ class IndexManagerV2(
               bucketAndPrefix,
               tryOpen(bucketAndPrefix.bucket, path),
               attemptsLeft - 1,
+              observedEpoch,
+              lastWritten = Some(epoch),
             )
           case Left(err) =>
             metrics.incrementMasterLockFailures()
@@ -1002,32 +1027,14 @@ class IndexManagerV2(
             new FatalCloudSinkError(err.message(), err.toExceptionOption, topicPartition).asLeft[Option[Offset]]
           case Right(bumped) =>
             metrics.incrementMasterLockUpdates()
-            // Seat the epoch before driving the chain: every recovery write stamps it.
-            val _ = ownershipTaken(topicPartition, epoch, bumped, prevEpoch)
-            topicPartitionToETags.put(topicPartition, bumped.eTag)
-            pendingOperationsProcessors.processPendingOperations(
+            recoverAfterBump(
               topicPartition,
+              epoch,
+              bumped,
+              prevEpoch,
               committedOffset,
               PendingState(pendingOffset, pendingOperations),
-              update,
-            ).map { resolvedOffset =>
-              // processPendingOperations calls update() which already maintains
-              // topicPartitionToETags with the correct eTag. We must NOT overwrite it with the
-              // stale bumped eTag. Only ensure seekedOffsets is updated for cases where update()
-              // was not called (e.g. when the recovery path cleared a stale PendingState on the
-              // last operation).
-              resolvedOffset.foreach(o => seekedOffsets.put(topicPartition, o))
-              resolvedOffset
-            }.leftMap { err =>
-              // On failure, the eTag we seeded above may now be stale: an intermediate
-              // phase of processPendingOperations may have advanced the index file in
-              // storage before the final fnIndexUpdate failed. Drop the cached eTag so
-              // the next call re-reads the file and we never issue a conditional write
-              // with the wrong If-Match. Mirrors the gcRemove-on-failure pattern used
-              // when loading granular locks.
-              val _ = topicPartitionToETags.remove(topicPartition)
-              err
-            }
+            )
         }
 
       case Right(ObjectWithETag(IndexFile(_, committedOffset, None, prevEpoch), eTag)) =>
@@ -1063,6 +1070,8 @@ class IndexManagerV2(
               bucketAndPrefix,
               tryOpen(bucketAndPrefix.bucket, path),
               attemptsLeft - 1,
+              observedEpoch,
+              lastWritten = Some(epoch),
             )
           case Left(err) =>
             metrics.incrementMasterLockFailures()
@@ -1091,6 +1100,76 @@ class IndexManagerV2(
     topicPartitionToETags.put(topicPartition, open.eTag)
     open.wrappedObject.committedOffset.foreach(o => seekedOffsets.put(topicPartition, o))
     open.wrappedObject.committedOffset
+  }
+
+  /**
+   * Seats an ownership write over a lock carrying a PendingState, then drives the chain. The epoch
+   * is seated first: every recovery write stamps it.
+   */
+  private def recoverAfterBump(
+    topicPartition:  TopicPartition,
+    epoch:           Long,
+    bumped:          ObjectWithETag[IndexFile],
+    previous:        Option[Long],
+    committedOffset: Option[Offset],
+    pendingState:    PendingState,
+  ): Either[SinkError, Option[Offset]] = {
+    val _ = ownershipTaken(topicPartition, epoch, bumped, previous)
+    topicPartitionToETags.put(topicPartition, bumped.eTag)
+    pendingOperationsProcessors.processPendingOperations(
+      topicPartition,
+      committedOffset,
+      pendingState,
+      update,
+    ).map { resolvedOffset =>
+      // processPendingOperations calls update() which already maintains
+      // topicPartitionToETags with the correct eTag. We must NOT overwrite it with the
+      // stale bumped eTag. Only ensure seekedOffsets is updated for cases where update()
+      // was not called (e.g. when the recovery path cleared a stale PendingState on the
+      // last operation).
+      resolvedOffset.foreach(o => seekedOffsets.put(topicPartition, o))
+      resolvedOffset
+    }.leftMap { err =>
+      // On failure, the eTag we seeded above may now be stale: an intermediate
+      // phase of processPendingOperations may have advanced the index file in
+      // storage before the final fnIndexUpdate failed. Drop the cached eTag so
+      // the next call re-reads the file and we never issue a conditional write
+      // with the wrong If-Match. Mirrors the gcRemove-on-failure pattern used
+      // when loading granular locks.
+      val _ = topicPartitionToETags.remove(topicPartition)
+      err
+    }
+  }
+
+  /** The ownership epoch a master-lock read shows: 0 when absent, 0-byte, unreadable or unstamped. */
+  private def readEpoch(read: Either[FileLoadError, ObjectWithETag[IndexFile]]): Long =
+    read.toOption.flatMap(_.wrappedObject.epoch).getOrElse(0L)
+
+  /**
+   * The refusal when a re-read in `open()` shows that another instance took the partition over
+   * after this open's first read. Nothing more is written and no pending chain is driven. The
+   * partition is not marked fenced: the failed `open()` rolls every requested partition back
+   * (which would clear the mark); the fatal error is what fails the task, under every error
+   * policy, and the restart's open reads the newer epoch as its first read.
+   */
+  private def openOwnershipLost(
+    topicPartition: TopicPartition,
+    path:           String,
+    observedEpoch:  Long,
+    seenEpoch:      Long,
+    seenOwner:      String,
+  ): SinkError = {
+    metrics.incrementMasterLockOpenOwnershipLost()
+    logger.warn(
+      s"[${connectorTaskId.show}] Ownership of $topicPartition was taken over during open(): the master lock at " +
+        s"$path now carries epoch $seenEpoch (owner $seenOwner), not the epoch $observedEpoch this open first read " +
+        s"(this instance's lockUuid $lockOwner). Not taking it back; failing the task so a restart re-opens.",
+    )
+    FatalCloudSinkError(
+      s"Ownership of $topicPartition was taken over during open() (epoch $observedEpoch -> $seenEpoch, " +
+        s"owner $seenOwner); not taking it back",
+      topicPartition,
+    )
   }
 
   /**

@@ -218,6 +218,15 @@ trait CloudSinkMetricsMBean {
   def getMasterLockDirtyWindowCycles: Long
 
   /**
+   * Cumulative `open()` calls that failed because another instance took the partition over
+   * between this task's first read of the master lock and its ownership write: the re-read after
+   * the lost write showed a different ownership epoch. The task fails and a restart re-opens above
+   * the newer epoch. Usually a rebalance that overlapped a slow open; repeated without overlapping
+   * instances, check for clock skew (see docs/datalake-exactly-once-partitionby.md).
+   */
+  def getMasterLockOpenOwnershipLost: Long
+
+  /**
    * Point-in-time indicator: `true` iff at least one topic-partition was observed
    * `dirty` (`globalSafeOffset > lastWrittenMaster`) at its most recent `preCommit`
    * and has not yet had a successful master-lock write or been cleaned up since.
@@ -472,6 +481,7 @@ class CloudSinkMetrics() extends CloudSinkMetricsMBean {
   private val masterLockWriteForcedStopFailures        = new LongAdder()
   private val masterLockWriteForcedPostCleanUpFailures = new LongAdder()
   private val masterLockDirtyWindowCycles              = new LongAdder()
+  private val masterLockOpenOwnershipLost              = new LongAdder()
   private val dirtyTopicPartitions =
     java.util.concurrent.ConcurrentHashMap.newKeySet[TopicPartition]()
 
@@ -565,6 +575,7 @@ class CloudSinkMetrics() extends CloudSinkMetricsMBean {
   override def getMasterLockWriteForcedStopFailures:        Long    = masterLockWriteForcedStopFailures.sum()
   override def getMasterLockWriteForcedPostCleanUpFailures: Long    = masterLockWriteForcedPostCleanUpFailures.sum()
   override def getMasterLockDirtyWindowCycles:              Long    = masterLockDirtyWindowCycles.sum()
+  override def getMasterLockOpenOwnershipLost:              Long    = masterLockOpenOwnershipLost.sum()
   override def getMasterLockDirty:                          Boolean = !dirtyTopicPartitions.isEmpty
 
   override def getSweepRuns:            Long = sweepRuns.sum()
@@ -678,6 +689,8 @@ class CloudSinkMetrics() extends CloudSinkMetricsMBean {
   }
 
   def incrementMasterLockDirtyWindowCycle(): Unit = masterLockDirtyWindowCycles.increment()
+
+  def incrementMasterLockOpenOwnershipLost(): Unit = masterLockOpenOwnershipLost.increment()
 
   def markMasterLockDirty(tp: TopicPartition): Unit = { val _ = dirtyTopicPartitions.add(tp) }
   def clearMasterLockDirty(tp: TopicPartition): Unit = { val _ = dirtyTopicPartitions.remove(tp) }

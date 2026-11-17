@@ -406,9 +406,10 @@ class InMemoryStorageInterface(systemName: String = "in-memory", contentETags: B
     val existing = Option(store.get((bucket, path)))
     objectProtection match {
       case NoOverwriteExistingObject(_) if existing.isDefined =>
-        FileCreateError(
+        // As every backend reports a lost create race: the recoverable "already exists" error.
+        NonOverwriteFileExistsError(
           new IllegalStateException(s"PreconditionFailed: $bucket/$path already exists"),
-          s"NoOverwrite on existing $path",
+          path,
         ).asLeft
       case ObjectWithETag(_, expected) =>
         existing match {
