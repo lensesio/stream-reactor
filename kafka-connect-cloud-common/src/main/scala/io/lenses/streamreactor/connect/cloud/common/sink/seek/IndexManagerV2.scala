@@ -574,7 +574,7 @@ class IndexManagerV2(
         firstRead,
         MaxOpenCreateRaceAttempts,
         observedEpoch = readEpoch(firstRead),
-        lastWritten   = None,
+        lastWrite     = None,
       )
       // Batch mode only, strictly after master resolution and the ownership bump: fence every
       // legacy granular lock left by a granular-mode deployment and purge them once resolved.
@@ -901,10 +901,15 @@ class IndexManagerV2(
    * it would make this instance the zombie and fence the legitimate owner. The open fails instead
    * (see `openOwnershipLost`).
    *
+   * Every failed write is re-read, the last included: the re-read after the last write still adopts
+   * this instance's landed write and still refuses a newer owner, but with no writes left it decides
+   * nothing else, so anything else (the lock unchanged, or unreadable) fails with that write's error.
+   *
    * @param tryOpenResult The result of `tryOpen` for this lock path.
-   * @param attemptsLeft  Bounded re-read budget for the lost-create-race cycle.
+   * @param attemptsLeft  Writes this open may still make (shared by the create, bump and pending-chain
+   *                      bump arms); 0 on the re-read after the last one.
    * @param observedEpoch The epoch of this open's first read (0 if absent, 0-byte or unstamped).
-   * @param lastWritten   The epoch the write that just failed tried to stamp; `None` on the first read.
+   * @param lastWrite     The write that just failed; `None` on the first read.
    */
   private def decideOpen(
     topicPartition:  TopicPartition,
@@ -913,21 +918,32 @@ class IndexManagerV2(
     tryOpenResult:   Either[FileLoadError, ObjectWithETag[IndexFile]],
     attemptsLeft:    Int,
     observedEpoch:   Long,
-    lastWritten:     Option[Long],
+    lastWrite:       Option[FailedOpenWrite],
   ): Either[SinkError, Option[Offset]] =
     tryOpenResult match {
 
       // Checked first: our own landed write no longer carries the observed epoch, and is not a takeover.
-      case Right(reRead @ ObjectWithETag(lock, _)) if lock.owner == lockOwner && lastWritten.contains(
-            lock.epoch.getOrElse(0L),
-          ) =>
-        adoptOwnOpenWrite(topicPartition, path, reRead, lastWritten.getOrElse(0L), observedEpoch)
+      case Right(reRead @ ObjectWithETag(lock, _))
+          if lock.owner == lockOwner && lastWrite.exists(_.epoch == lock.epoch.getOrElse(0L)) =>
+        adoptOwnOpenWrite(topicPartition, path, reRead, lock.epoch.getOrElse(0L), observedEpoch)
 
-      case Right(ObjectWithETag(lock, _)) if lastWritten.isDefined && lock.epoch.getOrElse(0L) != observedEpoch =>
+      case Right(ObjectWithETag(lock, _)) if lastWrite.isDefined && lock.epoch.getOrElse(0L) != observedEpoch =>
         openOwnershipLost(topicPartition, path, observedEpoch, lock.epoch.getOrElse(0L), lock.owner).asLeft
 
-      case Left(EmptyFileError(_, _)) if lastWritten.isDefined && observedEpoch != 0L =>
+      case Left(EmptyFileError(_, _)) if lastWrite.isDefined && observedEpoch != 0L =>
         openOwnershipLost(topicPartition, path, observedEpoch, 0L, "<0-byte lock>").asLeft
+
+      // Every arm below either writes or reports the re-read: with the writes spent, fail as the last
+      // write failed, and never write again.
+      case _ if attemptsLeft <= 0 =>
+        val spent = lastWrite.map(_.spent).getOrElse(
+          FatalCloudSinkError(s"Exhausted master-lock ownership writes for $topicPartition at $path", topicPartition),
+        )
+        logger.warn(
+          s"[${connectorTaskId.show}] Master-lock ownership writes exhausted for $topicPartition at $path: the " +
+            s"final re-read shows neither this instance's write nor a newer owner: ${spent.message()}",
+        )
+        spent.asLeft
 
       case Left(FileNotFoundError(_, _)) =>
         val epoch = nextEpoch(None)
@@ -937,12 +953,15 @@ class IndexManagerV2(
               SinkError,
             ]
 
-          case Left(_: LostCreateRaceError) if attemptsLeft > 1 =>
-            // Another task won the create. The lock now exists — re-read and re-decide through
-            // the same arms so the winner's offset (and any PendingState) is adopted/recovered.
+          case Left(_: LostCreateRaceError) =>
+            // Another task won the create (or our own create landed with its response lost). The
+            // lock now exists — re-read and re-decide through the same arms so the winner's offset
+            // (and any PendingState) is adopted/recovered. If the writes are spent and the lock
+            // oscillated absent/present, the open fails fatally so Connect restarts the task and
+            // re-seeks from the durable lock.
             logger.info(
               s"[${connectorTaskId.show}] Lost master-lock create race for $topicPartition at $path; " +
-                s"re-reading existing lock (attempts left: ${attemptsLeft - 1})",
+                s"re-reading existing lock (writes left: ${attemptsLeft - 1})",
             )
             decideOpen(
               topicPartition,
@@ -951,17 +970,16 @@ class IndexManagerV2(
               tryOpen(bucketAndPrefix.bucket, path),
               attemptsLeft - 1,
               observedEpoch,
-              lastWritten = Some(epoch),
+              Some(
+                FailedOpenWrite(
+                  epoch,
+                  FatalCloudSinkError(
+                    s"Exhausted master-lock create-race retries for $topicPartition at $path",
+                    topicPartition,
+                  ),
+                ),
+              ),
             )
-
-          case Left(_: LostCreateRaceError) =>
-            // Bounded retries exhausted: the lock oscillated absent/present. Fail fatally so
-            // Connect restarts the task and re-seeks from the durable lock — no worse than the
-            // pre-fix behaviour, but only after exhausting the bounded re-reads.
-            FatalCloudSinkError(
-              s"Exhausted master-lock create-race retries for $topicPartition at $path",
-              topicPartition,
-            ).asLeft[Option[Offset]]
 
           case Left(other) => other.asLeft[Option[Offset]]
         }
@@ -1008,12 +1026,11 @@ class IndexManagerV2(
           path,
           ObjectWithETag(IndexFile(lockOwner, committedOffset, Some(pendingStateFound), Some(epoch)), eTag),
         ) match {
-          case Left(err) if attemptsLeft > 1 =>
+          case Left(err) =>
             metrics.incrementMasterLockFailures()
             logger.info(
               s"[${connectorTaskId.show}] Ownership bump lost a race while recovering a pending chain for " +
-                s"$topicPartition at $path; re-reading and retrying (attempts left: ${attemptsLeft - 1}): " +
-                s"${err.message()}",
+                s"$topicPartition at $path; re-reading (writes left: ${attemptsLeft - 1}): ${err.message()}",
             )
             decideOpen(
               topicPartition,
@@ -1022,15 +1039,10 @@ class IndexManagerV2(
               tryOpen(bucketAndPrefix.bucket, path),
               attemptsLeft - 1,
               observedEpoch,
-              lastWritten = Some(epoch),
+              Some(FailedOpenWrite(epoch,
+                                   new FatalCloudSinkError(err.message(), err.toExceptionOption, topicPartition),
+              )),
             )
-          case Left(err) =>
-            metrics.incrementMasterLockFailures()
-            logger.warn(
-              s"[${connectorTaskId.show}] Ownership bump exhausted retries while recovering a pending chain for " +
-                s"$topicPartition at $path: ${err.message()}",
-            )
-            new FatalCloudSinkError(err.message(), err.toExceptionOption, topicPartition).asLeft[Option[Offset]]
           case Right(bumped) =>
             metrics.incrementMasterLockUpdates()
             recoverAfterBump(
@@ -1064,11 +1076,11 @@ class IndexManagerV2(
             updateDataReturnOffset(topicPartition, ownershipTaken(topicPartition, epoch, written, prevEpoch)).asRight[
               SinkError,
             ]
-          case Left(err) if attemptsLeft > 1 =>
+          case Left(err) =>
             metrics.incrementMasterLockFailures()
             logger.info(
               s"[${connectorTaskId.show}] Master-lock ownership bump lost a race for $topicPartition at $path; " +
-                s"re-reading and retrying (attempts left: ${attemptsLeft - 1}): ${err.message()}",
+                s"re-reading (writes left: ${attemptsLeft - 1}): ${err.message()}",
             )
             decideOpen(
               topicPartition,
@@ -1077,15 +1089,10 @@ class IndexManagerV2(
               tryOpen(bucketAndPrefix.bucket, path),
               attemptsLeft - 1,
               observedEpoch,
-              lastWritten = Some(epoch),
+              Some(FailedOpenWrite(epoch,
+                                   new FatalCloudSinkError(err.message(), err.toExceptionOption, topicPartition),
+              )),
             )
-          case Left(err) =>
-            metrics.incrementMasterLockFailures()
-            logger.warn(
-              s"[${connectorTaskId.show}] Master-lock ownership bump exhausted retries for $topicPartition at " +
-                s"$path: ${err.message()}",
-            )
-            new FatalCloudSinkError(err.message(), err.toExceptionOption, topicPartition).asLeft[Option[Offset]]
         }
 
       case Right(objectWithetag @ ObjectWithETag(IndexFile(_, _, _, _), _)) =>
@@ -2785,12 +2792,19 @@ object IndexManagerV2 {
   val MaxGcRetries: Int = 3
 
   /**
-   * Bounded re-read attempts when a master-lock NoOverwrite create loses the race. One re-read
-   * normally suffices — cloud storage is read-after-write consistent for the destination — so
-   * the cap only guards against a pathological absent/present flicker before surfacing a fatal
-   * error.
+   * Bounded ownership writes `open()` makes on a master lock (creates and bumps alike, shared). Each
+   * failed write is re-read, the last included, so the bound is on writes, not reads. One re-read
+   * normally suffices — cloud storage is read-after-write consistent for the destination — so the
+   * cap only guards against a pathological absent/present flicker or a run of failed writes before
+   * surfacing a fatal error.
    */
   val MaxOpenCreateRaceAttempts: Int = 3
+
+  /**
+   * An ownership write `open()` made that failed: the epoch it stamped, so the re-read can tell it
+   * landed, and the error the open fails with if that re-read is the last and decides nothing.
+   */
+  private[seek] final case class FailedOpenWrite(epoch: Long, spent: SinkError)
 
   /**
    * Internal, recoverable signal: a master-lock NoOverwrite create lost the race because the

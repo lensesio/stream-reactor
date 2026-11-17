@@ -21,6 +21,9 @@ import io.lenses.streamreactor.connect.cloud.common.model.Topic
 import io.lenses.streamreactor.connect.cloud.common.model.UploadableString
 import io.lenses.streamreactor.connect.cloud.common.sink.FatalCloudSinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
+import io.lenses.streamreactor.connect.cloud.common.storage.NonOverwriteFileExistsError
+import io.lenses.streamreactor.connect.cloud.common.storage.UploadError
+import io.lenses.streamreactor.connect.cloud.common.testing.InMemoryStorageInterface.FailWriteAt
 import io.lenses.streamreactor.connect.cloud.common.testing.InMemoryStorageInterface.LoseWriteResponseAt
 import io.lenses.streamreactor.connect.cloud.common.testing.InMemoryStorageInterface.OnWriteAt
 import org.scalatest.EitherValues
@@ -42,6 +45,9 @@ class OpenOwnershipGuardTest extends AnyFunSuite with Matchers with EitherValues
 
   private val tp = Topic("topic").withPartition(0)
 
+  // Master-lock writes a recovery of `copyChain` makes after its bump.
+  private val ChainWrites = 2
+
   private def seedMaster(h: TwoInstanceHarness, idx: IndexFile): Unit = {
     val _ = h.storage.writeBlobToFile(h.bucket, h.masterLockPath(tp), NoOverwriteExistingObject(idx)).value
   }
@@ -52,13 +58,19 @@ class OpenOwnershipGuardTest extends AnyFunSuite with Matchers with EitherValues
   private def masterWrites(h: TwoInstanceHarness): Int = h.storage.writeCount(h.bucket, h.masterLockPath(tp))
 
   /**
-   * Runs `action` just before the next master-lock write by instance `instance` is applied, so
+   * Runs `action` just before the `nth` master-lock write by instance `instance` is applied, so
    * another instance's step lands between that instance's read and its conditional write. The
    * action runs on its own thread (it may itself call `open()`, which runs its own IO).
    */
-  private def beforeMasterWriteBy[A](h: TwoInstanceHarness, instance: Int)(action: => A): AtomicReference[A] = {
+  private def beforeMasterWriteBy[A](
+    h:        TwoInstanceHarness,
+    instance: Int,
+    nth:      Int = 1,
+  )(action:   => A,
+  ): AtomicReference[A] = {
     val result = new AtomicReference[A]()
     val owner  = h.lockUuid(instance)
+    skipMasterWritesBy(h, owner, nth - 1)
     val _ = h.storage.arm(
       OnWriteAt(
         h.bucket,
@@ -68,6 +80,33 @@ class OpenOwnershipGuardTest extends AnyFunSuite with Matchers with EitherValues
       ),
     )
     result
+  }
+
+  /** Hooks are one-shot and taken in order: these consume `n` writes by `owner` before a later hook. */
+  private def skipMasterWritesBy(h: TwoInstanceHarness, owner: String, n: Int): Unit =
+    (1 to n).foreach { _ =>
+      val _ = h.storage.arm(
+        OnWriteAt(h.bucket,
+                  h.masterLockPath(tp),
+                  () => (),
+                  { case idx: IndexFile => idx.owner == owner; case _ => false },
+        ),
+      )
+    }
+
+  private def failMasterWrites(h: TwoInstanceHarness, n: Int, err: Option[UploadError] = None): Unit =
+    (1 to n).foreach(_ => h.storage.arm(FailWriteAt(h.bucket, h.masterLockPath(tp), err)))
+
+  private def createRaceLost: Option[UploadError] =
+    Some(NonOverwriteFileExistsError(new IllegalStateException("exists"), "master lock"))
+
+  private def masterReads(h: TwoInstanceHarness): Int = h.storage.readCount(h.bucket, h.masterLockPath(tp))
+
+  /** Fatal, but not the ownership-lost refusal: the writes were spent with nothing showing a newer owner. */
+  private def writesSpent(result: Either[SinkError, Any]): Unit = {
+    result.left.value shouldBe a[FatalCloudSinkError]
+    result.left.value.message() should not include "taken over during open"
+    ()
   }
 
   private def ownershipLost(result: Either[SinkError, Any]): Unit = {
@@ -178,7 +217,8 @@ class OpenOwnershipGuardTest extends AnyFunSuite with Matchers with EitherValues
       seedMaster(h, IndexFile("prev-owner", Some(Offset(41)), None, Some(500L)))
       h.clock.set(1000L)
       // An older writer's non-atomic write leaves a 0-byte lock between A's read and its bump.
-      val _ = beforeMasterWriteBy(h, instance = 0)(h.storage.putRaw(h.bucket, h.masterLockPath(tp), Array.emptyByteArray))
+      val _ =
+        beforeMasterWriteBy(h, instance = 0)(h.storage.putRaw(h.bucket, h.masterLockPath(tp), Array.emptyByteArray))
       val before = masterWrites(h)
 
       ownershipLost(h.a.open(Set(tp)))
@@ -245,9 +285,12 @@ class OpenOwnershipGuardTest extends AnyFunSuite with Matchers with EitherValues
       val (chain, temp, finalPath) = copyChain(h)
       seedMaster(h, IndexFile("crashed-owner", Some(Offset(41)), Some(chain), Some(500L)))
       h.clock.set(1000L)
-      val _ = h.storage.arm(LoseWriteResponseAt(h.bucket, h.masterLockPath(tp)))
+      val before = masterWrites(h)
+      val _      = h.storage.arm(LoseWriteResponseAt(h.bucket, h.masterLockPath(tp)))
 
       h.a.open(Set(tp)).value shouldBe Map(tp -> Some(Offset(50)))
+
+      masterWrites(h) shouldBe before + 1 + ChainWrites
 
       // Recovered under the epoch of the bump that landed: a second bump would have taken 1001.
       storedMaster(h) shouldBe IndexFile(h.lockUuid(0), Some(Offset(50)), None, Some(1000L))
@@ -255,6 +298,222 @@ class OpenOwnershipGuardTest extends AnyFunSuite with Matchers with EitherValues
       h.storage.keysUnder(h.bucket, "data/topic/0/").filterNot(_.contains(".temp-upload")) shouldBe Seq(finalPath)
       h.storage.pathExists(h.bucket, temp).value shouldBe false
       h.a.updateMasterLock(tp, Offset(51)).value
+    } finally h.close()
+  }
+
+  test("a bump whose last write landed with its response lost is adopted from a final re-read") {
+    val h = new TwoInstanceHarness()
+    try {
+      seedMaster(h, IndexFile("prev-owner", Some(Offset(41)), None, Some(500L)))
+      h.clock.set(1000L)
+      val before = masterWrites(h)
+      failMasterWrites(h, 2)
+      val _ = h.storage.arm(LoseWriteResponseAt(h.bucket, h.masterLockPath(tp)))
+
+      h.a.open(Set(tp)).value shouldBe Map(tp -> Some(Offset(41)))
+
+      masterWrites(h) shouldBe before + 3
+      val stored = h.readLock(h.masterLockPath(tp)).value
+      stored.wrappedObject shouldBe IndexFile(h.lockUuid(0), Some(Offset(41)), None, Some(1000L))
+      h.a.heldEpochOf(tp) shouldBe Some(1000L)
+      h.a.topicPartitionToETags.get(tp) shouldBe Some(stored.eTag)
+      h.metrics(0).getMasterLockOpenOwnershipLost shouldBe 0L
+      h.a.updateMasterLock(tp, Offset(50)).value
+    } finally h.close()
+  }
+
+  test("a bump whose last write loses to a newer owner fails as ownership lost, with no further write") {
+    val h = new TwoInstanceHarness()
+    try {
+      seedMaster(h, IndexFile("prev-owner", Some(Offset(41)), None, Some(500L)))
+      h.clock.set(1000L)
+      failMasterWrites(h, 2)
+      val writesAfterB = new AtomicReference[Int]()
+      val bOpen = beforeMasterWriteBy(h, instance = 0, nth = 3) {
+        val r = h.b.open(Set(tp))
+        writesAfterB.set(masterWrites(h))
+        r
+      }
+
+      val aOpen = h.a.open(Set(tp))
+
+      bOpen.get().value shouldBe Map(tp -> Some(Offset(41)))
+      ownershipLost(aOpen)
+      masterWrites(h) shouldBe writesAfterB.get()
+      storedMaster(h) shouldBe IndexFile(h.lockUuid(1), Some(Offset(41)), None, Some(1000L))
+      h.a.heldEpochOf(tp) shouldBe None
+      h.metrics(0).getMasterLockOpenOwnershipLost shouldBe 1L
+      h.b.updateMasterLock(tp, Offset(50)).value
+    } finally h.close()
+  }
+
+  test(
+    "a bump whose writes all fail on an unchanged lock fails once they are spent, re-reading but never writing a fourth time",
+  ) {
+    val h = new TwoInstanceHarness()
+    try {
+      val seeded = IndexFile("prev-owner", Some(Offset(41)), None, Some(500L))
+      seedMaster(h, seeded)
+      h.clock.set(1000L)
+      val (writes, reads) = (masterWrites(h), masterReads(h))
+      failMasterWrites(h, 3)
+
+      writesSpent(h.a.open(Set(tp)))
+
+      masterWrites(h) shouldBe writes + 3
+      masterReads(h) shouldBe reads + 4 // the first read and a re-read after each failed write
+      storedMaster(h) shouldBe seeded
+      h.a.heldEpochOf(tp) shouldBe None
+      h.metrics(0).getMasterLockOpenOwnershipLost shouldBe 0L
+    } finally h.close()
+  }
+
+  test("a pending-state bump whose last write landed with its response lost drives the chain from a final re-read") {
+    val h = new TwoInstanceHarness()
+    try {
+      val (chain, temp, finalPath) = copyChain(h)
+      seedMaster(h, IndexFile("crashed-owner", Some(Offset(41)), Some(chain), Some(500L)))
+      h.clock.set(1000L)
+      val before = masterWrites(h)
+      failMasterWrites(h, 2)
+      val _ = h.storage.arm(LoseWriteResponseAt(h.bucket, h.masterLockPath(tp)))
+
+      h.a.open(Set(tp)).value shouldBe Map(tp -> Some(Offset(50)))
+
+      // Three bumps, then the chain's own writes: no fourth bump.
+      masterWrites(h) shouldBe before + 3 + ChainWrites
+      storedMaster(h) shouldBe IndexFile(h.lockUuid(0), Some(Offset(50)), None, Some(1000L))
+      h.a.heldEpochOf(tp) shouldBe Some(1000L)
+      h.storage.keysUnder(h.bucket, "data/topic/0/").filterNot(_.contains(".temp-upload")) shouldBe Seq(finalPath)
+      h.storage.pathExists(h.bucket, temp).value shouldBe false
+      h.metrics(0).getMasterLockOpenOwnershipLost shouldBe 0L
+      h.a.updateMasterLock(tp, Offset(51)).value
+    } finally h.close()
+  }
+
+  test(
+    "a pending-state bump whose last write loses to a newer owner fails as ownership lost without driving the chain",
+  ) {
+    val h = new TwoInstanceHarness()
+    try {
+      val (chain, temp, finalPath) = copyChain(h)
+      seedMaster(h, IndexFile("crashed-owner", Some(Offset(41)), Some(chain), Some(500L)))
+      h.clock.set(1000L)
+      failMasterWrites(h, 2)
+      val writesAfterB = new AtomicReference[Int]()
+      val bOpen = beforeMasterWriteBy(h, instance = 0, nth = 3) {
+        val r = h.b.open(Set(tp))
+        writesAfterB.set(masterWrites(h))
+        r
+      }
+
+      val aOpen = h.a.open(Set(tp))
+
+      bOpen.get().value shouldBe Map(tp -> Some(Offset(50)))
+      ownershipLost(aOpen)
+      masterWrites(h) shouldBe writesAfterB.get()
+      storedMaster(h) shouldBe IndexFile(h.lockUuid(1), Some(Offset(50)), None, Some(1000L))
+      h.storage.pathExists(h.bucket, finalPath).value shouldBe true
+      h.storage.pathExists(h.bucket, temp).value shouldBe false
+      h.a.heldEpochOf(tp) shouldBe None
+      h.metrics(0).getMasterLockOpenOwnershipLost shouldBe 1L
+    } finally h.close()
+  }
+
+  test(
+    "a pending-state bump whose writes all fail on an unchanged lock fails once they are spent, leaving the chain undriven",
+  ) {
+    val h = new TwoInstanceHarness()
+    try {
+      val (chain, temp, finalPath) = copyChain(h)
+      val seeded                   = IndexFile("crashed-owner", Some(Offset(41)), Some(chain), Some(500L))
+      seedMaster(h, seeded)
+      h.clock.set(1000L)
+      val (writes, reads) = (masterWrites(h), masterReads(h))
+      failMasterWrites(h, 3)
+
+      writesSpent(h.a.open(Set(tp)))
+
+      masterWrites(h) shouldBe writes + 3
+      masterReads(h) shouldBe reads + 4
+      storedMaster(h) shouldBe seeded
+      h.storage.pathExists(h.bucket, temp).value shouldBe true
+      h.storage.pathExists(h.bucket, finalPath).value shouldBe false
+      h.a.heldEpochOf(tp) shouldBe None
+      h.metrics(0).getMasterLockOpenOwnershipLost shouldBe 0L
+    } finally h.close()
+  }
+
+  test("a create whose last attempt landed with its response lost is adopted from a final re-read") {
+    val h = new TwoInstanceHarness()
+    try {
+      h.clock.set(1000L)
+      failMasterWrites(h, 2, createRaceLost)
+      // The third create lands (applied here by the hook) and the call then reports it exists.
+      val aCreate = new AtomicReference[IndexFile]()
+      val owner   = h.lockUuid(0)
+      skipMasterWritesBy(h, owner, 2)
+      val _ = h.storage.arm(
+        OnWriteAt(
+          h.bucket,
+          h.masterLockPath(tp),
+          () => seedMaster(h, aCreate.get()),
+          {
+            case idx: IndexFile if idx.owner == owner => aCreate.set(idx); true
+            case _ => false
+          },
+        ),
+      )
+
+      h.a.open(Set(tp)).value shouldBe Map(tp -> None)
+
+      masterWrites(h) shouldBe 4 // A's three creates, plus the hook's write standing in for the third one landing
+      storedMaster(h) shouldBe IndexFile(h.lockUuid(0), None, None, Some(1000L))
+      h.a.heldEpochOf(tp) shouldBe Some(1000L)
+      h.metrics(0).getMasterLockOpenOwnershipLost shouldBe 0L
+      h.a.updateMasterLock(tp, Offset(5)).value
+    } finally h.close()
+  }
+
+  test("a create whose last attempt loses to a newer owner fails as ownership lost") {
+    val h = new TwoInstanceHarness()
+    try {
+      h.clock.set(1000L)
+      failMasterWrites(h, 2, createRaceLost)
+      val writesAfterB = new AtomicReference[Int]()
+      val bOpen = beforeMasterWriteBy(h, instance = 0, nth = 3) {
+        val r = h.b.open(Set(tp))
+        writesAfterB.set(masterWrites(h))
+        r
+      }
+
+      val aOpen = h.a.open(Set(tp))
+
+      bOpen.get().value shouldBe Map(tp -> None)
+      ownershipLost(aOpen)
+      masterWrites(h) shouldBe writesAfterB.get()
+      storedMaster(h) shouldBe IndexFile(h.lockUuid(1), None, None, Some(1000L))
+      h.a.heldEpochOf(tp) shouldBe None
+      h.metrics(0).getMasterLockOpenOwnershipLost shouldBe 1L
+      h.b.updateMasterLock(tp, Offset(5)).value
+    } finally h.close()
+  }
+
+  test(
+    "a create whose attempts all lose while the lock stays absent fails once they are spent, with no fourth create",
+  ) {
+    val h = new TwoInstanceHarness()
+    try {
+      h.clock.set(1000L)
+      failMasterWrites(h, 3, createRaceLost)
+
+      writesSpent(h.a.open(Set(tp)))
+
+      masterWrites(h) shouldBe 3
+      masterReads(h) shouldBe 4
+      h.storage.pathExists(h.bucket, h.masterLockPath(tp)).value shouldBe false
+      h.a.heldEpochOf(tp) shouldBe None
+      h.metrics(0).getMasterLockOpenOwnershipLost shouldBe 0L
     } finally h.close()
   }
 

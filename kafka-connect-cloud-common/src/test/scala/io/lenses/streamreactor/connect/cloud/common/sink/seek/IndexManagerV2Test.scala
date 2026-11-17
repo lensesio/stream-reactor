@@ -313,8 +313,12 @@ class IndexManagerV2Test
 
     result.isLeft shouldBe true
     result.left.value shouldBe a[FatalCloudSinkError]
-    // Exactly MaxOpenCreateRaceAttempts (3) reads before giving up.
+    // Exactly MaxOpenCreateRaceAttempts (3) creates, each re-read (the last included) after the first read.
     verify(storageInterface, times(3))
+      .writeBlobToFile[IndexFile](anyString(), anyString(), any[ObjectWithETag[IndexFile]])(
+        ArgumentMatchers.eq(indexFileEncoder),
+      )
+    verify(storageInterface, times(4))
       .getBlobAsObject[IndexFile](anyString(), anyString())(ArgumentMatchers.eq(indexFileDecoder))
   }
 
