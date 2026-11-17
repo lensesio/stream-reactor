@@ -26,6 +26,7 @@ import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.model.UploadableString
 import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
 import io.lenses.streamreactor.connect.cloud.common.testing.InMemoryStorageInterface
+import io.lenses.streamreactor.connect.cloud.common.testing.InMemoryStorageInterface.AfterReadAt
 import io.lenses.streamreactor.connect.cloud.common.testing.InMemoryStorageInterface.FailDeleteAt
 import io.lenses.streamreactor.connect.cloud.common.testing.InMemoryStorageInterface.FailMoveAt
 import io.lenses.streamreactor.connect.cloud.common.testing.InMemoryStorageInterface.LoseWriteResponseAt
@@ -1507,6 +1508,108 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues wit
 
       h.storage.pathExists(h.bucket, temp).value shouldBe true
       h.a.fencedPartitions should contain(tp)
+    } finally h.close()
+  }
+
+  // ---- a sweep decides on the epoch held when it read the master lock ---------------------
+
+  test("a batch temp sweep whose partition this instance re-takes after the sweep's master read does not fence it") {
+    val h = new TwoInstanceHarness(commitMode = CommitMode.Batch, sweepEnabled = true, sweepSeconds = 3600)
+    try {
+      h.clock.set(1000L)
+      seedMaster(h, IndexFile("previous-owner", Some(Offset(9)), None))
+      h.a.open(Set(tp)).value // epoch 1000
+      h.b.open(Set(tp)).value // epoch 1001; this instance has not noticed
+      // The sweep reads B's master lock. Before it decides on it, a rebalance closes the partition
+      // here and assigns it back to this instance, which re-takes it above B.
+      h.storage.arm(
+        AfterReadAt(
+          h.bucket,
+          h.masterLockPath(tp),
+          () => {
+            h.a.closePartitions(Set(tp))
+            val _ = h.a.open(Set(tp)).value
+          },
+        ),
+      )
+
+      h.a.sweepAllBatchTemps()
+
+      h.a.heldEpochOf(tp) shouldBe Some(1002L)
+      h.a.isFenced(tp) shouldBe false
+      h.a.fencedPartitions shouldBe empty
+      h.a.update(tp, Some(Offset(10)), None).value shouldBe Some(Offset(10))
+    } finally h.close()
+  }
+
+  test("a delete chunk whose partition this instance re-takes after the chunk's master read does not fence it") {
+    val h = new TwoInstanceHarness(commitMode = CommitMode.Batch, sweepEnabled = true, sweepSeconds = 3600)
+    try {
+      h.clock.set(1000L)
+      seedMaster(h, IndexFile("previous-owner", Some(Offset(9)), None))
+      h.a.open(Set(tp)).value // epoch 1000
+      val temp       = h.batchTempPrefix(tp) + "batch-uuid/data/topic/0/staged.json"
+      val masterPath = h.masterLockPath(tp)
+      // The pre-LIST read sees this instance's own master lock. B then takes the partition over and
+      // stages an aged temp the LIST picks up. The chunk's re-read sees B's master lock and, before
+      // the chunk decides on it, this instance closes and re-takes the partition above B.
+      val retakeAfterChunkRead = () => {
+        h.a.closePartitions(Set(tp))
+        val _ = h.a.open(Set(tp)).value
+      }
+      h.storage.arm(
+        AfterReadAt(
+          h.bucket,
+          masterPath,
+          () => {
+            val _ = h.b.open(Set(tp)).value // epoch 1001
+            h.storage.writeStringToFile(h.bucket, temp, UploadableString("payload")).value
+            h.storage.setLastModified(h.bucket, temp, longAgo) shouldBe true
+            val _ = h.storage.arm(AfterReadAt(h.bucket, masterPath, retakeAfterChunkRead))
+          },
+        ),
+      )
+
+      h.a.sweepAllBatchTemps()
+
+      h.a.heldEpochOf(tp) shouldBe Some(1002L)
+      h.a.isFenced(tp) shouldBe false
+      h.a.fencedPartitions shouldBe empty
+      h.a.update(tp, Some(Offset(10)), None).value shouldBe Some(Offset(10))
+    } finally h.close()
+  }
+
+  test("a batch temp sweep whose partition is closed after the sweep's master read leaves no fence behind") {
+    val h = new TwoInstanceHarness(commitMode = CommitMode.Batch, sweepEnabled = true, sweepSeconds = 3600)
+    try {
+      h.clock.set(1000L)
+      seedMaster(h, IndexFile("previous-owner", Some(Offset(9)), None))
+      h.a.open(Set(tp)).value
+      h.b.open(Set(tp)).value
+      h.storage.arm(AfterReadAt(h.bucket, h.masterLockPath(tp), () => h.a.closePartitions(Set(tp))))
+
+      h.a.sweepAllBatchTemps()
+
+      h.a.heldEpochOf(tp) shouldBe None
+      h.a.isFenced(tp) shouldBe false
+      h.a.fencedPartitions shouldBe empty
+    } finally h.close()
+  }
+
+  test("a fence on a partition this instance no longer holds an epoch for is not reported") {
+    val h = new TwoInstanceHarness()
+    try {
+      h.clock.set(1000L)
+      h.a.open(Set(tp)).value
+      h.b.open(Set(tp)).value
+      h.a.updateMasterLock(tp, Offset(10)).isLeft shouldBe true
+      h.a.confirmMasterFenced(tp) shouldBe true
+      h.a.fencedPartitions should contain(tp)
+
+      // The state a fence marked after the partition's close leaves: no held epoch, a fence entry.
+      IndexManagerV2.IndexManagerV2TestHooks.dropHeldEpoch(h.a, tp)
+
+      h.a.fencedPartitions shouldBe empty
     } finally h.close()
   }
 }

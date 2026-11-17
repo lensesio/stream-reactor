@@ -207,7 +207,9 @@ class InMemoryStorageInterface(systemName: String = "in-memory", contentETags: B
 
   override def getBlob(bucket: String, path: String): Either[FileLoadError, InputStream] = {
     recordRead(bucket, path)
-    Option(store.get((bucket, path))) match {
+    val read = Option(store.get((bucket, path)))
+    afterRead(bucket, path)
+    read match {
       case Some(blob) => Right(new ByteArrayInputStream(blob.bytes))
       case None       => Left(FileNotFoundError(new IOException(s"No such key: $bucket/$path"), path))
     }
@@ -215,7 +217,9 @@ class InMemoryStorageInterface(systemName: String = "in-memory", contentETags: B
 
   override def getBlobAsString(bucket: String, path: String): Either[FileLoadError, String] = {
     recordRead(bucket, path)
-    Option(store.get((bucket, path))) match {
+    val read = Option(store.get((bucket, path)))
+    afterRead(bucket, path)
+    read match {
       case Some(blob) => Right(new String(blob.bytes, StandardCharsets.UTF_8))
       case None       => Left(FileNotFoundError(new IOException(s"No such key: $bucket/$path"), path))
     }
@@ -223,7 +227,9 @@ class InMemoryStorageInterface(systemName: String = "in-memory", contentETags: B
 
   override def getBlobAsStringAndEtag(bucket: String, path: String): Either[FileLoadError, (String, String)] = {
     recordRead(bucket, path)
-    Option(store.get((bucket, path))) match {
+    val read = Option(store.get((bucket, path)))
+    afterRead(bucket, path)
+    read match {
       case Some(blob) => Right((new String(blob.bytes, StandardCharsets.UTF_8), blob.eTag))
       case None       => Left(FileNotFoundError(new IOException(s"No such key: $bucket/$path"), path))
     }
@@ -361,6 +367,10 @@ class InMemoryStorageInterface(systemName: String = "in-memory", contentETags: B
     takeFirstHook { case h: OnReadAt if h.matches(bucket, path) => h }.foreach(_.action())
   }
 
+  /** Runs an armed `AfterReadAt` action once the read has taken the content, before the caller sees it. */
+  private def afterRead(bucket: String, path: String): Unit =
+    takeFirstHook { case h: AfterReadAt if h.matches(bucket, path) => h }.foreach(_.action())
+
   /** The eTag a write of `bytes` gets: fresh per write, or the bytes' digest with `contentETags`. */
   private def eTagFor(bytes: Array[Byte], fresh: String): String =
     if (contentETags)
@@ -482,6 +492,15 @@ object InMemoryStorageInterface {
    * between a caller's check and its use of what it read.
    */
   final case class OnReadAt(bucket: String, path: String, action: () => Unit) extends Hook {
+    def matches(b: String, p: String): Boolean = b == bucket && p == path
+  }
+
+  /**
+   * Run `action` on the next content read of `(bucket, path)`, after the read has taken the content
+   * and before the caller sees it: the caller then acts on what the store held before `action`, as
+   * when another thread's step lands between a read and the decision taken on it.
+   */
+  final case class AfterReadAt(bucket: String, path: String, action: () => Unit) extends Hook {
     def matches(b: String, p: String): Boolean = b == bucket && p == path
   }
 
