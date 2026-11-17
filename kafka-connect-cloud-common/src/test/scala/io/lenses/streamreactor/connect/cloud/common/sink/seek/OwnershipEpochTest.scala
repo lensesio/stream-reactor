@@ -1839,4 +1839,108 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues wit
     } finally h.close()
   }
 
+  test("a fence placed against the new epoch during a re-open without a close replaces the previous episode's fence") {
+    val h = new TwoInstanceHarness()
+    try {
+      h.clock.set(1000L)
+      h.a.open(Set(tp)).value // epoch 1000
+      h.b.open(Set(tp)).value // epoch 1001
+      h.a.updateMasterLock(tp, Offset(10)).isLeft shouldBe true
+      h.a.confirmMasterFenced(tp) shouldBe true
+      h.a.fencingReason(tp).getOrElse("") should include("epoch 1001, held epoch 1000")
+
+      // A re-opens without a close and takes 1002, so the fence against 1000 is still up. After the
+      // epoch is published and before the re-open lifts the previous episode's fences, B takes the
+      // partition over again (1003) and a fencing check on this instance reads B's lock. B then
+      // takes it once more (1004) and a second check fences against the same held epoch.
+      val fired = new java.util.concurrent.atomic.AtomicBoolean(false)
+      IndexManagerV2.IndexManagerV2TestHooks.installOwnershipPublishedHook(
+        h.a,
+        (published, epoch) =>
+          if (published == tp && epoch == 1002L && fired.compareAndSet(false, true)) {
+            h.b.closePartitions(Set(tp))
+            val _ = h.b.open(Set(tp)).value
+            val _ = h.a.confirmMasterFenced(tp) shouldBe true
+            h.b.closePartitions(Set(tp))
+            val _ = h.b.open(Set(tp)).value
+            val _ = h.a.confirmMasterFenced(tp) shouldBe true
+          },
+      )
+
+      h.a.evictAllGranularLocks(tp)
+      h.a.open(Set(tp)).value
+      IndexManagerV2.IndexManagerV2TestHooks.clearOwnershipPublishedHook(h.a)
+
+      fired.get() shouldBe true
+      h.a.heldEpochOf(tp) shouldBe Some(1002L)
+      storedMaster(h).epoch shouldBe Some(1004L)
+      h.a.isFenced(tp) shouldBe true
+      h.a.fencedPartitions should contain(tp)
+      // The first reason against the new epoch is kept.
+      h.a.fencingReason(tp).getOrElse("") should include("epoch 1003, held epoch 1002")
+      refusedWith(h.a.update(tp, Some(Offset(10)), None), "Fenced on")
+      refusedWith(h.a.updateMasterLock(tp, Offset(10)), "Fenced on")
+      refusedWith(h.a.ensureGranularLock(tp, "date=2024-01-02"), "Fenced on")
+    } finally h.close()
+  }
+
+  test("a fencing decision taken under an earlier epoch does not replace a fence placed against the new epoch") {
+    val h = new TwoInstanceHarness()
+    try {
+      h.clock.set(1000L)
+      h.a.open(Set(tp)).value // epoch 1000
+      h.b.open(Set(tp)).value // epoch 1001
+      // The fencing check takes its held epoch (1000), then reads B's master lock. Before it marks
+      // the fence, this instance re-opens without a close (1002), B takes the partition over again
+      // (1003) and a fencing check fences against 1002.
+      h.storage.arm(
+        AfterReadAt(
+          h.bucket,
+          h.masterLockPath(tp),
+          () => {
+            h.a.evictAllGranularLocks(tp)
+            val _ = h.a.open(Set(tp)).value
+            h.b.closePartitions(Set(tp))
+            val _ = h.b.open(Set(tp)).value
+            val _ = h.a.confirmMasterFenced(tp) shouldBe true
+          },
+        ),
+      )
+
+      h.a.confirmMasterFenced(tp) shouldBe true
+
+      h.a.heldEpochOf(tp) shouldBe Some(1002L)
+      h.a.fencedPartitions should contain(tp)
+      h.a.fencingReason(tp).getOrElse("") should include("epoch 1003, held epoch 1002")
+    } finally h.close()
+  }
+
+  test("a fencing decision against a held epoch below the fence's epoch does not replace the fence") {
+    val h = new TwoInstanceHarness()
+    try {
+      h.clock.set(1000L)
+      h.a.open(Set(tp)).value // epoch 1000
+      h.b.open(Set(tp)).value // epoch 1001
+      h.a.evictAllGranularLocks(tp)
+      h.a.open(Set(tp)).value // epoch 1002, no close
+      h.b.closePartitions(Set(tp))
+      h.b.open(Set(tp)).value // epoch 1003
+      h.a.confirmMasterFenced(tp) shouldBe true
+      h.a.fencingReason(tp).getOrElse("") should include("epoch 1003, held epoch 1002")
+
+      // An older version rewrites the master without the field, and this instance re-opens without
+      // a close: with no previous epoch the clock sets the new one, below the fence's epoch, so the
+      // fence stays up. A later fencing check against the held epoch keeps that fence.
+      val _ = overwriteMaster(h, IndexFile("old-version-owner", Some(Offset(9)), None))
+      h.a.evictAllGranularLocks(tp)
+      h.a.open(Set(tp)).value
+      h.a.heldEpochOf(tp) shouldBe Some(1000L)
+      val _ = overwriteMaster(h, IndexFile("old-version-owner", Some(Offset(9)), None))
+      h.a.confirmMasterFenced(tp) shouldBe true
+
+      h.a.fencedPartitions should contain(tp)
+      h.a.fencingReason(tp).getOrElse("") should include("epoch 1003, held epoch 1002")
+    } finally h.close()
+  }
+
 }

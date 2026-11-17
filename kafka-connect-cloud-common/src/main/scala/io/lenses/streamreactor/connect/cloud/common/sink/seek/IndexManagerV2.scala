@@ -132,7 +132,7 @@ class IndexManagerV2(
   // Partitions this instance has found itself fenced on: it read a lock written under a newer
   // ownership epoch, or lost a master-lock write to a newer owner. Concurrent: marked from the task
   // thread, commit-pool threads and the GC/sweep threads. The task fails fast while it is non-empty.
-  // The value is the first fence seen: the held epoch it was placed against, and its reason (the
+  // The value is the first fence seen against the latest held epoch: that epoch, and its reason (the
   // epochs involved) for the task-failure message. The epoch scopes the fence to one ownership
   // episode: a re-open lifts only the fences placed against an earlier epoch (`ownershipTaken`).
   private val fencedTps =
@@ -149,24 +149,26 @@ class IndexManagerV2(
     Option(fencedTps.get(topicPartition)).map(_.reason)
 
   /**
-   * Marks a partition fenced, keeping the first reason, when `heldEpoch` -- the epoch the fencing
-   * decision was taken under -- is still the one held. A decision taken on a read that a close or a
-   * fresh ownership write has since overtaken no longer applies, so it places no fence: the epoch
-   * check and the insert run atomically against the removals (both lock the same map entry). A
-   * close clears the epoch before it removes every fence; a re-open publishes its new epoch before
-   * it removes the fences placed against an earlier one, so a fence placed against the new epoch in
-   * between is kept. Returns whether the partition is now fenced. The metric counts fencing
-   * episodes: once per fence, so a partition fenced, re-owned (which lifts the fence) and fenced
-   * again counts twice.
+   * Marks a partition fenced when `heldEpoch` -- the epoch the fencing decision was taken under -- is
+   * still the one held. A decision taken on a read that a close or a fresh ownership write has since
+   * overtaken no longer applies, so it changes nothing: the epoch check and the update run
+   * atomically against the removals (both lock the same map entry). Against the held epoch, a fence
+   * placed against an earlier epoch is replaced; one already placed against this epoch keeps its
+   * first reason; one placed against a later epoch is kept. A close clears the epoch before it
+   * removes every fence; a re-open publishes its new epoch before it removes the fences placed
+   * against an earlier one, so a fence placed against the new epoch in between survives, even when a
+   * fence from the previous episode was still up (a re-open without a close). Returns whether the
+   * partition is now fenced. The metric counts fencing episodes: once per fence placed against an
+   * epoch, so a partition fenced, re-owned and fenced again counts twice.
    */
   private def markFenced(topicPartition: TopicPartition, heldEpoch: Long, reason: String): Boolean = {
     var placed = false
     val now = fencedTps.compute(
       topicPartition,
       (_, current) =>
-        if (current != null) current
-        else if (tpEpoch.get(topicPartition).contains(heldEpoch)) { placed = true; Fence(heldEpoch, reason) }
-        else null,
+        if (!tpEpoch.get(topicPartition).contains(heldEpoch)) current
+        else if (current == null || current.epoch < heldEpoch) { placed = true; Fence(heldEpoch, reason) }
+        else current,
     )
     if (placed) metrics.incrementPartitionsFenced()
     now != null
