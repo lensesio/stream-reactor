@@ -55,6 +55,19 @@ class GranularFenceTest extends AnyFunSuite with Matchers with EitherValues with
     val _ = h.a.updateForPartitionKey(tp, pk, Some(Offset(offset)), None).value
   }
 
+  /**
+   * A writes `pk` at `offset` and the master lock is then deleted, so B's open creates it with the
+   * clock-only epoch: both instances hold the same epoch, 1000.
+   */
+  private def sameEpochOwners(h: TwoInstanceHarness, offset: Long): Assertion = {
+    h.clock.set(1000L)
+    zombieHoldsToken(h, offset)
+    h.storage.deleteFiles(h.bucket, Seq(h.masterLockPath(tp))).value
+    h.b.open(Set(tp)).value
+    h.a.heldEpochOf(tp) shouldBe Some(1000L)
+    h.b.heldEpochOf(tp) shouldBe Some(1000L)
+  }
+
   private def stageTemp(h: TwoInstanceHarness, name: String): (String, String) = {
     val temp = s"data/topic/0/.temp-upload/$name"
     h.storage.writeStringToFile(h.bucket, temp, UploadableString(name)).value
@@ -158,6 +171,26 @@ class GranularFenceTest extends AnyFunSuite with Matchers with EitherValues with
     } finally h.close()
   }
 
+  test("a key another instance locked under the same epoch is taken over on load, and that instance is fenced") {
+    val h = new TwoInstanceHarness()
+    try {
+      sameEpochOwners(h, offset = 5)
+
+      h.b.getSeekedOffsetForPartitionKey(tp, pk).value shouldBe Some(Offset(5))
+      stored(h).wrappedObject shouldBe IndexFile(h.lockUuid(1), Some(Offset(5)), None, Some(1000L))
+
+      h.a.updateForPartitionKey(tp, pk, Some(Offset(7)), None).isLeft shouldBe true
+      h.b.updateForPartitionKey(tp, pk, Some(Offset(9)), None).value shouldBe Some(Offset(9))
+      stored(h).wrappedObject shouldBe IndexFile(h.lockUuid(1), Some(Offset(9)), None, Some(1000L))
+
+      // The master lock breaks the tie: B created it, so A's next master write fails and fences it.
+      h.a.updateMasterLock(tp, Offset(9)).isLeft shouldBe true
+      h.a.confirmMasterFenced(tp) shouldBe true
+      h.a.fencedPartitions should contain(tp)
+      h.b.updateMasterLock(tp, Offset(9)).value
+    } finally h.close()
+  }
+
   // ---- pending chains -----------------------------------------------------------------
 
   test(
@@ -212,6 +245,22 @@ class GranularFenceTest extends AnyFunSuite with Matchers with EitherValues with
 
       h.b.getSeekedOffsetForPartitionKey(tp, pk).value shouldBe Some(Offset(7))
       stored(h).wrappedObject shouldBe IndexFile(h.lockUuid(1), Some(Offset(7)), None, Some(1001L))
+
+      h.a.updateForPartitionKey(tp, pk, Some(Offset(9)), None).isLeft shouldBe true
+      h.b.updateForPartitionKey(tp, pk, Some(Offset(9)), None).value shouldBe Some(Offset(9))
+    } finally h.close()
+  }
+
+  test("a commit under the same epoch by another instance during the take-over is re-read and taken over") {
+    val h = new TwoInstanceHarness()
+    try {
+      sameEpochOwners(h, offset = 5)
+      beforeWriteBy(h, h.lockUuid(1)) {
+        val _ = h.a.updateForPartitionKey(tp, pk, Some(Offset(7)), None).value
+      }
+
+      h.b.getSeekedOffsetForPartitionKey(tp, pk).value shouldBe Some(Offset(7))
+      stored(h).wrappedObject shouldBe IndexFile(h.lockUuid(1), Some(Offset(7)), None, Some(1000L))
 
       h.a.updateForPartitionKey(tp, pk, Some(Offset(9)), None).isLeft shouldBe true
       h.b.updateForPartitionKey(tp, pk, Some(Offset(9)), None).value shouldBe Some(Offset(9))

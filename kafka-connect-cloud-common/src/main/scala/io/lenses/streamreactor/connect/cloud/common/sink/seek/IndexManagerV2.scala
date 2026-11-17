@@ -1668,8 +1668,9 @@ class IndexManagerV2(
    * and is fenced by the read rule. Without this a zombie that still holds the token it used
    * before the rebalance would win its next commit on the key and the legitimate owner would fail.
    *
-   * A lock already at the held epoch was written by this instance (an idle eviction and reload) and
-   * is returned unchanged, with no write. Must run after `rejectIfFenced`, so a newer epoch never
+   * A lock already at the held epoch and owned by this instance was written by it (an idle eviction
+   * and reload) and is returned unchanged, with no write. A lock at the held epoch with another
+   * owner is taken over like an older one (`heldByUsOrNewer`). Must run after `rejectIfFenced`, so a newer epoch never
    * reaches it. A lost write race is re-read and decided again (`takeOverAttempt`). Returns the
    * version to cache and drive from: the object written, under the token the write returned, or,
    * when only the write's response was lost, the object as re-read.
@@ -1692,12 +1693,13 @@ class IndexManagerV2(
    * our write, that our own write landed with its response lost, or a transient write error.
    *  - a newer epoch fences this instance (never re-taken over), which is what keeps a paused stale
    *    loader from overwriting the newer owner that took the key over meanwhile;
-   *  - our own epoch is our landed write: it is used as stored, with no second write, and counts as
-   *    a take-over;
-   *  - an older epoch (a zombie commit, or a transient failure) is taken over again while writes
-   *    remain. Once they are spent it is a plain retriable error, not a fatal one: nothing shows
-   *    this instance was replaced, and a run of transient write errors must not need a task
-   *    restart, so RETRY re-delivers the record and the next load takes the key over afresh.
+   *  - our own epoch and owner is our landed write: it is used as stored, with no second write, and
+   *    counts as a take-over;
+   *  - an older epoch, or our epoch under another owner (a zombie commit, or a transient failure),
+   *    is taken over again while writes remain. Once they are spent it is a plain retriable error,
+   *    not a fatal one: nothing shows this instance was replaced, and a run of transient write
+   *    errors must not need a task restart, so RETRY re-delivers the record and the next load takes
+   *    the key over afresh.
    * At most `attemptsLeft` writes, and every failed one, the last included, is re-read, so a final
    * write that landed with its response lost is adopted rather than failed. A re-read that fails
    * (missing key, 0-byte blob, transient read error) is an unswallowable non-fatal error, as
@@ -1713,7 +1715,7 @@ class IndexManagerV2(
     read:           ObjectWithETag[IndexFile],
     attemptsLeft:   Int,
   ): Either[SinkError, ObjectWithETag[IndexFile]] =
-    if (read.wrappedObject.epoch.getOrElse(0L) >= mine) read.asRight
+    if (heldByUsOrNewer(read.wrappedObject, mine)) read.asRight
     else {
       val bump = read.wrappedObject.copy(owner = lockOwner, epoch = Some(mine))
       storageInterface.writeBlobToFile(bucket, path, ObjectWithETag(bump, read.eTag)) match {
@@ -1734,7 +1736,7 @@ class IndexManagerV2(
           tryOpen(bucket, path) match {
             case Right(reread) =>
               rejectIfFenced(topicPartition, partitionKey, reread.wrappedObject).flatMap { _ =>
-                if (reread.wrappedObject.epoch.getOrElse(0L) >= mine) {
+                if (heldByUsOrNewer(reread.wrappedObject, mine)) {
                   // Our own write landed and only its response was lost.
                   metrics.incrementGranularLockOwnershipBumps()
                   logger.debug(
@@ -1745,9 +1747,10 @@ class IndexManagerV2(
                 } else if (attemptsLeft > 1)
                   takeOverAttempt(topicPartition, partitionKey, bucket, path, mine, reread, attemptsLeft - 1)
                 else {
-                  // Not fatal: the key is still held under an older epoch, so this instance has not
-                  // been fenced, and the writes may simply have failed transiently. RETRY re-delivers
-                  // the record and the next load starts a fresh take-over.
+                  // Not fatal: the key is still held under an older epoch (or ours under another
+                  // owner), so this instance has not been fenced, and the writes may simply have
+                  // failed transiently. RETRY re-delivers the record and the next load starts a fresh
+                  // take-over.
                   val error = NonFatalCloudSinkError(
                     s"Exhausted take-over attempts for granular lock $topicPartition/$partitionKey: ${err.message()}",
                     err.toExceptionOption,
@@ -1765,6 +1768,18 @@ class IndexManagerV2(
           }
       }
     }
+
+  /**
+   * Whether a granular lock needs no take-over by an instance holding `mine`: written under a newer
+   * epoch (which `rejectIfFenced` has already refused), or under `mine` by this instance itself. An
+   * equal epoch is not enough: with a missing or 0-byte master lock two instances both take the
+   * clock-only epoch, so a lock at `mine` with another owner was written by an instance that may
+   * still hold its token, and is taken over like an older one.
+   */
+  private def heldByUsOrNewer(lock: IndexFile, mine: Long): Boolean = {
+    val epoch = lock.epoch.getOrElse(0L)
+    epoch > mine || (epoch == mine && lock.owner == lockOwner)
+  }
 
   /**
    * Ensures the granular lock for a partition key has an initial eTag
