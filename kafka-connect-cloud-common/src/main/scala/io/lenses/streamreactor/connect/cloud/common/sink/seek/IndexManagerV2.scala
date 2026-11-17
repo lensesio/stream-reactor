@@ -227,8 +227,11 @@ class IndexManagerV2(
    * marked fenced so the task fails fast. Locks at or below our epoch pass unchanged; a missing
    * epoch reads as 0. Every load first requires a held epoch (`heldEpoch`, before the read): a
    * partition this instance does not hold (never opened, or closed) is not ours, so nothing of it
-   * is read, cached or recovered. A partition already marked fenced refuses every lock, checked again
-   * here after the read: another thread (a commit, GC or sweep) may have fenced it while the lock was read.
+   * is read, cached or recovered. The rule itself refuses a lock read with no held epoch too, fatally
+   * (every caller checks first today; this keeps a future caller, or state cleared during the read,
+   * from accepting a lock it has nothing to compare against). A partition already marked fenced
+   * refuses every lock, checked again here after the read: another thread (a commit, GC or sweep)
+   * may have fenced it while the lock was read.
    */
   private def rejectIfFenced(
     topicPartition: TopicPartition,
@@ -255,7 +258,12 @@ class IndexManagerV2(
           s"Fenced on $topicPartition: lock $partitionKey epoch $theirs > held epoch $mine",
           topicPartition,
         ).asLeft
-      case _ => ().asRight
+      case Some(_) => ().asRight
+      case None =>
+        FatalCloudSinkError(
+          s"No ownership epoch held for $topicPartition; refusing to accept lock $partitionKey",
+          topicPartition,
+        ).asLeft
     }
 
   /**

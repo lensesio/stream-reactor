@@ -19,6 +19,7 @@ import cats.data.NonEmptyList
 import io.lenses.streamreactor.connect.cloud.common.model.Offset
 import io.lenses.streamreactor.connect.cloud.common.model.Topic
 import io.lenses.streamreactor.connect.cloud.common.model.UploadableString
+import io.lenses.streamreactor.connect.cloud.common.sink.FatalCloudSinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.NonFatalCloudSinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
 import io.lenses.streamreactor.connect.cloud.common.testing.InMemoryStorageInterface.FailMoveAt
@@ -241,6 +242,31 @@ class GranularFenceTest extends AnyFunSuite with Matchers with EitherValues with
       h.storage.pathExists(h.bucket, finalPath).value shouldBe true
       h.storage.pathExists(h.bucket, temp).value shouldBe false
       h.a.updateForPartitionKey(tp, pk, Some(Offset(9)), None).isLeft shouldBe true
+    } finally h.close()
+  }
+
+  test("a take-over whose held epoch is gone by its re-read is refused fatally and writes nothing more") {
+    val h = new TwoInstanceHarness()
+    try {
+      h.clock.set(1000L)
+      zombieHoldsToken(h, offset = 5)
+      h.b.open(Set(tp)).value
+      // A commits between B's read and B's take-over write, so B's write fails; by B's re-read, B
+      // holds no epoch for the partition any more.
+      beforeWriteBy(h, h.lockUuid(1)) {
+        val _ = h.a.updateForPartitionKey(tp, pk, Some(Offset(7)), None).value
+        IndexManagerV2.IndexManagerV2TestHooks.dropHeldEpoch(h.b, tp)
+      }
+      val writesBefore = h.storage.writeCount(h.bucket, lockPath(h))
+
+      val error = h.b.getSeekedOffsetForPartitionKey(tp, pk).left.value
+
+      error shouldBe a[FatalCloudSinkError]
+      error.message() should include("No ownership epoch held")
+      // Only A's commit and B's failed write: no further take-over write.
+      h.storage.writeCount(h.bucket, lockPath(h)) shouldBe writesBefore + 2
+      stored(h).wrappedObject shouldBe IndexFile(h.lockUuid(0), Some(Offset(7)), None, Some(1000L))
+      refusedWith(h.b.updateForPartitionKey(tp, pk, Some(Offset(9)), None), "not in cache")
     } finally h.close()
   }
 

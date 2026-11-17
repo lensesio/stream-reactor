@@ -294,6 +294,7 @@ class InMemoryStorageInterface(systemName: String = "in-memory", contentETags: B
 
   override def deleteFile(bucket: String, file: String, eTag: String): Either[FileDeleteError, Unit] = {
     val _ = eTag
+    takeFirstHook { case h: OnDeleteAt if h.matches(bucket, file) => h }.foreach(_.action())
     takeFirstHook { case h: FailDeleteAt if h.matches(bucket, file) => h } match {
       case Some(h) => h.asDeleteError(bucket, file).asLeft
       case None =>
@@ -488,6 +489,15 @@ object InMemoryStorageInterface {
   }
 
   /** Fail the next deleteFile/deleteFiles entry at `(bucket, path)` with `err`. */
+  /**
+   * Run `action` on the next delete of `(bucket, path)`, before the delete (or an armed
+   * `FailDeleteAt`) is applied: a deterministic point to land another step while a delete is in
+   * flight.
+   */
+  final case class OnDeleteAt(bucket: String, path: String, action: () => Unit) extends Hook {
+    def matches(b: String, p: String): Boolean = b == bucket && p == path
+  }
+
   final case class FailDeleteAt(bucket: String, path: String, err: Option[FileDeleteError] = None) extends Hook {
     def matches(b:                String, p: String): Boolean         = b == bucket && p == path
     override def asDeleteError(b: String, p: String): FileDeleteError = err.getOrElse(super.asDeleteError(b, p))

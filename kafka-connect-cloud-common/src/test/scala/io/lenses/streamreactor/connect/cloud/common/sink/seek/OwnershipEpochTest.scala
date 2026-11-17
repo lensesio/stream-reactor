@@ -30,6 +30,7 @@ import io.lenses.streamreactor.connect.cloud.common.testing.InMemoryStorageInter
 import io.lenses.streamreactor.connect.cloud.common.testing.InMemoryStorageInterface.FailDeleteAt
 import io.lenses.streamreactor.connect.cloud.common.testing.InMemoryStorageInterface.FailMoveAt
 import io.lenses.streamreactor.connect.cloud.common.testing.InMemoryStorageInterface.LoseWriteResponseAt
+import io.lenses.streamreactor.connect.cloud.common.testing.InMemoryStorageInterface.OnDeleteAt
 import io.lenses.streamreactor.connect.cloud.common.testing.InMemoryStorageInterface.OnReadAt
 import org.scalatest.Assertion
 import org.scalatest.EitherValues
@@ -1221,20 +1222,20 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues wit
   }
 
   test("a GC delete re-queued after a close does not survive the re-open: the new owner's lock and floor are kept") {
-    val h = new TwoInstanceHarness(sweepEnabled = true, sweepSeconds = 3600)
+    val h = new TwoInstanceHarness()
     try {
       h.clock.set(1000L)
       h.a.open(Set(tp)).value
       h.a.ensureGranularLock(tp, pk).value
       h.a.updateForPartitionKey(tp, pk, Some(Offset(3)), None).value
       h.a.updateMasterLock(tp, Offset(10)).value
-      // The key's writer went idle: below the floor, uncached and aged, so the sweep reads it.
-      h.a.evictGranularLock(tp, pk)
-      h.storage.setLastModified(h.bucket, h.granularLockPath(tp, pk), longAgo) shouldBe true
-      // The partition is revoked while the orphan sweep reads the key's lock: the sweep queues it
-      // after the close has dropped the partition's queued deletes.
-      h.storage.arm(OnReadAt(h.bucket, h.granularLockPath(tp, pk), () => h.a.closePartitions(Set(tp))))
-      h.a.sweepOrphanedLocks()
+      h.a.cleanUpObsoleteLocks(tp, Offset(10), Set.empty).value // queues the key's lock
+      // The partition is revoked while a drain's delete of the key's lock is in flight. The delete
+      // fails and the drain re-queues it after the close has dropped the partition's queued deletes.
+      val path = h.granularLockPath(tp, pk)
+      h.storage.arm(OnDeleteAt(h.bucket, path, () => h.a.closePartitions(Set(tp))))
+      h.storage.arm(FailDeleteAt(h.bucket, path))
+      h.a.drainGcQueue()
       h.a.heldEpochOf(tp) shouldBe None
       h.a.gcQueueSize shouldBe 1
 
@@ -1346,6 +1347,30 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues wit
       h.a.gcQueueSize shouldBe 0
       h.a.drainGcQueue()
       h.readLock(path).value shouldBe lockBefore
+    } finally h.close()
+  }
+
+  test("the granular orphan sweep queues nothing for a partition with no held epoch") {
+    val h = new TwoInstanceHarness(sweepEnabled = true, sweepSeconds = 3600)
+    try {
+      val orphan = "date=2024-01-02"
+      h.clock.set(1000L)
+      h.a.open(Set(tp)).value
+      h.a.ensureGranularLock(tp, orphan).value
+      h.a.updateForPartitionKey(tp, orphan, Some(Offset(3)), None).value
+      h.a.updateMasterLock(tp, Offset(10)).value
+      h.a.evictGranularLock(tp, orphan)
+      h.storage.setLastModified(h.bucket, h.granularLockPath(tp, orphan), longAgo) shouldBe true
+      val lockBefore = h.readLock(h.granularLockPath(tp, orphan)).value
+      // The partition's held epoch is gone while its committed offset is still known, so the sweep
+      // still visits it and reads the lock.
+      IndexManagerV2.IndexManagerV2TestHooks.dropHeldEpoch(h.a, tp)
+
+      h.a.sweepOrphanedLocks()
+
+      h.a.gcQueueSize shouldBe 0
+      h.a.isFenced(tp) shouldBe false
+      h.readLock(h.granularLockPath(tp, orphan)).value shouldBe lockBefore
     } finally h.close()
   }
 
