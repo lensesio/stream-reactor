@@ -1220,6 +1220,39 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues wit
     } finally h.close()
   }
 
+  test("a GC delete re-queued after a close does not survive the re-open: the new owner's lock and floor are kept") {
+    val h = new TwoInstanceHarness(sweepEnabled = true, sweepSeconds = 3600)
+    try {
+      h.clock.set(1000L)
+      h.a.open(Set(tp)).value
+      h.a.ensureGranularLock(tp, pk).value
+      h.a.updateForPartitionKey(tp, pk, Some(Offset(3)), None).value
+      h.a.updateMasterLock(tp, Offset(10)).value
+      // The key's writer went idle: below the floor, uncached and aged, so the sweep reads it.
+      h.a.evictGranularLock(tp, pk)
+      h.storage.setLastModified(h.bucket, h.granularLockPath(tp, pk), longAgo) shouldBe true
+      // The partition is revoked while the orphan sweep reads the key's lock: the sweep queues it
+      // after the close has dropped the partition's queued deletes.
+      h.storage.arm(OnReadAt(h.bucket, h.granularLockPath(tp, pk), () => h.a.closePartitions(Set(tp))))
+      h.a.sweepOrphanedLocks()
+      h.a.heldEpochOf(tp) shouldBe None
+      h.a.gcQueueSize shouldBe 1
+
+      // B owns the partition for a while and commits the key above the floor.
+      h.b.open(Set(tp)).value
+      h.b.getSeekedOffsetForPartitionKey(tp, pk).value
+      h.b.updateForPartitionKey(tp, pk, Some(Offset(12)), None).value
+      val bLock = h.readLock(h.granularLockPath(tp, pk)).value
+
+      // The partition is assigned back to this instance.
+      h.a.open(Set(tp)).value
+      h.a.drainGcQueue()
+
+      h.readLock(h.granularLockPath(tp, pk)).value shouldBe bLock
+      h.a.getSeekedOffsetForPartitionKey(tp, pk).value shouldBe Some(Offset(12))
+    } finally h.close()
+  }
+
   test("once a legacy snapshot read fences the partition, no later legacy lock's pending chain is driven") {
     val h = new TwoInstanceHarness(commitMode = CommitMode.Batch)
     try {

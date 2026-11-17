@@ -267,10 +267,12 @@ class IndexManagerV2(
     // from an earlier ownership episode (e.g. before a rebalance re-assigned it here) no longer
     // applies. GC deletes queued in that episode were selected against locks another owner may
     // since have rewritten at the same path, so they are dropped rather than drained under the new
-    // ownership whenever another owner held the partition in between: this instance was fenced,
-    // or the lock no longer carries the epoch it held (a handover it never noticed). After a
-    // plain close/open by this instance the lock still carries its epoch and the queue is kept.
-    val handedOver = held.isDefined && previous != held
+    // ownership whenever another owner may have held the partition in between: this instance was
+    // fenced, it held no epoch (the partition was closed, which clears the epoch, so who held it
+    // since is unknown; a drain or sweep run in flight at the close can still have re-queued
+    // items), or the lock no longer carries the epoch it held (a handover it never noticed). Only a
+    // re-open without a close, over a lock still carrying the held epoch, keeps the queue.
+    val handedOver = held.isEmpty || previous != held
     dropFence(topicPartition, dropQueue = handedOver)
     written
   }
