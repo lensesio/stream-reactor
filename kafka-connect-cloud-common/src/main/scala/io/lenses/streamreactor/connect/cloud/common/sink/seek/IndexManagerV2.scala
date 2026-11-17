@@ -909,11 +909,16 @@ class IndexManagerV2(
    * EmptyFileError arm) is not re-read: a failed repair fails the open at once and the restart
    * re-opens.
    *
+   * A re-read showing this instance's lockUuid at the epoch of any write this open made is that
+   * write having landed, whichever of them it was, and is adopted. Every one of them is conditional
+   * (on a version, or on absence), so once one lands the others fail.
+   *
    * @param tryOpenResult The result of `tryOpen` for this lock path.
    * @param attemptsLeft  Writes this open may still make (shared by the create, bump and pending-chain
    *                      bump arms); 0 on the re-read after the last one.
    * @param observedEpoch The epoch of this open's first read (0 if absent, 0-byte or unstamped).
-   * @param lastWrite     The write that just failed; `None` on the first read.
+   * @param lastWrite     The write that just failed, with every epoch this open has written; `None`
+   *                      on the first read.
    */
   private def decideOpen(
     topicPartition:  TopicPartition,
@@ -923,12 +928,20 @@ class IndexManagerV2(
     attemptsLeft:    Int,
     observedEpoch:   Long,
     lastWrite:       Option[FailedOpenWrite],
-  ): Either[SinkError, Option[Offset]] =
+  ): Either[SinkError, Option[Offset]] = {
+
+    // The write at `epoch` failed: it joins every epoch this open wrote before it.
+    def failedWrite(epoch: Long, spent: SinkError): Option[FailedOpenWrite] =
+      Some(FailedOpenWrite(lastWrite.fold(Set.empty[Long])(_.writtenEpochs) + epoch, spent))
+
     tryOpenResult match {
 
       // Checked first: our own landed write no longer carries the observed epoch, and is not a takeover.
+      // Any write this open made can be the one that landed, not only the last: an earlier write that
+      // failed on the client may land late and fail a retry stamped with a later clock. The owner
+      // alone is not enough: this instance may have written the lock in an earlier ownership.
       case Right(reRead @ ObjectWithETag(lock, _))
-          if lock.owner == lockOwner && lastWrite.exists(_.epoch == lock.epoch.getOrElse(0L)) =>
+          if lock.owner == lockOwner && lastWrite.exists(_.writtenEpochs.contains(lock.epoch.getOrElse(0L))) =>
         adoptOwnOpenWrite(topicPartition, path, reRead, lock.epoch.getOrElse(0L), observedEpoch)
 
       case Right(ObjectWithETag(lock, _)) if lastWrite.isDefined && lock.epoch.getOrElse(0L) != observedEpoch =>
@@ -939,13 +952,17 @@ class IndexManagerV2(
 
       // Every arm below either writes or reports the re-read: with the writes spent, fail as the last
       // write failed, and never write again.
-      case _ if attemptsLeft <= 0 =>
+      case reRead if attemptsLeft <= 0 =>
         val spent = lastWrite.map(_.spent).getOrElse(
           FatalCloudSinkError(s"Exhausted master-lock ownership writes for $topicPartition at $path", topicPartition),
         )
+        val shows = reRead match {
+          case Left(FileNotFoundError(_, _)) | Right(_) => "shows neither this instance's write nor a newer owner"
+          case Left(readError)                          => s"failed (${readError.message()})"
+        }
         logger.warn(
           s"[${connectorTaskId.show}] Master-lock ownership writes exhausted for $topicPartition at $path: the " +
-            s"final re-read shows neither this instance's write nor a newer owner: ${spent.message()}",
+            s"final re-read $shows; failing with the last write's error: ${spent.message()}",
         )
         spent.asLeft
 
@@ -974,13 +991,11 @@ class IndexManagerV2(
               tryOpen(bucketAndPrefix.bucket, path),
               attemptsLeft - 1,
               observedEpoch,
-              Some(
-                FailedOpenWrite(
-                  epoch,
-                  FatalCloudSinkError(
-                    s"Exhausted master-lock create-race retries for $topicPartition at $path",
-                    topicPartition,
-                  ),
+              failedWrite(
+                epoch,
+                FatalCloudSinkError(
+                  s"Exhausted master-lock create-race retries for $topicPartition at $path",
+                  topicPartition,
                 ),
               ),
             )
@@ -1001,7 +1016,7 @@ class IndexManagerV2(
               tryOpen(bucketAndPrefix.bucket, path),
               attemptsLeft - 1,
               observedEpoch,
-              Some(FailedOpenWrite(epoch, other)),
+              failedWrite(epoch, other),
             )
         }
 
@@ -1060,9 +1075,7 @@ class IndexManagerV2(
               tryOpen(bucketAndPrefix.bucket, path),
               attemptsLeft - 1,
               observedEpoch,
-              Some(FailedOpenWrite(epoch,
-                                   new FatalCloudSinkError(err.message(), err.toExceptionOption, topicPartition),
-              )),
+              failedWrite(epoch, new FatalCloudSinkError(err.message(), err.toExceptionOption, topicPartition)),
             )
           case Right(bumped) =>
             metrics.incrementMasterLockUpdates()
@@ -1110,15 +1123,14 @@ class IndexManagerV2(
               tryOpen(bucketAndPrefix.bucket, path),
               attemptsLeft - 1,
               observedEpoch,
-              Some(FailedOpenWrite(epoch,
-                                   new FatalCloudSinkError(err.message(), err.toExceptionOption, topicPartition),
-              )),
+              failedWrite(epoch, new FatalCloudSinkError(err.message(), err.toExceptionOption, topicPartition)),
             )
         }
 
       case Right(objectWithetag @ ObjectWithETag(IndexFile(_, _, _, _), _)) =>
         updateDataReturnOffset(topicPartition, objectWithetag).asRight[SinkError]
     }
+  }
 
   /**
    * Updates internal maps with the latest offset and eTag for a topic partition.
@@ -2823,10 +2835,11 @@ object IndexManagerV2 {
   val MaxOpenCreateRaceAttempts: Int = 3
 
   /**
-   * An ownership write `open()` made that failed: the epoch it stamped, so the re-read can tell it
-   * landed, and the error the open fails with if that re-read is the last and decides nothing.
+   * An ownership write `open()` made that failed. `writtenEpochs` holds the epoch it stamped and
+   * the epochs of every earlier write by the same open, so a re-read can tell that any of them
+   * landed. `spent` is the error the open fails with if that re-read is the last and decides nothing.
    */
-  private[seek] final case class FailedOpenWrite(epoch: Long, spent: SinkError)
+  private[seek] final case class FailedOpenWrite(writtenEpochs: Set[Long], spent: SinkError)
 
   /**
    * Internal, recoverable signal: a master-lock NoOverwrite create lost the race because the

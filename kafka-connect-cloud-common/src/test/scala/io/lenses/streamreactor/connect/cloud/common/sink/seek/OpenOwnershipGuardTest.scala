@@ -16,6 +16,10 @@
 package io.lenses.streamreactor.connect.cloud.common.sink.seek
 
 import cats.data.NonEmptyList
+import ch.qos.logback.classic.Level
+import ch.qos.logback.classic.LoggerContext
+import ch.qos.logback.classic.spi.ILoggingEvent
+import ch.qos.logback.core.read.ListAppender
 import io.lenses.streamreactor.connect.cloud.common.model.Offset
 import io.lenses.streamreactor.connect.cloud.common.model.Topic
 import io.lenses.streamreactor.connect.cloud.common.model.UploadableString
@@ -30,11 +34,14 @@ import org.scalatest.EitherValues
 import org.scalatest.OptionValues
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
+import org.slf4j.LoggerFactory
 
+import java.nio.charset.StandardCharsets
 import java.util.concurrent.atomic.AtomicReference
 import scala.concurrent.Await
 import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
+import scala.jdk.CollectionConverters._
 
 /**
  * The master-lock retry inside `open()`: a lost write is retried only while the re-read lock still
@@ -595,6 +602,216 @@ class OpenOwnershipGuardTest extends AnyFunSuite with Matchers with EitherValues
       h.metrics(0).getMasterLockOpenOwnershipLost shouldBe 1L
       h.b.updateMasterLock(tp, Offset(5)).value
     } finally h.close()
+  }
+
+  /**
+   * Arms this open's first two master-lock writes: the first stamps its epoch, moves the clock on
+   * and fails without landing; the second first lands the first one late (as an SDK retry of a
+   * request still in flight would), with `land`. Returns the first write's lock.
+   */
+  private def landFirstWriteLate(h: TwoInstanceHarness)(land: IndexFile => Unit): AtomicReference[IndexFile] = {
+    val first = new AtomicReference[IndexFile]()
+    val owner = h.lockUuid(0)
+    val _ = h.storage.arm(
+      OnWriteAt(
+        h.bucket,
+        h.masterLockPath(tp),
+        () => h.clock.set(2000L),
+        {
+          case idx: IndexFile if idx.owner == owner => first.set(idx); true
+          case _ => false
+        },
+      ),
+    )
+    failMasterWrites(h, 1)
+    val _ = h.storage.arm(
+      OnWriteAt(h.bucket,
+                h.masterLockPath(tp),
+                () => land(first.get()),
+                { case idx: IndexFile => idx.owner == owner; case _ => false },
+      ),
+    )
+    first
+  }
+
+  /** Lands `idx` over the version the lock had before this open, as a conditional write would. */
+  private def landOver(h: TwoInstanceHarness, eTag: String)(idx: IndexFile): Unit = {
+    val _ = h.storage.writeBlobToFile(h.bucket, h.masterLockPath(tp), ObjectWithETag(idx, eTag)).value
+  }
+
+  test("a bump whose earlier write landed late, failing the retry, is adopted at that earlier write's epoch") {
+    val h = new TwoInstanceHarness()
+    try {
+      seedMaster(h, IndexFile("prev-owner", Some(Offset(41)), None, Some(500L)))
+      h.clock.set(1000L)
+      val seededETag      = h.readLock(h.masterLockPath(tp)).value.eTag
+      val (writes, reads) = (masterWrites(h), masterReads(h))
+      val first           = landFirstWriteLate(h)(landOver(h, seededETag))
+
+      h.a.open(Set(tp)).value shouldBe Map(tp -> Some(Offset(41)))
+
+      first.get().epoch shouldBe Some(1000L)
+      // A's two bumps and the late landing of the first: no third bump.
+      masterWrites(h) shouldBe writes + 3
+      masterReads(h) shouldBe reads + 3
+      val stored = h.readLock(h.masterLockPath(tp)).value
+      stored.wrappedObject shouldBe IndexFile(h.lockUuid(0), Some(Offset(41)), None, Some(1000L))
+      h.a.heldEpochOf(tp) shouldBe Some(1000L)
+      h.a.topicPartitionToETags.get(tp) shouldBe Some(stored.eTag)
+      h.metrics(0).getMasterLockOpenOwnershipLost shouldBe 0L
+      h.a.updateMasterLock(tp, Offset(50)).value
+    } finally h.close()
+  }
+
+  test("a create whose earlier attempt landed late, failing the retry, is adopted at that earlier attempt's epoch") {
+    val h = new TwoInstanceHarness()
+    try {
+      h.clock.set(1000L)
+      val first = landFirstWriteLate(h)(seedMaster(h, _))
+
+      h.a.open(Set(tp)).value shouldBe Map(tp -> None)
+
+      first.get().epoch shouldBe Some(1000L)
+      masterWrites(h) shouldBe 3 // A's two creates and the late landing of the first: no third create
+      masterReads(h) shouldBe 3
+      val stored = h.readLock(h.masterLockPath(tp)).value
+      stored.wrappedObject shouldBe IndexFile(h.lockUuid(0), None, None, Some(1000L))
+      h.a.heldEpochOf(tp) shouldBe Some(1000L)
+      h.a.topicPartitionToETags.get(tp) shouldBe Some(stored.eTag)
+      h.metrics(0).getMasterLockOpenOwnershipLost shouldBe 0L
+      h.a.updateMasterLock(tp, Offset(5)).value
+    } finally h.close()
+  }
+
+  test("a pending-state bump whose earlier write landed late drives the chain at that earlier write's epoch") {
+    val h = new TwoInstanceHarness()
+    try {
+      val (chain, temp, finalPath) = copyChain(h)
+      seedMaster(h, IndexFile("crashed-owner", Some(Offset(41)), Some(chain), Some(500L)))
+      h.clock.set(1000L)
+      val seededETag = h.readLock(h.masterLockPath(tp)).value.eTag
+      val writes     = masterWrites(h)
+      val _          = landFirstWriteLate(h)(landOver(h, seededETag))
+
+      h.a.open(Set(tp)).value shouldBe Map(tp -> Some(Offset(50)))
+
+      masterWrites(h) shouldBe writes + 3 + ChainWrites
+      storedMaster(h) shouldBe IndexFile(h.lockUuid(0), Some(Offset(50)), None, Some(1000L))
+      h.a.heldEpochOf(tp) shouldBe Some(1000L)
+      h.storage.keysUnder(h.bucket, "data/topic/0/").filterNot(_.contains(".temp-upload")) shouldBe Seq(finalPath)
+      h.storage.pathExists(h.bucket, temp).value shouldBe false
+      h.metrics(0).getMasterLockOpenOwnershipLost shouldBe 0L
+      h.a.updateMasterLock(tp, Offset(51)).value
+    } finally h.close()
+  }
+
+  test("a lock this instance wrote before this open is not adopted on a re-read: the failed bump is retried") {
+    val h = new TwoInstanceHarness()
+    try {
+      // This instance owned the partition in an earlier assignment, at an epoch this open did not write.
+      seedMaster(h, IndexFile(h.lockUuid(0), Some(Offset(41)), None, Some(500L)))
+      h.clock.set(1000L)
+      val writes = masterWrites(h)
+      failMasterWrites(h, 1)
+
+      h.a.open(Set(tp)).value shouldBe Map(tp -> Some(Offset(41)))
+
+      masterWrites(h) shouldBe writes + 2
+      storedMaster(h) shouldBe IndexFile(h.lockUuid(0), Some(Offset(41)), None, Some(1000L))
+      h.a.heldEpochOf(tp) shouldBe Some(1000L)
+      h.metrics(0).getMasterLockOpenOwnershipLost shouldBe 0L
+      h.a.updateMasterLock(tp, Offset(50)).value
+    } finally h.close()
+  }
+
+  test("an unstamped floor write landing between an unstamped read and our bump is retried over, and stamped") {
+    val h = new TwoInstanceHarness()
+    try {
+      // The previous owner runs a version that writes no epoch.
+      seedMaster(h, IndexFile("prev-owner", Some(Offset(41)), None, None))
+      h.clock.set(1000L)
+      val _ = beforeMasterWriteBy(h, instance = 0) {
+        landOver(h, h.readLock(h.masterLockPath(tp)).value.eTag)(IndexFile("prev-owner", Some(Offset(42)), None, None))
+      }
+      val writes = masterWrites(h)
+
+      h.a.open(Set(tp)).value shouldBe Map(tp -> Some(Offset(42)))
+
+      masterWrites(h) shouldBe writes + 3 // A's failed bump, the floor write, and A's retried bump
+      storedMaster(h) shouldBe IndexFile(h.lockUuid(0), Some(Offset(42)), None, Some(1000L))
+      h.a.heldEpochOf(tp) shouldBe Some(1000L)
+      h.metrics(0).getMasterLockOpenOwnershipLost shouldBe 0L
+      h.a.updateMasterLock(tp, Offset(50)).value
+    } finally h.close()
+  }
+
+  test("a stamped lock re-read after an unstamped first read is a newer owner's, so the open fails") {
+    val h = new TwoInstanceHarness()
+    try {
+      seedMaster(h, IndexFile("prev-owner", Some(Offset(41)), None, None))
+      h.clock.set(900L)
+      val writesAfterB = new AtomicReference[Int]()
+      val bOpen = beforeMasterWriteBy(h, instance = 0) {
+        val r = h.b.open(Set(tp))
+        writesAfterB.set(masterWrites(h))
+        r
+      }
+
+      val aOpen = h.a.open(Set(tp))
+
+      bOpen.get().value shouldBe Map(tp -> Some(Offset(41)))
+      ownershipLost(aOpen)
+      aOpen.left.value.message() should include("epoch 0 -> 900")
+      masterWrites(h) shouldBe writesAfterB.get()
+      storedMaster(h) shouldBe IndexFile(h.lockUuid(1), Some(Offset(41)), None, Some(900L))
+      h.a.heldEpochOf(tp) shouldBe None
+      h.metrics(0).getMasterLockOpenOwnershipLost shouldBe 1L
+      h.b.updateMasterLock(tp, Offset(50)).value
+    } finally h.close()
+  }
+
+  test("a final re-read that fails to load is logged with its own error, and the open fails with the last write's") {
+    val h = new TwoInstanceHarness()
+    try {
+      seedMaster(h, IndexFile("prev-owner", Some(Offset(41)), None, Some(500L)))
+      h.clock.set(1000L)
+      val writes = masterWrites(h)
+      failMasterWrites(h, 2)
+      // Unreadable bytes replace the lock just before the last bump, which then fails its precondition.
+      val _ = beforeMasterWriteBy(h, instance = 0, nth = 3) {
+        h.storage.putRaw(h.bucket, h.masterLockPath(tp), "not a lock".getBytes(StandardCharsets.UTF_8))
+      }
+
+      val (result, warnings) = warningsDuring(h.a.open(Set(tp)))
+
+      writesSpent(result)
+      result.left.value.message() should include("If-Match failed")
+      val readError = h.readLock(h.masterLockPath(tp)).left.value.message()
+      val spent     = warnings.filter(_.contains("ownership writes exhausted"))
+      spent should have size 1
+      spent.head should include(readError)
+      spent.head should not include "shows neither"
+      masterWrites(h) shouldBe writes + 3
+      h.a.heldEpochOf(tp) shouldBe None
+      h.metrics(0).getMasterLockOpenOwnershipLost shouldBe 0L
+    } finally h.close()
+  }
+
+  private def warningsDuring[A](f: => A): (A, List[String]) = {
+    // Resolved through the logback context under `LoggerFactory`'s monitor: while another suite is
+    // still initialising SLF4J, `getLogger` hands out a substitute logger that would capture nothing.
+    val context =
+      classOf[LoggerFactory].synchronized(LoggerFactory.getILoggerFactory).asInstanceOf[LoggerContext]
+    val logger   = context.getLogger(classOf[IndexManagerV2])
+    val appender = new ListAppender[ILoggingEvent]()
+    appender.start()
+    logger.addAppender(appender)
+    try {
+      val a = f
+      (a, appender.list.asScala.toList.filter(_.getLevel == Level.WARN).map(_.getFormattedMessage))
+    } finally {
+      val _ = logger.detachAppender(appender)
+    }
   }
 
   /** Stages one temp object and returns a Copy + Delete chain moving it to its final path. */
