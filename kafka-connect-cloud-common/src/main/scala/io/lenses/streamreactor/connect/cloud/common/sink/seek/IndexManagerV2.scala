@@ -902,9 +902,12 @@ class IndexManagerV2(
    * it would make this instance the zombie and fence the legitimate owner. The open fails instead
    * (see `openOwnershipLost`).
    *
-   * Every failed write is re-read, the last included: the re-read after the last write still adopts
-   * this instance's landed write and still refuses a newer owner, but with no writes left it decides
-   * nothing else, so anything else (the lock unchanged, or unreadable) fails with that write's error.
+   * Every failed create, ownership bump and pending-chain ownership bump is re-read, the last
+   * included: the re-read after the last write still adopts this instance's landed write and still
+   * refuses a newer owner, but with no writes left it decides nothing else, so anything else (the
+   * lock unchanged, or unreadable) fails with that write's error. The 0-byte lock repair (the
+   * EmptyFileError arm) is not re-read: a failed repair fails the open at once and the restart
+   * re-opens.
    *
    * @param tryOpenResult The result of `tryOpen` for this lock path.
    * @param attemptsLeft  Writes this open may still make (shared by the create, bump and pending-chain
