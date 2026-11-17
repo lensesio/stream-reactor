@@ -1315,6 +1315,40 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues wit
     } finally h.close()
   }
 
+  test("the granular orphan sweep that reads a newer-epoch lock is fenced: nothing is queued or deleted") {
+    val h = new TwoInstanceHarness(sweepEnabled = true, sweepSeconds = 3600)
+    try {
+      val orphan = "date=2024-01-02"
+      h.clock.set(1000L)
+      h.a.open(Set(tp)).value // epoch 1000
+      h.a.ensureGranularLock(tp, orphan).value
+      h.a.updateForPartitionKey(tp, orphan, Some(Offset(3)), None).value
+      h.a.updateMasterLock(tp, Offset(10)).value
+      h.a.evictGranularLock(tp, orphan)
+      // A newer owner rewrote the key's lock under its epoch. Its offset is below this instance's
+      // floor, so only the epoch tells the lock is not this instance's to delete.
+      val path    = h.granularLockPath(tp, orphan)
+      val current = h.readLock(path).value
+      val _ = h.storage
+        .writeBlobToFile(h.bucket,
+                         path,
+                         ObjectWithETag(IndexFile(h.lockUuid(1), Some(Offset(3)), None, Some(5000L)), current.eTag),
+        )
+        .value
+      h.storage.setLastModified(h.bucket, path, longAgo) shouldBe true
+      val lockBefore = h.readLock(path).value
+      h.a.fencedPartitions shouldBe empty
+
+      h.a.sweepOrphanedLocks()
+
+      h.a.fencedPartitions should contain(tp)
+      h.a.fencingReason(tp).getOrElse("") should include("epoch 5000 > held epoch 1000")
+      h.a.gcQueueSize shouldBe 0
+      h.a.drainGcQueue()
+      h.readLock(path).value shouldBe lockBefore
+    } finally h.close()
+  }
+
   test("the periodic batch temp sweep skips a fenced partition") {
     val h = new TwoInstanceHarness(commitMode = CommitMode.Batch, sweepEnabled = true, sweepSeconds = 3600)
     try {

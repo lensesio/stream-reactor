@@ -2349,6 +2349,10 @@ class IndexManagerV2(
    * Replay starts at `masterOffset`, so a pending chain at or above it re-delivers records that
    * only this lock (resolved at load time) can deduplicate. Deleting it would write them twice.
    * A pending chain wholly below the floor is never replayed, so sweeping it is safe.
+   *
+   * The epoch read rule applies here too: a lock written under a newer epoch than the one held
+   * marks the partition fenced and is not queued (the drain also discards what a fenced partition
+   * has queued), whatever its offsets say.
    */
   private def readAndEnqueue(
     bucket:       String,
@@ -2366,6 +2370,8 @@ class IndexManagerV2(
         true
       case Left(err) =>
         logger.warn(s"Sweep: failed to read lock file $path: ${err.message()}")
+        false
+      case Right(ObjectWithETag(lock, _)) if rejectNewerEpoch(tp, partitionKey, lock).isLeft =>
         false
       case Right(ObjectWithETag(IndexFile(_, Some(committedOffset), pendingState, _), _))
           if committedOffset.value < masterOffset.value &&
