@@ -1663,6 +1663,130 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues wit
     } finally h.close()
   }
 
+  test("a batch temp sweep that reads a lock newer than the epoch held now fences against that epoch") {
+    val h = new TwoInstanceHarness(commitMode = CommitMode.Batch, sweepEnabled = true, sweepSeconds = 3600)
+    try {
+      h.clock.set(1000L)
+      seedMaster(h, IndexFile("previous-owner", Some(Offset(9)), None))
+      h.a.open(Set(tp)).value // epoch 1000
+      h.b.open(Set(tp)).value // epoch 1001
+      // While the sweep reads the master lock, this instance re-takes the partition (1002) and B
+      // then takes it over again (1003): the read returns B's lock, newer than the epoch held now.
+      h.storage.arm(
+        OnReadAt(
+          h.bucket,
+          h.masterLockPath(tp),
+          () => {
+            h.a.closePartitions(Set(tp))
+            val _ = h.a.open(Set(tp)).value
+            h.b.closePartitions(Set(tp))
+            val _ = h.b.open(Set(tp)).value
+          },
+        ),
+      )
+
+      h.a.sweepAllBatchTemps()
+
+      h.a.heldEpochOf(tp) shouldBe Some(1002L)
+      storedMaster(h).epoch shouldBe Some(1003L)
+      storedMaster(h).owner shouldBe h.lockUuid(1)
+      h.a.fencedPartitions should contain(tp)
+      h.a.fencingReason(tp).getOrElse("") should include("epoch 1003, held epoch 1002")
+      refusedWith(h.a.update(tp, Some(Offset(10)), None), "Fenced on")
+    } finally h.close()
+  }
+
+  test("a batch temp sweep that reads a no-epoch lock of another owner across a re-take fences on a fresh read") {
+    val h = new TwoInstanceHarness(commitMode = CommitMode.Batch, sweepEnabled = true, sweepSeconds = 3600)
+    try {
+      h.clock.set(1000L)
+      seedMaster(h, IndexFile("previous-owner", Some(Offset(9)), None))
+      h.a.open(Set(tp)).value // epoch 1000
+      val _ = overwriteMaster(h, IndexFile("old-version-owner", Some(Offset(9)), None))
+      // The sweep reads the older-version owner's lock; this instance then re-takes the partition
+      // (2000) and the older-version owner rewrites the lock again. Without an epoch the first
+      // read alone cannot tell whether it predates the re-take; the fresh read shows it does not.
+      h.storage.arm(
+        AfterReadAt(
+          h.bucket,
+          h.masterLockPath(tp),
+          () => {
+            h.a.closePartitions(Set(tp))
+            h.clock.set(2000L)
+            val _ = h.a.open(Set(tp)).value
+            val _ = overwriteMaster(h, IndexFile("old-version-owner", Some(Offset(9)), None))
+          },
+        ),
+      )
+
+      h.a.sweepAllBatchTemps()
+
+      h.a.heldEpochOf(tp) shouldBe Some(2000L)
+      h.a.fencedPartitions should contain(tp)
+      h.a.fencingReason(tp).getOrElse("") should include("owner old-version-owner")
+      h.a.fencingReason(tp).getOrElse("") should include("held epoch 2000")
+    } finally h.close()
+  }
+
+  test("a batch temp sweep that reads a no-epoch lock of another owner from before a re-take does not fence") {
+    val h = new TwoInstanceHarness(commitMode = CommitMode.Batch, sweepEnabled = true, sweepSeconds = 3600)
+    try {
+      h.clock.set(1000L)
+      seedMaster(h, IndexFile("previous-owner", Some(Offset(9)), None))
+      h.a.open(Set(tp)).value // epoch 1000
+      val _ = overwriteMaster(h, IndexFile("old-version-owner", Some(Offset(9)), None))
+      // The sweep reads the older-version owner's lock; this instance then re-takes the partition
+      // (2000) over it. The fresh read shows this instance's own lock: the first read was superseded.
+      h.storage.arm(
+        AfterReadAt(
+          h.bucket,
+          h.masterLockPath(tp),
+          () => {
+            h.a.closePartitions(Set(tp))
+            h.clock.set(2000L)
+            val _ = h.a.open(Set(tp)).value
+          },
+        ),
+      )
+
+      h.a.sweepAllBatchTemps()
+
+      h.a.heldEpochOf(tp) shouldBe Some(2000L)
+      storedMaster(h).owner shouldBe h.lockUuid(0)
+      h.a.isFenced(tp) shouldBe false
+      h.a.fencedPartitions shouldBe empty
+      h.a.update(tp, Some(Offset(10)), None).value shouldBe Some(Offset(10))
+    } finally h.close()
+  }
+
+  test("a fencing decision taken under an epoch this instance no longer holds places no fence") {
+    val h = new TwoInstanceHarness()
+    try {
+      h.clock.set(1000L)
+      h.a.open(Set(tp)).value // epoch 1000
+      h.b.open(Set(tp)).value // epoch 1001
+      // The fencing check takes its held epoch (1000), then reads B's master lock. Before it marks
+      // the fence, this instance closes and re-takes the partition above B (1002).
+      h.storage.arm(
+        AfterReadAt(
+          h.bucket,
+          h.masterLockPath(tp),
+          () => {
+            h.a.closePartitions(Set(tp))
+            val _ = h.a.open(Set(tp)).value
+          },
+        ),
+      )
+
+      val _ = h.a.confirmMasterFenced(tp)
+
+      h.a.heldEpochOf(tp) shouldBe Some(1002L)
+      h.a.isFenced(tp) shouldBe false
+      h.a.fencedPartitions shouldBe empty
+      h.a.updateMasterLock(tp, Offset(10)).value
+    } finally h.close()
+  }
+
   test("a fence on a partition this instance no longer holds an epoch for is not reported") {
     val h = new TwoInstanceHarness()
     try {

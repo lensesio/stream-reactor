@@ -602,7 +602,7 @@ class IndexManagerV2(
                 s"cannot tell in-flight Copy sources from orphans: ${err.message()}",
             )
           case Right(master) =>
-            sweepFenceReason(topicPartition, master, heldAtRead) match {
+            sweepFenceReason(topicPartition, bucketAndPrefix.bucket, masterPath, master, heldAtRead) match {
               case Some(reason) =>
                 logger.warn(s"[${connectorTaskId.show}] Batch temp sweep for $topicPartition: $reason")
               case None =>
@@ -633,36 +633,65 @@ class IndexManagerV2(
    * complete fencing: a takeover between a chunk's read and its by-path delete is not seen by that
    * delete; the age threshold keeps a new owner's fresh temps out of it.
    *
-   * `heldAtRead` is the epoch held when `master` was read, and the decision is taken against it. A
-   * close or a re-open by this instance can land between the read and the decision: the master
-   * read may predate this instance's fresh ownership write, so judging it against the new epoch
-   * would fence a partition this instance has just re-taken. When the held epoch has changed since
-   * the read, the sweep skips the cycle without fencing.
+   * `heldAtRead` is the epoch held when `master` was read. A close or a re-open by this instance can
+   * land between the read and the decision, so the decision is taken against the epoch held now:
+   *  - none (the partition was closed): skip, without fencing.
+   *  - unchanged since the read: fence on another owner or a higher epoch, as above.
+   *  - changed, and the lock carries an epoch above the one held now: no write of this instance
+   *    explains it, so it fences against the epoch held now.
+   *  - changed, and the lock carries an epoch at or below the one held now: the read predates this
+   *    instance's own re-take, so it skips the cycle without fencing.
+   *  - changed, and the lock carries no epoch but another owner: the read cannot tell whether it
+   *    predates the re-take, so the lock is read once more and judged by the same rules. A fresh
+   *    read that does not fence still skips the cycle.
+   * The fence is placed only while the epoch it was decided against is still held (`markFenced`).
    */
   private def sweepFenceReason(
     topicPartition: TopicPartition,
+    bucket:         String,
+    masterPath:     String,
     master:         Option[IndexFile],
     heldAtRead:     Option[Long],
+    mayReRead:      Boolean = true,
   ): Option[String] =
     master.flatMap { m =>
+      val theirs = m.epoch.getOrElse(0L)
       heldAtRead match {
         case None =>
           "no ownership epoch is held for the partition; batch temp sweep skipped".some
-        case Some(mine) if m.owner != lockOwner || m.epoch.getOrElse(0L) > mine =>
-          val fence = s"master lock owner ${m.owner} epoch ${m.epoch.getOrElse(0L)}, held epoch $mine"
-          if (markFenced(topicPartition, mine, fence)) {
-            logger.error(
-              s"[${connectorTaskId.show}] Fenced on $topicPartition: the batch temp sweep read a master lock " +
-                s"written by another instance (owner ${m.owner}, epoch ${m.epoch.getOrElse(0L)}; " +
-                s"this instance's lockUuid $lockOwner, epoch $mine). The task will fail on its next put().",
-            )
-            (s"lock owned by another instance; batch temp sweep skipped (owner=${m.owner}, " +
-              s"epoch=${m.epoch.getOrElse(0L)}, this instance=$lockOwner, held epoch=$mine)").some
-          } else retakenWhileRead
-        case Some(mine) if !tpEpoch.get(topicPartition).contains(mine) => retakenWhileRead
-        case Some(_)                                                   => None
+        case Some(mine) =>
+          tpEpoch.get(topicPartition) match {
+            case None                                             => retakenWhileRead
+            case Some(now) if theirs > now                        => fenceOnSweep(topicPartition, m, now)
+            case Some(now) if now == mine && m.owner != lockOwner => fenceOnSweep(topicPartition, m, now)
+            case Some(now) if now == mine                         => None
+            case Some(_) if m.epoch.isEmpty && m.owner != lockOwner && mayReRead =>
+              val heldAtReRead = tpEpoch.get(topicPartition)
+              readMasterForSweep(bucket, masterPath) match {
+                case Left(err) =>
+                  s"master lock unreadable on the re-read; batch temp sweep skipped: ${err.message()}".some
+                case Right(fresh) =>
+                  sweepFenceReason(topicPartition, bucket, masterPath, fresh, heldAtReRead, mayReRead = false)
+                    .orElse(retakenWhileRead)
+              }
+            case Some(_) => retakenWhileRead
+          }
       }
     }
+
+  /** Fences the partition on a master lock the sweep read, when `held` is still the epoch held. */
+  private def fenceOnSweep(topicPartition: TopicPartition, m: IndexFile, held: Long): Option[String] = {
+    val theirs = m.epoch.getOrElse(0L)
+    if (markFenced(topicPartition, held, s"master lock owner ${m.owner} epoch $theirs, held epoch $held")) {
+      logger.error(
+        s"[${connectorTaskId.show}] Fenced on $topicPartition: the batch temp sweep read a master lock " +
+          s"written by another instance (owner ${m.owner}, epoch $theirs; " +
+          s"this instance's lockUuid $lockOwner, epoch $held). The task will fail on its next put().",
+      )
+      (s"lock owned by another instance; batch temp sweep skipped (owner=${m.owner}, " +
+        s"epoch=$theirs, this instance=$lockOwner, held epoch=$held)").some
+    } else retakenWhileRead
+  }
 
   private def retakenWhileRead: Option[String] =
     "the partition was closed or re-taken while its master lock was read; batch temp sweep skipped".some
@@ -803,7 +832,7 @@ class IndexManagerV2(
         // A lock held by another instance, or under a newer epoch, fences this one: same rule as
         // the pre-LIST read.
         case Right(master) =>
-          sweepFenceReason(topicPartition, master, heldAtRead) match {
+          sweepFenceReason(topicPartition, bucket, masterPath, master, heldAtRead) match {
             case Some(reason) =>
               logger.warn(s"[${connectorTaskId.show}] Batch temp sweep for $topicPartition: $reason")
               ChunkOutcome.Stop
