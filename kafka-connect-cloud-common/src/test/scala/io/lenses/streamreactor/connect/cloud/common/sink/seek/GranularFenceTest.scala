@@ -19,6 +19,8 @@ import cats.data.NonEmptyList
 import io.lenses.streamreactor.connect.cloud.common.model.Offset
 import io.lenses.streamreactor.connect.cloud.common.model.Topic
 import io.lenses.streamreactor.connect.cloud.common.model.UploadableString
+import io.lenses.streamreactor.connect.cloud.common.sink.FatalCloudSinkError
+import io.lenses.streamreactor.connect.cloud.common.sink.NonFatalCloudSinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
 import io.lenses.streamreactor.connect.cloud.common.testing.InMemoryStorageInterface.FailMoveAt
 import io.lenses.streamreactor.connect.cloud.common.testing.InMemoryStorageInterface.LoseWriteResponseAt
@@ -255,7 +257,9 @@ class GranularFenceTest extends AnyFunSuite with Matchers with EitherValues with
         }
       }
 
-      refusedWith(h.b.getSeekedOffsetForPartitionKey(tp, pk), "Exhausted")
+      val error = h.b.getSeekedOffsetForPartitionKey(tp, pk).left.value
+      error shouldBe a[FatalCloudSinkError]
+      error.message() should include("Exhausted")
 
       stored(h).wrappedObject shouldBe IndexFile(h.lockUuid(0), Some(Offset(8)), None, Some(1000L))
       refusedWith(h.b.updateForPartitionKey(tp, pk, Some(Offset(9)), None), "not in cache")
@@ -278,6 +282,28 @@ class GranularFenceTest extends AnyFunSuite with Matchers with EitherValues with
       stored(h).wrappedObject shouldBe IndexFile(h.lockUuid(1), Some(Offset(5)), None, Some(1001L))
       h.b.updateForPartitionKey(tp, pk, Some(Offset(9)), None).value shouldBe Some(Offset(9))
       h.a.updateForPartitionKey(tp, pk, Some(Offset(7)), None).isLeft shouldBe true
+    } finally h.close()
+  }
+
+  test("a take-over whose re-read fails is an unswallowable non-fatal error and caches nothing") {
+    val h = new TwoInstanceHarness()
+    try {
+      h.clock.set(1000L)
+      zombieHoldsToken(h, offset = 5)
+      h.b.open(Set(tp)).value
+      // The key vanishes between B's read and its take-over write, so the write and the re-read both fail.
+      beforeWriteBy(h, h.lockUuid(1)) {
+        val eTag = stored(h).eTag
+        h.storage.deleteFile(h.bucket, lockPath(h), eTag).value
+      }
+
+      val error = h.b.getSeekedOffsetForPartitionKey(tp, pk).left.value
+      error shouldBe a[NonFatalCloudSinkError]
+      error.asInstanceOf[NonFatalCloudSinkError].swallowable shouldBe false
+
+      h.storage.pathExists(h.bucket, lockPath(h)).value shouldBe false
+      refusedWith(h.b.updateForPartitionKey(tp, pk, Some(Offset(9)), None), "not in cache")
+      h.b.fencedPartitions shouldBe empty
     } finally h.close()
   }
 

@@ -34,6 +34,7 @@ import io.lenses.streamreactor.connect.cloud.common.sink.BatchCloudSinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.CloudSinkTask
 import io.lenses.streamreactor.connect.cloud.common.sink.FatalCloudSinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.NonFatalCloudSinkError
+import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.conversion.NullSinkData
 import io.lenses.streamreactor.connect.cloud.common.sink.metrics.ForcedWriteReason
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.CloudCommitPolicy
@@ -44,6 +45,9 @@ import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexManager
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.NoIndexManager
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.PendingOperationsProcessors
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.PendingState
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexFile
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.TwoInstanceHarness
+import io.lenses.streamreactor.connect.cloud.common.testing.InMemoryStorageInterface.OnWriteAt
 import io.lenses.streamreactor.connect.cloud.common.model.UploadableFile
 import io.lenses.streamreactor.connect.cloud.common.storage.FileMoveError
 import io.lenses.streamreactor.connect.cloud.common.storage.UploadError
@@ -285,6 +289,71 @@ class CloudSinkTaskTest
   ) {
     val thrown = runHandleErrors(ThrowErrorPolicy())
     thrown shouldBe a[RetriableIntegrityException]
+  }
+
+  // ── Granular-lock take-over failures at the error-policy boundary ─────────────────────────
+  //
+  // The errors below are produced by a real take-over between two index-manager instances that
+  // share storage, then driven through the production handleErrors -> handleTry -> policy chain.
+
+  /**
+   * A owns `key` under an older epoch, B opens the partition, and `beforeEachTakeOver` runs before
+   * each of B's take-over writes (`takeOverWrites` of them). Returns the error B's load ends with.
+   */
+  private def failedTakeOver(takeOverWrites: Int)(beforeEachTakeOver: TwoInstanceHarness => Int => Unit): SinkError = {
+    val h   = new TwoInstanceHarness()
+    val key = "date=2024-01-01"
+    try {
+      h.clock.set(1000L)
+      h.a.open(Set(tpA)).value
+      h.a.ensureGranularLock(tpA, key).value
+      h.a.updateForPartitionKey(tpA, key, Some(Offset(5)), None).value
+      h.b.open(Set(tpA)).value
+      (1 to takeOverWrites).foreach { n =>
+        val _ = h.storage.arm(
+          OnWriteAt(
+            h.bucket,
+            h.granularLockPath(tpA, key),
+            () => beforeEachTakeOver(h)(n),
+            { case idx: IndexFile => idx.owner == h.lockUuid(1); case _ => false },
+          ),
+        )
+      }
+      h.b.getSeekedOffsetForPartitionKey(tpA, key).left.value
+    } finally h.close()
+  }
+
+  private def runHandleErrorsWith(error: SinkError, policy: ErrorPolicy): Throwable = {
+    val task = new ConcreteTestSinkTask
+    task.initialize(5, policy)
+    task.writerManager   = buildMinimalWriterManager(stubWmIndexManager())
+    task.connectorTaskId = connectorTaskId
+    var thrown: Throwable = null
+    try {
+      task.handleTry(Try {
+        task.handleErrors(Left(error))
+      })
+    } catch { case t: Throwable => thrown = t }
+    thrown
+  }
+
+  test("a granular-lock take-over that runs out of attempts fails the task under error.policy=RETRY") {
+    val error = failedTakeOver(takeOverWrites = 3) { h => n =>
+      val _ = h.a.updateForPartitionKey(tpA, "date=2024-01-01", Some(Offset(5L + n)), None).value
+    }
+
+    val thrown = runHandleErrorsWith(error, RetryErrorPolicy())
+    thrown shouldBe a[FatalConnectException]
+    thrown should not be a[RetriableException]
+  }
+
+  test("a granular-lock take-over whose re-read fails is re-delivered under error.policy=RETRY") {
+    val error = failedTakeOver(takeOverWrites = 1) { h => _ =>
+      val path = h.granularLockPath(tpA, "date=2024-01-01")
+      h.storage.deleteFile(h.bucket, path, "").value
+    }
+
+    runHandleErrorsWith(error, RetryErrorPolicy()) shouldBe a[RetriableException]
   }
 
   /**
