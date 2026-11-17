@@ -21,6 +21,7 @@ import io.lenses.streamreactor.connect.cloud.common.model.Topic
 import io.lenses.streamreactor.connect.cloud.common.model.UploadableString
 import io.lenses.streamreactor.connect.cloud.common.sink.FatalCloudSinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
+import io.lenses.streamreactor.connect.cloud.common.testing.InMemoryStorageInterface.LoseWriteResponseAt
 import io.lenses.streamreactor.connect.cloud.common.testing.InMemoryStorageInterface.OnWriteAt
 import org.scalatest.EitherValues
 import org.scalatest.OptionValues
@@ -168,6 +169,75 @@ class OpenOwnershipGuardTest extends AnyFunSuite with Matchers with EitherValues
       h.storage.pathExists(h.bucket, temp).value shouldBe false
       h.a.heldEpochOf(tp) shouldBe None
       h.metrics(0).getMasterLockOpenOwnershipLost shouldBe 1L
+    } finally h.close()
+  }
+
+  test("a bump that landed with its response lost is adopted from the re-read, with no second ownership write") {
+    val h = new TwoInstanceHarness()
+    try {
+      seedMaster(h, IndexFile("prev-owner", Some(Offset(41)), None, Some(500L)))
+      h.clock.set(1000L)
+      val before = masterWrites(h)
+      val _      = h.storage.arm(LoseWriteResponseAt(h.bucket, h.masterLockPath(tp)))
+
+      h.a.open(Set(tp)).value shouldBe Map(tp -> Some(Offset(41)))
+
+      masterWrites(h) shouldBe before + 1
+      val stored = h.readLock(h.masterLockPath(tp)).value
+      stored.wrappedObject shouldBe IndexFile(h.lockUuid(0), Some(Offset(41)), None, Some(1000L))
+      h.a.heldEpochOf(tp) shouldBe Some(1000L)
+      h.a.topicPartitionToETags.get(tp) shouldBe Some(stored.eTag)
+      h.metrics(0).getMasterLockOpenOwnershipLost shouldBe 0L
+      // The adopted version is the token: the next floor write succeeds.
+      h.a.updateMasterLock(tp, Offset(50)).value
+    } finally h.close()
+  }
+
+  test("a create whose first attempt landed and whose retry reports it exists is adopted, with no ownership bump") {
+    val h = new TwoInstanceHarness()
+    try {
+      h.clock.set(1000L)
+      // A's create lands (its first attempt, here applied by the hook), and the call itself then
+      // reports "already exists", as an SDK retry after a lost response does.
+      val aCreate = new AtomicReference[IndexFile]()
+      val owner   = h.lockUuid(0)
+      val _ = h.storage.arm(
+        OnWriteAt(
+          h.bucket,
+          h.masterLockPath(tp),
+          () => seedMaster(h, aCreate.get()),
+          {
+            case idx: IndexFile if idx.owner == owner => aCreate.set(idx); true
+            case _ => false
+          },
+        ),
+      )
+
+      h.a.open(Set(tp)).value shouldBe Map(tp -> None)
+
+      masterWrites(h) shouldBe 2 // the landed attempt and the call that reported it exists
+      storedMaster(h) shouldBe IndexFile(h.lockUuid(0), None, None, Some(1000L))
+      h.a.heldEpochOf(tp) shouldBe Some(1000L)
+      h.a.updateMasterLock(tp, Offset(5)).value
+    } finally h.close()
+  }
+
+  test("a pending-state bump that landed with its response lost drives the chain once, with no second bump") {
+    val h = new TwoInstanceHarness()
+    try {
+      val (chain, temp, finalPath) = copyChain(h)
+      seedMaster(h, IndexFile("crashed-owner", Some(Offset(41)), Some(chain), Some(500L)))
+      h.clock.set(1000L)
+      val _ = h.storage.arm(LoseWriteResponseAt(h.bucket, h.masterLockPath(tp)))
+
+      h.a.open(Set(tp)).value shouldBe Map(tp -> Some(Offset(50)))
+
+      // Recovered under the epoch of the bump that landed: a second bump would have taken 1001.
+      storedMaster(h) shouldBe IndexFile(h.lockUuid(0), Some(Offset(50)), None, Some(1000L))
+      h.a.heldEpochOf(tp) shouldBe Some(1000L)
+      h.storage.keysUnder(h.bucket, "data/topic/0/").filterNot(_.contains(".temp-upload")) shouldBe Seq(finalPath)
+      h.storage.pathExists(h.bucket, temp).value shouldBe false
+      h.a.updateMasterLock(tp, Offset(51)).value
     } finally h.close()
   }
 

@@ -917,6 +917,12 @@ class IndexManagerV2(
   ): Either[SinkError, Option[Offset]] =
     tryOpenResult match {
 
+      // Checked first: our own landed write no longer carries the observed epoch, and is not a takeover.
+      case Right(reRead @ ObjectWithETag(lock, _)) if lock.owner == lockOwner && lastWritten.contains(
+            lock.epoch.getOrElse(0L),
+          ) =>
+        adoptOwnOpenWrite(topicPartition, path, reRead, lastWritten.getOrElse(0L), observedEpoch)
+
       case Right(ObjectWithETag(lock, _)) if lastWritten.isDefined && lock.epoch.getOrElse(0L) != observedEpoch =>
         openOwnershipLost(topicPartition, path, observedEpoch, lock.epoch.getOrElse(0L), lock.owner).asLeft
 
@@ -1138,6 +1144,36 @@ class IndexManagerV2(
       // when loading granular locks.
       val _ = topicPartitionToETags.remove(topicPartition)
       err
+    }
+  }
+
+  /**
+   * A re-read in `open()` that shows this instance's `lockUuid` and the epoch of the write that
+   * just failed is that write, landed with its response lost (e.g. a timeout whose SDK retry then
+   * failed its precondition, or reported that the created object exists). `lockUuid` is unique to
+   * this instance and the epoch was computed by this open, so no other writer can have produced
+   * it. It is taken as the write's result, with no second ownership write: the lock is seated as
+   * that arm's success branch seats it, and a PendingState it carries is driven before returning.
+   */
+  private def adoptOwnOpenWrite(
+    topicPartition: TopicPartition,
+    path:           String,
+    reRead:         ObjectWithETag[IndexFile],
+    epoch:          Long,
+    observedEpoch:  Long,
+  ): Either[SinkError, Option[Offset]] = {
+    // The lock our write replaced carried the observed epoch (None when absent or unstamped).
+    val previous = Some(observedEpoch).filter(_ != 0L)
+    logger.warn(
+      s"[${connectorTaskId.show}] Master-lock ownership write for $topicPartition at $path landed but its " +
+        s"response was lost: the stored lock carries this instance's lockUuid and epoch $epoch, so it was adopted " +
+        s"with no second write.",
+    )
+    reRead.wrappedObject.pendingState match {
+      case Some(pending) =>
+        recoverAfterBump(topicPartition, epoch, reRead, previous, reRead.wrappedObject.committedOffset, pending)
+      case None =>
+        updateDataReturnOffset(topicPartition, ownershipTaken(topicPartition, epoch, reRead, previous)).asRight
     }
   }
 
