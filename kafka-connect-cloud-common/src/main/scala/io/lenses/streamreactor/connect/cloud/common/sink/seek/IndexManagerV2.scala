@@ -1687,11 +1687,14 @@ class IndexManagerV2(
    *  - our own epoch is our landed write: it is used as stored, with no second write, and counts as
    *    a take-over;
    *  - an older epoch (a zombie commit, or a transient failure) is taken over again while writes
-   *    remain, and is fatal once they are spent.
+   *    remain. Once they are spent it is a plain retriable error, not a fatal one: nothing shows
+   *    this instance was replaced, and a run of transient write errors must not need a task
+   *    restart, so RETRY re-delivers the record and the next load takes the key over afresh.
    * At most `attemptsLeft` writes, and every failed one, the last included, is re-read, so a final
    * write that landed with its response lost is adopted rather than failed. A re-read that fails
    * (missing key, 0-byte blob, transient read error) is an unswallowable non-fatal error, as
-   * ensureGranularLock's own re-reads are. Neither failure caches anything.
+   * ensureGranularLock's own re-reads are. No failure caches anything or proceeds with a token
+   * this instance has not claimed.
    */
   private def takeOverAttempt(
     topicPartition: TopicPartition,
@@ -1734,10 +1737,12 @@ class IndexManagerV2(
                 } else if (attemptsLeft > 1)
                   takeOverAttempt(topicPartition, partitionKey, bucket, path, mine, reread, attemptsLeft - 1)
                 else {
-                  val error = new FatalCloudSinkError(
+                  // Not fatal: the key is still held under an older epoch, so this instance has not
+                  // been fenced, and the writes may simply have failed transiently. RETRY re-delivers
+                  // the record and the next load starts a fresh take-over.
+                  val error = NonFatalCloudSinkError(
                     s"Exhausted take-over attempts for granular lock $topicPartition/$partitionKey: ${err.message()}",
                     err.toExceptionOption,
-                    topicPartition,
                   )
                   logger.error(error.message)
                   error.asLeft

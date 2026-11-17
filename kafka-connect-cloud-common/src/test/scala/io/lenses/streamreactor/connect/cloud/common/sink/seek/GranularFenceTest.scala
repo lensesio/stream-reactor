@@ -19,7 +19,6 @@ import cats.data.NonEmptyList
 import io.lenses.streamreactor.connect.cloud.common.model.Offset
 import io.lenses.streamreactor.connect.cloud.common.model.Topic
 import io.lenses.streamreactor.connect.cloud.common.model.UploadableString
-import io.lenses.streamreactor.connect.cloud.common.sink.FatalCloudSinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.NonFatalCloudSinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
 import io.lenses.streamreactor.connect.cloud.common.testing.InMemoryStorageInterface.FailMoveAt
@@ -245,7 +244,7 @@ class GranularFenceTest extends AnyFunSuite with Matchers with EitherValues with
     } finally h.close()
   }
 
-  test("a take-over that loses every attempt fails fatally and caches nothing") {
+  test("a take-over that loses every attempt is a plain retriable error and caches nothing") {
     val h = new TwoInstanceHarness()
     try {
       h.clock.set(1000L)
@@ -258,7 +257,9 @@ class GranularFenceTest extends AnyFunSuite with Matchers with EitherValues with
       }
 
       val error = h.b.getSeekedOffsetForPartitionKey(tp, pk).left.value
-      error shouldBe a[FatalCloudSinkError]
+      // The default non-fatal kind, so RETRY handles it on its ordinary retry branch.
+      error shouldBe a[NonFatalCloudSinkError]
+      error.asInstanceOf[NonFatalCloudSinkError].swallowable shouldBe true
       error.message() should include("Exhausted")
 
       stored(h).wrappedObject shouldBe IndexFile(h.lockUuid(0), Some(Offset(8)), None, Some(1000L))
@@ -435,7 +436,9 @@ class GranularFenceTest extends AnyFunSuite with Matchers with EitherValues with
     } finally h.close()
   }
 
-  test("a take-over whose last allowed write lands with its response lost counts every failed write and one take-over") {
+  test(
+    "a take-over whose last allowed write lands with its response lost counts every failed write and one take-over",
+  ) {
     val h = new TwoInstanceHarness()
     try {
       h.clock.set(1000L)
