@@ -172,6 +172,23 @@ class OpenOwnershipGuardTest extends AnyFunSuite with Matchers with EitherValues
     } finally h.close()
   }
 
+  test("a 0-byte lock re-read after a stamped first read is another writer's, so the open fails without writing") {
+    val h = new TwoInstanceHarness()
+    try {
+      seedMaster(h, IndexFile("prev-owner", Some(Offset(41)), None, Some(500L)))
+      h.clock.set(1000L)
+      // An older writer's non-atomic write leaves a 0-byte lock between A's read and its bump.
+      val _ = beforeMasterWriteBy(h, instance = 0)(h.storage.putRaw(h.bucket, h.masterLockPath(tp), Array.emptyByteArray))
+      val before = masterWrites(h)
+
+      ownershipLost(h.a.open(Set(tp)))
+
+      masterWrites(h) shouldBe before + 1 // A's failed bump only: no take-over of the 0-byte lock
+      h.storage.snapshot(h.bucket)(h.masterLockPath(tp)).bytes shouldBe empty
+      h.a.heldEpochOf(tp) shouldBe None
+    } finally h.close()
+  }
+
   test("a bump that landed with its response lost is adopted from the re-read, with no second ownership write") {
     val h = new TwoInstanceHarness()
     try {
