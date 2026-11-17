@@ -132,9 +132,11 @@ class IndexManagerV2(
   // Partitions this instance has found itself fenced on: it read a lock written under a newer
   // ownership epoch, or lost a master-lock write to a newer owner. Concurrent: marked from the task
   // thread, commit-pool threads and the GC/sweep threads. The task fails fast while it is non-empty.
-  // The value is the first reason seen (the epochs involved), for the task-failure message.
+  // The value is the first fence seen: the held epoch it was placed against, and its reason (the
+  // epochs involved) for the task-failure message. The epoch scopes the fence to one ownership
+  // episode: a re-open lifts only the fences placed against an earlier epoch (`ownershipTaken`).
   private val fencedTps =
-    new java.util.concurrent.ConcurrentHashMap[TopicPartition, String]()
+    new java.util.concurrent.ConcurrentHashMap[TopicPartition, Fence]()
 
   // Only partitions this instance holds an epoch for: a fence left on a partition it has since
   // closed is not this task's to fail on.
@@ -143,16 +145,19 @@ class IndexManagerV2(
 
   override def isFenced(topicPartition: TopicPartition): Boolean = fencedTps.containsKey(topicPartition)
 
-  override def fencingReason(topicPartition: TopicPartition): Option[String] = Option(fencedTps.get(topicPartition))
+  override def fencingReason(topicPartition: TopicPartition): Option[String] =
+    Option(fencedTps.get(topicPartition)).map(_.reason)
 
   /**
    * Marks a partition fenced, keeping the first reason, when `heldEpoch` -- the epoch the fencing
    * decision was taken under -- is still the one held. A decision taken on a read that a close or a
    * fresh ownership write has since overtaken no longer applies, so it places no fence: the epoch
-   * check and the insert run atomically against `dropFence`'s removal (both lock the same map
-   * entry), and both of those clear or replace the epoch before they remove the fence. Returns
-   * whether the partition is now fenced. The metric counts fencing episodes: once per fence, so a
-   * partition fenced, re-owned (which lifts the fence) and fenced again counts twice.
+   * check and the insert run atomically against the removals (both lock the same map entry). A
+   * close clears the epoch before it removes every fence; a re-open publishes its new epoch before
+   * it removes the fences placed against an earlier one, so a fence placed against the new epoch in
+   * between is kept. Returns whether the partition is now fenced. The metric counts fencing
+   * episodes: once per fence, so a partition fenced, re-owned (which lifts the fence) and fenced
+   * again counts twice.
    */
   private def markFenced(topicPartition: TopicPartition, heldEpoch: Long, reason: String): Boolean = {
     var placed = false
@@ -160,7 +165,7 @@ class IndexManagerV2(
       topicPartition,
       (_, current) =>
         if (current != null) current
-        else if (tpEpoch.get(topicPartition).contains(heldEpoch)) { placed = true; reason }
+        else if (tpEpoch.get(topicPartition).contains(heldEpoch)) { placed = true; Fence(heldEpoch, reason) }
         else null,
     )
     if (placed) metrics.incrementPartitionsFenced()
@@ -263,6 +268,7 @@ class IndexManagerV2(
     previous:       Option[Long],
   ): ObjectWithETag[IndexFile] = {
     val held = tpEpoch.put(topicPartition, epoch)
+    testHookOwnershipPublished(topicPartition, epoch) // test seam — no-op in production
     // A fresh ownership write re-takes the partition above every epoch seen so far, so a fence
     // from an earlier ownership episode (e.g. before a rebalance re-assigned it here) no longer
     // applies. GC deletes queued in that episode were selected against locks another owner may
@@ -272,8 +278,11 @@ class IndexManagerV2(
     // since is unknown; a drain or sweep run in flight at the close can still have re-queued
     // items), or the lock no longer carries the epoch it held (a handover it never noticed). Only a
     // re-open without a close, over a lock still carrying the held epoch, keeps the queue.
+    // Only the fences placed against an earlier epoch are lifted. Once the new epoch is published a
+    // fencing check (a sweep or commit thread) can fence against it -- a newer owner took the
+    // partition again during this re-open -- and that fence must survive.
     val handedOver = held.isEmpty || previous != held
-    dropFence(topicPartition, dropQueue = handedOver)
+    dropFence(topicPartition, dropQueue = handedOver, below = Some(epoch))
     written
   }
 
@@ -347,14 +356,19 @@ class IndexManagerV2(
   /**
    * Clears `tp`'s fence, if any, together with the GC items queued for it when it was fenced or
    * `dropQueue` is set: those were selected while another owner may have held the partition.
+   * `below = Some(e)` lifts only a fence placed against an epoch lower than `e` (a re-open that
+   * published `e`), checked and removed atomically in the map entry; `None` lifts any fence (a close).
    */
-  private def dropFence(tp: TopicPartition, dropQueue: Boolean): Unit = {
+  private def dropFence(tp: TopicPartition, dropQueue: Boolean, below: Option[Long]): Unit = {
     // Purge before lifting the fence: while it is up, a concurrent drain discards what it polls.
     if (dropQueue || fencedTps.containsKey(tp)) {
       val _ = gcQueue.removeIf(_.topicPartition == tp)
       metrics.setGcQueueDepth(gcQueue.size())
     }
-    val _ = fencedTps.remove(tp)
+    below match {
+      case None        => val _ = fencedTps.remove(tp)
+      case Some(epoch) => val _ = fencedTps.computeIfPresent(tp, (_, fence) => if (fence.epoch < epoch) null else fence)
+    }
   }
 
   // Exposed for testing only; not part of the public API.
@@ -572,7 +586,9 @@ class IndexManagerV2(
    * LC-349 (M'): the master read, the LIST and the age/reference filter run WITHOUT the partition's
    * [[BatchCommitLocks]] lock. Each delete chunk then runs under it, and re-checks everything a
    * commit could have changed since the LIST -- see [[deleteChunkUnderCommitLock]]. A commit
-   * therefore waits for at most one master GET plus one `deleteFiles` chunk, never a whole pass.
+   * therefore ordinarily waits for one master GET plus one `deleteFiles` chunk, never a whole pass.
+   * In the ambiguous case of `sweepFenceReason` (an older-version lock with no epoch, read across a
+   * re-take) the chunk reads the master once more, so it waits for at most two GETs.
    * The same checks apply at `open()` and on the periodic sweep.
    */
   private def sweepBatchTemps(topicPartition: TopicPartition, bucketAndPrefix: CloudLocation): Unit =
@@ -623,8 +639,11 @@ class IndexManagerV2(
 
   /**
    * The ownership rule of `confirmMasterFenced`, applied to a master lock the batch temp sweep has
-   * just read (at no extra GET): the temp prefix is shared by every instance of this task, so a
-   * sweep under a newer owner's master would delete its uploaded-but-not-yet-recorded temps.
+   * just read. Ordinarily that costs no extra GET; the ambiguous case below (an older-version lock
+   * with no epoch, read across a re-take) costs at most one extra GET per decision, which a delete
+   * chunk issues while it holds the partition's commit lock. The temp prefix is shared by every
+   * instance of this task, so a sweep under a newer owner's master would delete its
+   * uploaded-but-not-yet-recorded temps.
    * `Some(reason)` means skip: no ownership epoch is held for the partition, or the lock was
    * written by another instance or under a higher epoch (which also marks the partition fenced).
    * No lock, or a 0-byte one, carries no owner, so it passes, as before.
@@ -1829,7 +1848,7 @@ class IndexManagerV2(
     // A revoked partition's queued items would be discarded by the drain anyway; dropping them
     // here keeps the queued ones from surviving into a later re-assignment. A drain or sweep run
     // already in flight can still re-queue items afterwards; conditional deletes close that.
-    dropFence(topicPartition, dropQueue = true)
+    dropFence(topicPartition, dropQueue = true, below = None)
     // A revoked/failed-open partition must re-confirm legacy-lock resolution on its next open()
     // rather than trusting a flag set under the previous (possibly abandoned) ownership episode.
     val _ = legacyResolved.remove(topicPartition)
@@ -1853,6 +1872,12 @@ class IndexManagerV2(
   // eTag-conditional storage write, to engineer a deterministic zombie rebalance race in tests.
   // See `IndexManagerV2TestHooks` for the install/clear API.
   @volatile private[seek] var testHookPreWriteMasterLockBarrier: () => Unit = () => ()
+
+  // TEST-ONLY SEAM — DO NOT WIRE FROM PRODUCTION CODE.
+  // No-op by default. Fires inside `ownershipTaken`, after the new epoch is published and before
+  // the previous episode's fences are cleared, so a test can fence against the new epoch there.
+  // See `IndexManagerV2TestHooks` for the install/clear API.
+  @volatile private[seek] var testHookOwnershipPublished: (TopicPartition, Long) => Unit = (_, _) => ()
 
   /**
    * After a failed master-lock write: re-read the lock and decide whether a newer owner holds it.
@@ -2488,6 +2513,9 @@ object IndexManagerV2 {
 
   case class GranularCacheEntry(offset: Option[Offset], eTag: String)
 
+  /** A fence: the held ownership epoch it was placed against, and why. */
+  private final case class Fence(epoch: Long, reason: String)
+
   /** Bounded re-read budget when a legacy-lock eTag bump loses a race to a granular zombie. */
   val MaxLegacyBumpAttempts: Int = 3
 
@@ -2600,9 +2628,9 @@ object IndexManagerV2 {
     s"$directoryFileName/${connectorTaskId.name}/.locks/${topicPartition.topic}/${topicPartition.partition}/sweep-marker.json"
 
   /**
-   * Test-only access point for the pre-write master-lock barrier seam. Any production
-   * reference to `IndexManagerV2TestHooks.*` is a bug; the name makes stray uses obvious
-   * under code review. See the `testHookPreWriteMasterLockBarrier` field doc for semantics.
+   * Test-only access point for the test seams. Any production reference to
+   * `IndexManagerV2TestHooks.*` is a bug; the name makes stray uses obvious under code review. See
+   * the `testHookPreWriteMasterLockBarrier` and `testHookOwnershipPublished` field docs for semantics.
    */
   object IndexManagerV2TestHooks {
     def installPreWriteMasterLockBarrier(im: IndexManagerV2, barrier: () => Unit): Unit =
@@ -2610,6 +2638,12 @@ object IndexManagerV2 {
 
     def clearPreWriteMasterLockBarrier(im: IndexManagerV2): Unit =
       im.testHookPreWriteMasterLockBarrier = () => ()
+
+    def installOwnershipPublishedHook(im: IndexManagerV2, hook: (TopicPartition, Long) => Unit): Unit =
+      im.testHookOwnershipPublished = hook
+
+    def clearOwnershipPublishedHook(im: IndexManagerV2): Unit =
+      im.testHookOwnershipPublished = (_, _) => ()
 
     /**
      * Drops the held ownership epoch alone, leaving the cached eTags in place: the state of the bug

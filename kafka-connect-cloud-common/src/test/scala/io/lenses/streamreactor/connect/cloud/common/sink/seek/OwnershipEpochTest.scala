@@ -1803,4 +1803,40 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues wit
       h.a.fencedPartitions shouldBe empty
     } finally h.close()
   }
+
+  test("a fence placed against the new epoch while a re-open publishes it survives that re-open") {
+    val h = new TwoInstanceHarness()
+    try {
+      h.clock.set(1000L)
+      h.a.open(Set(tp)).value // epoch 1000
+      h.b.open(Set(tp)).value // epoch 1001
+      h.a.closePartitions(Set(tp))
+      // A re-opens and takes 1002. After the epoch is published and before the re-open clears the
+      // previous episode's fences, B takes the partition over again (1003) and a fencing check on
+      // this instance reads B's lock: it fences against 1002, the epoch held now.
+      val fired = new java.util.concurrent.atomic.AtomicBoolean(false)
+      IndexManagerV2.IndexManagerV2TestHooks.installOwnershipPublishedHook(
+        h.a,
+        (published, epoch) =>
+          if (published == tp && epoch == 1002L && fired.compareAndSet(false, true)) {
+            h.b.closePartitions(Set(tp))
+            val _ = h.b.open(Set(tp)).value
+            val _ = h.a.confirmMasterFenced(tp) shouldBe true
+          },
+      )
+
+      h.a.open(Set(tp)).value
+      IndexManagerV2.IndexManagerV2TestHooks.clearOwnershipPublishedHook(h.a)
+
+      fired.get() shouldBe true
+      h.a.heldEpochOf(tp) shouldBe Some(1002L)
+      storedMaster(h).epoch shouldBe Some(1003L)
+      h.a.isFenced(tp) shouldBe true
+      h.a.fencedPartitions should contain(tp)
+      h.a.fencingReason(tp).getOrElse("") should include("epoch 1003, held epoch 1002")
+      refusedWith(h.a.update(tp, Some(Offset(10)), None), "Fenced on")
+      refusedWith(h.a.updateMasterLock(tp, Offset(10)), "Fenced on")
+    } finally h.close()
+  }
+
 }
