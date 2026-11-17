@@ -517,6 +517,86 @@ class OpenOwnershipGuardTest extends AnyFunSuite with Matchers with EitherValues
     } finally h.close()
   }
 
+  test("a create that landed but reported a generic error is adopted from the re-read, with no second write") {
+    val h = new TwoInstanceHarness()
+    try {
+      h.clock.set(1000L)
+      // The create lands; the caller sees a generic failure (e.g. a timeout), not "already exists".
+      val _ = h.storage.arm(LoseWriteResponseAt(h.bucket, h.masterLockPath(tp)))
+
+      h.a.open(Set(tp)).value shouldBe Map(tp -> None)
+
+      masterWrites(h) shouldBe 1
+      masterReads(h) shouldBe 2 // the first read and the re-read after the create
+      val stored = h.readLock(h.masterLockPath(tp)).value
+      stored.wrappedObject shouldBe IndexFile(h.lockUuid(0), None, None, Some(1000L))
+      h.a.heldEpochOf(tp) shouldBe Some(1000L)
+      h.a.topicPartitionToETags.get(tp) shouldBe Some(stored.eTag)
+      h.metrics(0).getMasterLockOpenOwnershipLost shouldBe 0L
+      h.a.updateMasterLock(tp, Offset(5)).value
+    } finally h.close()
+  }
+
+  test("a create that failed with a generic error and did not land is retried, as a failed bump is") {
+    val h = new TwoInstanceHarness()
+    try {
+      h.clock.set(1000L)
+      failMasterWrites(h, 1)
+
+      h.a.open(Set(tp)).value shouldBe Map(tp -> None)
+
+      masterWrites(h) shouldBe 2
+      masterReads(h) shouldBe 2 // the first read and the re-read showing the lock still absent
+      storedMaster(h) shouldBe IndexFile(h.lockUuid(0), None, None, Some(1000L))
+      h.a.heldEpochOf(tp) shouldBe Some(1000L)
+      h.metrics(0).getMasterLockOpenOwnershipLost shouldBe 0L
+      h.a.updateMasterLock(tp, Offset(5)).value
+    } finally h.close()
+  }
+
+  test(
+    "a create whose attempts all fail with a generic error fails with that error once they are spent, with no fourth create",
+  ) {
+    val h = new TwoInstanceHarness()
+    try {
+      h.clock.set(1000L)
+      failMasterWrites(h, 3)
+
+      val result = h.a.open(Set(tp))
+
+      writesSpent(result)
+      result.left.value.message() should include("injected upload failure")
+      masterWrites(h) shouldBe 3
+      masterReads(h) shouldBe 4
+      h.storage.pathExists(h.bucket, h.masterLockPath(tp)).value shouldBe false
+      h.a.heldEpochOf(tp) shouldBe None
+      h.metrics(0).getMasterLockOpenOwnershipLost shouldBe 0L
+    } finally h.close()
+  }
+
+  test("a create that failed with a generic error after a newer owner created the lock fails as ownership lost") {
+    val h = new TwoInstanceHarness()
+    try {
+      h.clock.set(1000L)
+      // Both read the lock as absent; B's create lands, then A's create fails with a generic error.
+      val bOpen = beforeMasterWriteBy(h, instance = 0) {
+        val r = h.b.open(Set(tp))
+        val _ = h.storage.arm(FailWriteAt(h.bucket, h.masterLockPath(tp)))
+        r
+      }
+
+      val aOpen = h.a.open(Set(tp))
+
+      bOpen.get().value shouldBe Map(tp -> None)
+      ownershipLost(aOpen)
+      masterWrites(h) shouldBe 2 // B's create and A's failed one: no further write by A
+      storedMaster(h) shouldBe IndexFile(h.lockUuid(1), None, None, Some(1000L))
+      h.a.heldEpochOf(tp) shouldBe None
+      h.metrics(0).getMasterLockOpenOwnershipLost shouldBe 1L
+      h.b.updateMasterLock(tp, Offset(5)).value
+    } finally h.close()
+  }
+
   /** Stages one temp object and returns a Copy + Delete chain moving it to its final path. */
   private def copyChain(h: TwoInstanceHarness): (PendingState, String, String) = {
     val temp      = "data/topic/0/.temp-upload/staged"

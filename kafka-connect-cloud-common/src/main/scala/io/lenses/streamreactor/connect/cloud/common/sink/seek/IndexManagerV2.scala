@@ -888,7 +888,8 @@ class IndexManagerV2(
 
   /**
    * Decides how to open a master lock given the result of reading it, and is re-entrant so a
-   * lost NoOverwrite create race can re-read the now-existing lock and route it through the
+   * failed write (a lost NoOverwrite create race, any other failed create, or a failed bump) can
+   * re-read the lock and route it through the
    * SAME arms (crucially, a re-read lock carrying a PendingState flows through
    * `processPendingOperations`, not a naive eTag adoption — that is what makes recovery
    * correct, see the architecture note on the reverted create-race adoption fix).
@@ -981,7 +982,24 @@ class IndexManagerV2(
               ),
             )
 
-          case Left(other) => other.asLeft[Option[Offset]]
+          case Left(other) =>
+            // Any other failure (a timeout, a network error) may still have landed: re-read and
+            // re-decide as for a failed bump, so a landed create is adopted, a newer owner's lock is
+            // refused, and a still-absent lock is created again while writes are left. With the
+            // writes spent the open fails with this error.
+            logger.info(
+              s"[${connectorTaskId.show}] Master-lock create failed for $topicPartition at $path; re-reading " +
+                s"(writes left: ${attemptsLeft - 1}): ${other.message()}",
+            )
+            decideOpen(
+              topicPartition,
+              path,
+              bucketAndPrefix,
+              tryOpen(bucketAndPrefix.bucket, path),
+              attemptsLeft - 1,
+              observedEpoch,
+              Some(FailedOpenWrite(epoch, other)),
+            )
         }
 
       case Left(EmptyFileError(_, eTag)) =>
@@ -1235,7 +1253,8 @@ class IndexManagerV2(
         // Lost the create race (another task created the lock first). Surface a recoverable
         // signal so `decideOpen` re-reads and adopts the winner's lock instead of failing.
         case _: NonOverwriteFileExistsError => LostCreateRaceError(topicPartition): SinkError
-        // Any other write failure (permissions, network, disk) is genuinely fatal.
+        // Any other write failure (permissions, network, disk). It may still have landed, so
+        // `decideOpen` re-reads before failing with it.
         case err: UploadError =>
           new FatalCloudSinkError(err.message(), err.toExceptionOption, topicPartition): SinkError
       }
