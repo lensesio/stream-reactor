@@ -2601,7 +2601,14 @@ class IndexManagerV2(
         // no record has been durably committed yet, so there are no granular locks
         // that could be eligible for GC below `masterOffset`. The `.foreach` on
         // `seekedOffsets.get(tp)` is therefore a no-op when `globalSafeOffset == 0`.
-        for (tp <- Random.shuffle(seekedOffsets.keys.toList) if readsRemaining > 0 && !isFenced(tp)) {
+        //
+        // A partition is visited only while the budget still covers one lock read plus the master
+        // re-check. With less, it would get its marker written (and count as scanned) while reading
+        // nothing, and look swept for a whole interval; it is left for the next cycle instead.
+        for (
+          tp <- Random.shuffle(seekedOffsets.keys.toList)
+          if readsRemaining >= IndexManagerV2.MinGcSweepMaxReads && !isFenced(tp)
+        ) {
           seekedOffsets.get(tp).foreach { masterOffset =>
             bucketAndPrefixFn(tp) match {
               case Right(loc) =>

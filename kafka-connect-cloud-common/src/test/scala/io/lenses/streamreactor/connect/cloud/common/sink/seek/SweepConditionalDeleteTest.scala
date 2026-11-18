@@ -20,6 +20,7 @@ import io.circe.syntax.EncoderOps
 import io.lenses.streamreactor.connect.cloud.common.config.IndexSettingsFixture
 import io.lenses.streamreactor.connect.cloud.common.model.Offset
 import io.lenses.streamreactor.connect.cloud.common.model.Topic
+import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
 import io.lenses.streamreactor.connect.cloud.common.model.UploadableString
 import io.lenses.streamreactor.connect.cloud.common.testing.InMemoryStorageInterface.AfterReadAt
 import io.lenses.streamreactor.connect.cloud.common.testing.InMemoryStorageInterface.FailMoveAt
@@ -424,6 +425,52 @@ class SweepConditionalDeleteTest extends AnyFunSuite with Matchers with EitherVa
       h.metrics(0).getSweepOrphansEnqueued shouldBe 1L
       budgets.head shouldBe 2 // the lock and the master re-check
       all(budgets) should be <= 2
+    } finally h.close()
+  }
+
+  test("a partition the rest of the cycle's read budget cannot scan keeps no sweep marker and is swept next cycle") {
+    // Two lock reads a pass, one kept for the master re-check. Each partition holds two retained
+    // locks, so whichever partition the cycle visits first reads both, selects nothing and leaves
+    // one read: too few for the other partition, whatever the visiting order.
+    val h = harness(sweepMaxReads = 3)
+    try {
+      val tps  = Seq(tp, Topic("topic").withPartition(1))
+      val keys = Seq("a-1", "a-2")
+      h.clock.set(1000L)
+      h.a.open(tps.toSet).value
+      tps.foreach { p =>
+        keys.foreach { k =>
+          h.a.ensureGranularLock(p, k).value
+          h.a.updateForPartitionKey(p, k, Some(Offset(30)), None).value
+          h.a.evictGranularLock(p, k)
+          val _ = h.storage.setLastModified(h.bucket, h.granularLockPath(p, k), Instant.EPOCH)
+        }
+        h.a.updateMasterLock(p, Offset(20)).value
+      }
+      def marked(p:     TopicPartition): Boolean = h.storage.pathExists(h.bucket, h.sweepMarkerPath(p)).value
+      def readsSoFar(p: TopicPartition): Seq[Int] =
+        keys.map(k => h.storage.readCount(h.bucket, h.granularLockPath(p, k)))
+      // The setup above reads locks too; count the sweep's reads only.
+      val setupReads = tps.map(p => p -> readsSoFar(p)).toMap
+      def lockReads(p: TopicPartition): Seq[Int] =
+        readsSoFar(p).zip(setupReads(p)).map { case (now, before) => now - before }
+
+      h.a.sweepOrphanedLocks()
+
+      val (swept, left) = tps.partition(marked)
+      swept should have size 1
+      left should have size 1
+      lockReads(swept.head) shouldBe Seq(1, 1)
+      lockReads(left.head) shouldBe Seq(0, 0)
+      h.metrics(0).getSweepGetBudgetUsed shouldBe 2
+
+      // Next cycle: the swept partition is not due again; the one left is scanned now.
+      h.a.sweepOrphanedLocks()
+
+      marked(left.head) shouldBe true
+      lockReads(left.head) shouldBe Seq(1, 1)
+      lockReads(swept.head) shouldBe Seq(1, 1)
+      h.metrics(0).getSweepGetBudgetUsed shouldBe 2
     } finally h.close()
   }
 
