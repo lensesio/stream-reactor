@@ -2119,6 +2119,7 @@ class IndexManagerV2(
     seekedOffsets.remove(topicPartition)
     val _ = topicPartitionToETags.remove(topicPartition)
     val _ = tpEpoch.remove(topicPartition)
+    val _ = sweepCursor.remove(topicPartition)
     // A revoked partition is no longer this task's to fail on; a re-open decides ownership afresh.
     // A revoked partition's queued items would be discarded by the drain anyway; dropping them
     // here keeps the queued ones from surviving into a later re-assignment. A drain or sweep run
@@ -2620,6 +2621,12 @@ class IndexManagerV2(
     }
   }
 
+  // Per partition: the last lock path the orphan sweep read, where the next pass starts (see
+  // `sweepPartition`). In memory only: lost on a restart or a close, which only means the next pass
+  // starts from the beginning of the listing. Written and read by the sweep thread; cleared with
+  // the rest of the partition state.
+  private val sweepCursor = TrieMap.empty[TopicPartition, String]
+
   /** Lists lock files for one TopicPartition, classifies each, and enqueues orphans into gcQueue. */
   private def sweepPartition(
     tp:             TopicPartition,
@@ -2674,17 +2681,26 @@ class IndexManagerV2(
       }
       // Classify each .lock file and GET-read only those that pass the filter chain, respecting the
       // budget. One read is kept back for the master re-check below. Once a read fences the
-      // partition, nothing more of it is read.
+      // partition, nothing more of it is read. The pass starts after the last lock the previous
+      // pass read and wraps around, so locks retained at the start of the listing cannot use up
+      // every pass's budget and starve the ones listed after them.
       val lockReadBudget = readsRemaining - 1
-      val (selected, lockReads) = files.foldLeft((Vector.empty[GcItem], 0)) {
-        case (acc @ (_, readsUsed), _) if readsUsed >= lockReadBudget || isFenced(tp) => acc
-        case ((picked, readsUsed), fileMeta) =>
-          classifyLockFile(tp, fileMeta, ageThreshold, prefix) match {
-            case SweepSkip => (picked, readsUsed)
-            case SweepNeedsRead(partitionKey) =>
-              (picked ++ selectObsoleteLock(bucket, fileMeta.file, tp, partitionKey, masterOffset), readsUsed + 1)
-          }
-      }
+      val (afterCursor, upToCursor) =
+        sweepCursor.get(tp).fold((files, Seq.empty[FileMetadata]))(last => files.partition(_.file > last))
+      val (selected, lockReads, lastRead) =
+        (afterCursor ++ upToCursor).foldLeft((Vector.empty[GcItem], 0, Option.empty[String])) {
+          case (acc @ (_, readsUsed, _), _) if readsUsed >= lockReadBudget || isFenced(tp) => acc
+          case (acc @ (picked, readsUsed, _), fileMeta) =>
+            classifyLockFile(tp, fileMeta, ageThreshold, prefix) match {
+              case SweepSkip => acc
+              case SweepNeedsRead(partitionKey) =>
+                (picked ++ selectObsoleteLock(bucket, fileMeta.file, tp, partitionKey, masterOffset),
+                 readsUsed + 1,
+                 Some(fileMeta.file),
+                )
+            }
+        }
+      lastRead.foreach(sweepCursor.put(tp, _))
       if (selected.isEmpty) (0, lockReads)
       else if (stillOwnsMaster(bucket, tp)) {
         selected.foreach(gcQueue.add)

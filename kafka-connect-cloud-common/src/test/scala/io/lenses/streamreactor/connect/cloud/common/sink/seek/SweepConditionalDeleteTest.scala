@@ -347,4 +347,63 @@ class SweepConditionalDeleteTest extends AnyFunSuite with Matchers with EitherVa
       h.b.gcQueueSize shouldBe 0
     } finally h.close()
   }
+
+  // ---- budget fairness ----------------------------------------------------------------
+
+  /** One sweep pass for A, made due again first (the marker gates a partition to one pass per interval). */
+  private def sweepPass(h: TwoInstanceHarness): Int = {
+    h.storage.deleteFiles(h.bucket, Seq(h.sweepMarkerPath(tp))).value
+    h.a.sweepOrphanedLocks()
+    h.a.drainGcQueue()
+    h.metrics(0).getSweepGetBudgetUsed
+  }
+
+  private def commitIdle(h: TwoInstanceHarness, key: String, offset: Long): Unit = {
+    h.a.ensureGranularLock(tp, key).value
+    h.a.updateForPartitionKey(tp, key, Some(Offset(offset)), None).value
+    h.a.evictGranularLock(tp, key)
+  }
+
+  test("retained locks listed first do not starve the obsolete locks listed after them") {
+    val h = harness(sweepMaxReads = 3) // two lock reads a pass, one kept for the master re-check
+    try {
+      h.clock.set(1000L)
+      h.a.open(Set(tp)).value
+      val retained = Seq("a-1", "a-2", "a-3")
+      val obsolete = Seq("z-1", "z-2")
+      retained.foreach(commitIdle(h, _, offset = 30)) // above the floor
+      obsolete.foreach(commitIdle(h, _, offset = 5)) // below it
+      h.a.updateMasterLock(tp, Offset(20)).value
+      (retained ++ obsolete).foreach(age(h, _))
+
+      val budgets = (1 to 3).map(_ => sweepPass(h))
+
+      obsolete.map(stored(h, _)) shouldBe Seq(None, None)
+      retained.map(stored(h, _).map(_.committedOffset)) shouldBe retained.map(_ => Some(Some(Offset(30))))
+      all(budgets) should be <= 3
+    } finally h.close()
+  }
+
+  test("the sweep wraps around, so a retained lock that later becomes obsolete is still reclaimed") {
+    val h = harness(sweepMaxReads = 3)
+    try {
+      h.clock.set(1000L)
+      h.a.open(Set(tp)).value
+      val keys = Seq("a-1", "a-2", "a-3", "a-4", "a-5")
+      keys.foreach(commitIdle(h, _, offset = 30))
+      h.a.updateMasterLock(tp, Offset(20)).value
+      keys.foreach(age(h, _))
+      // Two passes read the first four keys, all retained.
+      val _ = (1 to 2).map(_ => sweepPass(h))
+      keys.flatMap(stored(h, _)) should have size 5
+
+      // The floor passes every key: within a bounded number of passes each is reclaimed, the ones
+      // read before included.
+      h.a.updateMasterLock(tp, Offset(40)).value
+      val budgets = (1 to 3).map(_ => sweepPass(h))
+
+      keys.flatMap(stored(h, _)) shouldBe empty
+      all(budgets) should be <= 3
+    } finally h.close()
+  }
 }
