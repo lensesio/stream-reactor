@@ -134,8 +134,11 @@ trait StorageInterface[SM <: FileMetadata] extends ResultProcessors {
   def deleteFiles(bucket: String, files: Seq[String]): Either[FileDeleteError, Unit]
 
   /**
-   * Deletes `file` only while it is at the version `eTag` names. A missing object is success; an
-   * object at another version is a `Left` carrying a [[DeletePreconditionFailedException]].
+   * Deletes the commit chain's temp upload. A missing object is success. GCS and ADLS delete only
+   * while `file` is at the version `eTag` names (another version is a `Left` carrying a
+   * [[DeletePreconditionFailedException]]); S3 deletes by path, since the temp path is unique per
+   * commit attempt and some S3-compatible stores reject `If-Match` on a delete. Lock files must
+   * never go through this call: use [[deleteFilesIfMatch]], which is conditional on every backend.
    */
   def deleteFile(bucket: String, file: String, eTag: String): Either[FileDeleteError, Unit]
 

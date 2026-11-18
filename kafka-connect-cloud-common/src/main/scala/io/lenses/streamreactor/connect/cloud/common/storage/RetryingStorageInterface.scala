@@ -36,7 +36,7 @@ import java.time.Instant
  * Only these two methods are retried because:
  *   - Both are idempotent: the final destination key is deterministic (Copy) and
  *     deleting an already-absent blob is harmless (Delete).
- *   - `deleteFile` is conditional on the object's version; a refusal on version
+ *   - `deleteFile` is conditional on the object's version on GCS and ADLS; a refusal on version
  *     ([[DeletePreconditionFailedException]]) is never retried. `deleteFilesIfMatch`
  *     is not retried at all: its GC callers re-enqueue failed items themselves.
  *   - Retrying `uploadFile` is handled at a higher level via `recommitPending`.

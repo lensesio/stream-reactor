@@ -57,8 +57,9 @@ import scala.jdk.CollectionConverters._
  *  - `mvFile` mirrors the post-fix S3 semantics: missing source with present destination
  *    returns `Right(())` (idempotent replay); missing source with missing destination
  *    returns `FileMoveError` (loud failure, no silent data loss).
- *  - `deleteFile` and `deleteFilesIfMatch` are conditional on the stored eTag, as on every
- *    production backend: a match deletes, a mismatch is a precondition failure (nothing deleted),
+ *  - `deleteFile` and `deleteFilesIfMatch` are conditional on the stored eTag, as on GCS and
+ *    ADLS (S3 `deleteFile` deletes by path; its `deleteFilesIfMatch` is conditional): a match
+ *    deletes, a mismatch is a precondition failure (nothing deleted),
  *    a missing key is "not found" (`deleteFile` reports it as success, so replay is idempotent).
  *    `deleteFiles` is unconditional.
  *

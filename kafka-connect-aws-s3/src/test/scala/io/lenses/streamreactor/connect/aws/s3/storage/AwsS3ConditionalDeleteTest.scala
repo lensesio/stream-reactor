@@ -16,9 +16,10 @@
 package io.lenses.streamreactor.connect.aws.s3.storage
 
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.DeleteOperation
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.DeleteOperationProcessor
 import io.lenses.streamreactor.connect.cloud.common.storage.ConditionalDelete
 import io.lenses.streamreactor.connect.cloud.common.storage.DeleteOutcome
-import io.lenses.streamreactor.connect.cloud.common.storage.DeletePreconditionFailedException
 import org.mockito.ArgumentCaptor
 import org.mockito.ArgumentMatchers
 import org.mockito.Mockito
@@ -80,16 +81,29 @@ class AwsS3ConditionalDeleteTest extends AnyFunSuite with Matchers with EitherVa
     captor.getValue
   }
 
-  // ---- deleteFile -----------------------------------------------------------------------
+  // ---- deleteFile: the commit chain's temp delete, by path --------------------------------
 
-  test("deleteFile sends If-Match with the given eTag and succeeds on a match") {
+  test("deleteFile deletes by path and sends no If-Match") {
     val s3 = client()
     Mockito.doReturn(DeleteObjectResponse.builder().build()).when(s3).deleteObject(anyDelete())
 
     storage(s3, batchDelete = false).deleteFile(bucket, "tmp/a", "\"etag-a\"") shouldBe Right(())
 
     val sent = sentDeletes(s3, 1).head
-    (sent.bucket(), sent.key(), sent.ifMatch()) shouldBe ((bucket, "tmp/a", "\"etag-a\""))
+    (sent.bucket(), sent.key(), Option(sent.ifMatch())) shouldBe ((bucket, "tmp/a", None))
+  }
+
+  test("the commit chain's temp delete reaches S3 with no If-Match, whatever token the chain carries") {
+    val s3 = client()
+    Mockito.doReturn(DeleteObjectResponse.builder().build()).when(s3).deleteObject(anyDelete())
+    val processor = new DeleteOperationProcessor(storage(s3, batchDelete = true))
+
+    processor.process(DeleteOperation(bucket, ".temp-upload/t/0/uuid/data.json", "\"copy-etag\"")) shouldBe
+      Right(None)
+
+    val sent = sentDeletes(s3, 1).head
+    (sent.key(), Option(sent.ifMatch())) shouldBe ((".temp-upload/t/0/uuid/data.json", None))
+    Mockito.verify(s3, Mockito.never()).deleteObjects(anyDeletes())
   }
 
   test("deleteFile on a missing object is success, so a replayed delete step is idempotent") {
@@ -97,14 +111,6 @@ class AwsS3ConditionalDeleteTest extends AnyFunSuite with Matchers with EitherVa
     Mockito.doThrow(noSuchKey).when(s3).deleteObject(anyDelete())
 
     storage(s3, batchDelete = false).deleteFile(bucket, "tmp/a", "e") shouldBe Right(())
-  }
-
-  test("deleteFile on another version fails with a precondition failure and is reported as such") {
-    val s3 = client()
-    Mockito.doThrow(preconditionFailed).when(s3).deleteObject(anyDelete())
-
-    val error = storage(s3, batchDelete = false).deleteFile(bucket, "tmp/a", "e").left.value
-    error.exception shouldBe a[DeletePreconditionFailedException]
   }
 
   test("deleteFile on any other error fails with that error") {

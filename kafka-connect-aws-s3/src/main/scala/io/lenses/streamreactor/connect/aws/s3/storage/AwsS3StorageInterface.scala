@@ -28,7 +28,6 @@ import io.lenses.streamreactor.connect.cloud.common.sink.seek.ObjectProtection
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.ObjectWithETag
 import io.lenses.streamreactor.connect.cloud.common.storage.ConditionalDelete
 import io.lenses.streamreactor.connect.cloud.common.storage.DeleteOutcome
-import io.lenses.streamreactor.connect.cloud.common.storage.DeletePreconditionFailedException
 import io.lenses.streamreactor.connect.cloud.common.storage.ExtensionFilter
 import io.lenses.streamreactor.connect.cloud.common.storage.FileCreateError
 import io.lenses.streamreactor.connect.cloud.common.storage.FileDeleteError
@@ -278,8 +277,21 @@ class AwsS3StorageInterface(
           ).asLeft
     }
 
+  /**
+   * Deletes by path; the token is not sent. The only caller is the commit chain's last step, which
+   * removes the chain's temp upload. That path carries a fresh UUID per commit attempt, so nothing
+   * else ever writes it and a version check protects nothing. Some S3-compatible stores reject
+   * `If-Match` on `DeleteObject` outright, which would leave the chain stuck on its delete step.
+   * Lock files are never deleted here: GC, the sweep and the legacy purge use `deleteFilesIfMatch`.
+   */
   override def deleteFile(bucket: String, file: String, eTag: String): Either[FileDeleteError, Unit] =
-    DeletePreconditionFailedException.toDeleteFileResult(file, eTag, deleteObjectIfMatch(bucket, file, eTag))
+    Try {
+      s3Client.deleteObject(DeleteObjectRequest.builder().bucket(bucket).key(file).build())
+    } match {
+      case Success(_)                    => ().asRight
+      case Failure(ex) if isNotFound(ex) => ().asRight
+      case Failure(ex)                   => FileDeleteError(ex, file).asLeft
+    }
 
   /**
    * Conditional deletes: `If-Match` on `DeleteObject`, or the per-object `ETag` of `DeleteObjects`

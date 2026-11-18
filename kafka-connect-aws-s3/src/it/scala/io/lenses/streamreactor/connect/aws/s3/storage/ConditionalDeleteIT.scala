@@ -22,7 +22,6 @@ import io.lenses.streamreactor.connect.aws.s3.config.AuthMode
 import io.lenses.streamreactor.connect.cloud.common.model.UploadableString
 import io.lenses.streamreactor.connect.cloud.common.storage.ConditionalDelete
 import io.lenses.streamreactor.connect.cloud.common.storage.DeleteOutcome
-import io.lenses.streamreactor.connect.cloud.common.storage.DeletePreconditionFailedException
 import io.lenses.streamreactor.connect.testcontainers.FlociContainer
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.EitherValues
@@ -100,17 +99,14 @@ class ConditionalDeleteIT extends AnyFunSuite with Matchers with EitherValues wi
       storage(batchDelete).getBlobAsString(bucket, s"$prefix/changed").value shouldBe "v2"
     }
 
-    test(s"$mode: deleteFile is conditional, and a missing object is success") {
-      val key     = s"$mode/single"
-      val current = put(key, "v1")
-      val si      = storage(batchDelete)
+    test(s"$mode: deleteFile deletes by path whatever the token, and a missing object is success") {
+      val key = s"$mode/single"
+      val _   = put(key, "v1")
+      val si  = storage(batchDelete)
 
-      si.deleteFile(bucket, key, "\"0123456789abcdef0123456789abcdef\"").left.value.exception shouldBe
-        a[DeletePreconditionFailedException]
-      exists(key) shouldBe true
-      si.deleteFile(bucket, key, current) shouldBe Right(())
+      si.deleteFile(bucket, key, "\"0123456789abcdef0123456789abcdef\"") shouldBe Right(())
       exists(key) shouldBe false
-      si.deleteFile(bucket, key, current) shouldBe Right(())
+      si.deleteFile(bucket, key, "\"0123456789abcdef0123456789abcdef\"") shouldBe Right(())
     }
   }
 
