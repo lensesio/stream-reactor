@@ -126,8 +126,11 @@ class AwsS3ConditionalDeleteTest extends AnyFunSuite with Matchers with EitherVa
 
     val outcomes = storage(s3, batchDelete = false).deleteFilesIfMatch(
       bucket,
-      Seq(ConditionalDelete("a", "ea"), ConditionalDelete("b", "eb"), ConditionalDelete("c", "ec"),
-          ConditionalDelete("d", "ed")),
+      Seq(ConditionalDelete("a", "ea"),
+          ConditionalDelete("b", "eb"),
+          ConditionalDelete("c", "ec"),
+          ConditionalDelete("d", "ed"),
+      ),
     )
 
     outcomes.take(3) shouldBe Seq(DeleteOutcome.Deleted, DeleteOutcome.PreconditionFailed, DeleteOutcome.NotFound)
@@ -154,8 +157,13 @@ class AwsS3ConditionalDeleteTest extends AnyFunSuite with Matchers with EitherVa
 
     val outcomes = storage(s3, batchDelete = true).deleteFilesIfMatch(
       bucket,
-      Seq(ConditionalDelete("d", "ed"), ConditionalDelete("c", "ec"), ConditionalDelete("b", "eb"),
-          ConditionalDelete("a", "ea"), ConditionalDelete("e", "ee")),
+      Seq(
+        ConditionalDelete("d", "ed"),
+        ConditionalDelete("c", "ec"),
+        ConditionalDelete("b", "eb"),
+        ConditionalDelete("a", "ea"),
+        ConditionalDelete("e", "ee"),
+      ),
     )
 
     outcomes(0) shouldBe a[DeleteOutcome.Failed]

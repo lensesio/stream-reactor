@@ -71,8 +71,8 @@ class DatalakeConditionalDeleteTest extends AnyFunSuite with Matchers with Eithe
    * existence checks answer from `exists`. Records every delete as (path, If-Match).
    */
   private final class Fixture(deletes: Map[String, () => Boolean], exists: Map[String, () => Boolean] = Map.empty) {
-    val sentDeletes: mutable.Buffer[(String, String)] = mutable.Buffer.empty
-    val existsChecks: mutable.Buffer[String]          = mutable.Buffer.empty
+    val sentDeletes:  mutable.Buffer[(String, String)] = mutable.Buffer.empty
+    val existsChecks: mutable.Buffer[String]           = mutable.Buffer.empty
 
     private val fs = Mockito.mock(classOf[DataLakeFileSystemClient])
     Mockito.when(
