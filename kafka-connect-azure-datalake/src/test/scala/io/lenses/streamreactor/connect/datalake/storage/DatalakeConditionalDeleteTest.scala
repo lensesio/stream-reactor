@@ -15,6 +15,7 @@
  */
 package io.lenses.streamreactor.connect.datalake.storage
 
+import com.azure.core.http.HttpHeaderName
 import com.azure.core.http.HttpHeaders
 import com.azure.core.http.HttpMethod
 import com.azure.core.http.HttpRequest
@@ -45,26 +46,31 @@ import scala.collection.mutable
 
 /**
  * Conditional deletes on ADLS: one `If-Match` path delete per object, and each answer mapped to an
- * outcome. A 412 is checked against the path's existence, because a missing path under `If-Match`
- * answers 412 on Azurite and the real service has not been verified.
+ * outcome. A 412 `ConditionNotMet` (or one with no error code) is checked against the path's
+ * existence, because a missing path under `If-Match` answers 412 on Azurite and the real service has
+ * not been verified. Any other 412 says nothing about the eTag and is a failure.
  */
 class DatalakeConditionalDeleteTest extends AnyFunSuite with Matchers with EitherValues {
 
   private val bucket = "bucket"
 
-  private final class TestHttpResponse(status: Int)
+  private final class TestHttpResponse(status: Int, errorCode: Option[String])
       extends HttpResponse(new HttpRequest(HttpMethod.DELETE, "https://example.com")) {
+    private val headers = errorCode.foldLeft(new HttpHeaders())((h, code) => h.set(ErrorCodeHeader, code))
     override def getStatusCode: Int         = status
-    override def getHeaders:    HttpHeaders = new HttpHeaders()
-    override def getHeaderValue(name: String): String = null
+    override def getHeaders:    HttpHeaders = headers
+    override def getHeaderValue(name: String): String = headers.getValue(HttpHeaderName.fromString(name))
     override def getBodyAsByteArray: Mono[Array[Byte]] = Mono.just(Array.emptyByteArray)
     override def getBody:            Flux[ByteBuffer]  = Flux.empty()
     override def getBodyAsString(charset: Charset): Mono[String] = Mono.just("")
     override def getBodyAsString(): Mono[String] = Mono.just("")
   }
 
-  private def status(code: Int): DataLakeStorageException =
-    new DataLakeStorageException(s"status $code", new TestHttpResponse(code), null)
+  // The response header the service puts its error code in (`DataLakeStorageException.getErrorCode`).
+  private val ErrorCodeHeader = HttpHeaderName.fromString("x-ms-error-code")
+
+  private def status(code: Int, errorCode: Option[String]): DataLakeStorageException =
+    new DataLakeStorageException(s"status $code", new TestHttpResponse(code, errorCode), null)
 
   /**
    * A file-system client whose `If-Match` deletes answer per path from `deletes`, and whose
@@ -104,7 +110,8 @@ class DatalakeConditionalDeleteTest extends AnyFunSuite with Matchers with Eithe
     val storage = new DatalakeStorageInterface(ConnectorTaskId("connector", 1, 1), service)
   }
 
-  private def throws(code: Int): () => Boolean = () => throw status(code)
+  private def throws(code: Int, errorCode: Option[String] = None): () => Boolean =
+    () => throw status(code, errorCode)
 
   test("deleteFilesIfMatch sends one If-Match delete per object and maps each answer") {
     val f = new Fixture(
@@ -153,5 +160,67 @@ class DatalakeConditionalDeleteTest extends AnyFunSuite with Matchers with Eithe
     f.storage.deleteFile(bucket, "b", "eb") shouldBe Right(())
     f.storage.deleteFile(bucket, "c", "ec").left.value.exception shouldBe a[DeletePreconditionFailedException]
     f.sentDeletes.toSeq shouldBe Seq("a" -> "ea", "b" -> "eb", "c" -> "ec")
+  }
+
+  // ---- a 412 is told apart by the service's error code --------------------------------
+
+  test("a leased path at the matching eTag (412 LeaseIdMissing) is a failure to retry, with no existence check") {
+    val f = new Fixture(
+      deletes = Map("a" -> throws(412, Some("LeaseIdMissing"))),
+      exists  = Map("a" -> (() => true)),
+    )
+
+    val outcomes = f.storage.deleteFilesIfMatch(bucket, Seq(ConditionalDelete("a", "etag-a")))
+
+    outcomes match {
+      case Seq(DeleteOutcome.Failed(err)) =>
+        err.fileName shouldBe "a"
+        err.exception match {
+          case dse: DataLakeStorageException => dse.getErrorCode shouldBe "LeaseIdMissing"
+          case other => fail(s"expected the service's exception, got $other")
+        }
+      case other => fail(s"expected one Failed outcome, got $other")
+    }
+    f.existsChecks shouldBe empty
+  }
+
+  test("a 412 ConditionNotMet on a path that is still there is a precondition failure") {
+    val f = new Fixture(
+      deletes = Map("a" -> throws(412, Some("ConditionNotMet"))),
+      exists  = Map("a" -> (() => true)),
+    )
+
+    f.storage.deleteFilesIfMatch(bucket, Seq(ConditionalDelete("a", "etag-a"))) shouldBe Seq(
+      DeleteOutcome.PreconditionFailed,
+    )
+    f.existsChecks.toSeq shouldBe Seq("a")
+  }
+
+  test("a 412 ConditionNotMet on a path that is gone is not found") {
+    val f = new Fixture(
+      deletes = Map("a" -> throws(412, Some("ConditionNotMet"))),
+      exists  = Map("a" -> (() => false)),
+    )
+
+    f.storage.deleteFilesIfMatch(bucket, Seq(ConditionalDelete("a", "etag-a"))) shouldBe Seq(DeleteOutcome.NotFound)
+    f.existsChecks.toSeq shouldBe Seq("a")
+  }
+
+  test("a 412 with any other error code is a failure to retry, with no existence check") {
+    val f = new Fixture(
+      deletes = Map("a" -> throws(412, Some("SourceConditionNotMet"))),
+      exists  = Map("a" -> (() => true)),
+    )
+
+    f.storage.deleteFilesIfMatch(bucket, Seq(ConditionalDelete("a", "etag-a"))).head shouldBe a[DeleteOutcome.Failed]
+    f.existsChecks shouldBe empty
+  }
+
+  test("deleteFile on a leased path is a plain delete error, not a precondition failure") {
+    val f = new Fixture(deletes = Map("a" -> throws(412, Some("LeaseIdMissing"))))
+
+    val err = f.storage.deleteFile(bucket, "a", "etag-a").left.value
+    err.exception should not be a[DeletePreconditionFailedException]
+    err.exception shouldBe a[DataLakeStorageException]
   }
 }

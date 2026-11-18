@@ -451,10 +451,16 @@ class DatalakeStorageInterface(
     files.map(f => deletePathIfMatch(bucket, f.path, f.eTag))
 
   /**
-   * `deleteFileIfExistsWithResponse` with `If-Match`: `false` means there was no file. A 412 is
-   * ambiguous: Azurite answers 412, not 404, for a missing path under `If-Match`, and real ADLS has
-   * not been verified, so a 412 is followed by an existence check, and only a file that is still
-   * there is a precondition failure.
+   * `deleteFileIfExistsWithResponse` with `If-Match`: `false` means there was no file. A 412 is told
+   * apart by the service's error code:
+   *  - `ConditionNotMet` (the eTag did not match) is still ambiguous: Azurite answers it, not 404,
+   *    for a missing path under `If-Match`, and real ADLS has not been verified. It is followed by an
+   *    existence check: a file that is still there is a precondition failure, a missing one is not
+   *    found.
+   *  - `LeaseIdMissing` (the path has an active lease and the request carried no lease id) and any
+   *    other code say nothing about the eTag: the path may well be at the version read. It is an
+   *    ordinary failure, so the caller retries it rather than dropping it as changed.
+   *  - With no error code the 412 is treated as `ConditionNotMet`, as before the code was read.
    */
   private def deletePathIfMatch(bucket: String, file: String, eTag: String): DeleteOutcome =
     Try(client.getFileSystemClient(bucket)).toEither match {
@@ -466,6 +472,8 @@ class DatalakeStorageInterface(
           case scala.util.Success(response) =>
             if (Boolean.unbox(response.getValue)) DeleteOutcome.Deleted else DeleteOutcome.NotFound
           case scala.util.Failure(ex: DataLakeStorageException) if ex.getStatusCode == 404 => DeleteOutcome.NotFound
+          case scala.util.Failure(ex: DataLakeStorageException) if ex.getStatusCode == 412 && !isConditionNotMet(ex) =>
+            DeleteOutcome.Failed(FileDeleteError(ex, file))
           case scala.util.Failure(ex: DataLakeStorageException) if ex.getStatusCode == 412 =>
             Try(Boolean.unbox(cli.getFileClient(file).exists())) match {
               case scala.util.Success(true)  => DeleteOutcome.PreconditionFailed
@@ -477,6 +485,17 @@ class DatalakeStorageInterface(
           case scala.util.Failure(ex) => DeleteOutcome.Failed(FileDeleteError(ex, file))
         }
     }
+
+  /**
+   * True when a 412 reports an `If-Match` eTag mismatch (`ConditionNotMet`). A 412 without an error
+   * code (an emulator, a proxy) is assumed to be one: that keeps the existence check, which only
+   * turns it into a precondition failure when the path is still there.
+   */
+  private def isConditionNotMet(ex: DataLakeStorageException): Boolean =
+    Option(ex.getErrorCode).filter(_.nonEmpty).forall(_ == ConditionNotMetErrorCode)
+
+  // The Data Lake SDK has no error-code constants; this is the service's documented string.
+  private val ConditionNotMetErrorCode = "ConditionNotMet"
 
   /**
    * True when a failed rename represents a NoOverwriteExistingObject create losing the race —
