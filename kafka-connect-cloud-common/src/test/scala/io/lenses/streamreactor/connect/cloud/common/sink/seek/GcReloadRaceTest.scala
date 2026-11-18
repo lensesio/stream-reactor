@@ -63,9 +63,13 @@ class GcReloadRaceTest extends AnyFunSuite with Matchers with EitherValues with 
       // A record for the second key arrives while the first chunk's delete is in flight: the put()
       // thread reloads the key, at the same version the GC item was selected at.
       h.storage.arm(
-        OnDeleteAt(h.bucket,
-                   h.granularLockPath(tp, first),
-                   () => { val _ = h.a.getSeekedOffsetForPartitionKey(tp, second).value shouldBe Some(Offset(12)) },
+        OnDeleteAt(
+          h.bucket,
+          h.granularLockPath(tp, first),
+          () => {
+            h.a.getSeekedOffsetForPartitionKey(tp, second).value shouldBe Some(Offset(12))
+            ()
+          },
         ),
       )
 
@@ -160,7 +164,7 @@ class GcReloadRaceTest extends AnyFunSuite with Matchers with EitherValues with 
   final private class Task(h: TwoInstanceHarness, instance: Int) {
     val attempt: String = s"task-$instance"
 
-    private val im: IndexManagerV2 = h.instances(instance)
+    private val im:              IndexManagerV2  = h.instances(instance)
     implicit private val taskId: ConnectorTaskId = h.taskIds(instance)
     private val pop = new PendingOperationsProcessors(h.storage)
 
