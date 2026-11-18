@@ -19,6 +19,8 @@ import io.lenses.streamreactor.connect.cloud.common.model.Offset
 import io.lenses.streamreactor.connect.cloud.common.model.Topic
 import io.lenses.streamreactor.connect.cloud.common.testing.InMemoryStorageInterface.FailDeleteAt
 import io.lenses.streamreactor.connect.cloud.common.testing.InMemoryStorageInterface.OnDeleteAt
+import io.lenses.streamreactor.connect.cloud.common.testing.InMemoryStorageInterface.OnReadAt
+import io.lenses.streamreactor.connect.cloud.common.testing.InMemoryStorageInterface.OnWriteAt
 import org.scalatest.EitherValues
 import org.scalatest.OptionValues
 import org.scalatest.funsuite.AnyFunSuite
@@ -50,6 +52,14 @@ class GcConditionalDeleteTest extends AnyFunSuite with Matchers with EitherValue
     h.a.updateMasterLock(tp, Offset(20)).value
     h.a.cleanUpObsoleteLocks(tp, Offset(20), Set.empty).value
     val _ = h.a.gcQueueSize shouldBe 1
+  }
+
+  private def bOpens(h: TwoInstanceHarness): Unit = {
+    val _ = h.b.open(Set(tp)).value
+  }
+
+  private def bOpensOnTheNextMasterRead(h: TwoInstanceHarness): Unit = {
+    val _ = h.storage.arm(OnReadAt(h.bucket, h.masterLockPath(tp), () => bOpens(h)))
   }
 
   /** B opens (epoch 1001), loads `pk` (taking it over) and commits it at 25, past the master floor. */
@@ -213,6 +223,83 @@ class GcConditionalDeleteTest extends AnyFunSuite with Matchers with EitherValue
       keys.map(k => h.storage.pathExists(h.bucket, h.granularLockPath(tp, k)).value) shouldBe Seq(false, true, false)
       h.metrics(0).getGcLocksDeleted shouldBe 2L
       h.metrics(0).getGcLocksSkippedChanged shouldBe 1L
+    } finally h.close()
+  }
+
+  // ---- legacy purge (batch mode) ------------------------------------------------------
+
+  /**
+   * X1 (instance 0) runs in batch mode, B (instance 1) in granular mode. A lock left by an older
+   * granular deployment sits at `pk` with offset 5.
+   */
+  private def batchThenGranular(): TwoInstanceHarness = {
+    val h = new TwoInstanceHarness(commitModes = Seq(CommitMode.Batch, CommitMode.Granular))
+    h.clock.set(1000L)
+    h.storage.writeBlobToFile(
+      h.bucket,
+      lockPath(h),
+      NoOverwriteExistingObject(IndexFile("old-granular", Some(Offset(5)), None)),
+    ).value
+    h
+  }
+
+  test("a batch instance's legacy purge does not delete a lock a later granular owner took over after the fencing") {
+    val h = batchThenGranular()
+    try {
+      // X1 has fenced the lock and pauses right before its purge deletes it; B opens in granular
+      // mode, takes the key over and commits it.
+      h.storage.arm(OnDeleteAt(h.bucket, lockPath(h), () => bTakesOverAndCommits(h)))
+
+      h.a.open(Set(tp)).value
+
+      stored(h).value shouldBe IndexFile(h.lockUuid(1), Some(Offset(25)), None, Some(1001L))
+      h.b.updateForPartitionKey(tp, pk, Some(Offset(30)), None).value shouldBe Some(Offset(30))
+      // Refused on version: the lock is B's now, so X1 counts the key as resolved.
+      h.a.legacyPurged(tp) shouldBe true
+    } finally h.close()
+  }
+
+  test("a batch instance's legacy purge deletes nothing once a later owner has opened the partition") {
+    val h = batchThenGranular()
+    try {
+      // B opens after X1 has fenced the lock, before X1's purge re-reads the master.
+      h.storage.arm(OnWriteAt(h.bucket, lockPath(h), () => bOpensOnTheNextMasterRead(h)))
+
+      h.a.open(Set(tp)).value
+
+      stored(h).value.committedOffset shouldBe Some(Offset(5))
+      h.storage.pathExists(h.bucket, lockPath(h)).value shouldBe true
+      h.a.legacyPurged(tp) shouldBe false
+      h.a.fencedPartitions should contain(tp)
+    } finally h.close()
+  }
+
+  test("a batch instance's legacy purge deletes a fenced lock nobody touched since, and the sweep marker") {
+    val h = batchThenGranular()
+    try {
+      h.storage.putRaw(h.bucket, h.sweepMarkerPath(tp), "{}".getBytes)
+
+      h.a.open(Set(tp)).value
+
+      h.storage.pathExists(h.bucket, lockPath(h)).value shouldBe false
+      h.storage.pathExists(h.bucket, h.sweepMarkerPath(tp)).value shouldBe false
+      h.a.legacyPurged(tp) shouldBe true
+    } finally h.close()
+  }
+
+  test("a failed legacy lock delete leaves the partition unresolved, and the next open purges it") {
+    val h = batchThenGranular()
+    try {
+      h.storage.arm(FailDeleteAt(h.bucket, lockPath(h)))
+
+      h.a.open(Set(tp)).value
+      h.a.legacyPurged(tp) shouldBe false
+      h.storage.pathExists(h.bucket, lockPath(h)).value shouldBe true
+
+      h.a.clearTopicPartitionState(tp)
+      h.a.open(Set(tp)).value
+      h.a.legacyPurged(tp) shouldBe true
+      h.storage.pathExists(h.bucket, lockPath(h)).value shouldBe false
     } finally h.close()
   }
 }

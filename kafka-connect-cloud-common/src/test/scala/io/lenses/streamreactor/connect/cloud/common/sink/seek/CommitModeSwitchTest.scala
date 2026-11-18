@@ -530,6 +530,13 @@ class CommitModeSwitchTest
         deleteCallSizes += files.size
         super.deleteFiles(b, files)
       }
+      override def deleteFilesIfMatch(
+        b:     String,
+        files: Seq[io.lenses.streamreactor.connect.cloud.common.storage.ConditionalDelete],
+      ): Seq[io.lenses.streamreactor.connect.cloud.common.storage.DeleteOutcome] = {
+        deleteCallSizes += files.size
+        super.deleteFilesIfMatch(b, files)
+      }
     }
     storage = countingDeletes
     seedMaster(99)
@@ -543,7 +550,7 @@ class CommitModeSwitchTest
       pendingOperationsProcessors = new PendingOperationsProcessors(countingDeletes),
       directoryFileName           = directoryName,
       gcIntervalSeconds           = Int.MaxValue,
-      gcBatchSize                 = 2, // 3 locks + 1 marker = 4 paths -> chunks of [2, 2]
+      gcBatchSize                 = 2, // 3 locks -> conditional chunks of [2, 1], plus the marker on its own
       gcSweepIntervalSeconds      = Int.MaxValue,
       gcSweepMinAgeSeconds        = Int.MaxValue,
       gcSweepEnabled              = false,

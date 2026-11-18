@@ -51,6 +51,8 @@ final class TwoInstanceHarness(
   gcSeconds:     Int        = Int.MaxValue,
   contentETags:  Boolean    = false,
   sweepMaxReads: Int        = IndexManagerV2.DefaultGcSweepMaxReads,
+  // Per-instance commit modes, by index; instances past its end use `commitMode`.
+  commitModes: Seq[CommitMode] = Seq.empty,
 ) extends AutoCloseable {
   require(instanceCount >= 2, s"a multi-instance harness needs at least 2 instances, got $instanceCount")
 
@@ -72,7 +74,9 @@ final class TwoInstanceHarness(
   /** One metrics registry per instance, so a test can read what an instance counted. */
   val metrics: Vector[CloudSinkMetrics] = Vector.fill(instanceCount)(new CloudSinkMetrics())
 
-  val instances: Vector[IndexManagerV2] = taskIds.zip(metrics).map { case (id, m) => buildIndexManager(id, m) }
+  val instances: Vector[IndexManagerV2] = taskIds.zip(metrics).zipWithIndex.map {
+    case ((id, m), n) => buildIndexManager(id, m, commitModes.lift(n).getOrElse(commitMode))
+  }
 
   def a: IndexManagerV2 = instances(0)
   def b: IndexManagerV2 = instances(1)
@@ -107,7 +111,11 @@ final class TwoInstanceHarness(
       catch { case _: Throwable => () }
     }
 
-  private def buildIndexManager(taskId: ConnectorTaskId, instanceMetrics: CloudSinkMetrics): IndexManagerV2 = {
+  private def buildIndexManager(
+    taskId:          ConnectorTaskId,
+    instanceMetrics: CloudSinkMetrics,
+    mode:            CommitMode,
+  ): IndexManagerV2 = {
     implicit val si:  StorageInterface[FakeFileMetadata] = storage
     implicit val tid: ConnectorTaskId                    = taskId
     new IndexManagerV2(
@@ -120,7 +128,7 @@ final class TwoInstanceHarness(
       gcSweepEnabled              = sweepEnabled,
       gcSweepMaxReads             = sweepMaxReads,
       clock                       = () => clock.get(),
-      commitMode                  = commitMode,
+      commitMode                  = mode,
       metrics                     = instanceMetrics,
     )(si, taskId)
   }

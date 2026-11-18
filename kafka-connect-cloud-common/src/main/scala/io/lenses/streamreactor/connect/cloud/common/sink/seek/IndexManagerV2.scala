@@ -1439,37 +1439,73 @@ class IndexManagerV2(
   /**
    * Deletes every fenced legacy lock plus the (now-unused) sweep marker, chunked by
    * `gcBatchSize` so a provider's batch-delete limit (S3 rejects >1000 keys in one
-   * `DeleteObjects` call) cannot permanently block a high-cardinality partition's purge. Each
-   * chunk is independent; `legacyResolved` is only set once every chunk succeeds, so a partial
-   * failure simply retries the whole set on the next `open()` (re-fencing an already-fenced lock
-   * is a harmless no-op bump).
+   * `DeleteObjects` call) cannot permanently block a high-cardinality partition's purge.
+   *
+   * Each lock is deleted only at the version this instance's own fencing left it at (the token
+   * `loadLegacy` cached), and only after the master lock is re-read and still shows this
+   * instance's own last write. Between the fencing and the delete a later owner (a granular
+   * deployment, say) can open the partition and take a lock over: the master check refuses the
+   * whole purge if it opened first, and the token refuses the delete of any lock it rewrote after.
+   * A lock refused on version is someone else's now and counts as resolved; a lock `loadLegacy`
+   * found missing is not deleted. The sweep marker is deleted by path. `legacyResolved` is only set
+   * once the master check passes and no delete failed, so a failure simply retries the whole set
+   * on the next `open()` (re-fencing an already-fenced lock is a harmless no-op bump).
    */
   private def purgeLegacyLocks(
     topicPartition:  TopicPartition,
     bucketAndPrefix: CloudLocation,
     lockKeys:        List[String],
   ): Unit = {
-    val lockPaths =
-      lockKeys.map(pk => generateGranularLockFilePath(connectorTaskId, topicPartition, pk, directoryFileName))
+    val bucket = bucketAndPrefix.bucket
+    val lockDeletes = lockKeys.flatMap { pk =>
+      gcGet(topicPartition, pk).map(entry =>
+        ConditionalDelete(generateGranularLockFilePath(connectorTaskId, topicPartition, pk, directoryFileName),
+                          entry.eTag,
+        ),
+      )
+    }
     val markerPath = generateSweepMarkerPath(connectorTaskId, topicPartition, directoryFileName)
-    val allSucceeded = (lockPaths :+ markerPath).grouped(gcBatchSize).map { chunk =>
-      storageInterface.deleteFiles(bucketAndPrefix.bucket, chunk) match {
+    if (!stillOwnsMaster(bucket, topicPartition)) {
+      logger.warn(
+        s"[${connectorTaskId.show}] Legacy-lock purge for $topicPartition skipped: the master lock no longer " +
+          "shows this task's last write; will retry on the next open().",
+      )
+    } else {
+      val outcomes = lockDeletes.grouped(gcBatchSize).flatMap { chunk =>
+        chunk.zip(storageInterface.deleteFilesIfMatch(bucket, chunk).padTo(chunk.size, MissingDeleteOutcome))
+      }.toList
+      val failed  = outcomes.collect { case (d, DeleteOutcome.Failed(err)) => d.path -> err.message() }
+      val changed = outcomes.collect { case (d, DeleteOutcome.PreconditionFailed) => d.path }
+      if (changed.nonEmpty) {
+        logger.info(
+          s"[${connectorTaskId.show}] Legacy-lock purge for $topicPartition left ${changed.size} lock(s) in place: " +
+            s"rewritten since they were fenced (${changed.mkString(", ")})",
+        )
+      }
+      val markerDeleted = storageInterface.deleteFiles(bucket, Seq(markerPath)) match {
         case Right(_) => true
         case Left(err) =>
           logger.warn(
-            s"[${connectorTaskId.show}] Legacy-lock purge for $topicPartition failed on a chunk of " +
-              s"${chunk.size}; will retry on the next open(): ${err.message()}",
+            s"[${connectorTaskId.show}] Legacy-lock purge for $topicPartition could not delete the sweep marker; " +
+              s"will retry on the next open(): ${err.message()}",
           )
           false
       }
-    }.toList.forall(identity)
-    if (allSucceeded) {
-      val _ = legacyResolved.put(topicPartition, true)
-      gcRemoveAllForTp(topicPartition)
-      metrics.incrementLegacyLocksPurged()
-      logger.info(
-        s"[${connectorTaskId.show}] Purged ${lockPaths.size} legacy granular lock(s) for $topicPartition.",
-      )
+      failed.headOption.foreach {
+        case (path, reason) =>
+          logger.warn(
+            s"[${connectorTaskId.show}] Legacy-lock purge for $topicPartition failed for ${failed.size} lock(s) " +
+              s"(first: $path: $reason); will retry on the next open()",
+          )
+      }
+      if (failed.isEmpty && markerDeleted) {
+        val _ = legacyResolved.put(topicPartition, true)
+        gcRemoveAllForTp(topicPartition)
+        metrics.incrementLegacyLocksPurged()
+        logger.info(
+          s"[${connectorTaskId.show}] Purged ${outcomes.size - changed.size} legacy granular lock(s) for $topicPartition.",
+        )
+      }
     }
   }
 
@@ -2718,7 +2754,8 @@ class IndexManagerV2(
   }
 
   /**
-   * The sweep's ownership re-check, made after its lock reads and before it enqueues anything:
+   * The ownership re-check GC makes before it deletes anything it selected (the orphan sweep, after
+   * its lock reads and before it enqueues; the legacy purge, before its deletes):
    * the master lock still carries the token of this instance's own last master write. A new owner's
    * `open()` always rewrites the master (its owner, a new epoch), so a match shows no other instance
    * opened the partition before this read, hence none has taken over a lock the sweep read: any such
@@ -2738,7 +2775,7 @@ class IndexManagerV2(
             val theirs = master.wrappedObject.epoch.getOrElse(0L)
             if (theirs > mine && markFenced(tp, mine, s"master lock epoch $theirs > held epoch $mine")) {
               logger.error(
-                s"[${connectorTaskId.show}] Fenced on $tp: the orphan sweep read a master lock under epoch " +
+                s"[${connectorTaskId.show}] Fenced on $tp: a GC master re-check read a master lock under epoch " +
                   s"$theirs (owner ${master.wrappedObject.owner}) > this instance's epoch $mine (lockUuid $lockOwner).",
               )
             }
@@ -2746,7 +2783,7 @@ class IndexManagerV2(
           false
         }
       case Left(err) =>
-        logger.warn(s"[${connectorTaskId.show}] Sweep: master lock re-check failed for $tp: ${err.message()}")
+        logger.warn(s"[${connectorTaskId.show}] GC: master lock re-check failed for $tp: ${err.message()}")
         false
     }
   }
@@ -2955,6 +2992,10 @@ object IndexManagerV2 {
   private[seek] val TmpOrphanPattern = """^(.*)\.lock\.tmp\.[0-9a-fA-F-]+$""".r
 
   val MaxGcRetries: Int = 3
+
+  /** What a conditional delete that reported no outcome for an object is taken as: a failure. */
+  private val MissingDeleteOutcome: DeleteOutcome =
+    DeleteOutcome.Failed(FileDeleteError(new IllegalStateException("no outcome reported for the delete"), ""))
 
   /**
    * Bounded ownership writes `open()` makes on a master lock (creates and bumps alike, shared). Each
