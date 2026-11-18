@@ -396,8 +396,10 @@ class InMemoryStorageInterface(systemName: String = "in-memory", contentETags: B
 
   // ---------- helpers ----------
 
-  private def fakeMeta(bucket: String, key: String): FakeFileMetadata =
-    FakeFileMetadata(key, Option(store.get((bucket, key))).map(_.lastModified).getOrElse(Instant.EPOCH))
+  private def fakeMeta(bucket: String, key: String): FakeFileMetadata = {
+    val blob = Option(store.get((bucket, key)))
+    FakeFileMetadata(key, blob.map(_.lastModified).getOrElse(Instant.EPOCH), blob.map(_.bytes.length.toLong))
+  }
 
   private def collectKeys(bucket: String, prefix: Option[String]): Seq[String] = {
     val pfx = prefix.getOrElse("")
@@ -607,5 +609,6 @@ object InMemoryStorageInterface {
   }
 }
 
-/** File metadata for the in-memory fake. */
-final case class FakeFileMetadata(file: String, lastModified: Instant) extends FileMetadata
+/** File metadata for the in-memory fake. Listings report the object's size, as ADLS listings do. */
+final case class FakeFileMetadata(file: String, lastModified: Instant, override val size: Option[Long] = None)
+    extends FileMetadata

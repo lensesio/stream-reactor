@@ -41,7 +41,7 @@ import java.util.concurrent.atomic.AtomicLong
  * turns the sweeps on for such direct calls; `sweepSeconds` is both the sweep interval and the
  * minimum object age, so a test ages an object past it with `storage.setLastModified`.
  * `contentETags` makes the shared store derive eTags from the bytes written (see
- * `InMemoryStorageInterface`).
+ * `InMemoryStorageInterface`). `sweepMaxReads` is the orphan sweep's per-cycle GET budget.
  */
 final class TwoInstanceHarness(
   instanceCount: Int        = 2,
@@ -50,6 +50,7 @@ final class TwoInstanceHarness(
   sweepSeconds:  Int        = Int.MaxValue,
   gcSeconds:     Int        = Int.MaxValue,
   contentETags:  Boolean    = false,
+  sweepMaxReads: Int        = IndexManagerV2.DefaultGcSweepMaxReads,
 ) extends AutoCloseable {
   require(instanceCount >= 2, s"a multi-instance harness needs at least 2 instances, got $instanceCount")
 
@@ -117,6 +118,7 @@ final class TwoInstanceHarness(
       gcSweepIntervalSeconds      = sweepSeconds,
       gcSweepMinAgeSeconds        = sweepSeconds,
       gcSweepEnabled              = sweepEnabled,
+      gcSweepMaxReads             = sweepMaxReads,
       clock                       = () => clock.get(),
       commitMode                  = commitMode,
       metrics                     = instanceMetrics,

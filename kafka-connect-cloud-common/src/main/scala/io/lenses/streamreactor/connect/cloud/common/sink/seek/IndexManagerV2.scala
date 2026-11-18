@@ -2672,19 +2672,67 @@ class IndexManagerV2(
           }
         }
       }
-      // Classify each .lock file and GET-read only those that pass the filter chain, respecting the budget
-      files.foldLeft((0, 0)) {
-        case (acc @ (_, readsUsed), _) if readsUsed >= readsRemaining => acc
-        case ((enqueued, readsUsed), fileMeta) =>
+      // Classify each .lock file and GET-read only those that pass the filter chain, respecting the
+      // budget. One read is kept back for the master re-check below. Once a read fences the
+      // partition, nothing more of it is read.
+      val lockReadBudget = readsRemaining - 1
+      val (selected, lockReads) = files.foldLeft((Vector.empty[GcItem], 0)) {
+        case (acc @ (_, readsUsed), _) if readsUsed >= lockReadBudget || isFenced(tp) => acc
+        case ((picked, readsUsed), fileMeta) =>
           classifyLockFile(tp, fileMeta, ageThreshold, prefix) match {
-            case SweepSkip => (enqueued, readsUsed)
+            case SweepSkip => (picked, readsUsed)
             case SweepNeedsRead(partitionKey) =>
-              val didEnqueue = readAndEnqueue(bucket, fileMeta.file, tp, partitionKey, masterOffset)
-              (enqueued + (if (didEnqueue) 1 else 0), readsUsed + 1)
+              (picked ++ selectObsoleteLock(bucket, fileMeta.file, tp, partitionKey, masterOffset), readsUsed + 1)
           }
+      }
+      if (selected.isEmpty) (0, lockReads)
+      else if (stillOwnsMaster(bucket, tp)) {
+        selected.foreach(gcQueue.add)
+        (selected.size, lockReads + 1)
+      } else {
+        metrics.incrementSweepSkippedOwnershipLost()
+        logger.info(
+          s"[${connectorTaskId.show}] Sweep: ${selected.size} obsolete lock(s) of $tp not enqueued: the master " +
+            "lock no longer shows this task's last write (the partition was taken over, or it could not be read)",
+        )
+        (0, lockReads + 1)
       }
     }
     result.getOrElse((0, 0))
+  }
+
+  /**
+   * The sweep's ownership re-check, made after its lock reads and before it enqueues anything:
+   * the master lock still carries the token of this instance's own last master write. A new owner's
+   * `open()` always rewrites the master (its owner, a new epoch), so a match shows no other instance
+   * opened the partition before this read, hence none has taken over a lock the sweep read: any such
+   * take-over comes later and changes the lock's token, and the conditional delete then fails. That
+   * covers the case the epoch read rule cannot: a lock another instance holds at the SAME epoch (two
+   * clock-only epochs over a missing master). A mismatch is not proof of a takeover (this
+   * instance's own commit may have just moved the master), so it only skips this cycle; a master
+   * under a higher epoch than the one held does prove it, and fences the partition.
+   */
+  private def stillOwnsMaster(bucket: String, tp: TopicPartition): Boolean = {
+    val heldAtRead = tpEpoch.get(tp)
+    tryOpen(bucket, generateLockFilePath(connectorTaskId, tp, directoryFileName)) match {
+      case Right(master) =>
+        if (topicPartitionToETags.get(tp).contains(master.eTag) && !isFenced(tp)) true
+        else {
+          heldAtRead.foreach { mine =>
+            val theirs = master.wrappedObject.epoch.getOrElse(0L)
+            if (theirs > mine && markFenced(tp, mine, s"master lock epoch $theirs > held epoch $mine")) {
+              logger.error(
+                s"[${connectorTaskId.show}] Fenced on $tp: the orphan sweep read a master lock under epoch " +
+                  s"$theirs (owner ${master.wrappedObject.owner}) > this instance's epoch $mine (lockUuid $lockOwner).",
+              )
+            }
+          }
+          false
+        }
+      case Left(err) =>
+        logger.warn(s"[${connectorTaskId.show}] Sweep: master lock re-check failed for $tp: ${err.message()}")
+        false
+    }
   }
 
   private sealed trait SweepClassification
@@ -2713,7 +2761,7 @@ class IndexManagerV2(
   }
 
   /**
-   * GETs the lock file and enqueues it for deletion if its committedOffset is strictly below
+   * GETs the lock file and selects it for deletion (at the version read) if its committedOffset is strictly below
    * the master lock's committedOffset. The master lock stores `masterOffset = globalSafeOffset - 1`,
    * so `committedOffset < masterOffset` is equivalent to `committedOffset < globalSafeOffset - 1`,
    * matching the threshold used by `cleanUpObsoleteLocks`.
@@ -2734,41 +2782,38 @@ class IndexManagerV2(
    * marks the partition fenced and is not queued (the drain also discards what a fenced partition
    * has queued), whatever its offsets say.
    */
-  private def readAndEnqueue(
+  private def selectObsoleteLock(
     bucket:       String,
     path:         String,
     tp:           TopicPartition,
     partitionKey: String,
     masterOffset: Offset,
-  ): Boolean =
+  ): Option[GcItem] =
     storageInterface.getBlobAsObject[IndexFile](bucket, path) match {
       case Left(EmptyFileError(_, eTag)) =>
         // 0-byte blob: classifyLockFile has already enforced the ageThreshold filter,
         // so this file is provably older than the worst-case create-flush window
         // and cannot be a live writer's in-progress .tmp. Deleted only while still this 0-byte
         // version: a writer that takes it over meanwhile keeps it.
-        gcQueue.add(GcItem(bucket, path, tp, partitionKey, eTag = Some(eTag)))
-        true
+        Some(GcItem(bucket, path, tp, partitionKey, eTag = Some(eTag)))
       case Left(err) =>
         logger.warn(s"Sweep: failed to read lock file $path: ${err.message()}")
-        false
+        None
       case Right(ObjectWithETag(lock, _)) if rejectNewerEpoch(tp, partitionKey, lock).isLeft =>
-        false
+        None
       case Right(ObjectWithETag(IndexFile(_, Some(committedOffset), pendingState, _), eTag))
           if committedOffset.value < masterOffset.value &&
             pendingState.forall(_.pendingOffset.value < masterOffset.value) =>
-        gcQueue.add(GcItem(bucket, path, tp, partitionKey, eTag = Some(eTag)))
-        true
+        Some(GcItem(bucket, path, tp, partitionKey, eTag = Some(eTag)))
       case Right(ObjectWithETag(IndexFile(_, None, None, _), eTag)) =>
         // Empty lock created by ensureGranularLock but never committed to.
         // classifyLockFile already enforced the age threshold and cache absence,
         // so no active writer is using this file and it carries no durable data.
         // Without this branch, empty locks accumulate indefinitely under
         // high-cardinality PARTITIONBY with churning keys.
-        gcQueue.add(GcItem(bucket, path, tp, partitionKey, eTag = Some(eTag)))
-        true
+        Some(GcItem(bucket, path, tp, partitionKey, eTag = Some(eTag)))
       case _ =>
-        false
+        None
     }
 
   override def suspendBackgroundWork(): Unit = {

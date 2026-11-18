@@ -2739,7 +2739,9 @@ class IndexManagerV2Test
         anyString(),
         ArgumentMatchers.endsWith(s"${tp.partition}.lock"),
       )(ArgumentMatchers.eq(indexFileDecoder)),
-    ).thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(100)), None), "etag")))
+      // "marker-etag": the eTag every write below echoes, so the master lock still carries this
+      // instance's own last write when the sweep re-checks it before enqueueing.
+    ).thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(100)), None), "marker-etag")))
     when(
       si.getBlobAsObject[IndexManagerV2.SweepMarker](
         anyString(),
@@ -3187,8 +3189,8 @@ class IndexManagerV2Test
       im.open(Set(tp1, tp2))
       im.sweepOrphanedLocks()
 
-      // Only 2 lock file reads should have been made total
-      verify(si, times(2)).getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.matches(".*pk-\\d+\\.lock"))(
+      // A budget of 2 reads: one lock file read, and one kept back for the master re-check
+      verify(si, times(1)).getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.matches(".*pk-\\d+\\.lock"))(
         ArgumentMatchers.eq(indexFileDecoder),
       )
     } finally im.close()
@@ -3748,8 +3750,9 @@ class IndexManagerV2Test
       im.sweepOrphanedLocks()
       im.drainGcQueue()
 
-      // The master lock must never be GET-read by the sweep
-      verify(si, never).getBlobAsObject[IndexFile](
+      // The master lock is read once by the sweep, for its ownership re-check before enqueueing,
+      // and never classified as a granular lock
+      verify(si, times(1)).getBlobAsObject[IndexFile](
         anyString(),
         ArgumentMatchers.eq(masterLockPath),
       )(ArgumentMatchers.eq(indexFileDecoder))
