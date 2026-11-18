@@ -2776,7 +2776,8 @@ class IndexManagerV2(
    * `committedOffset` without this key ever being loaded (and so recovered) by the new owner.
    * Replay starts at `masterOffset`, so a pending chain at or above it re-delivers records that
    * only this lock (resolved at load time) can deduplicate. Deleting it would write them twice.
-   * A pending chain wholly below the floor is never replayed, so sweeping it is safe.
+   * A pending chain wholly below the floor is never replayed, so sweeping it is safe. The same
+   * holds for a chain over no committed offset (a key's first commit).
    *
    * The epoch read rule applies here too: a lock written under a newer epoch than the one held
    * marks the partition fenced and is not queued (the drain also discards what a fenced partition
@@ -2804,6 +2805,12 @@ class IndexManagerV2(
       case Right(ObjectWithETag(IndexFile(_, Some(committedOffset), pendingState, _), eTag))
           if committedOffset.value < masterOffset.value &&
             pendingState.forall(_.pendingOffset.value < masterOffset.value) =>
+        Some(GcItem(bucket, path, tp, partitionKey, eTag = Some(eTag)))
+      case Right(ObjectWithETag(IndexFile(_, None, Some(pending), _), eTag))
+          if pending.pendingOffset.value < masterOffset.value =>
+        // The shape a key's first commit writes (a chain recorded from no committed offset), left
+        // by a task that died mid-chain. Same rule as a chain over a committed offset: wholly
+        // below the replay start, it is never re-delivered.
         Some(GcItem(bucket, path, tp, partitionKey, eTag = Some(eTag)))
       case Right(ObjectWithETag(IndexFile(_, None, None, _), eTag)) =>
         // Empty lock created by ensureGranularLock but never committed to.

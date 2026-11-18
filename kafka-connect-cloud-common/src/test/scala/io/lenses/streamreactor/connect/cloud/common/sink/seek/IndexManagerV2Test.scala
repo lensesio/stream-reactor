@@ -3093,7 +3093,12 @@ class IndexManagerV2Test
     } finally im.close()
   }
 
-  test("sweep does NOT enqueue lock files with no committedOffset but a PendingState") {
+  /**
+   * A lock with no committed offset and a PendingState: the shape a key's first commit writes
+   * (`[Upload, Copy, Delete]` recorded before the upload, from `None`), left behind when the task
+   * dies mid-chain. The master lock in `setupSweepMocks` is at offset 100.
+   */
+  private def sweepFirstCommitShape(pendingOffset: Long): Seq[Seq[String]] = {
     val tp              = Topic("topic1").withPartition(0)
     val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
     val si              = storageMockWithBump()
@@ -3108,12 +3113,8 @@ class IndexManagerV2Test
     org.mockito.Mockito.doReturn(Right(Some(listResponse))).when(si).listFileMetaRecursive(anyString(),
                                                                                            any[Option[String]],
     )
-
-    // Defensive: the commit protocol never produces this shape (PendingState only with
-    // Some(committedOffset)), but if it ever appeared we must not delete it because the
-    // pending operations would be lost.
     val pendingState =
-      PendingState(Offset(10), NonEmptyList.one(DeleteOperation("bucket", "some/temp/path", "old-etag")))
+      PendingState(Offset(pendingOffset), NonEmptyList.one(DeleteOperation("bucket", "some/temp/path", "old-etag")))
     when(
       si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("none-with-pending.lock"))(
         ArgumentMatchers.eq(indexFileDecoder),
@@ -3127,9 +3128,26 @@ class IndexManagerV2Test
       im.open(Set(tp))
       im.sweepOrphanedLocks()
       im.drainGcQueue()
-
-      deleteCalls(si) shouldBe empty
+      deleteCalls(si)
     } finally im.close()
+  }
+
+  test(
+    "sweep does NOT enqueue a first-commit lock (no committedOffset, PendingState) whose pendingOffset is at the master offset",
+  ) {
+    // Replay starts at the master offset, so the chain's records are re-delivered and only this
+    // lock, resolved when the key is loaded, can deduplicate them.
+    sweepFirstCommitShape(pendingOffset = 100) shouldBe empty
+  }
+
+  test(
+    "sweep enqueues a first-commit lock (no committedOffset, PendingState) whose pendingOffset is below the master offset",
+  ) {
+    // A chain wholly below the replay start is never re-delivered: the lock is obsolete.
+    val deleted = sweepFirstCommitShape(pendingOffset = 99)
+    deleted should have size 1
+    deleted.head should have size 1
+    deleted.head.head should endWith("/0/none-with-pending.lock")
   }
 
   test("sweep respects gcSweepMaxReads cap across all TPs") {
@@ -4944,19 +4962,13 @@ class IndexManagerV2Test
   }
 
   /**
-   * Sweep classifies a lock with no committedOffset but an active multi-op
-   * PendingState=[Copy, Delete] conservatively (NOT enqueued for GC).
-   *
-   * The lock matches neither readAndEnqueue pattern:
-   *   - `Some(committedOffset) < masterOffset` — no, committedOffset is None
-   *   - `None committedOffset AND None pendingState` (empty lock) — no, pendingState is Some
-   * Therefore the default fallthrough applies: false (not enqueued), and nothing is ever deleted.
-   *
-   * Note: if committedOffset were Some(x) with x < masterOffset, the lock WOULD be swept
-   * (production code treats committed-but-below-master pending locks as safe to GC).
+   * Sweep retains a lock with no committedOffset and a multi-op PendingState=[Copy, Delete] (a key's
+   * first commit, interrupted) whose pendingOffset is at the master offset: replay starts there, so
+   * only this lock, resolved when the key is loaded, can deduplicate the chain's records. Below the
+   * master offset the same shape is swept (see the first-commit tests above).
    */
   test(
-    "sweep does NOT enqueue granular locks with no committedOffset but active PendingState=[Copy, Delete]",
+    "sweep does NOT enqueue granular locks with no committedOffset but active PendingState=[Copy, Delete] at the master offset",
   ) {
     val tp              = Topic("topic1").withPartition(0)
     val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
@@ -4972,7 +4984,7 @@ class IndexManagerV2Test
 
     import cats.data.NonEmptyList
     val pendingState = PendingState(
-      Offset(40),
+      Offset(100),
       NonEmptyList.of(
         CopyOperation("bucket", ".temp/pk-pending/uuid", "final/pk-pending", "etag-copy"),
         DeleteOperation("bucket", ".temp/pk-pending/uuid", "etag-copy"),
@@ -4992,7 +5004,7 @@ class IndexManagerV2Test
       im.sweepOrphanedLocks()
       im.drainGcQueue()
 
-      // Neither pattern matched → NOT enqueued → nothing deleted
+      // Retained → NOT enqueued → nothing deleted
       deleteCalls(si) shouldBe empty
     } finally im.close()
   }

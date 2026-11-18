@@ -21,6 +21,7 @@ import io.lenses.streamreactor.connect.cloud.common.model.Offset
 import io.lenses.streamreactor.connect.cloud.common.model.Topic
 import io.lenses.streamreactor.connect.cloud.common.model.UploadableString
 import io.lenses.streamreactor.connect.cloud.common.testing.InMemoryStorageInterface.AfterReadAt
+import io.lenses.streamreactor.connect.cloud.common.testing.InMemoryStorageInterface.FailMoveAt
 import io.lenses.streamreactor.connect.cloud.common.testing.InMemoryStorageInterface.OnReadAt
 import org.scalatest.EitherValues
 import org.scalatest.OptionValues
@@ -64,6 +65,10 @@ class SweepConditionalDeleteTest extends AnyFunSuite with Matchers with EitherVa
     age(h, key)
   }
 
+  private def bOpens(h: TwoInstanceHarness): Unit = {
+    val _ = h.b.open(Set(tp)).value
+  }
+
   private def bTakesOverAndCommits(h: TwoInstanceHarness, at: Long): Unit = {
     h.b.open(Set(tp)).value
     val _ = h.b.getSeekedOffsetForPartitionKey(tp, pk).value
@@ -94,7 +99,7 @@ class SweepConditionalDeleteTest extends AnyFunSuite with Matchers with EitherVa
       h.a.open(Set(tp)).value
       idleObsoleteKey(h, h.a)
       // B opens right after A's sweep has read the key, before A enqueues anything.
-      h.storage.arm(AfterReadAt(h.bucket, lockPath(h), () => { val _ = h.b.open(Set(tp)).value }))
+      h.storage.arm(AfterReadAt(h.bucket, lockPath(h), () => bOpens(h)))
 
       h.a.sweepOrphanedLocks()
 
@@ -198,11 +203,13 @@ class SweepConditionalDeleteTest extends AnyFunSuite with Matchers with EitherVa
       age(h)
       val repaired = IndexFile(h.lockUuid(0), Some(Offset(50)), None, Some(1000L))
       // A writer repairs the poison blob after the sweep's listing reported it as 0 bytes.
-      h.storage.arm(OnReadAt(
-        h.bucket,
-        lockPath(h),
-        () => h.storage.putRaw(h.bucket, lockPath(h), repaired.asJson.noSpaces.getBytes(StandardCharsets.UTF_8)),
-      ))
+      h.storage.arm(
+        OnReadAt(
+          h.bucket,
+          lockPath(h),
+          () => h.storage.putRaw(h.bucket, lockPath(h), repaired.asJson.noSpaces.getBytes(StandardCharsets.UTF_8)),
+        ),
+      )
 
       h.a.sweepOrphanedLocks()
       h.a.drainGcQueue()
@@ -263,6 +270,81 @@ class SweepConditionalDeleteTest extends AnyFunSuite with Matchers with EitherVa
       h.storage.keysUnder(h.bucket, "data/topic/0/date=2024-01-01/") shouldBe Seq(finalKey)
       h.storage.pathExists(h.bucket, temp).value shouldBe false
       stored(h).value.pendingState shouldBe None
+    } finally h.close()
+  }
+
+  /**
+   * A's first commit of the key, records up to `pendingOffset`: the upload lands and the lock
+   * records the remaining chain from no committed offset, then the copy fails and A dies. Then the
+   * master floor is at 19 and B owns the partition.
+   */
+  private def firstCommitDiesMidChain(h: TwoInstanceHarness, pendingOffset: Long): Unit = {
+    h.clock.set(1000L)
+    h.a.open(Set(tp)).value
+    h.a.ensureGranularLock(tp, pk).value
+    val local = java.io.File.createTempFile("staging", ".json")
+    java.nio.file.Files.writeString(local.toPath, "records")
+    val temp = s"data/topic/0/.temp-upload/uuid/final-$pendingOffset.json"
+    val chain = PendingState(
+      Offset(pendingOffset),
+      NonEmptyList.of(
+        UploadOperation(h.bucket, local, temp),
+        CopyOperation(h.bucket, temp, s"data/topic/0/date=2024-01-01/final-$pendingOffset.json", "placeholder"),
+        DeleteOperation(h.bucket, temp, "placeholder"),
+      ),
+    )
+    h.storage.arm(FailMoveAt(h.bucket, temp))
+    val _ = new PendingOperationsProcessors(h.storage)(h.taskIds.head)
+      .processPendingOperations(tp, None, chain, (t, co, ps) => h.a.updateForPartitionKey(t, pk, co, ps))
+      .isLeft shouldBe true
+    stored(h).value.committedOffset shouldBe None
+    stored(h).value.pendingState.map(_.pendingOffset) shouldBe Some(Offset(pendingOffset))
+    h.a.updateMasterLock(tp, Offset(20)).value
+    h.b.open(Set(tp)).value
+    age(h)
+  }
+
+  test("a first-commit lock whose pending chain is below the floor is swept, at the version read") {
+    val h = harness()
+    try {
+      firstCommitDiesMidChain(h, pendingOffset = 10)
+
+      h.b.sweepOrphanedLocks()
+      h.b.gcQueueSize shouldBe 1
+      h.b.drainGcQueue()
+
+      stored(h) shouldBe None
+      h.metrics(1).getGcLocksDeleted shouldBe 1L
+    } finally h.close()
+  }
+
+  test("a first-commit lock swept below the floor is not deleted once its key is reloaded and rewritten") {
+    val h = harness()
+    try {
+      firstCommitDiesMidChain(h, pendingOffset = 10)
+      h.b.sweepOrphanedLocks()
+      h.b.gcQueueSize shouldBe 1
+      // The key comes back to B before the drain: its load resolves (rewrites) the lock.
+      h.b.getSeekedOffsetForPartitionKey(tp, pk).isRight shouldBe true
+      val resolved = stored(h).value
+
+      h.b.drainGcQueue()
+
+      stored(h).value shouldBe resolved
+      h.metrics(1).getGcLocksDeleted shouldBe 0L
+    } finally h.close()
+  }
+
+  test("a first-commit lock whose pending chain is at or above the floor is retained") {
+    val h = harness()
+    try {
+      firstCommitDiesMidChain(h, pendingOffset = 30)
+
+      h.b.sweepOrphanedLocks()
+      h.b.drainGcQueue()
+
+      stored(h).value.pendingState.map(_.pendingOffset) shouldBe Some(Offset(30))
+      h.b.gcQueueSize shouldBe 0
     } finally h.close()
   }
 }
