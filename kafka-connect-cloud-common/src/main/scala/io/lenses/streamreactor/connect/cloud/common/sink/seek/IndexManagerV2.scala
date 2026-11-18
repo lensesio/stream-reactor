@@ -2377,13 +2377,18 @@ class IndexManagerV2(
    *  1. Poll all items from `gcQueue`, filtering out revoked partitions (no longer in
    *     `seekedOffsets`) and reclaimed keys (back in `granularCache` due to a new writer).
    *  2. Group eligible items by bucket and chunk into batches of `gcBatchSize`.
-   *  3. Delete each batch. A `.lock` is deleted only while it is at the version GC selected
-   *     (`deleteFilesIfMatch` with the item's token): a lock another writer rewrote since is
-   *     left in place and the item dropped. That is what keeps a delete selected before a
-   *     handover (or before this instance reclaimed the key, which the reclaim filter cannot see
-   *     once the cache is evicted, as at `stop()`) from removing a live lock and its key's dedup
-   *     floor. `.lock.tmp.<uuid>` orphans are deleted by path (`deleteFiles`). On a failure,
-   *     re-enqueue items up to `MaxGcRetries` times. Failures are logged but never propagated.
+   *  3. Delete each batch. Right before each `.lock` chunk is sent, the reclaim filter runs again
+   *     over that chunk, so a key the `put()` thread reloaded while earlier chunks were deleted is
+   *     kept. A reload that lands during its own chunk's delete call can still lose its lock: the
+   *     key's next commit then fails its lock write before anything reaches a final path, and the
+   *     restarted task replays from the master floor. A `.lock` is deleted only while it is at
+   *     the version GC selected (`deleteFilesIfMatch` with the item's token): a lock another
+   *     writer rewrote since is left in place and the item dropped. That is what keeps a delete
+   *     selected before a handover (or before this instance reclaimed the key, which the reclaim
+   *     filter cannot see once the cache is evicted, as at `stop()`) from removing a live lock and
+   *     its key's dedup floor. `.lock.tmp.<uuid>` orphans are deleted by path (`deleteFiles`). On
+   *     a failure, re-enqueue items up to `MaxGcRetries` times. Failures are logged but never
+   *     propagated.
    */
   private[seek] def drainGcQueue(): Unit =
     drainGcItems(Iterator.continually(gcQueue.poll()).takeWhile(_ != null))
@@ -2452,11 +2457,25 @@ class IndexManagerV2(
               metrics.incrementGcLocksSkippedChanged(untokened.size.toLong)
               unprocessed --= untokened
             }
-            conditional.grouped(gcBatchSize).foreach { chunk =>
-              val outcomes = storageInterface.deleteFilesIfMatch(
-                bucket,
-                chunk.map(i => ConditionalDelete(i.path, i.eTag.getOrElse(""))),
-              ).toVector
+            conditional.grouped(gcBatchSize).foreach { selected =>
+              // Re-check the reclaim filter right before each chunk: the put() thread may have
+              // reloaded a key while earlier chunks were being deleted. A reload reads the lock at
+              // the version GC selected, so the token alone would not stop this delete.
+              val (reclaimed, chunk) = selected.partition(i => gcContainsKey(i.topicPartition, i.partitionKey))
+              if (reclaimed.nonEmpty) {
+                logger.debug(
+                  s"GC skipping ${reclaimed.map(i => s"${i.topicPartition}/${i.partitionKey}").mkString(", ")}: " +
+                    "reclaimed by new writer",
+                )
+                metrics.incrementGcLocksSkippedReclaimed(reclaimed.size.toLong)
+                unprocessed --= reclaimed
+              }
+              val outcomes =
+                if (chunk.isEmpty) Vector.empty
+                else storageInterface.deleteFilesIfMatch(
+                  bucket,
+                  chunk.map(i => ConditionalDelete(i.path, i.eTag.getOrElse(""))),
+                ).toVector
               // One outcome per item by contract; an item left without one is treated as failed.
               val results = chunk.zipWithIndex.map {
                 case (item, n) =>
