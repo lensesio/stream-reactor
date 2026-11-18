@@ -111,6 +111,14 @@ trait CloudSinkMetricsMBean {
   def getGcLocksSkippedRevoked: Long
 
   /**
+   * Cumulative count of GC lock deletes the store refused because the lock is no longer at the
+   * version GC selected: another writer (a newer owner of the partition, or this task reclaiming
+   * the key) rewrote it after it was queued. The lock is left in place. Expected around
+   * rebalances; nothing to act on.
+   */
+  def getGcLocksSkippedChanged: Long
+
+  /**
    * Cumulative failed batch-delete attempts (logged at WARN). Orphaned lock files are
    * harmless and will be re-enqueued, but a sustained count may indicate storage
    * permission or connectivity issues.
@@ -257,6 +265,14 @@ trait CloudSinkMetricsMBean {
    * consistently at the cap, increase the budget or shorten the sweep interval.
    */
   def getSweepGetBudgetUsed: Int
+
+  /**
+   * Cumulative count of partition sweeps that selected obsolete locks but enqueued none of them,
+   * because the master lock re-read before enqueueing no longer showed this task's own last
+   * write (another owner has taken the partition, or the read failed). Expected around
+   * rebalances.
+   */
+  def getSweepSkippedOwnershipLost: Long
 
   /**
    * Last-call snapshot of `firstBufferedOffsets.size` recorded inside
@@ -465,6 +481,7 @@ class CloudSinkMetrics() extends CloudSinkMetricsMBean {
   private val gcLocksDeleted          = new LongAdder()
   private val gcLocksSkippedReclaimed = new LongAdder()
   private val gcLocksSkippedRevoked   = new LongAdder()
+  private val gcLocksSkippedChanged   = new LongAdder()
   private val gcDeleteFailures        = new LongAdder()
   private val gcDeleteRetries         = new LongAdder()
 
@@ -485,9 +502,10 @@ class CloudSinkMetrics() extends CloudSinkMetricsMBean {
   private val dirtyTopicPartitions =
     java.util.concurrent.ConcurrentHashMap.newKeySet[TopicPartition]()
 
-  private val sweepRuns            = new LongAdder()
-  private val sweepOrphansEnqueued = new LongAdder()
-  private val sweepGetBudgetUsed   = new AtomicInteger(0)
+  private val sweepRuns                 = new LongAdder()
+  private val sweepOrphansEnqueued      = new LongAdder()
+  private val sweepGetBudgetUsed        = new AtomicInteger(0)
+  private val sweepSkippedOwnershipLost = new LongAdder()
 
   private val safeOffsetBarrierWriters = new AtomicInteger(0)
 
@@ -559,6 +577,7 @@ class CloudSinkMetrics() extends CloudSinkMetricsMBean {
   override def getGcLocksDeleted:          Long = gcLocksDeleted.sum()
   override def getGcLocksSkippedReclaimed: Long = gcLocksSkippedReclaimed.sum()
   override def getGcLocksSkippedRevoked:   Long = gcLocksSkippedRevoked.sum()
+  override def getGcLocksSkippedChanged:   Long = gcLocksSkippedChanged.sum()
   override def getGcDeleteFailures:        Long = gcDeleteFailures.sum()
   override def getGcDeleteRetries:         Long = gcDeleteRetries.sum()
 
@@ -578,9 +597,10 @@ class CloudSinkMetrics() extends CloudSinkMetricsMBean {
   override def getMasterLockOpenOwnershipLost:              Long    = masterLockOpenOwnershipLost.sum()
   override def getMasterLockDirty:                          Boolean = !dirtyTopicPartitions.isEmpty
 
-  override def getSweepRuns:            Long = sweepRuns.sum()
-  override def getSweepOrphansEnqueued: Long = sweepOrphansEnqueued.sum()
-  override def getSweepGetBudgetUsed:   Int  = sweepGetBudgetUsed.get()
+  override def getSweepRuns:                 Long = sweepRuns.sum()
+  override def getSweepOrphansEnqueued:      Long = sweepOrphansEnqueued.sum()
+  override def getSweepGetBudgetUsed:        Int  = sweepGetBudgetUsed.get()
+  override def getSweepSkippedOwnershipLost: Long = sweepSkippedOwnershipLost.sum()
 
   override def getSafeOffsetBarrierWriters: Int = safeOffsetBarrierWriters.get()
 
@@ -665,6 +685,7 @@ class CloudSinkMetrics() extends CloudSinkMetricsMBean {
   def incrementGcLocksSkippedReclaimed(): Unit = gcLocksSkippedReclaimed.increment()
   def incrementGcLocksSkippedRevoked():   Unit = gcLocksSkippedRevoked.increment()
   def incrementGcLocksSkippedRevoked(count: Long): Unit = gcLocksSkippedRevoked.add(count)
+  def incrementGcLocksSkippedChanged(count: Long): Unit = gcLocksSkippedChanged.add(count)
   def incrementGcDeleteFailures(): Unit = gcDeleteFailures.increment()
   def incrementGcDeleteRetries(count: Long): Unit = gcDeleteRetries.add(count)
 
@@ -699,6 +720,7 @@ class CloudSinkMetrics() extends CloudSinkMetricsMBean {
   def incrementSweepRuns(): Unit = sweepRuns.increment()
   def incrementSweepOrphansEnqueued(count: Long): Unit = sweepOrphansEnqueued.add(count)
   def setSweepGetBudgetUsed(used:          Int):  Unit = sweepGetBudgetUsed.set(used)
+  def incrementSweepSkippedOwnershipLost(): Unit = sweepSkippedOwnershipLost.increment()
 
   def setSafeOffsetBarrierWriters(count: Int): Unit = safeOffsetBarrierWriters.set(count)
 

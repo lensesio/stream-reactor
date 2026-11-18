@@ -29,7 +29,10 @@ import io.lenses.streamreactor.connect.cloud.common.sink.NonFatalCloudSinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.metrics.CloudSinkMetrics
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexManagerV2._
+import io.lenses.streamreactor.connect.cloud.common.storage.ConditionalDelete
+import io.lenses.streamreactor.connect.cloud.common.storage.DeleteOutcome
 import io.lenses.streamreactor.connect.cloud.common.storage.EmptyFileError
+import io.lenses.streamreactor.connect.cloud.common.storage.FileDeleteError
 import io.lenses.streamreactor.connect.cloud.common.storage.FileLoadError
 import io.lenses.streamreactor.connect.cloud.common.storage.FileMetadata
 import io.lenses.streamreactor.connect.cloud.common.storage.FileNotFoundError
@@ -388,15 +391,15 @@ class IndexManagerV2(
   // are skipped. Set to false by suspendBackgroundWork() (called from CloudSinkTask.close()),
   // set to true at the end of open(), and again at the end of closePartitions() when this
   // instance still holds a partition (a revoke-only cooperative rebalance has no open()). This cannot stop an already-running invocation -- the
-  // volatile provides visibility, not mutual exclusion. In-flight executions are not fully safe:
+  // volatile provides visibility, not mutual exclusion. In-flight executions stay safe because
+  // every lock delete is conditional on the version GC selected:
   //  - drainGcQueue: deletes items selected before the rebalance as obsolete (offset below
-  //    globalSafeOffset). The delete is by path and unconditional, so if the partition is handed
-  //    over meanwhile, the new owner can rewrite a selected lock before the delete lands, and the
-  //    delete then removes the new owner's lock. Conditional deletes, which close this window,
-  //    land in a later change.
+  //    globalSafeOffset). If the partition is handed over meanwhile and the new owner takes a
+  //    selected lock over (or rewrites it) before the delete lands, the store refuses the delete
+  //    and the lock stays. A lock the new owner has not touched is below the floor it inherits.
   //  - sweepOrphanedLocks: LIST/GET plus a sweep-marker write; the GcItems it enqueues for a
-  //    revoked partition are dropped when its close clears its state, or discarded by the next drain,
-  //    but a run still in flight can re-queue them after that (the same limitation).
+  //    revoked partition are dropped when its close clears its state, or discarded by the next drain.
+  //    A run still in flight can re-queue them after that; their deletes are conditional too.
   @volatile private[seek] var acceptingWork = false
 
   // Executors are deferred to startExecutors() (called from open()) so that if
@@ -2052,12 +2055,13 @@ class IndexManagerV2(
    * Releases the partitions Kafka Connect is closing (see `IndexManager.closePartitions`). They
    * leave `ownedPartitions` first, so a batch temp sweep -- even one already mid-pass -- stops at
    * its next delete chunk for them. The GC deletes queued for them are then dropped, not drained:
-   * they are deletes by path, and the writer close that runs first has evicted the granular cache,
-   * the only thing that tells the drain a queued key has since been reclaimed and rewritten
-   * (deleting it would remove the key's dedup floor). Obsolete locks dropped here stay in storage for the orphan sweep. Every other piece of
+   * the partition is no longer this task's, and the drain discards a revoked partition's items
+   * anyway. Obsolete locks dropped here stay in storage for the orphan sweep. Every other piece of
    * partition state is then cleared: seeked offset, master eTag, held epoch, granular cache, fence
    * and legacy-resolution flag. The release runs even if dropping the queue throws. A drain or
-   * sweep run already in flight can still re-queue items afterwards; conditional deletes close that.
+   * sweep run already in flight can still re-queue items afterwards, or delete one it already
+   * polled; every such delete is conditional on the version GC selected, so a lock rewritten since
+   * (by a new owner, or by this task reclaiming the key) is not deleted.
    */
   override def closePartitions(topicPartitions: Set[TopicPartition]): Unit =
     if (topicPartitions.nonEmpty) {
@@ -2118,7 +2122,8 @@ class IndexManagerV2(
     // A revoked partition is no longer this task's to fail on; a re-open decides ownership afresh.
     // A revoked partition's queued items would be discarded by the drain anyway; dropping them
     // here keeps the queued ones from surviving into a later re-assignment. A drain or sweep run
-    // already in flight can still re-queue items afterwards; conditional deletes close that.
+    // already in flight can still re-queue items afterwards; their deletes are conditional on the
+    // version selected, so a lock rewritten since survives them.
     dropFence(topicPartition, dropQueue = true, below = None)
     // A revoked/failed-open partition must re-confirm legacy-lock resolution on its next open()
     // rather than trusting a flag set under the previous (possibly abandoned) ownership episode.
@@ -2288,22 +2293,27 @@ class IndexManagerV2(
         // ensureGranularLock that never received a commit; without it those empty locks
         // would never be enqueued and would accumulate in cloud storage. Active writers
         // are still protected by the activePartitionKeys check.
+        // Each key is taken with the token of the cache entry that selected it: the version of the
+        // lock this instance last loaded, took over or wrote. The delete is conditional on it, so a
+        // lock rewritten after this point (by a newer owner's take-over, or by this instance
+        // reclaiming the key) is not deleted.
         val keysToRemove = inner.entrySet().asScala.collect {
           case entry
               if (entry.getValue.offset.isEmpty ||
                 entry.getValue.offset.exists(_.value < globalSafeOffset.value - 1L)) &&
                 !activePartitionKeys.contains(entry.getKey) =>
-            entry.getKey
+            entry.getKey -> entry.getValue.eTag
         }.toList
 
         if (keysToRemove.isEmpty) ().asRight
         else
           bucketAndPrefixFn(topicPartition).map { bucketAndPrefix =>
             // Evict from cache and enqueue for async deletion; no cloud I/O here
-            keysToRemove.foreach { pk =>
-              gcRemove(topicPartition, pk)
-              val path = generateGranularLockFilePath(connectorTaskId, topicPartition, pk, directoryFileName)
-              gcQueue.add(GcItem(bucketAndPrefix.bucket, path, topicPartition, pk))
+            keysToRemove.foreach {
+              case (pk, eTag) =>
+                gcRemove(topicPartition, pk)
+                val path = generateGranularLockFilePath(connectorTaskId, topicPartition, pk, directoryFileName)
+                gcQueue.add(GcItem(bucketAndPrefix.bucket, path, topicPartition, pk, eTag = Some(eTag)))
             }
             metrics.incrementGcLocksEnqueued(keysToRemove.size.toLong)
             metrics.setGranularCacheSize(granularCacheSize)
@@ -2330,8 +2340,13 @@ class IndexManagerV2(
    *  1. Poll all items from `gcQueue`, filtering out revoked partitions (no longer in
    *     `seekedOffsets`) and reclaimed keys (back in `granularCache` due to a new writer).
    *  2. Group eligible items by bucket and chunk into batches of `gcBatchSize`.
-   *  3. Delete each batch via `storageInterface.deleteFiles`; on failure, re-enqueue items
-   *     up to `MaxGcRetries` times. Failures are logged but never propagated.
+   *  3. Delete each batch. A `.lock` is deleted only while it is at the version GC selected
+   *     (`deleteFilesIfMatch` with the item's token): a lock another writer rewrote since is
+   *     left in place and the item dropped. That is what keeps a delete selected before a
+   *     handover (or before this instance reclaimed the key, which the reclaim filter cannot see
+   *     once the cache is evicted, as at `stop()`) from removing a live lock and its key's dedup
+   *     floor. `.lock.tmp.<uuid>` orphans are deleted by path (`deleteFiles`). On a failure,
+   *     re-enqueue items up to `MaxGcRetries` times. Failures are logged but never propagated.
    */
   private[seek] def drainGcQueue(): Unit =
     drainGcItems(Iterator.continually(gcQueue.poll()).takeWhile(_ != null))
@@ -2347,8 +2362,9 @@ class IndexManagerV2(
         metrics.incrementGcLocksSkippedRevoked()
         false
       } else if (isFenced(item.topicPartition)) {
-        // A newer owner holds the partition: its locks are not ours to delete (by path, a delete
-        // could remove a lock the newer owner has since rewritten). Counted with the revoked skips.
+        // A newer owner holds the partition: its locks are not ours to delete. The delete would be
+        // refused anyway for a lock the newer owner rewrote; this skips the requests. Counted with
+        // the revoked skips.
         logger.debug(s"GC discarding ${item.topicPartition}/${item.partitionKey}: this instance is fenced")
         metrics.incrementGcLocksSkippedRevoked()
         false
@@ -2381,28 +2397,54 @@ class IndexManagerV2(
         // Phase 3: batched delete with retry on failure
         byBucket.foreach {
           case (bucket, items) =>
-            items.grouped(gcBatchSize).foreach { chunk =>
+            val (locks, tmpOrphans) = items.partition(_.kind == GcKind.Lock)
+            tmpOrphans.grouped(gcBatchSize).foreach { chunk =>
               storageInterface.deleteFiles(bucket, chunk.map(_.path)) match {
                 case Left(err) =>
-                  metrics.incrementGcDeleteFailures()
-                  logger.warn(
-                    s"Background GC batch delete failed for ${chunk.size} lock file(s) from bucket=$bucket: ${err.message()}. " +
-                      s"Re-enqueuing conservatively (some items may have been deleted -- idempotent retry is safe).",
-                  )
-                  val retryable = chunk.filter(_.retryCount < MaxGcRetries)
-                  retryable.foreach(i => gcQueue.add(i.copy(retryCount = i.retryCount + 1)))
-                  if (retryable.nonEmpty) {
-                    metrics.incrementGcDeleteRetries(retryable.size.toLong)
-                    logger.debug(
-                      s"Re-enqueued ${retryable.size} item(s) for retry (dropped ${chunk.size - retryable.size} that exceeded max retries)",
-                    )
-                  }
-                  unprocessed --= chunk
+                  retryFailedDeletes(bucket, chunk, err.message())
                 case Right(_) =>
                   metrics.incrementGcLocksDeleted(chunk.size.toLong)
-                  logger.debug(s"Background GC deleted ${chunk.size} lock file(s) from bucket=$bucket")
-                  unprocessed --= chunk
+                  logger.debug(s"Background GC deleted ${chunk.size} orphaned .tmp file(s) from bucket=$bucket")
               }
+              unprocessed --= chunk
+            }
+            // A `.lock` item always carries the token it was selected at; one without is never
+            // deleted by path.
+            val (conditional, untokened) = locks.partition(_.eTag.isDefined)
+            if (untokened.nonEmpty) {
+              metrics.incrementGcLocksSkippedChanged(untokened.size.toLong)
+              unprocessed --= untokened
+            }
+            conditional.grouped(gcBatchSize).foreach { chunk =>
+              val outcomes = storageInterface.deleteFilesIfMatch(
+                bucket,
+                chunk.map(i => ConditionalDelete(i.path, i.eTag.getOrElse(""))),
+              ).toVector
+              // One outcome per item by contract; an item left without one is treated as failed.
+              val results = chunk.zipWithIndex.map {
+                case (item, n) =>
+                  item -> outcomes.lift(n).getOrElse(
+                    DeleteOutcome.Failed(
+                      FileDeleteError(new IllegalStateException("no outcome reported for the delete"), item.path),
+                    ),
+                  )
+              }
+              val deleted = results.collect { case (i, DeleteOutcome.Deleted | DeleteOutcome.NotFound) => i }
+              val changed = results.collect { case (i, DeleteOutcome.PreconditionFailed) => i }
+              val failed  = results.collect { case (i, DeleteOutcome.Failed(err)) => i -> err.message() }
+              if (deleted.nonEmpty) {
+                metrics.incrementGcLocksDeleted(deleted.size.toLong)
+                logger.debug(s"Background GC deleted ${deleted.size} lock file(s) from bucket=$bucket")
+              }
+              if (changed.nonEmpty) {
+                metrics.incrementGcLocksSkippedChanged(changed.size.toLong)
+                logger.debug(
+                  s"Background GC left ${changed.size} lock file(s) in place in bucket=$bucket: rewritten since " +
+                    s"they were selected (${changed.map(i => s"${i.topicPartition}/${i.partitionKey}").mkString(", ")})",
+                )
+              }
+              if (failed.nonEmpty) retryFailedDeletes(bucket, failed.map(_._1), failed.head._2)
+              unprocessed --= chunk
             }
         }
       }
@@ -2436,6 +2478,26 @@ class IndexManagerV2(
           )
         }
         logger.warn(s"Unexpected error in background GC drain for ${connectorTaskId.show}", e)
+    }
+  }
+
+  /**
+   * Re-enqueues GC items whose delete failed (nothing is known about them), up to `MaxGcRetries`
+   * attempts each. Deleting again is safe: a `.lock` delete stays conditional on the item's token.
+   */
+  private def retryFailedDeletes(bucket: String, failed: Seq[GcItem], reason: String): Unit = {
+    metrics.incrementGcDeleteFailures()
+    logger.warn(
+      s"Background GC delete failed for ${failed.size} file(s) from bucket=$bucket: $reason. " +
+        s"Re-enqueuing conservatively (some items may have been deleted -- idempotent retry is safe).",
+    )
+    val retryable = failed.filter(_.retryCount < MaxGcRetries)
+    retryable.foreach(i => gcQueue.add(i.copy(retryCount = i.retryCount + 1)))
+    if (retryable.nonEmpty) {
+      metrics.incrementGcDeleteRetries(retryable.size.toLong)
+      logger.debug(
+        s"Re-enqueued ${retryable.size} item(s) for retry (dropped ${failed.size - retryable.size} that exceeded max retries)",
+      )
     }
   }
 
@@ -2615,11 +2677,7 @@ class IndexManagerV2(
         case (acc @ (_, readsUsed), _) if readsUsed >= readsRemaining => acc
         case ((enqueued, readsUsed), fileMeta) =>
           classifyLockFile(tp, fileMeta, ageThreshold, prefix) match {
-            case SweepSkip                         => (enqueued, readsUsed)
-            case SweepDeleteDirectly(partitionKey) =>
-              // size==0 from listing metadata: enqueue without GET (ADLS-only optimisation)
-              gcQueue.add(GcItem(bucket, fileMeta.file, tp, partitionKey))
-              (enqueued + 1, readsUsed)
+            case SweepSkip => (enqueued, readsUsed)
             case SweepNeedsRead(partitionKey) =>
               val didEnqueue = readAndEnqueue(bucket, fileMeta.file, tp, partitionKey, masterOffset)
               (enqueued + (if (didEnqueue) 1 else 0), readsUsed + 1)
@@ -2632,8 +2690,6 @@ class IndexManagerV2(
   private sealed trait SweepClassification
   private case object SweepSkip extends SweepClassification
   private case class SweepNeedsRead(partitionKey: String) extends SweepClassification
-  // ADLS-only: listing metadata proves size==0; enqueue for deletion without a GET.
-  private case class SweepDeleteDirectly(partitionKey: String) extends SweepClassification
 
   /** Applies prefix-membership, extension, recency, and cache-presence filters to decide whether a lock file needs a GET read. */
   private def classifyLockFile(
@@ -2647,12 +2703,11 @@ class IndexManagerV2(
     else {
       val fileName     = path.substring(path.lastIndexOf('/') + 1)
       val partitionKey = fileName.stripSuffix(".lock")
+      // A 0-byte listing entry (ADLS reports sizes) is read too: the delete needs the version it
+      // was selected at, and the GET classifies what is stored now, so a lock repaired since the
+      // listing is judged by its content (`readAndEnqueue`'s EmptyFileError arm keeps reaping
+      // the 0-byte poison blobs of Bug B's non-atomic write).
       if (gcContainsKey(tp, partitionKey)) SweepSkip
-      // ADLS-only optimisation: if the listing metadata proves size==0 and the file is past
-      // the ageThreshold, enqueue for deletion without a GET. Prevents indefinite accumulation
-      // of 0-byte poison blobs from Bug B's non-atomic write. S3/GCP return size=None and
-      // fall through to the normal GET-based classification below.
-      else if (fileMeta.size.contains(0L)) SweepDeleteDirectly(partitionKey)
       else SweepNeedsRead(partitionKey)
     }
   }
@@ -2687,29 +2742,30 @@ class IndexManagerV2(
     masterOffset: Offset,
   ): Boolean =
     storageInterface.getBlobAsObject[IndexFile](bucket, path) match {
-      case Left(_: EmptyFileError) =>
+      case Left(EmptyFileError(_, eTag)) =>
         // 0-byte blob: classifyLockFile has already enforced the ageThreshold filter,
         // so this file is provably older than the worst-case create-flush window
-        // and cannot be a live writer's in-progress .tmp. Safe to delete without GET content.
-        gcQueue.add(GcItem(bucket, path, tp, partitionKey))
+        // and cannot be a live writer's in-progress .tmp. Deleted only while still this 0-byte
+        // version: a writer that takes it over meanwhile keeps it.
+        gcQueue.add(GcItem(bucket, path, tp, partitionKey, eTag = Some(eTag)))
         true
       case Left(err) =>
         logger.warn(s"Sweep: failed to read lock file $path: ${err.message()}")
         false
       case Right(ObjectWithETag(lock, _)) if rejectNewerEpoch(tp, partitionKey, lock).isLeft =>
         false
-      case Right(ObjectWithETag(IndexFile(_, Some(committedOffset), pendingState, _), _))
+      case Right(ObjectWithETag(IndexFile(_, Some(committedOffset), pendingState, _), eTag))
           if committedOffset.value < masterOffset.value &&
             pendingState.forall(_.pendingOffset.value < masterOffset.value) =>
-        gcQueue.add(GcItem(bucket, path, tp, partitionKey))
+        gcQueue.add(GcItem(bucket, path, tp, partitionKey, eTag = Some(eTag)))
         true
-      case Right(ObjectWithETag(IndexFile(_, None, None, _), _)) =>
+      case Right(ObjectWithETag(IndexFile(_, None, None, _), eTag)) =>
         // Empty lock created by ensureGranularLock but never committed to.
         // classifyLockFile already enforced the age threshold and cache absence,
         // so no active writer is using this file and it carries no durable data.
         // Without this branch, empty locks accumulate indefinitely under
         // high-cardinality PARTITIONBY with churning keys.
-        gcQueue.add(GcItem(bucket, path, tp, partitionKey))
+        gcQueue.add(GcItem(bucket, path, tp, partitionKey, eTag = Some(eTag)))
         true
       case _ =>
         false
@@ -2727,7 +2783,11 @@ class IndexManagerV2(
    * then the GC executor, then a final synchronous `drainGcQueue()` flushes any items
    * that were enqueued but not yet drained, for partitions still held. On the normal
    * close(partitions) → stop() path `closePartitions` has already dropped their queued
-   * items and released them, so this drain finds nothing of theirs.
+   * items and released them, so this drain finds nothing of theirs. On a `stop()` without
+   * `close(partitions)` the writers' close has evicted the granular cache, so the drain's reclaim
+   * filter sees nothing; the drain is still safe because each lock delete is conditional on the
+   * version selected: a key reclaimed and rewritten since (by this task or a new owner) keeps
+   * its lock.
    *
    * The final `drainGcQueue()` call is direct (not through the scheduled lambda), so
    * it bypasses the `acceptingWork` gate and runs regardless of the flag's value.
@@ -2809,6 +2869,9 @@ object IndexManagerV2 {
     partitionKey:   String,
     kind:           GcKind = GcKind.Lock,
     retryCount:     Int    = 0,
+    // The version of the lock GC selected (`Lock` items): the delete is conditional on it.
+    // `None` for `TmpOrphan` items, which are deleted by path.
+    eTag: Option[String] = None,
   )
 
   // Anchored at the END of the basename: `<partitionKey>.lock.tmp.<uuid>`.

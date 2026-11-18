@@ -372,9 +372,8 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
     // Suspend background GC/sweep threads before closing writers. This is a best-effort gate
     // that prevents new scheduled invocations from starting until the next open(), or until
     // closePartitions returns with partitions still held (a revoke-only rebalance has no open()). An
-    // already-running invocation is not interrupted: its deletes are by path and unconditional,
-    // so a lock it selected before a handover can be rewritten by the new owner before the
-    // delete lands (conditional deletes land in a later change; see
+    // already-running invocation is not interrupted; its lock deletes are conditional on the
+    // version GC selected, so a lock the new owner rewrote after a handover is not deleted (see
     // IndexManagerV2.acceptingWork). On shutdown (close → stop), the flag stays false until the
     // executors are shut down in IndexManagerV2.close().
     val closed = Option(partitions)

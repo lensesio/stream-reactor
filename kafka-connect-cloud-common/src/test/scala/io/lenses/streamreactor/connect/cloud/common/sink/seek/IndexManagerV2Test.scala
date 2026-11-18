@@ -28,6 +28,8 @@ import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
 import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
 import io.lenses.streamreactor.connect.cloud.common.model.UploadableFile
+import io.lenses.streamreactor.connect.cloud.common.storage.ConditionalDelete
+import io.lenses.streamreactor.connect.cloud.common.storage.DeleteOutcome
 import io.lenses.streamreactor.connect.cloud.common.storage.EmptyFileError
 import io.lenses.streamreactor.connect.cloud.common.storage.FileLoadError
 import io.lenses.streamreactor.connect.cloud.common.storage.FileNotFoundError
@@ -53,6 +55,8 @@ import org.scalatest.BeforeAndAfter
 import org.scalatest.EitherValues
 import org.scalatest.funsuite.AnyFunSuiteLike
 import org.scalatest.matchers.should.Matchers
+
+import scala.jdk.CollectionConverters._
 
 class IndexManagerV2Test
     extends AnyFunSuiteLike
@@ -99,6 +103,41 @@ class IndexManagerV2Test
       },
     )
   }
+
+  /**
+   * Stubs both delete paths to succeed: `deleteFiles` (by path) returns `Right`, and
+   * `deleteFilesIfMatch` (GC lock deletes, conditional on the token GC selected) reports every
+   * object deleted.
+   */
+  private def stubDeletesSucceed(si: StorageInterface[_]): Unit = {
+    when(si.deleteFiles(anyString(), any[Seq[String]])).thenReturn(Right(()))
+    when(si.deleteFilesIfMatch(anyString(), any[Seq[ConditionalDelete]])).thenAnswer {
+      (_: String, files: Seq[ConditionalDelete]) => files.map(_ => DeleteOutcome.Deleted: DeleteOutcome)
+    }
+    ()
+  }
+
+  /**
+   * The paths of every delete request the mock received (by path or conditional), one entry per
+   * request, in order; optionally only those for `bucket`.
+   */
+  private def deleteCalls(si: StorageInterface[_], bucket: String = null): Seq[Seq[String]] =
+    Mockito.mockingDetails(si).getInvocations.asScala.toSeq.flatMap { inv =>
+      val args = inv.getArguments
+      (inv.getMethod.getName, args.lift(1)) match {
+        case (_, _) if bucket != null && args.headOption.contains(bucket) == false => None
+        case ("deleteFiles", Some(paths: Seq[_])) => Some(paths.map(_.toString))
+        case ("deleteFilesIfMatch", Some(files: Seq[_])) => Some(files.map(_.asInstanceOf[ConditionalDelete].path))
+        case _ => None
+      }
+    }
+
+  /** The tokens every conditional delete request carried, one entry per request, in order. */
+  private def conditionalDeleteCalls(si: StorageInterface[_]): Seq[Seq[ConditionalDelete]] =
+    Mockito.mockingDetails(si).getInvocations.asScala.toSeq.collect {
+      case inv if inv.getMethod.getName == "deleteFilesIfMatch" && inv.getArguments.lift(1).exists(_ != null) =>
+        inv.getArguments()(1).asInstanceOf[Seq[ConditionalDelete]]
+    }
 
   /** A storage mock whose master-lock bump write is already stubbed (see [[stubMasterLockBump]]). */
   private def storageMockWithBump(): StorageInterface[_] = {
@@ -1619,16 +1658,21 @@ class IndexManagerV2Test
       // Cache should be evicted immediately
       im.granularCacheSize shouldBe 1
 
-      // But deleteFiles should NOT have been called yet (deferred to background drain)
-      verify(si, never).deleteFiles(anyString(), any[Seq[String]])
+      // But nothing should have been deleted yet (deferred to background drain)
+      deleteCalls(si) shouldBe empty
 
       // Now trigger the drain
-      when(si.deleteFiles(anyString(), any[Seq[String]])).thenReturn(Right(()))
+      stubDeletesSucceed(si)
       im.drainGcQueue()
 
-      // After drain, deleteFiles should have been called with pk-old path
-      verify(si).deleteFiles(anyString(), ArgumentMatchers.argThat[Seq[String]](_.exists(_.contains("pk-old"))))
-      verify(si, never).deleteFiles(anyString(), ArgumentMatchers.argThat[Seq[String]](_.exists(_.contains("pk-new"))))
+      // After drain, the pk-old path should have been deleted, conditionally (never by path) on
+      // the token the cache held when the key was selected.
+      deleteCalls(si).exists(_.exists(_.contains("pk-old"))) shouldBe true
+      deleteCalls(si).exists(_.exists(_.contains("pk-new"))) shouldBe false
+      val sent = conditionalDeleteCalls(si).flatten
+      sent.map(_.path.contains("pk-old")) shouldBe Seq(true)
+      sent.head.eTag should not be empty
+      verify(si, never).deleteFiles(anyString(), any[Seq[String]])
     } finally {
       im.close()
     }
@@ -1679,7 +1723,7 @@ class IndexManagerV2Test
       val result = im.cleanUpObsoleteLocks(tp, Offset(50), Set("pk-etag-only"))
       result shouldBe Right(())
 
-      verify(si, never).deleteFiles(anyString(), any[Seq[String]])
+      deleteCalls(si) shouldBe empty
       im.granularCacheSize shouldBe 1
     } finally {
       im.close()
@@ -1697,7 +1741,7 @@ class IndexManagerV2Test
       ArgumentMatchers.eq(indexFileDecoder),
     ))
       .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(100)), None), "etag")))
-    when(si.deleteFiles(anyString(), any[Seq[String]])).thenReturn(Right(()))
+    stubDeletesSucceed(si)
 
     val im = new IndexManagerV2(
       bucketAndPrefixFn,
@@ -1740,10 +1784,8 @@ class IndexManagerV2Test
       im.close()
     }
 
-    verify(si, times(1)).deleteFiles(
-      anyString(),
-      ArgumentMatchers.argThat[Seq[String]](_.exists(_.contains("/0/pk-abandoned.lock"))),
-    )
+    deleteCalls(si) should have size 1
+    deleteCalls(si).head.exists(_.contains("/0/pk-abandoned.lock")) shouldBe true
   }
 
   test("cleanUpObsoleteLocks skips partition keys in the active set") {
@@ -1781,7 +1823,7 @@ class IndexManagerV2Test
       val result = im.cleanUpObsoleteLocks(tp, Offset(100), Set("pk-active"))
       result shouldBe Right(())
 
-      verify(si, never).deleteFiles(anyString(), any[Seq[String]])
+      deleteCalls(si) shouldBe empty
       im.granularCacheSize shouldBe 1
     } finally {
       im.close()
@@ -1832,13 +1874,11 @@ class IndexManagerV2Test
 
       im.granularCacheSize shouldBe 1
 
-      when(si.deleteFiles(anyString(), any[Seq[String]])).thenReturn(Right(()))
+      stubDeletesSucceed(si)
       im.drainGcQueue()
 
-      verify(si).deleteFiles(anyString(), ArgumentMatchers.argThat[Seq[String]](_.exists(_.contains("pk-below"))))
-      verify(si, never).deleteFiles(anyString(),
-                                    ArgumentMatchers.argThat[Seq[String]](_.exists(_.contains("pk-at-master"))),
-      )
+      deleteCalls(si).exists(_.exists(_.contains("pk-below"))) shouldBe true
+      deleteCalls(si).exists(_.exists(_.contains("pk-at-master"))) shouldBe false
     } finally {
       im.close()
     }
@@ -1855,7 +1895,7 @@ class IndexManagerV2Test
       ArgumentMatchers.eq(indexFileDecoder),
     ))
       .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(100)), None), "etag")))
-    when(si.deleteFiles(anyString(), any[Seq[String]])).thenReturn(Right(()))
+    stubDeletesSucceed(si)
 
     val im = new IndexManagerV2(
       bucketAndPrefixFn,
@@ -1896,8 +1936,8 @@ class IndexManagerV2Test
 
       im.drainGcQueue()
 
-      // With gcBatchSize=2 and 2 items, deleteFiles should be called once (batch of 2)
-      verify(si, times(1)).deleteFiles(anyString(), any[Seq[String]])
+      // With gcBatchSize=2 and 2 items, one delete request should be sent (batch of 2)
+      deleteCalls(si) should have size 1
     } finally {
       im.close()
     }
@@ -1935,14 +1975,14 @@ class IndexManagerV2Test
 
     im.cleanUpObsoleteLocks(tp, Offset(100), Set.empty) shouldBe Right(())
 
-    // deleteFiles not called yet
-    verify(si, never).deleteFiles(anyString(), any[Seq[String]])
+    // nothing deleted yet
+    deleteCalls(si) shouldBe empty
 
     // close() should shut down the executor and drain remaining items
-    when(si.deleteFiles(anyString(), any[Seq[String]])).thenReturn(Right(()))
+    stubDeletesSucceed(si)
     im.close()
 
-    verify(si).deleteFiles(anyString(), ArgumentMatchers.argThat[Seq[String]](_.exists(_.contains("pk-final"))))
+    deleteCalls(si).exists(_.exists(_.contains("pk-final"))) shouldBe true
   }
 
   test("updateMasterLock does NOT refresh eTag on write failure, preserving fencing") {
@@ -2055,7 +2095,7 @@ class IndexManagerV2Test
     when(si.pathExists(anyString(), anyString())).thenReturn(Right(false))
     when(si.getBlobAsObject[IndexFile](anyString(), anyString())(ArgumentMatchers.eq(indexFileDecoder)))
       .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(100)), None), "master-etag")))
-    when(si.deleteFiles(anyString(), any[Seq[String]])).thenReturn(Right(()))
+    stubDeletesSucceed(si)
 
     // gcIntervalSeconds very large so the background timer never fires during this test
     val im = new IndexManagerV2(
@@ -2090,10 +2130,8 @@ class IndexManagerV2Test
     // Without calling drainGcQueue(), call close() which should drain the queue
     im.close()
 
-    // Verify deleteFiles was called with the enqueued path
-    verify(si).deleteFiles(ArgumentMatchers.eq("bucket"),
-                           ArgumentMatchers.argThat[Seq[String]](_.exists(_.contains("pk-old"))),
-    )
+    // Verify the enqueued path was deleted
+    deleteCalls(si, bucket = "bucket").exists(_.exists(_.contains("pk-old"))) shouldBe true
   }
 
   test("close() drains GC queue even when evictAllGranularLocks was called first (real shutdown sequence)") {
@@ -2105,7 +2143,7 @@ class IndexManagerV2Test
     when(si.pathExists(anyString(), anyString())).thenReturn(Right(false))
     when(si.getBlobAsObject[IndexFile](anyString(), anyString())(ArgumentMatchers.eq(indexFileDecoder)))
       .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(100)), None), "master-etag")))
-    when(si.deleteFiles(anyString(), any[Seq[String]])).thenReturn(Right(()))
+    stubDeletesSucceed(si)
 
     val im = new IndexManagerV2(
       bucketAndPrefixFn,
@@ -2141,9 +2179,7 @@ class IndexManagerV2Test
 
     im.close()
 
-    verify(si).deleteFiles(ArgumentMatchers.eq("bucket"),
-                           ArgumentMatchers.argThat[Seq[String]](_.exists(_.contains("pk-old"))),
-    )
+    deleteCalls(si, bucket = "bucket").exists(_.exists(_.contains("pk-old"))) shouldBe true
   }
 
   test("close() final drain discards all items when clearTopicPartitionState was called first (regression)") {
@@ -2155,7 +2191,7 @@ class IndexManagerV2Test
     when(si.pathExists(anyString(), anyString())).thenReturn(Right(false))
     when(si.getBlobAsObject[IndexFile](anyString(), anyString())(ArgumentMatchers.eq(indexFileDecoder)))
       .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(100)), None), "master-etag")))
-    when(si.deleteFiles(anyString(), any[Seq[String]])).thenReturn(Right(()))
+    stubDeletesSucceed(si)
 
     val im = new IndexManagerV2(
       bucketAndPrefixFn,
@@ -2192,8 +2228,8 @@ class IndexManagerV2Test
 
     im.close()
 
-    // The final drain should have discarded the item — deleteFiles must NOT be called.
-    verify(si, never).deleteFiles(anyString(), any[Seq[String]])
+    // The final drain should have discarded the item — nothing may be deleted.
+    deleteCalls(si) shouldBe empty
   }
 
   test(
@@ -2384,10 +2420,10 @@ class IndexManagerV2Test
       im.granularCacheSize shouldBe 1
 
       // Drain: the key is back in the cache, so drainGcQueue should skip the delete
-      when(si.deleteFiles(anyString(), any[Seq[String]])).thenReturn(Right(()))
+      stubDeletesSucceed(si)
       im.drainGcQueue()
 
-      verify(si, never).deleteFiles(anyString(), any[Seq[String]])
+      deleteCalls(si) shouldBe empty
     } finally {
       im.close()
     }
@@ -2442,12 +2478,12 @@ class IndexManagerV2Test
       im.granularCacheSize shouldBe 1
 
       // Drain: pk-gone should be deleted, pk-reclaimed should be skipped
-      when(si.deleteFiles(anyString(), any[Seq[String]])).thenReturn(Right(()))
+      stubDeletesSucceed(si)
       im.drainGcQueue()
 
-      val pathCaptor = ArgumentCaptor.forClass(classOf[Seq[String]])
-      verify(si, times(1)).deleteFiles(anyString(), pathCaptor.capture())
-      val deletedPaths = pathCaptor.getValue
+      deleteCalls(si) should have size 1
+      val pathCaptor   = deleteCalls(si).head
+      val deletedPaths = pathCaptor
       deletedPaths should have size 1
       deletedPaths.head should include("pk-gone")
       deletedPaths.head should not include "pk-reclaimed"
@@ -2482,7 +2518,7 @@ class IndexManagerV2Test
         ArgumentMatchers.eq(indexFileDecoder),
       ),
     ).thenReturn(Right(ObjectWithETag(IndexFile("newWriter", Some(Offset(50)), None), "etag-live")))
-    when(si.deleteFiles(anyString(), any[Seq[String]])).thenReturn(Right(()))
+    stubDeletesSucceed(si)
 
     val im = createSweepTestManager(si)
     try {
@@ -2494,9 +2530,9 @@ class IndexManagerV2Test
       im.sweepOrphanedLocks()
       im.drainGcQueue()
 
-      val pathCaptor = ArgumentCaptor.forClass(classOf[Seq[String]])
-      verify(si, times(1)).deleteFiles(anyString(), pathCaptor.capture())
-      val deletedPaths = pathCaptor.getValue
+      deleteCalls(si) should have size 1
+      val pathCaptor   = deleteCalls(si).head
+      val deletedPaths = pathCaptor
       deletedPaths should contain(tmpPath)
     } finally im.close()
   }
@@ -2530,7 +2566,7 @@ class IndexManagerV2Test
         ArgumentMatchers.eq(indexFileDecoder),
       ),
     ).thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(200)), None), "etag-real")))
-    when(si.deleteFiles(anyString(), any[Seq[String]])).thenReturn(Right(()))
+    stubDeletesSucceed(si)
 
     val im = createSweepTestManager(si)
     try {
@@ -2539,7 +2575,7 @@ class IndexManagerV2Test
       im.drainGcQueue()
 
       // The real lock must NOT be deleted by either the tmp-orphan or .lock sweep paths.
-      verify(si, never).deleteFiles(anyString(), any[Seq[String]])
+      deleteCalls(si) shouldBe empty
     } finally im.close()
   }
 
@@ -2564,7 +2600,7 @@ class IndexManagerV2Test
         ArgumentMatchers.eq(indexFileDecoder),
       ),
     ).thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(200)), None), "etag-real")))
-    when(si.deleteFiles(anyString(), any[Seq[String]])).thenReturn(Right(()))
+    stubDeletesSucceed(si)
 
     val im = createSweepTestManager(si)
     try {
@@ -2572,7 +2608,7 @@ class IndexManagerV2Test
       im.sweepOrphanedLocks()
       im.drainGcQueue()
 
-      verify(si, never).deleteFiles(anyString(), any[Seq[String]])
+      deleteCalls(si) shouldBe empty
     } finally im.close()
   }
 
@@ -2597,7 +2633,7 @@ class IndexManagerV2Test
     val listResp = ListOfMetadataResponse("bucket", Some("prefix"), Seq(tmpMeta), tmpMeta)
 
     org.mockito.Mockito.doReturn(Right(Some(listResp))).when(si).listFileMetaRecursive(anyString(), any[Option[String]])
-    when(si.deleteFiles(anyString(), any[Seq[String]])).thenReturn(Right(()))
+    stubDeletesSucceed(si)
 
     val im = createSweepTestManager(si)
     try {
@@ -2619,13 +2655,13 @@ class IndexManagerV2Test
       im.sweepOrphanedLocks()
       im.drainGcQueue()
 
-      val pathCaptor = ArgumentCaptor.forClass(classOf[Seq[String]])
-      verify(si, times(1)).deleteFiles(anyString(), pathCaptor.capture())
-      pathCaptor.getValue should contain(tmpPath)
+      deleteCalls(si) should have size 1
+      val pathCaptor = deleteCalls(si).head
+      pathCaptor should contain(tmpPath)
     } finally im.close()
   }
 
-  test("drainGcQueue re-offers polled items when deleteFiles throws an unexpected exception") {
+  test("drainGcQueue re-offers polled items when the delete throws an unexpected exception") {
     // Unexpected exceptions (not a Left storage error) used to be caught by the
     // outer try/NonFatal and silently swallowed, dropping every polled item from
     // gcQueue. The M2 fix tracks "unprocessed" items and re-offers them so nothing
@@ -2661,7 +2697,7 @@ class IndexManagerV2Test
 
       im.cleanUpObsoleteLocks(tp, Offset(100), Set.empty) shouldBe Right(())
 
-      when(si.deleteFiles(anyString(), any[Seq[String]])).thenThrow(new RuntimeException("boom"))
+      when(si.deleteFilesIfMatch(anyString(), any[Seq[ConditionalDelete]])).thenThrow(new RuntimeException("boom"))
 
       // Must not throw -- the outer catch handles NonFatal
       im.drainGcQueue()
@@ -2746,7 +2782,7 @@ class IndexManagerV2Test
       ),
     )
       .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(50)), None), "orphan-etag")))
-    when(si.deleteFiles(anyString(), any[Seq[String]])).thenReturn(Right(()))
+    stubDeletesSucceed(si)
 
     val im = createSweepTestManager(si)
     try {
@@ -2754,7 +2790,7 @@ class IndexManagerV2Test
       im.sweepOrphanedLocks()
       im.drainGcQueue()
 
-      verify(si, times(1)).deleteFiles(anyString(), any[Seq[String]])
+      deleteCalls(si) should have size 1
     } finally im.close()
   }
 
@@ -2847,7 +2883,7 @@ class IndexManagerV2Test
       ),
     )
       .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(150)), None), "high-etag")))
-    when(si.deleteFiles(anyString(), any[Seq[String]])).thenReturn(Right(()))
+    stubDeletesSucceed(si)
 
     val im = createSweepTestManager(si)
     try {
@@ -2855,7 +2891,7 @@ class IndexManagerV2Test
       im.sweepOrphanedLocks()
       im.drainGcQueue()
 
-      verify(si, never).deleteFiles(anyString(), any[Seq[String]])
+      deleteCalls(si) shouldBe empty
     } finally im.close()
   }
 
@@ -2889,7 +2925,7 @@ class IndexManagerV2Test
       im.sweepOrphanedLocks()
       im.drainGcQueue()
 
-      verify(si, never).deleteFiles(anyString(), any[Seq[String]])
+      deleteCalls(si) shouldBe empty
     } finally im.close()
   }
 
@@ -2920,7 +2956,7 @@ class IndexManagerV2Test
       // No partition enters the sweep loop, so no LIST is issued and nothing
       // is ever enqueued for deletion.
       verify(si, never).listFileMetaRecursive(anyString(), any[Option[String]])
-      verify(si, never).deleteFiles(anyString(), any[Seq[String]])
+      deleteCalls(si) shouldBe empty
     } finally im.close()
   }
 
@@ -2973,7 +3009,7 @@ class IndexManagerV2Test
       verify(si, atLeastOnce).getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("exact-key.lock"))(
         ArgumentMatchers.eq(indexFileDecoder),
       )
-      verify(si, never).deleteFiles(anyString(), any[Seq[String]])
+      deleteCalls(si) shouldBe empty
     } finally im.close()
   }
 
@@ -3008,7 +3044,7 @@ class IndexManagerV2Test
       ),
     )
       .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(100)), None), "exact-etag")))
-    when(si.deleteFiles(anyString(), any[Seq[String]])).thenReturn(Right(()))
+    stubDeletesSucceed(si)
 
     val im = createSweepTestManager(si)
     try {
@@ -3016,12 +3052,9 @@ class IndexManagerV2Test
       im.sweepOrphanedLocks()
       im.drainGcQueue()
 
-      verify(si, times(1)).deleteFiles(
-        anyString(),
-        ArgumentMatchers.argThat[Seq[String]](paths =>
-          paths.exists(_.contains("below-key")) && !paths.exists(_.contains("exact-key")),
-        ),
-      )
+      deleteCalls(si) should have size 1
+      deleteCalls(si).head.exists(_.contains("below-key")) shouldBe true
+      deleteCalls(si).head.exists(_.contains("exact-key")) shouldBe false
     } finally im.close()
   }
 
@@ -3045,7 +3078,7 @@ class IndexManagerV2Test
       ),
     )
       .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", None, None), "no-off-etag")))
-    when(si.deleteFiles(anyString(), any[Seq[String]])).thenReturn(Right(()))
+    stubDeletesSucceed(si)
 
     val im = createSweepTestManager(si)
     try {
@@ -3053,10 +3086,8 @@ class IndexManagerV2Test
       im.sweepOrphanedLocks()
       im.drainGcQueue()
 
-      verify(si, times(1)).deleteFiles(
-        anyString(),
-        ArgumentMatchers.argThat[Seq[String]](_.exists(_.contains("no-offset.lock"))),
-      )
+      deleteCalls(si) should have size 1
+      deleteCalls(si).head.exists(_.contains("no-offset.lock")) shouldBe true
     } finally im.close()
   }
 
@@ -3087,7 +3118,7 @@ class IndexManagerV2Test
       ),
     )
       .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", None, Some(pendingState)), "pending-etag")))
-    when(si.deleteFiles(anyString(), any[Seq[String]])).thenReturn(Right(()))
+    stubDeletesSucceed(si)
 
     val im = createSweepTestManager(si)
     try {
@@ -3095,7 +3126,7 @@ class IndexManagerV2Test
       im.sweepOrphanedLocks()
       im.drainGcQueue()
 
-      verify(si, never).deleteFiles(anyString(), any[Seq[String]])
+      deleteCalls(si) shouldBe empty
     } finally im.close()
   }
 
@@ -3385,7 +3416,7 @@ class IndexManagerV2Test
       ),
     )
       .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(50)), Some(pendingState)), "pending-etag")))
-    when(si.deleteFiles(anyString(), any[Seq[String]])).thenReturn(Right(()))
+    stubDeletesSucceed(si)
 
     val im = createSweepTestManager(si)
     try {
@@ -3393,7 +3424,7 @@ class IndexManagerV2Test
       im.sweepOrphanedLocks()
       im.drainGcQueue()
 
-      verify(si, times(1)).deleteFiles(anyString(), any[Seq[String]])
+      deleteCalls(si) should have size 1
     } finally im.close()
   }
 
@@ -3429,7 +3460,7 @@ class IndexManagerV2Test
           .thenReturn(
             Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(50)), Some(pendingState)), "pending-etag")),
           )
-        when(si.deleteFiles(anyString(), any[Seq[String]])).thenReturn(Right(()))
+        stubDeletesSucceed(si)
 
         val im = createSweepTestManager(si)
         try {
@@ -3437,7 +3468,7 @@ class IndexManagerV2Test
           im.sweepOrphanedLocks()
           im.drainGcQueue()
 
-          verify(si, never).deleteFiles(anyString(), any[Seq[String]])
+          deleteCalls(si) shouldBe empty
         } finally im.close()
       }
   }
@@ -3474,7 +3505,7 @@ class IndexManagerV2Test
       .thenReturn(
         Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(committedOffset)), pendingState), "pending-etag")),
       )
-    when(si.deleteFiles(anyString(), any[Seq[String]])).thenReturn(Right(()))
+    stubDeletesSucceed(si)
     (si, pendingPath)
   }
 
@@ -3491,7 +3522,7 @@ class IndexManagerV2Test
       im.gcQueueSize shouldBe 1
       im.drainGcQueue()
 
-      verify(si, times(1)).deleteFiles(anyString(), ArgumentMatchers.eq(Seq(pendingPath)))
+      deleteCalls(si) shouldBe Seq.fill(1)(Seq(pendingPath))
     } finally im.close()
   }
 
@@ -3511,7 +3542,7 @@ class IndexManagerV2Test
           im.gcQueueSize shouldBe 0
           im.drainGcQueue()
 
-          verify(si, never).deleteFiles(anyString(), any[Seq[String]])
+          deleteCalls(si) shouldBe empty
         } finally im.close()
       }
   }
@@ -3528,7 +3559,7 @@ class IndexManagerV2Test
       im.sweepOrphanedLocks()
       im.gcQueueSize shouldBe 0
       im.drainGcQueue()
-      verify(si, never).deleteFiles(anyString(), any[Seq[String]])
+      deleteCalls(si) shouldBe empty
 
       // The master lock stores globalSafeOffset - 1, so this moves the master offset to 201.
       im.updateMasterLock(tp, Offset(202)) shouldBe Right(())
@@ -3537,7 +3568,7 @@ class IndexManagerV2Test
       im.gcQueueSize shouldBe 1
       im.drainGcQueue()
 
-      verify(si, times(1)).deleteFiles(anyString(), ArgumentMatchers.eq(Seq(pendingPath)))
+      deleteCalls(si) shouldBe Seq.fill(1)(Seq(pendingPath))
     } finally im.close()
   }
 
@@ -3706,7 +3737,7 @@ class IndexManagerV2Test
         ArgumentMatchers.eq(indexFileDecoder),
       ),
     ).thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(50)), None), "orphan-etag")))
-    when(si.deleteFiles(anyString(), any[Seq[String]])).thenReturn(Right(()))
+    stubDeletesSucceed(si)
 
     val im = createSweepTestManager(si)
     try {
@@ -3724,9 +3755,9 @@ class IndexManagerV2Test
       )(ArgumentMatchers.eq(indexFileDecoder))
 
       // The orphan must still be enqueued and deleted
-      val pathsCaptor = ArgumentCaptor.forClass(classOf[Seq[String]])
-      verify(si, times(1)).deleteFiles(anyString(), pathsCaptor.capture())
-      val deletedPaths = pathsCaptor.getValue
+      deleteCalls(si) should have size 1
+      val pathsCaptor  = deleteCalls(si).head
+      val deletedPaths = pathsCaptor
       deletedPaths should contain(orphanPath)
       deletedPaths should not contain masterLockPath
     } finally im.close()
@@ -4056,8 +4087,8 @@ class IndexManagerV2Test
       // Simulate the scheduled lambda: flag is false so drain is skipped
       if (im.acceptingWork) im.drainGcQueue()
 
-      // deleteFiles must NOT have been called — the item is still in the queue
-      verify(si, never).deleteFiles(anyString(), any[Seq[String]])
+      // nothing may have been deleted — the item is still in the queue
+      deleteCalls(si) shouldBe empty
 
       // Resume via open() and drain should now process the queued item. The master lock still
       // carries the epoch this instance wrote (no other owner in between), so the queue is kept.
@@ -4067,10 +4098,10 @@ class IndexManagerV2Test
         .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(100)), None, im.heldEpochOf(tp)), "etag")))
       im.open(Set(tp))
       im.acceptingWork shouldBe true
-      when(si.deleteFiles(anyString(), any[Seq[String]])).thenReturn(Right(()))
+      stubDeletesSucceed(si)
       im.drainGcQueue()
 
-      verify(si).deleteFiles(anyString(), ArgumentMatchers.argThat[Seq[String]](_.exists(_.contains("pk-queued"))))
+      deleteCalls(si).exists(_.exists(_.contains("pk-queued"))) shouldBe true
     } finally im.close()
   }
 
@@ -4110,13 +4141,13 @@ class IndexManagerV2Test
     im.acceptingWork shouldBe false
     im.evictAllGranularLocks(tp)
 
-    verify(si, never).deleteFiles(anyString(), any[Seq[String]])
+    deleteCalls(si) shouldBe empty
 
     // close() calls drainGcQueue() directly, bypassing the scheduled lambda gate
-    when(si.deleteFiles(anyString(), any[Seq[String]])).thenReturn(Right(()))
+    stubDeletesSucceed(si)
     im.close()
 
-    verify(si).deleteFiles(anyString(), ArgumentMatchers.argThat[Seq[String]](_.exists(_.contains("pk-shutdown"))))
+    deleteCalls(si).exists(_.exists(_.contains("pk-shutdown"))) shouldBe true
   }
 
   test("open() does not set acceptingWork when parTraverse returns a Left") {
@@ -4574,7 +4605,7 @@ class IndexManagerV2Test
   // ─── drainGcQueue Left handling + InterruptedException safety ──────────────────
 
   /**
-   * drainGcQueue: storageInterface.deleteFiles returns Left (not throw) —
+   * drainGcQueue: the conditional delete reports a failure (not throw) —
    * items are re-enqueued for bounded retry; on the second call with Right the loop
    * succeeds and the queue drains.
    */
@@ -4610,25 +4641,26 @@ class IndexManagerV2Test
       im.cleanUpObsoleteLocks(tp, Offset(100), Set.empty) shouldBe Right(())
       im.gcQueueSize shouldBe 1
 
-      // First drain: deleteFiles returns Left → item re-enqueued with retryCount+1
+      // First drain: the conditional delete fails → item re-enqueued with retryCount+1
       val deleteError = FileDeleteError(new RuntimeException("transient"), "pk-retry.lock")
-      when(si.deleteFiles(anyString(), any[Seq[String]])).thenReturn(Left(deleteError))
+      when(si.deleteFilesIfMatch(anyString(), any[Seq[ConditionalDelete]]))
+        .thenReturn(Seq(DeleteOutcome.Failed(deleteError)))
       im.drainGcQueue()
 
       // Item re-enqueued for retry (retryCount < MaxGcRetries=3)
       im.gcQueueSize shouldBe 1
 
-      // Second drain: deleteFiles returns Right → item deleted, queue empty
-      when(si.deleteFiles(anyString(), any[Seq[String]])).thenReturn(Right(()))
+      // Second drain: the conditional delete succeeds → item deleted, queue empty
+      stubDeletesSucceed(si)
       im.drainGcQueue()
 
       im.gcQueueSize shouldBe 0
-      verify(si, times(2)).deleteFiles(anyString(), any[Seq[String]])
+      deleteCalls(si) should have size 2
     } finally im.close()
   }
 
   /**
-   * drainGcQueue: when deleteFiles throws InterruptedException, the explicit
+   * drainGcQueue: when the delete throws InterruptedException, the explicit
    * `case _: InterruptedException` clause re-enqueues unprocessed items, restores the
    * interrupt flag via Thread.currentThread().interrupt(), and exits the drain loop
    * gracefully (no rethrow).
@@ -4670,9 +4702,10 @@ class IndexManagerV2Test
       im.cleanUpObsoleteLocks(tp, Offset(100), Set.empty) shouldBe Right(())
       im.gcQueueSize shouldBe 1
 
-      // Stub deleteFiles to throw InterruptedException — the explicit catch clause must
+      // Stub the conditional delete to throw InterruptedException — the explicit catch clause must
       // route this through the graceful-exit path rather than letting it bubble.
-      when(si.deleteFiles(anyString(), any[Seq[String]])).thenThrow(new InterruptedException("interrupted"))
+      when(si.deleteFilesIfMatch(anyString(), any[Seq[ConditionalDelete]]))
+        .thenThrow(new InterruptedException("interrupted"))
 
       // No exception should propagate.
       noException should be thrownBy im.drainGcQueue()
@@ -4685,7 +4718,7 @@ class IndexManagerV2Test
       // Polled item was re-enqueued, not silently dropped.
       im.gcQueueSize shouldBe 1
     } finally {
-      // Order matters: close() runs a final drainGcQueue() (with deleteFiles still stubbed to
+      // Order matters: close() runs a final drainGcQueue() (with the delete still stubbed to
       // throw InterruptedException) and awaitTermination(), both of which RESTORE the interrupt
       // flag. Clearing it must therefore happen AFTER close(), or the flag leaks into the next
       // test and breaks its unsafeRunSync(). The defensive clear in `before` is the backstop.
@@ -4740,7 +4773,7 @@ class IndexManagerV2Test
       result.left.value shouldBe configError
 
       // No cloud I/O attempted
-      verify(si, never).deleteFiles(anyString(), any[Seq[String]])
+      deleteCalls(si) shouldBe empty
     } finally im.close()
   }
 
@@ -4914,7 +4947,7 @@ class IndexManagerV2Test
    * The lock matches neither readAndEnqueue pattern:
    *   - `Some(committedOffset) < masterOffset` — no, committedOffset is None
    *   - `None committedOffset AND None pendingState` (empty lock) — no, pendingState is Some
-   * Therefore the default fallthrough applies: false (not enqueued), and deleteFiles is never called.
+   * Therefore the default fallthrough applies: false (not enqueued), and nothing is ever deleted.
    *
    * Note: if committedOffset were Some(x) with x < masterOffset, the lock WOULD be swept
    * (production code treats committed-but-below-master pending locks as safe to GC).
@@ -4956,8 +4989,8 @@ class IndexManagerV2Test
       im.sweepOrphanedLocks()
       im.drainGcQueue()
 
-      // Neither pattern matched → NOT enqueued → deleteFiles never called
-      verify(si, never).deleteFiles(anyString(), any[Seq[String]])
+      // Neither pattern matched → NOT enqueued → nothing deleted
+      deleteCalls(si) shouldBe empty
     } finally im.close()
   }
 
@@ -5066,7 +5099,7 @@ class IndexManagerV2Test
       ),
     ).thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(30)), None), "etag-orphan")))
 
-    when(si.deleteFiles(anyString(), any[Seq[String]])).thenReturn(Right(()))
+    stubDeletesSucceed(si)
 
     val im = createSweepTestManager(si)
     try {
@@ -5077,7 +5110,7 @@ class IndexManagerV2Test
       im.drainGcQueue()
 
       // real-orphan.lock is enqueued and deleted; sweep markers are not
-      // We expect exactly one deleteFiles call (for real-orphan.lock)
+      // We expect exactly one delete request (for real-orphan.lock)
       // sweep-marker files must NOT trigger getBlobAsObject[IndexFile] reads
       verify(si, never).getBlobAsObject[IndexFile](
         anyString(),
