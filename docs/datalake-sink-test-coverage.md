@@ -153,7 +153,6 @@ Batch mode removes granular-mode silent loss under non-deterministic keys but ex
 | **Non-atomic visibility** of a batch's N files. | The N copies are applied sequentially, so a reader can observe a partially-visible batch between the first and last copy. Each file is individually complete; no partial file is ever visible. |
 | **Up to N orphan temps** per failed attempt (fenced, rebalanced or partially staged; a retry also orphans each re-staged writer's old temp). | Reaped by the `.temp-upload` orphan sweep once unreferenced and older than `gc.sweep.min.age.seconds`: at every `open()`, and periodically when `gc.sweep.enabled` is set. The periodic pass visits only partitions with a committed master offset, so a never-committed partition's orphans are reaped only at `open()`. Temps are never read and never at a final path. |
 | **Granular-mode zombie creating a brand-new key** after the new owner's snapshot. | Mitigated by the stop-first switch procedure; same residual class the current design already carries. |
-| **S3 unconditional purge delete.** | `deleteFile` ignores the eTag on S3, so the legacy-lock purge is unconditional there; bounded by the stop-first procedure. |
 | **GCS `mvFile` ignores the source eTag.** | Temp-path uniqueness (the `batchUuid` segment) is load-bearing for correctness on GCS; guaranteed by construction in `Writer.stage`. |
 
 ---
