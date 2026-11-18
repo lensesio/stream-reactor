@@ -40,6 +40,7 @@ import java.time.Instant
  *   - [[getBlobAsStringAndEtag]] → storageGet   timer + error counter
  *   - [[deleteFile]]             → storageDelete error counter only (GC path; latency not exposed)
  *   - [[deleteFiles]]            → storageDelete error counter only (GC path; latency not exposed)
+ *   - [[deleteFilesIfMatch]]     → storageDelete error counter, once per call with a `Failed` outcome
  *   - [[listKeysRecursive]]      → storageList  error counter only (sweep path; latency not exposed)
  *   - [[listFileMetaRecursive]]  → storageList  error counter only (sweep path; latency not exposed)
  *
@@ -152,6 +153,19 @@ class StorageInterfaceWithMetrics[SM <: FileMetadata](
 
   override def deleteFile(bucket: String, file: String, eTag: String): Either[FileDeleteError, Unit] =
     countErr(() => metrics.recordStorageDeleteError())(delegate.deleteFile(bucket, file, eTag))
+
+  // Outcomes pass through unchanged. A precondition failure or a missing object is not a storage
+  // error; any `Failed` outcome counts one error per call, the same granularity as `deleteFiles`.
+  override def deleteFilesIfMatch(bucket: String, files: Seq[ConditionalDelete]): Seq[DeleteOutcome] =
+    try {
+      val outcomes = delegate.deleteFilesIfMatch(bucket, files)
+      if (outcomes.exists(_.isInstanceOf[DeleteOutcome.Failed])) metrics.recordStorageDeleteError()
+      outcomes
+    } catch {
+      case t: Throwable =>
+        metrics.recordStorageDeleteError()
+        throw t
+    }
 
   override def mvFile(
     oldBucket: String,

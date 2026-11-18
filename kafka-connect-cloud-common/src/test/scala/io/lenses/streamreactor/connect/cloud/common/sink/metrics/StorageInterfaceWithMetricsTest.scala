@@ -68,20 +68,22 @@ class StorageInterfaceWithMetricsTest
   }
 
   private class StubStorageInterface(
-    uploadResult:       Either[UploadError, String]                                             = Right("etag-123"),
-    mvResult:           Either[FileMoveError, Unit]                                             = Right(()),
-    deleteResult:       Either[FileDeleteError, Unit]                                           = Right(()),
-    deleteFilesRes:     Either[FileDeleteError, Unit]                                           = Right(()),
-    getBlobResult:      Either[FileLoadError, (String, String)]                                 = Right(("content", "etag-abc")),
-    listKeysResult:     Either[FileListError, Option[ListOfKeysResponse[StubFileMetadata]]]     = Right(None),
-    listMetaResult:     Either[FileListError, Option[ListOfMetadataResponse[StubFileMetadata]]] = Right(None),
-    throwOnUpload:      Option[Throwable]                                                       = None,
-    throwOnMv:          Option[Throwable]                                                       = None,
-    throwOnDelete:      Option[Throwable]                                                       = None,
-    throwOnDeleteFiles: Option[Throwable]                                                       = None,
-    throwOnGetBlob:     Option[Throwable]                                                       = None,
-    throwOnListKeys:    Option[Throwable]                                                       = None,
-    throwOnListMeta:    Option[Throwable]                                                       = None,
+    uploadResult:         Either[UploadError, String]                                             = Right("etag-123"),
+    mvResult:             Either[FileMoveError, Unit]                                             = Right(()),
+    deleteResult:         Either[FileDeleteError, Unit]                                           = Right(()),
+    deleteFilesRes:       Either[FileDeleteError, Unit]                                           = Right(()),
+    getBlobResult:        Either[FileLoadError, (String, String)]                                 = Right(("content", "etag-abc")),
+    listKeysResult:       Either[FileListError, Option[ListOfKeysResponse[StubFileMetadata]]]     = Right(None),
+    listMetaResult:       Either[FileListError, Option[ListOfMetadataResponse[StubFileMetadata]]] = Right(None),
+    throwOnUpload:        Option[Throwable]                                                       = None,
+    throwOnMv:            Option[Throwable]                                                       = None,
+    throwOnDelete:        Option[Throwable]                                                       = None,
+    throwOnDeleteFiles:   Option[Throwable]                                                       = None,
+    deleteIfMatchOutcome: DeleteOutcome                                                           = DeleteOutcome.Deleted,
+    throwOnDeleteIfMatch: Option[Throwable]                                                       = None,
+    throwOnGetBlob:       Option[Throwable]                                                       = None,
+    throwOnListKeys:      Option[Throwable]                                                       = None,
+    throwOnListMeta:      Option[Throwable]                                                       = None,
   ) extends StorageInterface[StubFileMetadata] {
 
     private def orThrow[A](maybeThrow: Option[Throwable], value: => A): A =
@@ -133,6 +135,8 @@ class StorageInterfaceWithMetricsTest
       orThrow(throwOnDeleteFiles, deleteFilesRes)
     override def deleteFile(bucket: String, file: String, eTag: String): Either[FileDeleteError, Unit] =
       orThrow(throwOnDelete, deleteResult)
+    override def deleteFilesIfMatch(bucket: String, files: Seq[ConditionalDelete]): Seq[DeleteOutcome] =
+      orThrow(throwOnDeleteIfMatch, files.map(_ => deleteIfMatchOutcome))
     override def mvFile(
       oldBucket: String,
       oldPath:   String,
@@ -215,6 +219,31 @@ class StorageInterfaceWithMetricsTest
     val decorator = new StorageInterfaceWithMetrics(stub, metrics)
     val _         = decorator.deleteFile("b", "f", "etag")
 
+    metrics.getStorageDeleteErrorsTotal shouldBe 1L
+  }
+
+  test("deleteFilesIfMatch passes outcomes through; a refusal on version or a missing object is no storage error") {
+    Seq(DeleteOutcome.Deleted, DeleteOutcome.NotFound, DeleteOutcome.PreconditionFailed).foreach { outcome =>
+      val decorator = new StorageInterfaceWithMetrics(new StubStorageInterface(deleteIfMatchOutcome = outcome), metrics)
+      decorator.deleteFilesIfMatch("b", Seq(ConditionalDelete("f1", "e1"), ConditionalDelete("f2", "e2"))) shouldBe
+        Seq(outcome, outcome)
+    }
+    metrics.getStorageDeleteErrorsTotal shouldBe 0L
+  }
+
+  test("deleteFilesIfMatch with failed objects records one delete error per call") {
+    val failed    = DeleteOutcome.Failed(FileDeleteError(new RuntimeException("denied"), "f"))
+    val decorator = new StorageInterfaceWithMetrics(new StubStorageInterface(deleteIfMatchOutcome = failed), metrics)
+    decorator.deleteFilesIfMatch("b", Seq(ConditionalDelete("f1", "e1"), ConditionalDelete("f2", "e2"))) shouldBe
+      Seq(failed, failed)
+    metrics.getStorageDeleteErrorsTotal shouldBe 1L
+  }
+
+  test("deleteFilesIfMatch thrown exception: delete error counter still recorded, exception rethrown") {
+    val boom = new RuntimeException("connection refused")
+    val decorator =
+      new StorageInterfaceWithMetrics(new StubStorageInterface(throwOnDeleteIfMatch = Some(boom)), metrics)
+    intercept[RuntimeException](decorator.deleteFilesIfMatch("b", Seq(ConditionalDelete("f", "e")))) shouldBe boom
     metrics.getStorageDeleteErrorsTotal shouldBe 1L
   }
 

@@ -144,6 +144,11 @@ class NoOpGCPStorage(simulatedLatencyMillis: Long = 0L) extends StorageInterface
     ().asRight
   }
 
+  override def deleteFilesIfMatch(bucket: String, files: Seq[ConditionalDelete]): Seq[DeleteOutcome] = {
+    simulateLatency()
+    files.map(_ => DeleteOutcome.Deleted)
+  }
+
   override def mvFile(
     oldBucket: String,
     oldPath:   String,

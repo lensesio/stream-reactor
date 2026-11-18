@@ -357,7 +357,7 @@ class CloudSinkTaskTest
   test("a granular-lock take-over whose re-read fails is re-delivered under error.policy=RETRY") {
     val error = failedTakeOver(takeOverWrites = 1) { h => _ =>
       val path = h.granularLockPath(tpA, "date=2024-01-01")
-      h.storage.deleteFile(h.bucket, path, "").value
+      h.storage.deleteFiles(h.bucket, Seq(path)).value
     }
 
     runHandleErrorsWith(error, RetryErrorPolicy()) shouldBe a[RetriableException]

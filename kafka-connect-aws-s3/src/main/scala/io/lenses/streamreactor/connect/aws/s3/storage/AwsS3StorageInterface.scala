@@ -26,6 +26,9 @@ import io.lenses.streamreactor.connect.cloud.common.model.UploadableString
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.NoOverwriteExistingObject
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.ObjectProtection
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.ObjectWithETag
+import io.lenses.streamreactor.connect.cloud.common.storage.ConditionalDelete
+import io.lenses.streamreactor.connect.cloud.common.storage.DeleteOutcome
+import io.lenses.streamreactor.connect.cloud.common.storage.DeletePreconditionFailedException
 import io.lenses.streamreactor.connect.cloud.common.storage.ExtensionFilter
 import io.lenses.streamreactor.connect.cloud.common.storage.FileCreateError
 import io.lenses.streamreactor.connect.cloud.common.storage.FileDeleteError
@@ -245,39 +248,98 @@ class AwsS3StorageInterface(
 
   override def close(): Unit = s3Client.close()
 
-  private def batchDeleteFiles(bucket: String, files: Seq[String]): Either[FileDeleteError, Unit] = Try {
-    s3Client.deleteObjects(
-      DeleteObjectsRequest
-        .builder()
-        .bucket(bucket)
-        .delete(
-          Delete
-            .builder()
-            .objects(
-              files
-                .map(f => ObjectIdentifier.builder().key(f).build()).toArray: _*,
-            )
-            .build(),
-        )
-        .build(),
-    )
-  } match {
-    case Failure(ex) => FileDeleteError(ex, files.mkString(" - ")).asLeft
-    case Success(_)  => ().asRight
+  private def deleteObjectsRequest(bucket: String, objects: Seq[ObjectIdentifier]): DeleteObjectsRequest =
+    DeleteObjectsRequest
+      .builder()
+      .bucket(bucket)
+      .delete(Delete.builder().objects(objects: _*).quiet(false).build())
+      .build()
+
+  /**
+   * One `DeleteObjects` call. S3 answers 200 even when some keys fail, listing them in `errors()`,
+   * so those are read: a `NoSuchKey` entry is success (the key is gone), any other entry fails the
+   * call.
+   */
+  private def batchDeleteFiles(bucket: String, files: Seq[String]): Either[FileDeleteError, Unit] =
+    Try {
+      s3Client.deleteObjects(deleteObjectsRequest(bucket, files.map(f => ObjectIdentifier.builder().key(f).build())))
+    } match {
+      case Failure(ex) => FileDeleteError(ex, files.mkString(" - ")).asLeft
+      case Success(response) =>
+        val failed = response.errors().asScala.filterNot(e => NoSuchKeyCode == e.code())
+        if (failed.isEmpty) ().asRight
+        else
+          FileDeleteError(
+            new IllegalStateException(
+              s"DeleteObjects failed for ${failed.size} of ${files.size} key(s): " +
+                failed.map(e => s"${e.key()} (${e.code()}: ${e.message()})").mkString(", "),
+            ),
+            failed.map(_.key()).mkString(" - "),
+          ).asLeft
+    }
+
+  override def deleteFile(bucket: String, file: String, eTag: String): Either[FileDeleteError, Unit] =
+    DeletePreconditionFailedException.toDeleteFileResult(file, eTag, deleteObjectIfMatch(bucket, file, eTag))
+
+  /**
+   * Conditional deletes: `If-Match` on `DeleteObject`, or the per-object `ETag` of `DeleteObjects`
+   * when batch delete is on. A store that silently ignores the condition (some S3-compatible ones)
+   * deletes by path, as before this method existed.
+   */
+  override def deleteFilesIfMatch(bucket: String, files: Seq[ConditionalDelete]): Seq[DeleteOutcome] =
+    if (files.isEmpty) Seq.empty
+    // A batch reports outcomes by key, so a key given twice (with different tokens) is ambiguous.
+    else if (!batchDelete || files.map(_.path).distinct.size != files.size)
+      files.map(f => deleteObjectIfMatch(bucket, f.path, f.eTag))
+    else batchDeleteFilesIfMatch(bucket, files)
+
+  private def deleteObjectIfMatch(bucket: String, file: String, eTag: String): DeleteOutcome =
+    Try {
+      s3Client.deleteObject(DeleteObjectRequest.builder().bucket(bucket).key(file).ifMatch(eTag).build())
+    } match {
+      case Success(_)                              => DeleteOutcome.Deleted
+      case Failure(ex) if isPreconditionFailed(ex) => DeleteOutcome.PreconditionFailed
+      case Failure(ex) if isNotFound(ex)           => DeleteOutcome.NotFound
+      case Failure(ex)                             => DeleteOutcome.Failed(FileDeleteError(ex, file))
+    }
+
+  private def batchDeleteFilesIfMatch(bucket: String, files: Seq[ConditionalDelete]): Seq[DeleteOutcome] =
+    Try {
+      s3Client.deleteObjects(
+        deleteObjectsRequest(bucket, files.map(f => ObjectIdentifier.builder().key(f.path).eTag(f.eTag).build())),
+      )
+    } match {
+      case Failure(ex) =>
+        val error = FileDeleteError(ex, files.map(_.path).mkString(" - "))
+        files.map(_ => DeleteOutcome.Failed(error))
+      case Success(response) =>
+        val deleted = response.deleted().asScala.map(_.key()).toSet
+        val errors  = response.errors().asScala.map(e => e.key() -> e).toMap
+        files.map { f =>
+          errors.get(f.path) match {
+            case Some(e) if PreconditionFailedCode == e.code() => DeleteOutcome.PreconditionFailed
+            case Some(e) if NoSuchKeyCode == e.code()          => DeleteOutcome.NotFound
+            case Some(e) =>
+              DeleteOutcome.Failed(
+                FileDeleteError(new IllegalStateException(s"DeleteObjects: ${e.code()}: ${e.message()}"), f.path),
+              )
+            case None if deleted.contains(f.path) => DeleteOutcome.Deleted
+            case None =>
+              DeleteOutcome.Failed(
+                FileDeleteError(new IllegalStateException("DeleteObjects reported no outcome for the key"), f.path),
+              )
+          }
+        }
+    }
+
+  private def isPreconditionFailed(ex: Throwable): Boolean = ex match {
+    case s3: S3Exception =>
+      s3.statusCode() == 412 || Option(s3.awsErrorDetails()).exists(d => PreconditionFailedCode == d.errorCode())
+    case _ => false
   }
 
-  override def deleteFile(bucket: String, file: String, eTag: String): Either[FileDeleteError, Unit] = Try {
-    s3Client.deleteObject(
-      DeleteObjectRequest
-        .builder()
-        .bucket(bucket)
-        .key(file)
-        .build(),
-    )
-  } match {
-    case Failure(ex) => FileDeleteError(ex, file).asLeft
-    case Success(_)  => ().asRight
-  }
+  private val NoSuchKeyCode          = "NoSuchKey"
+  private val PreconditionFailedCode = "PreconditionFailed"
 
   private def loopDeleteFiles(bucket: String, files: Seq[String]): Either[FileDeleteError, Unit] = Try {
     for (f <- files) {

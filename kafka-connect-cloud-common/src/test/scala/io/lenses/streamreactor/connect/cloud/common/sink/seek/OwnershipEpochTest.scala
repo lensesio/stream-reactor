@@ -674,7 +674,7 @@ class OwnershipEpochTest extends AnyFunSuite with Matchers with EitherValues wit
     val h = new TwoInstanceHarness()
     try {
       h.a.open(Set(tp)).value
-      val _ = h.storage.deleteFile(h.bucket, h.masterLockPath(tp), "")
+      val _ = h.storage.deleteFiles(h.bucket, Seq(h.masterLockPath(tp)))
 
       h.a.confirmMasterFenced(tp) shouldBe false
       h.a.fencedPartitions shouldBe empty

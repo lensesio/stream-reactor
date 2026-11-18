@@ -62,8 +62,16 @@ class RetryingStorageInterfaceTest extends AnyFunSuiteLike with Matchers with Be
     deleteResults: Iterator[Either[FileDeleteError, Unit]],
   ) extends StorageInterface[StubFileMetadata] {
 
-    val mvCallCount:     AtomicInteger = new AtomicInteger(0)
-    val deleteCallCount: AtomicInteger = new AtomicInteger(0)
+    val mvCallCount:            AtomicInteger = new AtomicInteger(0)
+    val deleteCallCount:        AtomicInteger = new AtomicInteger(0)
+    val deleteIfMatchCallCount: AtomicInteger = new AtomicInteger(0)
+    var deleteIfMatchOutcome: DeleteOutcome =
+      DeleteOutcome.Failed(FileDeleteError(new SocketException("Connection reset"), "f"))
+
+    override def deleteFilesIfMatch(bucket: String, files: Seq[ConditionalDelete]): Seq[DeleteOutcome] = {
+      deleteIfMatchCallCount.incrementAndGet()
+      files.map(_ => deleteIfMatchOutcome)
+    }
 
     override def mvFile(
       oldBucket: String,
@@ -195,6 +203,35 @@ class RetryingStorageInterfaceTest extends AnyFunSuiteLike with Matchers with Be
     result shouldBe Left(transientDeleteError)
     stub.deleteCallCount.get() shouldBe 3
     metrics.getCommitRetriesTotal shouldBe 2L
+  }
+
+  test("deleteFile: a refusal on version is never retried, even under a classifier that calls everything transient") {
+    val refused = FileDeleteError(new DeletePreconditionFailedException("file", "etag"), "file")
+    val stub = new CountingStorageInterface(
+      mvResults     = Iterator.empty,
+      deleteResults = Iterator(Left(refused), Right(())),
+    )
+    val retrying = new RetryingStorageInterface(stub, immediateConfig, alwaysTransient, metrics)
+
+    retrying.deleteFile("b", "file", "etag") shouldBe Left(refused)
+    stub.deleteCallCount.get() shouldBe 1
+    metrics.getCommitRetriesTotal shouldBe 0L
+  }
+
+  test("deleteFilesIfMatch is delegated once, without retry, whatever its outcomes") {
+    val stub = new CountingStorageInterface(
+      mvResults     = Iterator.empty,
+      deleteResults = Iterator.empty,
+    )
+    val retrying = new RetryingStorageInterface(stub, immediateConfig, alwaysTransient, metrics)
+
+    val outcomes = retrying.deleteFilesIfMatch("b", Seq(ConditionalDelete("f1", "e1"), ConditionalDelete("f2", "e2")))
+    outcomes shouldBe Seq(stub.deleteIfMatchOutcome, stub.deleteIfMatchOutcome)
+    stub.deleteIfMatchCallCount.get() shouldBe 1
+    stub.deleteIfMatchOutcome = DeleteOutcome.PreconditionFailed
+    retrying.deleteFilesIfMatch("b", Seq(ConditionalDelete("f1", "e1"))) shouldBe Seq(DeleteOutcome.PreconditionFailed)
+    stub.deleteIfMatchCallCount.get() shouldBe 2
+    metrics.getCommitRetriesTotal shouldBe 0L
   }
 
   test("other methods (uploadFile) are delegated without retry") {

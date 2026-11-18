@@ -955,4 +955,75 @@ class PendingOperationsProcessorsTest
     verifyNoInteractions(fnIndexUpdate)
   }
 
+  // ---- the final temp delete on a real (in-memory) store ---------------------------------
+
+  private def chainOnFake(
+    fake: io.lenses.streamreactor.connect.cloud.common.testing.InMemoryStorageInterface,
+  ): (PendingState, String) = {
+    val bucket = "bucket"
+    val temp   = ".temp-upload/topic1/0/uuid/final.json"
+    fake.writeStringToFile(bucket, temp, io.lenses.streamreactor.connect.cloud.common.model.UploadableString("data"))
+      .value
+    val tempETag = fake.getBlobAsStringAndEtag(bucket, temp).value._2
+    PendingState(
+      Offset(100),
+      NonEmptyList.of(CopyOperation(bucket, temp, "final.json", tempETag), DeleteOperation(bucket, temp, tempETag)),
+    ) -> temp
+  }
+
+  private def recordingIndexUpdate(): (
+    scala.collection.mutable.Buffer[(Option[Offset], Option[PendingState])],
+    (TopicPartition, Option[Offset], Option[PendingState]) => Either[SinkError, Option[Offset]],
+  ) = {
+    val updates = scala.collection.mutable.Buffer.empty[(Option[Offset], Option[PendingState])]
+    updates -> ((_: TopicPartition, co: Option[Offset], ps: Option[PendingState]) => {
+      updates += co -> ps
+      co.asRight[SinkError]
+    })
+  }
+
+  test("the conditional temp delete after the move finds nothing to delete and still completes the chain") {
+    val fake                = new io.lenses.streamreactor.connect.cloud.common.testing.InMemoryStorageInterface()
+    val (pending, temp)     = chainOnFake(fake)
+    val (updates, fnUpdate) = recordingIndexUpdate()
+
+    new PendingOperationsProcessors(fake).processPendingOperations(topicPartition, Some(Offset(50)), pending, fnUpdate)
+      .value shouldBe Some(Offset(100))
+
+    // The move removed the temp, so the delete hit a missing object: the chain still clears.
+    fake.pathExists("bucket", temp).value shouldBe false
+    fake.pathExists("bucket", "final.json").value shouldBe true
+    updates.last shouldBe (Some(Offset(100)) -> None)
+  }
+
+  test("a replayed delete step of a chain whose temp is already gone completes the chain") {
+    val fake                = new io.lenses.streamreactor.connect.cloud.common.testing.InMemoryStorageInterface()
+    val (pending, temp)     = chainOnFake(fake)
+    val _                   = fake.mvFile("bucket", temp, "bucket", "final.json", None).value
+    val (updates, fnUpdate) = recordingIndexUpdate()
+    val onlyDelete          = PendingState(Offset(100), NonEmptyList.of(pending.pendingOperations.last))
+
+    new PendingOperationsProcessors(fake).processPendingOperations(topicPartition,
+                                                                   Some(Offset(50)),
+                                                                   onlyDelete,
+                                                                   fnUpdate,
+    )
+      .value shouldBe Some(Offset(100))
+    updates.toSeq shouldBe Seq(Some(Offset(100)) -> None)
+  }
+
+  test("a temp delete refused on version keeps the last-op handling: non-fatal, and the pending state stays") {
+    val fake            = new io.lenses.streamreactor.connect.cloud.common.testing.InMemoryStorageInterface()
+    val (pending, temp) = chainOnFake(fake)
+    val onlyDelete      = PendingState(Offset(100), NonEmptyList.of(pending.pendingOperations.last))
+    // The temp is still there but at another version than the one recorded.
+    fake.putRaw("bucket", temp, "rewritten".getBytes)
+    val (updates, fnUpdate) = recordingIndexUpdate()
+
+    val error = new PendingOperationsProcessors(fake)
+      .processPendingOperations(topicPartition, Some(Offset(50)), onlyDelete, fnUpdate).left.value
+    error shouldBe a[NonFatalCloudSinkError]
+    fake.pathExists("bucket", temp).value shouldBe true
+    updates shouldBe empty
+  }
 }

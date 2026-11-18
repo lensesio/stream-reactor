@@ -57,9 +57,10 @@ import scala.jdk.CollectionConverters._
  *  - `mvFile` mirrors the post-fix S3 semantics: missing source with present destination
  *    returns `Right(())` (idempotent replay); missing source with missing destination
  *    returns `FileMoveError` (loud failure, no silent data loss).
- *  - `deleteFile` is unconditional (matching the production trait's signature; the eTag
- *    parameter is recorded but not enforced because S3's `DeleteObject` doesn't support
- *    `If-Match`). Missing keys are no-ops so replay is idempotent.
+ *  - `deleteFile` and `deleteFilesIfMatch` are conditional on the stored eTag, as on every
+ *    production backend: a match deletes, a mismatch is a precondition failure (nothing deleted),
+ *    a missing key is "not found" (`deleteFile` reports it as success, so replay is idempotent).
+ *    `deleteFiles` is unconditional.
  *
  * Crash injection is via [[arm]]: tests register one-shot `Hook` instances that fire on the
  * next matching write/upload/move/delete and are then consumed. Hooks default to none, so
@@ -82,6 +83,9 @@ class InMemoryStorageInterface(systemName: String = "in-memory", contentETags: B
 
   // Counts `writeBlobToFile` calls per key (see `writeCount`).
   private val writes = new ConcurrentHashMap[(String, String), AtomicInteger]()
+
+  // Counts `deleteFilesIfMatch` calls (see `deleteFilesIfMatchCalls`).
+  private val deletesIfMatch = new AtomicInteger(0)
 
   // ---------- public test helpers ----------
 
@@ -292,23 +296,50 @@ class InMemoryStorageInterface(systemName: String = "in-memory", contentETags: B
         }
     }
 
-  override def deleteFile(bucket: String, file: String, eTag: String): Either[FileDeleteError, Unit] = {
-    val _ = eTag
-    takeFirstHook { case h: OnDeleteAt if h.matches(bucket, file) => h }.foreach(_.action())
-    takeFirstHook { case h: FailDeleteAt if h.matches(bucket, file) => h } match {
-      case Some(h) => h.asDeleteError(bucket, file).asLeft
-      case None =>
-        val _ = store.remove((bucket, file))
-        ().asRight
-    }
+  override def deleteFile(bucket: String, file: String, eTag: String): Either[FileDeleteError, Unit] =
+    DeletePreconditionFailedException.toDeleteFileResult(file, eTag, deleteIfMatch(bucket, file, eTag))
+
+  override def deleteFilesIfMatch(bucket: String, files: Seq[ConditionalDelete]): Seq[DeleteOutcome] = {
+    val _ = deletesIfMatch.incrementAndGet()
+    files.map(f => deleteIfMatch(bucket, f.path, f.eTag))
   }
 
   override def deleteFiles(bucket: String, files: Seq[String]): Either[FileDeleteError, Unit] =
     if (files.isEmpty) ().asRight
     else
       files.foldLeft[Either[FileDeleteError, Unit]](().asRight) { (acc, f) =>
-        acc.flatMap(_ => deleteFile(bucket, f, ""))
+        acc.flatMap { _ =>
+          takeFirstHook { case h: OnDeleteAt if h.matches(bucket, f) => h }.foreach(_.action())
+          takeFirstHook { case h: FailDeleteAt if h.matches(bucket, f) => h } match {
+            case Some(h) => h.asDeleteError(bucket, f).asLeft
+            case None =>
+              val _ = store.remove((bucket, f))
+              ().asRight
+          }
+        }
       }
+
+  /** Number of `deleteFilesIfMatch` calls (requests), whatever they contained. */
+  def deleteFilesIfMatchCalls: Int = deletesIfMatch.get()
+
+  /** One conditional delete, applied atomically against concurrent writes to the same key. */
+  private def deleteIfMatch(bucket: String, path: String, eTag: String): DeleteOutcome = {
+    takeFirstHook { case h: OnDeleteAt if h.matches(bucket, path) => h }.foreach(_.action())
+    takeFirstHook { case h: FailDeleteAt if h.matches(bucket, path) => h } match {
+      case Some(h) => DeleteOutcome.Failed(h.asDeleteError(bucket, path))
+      case None if takeFirstHook { case h: PreconditionFailDeleteAt if h.matches(bucket, path) => h }.isDefined =>
+        DeleteOutcome.PreconditionFailed
+      case None =>
+        var outcome: DeleteOutcome = DeleteOutcome.NotFound
+        val _ = store.computeIfPresent(
+          (bucket, path),
+          (_, blob) =>
+            if (blob.eTag == eTag) { outcome = DeleteOutcome.Deleted; null }
+            else { outcome = DeleteOutcome.PreconditionFailed; blob },
+        )
+        outcome
+    }
+  }
 
   override def mvFile(
     oldBucket: String,
@@ -489,7 +520,6 @@ object InMemoryStorageInterface {
       err.getOrElse(super.asMoveError(oldPath, newPath))
   }
 
-  /** Fail the next deleteFile/deleteFiles entry at `(bucket, path)` with `err`. */
   /**
    * Run `action` on the next delete of `(bucket, path)`, before the delete (or an armed
    * `FailDeleteAt`) is applied: a deterministic point to land another step while a delete is in
@@ -499,9 +529,19 @@ object InMemoryStorageInterface {
     def matches(b: String, p: String): Boolean = b == bucket && p == path
   }
 
+  /** Fail the next delete (any of the three delete methods) of `(bucket, path)` with `err`. */
   final case class FailDeleteAt(bucket: String, path: String, err: Option[FileDeleteError] = None) extends Hook {
     def matches(b:                String, p: String): Boolean         = b == bucket && p == path
     override def asDeleteError(b: String, p: String): FileDeleteError = err.getOrElse(super.asDeleteError(b, p))
+  }
+
+  /**
+   * Refuse the next conditional delete (`deleteFile` / `deleteFilesIfMatch`) of `(bucket, path)` on
+   * version, whatever the stored eTag, as a store does when another writer rewrote the object
+   * after the caller read it. Nothing is deleted.
+   */
+  final case class PreconditionFailDeleteAt(bucket: String, path: String) extends Hook {
+    def matches(b: String, p: String): Boolean = b == bucket && p == path
   }
 
   /**

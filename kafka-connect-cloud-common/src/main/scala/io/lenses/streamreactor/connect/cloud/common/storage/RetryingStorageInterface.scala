@@ -36,6 +36,9 @@ import java.time.Instant
  * Only these two methods are retried because:
  *   - Both are idempotent: the final destination key is deterministic (Copy) and
  *     deleting an already-absent blob is harmless (Delete).
+ *   - `deleteFile` is conditional on the object's version; a refusal on version
+ *     ([[DeletePreconditionFailedException]]) is never retried. `deleteFilesIfMatch`
+ *     is not retried at all: its GC callers re-enqueue failed items themselves.
  *   - Retrying `uploadFile` is handled at a higher level via `recommitPending`.
  *   - Lock writes (`writeBlobToFile` with `ObjectWithETag`) MUST NOT be retried
  *     here — a `412` precondition failure is the zombie-fencing signal and must
@@ -80,7 +83,10 @@ class RetryingStorageInterface[SM <: FileMetadata](
         case Left(_) if attempt >= maxAttempts =>
           result
         case Left(err) =>
-          val maybeTransient = err.toExceptionOption.exists(classifier.isTransient)
+          // A conditional delete refused on version is a decision, not a failure: never retried,
+          // whatever the classifier says about its message.
+          val refusedOnVersion = err.toExceptionOption.exists(_.isInstanceOf[DeletePreconditionFailedException])
+          val maybeTransient   = !refusedOnVersion && err.toExceptionOption.exists(classifier.isTransient)
           if (!maybeTransient) {
             result
           } else {
@@ -190,6 +196,11 @@ class RetryingStorageInterface[SM <: FileMetadata](
 
   override def deleteFiles(bucket: String, files: Seq[String]): Either[FileDeleteError, Unit] =
     delegate.deleteFiles(bucket, files)
+
+  // Not retried here, like `deleteFiles`: its only callers (GC) re-enqueue `Failed` items themselves,
+  // and a `PreconditionFailed` must never be retried.
+  override def deleteFilesIfMatch(bucket: String, files: Seq[ConditionalDelete]): Seq[DeleteOutcome] =
+    delegate.deleteFilesIfMatch(bucket, files)
 
   override def createDirectoryIfNotExists(bucket: String, path: String): Either[FileCreateError, Unit] =
     delegate.createDirectoryIfNotExists(bucket, path)

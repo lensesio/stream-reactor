@@ -130,9 +130,21 @@ trait StorageInterface[SM <: FileMetadata] extends ResultProcessors {
 
   def writeStringToFile(bucket: String, path: String, data: UploadableString): Either[UploadError, Unit]
 
+  /** Deletes every path unconditionally. A path that does not exist is not an error. */
   def deleteFiles(bucket: String, files: Seq[String]): Either[FileDeleteError, Unit]
 
+  /**
+   * Deletes `file` only while it is at the version `eTag` names. A missing object is success; an
+   * object at another version is a `Left` carrying a [[DeletePreconditionFailedException]].
+   */
   def deleteFile(bucket: String, file: String, eTag: String): Either[FileDeleteError, Unit]
+
+  /**
+   * Deletes each object only while it is at the version its token names, and reports what happened
+   * to each: one outcome per input, in input order. Never throws for a per-object failure; a request
+   * that fails as a whole reports `Failed` for every object it covered.
+   */
+  def deleteFilesIfMatch(bucket: String, files: Seq[ConditionalDelete]): Seq[DeleteOutcome]
 
   def mvFile(
     oldBucket: String,

@@ -37,6 +37,9 @@ import io.lenses.streamreactor.connect.cloud.common.model.UploadableString
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.NoOverwriteExistingObject
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.ObjectProtection
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.ObjectWithETag
+import io.lenses.streamreactor.connect.cloud.common.storage.ConditionalDelete
+import io.lenses.streamreactor.connect.cloud.common.storage.DeleteOutcome
+import io.lenses.streamreactor.connect.cloud.common.storage.DeletePreconditionFailedException
 import io.lenses.streamreactor.connect.cloud.common.storage.ExtensionFilter
 import io.lenses.streamreactor.connect.cloud.common.storage.FileCreateError
 import io.lenses.streamreactor.connect.cloud.common.storage.FileDeleteError
@@ -512,18 +515,32 @@ class GCPStorageStorageInterface(
         throw new StorageException(404, "No/null blob found (file doesn't exist?)")
     }
 
-  override def deleteFile(bucket: String, file: String, eTag: String): Either[FileDeleteError, Unit] = {
-    val blobId = BlobId.of(bucket, file)
-    Try(
-      storage.delete(blobId, BlobSourceOption.generationMatch(eTag.toLong)),
-    ).toEither.leftMap {
-      ex: Throwable =>
-        logger.error(s"[{}] Failed to delete files {} from bucket {}", connectorTaskId.show, file, bucket, ex)
-        FileDeleteError(ex, file)
-    }.map {
-      _ => ()
+  override def deleteFile(bucket: String, file: String, eTag: String): Either[FileDeleteError, Unit] =
+    DeletePreconditionFailedException.toDeleteFileResult(file, eTag, deleteBlobIfGenerationMatch(bucket, file, eTag))
+
+  /**
+   * One `delete(blobId, ifGenerationMatch)` per object: `delete(BlobId...)` (the batch form
+   * `deleteFiles` uses) cannot carry a precondition. The token is the generation `getBlobAsObject`
+   * and `writeBlobToFile` report.
+   */
+  override def deleteFilesIfMatch(bucket: String, files: Seq[ConditionalDelete]): Seq[DeleteOutcome] =
+    files.map(f => deleteBlobIfGenerationMatch(bucket, f.path, f.eTag))
+
+  private def deleteBlobIfGenerationMatch(bucket: String, file: String, generation: String): DeleteOutcome =
+    Try(generation.toLong) match {
+      case Failure(ex) =>
+        DeleteOutcome.Failed(FileDeleteError(new IllegalArgumentException(s"not a generation: $generation", ex), file))
+      case Success(gen) =>
+        Try(storage.delete(BlobId.of(bucket, file), BlobSourceOption.generationMatch(gen))) match {
+          case Success(true)  => DeleteOutcome.Deleted
+          case Success(false) => DeleteOutcome.NotFound
+          case Failure(ex: StorageException) if ex.getCode == 412 => DeleteOutcome.PreconditionFailed
+          case Failure(ex: StorageException) if ex.getCode == 404 => DeleteOutcome.NotFound
+          case Failure(ex) =>
+            logger.error(s"[{}] Failed to delete file {} from bucket {}", connectorTaskId.show, file, bucket, ex)
+            DeleteOutcome.Failed(FileDeleteError(ex, file))
+        }
     }
-  }
 
   /**
    * Updates the lastModified timestamp of a file by copying it to itself.

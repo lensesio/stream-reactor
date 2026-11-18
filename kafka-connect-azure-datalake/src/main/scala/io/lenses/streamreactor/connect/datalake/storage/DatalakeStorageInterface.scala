@@ -444,18 +444,39 @@ class DatalakeStorageInterface(
     }
 
   override def deleteFile(bucket: String, file: String, eTag: String): Either[FileDeleteError, Unit] =
-    for {
-      cli    <- Try(client.getFileSystemClient(bucket)).toEither.leftMap(e => FileDeleteError(e, file))
-      options = new DataLakePathDeleteOptions().setRequestConditions(new DataLakeRequestConditions().setIfMatch(eTag))
-      _ <- Try {
-        cli.deleteFileIfExistsWithResponse(
-          file,
-          options,
-          null,
-          Context.NONE,
-        )
-      }.toEither.leftMap(FileDeleteError(_, file))
-    } yield ()
+    DeletePreconditionFailedException.toDeleteFileResult(file, eTag, deletePathIfMatch(bucket, file, eTag))
+
+  /** One `If-Match` path delete per object: ADLS has no batch delete. */
+  override def deleteFilesIfMatch(bucket: String, files: Seq[ConditionalDelete]): Seq[DeleteOutcome] =
+    files.map(f => deletePathIfMatch(bucket, f.path, f.eTag))
+
+  /**
+   * `deleteFileIfExistsWithResponse` with `If-Match`: `false` means there was no file. A 412 is
+   * ambiguous: Azurite answers 412, not 404, for a missing path under `If-Match`, and real ADLS has
+   * not been verified, so a 412 is followed by an existence check, and only a file that is still
+   * there is a precondition failure.
+   */
+  private def deletePathIfMatch(bucket: String, file: String, eTag: String): DeleteOutcome =
+    Try(client.getFileSystemClient(bucket)).toEither match {
+      case Left(ex) => DeleteOutcome.Failed(FileDeleteError(ex, file))
+      case Right(cli) =>
+        val options =
+          new DataLakePathDeleteOptions().setRequestConditions(new DataLakeRequestConditions().setIfMatch(eTag))
+        Try(cli.deleteFileIfExistsWithResponse(file, options, null, Context.NONE)) match {
+          case scala.util.Success(response) =>
+            if (Boolean.unbox(response.getValue)) DeleteOutcome.Deleted else DeleteOutcome.NotFound
+          case scala.util.Failure(ex: DataLakeStorageException) if ex.getStatusCode == 404 => DeleteOutcome.NotFound
+          case scala.util.Failure(ex: DataLakeStorageException) if ex.getStatusCode == 412 =>
+            Try(Boolean.unbox(cli.getFileClient(file).exists())) match {
+              case scala.util.Success(true)  => DeleteOutcome.PreconditionFailed
+              case scala.util.Success(false) => DeleteOutcome.NotFound
+              case scala.util.Failure(probe: DataLakeStorageException) if probe.getStatusCode == 404 =>
+                DeleteOutcome.NotFound
+              case scala.util.Failure(probe) => DeleteOutcome.Failed(FileDeleteError(probe, file))
+            }
+          case scala.util.Failure(ex) => DeleteOutcome.Failed(FileDeleteError(ex, file))
+        }
+    }
 
   /**
    * True when a failed rename represents a NoOverwriteExistingObject create losing the race —

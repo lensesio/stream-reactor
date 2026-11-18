@@ -21,6 +21,9 @@ import io.circe.Encoder
 import io.lenses.streamreactor.connect.cloud.common.model.UploadableFile
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.NoOverwriteExistingObject
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.ObjectWithETag
+import io.lenses.streamreactor.connect.cloud.common.storage.ConditionalDelete
+import io.lenses.streamreactor.connect.cloud.common.storage.DeleteOutcome
+import io.lenses.streamreactor.connect.cloud.common.storage.DeletePreconditionFailedException
 import io.lenses.streamreactor.connect.cloud.common.storage.FileCreateError
 import io.lenses.streamreactor.connect.cloud.common.storage.FileMoveError
 import io.lenses.streamreactor.connect.cloud.common.storage.FileNotFoundError
@@ -155,6 +158,67 @@ class InMemoryStorageInterfaceTest extends AnyFunSuiteLike with Matchers with Ei
   test("deleteFile is a no-op on a missing key") {
     val fake = newFake()
     fake.deleteFile(Bucket, "ghost", "no-etag") shouldBe Right(())
+  }
+
+  private def stored(fake: InMemoryStorageInterface, key: String): String =
+    fake.getBlobAsStringAndEtag(Bucket, key).value._2
+
+  test("deleteFile deletes on a matching eTag and refuses another version, leaving the object") {
+    val fake = newFake()
+    val _    = fake.uploadFile(UploadableFile(writeTempFile("v1")), Bucket, "k").value
+    val eTag = stored(fake, "k")
+
+    val refused = fake.deleteFile(Bucket, "k", "stale").left.value
+    refused.exception shouldBe a[DeletePreconditionFailedException]
+    stored(fake, "k") shouldBe eTag
+
+    fake.deleteFile(Bucket, "k", eTag) shouldBe Right(())
+    fake.pathExists(Bucket, "k").value shouldBe false
+  }
+
+  test("deleteFilesIfMatch reports one outcome per object, in order, and deletes only the matching ones") {
+    val fake = newFake()
+    val _    = fake.uploadFile(UploadableFile(writeTempFile("a")), Bucket, "a").value
+    val _    = fake.uploadFile(UploadableFile(writeTempFile("b")), Bucket, "b").value
+    val aTag = stored(fake, "a")
+    val bTag = stored(fake, "b")
+
+    fake.deleteFilesIfMatch(
+      Bucket,
+      Seq(ConditionalDelete("b", "stale"), ConditionalDelete("ghost", "x"), ConditionalDelete("a", aTag)),
+    ) shouldBe Seq(DeleteOutcome.PreconditionFailed, DeleteOutcome.NotFound, DeleteOutcome.Deleted)
+
+    fake.pathExists(Bucket, "a").value shouldBe false
+    stored(fake, "b") shouldBe bTag
+    fake.deleteFilesIfMatchCalls shouldBe 1
+  }
+
+  test("deleteFilesIfMatch honours the delete hooks per object") {
+    val fake = newFake()
+    val _    = fake.uploadFile(UploadableFile(writeTempFile("a")), Bucket, "a").value
+    val _    = fake.uploadFile(UploadableFile(writeTempFile("b")), Bucket, "b").value
+    val _    = fake.uploadFile(UploadableFile(writeTempFile("c")), Bucket, "c").value
+    val tags = Seq("a", "b", "c").map(k => k -> stored(fake, k)).toMap
+    // Rewritten between the caller's read and the delete: the delete must see the new version.
+    fake.arm(OnDeleteAt(Bucket, "a", () => fake.putRaw(Bucket, "a", "rewritten".getBytes)))
+    fake.arm(FailDeleteAt(Bucket, "b"))
+    fake.arm(PreconditionFailDeleteAt(Bucket, "c"))
+
+    val outcomes = fake.deleteFilesIfMatch(Bucket, Seq("a", "b", "c").map(k => ConditionalDelete(k, tags(k))))
+
+    outcomes.head shouldBe DeleteOutcome.PreconditionFailed
+    outcomes(1) shouldBe a[DeleteOutcome.Failed]
+    outcomes(2) shouldBe DeleteOutcome.PreconditionFailed
+    Seq("a", "b", "c").map(fake.pathExists(Bucket, _).value) shouldBe Seq(true, true, true)
+    // Hooks are one-shot: the next conditional delete of c goes through.
+    fake.deleteFilesIfMatch(Bucket, Seq(ConditionalDelete("c", tags("c")))) shouldBe Seq(DeleteOutcome.Deleted)
+  }
+
+  test("deleteFiles stays unconditional") {
+    val fake = newFake()
+    val _    = fake.uploadFile(UploadableFile(writeTempFile("a")), Bucket, "a").value
+    fake.deleteFiles(Bucket, Seq("a", "ghost")) shouldBe Right(())
+    fake.pathExists(Bucket, "a").value shouldBe false
   }
 
   test("listKeysRecursive returns only the keys under the prefix") {
