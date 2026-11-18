@@ -17,6 +17,7 @@ package io.lenses.streamreactor.connect.cloud.common.sink.seek
 
 import cats.data.NonEmptyList
 import io.circe.syntax.EncoderOps
+import io.lenses.streamreactor.connect.cloud.common.config.IndexSettingsFixture
 import io.lenses.streamreactor.connect.cloud.common.model.Offset
 import io.lenses.streamreactor.connect.cloud.common.model.Topic
 import io.lenses.streamreactor.connect.cloud.common.model.UploadableString
@@ -405,5 +406,29 @@ class SweepConditionalDeleteTest extends AnyFunSuite with Matchers with EitherVa
       keys.flatMap(stored(h, _)) shouldBe empty
       all(budgets) should be <= 3
     } finally h.close()
+  }
+
+  test("gc.sweep.max.reads=1 still sweeps: an obsolete lock is read, enqueued and deleted, within the budget used") {
+    val configured = IndexSettingsFixture
+      .settingsFor(Map(IndexSettingsFixture.Keys.GC_SWEEP_MAX_READS -> "1"))
+      .getIndexSettings.value.gcSweepMaxReads
+    val h = harness(sweepMaxReads = configured)
+    try {
+      h.clock.set(1000L)
+      h.a.open(Set(tp)).value
+      idleObsoleteKey(h, h.a)
+
+      val budgets = (1 to 3).map(_ => sweepPass(h))
+
+      stored(h) shouldBe None
+      h.metrics(0).getSweepOrphansEnqueued shouldBe 1L
+      budgets.head shouldBe 2 // the lock and the master re-check
+      all(budgets) should be <= 2
+    } finally h.close()
+  }
+
+  test("an index manager built directly with a sweep read budget below the minimum is refused") {
+    val ex = intercept[IllegalArgumentException](harness(sweepMaxReads = 1))
+    ex.getMessage should include("gcSweepMaxReads (1) must be >= 2")
   }
 }

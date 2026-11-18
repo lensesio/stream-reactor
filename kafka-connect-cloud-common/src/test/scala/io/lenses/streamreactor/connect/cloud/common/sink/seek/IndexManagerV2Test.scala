@@ -4910,13 +4910,13 @@ class IndexManagerV2Test
   }
 
   /**
-   * Sweep Random.shuffle fairness — with gcSweepMaxReads=1, each of 4 partitions
+   * Sweep Random.shuffle fairness — with the minimum gcSweepMaxReads, each of 4 partitions
    * must appear as the swept one across N cycles (eventually all covered).
    *
-   * Statistical test: with 4 partitions and budget=1, shuffle ensures no single partition
+   * Statistical test: with 4 partitions and the minimum budget, shuffle ensures no single partition
    * always wins. Over 50 cycles we expect all 4 to be visited at least once.
    */
-  test("sweep shuffle fairness: all partitions are eventually swept with budget=1") {
+  test("sweep shuffle fairness: all partitions are eventually swept with the minimum budget") {
     val tps             = (0 to 3).map(i => Topic("topic1").withPartition(i)).toSet
     val si              = storageMockWithBump()
     val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
@@ -4948,12 +4948,12 @@ class IndexManagerV2Test
       ),
     ).thenReturn(Right(ObjectWithETag(IndexManagerV2.SweepMarker(0L, 0L), "marker-etag")))
 
-    val im = createSweepTestManager(si, gcSweepMaxReads = 1)
+    val im = createSweepTestManager(si, gcSweepMaxReads = IndexManagerV2.MinGcSweepMaxReads)
     try {
       im.open(tps)
 
       // Run 50 cycles; collect which partitions were "swept" (had listFileMetaRecursive called).
-      // With shuffle + budget=1 per cycle, each partition should be visited at least once.
+      // With shuffle + the minimum budget per cycle, each partition should be visited at least once.
       for (_ <- 1 to 50) im.sweepOrphanedLocks()
 
       // All 4 partitions should have had at least 1 listFileMetaRecursive call across 50 cycles

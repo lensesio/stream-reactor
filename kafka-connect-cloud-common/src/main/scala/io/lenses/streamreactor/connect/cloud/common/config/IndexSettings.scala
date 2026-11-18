@@ -94,7 +94,10 @@ trait IndexConfigKeys extends WithConnectorPrefix {
   private val GC_SWEEP_MAX_READS_DOC =
     s"Maximum number of GET requests (lock file reads) per sweep cycle across all partitions. " +
       s"When the cap is exhausted, remaining partitions are deferred to the next cycle. " +
-      s"Controls the most expensive API operation during the sweep."
+      s"Controls the most expensive API operation during the sweep. Values below " +
+      s"${IndexManagerV2.MinGcSweepMaxReads} are treated as ${IndexManagerV2.MinGcSweepMaxReads}, with a warning: " +
+      s"each granular-lock sweep pass spends one read re-checking that the task still owns the partition's " +
+      s"master lock before it deletes anything, so it needs at least one more to read a lock file."
   private val GC_SWEEP_MAX_READS_DEFAULT = IndexManagerV2.DefaultGcSweepMaxReads
 
   def addIndexSettingsToConfigDef(configDef: ConfigDef): ConfigDef =
@@ -220,7 +223,14 @@ trait IndexConfigKeys extends WithConnectorPrefix {
       )
 }
 trait IndexSettings extends BaseSettings with IndexConfigKeys with LazyLogging {
-  def getIndexSettings: Option[IndexOptions] = {
+
+  /**
+   * The index settings, parsed once per config instance: a task reads them more than once while it
+   * builds its config, and the warnings below must be logged once, not once per read.
+   */
+  def getIndexSettings: Option[IndexOptions] = indexSettings
+
+  private lazy val indexSettings: Option[IndexOptions] = {
     val exactlyOnceEnabled = getBoolean(ENABLE_EXACTLY_ONCE)
     // commit.mode only has an effect when exactly-once is enabled -- with it disabled,
     // `indexOptions` is `None` below and carries no trace of what commit.mode was configured, so
@@ -240,10 +250,34 @@ trait IndexSettings extends BaseSettings with IndexConfigKeys with LazyLogging {
         getBoolean(GC_SWEEP_ENABLED),
         getInt(GC_SWEEP_INTERVAL_SECONDS),
         getInt(GC_SWEEP_MIN_AGE_SECONDS),
-        getInt(GC_SWEEP_MAX_READS),
+        sweepMaxReads(exactlyOnceEnabled),
         commitMode,
       ),
     )
+  }
+
+  /**
+   * The orphan sweep's per-pass read budget: the configured value, raised to
+   * `IndexManagerV2.MinGcSweepMaxReads`. Below it a granular sweep pass, which keeps one read back for
+   * its master-lock re-check, would read no lock at all and delete nothing while still looking healthy.
+   * Values below the minimum are kept valid so existing configs still start. The warning is only for
+   * configs where the granular sweep runs.
+   */
+  private def sweepMaxReads(exactlyOnceEnabled: Boolean): Int = {
+    val configured: Int = getInt(GC_SWEEP_MAX_READS)
+    val minimum   = IndexManagerV2.MinGcSweepMaxReads
+    val effective = math.max(configured, minimum)
+    if (
+      effective != configured && exactlyOnceEnabled && getBoolean(GC_SWEEP_ENABLED) && commitMode == CommitMode.Granular
+    ) {
+      logger.warn(
+        s"$GC_SWEEP_MAX_READS=$configured is below the minimum of $minimum the granular lock orphan sweep needs: " +
+          "each pass spends one read re-checking that this task still owns the partition's master lock before it " +
+          s"deletes anything, and needs at least one more to read a lock file. Using $effective. Set it to " +
+          s"$minimum or more to remove this warning.",
+      )
+    }
+    effective
   }
 
   private def commitMode: CommitMode = {

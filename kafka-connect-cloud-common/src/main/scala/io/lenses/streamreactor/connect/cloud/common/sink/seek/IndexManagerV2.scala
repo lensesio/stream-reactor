@@ -103,6 +103,13 @@ class IndexManagerV2(
     s"gcSweepMinAgeSeconds ($gcSweepMinAgeSeconds) must be >= gcSweepIntervalSeconds ($gcSweepIntervalSeconds)",
   )
 
+  // A smaller budget would let every sweep pass read no lock (one read is kept for the master
+  // re-check) and so delete nothing. `IndexSettings` raises a configured value below the minimum.
+  require(
+    gcSweepMaxReads >= IndexManagerV2.MinGcSweepMaxReads,
+    s"gcSweepMaxReads ($gcSweepMaxReads) must be >= ${IndexManagerV2.MinGcSweepMaxReads}",
+  )
+
   private val lockOwner = connectorTaskId.lockUuid
 
   // Thread-safe map storing the latest offset for each TopicPartition seeked during SinkTask initialization.
@@ -3059,6 +3066,13 @@ object IndexManagerV2 {
   val DefaultGcSweepIntervalSeconds: Int     = 86400
   val DefaultGcSweepMinAgeSeconds:   Int     = 86400
   val DefaultGcSweepMaxReads:        Int     = 1000
+
+  /**
+   * The smallest per-pass read budget the granular orphan sweep can work with: one read for a lock
+   * file and one for the master-lock re-check made before anything is enqueued. `IndexSettings`
+   * raises a lower configured value to this.
+   */
+  val MinGcSweepMaxReads: Int = 2
 
   /**
    * Converts a given connector task ID and topic partition into a lock file path.
