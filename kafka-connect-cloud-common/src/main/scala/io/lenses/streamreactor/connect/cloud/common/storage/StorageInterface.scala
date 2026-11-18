@@ -149,6 +149,13 @@ trait StorageInterface[SM <: FileMetadata] extends ResultProcessors {
    */
   def deleteFilesIfMatch(bucket: String, files: Seq[ConditionalDelete]): Seq[DeleteOutcome]
 
+  /**
+   * Whether [[deleteFilesIfMatch]] sends objects with distinct paths as one request (true), or one
+   * request per object in turn (false). A caller that must re-check something right before each
+   * object's delete hands a store that answers false one object per call.
+   */
+  def conditionalDeleteIsBatched: Boolean
+
   def mvFile(
     oldBucket: String,
     oldPath:   String,

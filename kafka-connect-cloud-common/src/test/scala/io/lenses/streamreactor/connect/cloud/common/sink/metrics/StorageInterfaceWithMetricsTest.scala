@@ -84,7 +84,10 @@ class StorageInterfaceWithMetricsTest
     throwOnGetBlob:       Option[Throwable]                                                       = None,
     throwOnListKeys:      Option[Throwable]                                                       = None,
     throwOnListMeta:      Option[Throwable]                                                       = None,
+    batched:              Boolean                                                                 = false,
   ) extends StorageInterface[StubFileMetadata] {
+
+    override def conditionalDeleteIsBatched: Boolean = batched
 
     private def orThrow[A](maybeThrow: Option[Throwable], value: => A): A =
       maybeThrow.fold(value)(t => throw t)
@@ -220,6 +223,17 @@ class StorageInterfaceWithMetricsTest
     val _         = decorator.deleteFile("b", "f", "etag")
 
     metrics.getStorageDeleteErrorsTotal shouldBe 1L
+  }
+
+  test("conditionalDeleteIsBatched is the delegate's") {
+    new StorageInterfaceWithMetrics(new StubStorageInterface(batched = false),
+                                    metrics,
+    ).conditionalDeleteIsBatched shouldBe
+      false
+    new StorageInterfaceWithMetrics(new StubStorageInterface(batched = true),
+                                    metrics,
+    ).conditionalDeleteIsBatched shouldBe
+      true
   }
 
   test("deleteFilesIfMatch passes outcomes through; a refusal on version or a missing object is no storage error") {

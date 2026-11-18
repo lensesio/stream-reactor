@@ -34,17 +34,19 @@ import scala.collection.mutable
 
 /**
  * The GC drain and the `put()` thread reloading a key it has queued for deletion. The drain
- * re-checks the granular cache before each delete chunk, so a key reloaded before its chunk is
- * sent keeps its lock. A reload that lands during its own chunk's delete call can still lose the
- * lock; the key's next commit then fails before anything reaches a final path, and the restarted
+ * re-checks the granular cache before each delete call (one key per call on a store that deletes
+ * one object per request), so a key reloaded before the call covering it is sent keeps its lock.
+ * A reload that lands during that one call can still lose the lock; the key's next commit then fails before anything reaches a final path, and the restarted
  * task replays from the master floor with no loss and no duplicate.
  */
 class GcReloadRaceTest extends AnyFunSuite with Matchers with EitherValues with OptionValues {
 
   private val tp = Topic("topic").withPartition(0)
 
-  test("a key reloaded while an earlier GC chunk is being deleted keeps its lock and commits") {
-    val h = new TwoInstanceHarness(gcBatchSize = 1)
+  test(
+    "on a store that deletes many objects per request, a key reloaded while an earlier GC chunk is being deleted keeps its lock and commits",
+  ) {
+    val h = new TwoInstanceHarness(gcBatchSize = 1, batchedConditionalDeletes = true)
     try {
       val first  = "date=2024-01-01"
       val second = "date=2024-01-02"
@@ -62,6 +64,51 @@ class GcReloadRaceTest extends AnyFunSuite with Matchers with EitherValues with 
 
       // A record for the second key arrives while the first chunk's delete is in flight: the put()
       // thread reloads the key, at the same version the GC item was selected at.
+      h.storage.arm(
+        OnDeleteAt(
+          h.bucket,
+          h.granularLockPath(tp, first),
+          () => {
+            h.a.getSeekedOffsetForPartitionKey(tp, second).value shouldBe Some(Offset(12))
+            ()
+          },
+        ),
+      )
+
+      h.a.drainGcQueue()
+
+      h.storage.pathExists(h.bucket, h.granularLockPath(tp, first)).value shouldBe false
+      h.readLock(h.granularLockPath(tp, second)).value.wrappedObject.committedOffset shouldBe Some(Offset(12))
+      h.a.updateForPartitionKey(tp, second, Some(Offset(25)), None).value shouldBe Some(Offset(25))
+      h.readLock(h.granularLockPath(tp, second)).value.wrappedObject.committedOffset shouldBe Some(Offset(25))
+      h.a.gcQueueSize shouldBe 0
+      h.metrics(0).getGcLocksDeleted shouldBe 1L
+      h.metrics(0).getGcLocksSkippedReclaimed shouldBe 1L
+      h.storage.deleteFilesIfMatchCalls shouldBe 1
+    } finally h.close()
+  }
+
+  test(
+    "on a store that deletes one object per request, a key reloaded while an earlier key of the same batch is deleted keeps its lock and commits",
+  ) {
+    // Default batch size: both keys fit in one batch of the drain.
+    val h = new TwoInstanceHarness()
+    try {
+      val first  = "date=2024-01-01"
+      val second = "date=2024-01-02"
+      h.a.open(Set(tp)).value
+      // Queued one after the other, so the drain takes them in this order.
+      h.a.ensureGranularLock(tp, first).value
+      h.a.updateForPartitionKey(tp, first, Some(Offset(5)), None).value
+      h.a.updateMasterLock(tp, Offset(10)).value
+      h.a.cleanUpObsoleteLocks(tp, Offset(10), Set.empty).value
+      h.a.ensureGranularLock(tp, second).value
+      h.a.updateForPartitionKey(tp, second, Some(Offset(12)), None).value
+      h.a.updateMasterLock(tp, Offset(20)).value
+      h.a.cleanUpObsoleteLocks(tp, Offset(20), Set.empty).value
+      h.a.gcQueueSize shouldBe 2
+
+      // A record for the second key arrives while the first key's delete is in flight.
       h.storage.arm(
         OnDeleteAt(
           h.bucket,

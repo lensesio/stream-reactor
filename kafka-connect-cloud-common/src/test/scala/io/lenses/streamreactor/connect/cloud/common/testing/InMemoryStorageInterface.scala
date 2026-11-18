@@ -61,14 +61,19 @@ import scala.jdk.CollectionConverters._
  *    ADLS (S3 `deleteFile` deletes by path; its `deleteFilesIfMatch` is conditional): a match
  *    deletes, a mismatch is a precondition failure (nothing deleted),
  *    a missing key is "not found" (`deleteFile` reports it as success, so replay is idempotent).
- *    `deleteFiles` is unconditional.
+ *    `deleteFiles` is unconditional. `deleteFilesIfMatch` applies one object at a time; it reports
+ *    itself batched (`conditionalDeleteIsBatched`) only with `batchedConditionalDeletes`, so a test
+ *    can drive a caller as against S3 with batch delete on.
  *
  * Crash injection is via [[arm]]: tests register one-shot `Hook` instances that fire on the
  * next matching write/upload/move/delete and are then consumed. Hooks default to none, so
  * happy-path scenarios need no setup.
  */
-class InMemoryStorageInterface(systemName: String = "in-memory", contentETags: Boolean = false)
-    extends StorageInterface[FakeFileMetadata] {
+class InMemoryStorageInterface(
+  systemName:                String  = "in-memory",
+  contentETags:              Boolean = false,
+  batchedConditionalDeletes: Boolean = false,
+) extends StorageInterface[FakeFileMetadata] {
 
   private val store: ConcurrentHashMap[(String, String), StoredBlob] =
     new ConcurrentHashMap[(String, String), StoredBlob]()
@@ -319,6 +324,8 @@ class InMemoryStorageInterface(systemName: String = "in-memory", contentETags: B
           }
         }
       }
+
+  override def conditionalDeleteIsBatched: Boolean = batchedConditionalDeletes
 
   /** Number of `deleteFilesIfMatch` calls (requests), whatever they contained. */
   def deleteFilesIfMatchCalls: Int = deletesIfMatch.get()

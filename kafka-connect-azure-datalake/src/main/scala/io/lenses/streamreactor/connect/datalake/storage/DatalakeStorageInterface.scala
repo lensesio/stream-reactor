@@ -450,6 +450,8 @@ class DatalakeStorageInterface(
   override def deleteFilesIfMatch(bucket: String, files: Seq[ConditionalDelete]): Seq[DeleteOutcome] =
     files.map(f => deletePathIfMatch(bucket, f.path, f.eTag))
 
+  override def conditionalDeleteIsBatched: Boolean = false
+
   /**
    * `deleteFileIfExistsWithResponse` with `If-Match`: `false` means there was no file. A 412 is told
    * apart by the service's error code:

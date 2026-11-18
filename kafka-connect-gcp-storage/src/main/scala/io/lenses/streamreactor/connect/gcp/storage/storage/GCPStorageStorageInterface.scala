@@ -526,6 +526,8 @@ class GCPStorageStorageInterface(
   override def deleteFilesIfMatch(bucket: String, files: Seq[ConditionalDelete]): Seq[DeleteOutcome] =
     files.map(f => deleteBlobIfGenerationMatch(bucket, f.path, f.eTag))
 
+  override def conditionalDeleteIsBatched: Boolean = false
+
   private def deleteBlobIfGenerationMatch(bucket: String, file: String, generation: String): DeleteOutcome =
     Try(generation.toLong) match {
       case Failure(ex) =>

@@ -156,6 +156,8 @@ class StorageInterfaceWithMetrics[SM <: FileMetadata](
 
   // Outcomes pass through unchanged. A precondition failure or a missing object is not a storage
   // error; any `Failed` outcome counts one error per call, the same granularity as `deleteFiles`.
+  override def conditionalDeleteIsBatched: Boolean = delegate.conditionalDeleteIsBatched
+
   override def deleteFilesIfMatch(bucket: String, files: Seq[ConditionalDelete]): Seq[DeleteOutcome] =
     try {
       val outcomes = delegate.deleteFilesIfMatch(bucket, files)

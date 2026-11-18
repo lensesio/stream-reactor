@@ -42,17 +42,20 @@ import java.util.concurrent.atomic.AtomicLong
  * minimum object age, so a test ages an object past it with `storage.setLastModified`.
  * `contentETags` makes the shared store derive eTags from the bytes written (see
  * `InMemoryStorageInterface`). `sweepMaxReads` is the orphan sweep's per-cycle GET budget;
- * `gcBatchSize` is the GC drain's delete chunk size.
+ * `gcBatchSize` is the GC drain's delete chunk size; `batchedConditionalDeletes` makes the store
+ * report its conditional deletes as one request per call, as S3 with batch delete on does, so the
+ * drain sends `.lock` items `gcBatchSize` at a time rather than one at a time.
  */
 final class TwoInstanceHarness(
-  instanceCount: Int        = 2,
-  commitMode:    CommitMode = CommitMode.Default,
-  sweepEnabled:  Boolean    = false,
-  sweepSeconds:  Int        = Int.MaxValue,
-  gcSeconds:     Int        = Int.MaxValue,
-  contentETags:  Boolean    = false,
-  sweepMaxReads: Int        = IndexManagerV2.DefaultGcSweepMaxReads,
-  gcBatchSize:   Int        = IndexManagerV2.DefaultGcBatchSize,
+  instanceCount:             Int        = 2,
+  commitMode:                CommitMode = CommitMode.Default,
+  sweepEnabled:              Boolean    = false,
+  sweepSeconds:              Int        = Int.MaxValue,
+  gcSeconds:                 Int        = Int.MaxValue,
+  contentETags:              Boolean    = false,
+  sweepMaxReads:             Int        = IndexManagerV2.DefaultGcSweepMaxReads,
+  gcBatchSize:               Int        = IndexManagerV2.DefaultGcBatchSize,
+  batchedConditionalDeletes: Boolean    = false,
   // Per-instance commit modes, by index; instances past its end use `commitMode`.
   commitModes: Seq[CommitMode] = Seq.empty,
 ) extends AutoCloseable {
@@ -62,7 +65,8 @@ final class TwoInstanceHarness(
   val directoryFileName: String = ".indexes2"
   val connectorName:     String = "ownership-two-instance"
 
-  val storage: InMemoryStorageInterface = new InMemoryStorageInterface(contentETags = contentETags)
+  val storage: InMemoryStorageInterface =
+    new InMemoryStorageInterface(contentETags = contentETags, batchedConditionalDeletes = batchedConditionalDeletes)
 
   /** Shared wall clock (epoch millis) handed to every instance; tests set it explicitly. */
   val clock: AtomicLong = new AtomicLong(1000L)

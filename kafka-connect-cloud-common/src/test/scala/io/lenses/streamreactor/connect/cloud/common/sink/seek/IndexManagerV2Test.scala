@@ -1884,11 +1884,12 @@ class IndexManagerV2Test
     }
   }
 
-  test("drainGcQueue batches deletes according to gcBatchSize") {
+  test("drainGcQueue batches deletes according to gcBatchSize on a store that deletes many objects per request") {
     val tp              = Topic("topic1").withPartition(0)
     val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
 
     val si = storageMockWithBump()
+    when(si.conditionalDeleteIsBatched).thenReturn(true)
     when(bucketAndPrefixFn(any[TopicPartition])).thenReturn(Right(bucketAndPrefix))
     when(si.pathExists(anyString(), anyString())).thenReturn(Right(false))
     when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith("0.lock"))(

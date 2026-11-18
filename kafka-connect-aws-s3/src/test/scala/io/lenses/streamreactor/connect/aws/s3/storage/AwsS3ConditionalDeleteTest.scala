@@ -120,6 +120,32 @@ class AwsS3ConditionalDeleteTest extends AnyFunSuite with Matchers with EitherVa
     storage(s3, batchDelete = false).deleteFile(bucket, "tmp/a", "e").left.value.exception shouldBe accessDenied
   }
 
+  // ---- conditionalDeleteIsBatched ---------------------------------------------------------
+
+  test("conditionalDeleteIsBatched is true only with batch delete on, as the requests sent show") {
+    val two = Seq(ConditionalDelete("a", "ea"), ConditionalDelete("b", "eb"))
+
+    val off = client()
+    Mockito.doReturn(DeleteObjectResponse.builder().build()).when(off).deleteObject(anyDelete())
+    val perObject = storage(off, batchDelete = false)
+    perObject.conditionalDeleteIsBatched shouldBe false
+    perObject.deleteFilesIfMatch(bucket, two) shouldBe Seq(DeleteOutcome.Deleted, DeleteOutcome.Deleted)
+    sentDeletes(off, 2).map(_.key()) shouldBe Seq("a", "b")
+    Mockito.verify(off, Mockito.never()).deleteObjects(anyDeletes())
+
+    val on = client()
+    Mockito.doReturn(
+      DeleteObjectsResponse.builder().deleted(DeletedObject.builder().key("a").build(),
+                                              DeletedObject.builder().key("b").build(),
+      ).build(),
+    ).when(on).deleteObjects(anyDeletes())
+    val batched = storage(on, batchDelete = true)
+    batched.conditionalDeleteIsBatched shouldBe true
+    batched.deleteFilesIfMatch(bucket, two) shouldBe Seq(DeleteOutcome.Deleted, DeleteOutcome.Deleted)
+    sentBatch(on).delete().objects().asScala.map(_.key()) shouldBe Seq("a", "b")
+    Mockito.verify(on, Mockito.never()).deleteObject(anyDelete())
+  }
+
   // ---- deleteFilesIfMatch, batch delete off ---------------------------------------------
 
   test("deleteFilesIfMatch without batch delete sends one If-Match delete per object and maps each answer") {

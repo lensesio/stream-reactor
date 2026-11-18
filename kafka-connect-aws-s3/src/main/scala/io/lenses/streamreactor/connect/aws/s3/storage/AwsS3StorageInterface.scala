@@ -305,6 +305,9 @@ class AwsS3StorageInterface(
       files.map(f => deleteObjectIfMatch(bucket, f.path, f.eTag))
     else batchDeleteFilesIfMatch(bucket, files)
 
+  /** One `DeleteObjects` request per call when batch delete is on; one `DeleteObject` per object otherwise. */
+  override def conditionalDeleteIsBatched: Boolean = batchDelete
+
   private def deleteObjectIfMatch(bucket: String, file: String, eTag: String): DeleteOutcome =
     Try {
       s3Client.deleteObject(DeleteObjectRequest.builder().bucket(bucket).key(file).ifMatch(eTag).build())

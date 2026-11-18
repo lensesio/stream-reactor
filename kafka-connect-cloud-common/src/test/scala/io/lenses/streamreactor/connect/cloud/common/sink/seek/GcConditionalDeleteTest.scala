@@ -201,20 +201,29 @@ class GcConditionalDeleteTest extends AnyFunSuite with Matchers with EitherValue
     } finally h.close()
   }
 
-  test("GC deletes of many keys go out as one conditional request per batch, each key with its own token") {
-    val h = new TwoInstanceHarness()
+  /** Three idle keys committed at 5 and queued for GC under a floor of 20; the second is then rewritten. */
+  private def threeQueuedKeysOneRewritten(h: TwoInstanceHarness): Seq[String] = {
+    h.clock.set(1000L)
+    h.a.open(Set(tp)).value
+    val keys = (1 to 3).map(n => s"date=2024-01-0$n")
+    keys.foreach { k =>
+      h.a.ensureGranularLock(tp, k).value
+      h.a.updateForPartitionKey(tp, k, Some(Offset(5)), None).value
+    }
+    h.a.updateMasterLock(tp, Offset(20)).value
+    h.a.cleanUpObsoleteLocks(tp, Offset(20), Set.empty).value
+    h.a.gcQueueSize shouldBe 3
+    // One of them is rewritten (by anyone) after it was queued.
+    h.storage.putRaw(h.bucket, h.granularLockPath(tp, keys(1)), "rewritten".getBytes)
+    keys
+  }
+
+  test(
+    "on a store that deletes many objects per request, GC deletes of many keys go out as one conditional request per batch, each key with its own token",
+  ) {
+    val h = new TwoInstanceHarness(batchedConditionalDeletes = true)
     try {
-      h.clock.set(1000L)
-      h.a.open(Set(tp)).value
-      val keys = (1 to 3).map(n => s"date=2024-01-0$n")
-      keys.foreach { k =>
-        h.a.ensureGranularLock(tp, k).value
-        h.a.updateForPartitionKey(tp, k, Some(Offset(5)), None).value
-      }
-      h.a.updateMasterLock(tp, Offset(20)).value
-      h.a.cleanUpObsoleteLocks(tp, Offset(20), Set.empty).value
-      // One of them is rewritten (by anyone) after it was queued.
-      h.storage.putRaw(h.bucket, h.granularLockPath(tp, keys(1)), "rewritten".getBytes)
+      val keys   = threeQueuedKeysOneRewritten(h)
       val before = h.storage.deleteFilesIfMatchCalls
 
       h.a.drainGcQueue()
@@ -223,6 +232,23 @@ class GcConditionalDeleteTest extends AnyFunSuite with Matchers with EitherValue
       keys.map(k => h.storage.pathExists(h.bucket, h.granularLockPath(tp, k)).value) shouldBe Seq(false, true, false)
       h.metrics(0).getGcLocksDeleted shouldBe 2L
       h.metrics(0).getGcLocksSkippedChanged shouldBe 1L
+      h.a.gcQueueSize shouldBe 0
+    } finally h.close()
+  }
+
+  test("on a store that deletes one object per request, GC sends one conditional request per key") {
+    val h = new TwoInstanceHarness()
+    try {
+      val keys   = threeQueuedKeysOneRewritten(h)
+      val before = h.storage.deleteFilesIfMatchCalls
+
+      h.a.drainGcQueue()
+
+      h.storage.deleteFilesIfMatchCalls - before shouldBe 3
+      keys.map(k => h.storage.pathExists(h.bucket, h.granularLockPath(tp, k)).value) shouldBe Seq(false, true, false)
+      h.metrics(0).getGcLocksDeleted shouldBe 2L
+      h.metrics(0).getGcLocksSkippedChanged shouldBe 1L
+      h.a.gcQueueSize shouldBe 0
     } finally h.close()
   }
 

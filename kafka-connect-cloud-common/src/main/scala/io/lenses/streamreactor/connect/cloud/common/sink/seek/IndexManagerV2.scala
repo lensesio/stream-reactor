@@ -2383,12 +2383,16 @@ class IndexManagerV2(
    * Three-phase logic:
    *  1. Poll all items from `gcQueue`, filtering out revoked partitions (no longer in
    *     `seekedOffsets`) and reclaimed keys (back in `granularCache` due to a new writer).
-   *  2. Group eligible items by bucket and chunk into batches of `gcBatchSize`.
-   *  3. Delete each batch. Right before each `.lock` chunk is sent, the reclaim filter runs again
-   *     over that chunk, so a key the `put()` thread reloaded while earlier chunks were deleted is
-   *     kept. A reload that lands during its own chunk's delete call can still lose its lock: the
-   *     key's next commit then fails its lock write before anything reaches a final path, and the
-   *     restarted task replays from the master floor. A `.lock` is deleted only while it is at
+   *  2. Group eligible items by bucket and chunk them. `.tmp` orphans go in chunks of
+   *     `gcBatchSize`. `.lock` items go in chunks of `gcBatchSize` only on a store whose conditional
+   *     multi-object delete is one request (`conditionalDeleteIsBatched`: S3 with batch delete on);
+   *     on a store that deletes one object per request (GCS, ADLS, S3 with batch delete off) each
+   *     `.lock` chunk holds one item, so every storage call is preceded by its own re-check.
+   *  3. Delete each chunk. Right before each `.lock` chunk is sent, the reclaim filter runs again
+   *     over that chunk, so a key the `put()` thread reloaded while earlier deletes were in flight
+   *     is kept. A reload that lands during the one delete call covering its key can still lose its
+   *     lock: the key's next commit then fails its lock write before anything reaches a final path,
+   *     and the restarted task replays from the master floor. A `.lock` is deleted only while it is at
    *     the version GC selected (`deleteFilesIfMatch` with the item's token): a lock another
    *     writer rewrote since is left in place and the item dropped. That is what keeps a delete
    *     selected before a handover (or before this instance reclaimed the key, which the reclaim
@@ -2464,7 +2468,10 @@ class IndexManagerV2(
               metrics.incrementGcLocksSkippedChanged(untokened.size.toLong)
               unprocessed --= untokened
             }
-            conditional.grouped(gcBatchSize).foreach { selected =>
+            // A store that deletes one object per request gets one item per call, so the re-check
+            // below runs right before each storage call, not once ahead of a run of them.
+            val lockChunkSize = if (storageInterface.conditionalDeleteIsBatched) gcBatchSize else 1
+            conditional.grouped(lockChunkSize).foreach { selected =>
               // Re-check the reclaim filter right before each chunk: the put() thread may have
               // reloaded a key while earlier chunks were being deleted. A reload reads the lock at
               // the version GC selected, so the token alone would not stop this delete.

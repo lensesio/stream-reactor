@@ -67,6 +67,9 @@ class RetryingStorageInterfaceTest extends AnyFunSuiteLike with Matchers with Be
     val deleteIfMatchCallCount: AtomicInteger = new AtomicInteger(0)
     var deleteIfMatchOutcome: DeleteOutcome =
       DeleteOutcome.Failed(FileDeleteError(new SocketException("Connection reset"), "f"))
+    var batched: Boolean = false
+
+    override def conditionalDeleteIsBatched: Boolean = batched
 
     override def deleteFilesIfMatch(bucket: String, files: Seq[ConditionalDelete]): Seq[DeleteOutcome] = {
       deleteIfMatchCallCount.incrementAndGet()
@@ -216,6 +219,14 @@ class RetryingStorageInterfaceTest extends AnyFunSuiteLike with Matchers with Be
     retrying.deleteFile("b", "file", "etag") shouldBe Left(refused)
     stub.deleteCallCount.get() shouldBe 1
     metrics.getCommitRetriesTotal shouldBe 0L
+  }
+
+  test("conditionalDeleteIsBatched is the delegate's") {
+    val stub     = new CountingStorageInterface(mvResults = Iterator.empty, deleteResults = Iterator.empty)
+    val retrying = new RetryingStorageInterface(stub, immediateConfig, alwaysTransient, metrics)
+    retrying.conditionalDeleteIsBatched shouldBe false
+    stub.batched = true
+    retrying.conditionalDeleteIsBatched shouldBe true
   }
 
   test("deleteFilesIfMatch is delegated once, without retry, whatever its outcomes") {

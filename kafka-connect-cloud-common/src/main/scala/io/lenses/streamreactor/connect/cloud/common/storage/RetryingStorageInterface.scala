@@ -202,6 +202,8 @@ class RetryingStorageInterface[SM <: FileMetadata](
   override def deleteFilesIfMatch(bucket: String, files: Seq[ConditionalDelete]): Seq[DeleteOutcome] =
     delegate.deleteFilesIfMatch(bucket, files)
 
+  override def conditionalDeleteIsBatched: Boolean = delegate.conditionalDeleteIsBatched
+
   override def createDirectoryIfNotExists(bucket: String, path: String): Either[FileCreateError, Unit] =
     delegate.createDirectoryIfNotExists(bucket, path)
 
