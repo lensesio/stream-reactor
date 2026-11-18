@@ -67,7 +67,7 @@ class WallclockPartitionKeyValidatorTest extends AnyFlatSpec with Matchers with 
 
   it should "pass when commit mode is batch, for a non-default header.prefix.name from InsertWallclockHeaders" in {
     val originals = Map(
-      "transforms"                      -> "ts",
+      "transforms"                       -> "ts",
       "transforms.ts.type"               -> "io.lenses.connect.smt.header.InsertWallclockHeaders",
       "transforms.ts.header.prefix.name" -> "wc_",
     )
@@ -118,7 +118,7 @@ class WallclockPartitionKeyValidatorTest extends AnyFlatSpec with Matchers with 
 
   it should "fail in granular mode for a non-default header.prefix.name from InsertWallclockHeaders" in {
     val originals = Map(
-      "transforms"                      -> "ts",
+      "transforms"                       -> "ts",
       "transforms.ts.type"               -> "io.lenses.connect.smt.header.InsertWallclockHeaders",
       "transforms.ts.header.prefix.name" -> "wc_",
     )
@@ -194,9 +194,9 @@ class WallclockPartitionKeyValidatorTest extends AnyFlatSpec with Matchers with 
 
   it should "handle multiple transform aliases with whitespace and only flag the wallclock one in granular mode" in {
     val originals = Map(
-      "transforms"              -> " record , wc ",
-      "transforms.record.type"  -> "io.lenses.connect.smt.header.InsertRecordTimestampHeaders",
-      "transforms.wc.type"      -> "io.lenses.connect.smt.header.InsertRollingWallclockHeaders",
+      "transforms"             -> " record , wc ",
+      "transforms.record.type" -> "io.lenses.connect.smt.header.InsertRecordTimestampHeaders",
+      "transforms.wc.type"     -> "io.lenses.connect.smt.header.InsertRollingWallclockHeaders",
     )
     val result = validate(
       commitMode = Some(CommitMode.Granular),
