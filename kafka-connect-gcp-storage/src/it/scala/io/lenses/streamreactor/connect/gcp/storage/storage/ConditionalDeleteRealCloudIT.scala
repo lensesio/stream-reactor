@@ -15,15 +15,28 @@
  */
 package io.lenses.streamreactor.connect.gcp.storage.storage
 
+import cats.data.NonEmptyList
 import com.google.cloud.storage.Storage
 import com.google.cloud.storage.Storage.BlobListOption
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
+import io.lenses.streamreactor.connect.cloud.common.model.Offset
+import io.lenses.streamreactor.connect.cloud.common.model.Topic
+import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
+import io.lenses.streamreactor.connect.cloud.common.model.UploadableFile
 import io.lenses.streamreactor.connect.cloud.common.model.UploadableString
+import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.CopyOperation
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.DeleteOperation
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.FileOperation
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.NoOverwriteExistingObject
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.PendingOperationsProcessors
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.PendingState
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.UploadOperation
 import io.lenses.streamreactor.connect.cloud.common.storage.ConditionalDelete
 import io.lenses.streamreactor.connect.cloud.common.storage.DeleteOutcome
 import io.lenses.streamreactor.connect.cloud.common.storage.DeletePreconditionFailedException
+import io.lenses.streamreactor.connect.cloud.common.storage.UploadError
 import io.lenses.streamreactor.connect.gcp.common.auth.GCPConnectionConfig
 import io.lenses.streamreactor.connect.gcp.common.auth.mode.AuthMode
 import io.lenses.streamreactor.connect.gcp.common.auth.mode.CredentialsAuthMode
@@ -41,7 +54,9 @@ import org.scalatest.matchers.should.Matchers
 
 import java.nio.file.Files
 import java.nio.file.Paths
+import java.nio.charset.StandardCharsets
 import java.util.UUID
+import scala.collection.mutable.ListBuffer
 import scala.jdk.CollectionConverters._
 import scala.util.Try
 
@@ -51,6 +66,10 @@ import scala.util.Try
  * command line (`-Dgcs.bucket=my-test-bucket`); each one falls back to an env var. See
  * [[ConditionalDeleteRealCloudIT.Usage]]. Without a bucket every test is canceled and no client is
  * built.
+ *
+ * A granular commit's chain (upload to a temp path, copy to the final path, delete the temp) also
+ * runs through `PendingOperationsProcessors`, carrying the upload's generation into the copy and the
+ * delete as `Writer.commit` does.
  *
  * The client is built by `GCPStorageClientCreator` with the connector's own auth modes:
  *  - `gcs.credentials.file`: `FileAuthMode`, a service-account key file;
@@ -208,6 +227,71 @@ class ConditionalDeleteRealCloudIT
     val error = si.deleteFile(b, k, stale).left.value
     error.exception shouldBe a[DeletePreconditionFailedException]
     si.getBlobAsString(b, k).value shouldBe "v2"
+  }
+
+  test("GCS: the commit chain uploads to a temp path, copies it to the final path and deletes the temp") {
+    val b         = bucket
+    val prefix    = key("commit-chain")
+    val temp      = s"$prefix/.temp-upload/${UUID.randomUUID()}"
+    val finalPath = s"$prefix/final/records.json"
+    val content   = s"commit chain ${UUID.randomUUID()}"
+    val local     = Files.createTempFile("commit-chain-it", ".json")
+    var uploaded  = Option.empty[String]
+    implicit val taskId: ConnectorTaskId = ConnectorTaskId("conditional-delete-it", 1, 0)
+    // The real interface; only records the token its upload returns.
+    val si = new GCPStorageStorageInterface(taskId, storage, None) {
+      override def uploadFile(source: UploadableFile, b: String, path: String): Either[UploadError, String] = {
+        val result = super.uploadFile(source, b, path)
+        uploaded = result.toOption
+        result
+      }
+    }
+    val tp              = Topic("conditional-delete-it").withPartition(0)
+    val committed       = Offset(41)
+    val pending         = Offset(42)
+    val updates         = ListBuffer.empty[(Option[Offset], Option[PendingState])]
+    var tempAfterUpload = Option.empty[Boolean]
+    val fnIndexUpdate: (TopicPartition, Option[Offset], Option[PendingState]) => Either[SinkError, Option[Offset]] =
+      (_, offset, state) => {
+        if (updates.isEmpty) tempAfterUpload = Some(exists(b, temp))
+        updates += offset -> state
+        Right(offset)
+      }
+    try {
+      Files.write(local, content.getBytes(StandardCharsets.UTF_8))
+      val ops = NonEmptyList.of[FileOperation](
+        UploadOperation(b, local.toFile, temp),
+        CopyOperation(b, temp, finalPath, "placeholder"),
+        DeleteOperation(b, temp, "placeholder"),
+      )
+
+      val result = new PendingOperationsProcessors(si).processPendingOperations(
+        tp,
+        Some(committed),
+        PendingState(pending, ops),
+        fnIndexUpdate,
+        escalateOnCancel = true,
+        stagingFile      = Some(local.toFile),
+      )
+
+      val token = uploaded.getOrElse(fail("the upload returned no token"))
+      info(s"GCS upload generation carried into the copy and the delete: $token")
+      result shouldBe Right(Some(pending))
+      tempAfterUpload shouldBe Some(true)
+      si.getBlobAsString(b, finalPath).value shouldBe content
+      exists(b, temp) shouldBe false
+      updates.toList shouldBe List(
+        Some(committed) -> Some(
+          PendingState(pending,
+                       NonEmptyList.of[FileOperation](CopyOperation(b, temp, finalPath, token),
+                                                      DeleteOperation(b, temp, token),
+                       ),
+          ),
+        ),
+        Some(committed) -> Some(PendingState(pending, NonEmptyList.of[FileOperation](DeleteOperation(b, temp, token)))),
+        Some(pending)   -> None,
+      )
+    } finally { val _ = Try(Files.deleteIfExists(local)) }
   }
 }
 

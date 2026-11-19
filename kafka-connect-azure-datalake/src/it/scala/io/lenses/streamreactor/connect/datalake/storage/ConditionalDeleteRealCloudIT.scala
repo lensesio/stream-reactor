@@ -15,16 +15,29 @@
  */
 package io.lenses.streamreactor.connect.datalake.storage
 
+import cats.data.NonEmptyList
 import com.azure.core.util.Context
 import com.azure.storage.file.datalake.DataLakeServiceClient
 import com.azure.storage.file.datalake.models.ListPathsOptions
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
+import io.lenses.streamreactor.connect.cloud.common.model.Offset
+import io.lenses.streamreactor.connect.cloud.common.model.Topic
+import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
+import io.lenses.streamreactor.connect.cloud.common.model.UploadableFile
 import io.lenses.streamreactor.connect.cloud.common.model.UploadableString
+import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.CopyOperation
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.DeleteOperation
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.FileOperation
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.NoOverwriteExistingObject
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.PendingOperationsProcessors
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.PendingState
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.UploadOperation
 import io.lenses.streamreactor.connect.cloud.common.storage.ConditionalDelete
 import io.lenses.streamreactor.connect.cloud.common.storage.DeleteOutcome
 import io.lenses.streamreactor.connect.cloud.common.storage.DeletePreconditionFailedException
+import io.lenses.streamreactor.connect.cloud.common.storage.UploadError
 import io.lenses.streamreactor.connect.datalake.auth.DatalakeClientCreator
 import io.lenses.streamreactor.connect.datalake.config.AuthMode
 import io.lenses.streamreactor.connect.datalake.config.AzureConnectionConfig
@@ -37,7 +50,10 @@ import org.scalatest.Status
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
+import java.nio.charset.StandardCharsets
+import java.nio.file.Files
 import java.util.UUID
+import scala.collection.mutable.ListBuffer
 import scala.jdk.CollectionConverters._
 import scala.util.Try
 
@@ -47,6 +63,10 @@ import scala.util.Try
  * on the sbt command line (`-Dadls.filesystem=my-test-filesystem`); each one falls back to an env
  * var. See [[ConditionalDeleteRealCloudIT.Usage]]. Without a filesystem every test is canceled and
  * no client is built.
+ *
+ * A granular commit's chain (upload to a temp path, copy to the final path, delete the temp) also
+ * runs through `PendingOperationsProcessors`, carrying the upload's eTag into the copy and the
+ * delete as `Writer.commit` does.
  *
  * The client is built by `DatalakeClientCreator` with the connector's own auth modes:
  *  - `adls.connection.string`: `AuthMode.ConnectionString`;
@@ -219,6 +239,73 @@ class ConditionalDeleteRealCloudIT
         s"read eTag=$current, equal=${listedETag.contains(current)}"
     logger.info(message)
     info(message)
+  }
+
+  test("ADLS: the commit chain uploads to a temp path, copies it to the final path and deletes the temp") {
+    val fs        = filesystem
+    val prefix    = key("commit-chain")
+    val temp      = s"$prefix/.temp-upload/${UUID.randomUUID()}"
+    val finalPath = s"$prefix/final/records.json"
+    val content   = s"commit chain ${UUID.randomUUID()}"
+    val local     = Files.createTempFile("commit-chain-it", ".json")
+    var uploaded  = Option.empty[String]
+    implicit val taskId: ConnectorTaskId = ConnectorTaskId("conditional-delete-it", 1, 0)
+    // The real interface; only records the token its upload returns.
+    val si = new DatalakeStorageInterface(taskId, client) {
+      override def uploadFile(source: UploadableFile, b: String, path: String): Either[UploadError, String] = {
+        val result = super.uploadFile(source, b, path)
+        uploaded = result.toOption
+        result
+      }
+    }
+    val tp              = Topic("conditional-delete-it").withPartition(0)
+    val committed       = Offset(41)
+    val pending         = Offset(42)
+    val updates         = ListBuffer.empty[(Option[Offset], Option[PendingState])]
+    var tempAfterUpload = Option.empty[Boolean]
+    val fnIndexUpdate: (TopicPartition, Option[Offset], Option[PendingState]) => Either[SinkError, Option[Offset]] =
+      (_, offset, state) => {
+        if (updates.isEmpty) tempAfterUpload = Some(exists(fs, temp))
+        updates += offset -> state
+        Right(offset)
+      }
+    try {
+      Files.write(local, content.getBytes(StandardCharsets.UTF_8))
+      val ops = NonEmptyList.of[FileOperation](
+        UploadOperation(fs, local.toFile, temp),
+        CopyOperation(fs, temp, finalPath, "placeholder"),
+        DeleteOperation(fs, temp, "placeholder"),
+      )
+
+      val result = new PendingOperationsProcessors(si).processPendingOperations(
+        tp,
+        Some(committed),
+        PendingState(pending, ops),
+        fnIndexUpdate,
+        escalateOnCancel = true,
+        stagingFile      = Some(local.toFile),
+      )
+
+      val token = uploaded.getOrElse(fail("the upload returned no token"))
+      info(s"ADLS upload eTag carried into the copy and the delete: $token")
+      result shouldBe Right(Some(pending))
+      tempAfterUpload shouldBe Some(true)
+      si.getBlobAsString(fs, finalPath).value shouldBe content
+      exists(fs, temp) shouldBe false
+      updates.toList shouldBe List(
+        Some(committed) -> Some(
+          PendingState(pending,
+                       NonEmptyList.of[FileOperation](CopyOperation(fs, temp, finalPath, token),
+                                                      DeleteOperation(fs, temp, token),
+                       ),
+          ),
+        ),
+        Some(committed) -> Some(PendingState(pending,
+                                             NonEmptyList.of[FileOperation](DeleteOperation(fs, temp, token)),
+        )),
+        Some(pending) -> None,
+      )
+    } finally { val _ = Try(Files.deleteIfExists(local)) }
   }
 }
 

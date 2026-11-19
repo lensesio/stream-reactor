@@ -15,12 +15,25 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.storage
 
+import cats.data.NonEmptyList
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.auth.AwsS3ClientCreator
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConnectionConfig
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.aws.s3.config.AuthMode
+import io.lenses.streamreactor.connect.cloud.common.model.Offset
+import io.lenses.streamreactor.connect.cloud.common.model.Topic
+import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
+import io.lenses.streamreactor.connect.cloud.common.model.UploadableFile
 import io.lenses.streamreactor.connect.cloud.common.model.UploadableString
+import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.CopyOperation
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.DeleteOperation
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.FileOperation
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.PendingOperationsProcessors
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.PendingState
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.UploadOperation
+import io.lenses.streamreactor.connect.cloud.common.storage.UploadError
 import io.lenses.streamreactor.connect.cloud.common.storage.ConditionalDelete
 import io.lenses.streamreactor.connect.cloud.common.storage.DeleteOutcome
 import io.lenses.streamreactor.connect.testcontainers.FlociContainer
@@ -37,14 +50,19 @@ import software.amazon.awssdk.services.s3.model.DeleteObjectRequest
 import software.amazon.awssdk.services.s3.model.ListObjectVersionsRequest
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request
 
+import java.nio.charset.StandardCharsets
+import java.nio.file.Files
 import java.util.UUID
+import scala.collection.mutable.ListBuffer
 import scala.jdk.CollectionConverters._
 import scala.util.Try
 
 /**
  * Conditional deletes through the real `AwsS3StorageInterface`: a match deletes, another version
  * is refused (412 / `PreconditionFailed`), a missing key is `NoSuchKey`. Both the single-object
- * path (batch delete off) and `DeleteObjects` (on).
+ * path (batch delete off) and `DeleteObjects` (on). A granular commit's chain (upload to a temp
+ * key, copy to the final key, delete the temp) also runs through `PendingOperationsProcessors`,
+ * carrying the upload's ETag into the copy and the delete as `Writer.commit` does.
  *
  * Target, from ScalaTest config-map arguments passed after `--` on the sbt command line, each
  * falling back to an env var (see [[ConditionalDeleteIT.Usage]]):
@@ -177,6 +195,72 @@ class ConditionalDeleteIT extends AnyFunSuite with Matchers with EitherValues wi
 
   Seq(false, true).foreach { batchDelete =>
     val mode = if (batchDelete) "DeleteObjects" else "DeleteObject"
+
+    test(s"$mode: the commit chain uploads to a temp key, copies it to the final key and deletes the temp") {
+      val prefix   = key(s"$mode/commit-chain")
+      val temp     = s"$prefix/.temp-upload/${UUID.randomUUID()}"
+      val finalKey = s"$prefix/final/records.json"
+      val content  = s"commit chain ${UUID.randomUUID()}"
+      val local    = Files.createTempFile("commit-chain-it", ".json")
+      var uploaded = Option.empty[String]
+      implicit val taskId: ConnectorTaskId = ConnectorTaskId("conditional-delete-it", 1, 0)
+      // The real interface; only records the token its upload returns.
+      val si = new AwsS3StorageInterface(taskId, client, batchDelete, None) {
+        override def uploadFile(source: UploadableFile, b: String, path: String): Either[UploadError, String] = {
+          val result = super.uploadFile(source, b, path)
+          uploaded = result.toOption
+          result
+        }
+      }
+      val tp              = Topic("conditional-delete-it").withPartition(0)
+      val committed       = Offset(41)
+      val pending         = Offset(42)
+      val updates         = ListBuffer.empty[(Option[Offset], Option[PendingState])]
+      var tempAfterUpload = Option.empty[Boolean]
+      val fnIndexUpdate: (TopicPartition, Option[Offset], Option[PendingState]) => Either[SinkError, Option[Offset]] =
+        (_, offset, state) => {
+          if (updates.isEmpty) tempAfterUpload = Some(exists(bucket, temp))
+          updates += offset -> state
+          Right(offset)
+        }
+      try {
+        Files.write(local, content.getBytes(StandardCharsets.UTF_8))
+        val ops = NonEmptyList.of[FileOperation](
+          UploadOperation(bucket, local.toFile, temp),
+          CopyOperation(bucket, temp, finalKey, "placeholder"),
+          DeleteOperation(bucket, temp, "placeholder"),
+        )
+
+        val result = new PendingOperationsProcessors(si).processPendingOperations(
+          tp,
+          Some(committed),
+          PendingState(pending, ops),
+          fnIndexUpdate,
+          escalateOnCancel = true,
+          stagingFile      = Some(local.toFile),
+        )
+
+        val token = uploaded.getOrElse(fail("the upload returned no token"))
+        info(s"S3 ($mode) upload ETag carried into the copy and the delete: $token")
+        result shouldBe Right(Some(pending))
+        tempAfterUpload shouldBe Some(true)
+        si.getBlobAsString(bucket, finalKey).value shouldBe content
+        exists(bucket, temp) shouldBe false
+        updates.toList shouldBe List(
+          Some(committed) -> Some(
+            PendingState(pending,
+                         NonEmptyList.of[FileOperation](CopyOperation(bucket, temp, finalKey, token),
+                                                        DeleteOperation(bucket, temp, token),
+                         ),
+            ),
+          ),
+          Some(committed) -> Some(PendingState(pending,
+                                               NonEmptyList.of[FileOperation](DeleteOperation(bucket, temp, token)),
+          )),
+          Some(pending) -> None,
+        )
+      } finally { val _ = Try(Files.deleteIfExists(local)) }
+    }
 
     test(s"$mode: a match deletes, another version is refused and kept, a missing key is not found") {
       val prefix  = key(s"$mode/outcomes")
