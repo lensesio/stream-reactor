@@ -28,8 +28,12 @@ import io.lenses.streamreactor.connect.cloud.common.storage.DeletePreconditionFa
 import io.lenses.streamreactor.connect.datalake.auth.DatalakeClientCreator
 import io.lenses.streamreactor.connect.datalake.config.AuthMode
 import io.lenses.streamreactor.connect.datalake.config.AzureConnectionConfig
+import org.apache.kafka.common.config.types.Password
+import org.scalatest.Args
 import org.scalatest.BeforeAndAfterAll
+import org.scalatest.ConfigMap
 import org.scalatest.EitherValues
+import org.scalatest.Status
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
@@ -39,12 +43,16 @@ import scala.util.Try
 
 /**
  * Conditional deletes through the real `DatalakeStorageInterface` against a real ADLS Gen2
- * account (not Azurite). Runs only when `CONDITIONAL_DELETE_IT_ADLS_FILESYSTEM` names an existing
- * filesystem and one of these is set:
- *  - `CONDITIONAL_DELETE_IT_ADLS_CONNECTION_STRING`: a storage account connection string;
- *  - `CONDITIONAL_DELETE_IT_ADLS_ACCOUNT`: an account name, authenticated with
- *    `DefaultAzureCredential` against `https://<account>.dfs.core.windows.net`.
- * Otherwise every test is canceled and no client is built.
+ * account (not Azurite). The target comes from ScalaTest config-map arguments, passed after `--`
+ * on the sbt command line (`-Dadls.filesystem=my-test-filesystem`); each one falls back to an env
+ * var. See [[ConditionalDeleteRealCloudIT.Usage]]. Without a filesystem every test is canceled and
+ * no client is built.
+ *
+ * The client is built by `DatalakeClientCreator` with the connector's own auth modes:
+ *  - `adls.connection.string`: `AuthMode.ConnectionString`;
+ *  - `adls.account` + `adls.account.key`: `AuthMode.Credentials` (shared key);
+ *  - `adls.account` alone: `AuthMode.Default`, `DefaultAzureCredential`.
+ * The last two use `adls.endpoint`, else `https://<account>.dfs.core.windows.net`.
  *
  * Files are written through the interface, so the Data Lake create path is the one under test.
  * Every path lives under a per-run `conditional-delete-it/<uuid>/` directory, which `afterAll`
@@ -59,25 +67,30 @@ class ConditionalDeleteRealCloudIT
 
   import ConditionalDeleteRealCloudIT._
 
-  private val configuredFilesystem: Option[String] = env(FilesystemEnv)
-  private val authMode: Option[AuthMode] =
-    env(ConnectionStringEnv).map[AuthMode](cs => AuthMode.ConnectionString(cs))
-      .orElse(env(AccountEnv).map(_ => AuthMode.Default))
   private val runPrefix = s"conditional-delete-it/${UUID.randomUUID()}"
 
-  private var client: DataLakeServiceClient = _
+  private var configMap:            ConfigMap             = ConfigMap.empty
+  private var configuredFilesystem: Option[String]        = None
+  private var client:               DataLakeServiceClient = _
+
+  // The config map is only known here; beforeAll runs inside super.run.
+  override def run(testName: Option[String], args: Args): Status = {
+    configMap = args.configMap
+    super.run(testName, args)
+  }
 
   override def beforeAll(): Unit =
-    for {
-      fs   <- configuredFilesystem
-      mode <- authMode
-    } {
-      logger.info(s"Conditional delete IT on ADLS: filesystem $fs, prefix $runPrefix")
-      val endpoint = mode match {
-        case AuthMode.Default => env(AccountEnv).map(account => s"https://$account.dfs.core.windows.net")
-        case _                => None
-      }
-      client = DatalakeClientCreator.make(AzureConnectionConfig(mode, endpoint)).fold(throw _, identity)
+    resolveTarget(configMap) match {
+      case Left(error) => throw new IllegalArgumentException(error)
+      case Right(None) => ()
+      case Right(Some(target)) =>
+        logger.info(
+          s"Conditional delete IT on ADLS: filesystem ${target.filesystem}, auth ${target.authDescription}, prefix $runPrefix",
+        )
+        client = buildClient(target.authDescription, showMessages = target.authMode == AuthMode.Default)(
+          DatalakeClientCreator.make(AzureConnectionConfig(target.authMode, target.endpoint)),
+        )
+        configuredFilesystem = Some(target.filesystem)
     }
 
   override def afterAll(): Unit =
@@ -90,10 +103,7 @@ class ConditionalDeleteRealCloudIT
 
   /** The filesystem under test; cancels the test when the target is not configured. */
   private def filesystem: String = {
-    assume(
-      configuredFilesystem.isDefined && authMode.isDefined,
-      s"set $FilesystemEnv and either $ConnectionStringEnv or $AccountEnv to run against ADLS",
-    )
+    assume(configuredFilesystem.isDefined, Usage)
     configuredFilesystem.get
   }
 
@@ -213,9 +223,98 @@ class ConditionalDeleteRealCloudIT
 }
 
 object ConditionalDeleteRealCloudIT {
-  val FilesystemEnv       = "CONDITIONAL_DELETE_IT_ADLS_FILESYSTEM"
-  val ConnectionStringEnv = "CONDITIONAL_DELETE_IT_ADLS_CONNECTION_STRING"
-  val AccountEnv          = "CONDITIONAL_DELETE_IT_ADLS_ACCOUNT"
+
+  val Usage: String =
+    "pass -Dadls.filesystem=<filesystem> after `--` (or set CONDITIONAL_DELETE_IT_ADLS_FILESYSTEM) to run against " +
+      "ADLS, plus one of: -Dadls.connection.string=<connection string>; -Dadls.account=<account> " +
+      "-Dadls.account.key=<key>; -Dadls.account=<account> alone (DefaultAzureCredential). " +
+      "Optional: -Dadls.endpoint=<dfs endpoint> for the account modes"
+
+  private val FilesystemArg       = "adls.filesystem"
+  private val ConnectionStringArg = "adls.connection.string"
+  private val AccountArg          = "adls.account"
+  private val AccountKeyArg       = "adls.account.key"
+  private val EndpointArg         = "adls.endpoint"
+  private val CredentialArgs      = Seq(ConnectionStringArg, AccountArg, AccountKeyArg)
+
+  final case class Target(
+    filesystem:      String,
+    authMode:        AuthMode,
+    endpoint:        Option[String],
+    authDescription: String,
+  ) {
+    // AuthMode.ConnectionString renders its connection string; never render it.
+    override def toString: String = s"Target($filesystem, $endpoint, $authDescription)"
+  }
+
+  /**
+   * The target from the config map, each setting falling back to its env var: `adls.filesystem`
+   * to `CONDITIONAL_DELETE_IT_ADLS_FILESYSTEM`, and so on. `Right(None)` when no filesystem is
+   * set; `Left` when the settings are given but unusable. The credentials come from the config
+   * map when it names any, otherwise from the env vars. No message carries a credential.
+   */
+  def resolveTarget(configMap: ConfigMap): Either[String, Option[Target]] = {
+    val fromArgs: String => Option[String] = arg(configMap, _)
+    val fromEnv:  String => Option[String] = name => env(envName(name))
+
+    fromArgs(FilesystemArg).orElse(fromEnv(FilesystemArg)) match {
+      case None =>
+        val passed = configMap.keys.filter(_.startsWith("adls.")).toSeq.sorted
+        if (passed.isEmpty) Right(None)
+        else Left(s"${passed.mkString(", ")} given without $FilesystemArg. $Usage")
+      case Some(fs) =>
+        val source   = if (CredentialArgs.exists(fromArgs(_).isDefined)) fromArgs else fromEnv
+        val endpoint = fromArgs(EndpointArg).orElse(fromEnv(EndpointArg))
+        authMode(source, endpoint).map { case (mode, endpoint, description) =>
+          Some(Target(fs, mode, endpoint, description))
+        }
+    }
+  }
+
+  private def authMode(
+    source:   String => Option[String],
+    endpoint: Option[String],
+  ): Either[String, (AuthMode, Option[String], String)] = {
+    def endpointFor(account: String) = endpoint.orElse(Some(s"https://$account.dfs.core.windows.net"))
+    (source(ConnectionStringArg), source(AccountArg), source(AccountKeyArg)) match {
+      case (Some(cs), None, None) =>
+        Right((AuthMode.ConnectionString(cs), None, s"connection string ($ConnectionStringArg)"))
+      case (Some(_), _, _) =>
+        Left(s"$ConnectionStringArg cannot be combined with $AccountArg or $AccountKeyArg")
+      case (None, Some(account), Some(key)) =>
+        Right((AuthMode.Credentials(account, new Password(key)),
+               endpointFor(account),
+               s"shared key for account $account",
+        ))
+      case (None, None, Some(_)) =>
+        Left(s"$AccountKeyArg needs $AccountArg")
+      case (None, Some(account), None) =>
+        Right((AuthMode.Default, endpointFor(account), s"DefaultAzureCredential for account $account"))
+      case (None, None, None) =>
+        Left(s"$FilesystemArg is set but no credentials are. $Usage")
+    }
+  }
+
+  /**
+   * Runs the connector's client creator. With a connection string or an account key, a failure
+   * reports only the exception types: a parser may quote the credential it failed on.
+   */
+  private def buildClient[A](authDescription: String, showMessages: Boolean)(make: => Either[Throwable, A]): A =
+    make.fold(
+      e => {
+        val causes = Iterator.iterate(e)(_.getCause).takeWhile(_ != null).take(10).map { c =>
+          if (showMessages) s"${c.getClass.getName}: ${c.getMessage}" else c.getClass.getName
+        }.mkString(" caused by ")
+        val note = if (showMessages) "" else " (messages omitted, they may quote the credentials)"
+        throw new IllegalStateException(s"could not build the ADLS client with $authDescription: $causes$note")
+      },
+      identity,
+    )
+
+  private def envName(arg: String): String = "CONDITIONAL_DELETE_IT_" + arg.toUpperCase.replace('.', '_')
+
+  private def arg(configMap: ConfigMap, name: String): Option[String] =
+    configMap.get(name).map(_.toString.trim).filter(_.nonEmpty)
 
   private def env(name: String): Option[String] = sys.env.get(name).map(_.trim).filter(_.nonEmpty)
 }

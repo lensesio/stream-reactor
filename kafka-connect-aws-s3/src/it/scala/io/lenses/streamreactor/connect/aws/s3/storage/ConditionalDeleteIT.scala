@@ -24,8 +24,11 @@ import io.lenses.streamreactor.connect.cloud.common.model.UploadableString
 import io.lenses.streamreactor.connect.cloud.common.storage.ConditionalDelete
 import io.lenses.streamreactor.connect.cloud.common.storage.DeleteOutcome
 import io.lenses.streamreactor.connect.testcontainers.FlociContainer
+import org.scalatest.Args
 import org.scalatest.BeforeAndAfterAll
+import org.scalatest.ConfigMap
 import org.scalatest.EitherValues
+import org.scalatest.Status
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 import software.amazon.awssdk.services.s3.S3Client
@@ -43,10 +46,13 @@ import scala.util.Try
  * is refused (412 / `PreconditionFailed`), a missing key is `NoSuchKey`. Both the single-object
  * path (batch delete off) and `DeleteObjects` (on).
  *
- * Target:
- *  - `CONDITIONAL_DELETE_IT_S3_BUCKET` set: real AWS S3, through the default credential chain and
- *    region, with no endpoint override. The bucket must exist; it is never created or deleted.
- *    `CONDITIONAL_DELETE_IT_S3_VERSIONED_BUCKET` adds the versioned-bucket cases.
+ * Target, from ScalaTest config-map arguments passed after `--` on the sbt command line, each
+ * falling back to an env var (see [[ConditionalDeleteIT.Usage]]):
+ *  - `s3.bucket` set: that existing bucket on AWS S3, never created or deleted, through a client
+ *    built by `AwsS3ClientCreator` with the connector's auth modes: `s3.access.key` +
+ *    `s3.secret.key` is `AuthMode.Credentials`, neither is `AuthMode.Default` (the default
+ *    credential chain). `s3.region`, and `s3.endpoint` + `s3.path.style` for another S3 endpoint,
+ *    are optional. `s3.versioned.bucket` adds the versioned-bucket cases.
  *  - Otherwise: the Floci emulator, in a container started for the suite.
  *
  * Every object lives under a per-run `conditional-delete-it/<uuid>/` prefix, and `afterAll`
@@ -56,41 +62,61 @@ class ConditionalDeleteIT extends AnyFunSuite with Matchers with EitherValues wi
 
   import ConditionalDeleteIT._
 
-  private val realBucket:      Option[String] = env(S3BucketEnv)
-  private val versionedBucket: Option[String] = realBucket.flatMap(_ => env(S3VersionedBucketEnv))
-  private val onRealAws:       Boolean        = realBucket.isDefined
+  private var configMap: ConfigMap              = ConfigMap.empty
+  private var target:    Option[Target]         = None
+  private var emulator:  Option[FlociContainer] = None
 
-  // Only built (and started) when the suite runs on the emulator.
-  private lazy val container = new FlociContainer()
-  private val bucket         = realBucket.getOrElse("conditional-delete-it")
-  private val runPrefix      = s"conditional-delete-it/${UUID.randomUUID()}"
+  private def realBucket:      Option[String] = target.map(_.bucket)
+  private def versionedBucket: Option[String] = target.flatMap(_.versionedBucket)
+  private def onRealAws:       Boolean        = target.isDefined
+  private def bucket:          String         = realBucket.getOrElse("conditional-delete-it")
+  private val runPrefix = s"conditional-delete-it/${UUID.randomUUID()}"
 
   private var client: S3Client = _
 
+  // The config map is only known here; beforeAll runs inside super.run.
+  override def run(testName: Option[String], args: Args): Status = {
+    configMap = args.configMap
+    super.run(testName, args)
+  }
+
   override def beforeAll(): Unit =
-    if (onRealAws) {
-      logger.info(s"Conditional delete IT on AWS S3: bucket $bucket, prefix $runPrefix")
-      client = AwsS3ClientCreator.make(
-        S3ConnectionConfig(
-          region    = env("AWS_REGION"),
-          accessKey = None,
-          secretKey = None,
-          authMode  = AuthMode.Default,
-        ),
-      ).fold(throw _, identity)
-    } else {
-      container.start()
-      client = AwsS3ClientCreator.make(
-        S3ConnectionConfig(
-          region          = Some(FlociContainer.Region),
-          accessKey       = Some(FlociContainer.AccessKey),
-          secretKey       = Some(FlociContainer.SecretKey),
-          authMode        = AuthMode.Credentials,
-          customEndpoint  = Some(container.getEndpointUrl.toString),
-          pathStyleAccess = Some(true),
-        ),
-      ).fold(throw _, identity)
-      val _ = client.createBucket(CreateBucketRequest.builder().bucket(bucket).build())
+    resolveTarget(configMap) match {
+      case Left(error) => throw new IllegalArgumentException(error)
+      case Right(Some(t)) =>
+        target = Some(t)
+        logger.info(
+          s"Conditional delete IT on S3: bucket ${t.bucket}, versioned bucket ${t.versionedBucket.getOrElse("<none>")}, " +
+            s"region ${t.region.getOrElse("<SDK default>")}, endpoint ${t.endpoint.getOrElse("<AWS>")}, " +
+            s"auth ${t.authDescription}, prefix $runPrefix",
+        )
+        client = buildClient(t.authDescription, showMessages = t.authMode == AuthMode.Default)(
+          AwsS3ClientCreator.make(
+            S3ConnectionConfig(
+              region          = t.region,
+              accessKey       = t.accessKey,
+              secretKey       = t.secretKey,
+              authMode        = t.authMode,
+              customEndpoint  = t.endpoint,
+              pathStyleAccess = t.pathStyle,
+            ),
+          ),
+        )
+      case Right(None) =>
+        val container = new FlociContainer()
+        emulator = Some(container)
+        container.start()
+        client = AwsS3ClientCreator.make(
+          S3ConnectionConfig(
+            region          = Some(FlociContainer.Region),
+            accessKey       = Some(FlociContainer.AccessKey),
+            secretKey       = Some(FlociContainer.SecretKey),
+            authMode        = AuthMode.Credentials,
+            customEndpoint  = Some(container.getEndpointUrl.toString),
+            pathStyleAccess = Some(true),
+          ),
+        ).fold(throw _, identity)
+        val _ = client.createBucket(CreateBucketRequest.builder().bucket(bucket).build())
     }
 
   override def afterAll(): Unit =
@@ -101,7 +127,7 @@ class ConditionalDeleteIT extends AnyFunSuite with Matchers with EitherValues wi
       }
     } finally {
       try Option(client).foreach(_.close())
-      finally if (!onRealAws) container.stop()
+      finally emulator.foreach(_.stop())
     }
 
   /** Deletes every key under the run prefix. Never fails the suite. */
@@ -183,7 +209,9 @@ class ConditionalDeleteIT extends AnyFunSuite with Matchers with EitherValues wi
     }
 
     test(s"$mode on a versioned bucket: a match leaves a delete marker, a stale eTag is refused") {
-      assume(versionedBucket.isDefined, s"set $S3BucketEnv and $S3VersionedBucketEnv to run on a versioned bucket")
+      assume(versionedBucket.isDefined,
+             s"pass -D$BucketArg and -D$VersionedBucketArg to run on a versioned bucket. $Usage",
+      )
       val vb     = versionedBucket.get
       val prefix = key(s"versioned/$mode")
       val si     = storage(batchDelete)
@@ -215,7 +243,7 @@ class ConditionalDeleteIT extends AnyFunSuite with Matchers with EitherValues wi
   }
 
   test("AWS S3: one DeleteObjects request reports a match, a stale eTag and a missing key per entry") {
-    assume(onRealAws, s"set $S3BucketEnv to run against AWS S3")
+    assume(onRealAws, s"pass -D$BucketArg to run against AWS S3. $Usage")
     val prefix  = key("aws-batch")
     val matched = put(bucket, s"$prefix/matched", "v1")
     val stale   = staleToken(bucket, s"$prefix/changed")
@@ -239,11 +267,112 @@ class ConditionalDeleteIT extends AnyFunSuite with Matchers with EitherValues wi
 }
 
 object ConditionalDeleteIT {
-  val S3BucketEnv          = "CONDITIONAL_DELETE_IT_S3_BUCKET"
-  val S3VersionedBucketEnv = "CONDITIONAL_DELETE_IT_S3_VERSIONED_BUCKET"
+
+  val Usage: String =
+    "pass -Ds3.bucket=<bucket> after `--` (or set CONDITIONAL_DELETE_IT_S3_BUCKET) to run against AWS S3 instead " +
+      "of the emulator; optional: -Ds3.versioned.bucket=<versioned bucket>, -Ds3.region=<region>, " +
+      "-Ds3.access.key=<key id> -Ds3.secret.key=<secret> (neither: the default credential chain), " +
+      "-Ds3.endpoint=<url> -Ds3.path.style=true|false"
+
+  private val BucketArg          = "s3.bucket"
+  private val VersionedBucketArg = "s3.versioned.bucket"
+  private val RegionArg          = "s3.region"
+  private val AccessKeyArg       = "s3.access.key"
+  private val SecretKeyArg       = "s3.secret.key"
+  private val EndpointArg        = "s3.endpoint"
+  private val PathStyleArg       = "s3.path.style"
+
+  final case class Target(
+    bucket:          String,
+    versionedBucket: Option[String],
+    region:          Option[String],
+    endpoint:        Option[String],
+    pathStyle:       Option[Boolean],
+    authMode:        AuthMode,
+    accessKey:       Option[String],
+    secretKey:       Option[String],
+    authDescription: String,
+  ) {
+    // Holds the secret key; never render it.
+    override def toString: String =
+      s"Target($bucket, $versionedBucket, $region, $endpoint, $pathStyle, $authDescription)"
+  }
+
+  /**
+   * The real-S3 target from the config map, each setting falling back to its env var:
+   * `s3.bucket` to `CONDITIONAL_DELETE_IT_S3_BUCKET`, and so on (`s3.region` also to
+   * `AWS_REGION`). `Right(None)` runs on the emulator; `Left` when the settings are given but
+   * unusable. The keys come from the config map when it names either, otherwise from the env vars.
+   * No message carries a credential.
+   */
+  def resolveTarget(configMap: ConfigMap): Either[String, Option[Target]] = {
+    val fromArgs: String => Option[String] = arg(configMap, _)
+    val fromEnv:  String => Option[String] = name => env(envName(name))
+    def setting(name: String, extraEnv: String*): Option[String] =
+      fromArgs(name).orElse(fromEnv(name)).orElse(extraEnv.view.flatMap(env).headOption)
+
+    setting(BucketArg) match {
+      case None =>
+        val passed = configMap.keys.filter(_.startsWith("s3.")).toSeq.sorted
+        if (passed.isEmpty) Right(None)
+        else Left(s"${passed.mkString(", ")} given without $BucketArg. $Usage")
+      case Some(b) =>
+        val source = if (fromArgs(AccessKeyArg).isDefined || fromArgs(SecretKeyArg).isDefined) fromArgs else fromEnv
+        for {
+          pathStyle <- setting(PathStyleArg).map(_.toLowerCase) match {
+            case None          => Right(None)
+            case Some("true")  => Right(Some(true))
+            case Some("false") => Right(Some(false))
+            case Some(other)   => Left(s"$PathStyleArg must be true or false, got $other")
+          }
+          auth <- (source(AccessKeyArg), source(SecretKeyArg)) match {
+            case (Some(access), Some(secret)) =>
+              Right((AuthMode.Credentials, Some(access), Some(secret), s"static keys ($AccessKeyArg, $SecretKeyArg)"))
+            case (None, None) => Right((AuthMode.Default, None, None, "default credential chain"))
+            case _            => Left(s"set both $AccessKeyArg and $SecretKeyArg, or neither")
+          }
+        } yield {
+          val (mode, access, secret, description) = auth
+          Some(
+            Target(
+              b,
+              setting(VersionedBucketArg),
+              setting(RegionArg, "AWS_REGION"),
+              setting(EndpointArg),
+              pathStyle,
+              mode,
+              access,
+              secret,
+              description,
+            ),
+          )
+        }
+    }
+  }
+
+  /**
+   * Runs the connector's client creator. With static keys, a failure reports only the exception
+   * types, so no message can quote a key.
+   */
+  private def buildClient[A](authDescription: String, showMessages: Boolean)(make: => Either[Throwable, A]): A =
+    make.fold(
+      e => {
+        val causes = Iterator.iterate(e)(_.getCause).takeWhile(_ != null).take(10).map { c =>
+          if (showMessages) s"${c.getClass.getName}: ${c.getMessage}" else c.getClass.getName
+        }.mkString(" caused by ")
+        val note = if (showMessages) "" else " (messages omitted, they may quote the credentials)"
+        throw new IllegalStateException(s"could not build the S3 client with $authDescription: $causes$note")
+      },
+      identity,
+    )
 
   // A well-formed eTag no object has: deleteFile on S3 deletes by path and ignores it.
   private val ArbitraryETag = "\"0123456789abcdef0123456789abcdef\""
+
+  private def envName(arg: String): String = "CONDITIONAL_DELETE_IT_" + arg.toUpperCase.replace('.', '_')
+
+  private def arg(configMap: ConfigMap, name: String): Option[String] =
+    configMap.get(name).map(_.toString.trim).filter(_.nonEmpty)
 
   private def env(name: String): Option[String] = sys.env.get(name).map(_.trim).filter(_.nonEmpty)
 }
