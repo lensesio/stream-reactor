@@ -450,7 +450,7 @@ The shared `CloudPlatformEmulatorSuite` trait wires container lifecycle and prov
 
 ### Real-cloud conditional-delete checks
 
-The conditional-delete contract (`deleteFilesIfMatch`, `deleteFile`, `conditionalDeleteIsBatched`) can be checked against real AWS S3, GCS and ADLS Gen2 with one sbt command per cloud. The target and the credentials are ScalaTest config-map arguments, passed after `--` on the `testOnly` command as `-D<name>=<value>`:
+The conditional-delete contract (`deleteFilesIfMatch`, `deleteFile`, `conditionalDeleteIsBatched`) and the granular commit chain can be checked against real AWS S3, GCS and ADLS Gen2 with one sbt command per cloud. The target and the credentials are ScalaTest config-map arguments, passed after `--` on the `testOnly` command as `-D<name>=<value>`:
 
 - Without arguments (and without the fallback env vars below), CI and a plain `sbt it:test` never touch a cloud account. No cloud client is built.
   - [`ConditionalDeleteIT`](../kafka-connect-aws-s3/src/it/scala/io/lenses/streamreactor/connect/aws/s3/storage/ConditionalDeleteIT.scala) (S3) runs on the Floci emulator, and its real-cloud-only cases report as canceled.
@@ -562,6 +562,13 @@ What they assert:
     - the eTags from `writeBlobToFile` and from a read are both accepted by the delete. Whether the two are equal is printed, not asserted;
     - a stale eTag on a path that still exists is `PreconditionFailed`.
   - An informational line records whether `listPaths` returns an eTag for a written file, and whether it equals the read eTag.
+- **The granular commit chain**, on all three (on S3 in both delete modes, on Floci too): `PendingOperationsProcessors.processPendingOperations` runs the chain `Writer.commit` builds, `[Upload(local file -> <prefix>/.temp-upload/<uuid>), Copy(temp -> final, "placeholder"), Delete(temp, "placeholder")]`, with `escalateOnCancel = true` and a recording index update, against the real storage interface:
+  - the call returns `Right` with the pending offset;
+  - the temp object exists after the upload; afterwards the final object holds the local file's exact content and the temp is gone;
+  - the index updates show the chain's progress: after the upload `[Copy, Delete]`, after the copy `[Delete]`, both at the committed offset and carrying the upload's token; the last update clears the pending state and commits the pending offset;
+  - the token carried into the copy and the delete is the one the upload returned (the ETag on S3, the generation on GCS, the eTag on ADLS). It is printed.
+
+  On all three, `mvFile` moves the object, so the copy already removes the temp and the chain's delete finds it gone. The test shows that a delete with the upload's token then succeeds, so the chain does not stop on a pending Delete. On S3 the delete is by path and sends no `If-Match`; [`AwsS3ConditionalDeleteTest`](../kafka-connect-aws-s3/src/test/scala/io/lenses/streamreactor/connect/aws/s3/storage/AwsS3ConditionalDeleteTest.scala) "deleteFile deletes by path and sends no If-Match" checks that on the request.
 
 ---
 
