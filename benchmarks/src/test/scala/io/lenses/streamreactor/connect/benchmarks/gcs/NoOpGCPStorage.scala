@@ -149,6 +149,9 @@ class NoOpGCPStorage(simulatedLatencyMillis: Long = 0L) extends StorageInterface
     files.map(_ => DeleteOutcome.Deleted)
   }
 
+  // GCS deletes one object per request.
+  override def conditionalDeleteIsBatched: Boolean = false
+
   override def mvFile(
     oldBucket: String,
     oldPath:   String,
