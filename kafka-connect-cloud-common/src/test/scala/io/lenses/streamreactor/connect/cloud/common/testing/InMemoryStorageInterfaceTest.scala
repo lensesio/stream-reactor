@@ -176,7 +176,9 @@ class InMemoryStorageInterfaceTest extends AnyFunSuiteLike with Matchers with Ei
     fake.pathExists(Bucket, "k").value shouldBe false
   }
 
-  test("deleteFilesIfMatch reports one outcome per object, in order, and deletes only the matching ones") {
+  test(
+    "deleteFilesIfMatch deletes only the matching objects, one outcome per object in order; deleteFiles is unconditional",
+  ) {
     val fake = newFake()
     val _    = fake.uploadFile(UploadableFile(writeTempFile("a")), Bucket, "a").value
     val _    = fake.uploadFile(UploadableFile(writeTempFile("b")), Bucket, "b").value
@@ -191,34 +193,28 @@ class InMemoryStorageInterfaceTest extends AnyFunSuiteLike with Matchers with Ei
     fake.pathExists(Bucket, "a").value shouldBe false
     stored(fake, "b") shouldBe bTag
     fake.deleteFilesIfMatchCalls shouldBe 1
+
+    // The unconditional delete takes the object the conditional one refused, and a missing key.
+    fake.deleteFiles(Bucket, Seq("b", "ghost")) shouldBe Right(())
+    fake.pathExists(Bucket, "b").value shouldBe false
   }
 
   test("deleteFilesIfMatch honours the delete hooks per object") {
     val fake = newFake()
     val _    = fake.uploadFile(UploadableFile(writeTempFile("a")), Bucket, "a").value
     val _    = fake.uploadFile(UploadableFile(writeTempFile("b")), Bucket, "b").value
-    val _    = fake.uploadFile(UploadableFile(writeTempFile("c")), Bucket, "c").value
-    val tags = Seq("a", "b", "c").map(k => k -> stored(fake, k)).toMap
+    val tags = Seq("a", "b").map(k => k -> stored(fake, k)).toMap
     // Rewritten between the caller's read and the delete: the delete must see the new version.
     fake.arm(OnDeleteAt(Bucket, "a", () => fake.putRaw(Bucket, "a", "rewritten".getBytes)))
     fake.arm(FailDeleteAt(Bucket, "b"))
-    fake.arm(PreconditionFailDeleteAt(Bucket, "c"))
 
-    val outcomes = fake.deleteFilesIfMatch(Bucket, Seq("a", "b", "c").map(k => ConditionalDelete(k, tags(k))))
+    val outcomes = fake.deleteFilesIfMatch(Bucket, Seq("a", "b").map(k => ConditionalDelete(k, tags(k))))
 
     outcomes.head shouldBe DeleteOutcome.PreconditionFailed
     outcomes(1) shouldBe a[DeleteOutcome.Failed]
-    outcomes(2) shouldBe DeleteOutcome.PreconditionFailed
-    Seq("a", "b", "c").map(fake.pathExists(Bucket, _).value) shouldBe Seq(true, true, true)
-    // Hooks are one-shot: the next conditional delete of c goes through.
-    fake.deleteFilesIfMatch(Bucket, Seq(ConditionalDelete("c", tags("c")))) shouldBe Seq(DeleteOutcome.Deleted)
-  }
-
-  test("deleteFiles stays unconditional") {
-    val fake = newFake()
-    val _    = fake.uploadFile(UploadableFile(writeTempFile("a")), Bucket, "a").value
-    fake.deleteFiles(Bucket, Seq("a", "ghost")) shouldBe Right(())
-    fake.pathExists(Bucket, "a").value shouldBe false
+    Seq("a", "b").map(fake.pathExists(Bucket, _).value) shouldBe Seq(true, true)
+    // Hooks are one-shot: the next conditional delete of b goes through.
+    fake.deleteFilesIfMatch(Bucket, Seq(ConditionalDelete("b", tags("b")))) shouldBe Seq(DeleteOutcome.Deleted)
   }
 
   test("listKeysRecursive returns only the keys under the prefix") {

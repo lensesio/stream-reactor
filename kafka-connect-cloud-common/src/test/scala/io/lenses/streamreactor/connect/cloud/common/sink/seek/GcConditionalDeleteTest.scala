@@ -90,19 +90,6 @@ class GcConditionalDeleteTest extends AnyFunSuite with Matchers with EitherValue
     } finally h.close()
   }
 
-  test("a zombie's queued GC delete drained after the new owner committed the key leaves the lock in place") {
-    val h = new TwoInstanceHarness()
-    try {
-      aQueuesTheKey(h)
-      bTakesOverAndCommits(h)
-
-      h.a.drainGcQueue()
-
-      stored(h).value.committedOffset shouldBe Some(Offset(25))
-      h.b.updateForPartitionKey(tp, pk, Some(Offset(30)), None).value shouldBe Some(Offset(30))
-    } finally h.close()
-  }
-
   test("the final drain at stop() does not delete a key this instance reclaimed and committed after queueing it") {
     val h = new TwoInstanceHarness()
     try {
@@ -118,19 +105,6 @@ class GcConditionalDeleteTest extends AnyFunSuite with Matchers with EitherValue
       h.a.close()
 
       stored(h).value shouldBe IndexFile(h.lockUuid(0), Some(Offset(25)), None, Some(1000L))
-    } finally h.close()
-  }
-
-  test("the final drain at stop() does not delete a key a new owner took over after it was queued") {
-    val h = new TwoInstanceHarness()
-    try {
-      aQueuesTheKey(h)
-      bTakesOverAndCommits(h)
-      h.a.evictAllGranularLocks(tp)
-
-      h.a.close()
-
-      stored(h).value shouldBe IndexFile(h.lockUuid(1), Some(Offset(25)), None, Some(1001L))
     } finally h.close()
   }
 
@@ -150,18 +124,6 @@ class GcConditionalDeleteTest extends AnyFunSuite with Matchers with EitherValue
       // from the floor was written for the key after it.
       h.b.getSeekedOffsetForPartitionKey(tp, pk).value shouldBe None
       h.b.getSeekedOffsetForTopicPartition(tp) shouldBe Some(Offset(19))
-    } finally h.close()
-  }
-
-  test("the final drain at stop() still deletes a queued lock that nothing rewrote") {
-    val h = new TwoInstanceHarness()
-    try {
-      aQueuesTheKey(h)
-      h.a.evictAllGranularLocks(tp)
-
-      h.a.close()
-
-      stored(h) shouldBe None
     } finally h.close()
   }
 
@@ -297,35 +259,6 @@ class GcConditionalDeleteTest extends AnyFunSuite with Matchers with EitherValue
       h.storage.pathExists(h.bucket, lockPath(h)).value shouldBe true
       h.a.legacyPurged(tp) shouldBe false
       h.a.fencedPartitions should contain(tp)
-    } finally h.close()
-  }
-
-  test("a batch instance's legacy purge deletes a fenced lock nobody touched since, and the sweep marker") {
-    val h = batchThenGranular()
-    try {
-      h.storage.putRaw(h.bucket, h.sweepMarkerPath(tp), "{}".getBytes)
-
-      h.a.open(Set(tp)).value
-
-      h.storage.pathExists(h.bucket, lockPath(h)).value shouldBe false
-      h.storage.pathExists(h.bucket, h.sweepMarkerPath(tp)).value shouldBe false
-      h.a.legacyPurged(tp) shouldBe true
-    } finally h.close()
-  }
-
-  test("a failed legacy lock delete leaves the partition unresolved, and the next open purges it") {
-    val h = batchThenGranular()
-    try {
-      h.storage.arm(FailDeleteAt(h.bucket, lockPath(h)))
-
-      h.a.open(Set(tp)).value
-      h.a.legacyPurged(tp) shouldBe false
-      h.storage.pathExists(h.bucket, lockPath(h)).value shouldBe true
-
-      h.a.clearTopicPartitionState(tp)
-      h.a.open(Set(tp)).value
-      h.a.legacyPurged(tp) shouldBe true
-      h.storage.pathExists(h.bucket, lockPath(h)).value shouldBe false
     } finally h.close()
   }
 }

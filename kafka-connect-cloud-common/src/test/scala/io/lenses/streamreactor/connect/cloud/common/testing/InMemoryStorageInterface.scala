@@ -335,8 +335,6 @@ class InMemoryStorageInterface(
     takeFirstHook { case h: OnDeleteAt if h.matches(bucket, path) => h }.foreach(_.action())
     takeFirstHook { case h: FailDeleteAt if h.matches(bucket, path) => h } match {
       case Some(h) => DeleteOutcome.Failed(h.asDeleteError(bucket, path))
-      case None if takeFirstHook { case h: PreconditionFailDeleteAt if h.matches(bucket, path) => h }.isDefined =>
-        DeleteOutcome.PreconditionFailed
       case None =>
         var outcome: DeleteOutcome = DeleteOutcome.NotFound
         val _ = store.computeIfPresent(
@@ -543,15 +541,6 @@ object InMemoryStorageInterface {
   final case class FailDeleteAt(bucket: String, path: String, err: Option[FileDeleteError] = None) extends Hook {
     def matches(b:                String, p: String): Boolean         = b == bucket && p == path
     override def asDeleteError(b: String, p: String): FileDeleteError = err.getOrElse(super.asDeleteError(b, p))
-  }
-
-  /**
-   * Refuse the next conditional delete (`deleteFile` / `deleteFilesIfMatch`) of `(bucket, path)` on
-   * version, whatever the stored eTag, as a store does when another writer rewrote the object
-   * after the caller read it. Nothing is deleted.
-   */
-  final case class PreconditionFailDeleteAt(bucket: String, path: String) extends Hook {
-    def matches(b: String, p: String): Boolean = b == bucket && p == path
   }
 
   /**

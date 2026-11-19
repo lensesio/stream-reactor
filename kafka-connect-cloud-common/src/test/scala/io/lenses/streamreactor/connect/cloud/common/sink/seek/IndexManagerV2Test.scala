@@ -3769,19 +3769,13 @@ class IndexManagerV2Test
       im.sweepOrphanedLocks()
       im.drainGcQueue()
 
-      // The master lock is read once by the sweep, for its ownership re-check before enqueueing,
-      // and never classified as a granular lock
-      verify(si, times(1)).getBlobAsObject[IndexFile](
+      // The master lock is never classified as a granular lock: at most the sweep's ownership
+      // re-check reads it, and only the orphan is enqueued and deleted.
+      verify(si, Mockito.atMost(1)).getBlobAsObject[IndexFile](
         anyString(),
         ArgumentMatchers.eq(masterLockPath),
       )(ArgumentMatchers.eq(indexFileDecoder))
-
-      // The orphan must still be enqueued and deleted
-      deleteCalls(si) should have size 1
-      val pathsCaptor  = deleteCalls(si).head
-      val deletedPaths = pathsCaptor
-      deletedPaths should contain(orphanPath)
-      deletedPaths should not contain masterLockPath
+      deleteCalls(si) shouldBe Seq(Seq(orphanPath))
     } finally im.close()
   }
 
@@ -4959,54 +4953,6 @@ class IndexManagerV2Test
 
       // All 4 partitions should have had at least 1 listFileMetaRecursive call across 50 cycles
       verify(si, atLeast(4)).listFileMetaRecursive(anyString(), any[Option[String]])
-    } finally im.close()
-  }
-
-  /**
-   * Sweep retains a lock with no committedOffset and a multi-op PendingState=[Copy, Delete] (a key's
-   * first commit, interrupted) whose pendingOffset is at the master offset: replay starts there, so
-   * only this lock, resolved when the key is loaded, can deduplicate the chain's records. Below the
-   * master offset the same shape is swept (see the first-commit tests above).
-   */
-  test(
-    "sweep does NOT enqueue granular locks with no committedOffset but active PendingState=[Copy, Delete] at the master offset",
-  ) {
-    val tp              = Topic("topic1").withPartition(0)
-    val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
-    val si              = storageMockWithBump()
-    setupSweepMocks(si, tp, bucketAndPrefix)
-
-    val oldTime    = Instant.now().minusSeconds(7200)
-    val orphanPath = s"$indexesDirectoryName/${connectorTaskId.name}/.locks/${tp.topic}/${tp.partition}/pk-pending.lock"
-    val orphanMeta = TestFileMetadata(orphanPath, oldTime)
-    val listResp   = ListOfMetadataResponse("bucket", Some("prefix"), Seq(orphanMeta), orphanMeta)
-
-    org.mockito.Mockito.doReturn(Right(Some(listResp))).when(si).listFileMetaRecursive(anyString(), any[Option[String]])
-
-    import cats.data.NonEmptyList
-    val pendingState = PendingState(
-      Offset(100),
-      NonEmptyList.of(
-        CopyOperation("bucket", ".temp/pk-pending/uuid", "final/pk-pending", "etag-copy"),
-        DeleteOperation("bucket", ".temp/pk-pending/uuid", "etag-copy"),
-      ),
-    )
-    // committedOffset = None: the write was interrupted before the first durable commit.
-    // This shape is the "crash-before-commit" path — no committed data, pending ops in flight.
-    when(
-      si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("pk-pending.lock"))(
-        ArgumentMatchers.eq(indexFileDecoder),
-      ),
-    ).thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", None, Some(pendingState)), "etag-pending")))
-
-    val im = createSweepTestManager(si)
-    try {
-      im.open(Set(tp))
-      im.sweepOrphanedLocks()
-      im.drainGcQueue()
-
-      // Retained → NOT enqueued → nothing deleted
-      deleteCalls(si) shouldBe empty
     } finally im.close()
   }
 

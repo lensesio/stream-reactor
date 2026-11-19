@@ -71,7 +71,10 @@ class GCPStorageConditionalDeleteTest extends AnyFunSuite with Matchers with Eit
       Map("a" -> (() => true), "b" -> fails(412), "c" -> (() => false), "d" -> fails(404), "e" -> fails(403)),
     )
 
-    val outcomes = storage(stub.client).deleteFilesIfMatch(
+    val si = storage(stub.client)
+    si.conditionalDeleteIsBatched shouldBe false
+
+    val outcomes = si.deleteFilesIfMatch(
       bucket,
       Seq("a" -> "1", "b" -> "2", "c" -> "3", "d" -> "4", "e" -> "5").map { case (p, g) => ConditionalDelete(p, g) },
     )
@@ -88,15 +91,6 @@ class GCPStorageConditionalDeleteTest extends AnyFunSuite with Matchers with Eit
     stub.calls.toSeq shouldBe Seq("a" -> 1L, "b" -> 2L, "c" -> 3L, "d" -> 4L, "e" -> 5L).map {
       case (p, g) => "delete" -> Seq(BlobId.of(bucket, p), BlobSourceOption.generationMatch(g))
     }
-  }
-
-  test("conditionalDeleteIsBatched is false: each object is its own request") {
-    val stub = new RecordingStorage(Map("a" -> (() => true), "b" -> (() => true)))
-    val si   = storage(stub.client)
-    si.conditionalDeleteIsBatched shouldBe false
-    si.deleteFilesIfMatch(bucket, Seq(ConditionalDelete("a", "1"), ConditionalDelete("b", "2"))) shouldBe
-      Seq(DeleteOutcome.Deleted, DeleteOutcome.Deleted)
-    stub.calls.map(_._1) shouldBe Seq("delete", "delete")
   }
 
   test("a token that is not a generation fails that object without a request") {

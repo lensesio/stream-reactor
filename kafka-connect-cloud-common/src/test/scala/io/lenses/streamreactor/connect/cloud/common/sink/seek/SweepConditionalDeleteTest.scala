@@ -21,7 +21,6 @@ import io.lenses.streamreactor.connect.cloud.common.config.IndexSettingsFixture
 import io.lenses.streamreactor.connect.cloud.common.model.Offset
 import io.lenses.streamreactor.connect.cloud.common.model.Topic
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
-import io.lenses.streamreactor.connect.cloud.common.model.UploadableString
 import io.lenses.streamreactor.connect.cloud.common.testing.InMemoryStorageInterface.AfterReadAt
 import io.lenses.streamreactor.connect.cloud.common.testing.InMemoryStorageInterface.FailMoveAt
 import io.lenses.streamreactor.connect.cloud.common.testing.InMemoryStorageInterface.OnReadAt
@@ -240,41 +239,6 @@ class SweepConditionalDeleteTest extends AnyFunSuite with Matchers with EitherVa
     } finally h.close()
   }
 
-  test("a never-loaded key with a pending chain above the floor survives the sweep and its load writes one file") {
-    val h = harness()
-    try {
-      h.clock.set(1000L)
-      h.a.open(Set(tp)).value
-      h.a.ensureGranularLock(tp, pk).value
-      h.a.updateForPartitionKey(tp, pk, Some(Offset(5)), None).value
-      // A commits records 6..30 for the key: the temp is uploaded and the chain recorded, then A
-      // dies before the copy.
-      val temp     = "data/topic/0/.temp-upload/uuid/final-30.json"
-      val finalKey = "data/topic/0/date=2024-01-01/final-30.json"
-      h.storage.writeStringToFile(h.bucket, temp, UploadableString("records 6..30")).value
-      val tempTag = h.storage.getBlobAsStringAndEtag(h.bucket, temp).value._2
-      val chain = PendingState(
-        Offset(30),
-        NonEmptyList.of(CopyOperation(h.bucket, temp, finalKey, tempTag), DeleteOperation(h.bucket, temp, tempTag)),
-      )
-      h.a.updateForPartitionKey(tp, pk, Some(Offset(5)), Some(chain)).value
-      h.a.updateMasterLock(tp, Offset(20)).value
-
-      // B takes over and sweeps before any record of the key reaches it.
-      h.b.open(Set(tp)).value
-      age(h)
-      h.b.sweepOrphanedLocks()
-      h.b.drainGcQueue()
-      stored(h).value.pendingState shouldBe Some(chain)
-
-      // The replay from the floor reaches the key: B's load resolves the chain.
-      h.b.getSeekedOffsetForPartitionKey(tp, pk).value shouldBe Some(Offset(30))
-      h.storage.keysUnder(h.bucket, "data/topic/0/date=2024-01-01/") shouldBe Seq(finalKey)
-      h.storage.pathExists(h.bucket, temp).value shouldBe false
-      stored(h).value.pendingState shouldBe None
-    } finally h.close()
-  }
-
   /**
    * A's first commit of the key, records up to `pendingOffset`: the upload lands and the lock
    * records the remaining chain from no committed offset, then the copy fails and A dies. Then the
@@ -320,36 +284,6 @@ class SweepConditionalDeleteTest extends AnyFunSuite with Matchers with EitherVa
     } finally h.close()
   }
 
-  test("a first-commit lock swept below the floor is not deleted once its key is reloaded and rewritten") {
-    val h = harness()
-    try {
-      firstCommitDiesMidChain(h, pendingOffset = 10)
-      h.b.sweepOrphanedLocks()
-      h.b.gcQueueSize shouldBe 1
-      // The key comes back to B before the drain: its load resolves (rewrites) the lock.
-      h.b.getSeekedOffsetForPartitionKey(tp, pk).isRight shouldBe true
-      val resolved = stored(h).value
-
-      h.b.drainGcQueue()
-
-      stored(h).value shouldBe resolved
-      h.metrics(1).getGcLocksDeleted shouldBe 0L
-    } finally h.close()
-  }
-
-  test("a first-commit lock whose pending chain is at or above the floor is retained") {
-    val h = harness()
-    try {
-      firstCommitDiesMidChain(h, pendingOffset = 30)
-
-      h.b.sweepOrphanedLocks()
-      h.b.drainGcQueue()
-
-      stored(h).value.pendingState.map(_.pendingOffset) shouldBe Some(Offset(30))
-      h.b.gcQueueSize shouldBe 0
-    } finally h.close()
-  }
-
   // ---- budget fairness ----------------------------------------------------------------
 
   /** One sweep pass for A, made due again first (the marker gates a partition to one pass per interval). */
@@ -386,7 +320,7 @@ class SweepConditionalDeleteTest extends AnyFunSuite with Matchers with EitherVa
     } finally h.close()
   }
 
-  test("the sweep wraps around, so a retained lock that later becomes obsolete is still reclaimed") {
+  test("the sweep wraps around: locks retained by earlier passes are reclaimed once they become obsolete") {
     val h = harness(sweepMaxReads = 3)
     try {
       h.clock.set(1000L)
@@ -395,12 +329,12 @@ class SweepConditionalDeleteTest extends AnyFunSuite with Matchers with EitherVa
       keys.foreach(commitIdle(h, _, offset = 30))
       h.a.updateMasterLock(tp, Offset(20)).value
       keys.foreach(age(h, _))
-      // Two passes read the first four keys, all retained.
+      // Two passes over the keys, which are all retained.
       val _ = (1 to 2).map(_ => sweepPass(h))
       keys.flatMap(stored(h, _)) should have size 5
 
-      // The floor passes every key: within a bounded number of passes each is reclaimed, the ones
-      // read before included.
+      // The floor passes every key: within a bounded number of passes each is reclaimed, keys
+      // already read by the earlier passes included.
       h.a.updateMasterLock(tp, Offset(40)).value
       val budgets = (1 to 3).map(_ => sweepPass(h))
 

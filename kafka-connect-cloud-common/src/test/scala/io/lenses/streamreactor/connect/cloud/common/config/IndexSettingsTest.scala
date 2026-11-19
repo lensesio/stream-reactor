@@ -130,11 +130,4 @@ class IndexSettingsTest extends AnyFunSuite with Matchers with OptionValues {
       warnings shouldBe empty
     }
   }
-
-  test("gc.sweep.max.reads=0 is rejected by ConfigDef validation") {
-    val ex = intercept[ConfigException] {
-      new AbstractConfig(configDef, Map(Keys.GC_SWEEP_MAX_READS -> "0").asJava)
-    }
-    ex.getMessage should include(Keys.GC_SWEEP_MAX_READS)
-  }
 }

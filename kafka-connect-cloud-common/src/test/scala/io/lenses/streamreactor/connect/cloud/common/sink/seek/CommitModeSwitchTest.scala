@@ -410,9 +410,13 @@ class CommitModeSwitchTest
     }
   }
 
-  test("[B] a legacy lock is purged immediately at open, independent of any batch commit or watermark") {
+  test(
+    "[B] a legacy lock and the sweep marker are purged immediately at open, independent of any batch commit or watermark",
+  ) {
     seedMaster(99)
     writeIndex(granularPath(keyOf("A")), IndexFile("prev", Some(Offset(150)), None))
+    val markerPath = IndexManagerV2.generateSweepMarkerPath(connectorTaskId, tp, directoryName)
+    storage.putRaw(bucket, markerPath, "{}".getBytes(StandardCharsets.UTF_8))
 
     val im = buildIndexManager(CommitMode.Batch)
     // Purge happens as part of open() itself -- no writer, no commit, no watermark involved.
@@ -420,6 +424,7 @@ class CommitModeSwitchTest
 
     im.legacyPurged(tp) shouldBe true
     storage.snapshot(bucket).keys should not contain granularPath(keyOf("A"))
+    storage.snapshot(bucket).keys should not contain markerPath
     im.close()
   }
 

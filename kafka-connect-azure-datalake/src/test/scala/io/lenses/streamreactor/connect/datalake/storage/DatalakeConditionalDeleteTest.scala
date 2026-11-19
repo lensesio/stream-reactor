@@ -113,14 +113,6 @@ class DatalakeConditionalDeleteTest extends AnyFunSuite with Matchers with Eithe
   private def throws(code: Int, errorCode: Option[String] = None): () => Boolean =
     () => throw status(code, errorCode)
 
-  test("conditionalDeleteIsBatched is false: each object is its own request") {
-    val f = new Fixture(deletes = Map("a" -> (() => true), "b" -> (() => true)))
-    f.storage.conditionalDeleteIsBatched shouldBe false
-    f.storage.deleteFilesIfMatch(bucket, Seq(ConditionalDelete("a", "ea"), ConditionalDelete("b", "eb"))) shouldBe
-      Seq(DeleteOutcome.Deleted, DeleteOutcome.Deleted)
-    f.sentDeletes.toSeq shouldBe Seq("a" -> "ea", "b" -> "eb")
-  }
-
   test("deleteFilesIfMatch sends one If-Match delete per object and maps each answer") {
     val f = new Fixture(
       deletes = Map(
@@ -148,6 +140,7 @@ class DatalakeConditionalDeleteTest extends AnyFunSuite with Matchers with Eithe
     )
     outcomes(5) shouldBe a[DeleteOutcome.Failed]
     f.sentDeletes.toSeq shouldBe Seq("a", "b", "c", "d", "e", "g").map(p => p -> s"etag-$p")
+    f.storage.conditionalDeleteIsBatched shouldBe false
     // Only an ambiguous 412 costs an existence check.
     f.existsChecks.toSeq shouldBe Seq("c", "d")
   }
