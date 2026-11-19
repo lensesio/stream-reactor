@@ -473,7 +473,7 @@ Arguments per cloud:
 | | `s3.endpoint`, `s3.path.style` | `connect.s3.custom.endpoint`, `connect.s3.path.style.access` | Optional, for another S3 endpoint. `s3.path.style` is `true` or `false`. |
 | GCS | `gcs.bucket` | | Required. |
 | | `gcs.credentials.file` | `connect.gcpstorage.gcp.auth.mode=File` with `connect.gcpstorage.gcp.file` | A service-account key file (the JSON with `project_id`, `client_email`, `private_key`, ...). |
-| | `gcs.credentials.json` | `connect.gcpstorage.gcp.auth.mode=Credentials` with `connect.gcpstorage.gcp.credentials` | The key file's JSON inline. At most one of the two. Neither: `Default`, Application Default Credentials. |
+| | `gcs.credentials.json` | `connect.gcpstorage.gcp.auth.mode=Credentials` with `connect.gcpstorage.gcp.credentials` | The key file's JSON inline. Set it through `CONDITIONAL_DELETE_IT_GCS_CREDENTIALS_JSON`; a real key cannot be quoted safely as a `-D` argument (see the commands below). At most one of the two. Neither: `Default`, Application Default Credentials. |
 | | `gcs.project.id` | `connect.gcpstorage.gcp.project.id` | Optional. Otherwise the key file's `project_id`, `GOOGLE_CLOUD_PROJECT` or the ADC project. |
 | | `gcs.host` | `connect.gcpstorage.endpoint` | Optional host override. |
 | ADLS Gen2 | `adls.filesystem` | | Required. |
@@ -504,8 +504,10 @@ sbt "aws-s3/IntegrationTest/testOnly *ConditionalDeleteIT -- -Ds3.bucket=my-test
 # GCS, service-account key file
 sbt "gcp-storage/IntegrationTest/testOnly *ConditionalDeleteRealCloudIT -- -Dgcs.bucket=my-test-bucket -Dgcs.credentials.file=/path/to/key.json"
 
-# GCS, inline key JSON (single quotes around the sbt command, double quotes around the argument)
-sbt 'gcp-storage/IntegrationTest/testOnly *ConditionalDeleteRealCloudIT -- -Dgcs.bucket=my-test-bucket "-Dgcs.credentials.json=<key file JSON>"'
+# GCS, inline key JSON. Pass it through the env var, not as a -D argument: a key's own double quotes
+# end sbt's quoted token, and sbt turns the `\n` escapes in `private_key` into real newlines.
+CONDITIONAL_DELETE_IT_GCS_CREDENTIALS_JSON="$(cat /path/to/key.json)" \
+  sbt "gcp-storage/IntegrationTest/testOnly *ConditionalDeleteRealCloudIT -- -Dgcs.bucket=my-test-bucket"
 
 # GCS, Application Default Credentials (e.g. after `gcloud auth application-default login`)
 sbt "gcp-storage/IntegrationTest/testOnly *ConditionalDeleteRealCloudIT -- -Dgcs.bucket=my-test-bucket -Dgcs.project.id=my-project"
