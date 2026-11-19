@@ -450,38 +450,87 @@ The shared `CloudPlatformEmulatorSuite` trait wires container lifecycle and prov
 
 ### Real-cloud conditional-delete checks
 
-The conditional-delete contract (`deleteFilesIfMatch`, `deleteFile`, `conditionalDeleteIsBatched`) can be checked against real AWS S3, GCS and ADLS Gen2 with one sbt command per cloud. The tests are env-gated:
+The conditional-delete contract (`deleteFilesIfMatch`, `deleteFile`, `conditionalDeleteIsBatched`) can be checked against real AWS S3, GCS and ADLS Gen2 with one sbt command per cloud. The target and the credentials are ScalaTest config-map arguments, passed after `--` on the `testOnly` command as `-D<name>=<value>`:
 
-- Without the env vars, CI and a plain `sbt it:test` never touch a cloud account. No cloud client is built.
+- Without arguments (and without the fallback env vars below), CI and a plain `sbt it:test` never touch a cloud account. No cloud client is built.
   - [`ConditionalDeleteIT`](../kafka-connect-aws-s3/src/it/scala/io/lenses/streamreactor/connect/aws/s3/storage/ConditionalDeleteIT.scala) (S3) runs on the Floci emulator, and its real-cloud-only cases report as canceled.
   - The GCS and ADLS `ConditionalDeleteRealCloudIT` suites report every test as canceled.
-- With the env vars, the run uses an existing bucket or filesystem and never creates or deletes one.
+- With arguments, the run uses an existing bucket or filesystem and never creates or deletes one.
   - Every object goes under a per-run `conditional-delete-it/<uuid>/` prefix.
   - `afterAll` removes what is left under that prefix. If the cleanup fails, it logs a warning and the suite still passes.
+- Arguments that are given but unusable abort the suite with a message naming the argument: for example a key file that does not exist, a cloud argument without the bucket or filesystem, or two credential options at once.
+- The clients are built by the connector's own client creators (`AwsS3ClientCreator`, `GCPStorageClientCreator`, `DatalakeClientCreator`) and auth modes, so the arguments mirror the connector's auth options.
+- Logs name only the bucket or filesystem, the project, account, region and endpoint, the auth mode and the key file path. No secret is logged. When building a client fails with a secret-bearing option (inline JSON, a key file, static keys, an account key or a connection string), the error reports only the exception types, since a parser may quote the credential.
 
-| Cloud | Env vars | Credentials | Permissions needed |
+Arguments per cloud:
+
+| Cloud | Argument | Connector equivalent | Notes |
 |---|---|---|---|
-| AWS S3 | `CONDITIONAL_DELETE_IT_S3_BUCKET` (required); `CONDITIONAL_DELETE_IT_S3_VERSIONED_BUCKET` (optional: a bucket with versioning enabled, for the versioned cases) | default AWS credential chain; region from `AWS_REGION` or the SDK default; no endpoint override, virtual-hosted addressing | `s3:PutObject`, `s3:GetObject`, `s3:ListBucket`, `s3:DeleteObject`; on the versioned bucket also `s3:ListBucketVersions` and `s3:DeleteObjectVersion`, which only the cleanup uses |
-| GCS | `CONDITIONAL_DELETE_IT_GCS_BUCKET` (required); `GOOGLE_CLOUD_PROJECT` (optional, otherwise the ADC project) | Application Default Credentials | `storage.objects.create`, `storage.objects.get`, `storage.objects.list`, `storage.objects.delete` on the bucket. `roles/storage.objectAdmin` covers them. |
-| ADLS Gen2 | `CONDITIONAL_DELETE_IT_ADLS_FILESYSTEM` (required), plus either `CONDITIONAL_DELETE_IT_ADLS_CONNECTION_STRING` or `CONDITIONAL_DELETE_IT_ADLS_ACCOUNT` | the connection string; or `DefaultAzureCredential` against `https://<account>.dfs.core.windows.net` | a hierarchical-namespace account. With `DefaultAzureCredential`, `Storage Blob Data Contributor` on the filesystem (create, read, list and delete paths). A connection string carries the account key. |
+| AWS S3 | `s3.bucket` | | Switches the suite from Floci to S3. Required for the real-cloud cases. |
+| | `s3.versioned.bucket` | | Optional: a bucket with versioning enabled, for the versioned cases. |
+| | `s3.region` | `connect.s3.aws.region` | Optional. Otherwise `AWS_REGION` or the SDK default. |
+| | `s3.access.key` + `s3.secret.key` | `connect.s3.aws.auth.mode=Credentials` with `connect.s3.aws.access.key` and `connect.s3.aws.secret.key` | Optional; both or neither. Neither: `connect.s3.aws.auth.mode=Default`, the default AWS credential chain. |
+| | `s3.endpoint`, `s3.path.style` | `connect.s3.custom.endpoint`, `connect.s3.path.style.access` | Optional, for another S3 endpoint. `s3.path.style` is `true` or `false`. |
+| GCS | `gcs.bucket` | | Required. |
+| | `gcs.credentials.file` | `connect.gcpstorage.gcp.auth.mode=File` with `connect.gcpstorage.gcp.file` | A service-account key file (the JSON with `project_id`, `client_email`, `private_key`, ...). |
+| | `gcs.credentials.json` | `connect.gcpstorage.gcp.auth.mode=Credentials` with `connect.gcpstorage.gcp.credentials` | The key file's JSON inline. At most one of the two. Neither: `Default`, Application Default Credentials. |
+| | `gcs.project.id` | `connect.gcpstorage.gcp.project.id` | Optional. Otherwise the key file's `project_id`, `GOOGLE_CLOUD_PROJECT` or the ADC project. |
+| | `gcs.host` | `connect.gcpstorage.endpoint` | Optional host override. |
+| ADLS Gen2 | `adls.filesystem` | | Required. |
+| | `adls.connection.string` | `connect.datalake.azure.auth.mode=ConnectionString` with `connect.datalake.azure.connection.string` | |
+| | `adls.account` + `adls.account.key` | `connect.datalake.azure.auth.mode=Credentials` with `connect.datalake.azure.account.name` and `connect.datalake.azure.account.key` | Shared key. |
+| | `adls.account` alone | `connect.datalake.azure.auth.mode=Default` | `DefaultAzureCredential`. |
+| | `adls.endpoint` | `connect.datalake.endpoint` | Optional, for the account modes. Otherwise `https://<account>.dfs.core.windows.net`. |
 
-Commands. Run them from a fresh `sbt` and not from an sbt server started earlier: the tests are not forked, so they read the env vars of the sbt JVM.
+Options the connectors do not have are not offered. S3 has no session-token or profile option, and ADLS has no service-principal option. The default chains cover them: `AWS_PROFILE`, or `AWS_SESSION_TOKEN` next to `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`, with no `s3.access.key`; and `AZURE_TENANT_ID`, `AZURE_CLIENT_ID` and `AZURE_CLIENT_SECRET` with `adls.account` alone, which `DefaultAzureCredential` reads.
+
+Permissions needed:
+
+| Cloud | Permissions |
+|---|---|
+| AWS S3 | `s3:PutObject`, `s3:GetObject`, `s3:ListBucket`, `s3:DeleteObject`; on the versioned bucket also `s3:ListBucketVersions` and `s3:DeleteObjectVersion`, which only the cleanup uses |
+| GCS | `storage.objects.create`, `storage.objects.get`, `storage.objects.list`, `storage.objects.delete` on the bucket. `roles/storage.objectAdmin` covers them. |
+| ADLS Gen2 | a hierarchical-namespace account. With `DefaultAzureCredential`, `Storage Blob Data Contributor` on the filesystem (create, read, list and delete paths). A connection string or an account key carries full account access. |
+
+Commands, one per auth option:
 
 ```bash
-CONDITIONAL_DELETE_IT_S3_BUCKET=my-test-bucket \
-CONDITIONAL_DELETE_IT_S3_VERSIONED_BUCKET=my-versioned-test-bucket \
-AWS_REGION=eu-west-1 \
-  sbt "aws-s3/IntegrationTest/testOnly *ConditionalDeleteIT"
+# AWS S3, default credential chain
+sbt "aws-s3/IntegrationTest/testOnly *ConditionalDeleteIT -- -Ds3.bucket=my-test-bucket -Ds3.versioned.bucket=my-versioned-test-bucket -Ds3.region=eu-west-1"
 
-CONDITIONAL_DELETE_IT_GCS_BUCKET=my-test-bucket GOOGLE_CLOUD_PROJECT=my-project \
-  sbt "gcp-storage/IntegrationTest/testOnly *ConditionalDeleteRealCloudIT"
+# AWS S3, static keys
+sbt "aws-s3/IntegrationTest/testOnly *ConditionalDeleteIT -- -Ds3.bucket=my-test-bucket -Ds3.versioned.bucket=my-versioned-test-bucket -Ds3.region=eu-west-1 -Ds3.access.key=<access key id> -Ds3.secret.key=<secret key>"
 
-CONDITIONAL_DELETE_IT_ADLS_FILESYSTEM=my-test-filesystem \
+# GCS, service-account key file
+sbt "gcp-storage/IntegrationTest/testOnly *ConditionalDeleteRealCloudIT -- -Dgcs.bucket=my-test-bucket -Dgcs.credentials.file=/path/to/key.json"
+
+# GCS, inline key JSON (single quotes around the sbt command, double quotes around the argument)
+sbt 'gcp-storage/IntegrationTest/testOnly *ConditionalDeleteRealCloudIT -- -Dgcs.bucket=my-test-bucket "-Dgcs.credentials.json=<key file JSON>"'
+
+# GCS, Application Default Credentials (e.g. after `gcloud auth application-default login`)
+sbt "gcp-storage/IntegrationTest/testOnly *ConditionalDeleteRealCloudIT -- -Dgcs.bucket=my-test-bucket -Dgcs.project.id=my-project"
+
+# ADLS, connection string. It contains `;`, which sbt reads as a command separator unless
+# the argument is double-quoted inside the single-quoted sbt command.
+sbt 'azure-datalake/IntegrationTest/testOnly *ConditionalDeleteRealCloudIT -- -Dadls.filesystem=my-test-filesystem "-Dadls.connection.string=<connection string>"'
+
+# ADLS, account key
+sbt "azure-datalake/IntegrationTest/testOnly *ConditionalDeleteRealCloudIT -- -Dadls.filesystem=my-test-filesystem -Dadls.account=mytestaccount -Dadls.account.key=<account key>"
+
+# ADLS, DefaultAzureCredential (e.g. after `az login`)
+sbt "azure-datalake/IntegrationTest/testOnly *ConditionalDeleteRealCloudIT -- -Dadls.filesystem=my-test-filesystem -Dadls.account=mytestaccount"
+```
+
+Values passed with `-D` end up in the shell history and, while sbt runs, in the process list (`ps`). For GCS prefer `gcs.credentials.file`, which puts only a path on the command line. For the other secrets, use the env-var fallback:
+
+- Each argument falls back to an env var named `CONDITIONAL_DELETE_IT_` plus the argument in upper case with `.` replaced by `_`: `s3.secret.key` falls back to `CONDITIONAL_DELETE_IT_S3_SECRET_KEY`, `adls.connection.string` to `CONDITIONAL_DELETE_IT_ADLS_CONNECTION_STRING`, `gcs.bucket` to `CONDITIONAL_DELETE_IT_GCS_BUCKET`, and so on. `s3.region` also falls back to `AWS_REGION`, and `gcs.project.id` to `GOOGLE_CLOUD_PROJECT`.
+- An argument wins over its env var. The credentials are taken as a group: when any credential argument is given (`s3.access.key`/`s3.secret.key`; `gcs.credentials.file`/`gcs.credentials.json`; `adls.connection.string`/`adls.account`/`adls.account.key`), only the arguments are used for them; otherwise only the env vars.
+- The tests are not forked, so they read the env vars of the sbt JVM. Run them from a fresh `sbt`, not from an sbt server started earlier.
+
+```bash
+# e.g. ADLS with the connection string in the environment instead of on the command line
 CONDITIONAL_DELETE_IT_ADLS_CONNECTION_STRING='<connection string>' \
-  sbt "azure-datalake/IntegrationTest/testOnly *ConditionalDeleteRealCloudIT"
-# or, with DefaultAzureCredential (e.g. after `az login`):
-CONDITIONAL_DELETE_IT_ADLS_FILESYSTEM=my-test-filesystem CONDITIONAL_DELETE_IT_ADLS_ACCOUNT=mytestaccount \
-  sbt "azure-datalake/IntegrationTest/testOnly *ConditionalDeleteRealCloudIT"
+  sbt "azure-datalake/IntegrationTest/testOnly *ConditionalDeleteRealCloudIT -- -Dadls.filesystem=my-test-filesystem"
 ```
 
 What they assert:
