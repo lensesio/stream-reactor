@@ -448,6 +448,72 @@ All tests in `kafka-connect-cloud-common/src/test` and the provider-specific `sr
 The shared `CloudPlatformEmulatorSuite` trait wires container lifecycle and provides a `storageInterface` instance backed by the real SDK.
 `CoreSinkTaskTestCases` is copied (not shared via a common module) into each provider's IT tree so each runs against its own emulator.
 
+### Real-cloud conditional-delete checks
+
+The conditional-delete contract (`deleteFilesIfMatch`, `deleteFile`, `conditionalDeleteIsBatched`) can be checked against real AWS S3, GCS and ADLS Gen2 with one sbt command per cloud. The tests are env-gated:
+
+- Without the env vars, CI and a plain `sbt it:test` never touch a cloud account. No cloud client is built.
+  - [`ConditionalDeleteIT`](../kafka-connect-aws-s3/src/it/scala/io/lenses/streamreactor/connect/aws/s3/storage/ConditionalDeleteIT.scala) (S3) runs on the Floci emulator, and its real-cloud-only cases report as canceled.
+  - The GCS and ADLS `ConditionalDeleteRealCloudIT` suites report every test as canceled.
+- With the env vars, the run uses an existing bucket or filesystem and never creates or deletes one.
+  - Every object goes under a per-run `conditional-delete-it/<uuid>/` prefix.
+  - `afterAll` removes what is left under that prefix. If the cleanup fails, it logs a warning and the suite still passes.
+
+| Cloud | Env vars | Credentials | Permissions needed |
+|---|---|---|---|
+| AWS S3 | `CONDITIONAL_DELETE_IT_S3_BUCKET` (required); `CONDITIONAL_DELETE_IT_S3_VERSIONED_BUCKET` (optional: a bucket with versioning enabled, for the versioned cases) | default AWS credential chain; region from `AWS_REGION` or the SDK default; no endpoint override, virtual-hosted addressing | `s3:PutObject`, `s3:GetObject`, `s3:ListBucket`, `s3:DeleteObject`; on the versioned bucket also `s3:ListBucketVersions` and `s3:DeleteObjectVersion`, which only the cleanup uses |
+| GCS | `CONDITIONAL_DELETE_IT_GCS_BUCKET` (required); `GOOGLE_CLOUD_PROJECT` (optional, otherwise the ADC project) | Application Default Credentials | `storage.objects.create`, `storage.objects.get`, `storage.objects.list`, `storage.objects.delete` on the bucket. `roles/storage.objectAdmin` covers them. |
+| ADLS Gen2 | `CONDITIONAL_DELETE_IT_ADLS_FILESYSTEM` (required), plus either `CONDITIONAL_DELETE_IT_ADLS_CONNECTION_STRING` or `CONDITIONAL_DELETE_IT_ADLS_ACCOUNT` | the connection string; or `DefaultAzureCredential` against `https://<account>.dfs.core.windows.net` | a hierarchical-namespace account. With `DefaultAzureCredential`, `Storage Blob Data Contributor` on the filesystem (create, read, list and delete paths). A connection string carries the account key. |
+
+Commands. Run them from a fresh `sbt` and not from an sbt server started earlier: the tests are not forked, so they read the env vars of the sbt JVM.
+
+```bash
+CONDITIONAL_DELETE_IT_S3_BUCKET=my-test-bucket \
+CONDITIONAL_DELETE_IT_S3_VERSIONED_BUCKET=my-versioned-test-bucket \
+AWS_REGION=eu-west-1 \
+  sbt "aws-s3/IntegrationTest/testOnly *ConditionalDeleteIT"
+
+CONDITIONAL_DELETE_IT_GCS_BUCKET=my-test-bucket GOOGLE_CLOUD_PROJECT=my-project \
+  sbt "gcp-storage/IntegrationTest/testOnly *ConditionalDeleteRealCloudIT"
+
+CONDITIONAL_DELETE_IT_ADLS_FILESYSTEM=my-test-filesystem \
+CONDITIONAL_DELETE_IT_ADLS_CONNECTION_STRING='<connection string>' \
+  sbt "azure-datalake/IntegrationTest/testOnly *ConditionalDeleteRealCloudIT"
+# or, with DefaultAzureCredential (e.g. after `az login`):
+CONDITIONAL_DELETE_IT_ADLS_FILESYSTEM=my-test-filesystem CONDITIONAL_DELETE_IT_ADLS_ACCOUNT=mytestaccount \
+  sbt "azure-datalake/IntegrationTest/testOnly *ConditionalDeleteRealCloudIT"
+```
+
+What they assert:
+
+- **S3**, with batch delete off (`DeleteObject` + `If-Match`) and on (`DeleteObjects` with a per-object `ETag`):
+  - a match is `Deleted`, a stale ETag is `PreconditionFailed` and the object is kept, a missing key is `NotFound`;
+  - `deleteFile` deletes by path whatever the token, and a missing object is success;
+  - an unconditional `deleteFiles` batch with a missing key succeeds.
+
+  Real-AWS-only cases:
+  - one `DeleteObjects` request mixing a match, a stale ETag and a missing key reports `Deleted`, `PreconditionFailed` and `NotFound` in that order. The outcomes are printed before the assertion.
+  - on the versioned bucket, in both modes:
+    - a match is `Deleted` and the key then reads as missing (a delete marker);
+    - a stale ETag is refused and the object is kept;
+    - `deleteFile` still deletes;
+    - a missing key under `If-Match` is `NotFound`.
+- **GCS** (`generationMatch`):
+  - a match is `Deleted`;
+  - a stale generation is `PreconditionFailed` and the object is kept;
+  - a missing object is `NotFound`;
+  - several objects in one call get one outcome each, in order;
+  - the generation `writeBlobToFile` returns equals the read one and is accepted by the delete;
+  - `deleteFile` at the current generation deletes it;
+  - `deleteFile` at a stale generation returns `Left` caused by `DeletePreconditionFailedException`;
+  - `conditionalDeleteIsBatched` is `false`.
+- **ADLS** (`If-Match` path delete):
+  - the GCS cases, plus:
+    - a missing path under `If-Match` is `NotFound`, both for a path never written and for one deleted after its eTag was read;
+    - the eTags from `writeBlobToFile` and from a read are both accepted by the delete. Whether the two are equal is printed, not asserted;
+    - a stale eTag on a path that still exists is `PreconditionFailed`.
+  - An informational line records whether `listPaths` returns an eTag for a written file, and whether it equals the read eTag.
+
 ---
 
 ## How to extend this doc
