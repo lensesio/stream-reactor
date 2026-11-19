@@ -2382,15 +2382,17 @@ class IndexManagerV2(
    *
    * Three-phase logic:
    *  1. Poll all items from `gcQueue`, filtering out revoked partitions (no longer in
-   *     `seekedOffsets`) and reclaimed keys (back in `granularCache` due to a new writer).
+   *     `seekedOffsets`) and partitions this instance is fenced from.
    *  2. Group eligible items by bucket and chunk them. `.tmp` orphans go in chunks of
    *     `gcBatchSize`. `.lock` items go in chunks of `gcBatchSize` only on a store whose conditional
    *     multi-object delete is one request (`conditionalDeleteIsBatched`: S3 with batch delete on);
    *     on a store that deletes one object per request (GCS, ADLS, S3 with batch delete off) each
-   *     `.lock` chunk holds one item, so every storage call is preceded by its own re-check.
-   *  3. Delete each chunk. Right before each `.lock` chunk is sent, the reclaim filter runs again
-   *     over that chunk, so a key the `put()` thread reloaded while earlier deletes were in flight
-   *     is kept. A reload that lands during the one delete call covering its key can still lose its
+   *     `.lock` chunk holds one item, so every storage call is preceded by its own reclaim check.
+   *  3. Delete each chunk. Right before each `.lock` chunk is sent, the reclaim filter runs over
+   *     that chunk: a key back in `granularCache` (reloaded by the `put()` thread, before the drain
+   *     or while earlier deletes were in flight) is kept and its item dropped. `.tmp` orphans skip
+   *     this filter: their path is distinct from the live `.lock`, and they are stale by definition.
+   *     A reload that lands during the one delete call covering its key can still lose its
    *     lock: the key's next commit then fails its lock write before anything reaches a final path,
    *     and the restarted task replays from the master floor. A `.lock` is deleted only while it is at
    *     the version GC selected (`deleteFilesIfMatch` with the item's token): a lock another
@@ -2406,7 +2408,8 @@ class IndexManagerV2(
 
   /** Phases 1-3 of [[drainGcQueue]] for items already taken off the queue. */
   private def drainGcItems(polled: Iterator[GcItem]): Unit = {
-    // Phase 1: apply partition-revoked and key-reclaimed filters
+    // Phase 1: apply the partition-revoked and fenced filters. The key-reclaimed filter runs in
+    // phase 3, right before each `.lock` chunk is sent.
     val eligible = polled.filter { item =>
       if (!seekedOffsets.contains(item.topicPartition)) {
         logger.debug(
@@ -2420,15 +2423,6 @@ class IndexManagerV2(
         // the revoked skips.
         logger.debug(s"GC discarding ${item.topicPartition}/${item.partitionKey}: this instance is fenced")
         metrics.incrementGcLocksSkippedRevoked()
-        false
-      } else if (item.kind == GcKind.Lock && gcContainsKey(item.topicPartition, item.partitionKey)) {
-        // Only `.lock` items honour the cache-reclaim filter: a populated
-        // granularCache entry means a new writer has taken the live `.lock`
-        // path, so deleting it would clobber the active lock. `.tmp` orphans
-        // (GcKind.TmpOrphan) bypass this branch -- their path is distinct
-        // from the active `.lock`, and they are stale by definition.
-        logger.debug(s"GC skipping ${item.topicPartition}/${item.partitionKey}: reclaimed by new writer")
-        metrics.incrementGcLocksSkippedReclaimed()
         false
       } else {
         true
@@ -2472,9 +2466,10 @@ class IndexManagerV2(
             // below runs right before each storage call, not once ahead of a run of them.
             val lockChunkSize = if (storageInterface.conditionalDeleteIsBatched) gcBatchSize else 1
             conditional.grouped(lockChunkSize).foreach { selected =>
-              // Re-check the reclaim filter right before each chunk: the put() thread may have
-              // reloaded a key while earlier chunks were being deleted. A reload reads the lock at
-              // the version GC selected, so the token alone would not stop this delete.
+              // The reclaim filter, right before each chunk: a populated granularCache entry means
+              // the put() thread reloaded the key (before the drain, or while earlier chunks were
+              // being deleted). A reload reads the lock at the version GC selected, so the token
+              // alone would not stop this delete.
               val (reclaimed, chunk) = selected.partition(i => gcContainsKey(i.topicPartition, i.partitionKey))
               if (reclaimed.nonEmpty) {
                 logger.debug(
