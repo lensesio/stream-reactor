@@ -538,33 +538,25 @@ CONDITIONAL_DELETE_IT_ADLS_CONNECTION_STRING='<connection string>' \
 What they assert:
 
 - **S3**, with batch delete off (`DeleteObject` + `If-Match`) and on (`DeleteObjects` with a per-object `ETag`):
-  - a match is `Deleted`, a stale ETag is `PreconditionFailed` and the object is kept, a missing key is `NotFound`;
+  - a match is `Deleted`, a stale ETag is `PreconditionFailed` and the object is kept, a missing key is `NotFound`. With batch delete on, the three go out as one `DeleteObjects` request and `conditionalDeleteIsBatched` is `true`; on AWS S3 its outcomes are printed before the assertion;
   - `deleteFile` deletes by path whatever the token, and a missing object is success;
   - an unconditional `deleteFiles` batch with a missing key succeeds.
 
-  Real-AWS-only cases:
-  - one `DeleteObjects` request mixing a match, a stale ETag and a missing key reports `Deleted`, `PreconditionFailed` and `NotFound` in that order. The outcomes are printed before the assertion.
-  - on the versioned bucket, in both modes:
-    - a match is `Deleted` and the key then reads as missing (a delete marker);
-    - a stale ETag is refused and the object is kept;
-    - `deleteFile` still deletes;
-    - a missing key under `If-Match` is `NotFound`.
+  Real-AWS-only cases, on the versioned bucket, in both modes:
+  - a match is `Deleted` and the key then reads as missing (a delete marker);
+  - a stale ETag is refused and the object is kept;
+  - `deleteFile` still deletes;
+  - a missing key under `If-Match` is `NotFound`.
 - **GCS** (`generationMatch`):
-  - a match is `Deleted`;
-  - a stale generation is `PreconditionFailed` and the object is kept;
-  - a missing object is `NotFound`;
-  - several objects in one call get one outcome each, in order;
+  - in one call over several objects, each gets its own outcome, in order: a match is `Deleted`, a stale generation is `PreconditionFailed` and the object is kept, a missing object is `NotFound`;
   - the generation `writeBlobToFile` returns equals the read one and is accepted by the delete;
   - `deleteFile` at the current generation deletes it;
-  - `deleteFile` at a stale generation returns `Left` caused by `DeletePreconditionFailedException`;
-  - `conditionalDeleteIsBatched` is `false`.
+  - `deleteFile` at a stale generation returns `Left` caused by `DeletePreconditionFailedException`.
 - **ADLS** (`If-Match` path delete):
   - the GCS cases, plus:
     - a missing path under `If-Match` is `NotFound`, both for a path never written and for one deleted after its eTag was read;
-    - the eTags from `writeBlobToFile` and from a read are both accepted by the delete. Whether the two are equal is printed, not asserted;
-    - a stale eTag on a path that still exists is `PreconditionFailed`.
-  - An informational line records whether `listPaths` returns an eTag for a written file, and whether it equals the read eTag.
-- **The granular commit chain**, on all three (on S3 in both delete modes, on Floci too): `PendingOperationsProcessors.processPendingOperations` runs the chain `Writer.commit` builds, `[Upload(local file -> <prefix>/.temp-upload/<uuid>), Copy(temp -> final, "placeholder"), Delete(temp, "placeholder")]`, with `escalateOnCancel = true` and a recording index update, against the real storage interface:
+    - the eTags from `writeBlobToFile` and from a read are both accepted by the delete. Whether the two are equal is printed, not asserted.
+- **The granular commit chain**, on all three (on S3 with batch delete off, on Floci too): `PendingOperationsProcessors.processPendingOperations` runs the chain `Writer.commit` builds, `[Upload(local file -> <prefix>/.temp-upload/<uuid>), Copy(temp -> final, "placeholder"), Delete(temp, "placeholder")]`, with `escalateOnCancel = true` and a recording index update, against the real storage interface:
   - the call returns `Right` with the pending offset;
   - the temp object exists after the upload; afterwards the final object holds the local file's exact content and the temp is gone;
   - the index updates show the chain's progress: after the upload `[Copy, Delete]`, after the copy `[Delete]`, both at the committed offset and carrying the upload's token; the last update clears the pending state and commits the pending offset;

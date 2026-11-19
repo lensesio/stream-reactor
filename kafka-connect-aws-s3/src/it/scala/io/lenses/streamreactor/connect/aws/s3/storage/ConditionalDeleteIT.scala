@@ -193,81 +193,86 @@ class ConditionalDeleteIT extends AnyFunSuite with Matchers with EitherValues wi
     stale
   }
 
+  // The commit chain's delete is a single-object deleteFile in either batch-delete mode, so one
+  // mode covers it.
+  test("DeleteObject: the commit chain uploads to a temp key, copies it to the final key and deletes the temp") {
+    val prefix   = key("DeleteObject/commit-chain")
+    val temp     = s"$prefix/.temp-upload/${UUID.randomUUID()}"
+    val finalKey = s"$prefix/final/records.json"
+    val content  = s"commit chain ${UUID.randomUUID()}"
+    val local    = Files.createTempFile("commit-chain-it", ".json")
+    var uploaded = Option.empty[String]
+    implicit val taskId: ConnectorTaskId = ConnectorTaskId("conditional-delete-it", 1, 0)
+    // The real interface; only records the token its upload returns.
+    val si = new AwsS3StorageInterface(taskId, client, batchDelete = false, None) {
+      override def uploadFile(source: UploadableFile, b: String, path: String): Either[UploadError, String] = {
+        val result = super.uploadFile(source, b, path)
+        uploaded = result.toOption
+        result
+      }
+    }
+    val tp              = Topic("conditional-delete-it").withPartition(0)
+    val committed       = Offset(41)
+    val pending         = Offset(42)
+    val updates         = ListBuffer.empty[(Option[Offset], Option[PendingState])]
+    var tempAfterUpload = Option.empty[Boolean]
+    val fnIndexUpdate: (TopicPartition, Option[Offset], Option[PendingState]) => Either[SinkError, Option[Offset]] =
+      (_, offset, state) => {
+        if (updates.isEmpty) tempAfterUpload = Some(exists(bucket, temp))
+        updates += offset -> state
+        Right(offset)
+      }
+    try {
+      Files.write(local, content.getBytes(StandardCharsets.UTF_8))
+      val ops = NonEmptyList.of[FileOperation](
+        UploadOperation(bucket, local.toFile, temp),
+        CopyOperation(bucket, temp, finalKey, "placeholder"),
+        DeleteOperation(bucket, temp, "placeholder"),
+      )
+
+      val result = new PendingOperationsProcessors(si).processPendingOperations(
+        tp,
+        Some(committed),
+        PendingState(pending, ops),
+        fnIndexUpdate,
+        escalateOnCancel = true,
+        stagingFile      = Some(local.toFile),
+      )
+
+      val token = uploaded.getOrElse(fail("the upload returned no token"))
+      info(s"S3 (DeleteObject) upload ETag carried into the copy and the delete: $token")
+      result shouldBe Right(Some(pending))
+      tempAfterUpload shouldBe Some(true)
+      si.getBlobAsString(bucket, finalKey).value shouldBe content
+      exists(bucket, temp) shouldBe false
+      updates.toList shouldBe List(
+        Some(committed) -> Some(
+          PendingState(pending,
+                       NonEmptyList.of[FileOperation](CopyOperation(bucket, temp, finalKey, token),
+                                                      DeleteOperation(bucket, temp, token),
+                       ),
+          ),
+        ),
+        Some(committed) -> Some(PendingState(pending,
+                                             NonEmptyList.of[FileOperation](DeleteOperation(bucket, temp, token)),
+        )),
+        Some(pending) -> None,
+      )
+    } finally { val _ = Try(Files.deleteIfExists(local)) }
+  }
+
   Seq(false, true).foreach { batchDelete =>
     val mode = if (batchDelete) "DeleteObjects" else "DeleteObject"
-
-    test(s"$mode: the commit chain uploads to a temp key, copies it to the final key and deletes the temp") {
-      val prefix   = key(s"$mode/commit-chain")
-      val temp     = s"$prefix/.temp-upload/${UUID.randomUUID()}"
-      val finalKey = s"$prefix/final/records.json"
-      val content  = s"commit chain ${UUID.randomUUID()}"
-      val local    = Files.createTempFile("commit-chain-it", ".json")
-      var uploaded = Option.empty[String]
-      implicit val taskId: ConnectorTaskId = ConnectorTaskId("conditional-delete-it", 1, 0)
-      // The real interface; only records the token its upload returns.
-      val si = new AwsS3StorageInterface(taskId, client, batchDelete, None) {
-        override def uploadFile(source: UploadableFile, b: String, path: String): Either[UploadError, String] = {
-          val result = super.uploadFile(source, b, path)
-          uploaded = result.toOption
-          result
-        }
-      }
-      val tp              = Topic("conditional-delete-it").withPartition(0)
-      val committed       = Offset(41)
-      val pending         = Offset(42)
-      val updates         = ListBuffer.empty[(Option[Offset], Option[PendingState])]
-      var tempAfterUpload = Option.empty[Boolean]
-      val fnIndexUpdate: (TopicPartition, Option[Offset], Option[PendingState]) => Either[SinkError, Option[Offset]] =
-        (_, offset, state) => {
-          if (updates.isEmpty) tempAfterUpload = Some(exists(bucket, temp))
-          updates += offset -> state
-          Right(offset)
-        }
-      try {
-        Files.write(local, content.getBytes(StandardCharsets.UTF_8))
-        val ops = NonEmptyList.of[FileOperation](
-          UploadOperation(bucket, local.toFile, temp),
-          CopyOperation(bucket, temp, finalKey, "placeholder"),
-          DeleteOperation(bucket, temp, "placeholder"),
-        )
-
-        val result = new PendingOperationsProcessors(si).processPendingOperations(
-          tp,
-          Some(committed),
-          PendingState(pending, ops),
-          fnIndexUpdate,
-          escalateOnCancel = true,
-          stagingFile      = Some(local.toFile),
-        )
-
-        val token = uploaded.getOrElse(fail("the upload returned no token"))
-        info(s"S3 ($mode) upload ETag carried into the copy and the delete: $token")
-        result shouldBe Right(Some(pending))
-        tempAfterUpload shouldBe Some(true)
-        si.getBlobAsString(bucket, finalKey).value shouldBe content
-        exists(bucket, temp) shouldBe false
-        updates.toList shouldBe List(
-          Some(committed) -> Some(
-            PendingState(pending,
-                         NonEmptyList.of[FileOperation](CopyOperation(bucket, temp, finalKey, token),
-                                                        DeleteOperation(bucket, temp, token),
-                         ),
-            ),
-          ),
-          Some(committed) -> Some(PendingState(pending,
-                                               NonEmptyList.of[FileOperation](DeleteOperation(bucket, temp, token)),
-          )),
-          Some(pending) -> None,
-        )
-      } finally { val _ = Try(Files.deleteIfExists(local)) }
-    }
 
     test(s"$mode: a match deletes, another version is refused and kept, a missing key is not found") {
       val prefix  = key(s"$mode/outcomes")
       val matched = put(bucket, s"$prefix/matched", "v1")
       val stale   = staleToken(bucket, s"$prefix/changed")
+      val si      = storage(batchDelete)
+      // With batch delete on, the three entries go out as one DeleteObjects request.
+      si.conditionalDeleteIsBatched shouldBe batchDelete
 
-      val outcomes = storage(batchDelete).deleteFilesIfMatch(
+      val outcomes = si.deleteFilesIfMatch(
         bucket,
         Seq(
           ConditionalDelete(s"$prefix/matched", matched),
@@ -275,11 +280,12 @@ class ConditionalDeleteIT extends AnyFunSuite with Matchers with EitherValues wi
           ConditionalDelete(s"$prefix/missing", matched),
         ),
       )
+      if (batchDelete && onRealAws) info(s"DeleteObjects outcomes on AWS S3 (match, stale, missing): $outcomes")
 
       outcomes shouldBe Seq(DeleteOutcome.Deleted, DeleteOutcome.PreconditionFailed, DeleteOutcome.NotFound)
       exists(bucket, s"$prefix/matched") shouldBe false
       exists(bucket, s"$prefix/changed") shouldBe true
-      storage(batchDelete).getBlobAsString(bucket, s"$prefix/changed").value shouldBe "v2"
+      si.getBlobAsString(bucket, s"$prefix/changed").value shouldBe "v2"
     }
 
     test(s"$mode: deleteFile deletes by path whatever the token, and a missing object is success") {
@@ -324,29 +330,6 @@ class ConditionalDeleteIT extends AnyFunSuite with Matchers with EitherValues wi
     val _ = put(bucket, a, "a")
     storage(batchDelete = true).deleteFiles(bucket, Seq(a, key("unconditional/missing"))) shouldBe Right(())
     exists(bucket, a) shouldBe false
-  }
-
-  test("AWS S3: one DeleteObjects request reports a match, a stale eTag and a missing key per entry") {
-    assume(onRealAws, s"pass -D$BucketArg to run against AWS S3. $Usage")
-    val prefix  = key("aws-batch")
-    val matched = put(bucket, s"$prefix/matched", "v1")
-    val stale   = staleToken(bucket, s"$prefix/changed")
-    val si      = storage(batchDelete = true)
-    si.conditionalDeleteIsBatched shouldBe true
-
-    val outcomes = si.deleteFilesIfMatch(
-      bucket,
-      Seq(
-        ConditionalDelete(s"$prefix/matched", matched),
-        ConditionalDelete(s"$prefix/changed", stale),
-        ConditionalDelete(s"$prefix/missing", matched),
-      ),
-    )
-    info(s"DeleteObjects outcomes on AWS S3 (match, stale, missing): $outcomes")
-
-    outcomes shouldBe Seq(DeleteOutcome.Deleted, DeleteOutcome.PreconditionFailed, DeleteOutcome.NotFound)
-    exists(bucket, s"$prefix/matched") shouldBe false
-    si.getBlobAsString(bucket, s"$prefix/changed").value shouldBe "v2"
   }
 }
 

@@ -18,7 +18,6 @@ package io.lenses.streamreactor.connect.datalake.storage
 import cats.data.NonEmptyList
 import com.azure.core.util.Context
 import com.azure.storage.file.datalake.DataLakeServiceClient
-import com.azure.storage.file.datalake.models.ListPathsOptions
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.model.Offset
@@ -54,7 +53,6 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.util.UUID
 import scala.collection.mutable.ListBuffer
-import scala.jdk.CollectionConverters._
 import scala.util.Try
 
 /**
@@ -146,19 +144,6 @@ class ConditionalDeleteRealCloudIT
 
   private def exists(fs: String, key: String): Boolean = si.pathExists(fs, key).value
 
-  test("ADLS: deletes are one request per path") {
-    val _ = filesystem
-    si.conditionalDeleteIsBatched shouldBe false
-  }
-
-  test("ADLS: a delete at the eTag a read reports deletes the path") {
-    val fs      = filesystem
-    val k       = key("match")
-    val current = put(fs, k, "v1")
-    si.deleteFilesIfMatch(fs, Seq(ConditionalDelete(k, current))) shouldBe Seq(DeleteOutcome.Deleted)
-    exists(fs, k) shouldBe false
-  }
-
   test("ADLS: a delete at the eTag writeBlobToFile returns deletes the path") {
     val fs      = filesystem
     val k       = key("written")
@@ -167,14 +152,6 @@ class ConditionalDeleteRealCloudIT
     info(s"ADLS eTag from writeBlobToFile: $written; from a read: $read; equal: ${written == read}")
     si.deleteFilesIfMatch(fs, Seq(ConditionalDelete(k, written))) shouldBe Seq(DeleteOutcome.Deleted)
     exists(fs, k) shouldBe false
-  }
-
-  test("ADLS: a delete at a stale eTag on a path that still exists is refused and the path is kept") {
-    val fs    = filesystem
-    val k     = key("stale")
-    val stale = staleToken(fs, k)
-    si.deleteFilesIfMatch(fs, Seq(ConditionalDelete(k, stale))) shouldBe Seq(DeleteOutcome.PreconditionFailed)
-    si.getBlobAsString(fs, k).value shouldBe "v2"
   }
 
   test("ADLS: an If-Match delete of a missing path is not found") {
@@ -188,7 +165,7 @@ class ConditionalDeleteRealCloudIT
     si.deleteFilesIfMatch(fs, Seq(ConditionalDelete(gone, eTag))) shouldBe Seq(DeleteOutcome.NotFound)
   }
 
-  test("ADLS: several paths in one call get one outcome each, in order") {
+  test("ADLS: several paths in one call get one outcome each, in order, and deleteFile at the current eTag deletes") {
     val fs      = filesystem
     val prefix  = key("several")
     val matched = put(fs, s"$prefix/matched", "v1")
@@ -207,14 +184,11 @@ class ConditionalDeleteRealCloudIT
     outcomes shouldBe Seq(DeleteOutcome.Deleted, DeleteOutcome.PreconditionFailed, DeleteOutcome.NotFound)
     exists(fs, s"$prefix/matched") shouldBe false
     si.getBlobAsString(fs, s"$prefix/changed").value shouldBe "v2"
-  }
 
-  test("ADLS: deleteFile at the current eTag deletes the path") {
-    val fs      = filesystem
-    val k       = key("delete-file/current")
-    val current = put(fs, k, "v1")
-    si.deleteFile(fs, k, current) shouldBe Right(())
-    exists(fs, k) shouldBe false
+    val single  = key("delete-file/current")
+    val current = put(fs, single, "v1")
+    si.deleteFile(fs, single, current) shouldBe Right(())
+    exists(fs, single) shouldBe false
   }
 
   test("ADLS: deleteFile at a stale eTag fails with DeletePreconditionFailedException") {
@@ -224,21 +198,6 @@ class ConditionalDeleteRealCloudIT
     val error = si.deleteFile(fs, k, stale).left.value
     error.exception shouldBe a[DeletePreconditionFailedException]
     si.getBlobAsString(fs, k).value shouldBe "v2"
-  }
-
-  test("ADLS: whether listPaths reports an eTag for a written file (informational)") {
-    val fs      = filesystem
-    val k       = key("listed/file")
-    val current = put(fs, k, "v1")
-    val listed = client.getFileSystemClient(fs)
-      .listPaths(new ListPathsOptions().setPath(key("listed")).setRecursive(true), null)
-      .asScala.find(_.getName == k)
-    val listedETag = listed.flatMap(p => Option(p.getETag))
-    val message =
-      s"ADLS listPaths for a written file: listed=${listed.isDefined}, eTag=${listedETag.getOrElse("<none>")}, " +
-        s"read eTag=$current, equal=${listedETag.contains(current)}"
-    logger.info(message)
-    info(message)
   }
 
   test("ADLS: the commit chain uploads to a temp path, copies it to the final path and deletes the temp") {

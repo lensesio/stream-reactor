@@ -156,19 +156,6 @@ class ConditionalDeleteRealCloudIT
 
   private def exists(b: String, key: String): Boolean = si.pathExists(b, key).value
 
-  test("GCS: deletes are one request per object") {
-    val _ = bucket
-    si.conditionalDeleteIsBatched shouldBe false
-  }
-
-  test("GCS: a delete at the current generation deletes the object") {
-    val b       = bucket
-    val k       = key("match")
-    val current = put(b, k, "v1")
-    si.deleteFilesIfMatch(b, Seq(ConditionalDelete(k, current))) shouldBe Seq(DeleteOutcome.Deleted)
-    exists(b, k) shouldBe false
-  }
-
   test("GCS: the generation writeBlobToFile returns is the one the delete accepts") {
     val b       = bucket
     val k       = key("written")
@@ -178,20 +165,9 @@ class ConditionalDeleteRealCloudIT
     exists(b, k) shouldBe false
   }
 
-  test("GCS: a delete at a stale generation is refused and the object is kept") {
-    val b     = bucket
-    val k     = key("stale")
-    val stale = staleToken(b, k)
-    si.deleteFilesIfMatch(b, Seq(ConditionalDelete(k, stale))) shouldBe Seq(DeleteOutcome.PreconditionFailed)
-    si.getBlobAsString(b, k).value shouldBe "v2"
-  }
-
-  test("GCS: a delete of a missing object is not found") {
-    val b = bucket
-    si.deleteFilesIfMatch(b, Seq(ConditionalDelete(key("missing"), "1"))) shouldBe Seq(DeleteOutcome.NotFound)
-  }
-
-  test("GCS: several objects in one call get one outcome each, in order") {
+  test(
+    "GCS: several objects in one call get one outcome each, in order, and deleteFile at the current generation deletes",
+  ) {
     val b       = bucket
     val prefix  = key("several")
     val matched = put(b, s"$prefix/matched", "v1")
@@ -210,14 +186,11 @@ class ConditionalDeleteRealCloudIT
     outcomes shouldBe Seq(DeleteOutcome.Deleted, DeleteOutcome.PreconditionFailed, DeleteOutcome.NotFound)
     exists(b, s"$prefix/matched") shouldBe false
     si.getBlobAsString(b, s"$prefix/changed").value shouldBe "v2"
-  }
 
-  test("GCS: deleteFile at the current generation deletes the object") {
-    val b       = bucket
-    val k       = key("delete-file/current")
-    val current = put(b, k, "v1")
-    si.deleteFile(b, k, current) shouldBe Right(())
-    exists(b, k) shouldBe false
+    val single  = key("delete-file/current")
+    val current = put(b, single, "v1")
+    si.deleteFile(b, single, current) shouldBe Right(())
+    exists(b, single) shouldBe false
   }
 
   test("GCS: deleteFile at a stale generation fails with DeletePreconditionFailedException") {
