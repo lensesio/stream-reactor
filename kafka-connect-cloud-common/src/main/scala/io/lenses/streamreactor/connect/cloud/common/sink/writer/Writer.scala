@@ -167,8 +167,9 @@ class Writer[SM <: FileMetadata](
    * `CopyOperation` is built from. Nothing durable is recorded — the commit point is the master
    * lock CAS in `WriterCommitManager.commitBatch`.
    *
-   * Idempotent: a writer already `Staged` is returned unchanged with no storage call, so a batch
-   * retry after a partial staging failure only re-uploads the writers that actually failed.
+   * Idempotent per batch attempt: a writer already `Staged` for `batchUuid` is returned unchanged
+   * with no storage call. A writer still `Staged` from an earlier attempt is re-staged: its local
+   * file is uploaded again under `batchUuid` (see [[restage]]).
    *
    * @param batchUuid identifies this batch attempt; part of the temp path so two attempts can
    *                  never collide on the same object.
@@ -177,7 +178,8 @@ class Writer[SM <: FileMetadata](
   def stage(batchUuid: String): Either[SinkError, Option[Staged]] = {
     writeState match {
       case NoWriter(_) => return Option.empty[Staged].asRight
-      case s:            Staged => return s.some.asRight
+      case s:            Staged if s.batchUuid == batchUuid => return s.some.asRight
+      case s:            Staged => return restage(s, batchUuid)
       case writingState: Writing =>
         writingState.formatWriter.complete() match {
           case Left(ex) =>
@@ -209,11 +211,7 @@ class Writer[SM <: FileMetadata](
                 uploading.recordCount,
               )
               finalPath <- key.path.toRight(NonFatalCloudSinkError("No path exists within cloud location"): SinkError)
-              // Connector-scoped so the batch sweep can delete orphans belonging to this
-              // connector without ever touching granular-mode temps or another connector's temps.
-              tempPath = finalPath.prependedAll(
-                s".temp-upload/${connectorTaskId.name}/${topicPartition.topic}/${topicPartition.partition}/$batchUuid/",
-              )
+              tempPath   = batchTempPath(batchUuid, finalPath)
               tempETag <- pendingOperationsProcessors.uploadOnly(
                 topicPartition,
                 UploadOperation(key.bucket, uploading.file, tempPath),
@@ -222,7 +220,7 @@ class Writer[SM <: FileMetadata](
               )
             } yield {
               // On a Left the state deliberately stays `Uploading` with the staging file intact.
-              val staged = uploading.toStaged(key.bucket, tempPath, tempETag, finalPath)
+              val staged = uploading.toStaged(key.bucket, tempPath, tempETag, finalPath, batchUuid)
               writeState = staged
               staged.some
             }
@@ -232,6 +230,51 @@ class Writer[SM <: FileMetadata](
       case other =>
         FatalCloudSinkError(s"stage reached an unexpected state $other", topicPartition).asLeft
     }
+  }
+
+  /**
+   * Connector-scoped so the batch sweep can delete orphans belonging to this connector without ever
+   * touching granular-mode temps or another connector's temps.
+   */
+  private def batchTempPath(batchUuid: String, finalPath: String): String =
+    finalPath.prependedAll(
+      s".temp-upload/${connectorTaskId.name}/${topicPartition.topic}/${topicPartition.partition}/$batchUuid/",
+    )
+
+  /**
+   * Re-uploads a writer left `Staged` by an earlier batch attempt under the current `batchUuid`.
+   *
+   * LC-349: the earlier attempt failed before its CAS (another writer's stage failed), so nothing
+   * references `staged.tempPath` and the `.temp-upload` orphan sweep may already have deleted it.
+   * Reusing it would CAS a `CopyOperation` whose source and destination are both missing: a Fatal
+   * error that `open()` replays on every restart. So the local file, which is deliberately kept
+   * until `finalizeCommit`, is uploaded again under the new id before the CAS.
+   *
+   *  - The destination is frozen: `staged.bucket` / `staged.finalPath` are reused and
+   *    `objectKeyBuilder` is never called again, because a custom namer may answer differently on a
+   *    second call.
+   *  - No HEAD check on the old temp: it would race the sweep, and a re-upload is correct either way.
+   *  - On failure the writer stays in its old `Staged` state, so the next attempt re-stages again.
+   *  - The old temp is left behind as an ordinary orphan for the sweep.
+   */
+  private def restage(staged: Staged, batchUuid: String): Either[SinkError, Option[Staged]] = {
+    val tempPath = batchTempPath(batchUuid, staged.finalPath)
+    metrics.incrementInFlightUploads()
+    val result =
+      try {
+        pendingOperationsProcessors.uploadOnly(
+          topicPartition,
+          UploadOperation(staged.bucket, staged.file, tempPath),
+          partitionKey,
+          Some(staged.file),
+        ).map { tempETag =>
+          val restaged = staged.restaged(tempPath, tempETag, batchUuid)
+          writeState = restaged
+          restaged.some
+        }
+      } finally metrics.decrementInFlightUploads()
+    if (result.isLeft) metrics.incrementFilesFailedTotal()
+    result
   }
 
   /**

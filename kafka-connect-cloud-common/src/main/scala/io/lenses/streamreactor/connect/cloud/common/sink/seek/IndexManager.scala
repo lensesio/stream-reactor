@@ -202,22 +202,68 @@ trait IndexManager {
   ): Unit
 
   /**
-   * Removes all in-memory state for a topic partition (seeked offsets, eTags).
-   * Called during partition revocation (rebalance) and task shutdown to prevent
-   * background threads (e.g. the orphan sweep) from operating on stale partitions.
+   * Removes all in-memory partition state for a topic partition (seeked offset, eTags, held
+   * epoch, fence, queued GC items). Called by `closePartitions` on revocation and by a failed
+   * `open()` rolling back, so background threads (e.g. the orphan sweep) stop operating on it.
    *
    * @param topicPartition The `TopicPartition` whose state should be cleared.
    */
   def clearTopicPartitionState(topicPartition: TopicPartition): Unit
 
   /**
+   * Releases partitions this task is closing. Kafka Connect's `SinkTask.close(partitions)` passes
+   * exactly the partitions being revoked (all of them on an eager rebalance or on shutdown, only
+   * the revoked ones on a cooperative rebalance), so this is the one place partition state is
+   * dropped on a revoke; `open()` never infers a revocation from what it was not given. The
+   * partitions stop being swept first: background work that deletes shared objects (the batch-mode
+   * `.temp-upload` sweep, including a pass already running that `suspendBackgroundWork` cannot
+   * stop) touches nothing more under them until a later `open()` hands them back. GC deletes
+   * queued for the closing partitions are dropped, not run: their obsolete locks are left in
+   * storage for the orphan sweep.
+   */
+  def closePartitions(topicPartitions: Set[TopicPartition]): Unit
+
+  /**
    * Signals that partitions are being closed and background threads should skip work
-   * until the next `open()` call. This is a best-effort gate: it prevents new scheduled
+   * until the next `open()` call, or until `closePartitions` returns with partitions still held
+   * (a cooperative revoke that adds nothing has no `open()`). This is a best-effort gate: it prevents new scheduled
    * invocations of `drainGcQueue` and `sweepOrphanedLocks` from starting, but cannot
-   * stop an already-running invocation. In-flight executions are benign -- see the
-   * architecture doc for the full safety argument.
+   * stop an already-running invocation, whose by-path deletes can still land after a handover
+   * -- see the architecture doc for the remaining window.
    */
   def suspendBackgroundWork(): Unit
+
+  /**
+   * Topic-partitions this instance has found itself fenced on: a newer owner holds them.
+   * The task fails fast on its next `put()` when this is non-empty.
+   * Always empty when indexing is disabled.
+   */
+  def fencedPartitions: Set[TopicPartition] = Set.empty
+
+  /** Whether this instance has found itself fenced on `topicPartition` (see [[fencedPartitions]]). */
+  def isFenced(topicPartition: TopicPartition): Boolean = {
+    val _ = topicPartition
+    false
+  }
+
+  /** Why this instance is fenced on `topicPartition` (the epochs involved), if it is. */
+  def fencingReason(topicPartition: TopicPartition): Option[String] = {
+    val _ = topicPartition
+    None
+  }
+
+  /**
+   * Called after a master-lock write failed. Re-reads the master lock and returns `true` (marking
+   * the partition fenced) when a newer owner holds it, `false` otherwise. When the stored lock is
+   * this instance's own write that landed although its response was lost (our owner and epoch,
+   * a new version), that version is adopted so the next write succeeds; when the lock is still
+   * the cached version, or can't be read, the failure is transient and nothing changes.
+   * Defaults to `false` when indexing is disabled.
+   */
+  def confirmMasterFenced(topicPartition: TopicPartition): Boolean = {
+    val _ = topicPartition
+    false
+  }
 
   /**
    * Releases any resources held by this IndexManager (e.g. background executors).

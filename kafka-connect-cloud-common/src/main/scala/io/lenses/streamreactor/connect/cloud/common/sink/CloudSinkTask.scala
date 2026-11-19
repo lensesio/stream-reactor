@@ -37,6 +37,7 @@ import io.lenses.streamreactor.connect.cloud.common.sink.conversion.ValueToSinkD
 import io.lenses.streamreactor.connect.cloud.common.sink.optimization.AttachLatestSchemaOptimizer
 import io.lenses.streamreactor.connect.cloud.common.sink.metrics.CloudSinkMetrics
 import io.lenses.streamreactor.connect.cloud.common.sink.metrics.CloudSinkMetricsRegistrar
+import io.lenses.streamreactor.connect.cloud.common.sink.metrics.ForcedWriteReason
 import io.lenses.streamreactor.connect.cloud.common.sink.metrics.StorageInterfaceWithMetrics
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexManager
 import io.lenses.streamreactor.connect.cloud.common.sink.writer.WriterManager
@@ -80,7 +81,7 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
 
   private var logMetrics = false
   private[sink] var writerManager: WriterManager[MD] = _
-  private var indexManager:        IndexManager      = _
+  private[sink] var indexManager:  IndexManager      = _
   private var config:              C                 = _
   private var metrics:             CloudSinkMetrics  = _
   private val attachLatestSchemaOptimizer = new AttachLatestSchemaOptimizer()
@@ -171,7 +172,37 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
         }
     }
 
-  override def put(records: util.Collection[SinkRecord]): Unit =
+  override def put(records: util.Collection[SinkRecord]): Unit = {
+    failIfFenced()
+    putRecords(records)
+  }
+
+  /**
+   * Fails the task, before any work, once this instance has found itself fenced on a partition: a
+   * newer owner holds it, so continuing would only withhold offsets forever while the zombie keeps
+   * the slot. Thrown outside `handleTry` as a `FatalConnectException`, which every error policy
+   * rethrows: NOOP would swallow an ordinary `ConnectException`, and RETRY would re-deliver the
+   * batch as retriable until its retries are exhausted (never, with unlimited retries).
+   * A restart re-opens the partitions and re-takes ownership above the fencing epoch.
+   */
+  private def failIfFenced(): Unit =
+    Option(indexManager).foreach { im =>
+      val fenced = im.fencedPartitions
+      if (fenced.nonEmpty) {
+        val tps = fenced.toList
+          .map(tp => s"$tp${im.fencingReason(tp).map(r => s" ($r)").getOrElse("")}")
+          .sorted
+          .mkString(", ")
+        val task = Option(connectorTaskId)
+        throw new FatalConnectException(
+          s"[${task.map(_.show).getOrElse("unknown task")}] Fenced on [$tps]: a newer task instance owns these " +
+            s"partitions (this instance's lockUuid ${task.map(_.lockUuid).getOrElse("unknown")}). " +
+            s"Failing so a restart re-takes ownership.",
+        )
+      }
+    }
+
+  private def putRecords(records: util.Collection[SinkRecord]): Unit =
     Metrics.withTimer {
       handleTry {
         Try {
@@ -315,12 +346,20 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
    * may be changing, eg, in a re-balance. Therefore, we must commit our open files
    * for those (topic,partitions) to ensure no records are lost.
    *
-   * seekedOffsets in IndexManagerV2 is deliberately NOT cleared here. During shutdown,
-   * Kafka Connect calls close(allPartitions) before stop(). If seekedOffsets were cleared
-   * here, the final drainGcQueue() in IndexManagerV2.close() (called from stop()) would
-   * discard every queued item as "partition no longer owned", and obsolete lock files would
-   * never be deleted. During rebalance (close + open without stop), stale seekedOffsets
-   * entries for revoked partitions are purged at the start of IndexManagerV2.open().
+   * `partitions` is exactly the set being revoked: every assigned partition on an eager rebalance
+   * and before `stop()`, only the revoked ones on a cooperative rebalance. It is the only source
+   * of truth for a revoke: `open()` receives only newly assigned partitions and never infers one.
+   * Only the writers of `partitions` are closed (flushing nothing: their buffered records are
+   * dropped and re-delivered from the durable floor to the next owner); a retained partition keeps
+   * its writers, staging files, buffers and offset barriers, because Connect never rewinds it.
+   * After those writers are closed (a forced master-lock write still needs the partition's
+   * ownership state), `indexManager.closePartitions` takes those partitions out of the batch temp
+   * sweep (a pass already running stops at its next delete chunk for them; until then it can only
+   * reap true orphans, under the partition's commit lock and owner fence), drops the GC deletes
+   * queued for them without running them (their obsolete locks are left for the orphan sweep), then
+   * drops all their state (seeked offset, eTags, held epoch, granular cache, fence), so a revoked
+   * fenced partition no longer fails the next `put()` for the partitions this task keeps. The
+   * release runs even if closing the writers throws.
    */
   override def close(partitions: util.Collection[KafkaTopicPartition]): Unit = {
     logger.debug(
@@ -330,14 +369,22 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
     )
     Option(metrics).foreach(_.incrementRebalanceClosesTotal())
 
-    // Suspend background GC/sweep threads before closing writers. This is a best-effort
-    // gate that prevents new scheduled invocations from starting during the close → open
-    // rebalance window. An already-running invocation is not interrupted but is benign
-    // (see architecture doc "Rebalance" section). On shutdown (close → stop), the flag
-    // stays false until the executors are shut down in IndexManagerV2.close(), which
-    // calls drainGcQueue() directly and bypasses the gate.
-    Option(indexManager).foreach(_.suspendBackgroundWork())
-    Option(writerManager).foreach(_.close())
+    // Suspend background GC/sweep threads before closing writers. This is a best-effort gate
+    // that prevents new scheduled invocations from starting until the next open(), or until
+    // closePartitions returns with partitions still held (a revoke-only rebalance has no open()). An
+    // already-running invocation is not interrupted: its deletes are by path and unconditional,
+    // so a lock it selected before a handover can be rewritten by the new owner before the
+    // delete lands (conditional deletes land in a later change; see
+    // IndexManagerV2.acceptingWork). On shutdown (close → stop), the flag stays false until the
+    // executors are shut down in IndexManagerV2.close().
+    val closed = Option(partitions)
+      .map(_.asScala.map(tp => TopicPartition(Topic(tp.topic), tp.partition)).toSet)
+      .getOrElse(Set.empty[TopicPartition])
+    try {
+      Option(indexManager).foreach(_.suspendBackgroundWork())
+      // Exactly the closed partitions: a cooperative revoke keeps the others' writers and buffers.
+      Option(writerManager).foreach(_.close(closed, ForcedWriteReason.Revoke))
+    } finally Option(indexManager).foreach(_.closePartitions(closed))
   }
 
   override def stop(): Unit = {
@@ -358,9 +405,9 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
     writerManager = null
 
     // indexManager.close() shuts down background executors and performs a final synchronous
-    // drainGcQueue(). seekedOffsets is still populated (close() does not clear it), so the
-    // drain correctly identifies owned partitions. The state is GC'd with the indexManager
-    // reference immediately after.
+    // drainGcQueue() for any partition still held. The close(partitions) before stop() has
+    // already dropped the closed partitions' queued GC deletes (left for the orphan sweep) and
+    // released them. The state is GC'd with the indexManager reference immediately after.
     Try(Option(indexManager).foreach(_.close())).failed.foreach { t =>
       logger.warn(s"[$taskIdStr] indexManager.close() failed during stop()", t)
     }

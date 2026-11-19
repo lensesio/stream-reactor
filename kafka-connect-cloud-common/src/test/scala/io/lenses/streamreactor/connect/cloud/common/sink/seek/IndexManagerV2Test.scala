@@ -313,8 +313,12 @@ class IndexManagerV2Test
 
     result.isLeft shouldBe true
     result.left.value shouldBe a[FatalCloudSinkError]
-    // Exactly MaxOpenCreateRaceAttempts (3) reads before giving up.
+    // Exactly MaxOpenCreateRaceAttempts (3) creates, each re-read (the last included) after the first read.
     verify(storageInterface, times(3))
+      .writeBlobToFile[IndexFile](anyString(), anyString(), any[ObjectWithETag[IndexFile]])(
+        ArgumentMatchers.eq(indexFileEncoder),
+      )
+    verify(storageInterface, times(4))
       .getBlobAsObject[IndexFile](anyString(), anyString())(ArgumentMatchers.eq(indexFileDecoder))
   }
 
@@ -1115,12 +1119,18 @@ class IndexManagerV2Test
     val result = im.ensureGranularLock(tp, "date%3D12_00")
     result shouldBe Right(())
 
-    // writeBlobToFile should NOT have been called for the granular lock path since the file already existed
-    verify(si, never).writeBlobToFile[IndexFile](
+    // The file already existed, so it is not created. Its one write is the take-over by this
+    // instance's epoch, conditional on the token just read, with the offset unchanged.
+    val written = ArgumentCaptor.forClass(classOf[ObjectProtection[IndexFile]])
+    verify(si, times(1)).writeBlobToFile[IndexFile](
       anyString(),
       ArgumentMatchers.contains("/0/date%3D12_00.lock"),
-      any[NoOverwriteExistingObject[IndexFile]],
+      written.capture(),
     )(ArgumentMatchers.eq(indexFileEncoder))
+    written.getValue shouldBe ObjectWithETag(
+      IndexFile(connectorTaskId.lockUuid, Some(Offset(50)), None, im.heldEpochOf(tp)),
+      "existing-granular-etag",
+    )
 
     try {
       // The cache should be populated from the tryOpen, so getSeekedOffsetForPartitionKey is a cache hit
@@ -1407,11 +1417,17 @@ class IndexManagerV2Test
       val captor = ArgumentCaptor.forClass(classOf[ObjectWithETag[IndexFile]])
       import org.mockito.Mockito.{ times => mtimes }
       import org.mockito.Mockito.{ verify => mverify }
-      mverify(si, mtimes(1)).writeBlobToFile[IndexFile](
+      // Two writes: the take-over by this instance's epoch (pending state kept, conditional on the
+      // token read), then the chain's clear of the pending state.
+      mverify(si, mtimes(2)).writeBlobToFile[IndexFile](
         anyString(),
         ArgumentMatchers.contains(s"/0/$pk.lock"),
         captor.capture(),
       )(ArgumentMatchers.eq(indexFileEncoder))
+      val takeOver = captor.getAllValues.get(0)
+      takeOver.eTag shouldBe "granular-etag"
+      takeOver.wrappedObject.pendingState.map(_.pendingOffset) shouldBe Some(Offset(500))
+      takeOver.wrappedObject.epoch shouldBe im.heldEpochOf(Topic("topic1").withPartition(0))
       captor.getValue.wrappedObject.pendingState shouldBe None
       captor.getValue.wrappedObject.committedOffset shouldBe Some(Offset(450))
 
@@ -1449,11 +1465,17 @@ class IndexManagerV2Test
       val captor = ArgumentCaptor.forClass(classOf[ObjectWithETag[IndexFile]])
       import org.mockito.Mockito.{ times => mtimes }
       import org.mockito.Mockito.{ verify => mverify }
-      mverify(si, mtimes(1)).writeBlobToFile[IndexFile](
+      // Two writes: the take-over by this instance's epoch (pending state kept, conditional on the
+      // token read), then the chain's clear of the pending state.
+      mverify(si, mtimes(2)).writeBlobToFile[IndexFile](
         anyString(),
         ArgumentMatchers.contains(s"/0/$pk.lock"),
         captor.capture(),
       )(ArgumentMatchers.eq(indexFileEncoder))
+      val takeOver = captor.getAllValues.get(0)
+      takeOver.eTag shouldBe "granular-etag"
+      takeOver.wrappedObject.pendingState.map(_.pendingOffset) shouldBe Some(Offset(500))
+      takeOver.wrappedObject.epoch shouldBe im.heldEpochOf(Topic("topic1").withPartition(0))
       captor.getValue.wrappedObject.pendingState shouldBe None
       captor.getValue.wrappedObject.committedOffset shouldBe Some(Offset(450))
 
@@ -1513,14 +1535,21 @@ class IndexManagerV2Test
         ArgumentMatchers.eq(indexFileDecoder),
       )
 
-    // Write fails (another task created it between read and write)
-    org.mockito.Mockito.doReturn(Left(FileCreateError(new Exception("conflict"), "granular-path")))
-      .when(si).writeBlobToFile[IndexFile](anyString(),
-                                           ArgumentMatchers.contains("/0/pk-conflict.lock"),
-                                           any[NoOverwriteExistingObject[IndexFile]],
-      )(
-        ArgumentMatchers.eq(indexFileEncoder),
-      )
+    // The create fails (another task created it between read and write); the take-over of the
+    // lock the re-read finds (an older owner's, with no epoch) succeeds.
+    org.mockito.Mockito.doAnswer { (invocation: org.mockito.invocation.InvocationOnMock) =>
+      invocation.getArguments.toList.collectFirst { case p: ObjectProtection[IndexFile] @unchecked => p } match {
+        case Some(_: NoOverwriteExistingObject[IndexFile] @unchecked) =>
+          Left(FileCreateError(new Exception("conflict"), "granular-path"))
+        case Some(p) => Right(ObjectWithETag(p.wrappedObject, "taken-over-etag"))
+        case None    => Left(FileCreateError(new Exception("no protection argument"), "granular-path"))
+      }
+    }.when(si).writeBlobToFile[IndexFile](anyString(),
+                                          ArgumentMatchers.contains("/0/pk-conflict.lock"),
+                                          any[ObjectProtection[IndexFile]],
+    )(
+      ArgumentMatchers.eq(indexFileEncoder),
+    )
 
     when(
       pp.processPendingOperations(
@@ -3368,6 +3397,150 @@ class IndexManagerV2Test
     } finally im.close()
   }
 
+  // A predecessor that crashed after the copy step has already produced a final file
+  // up to pendingOffset. If pendingOffset is at or above the master floor, replay re-delivers those
+  // records, and only this lock (resolved at load time) deduplicates them. Deleting it on
+  // committedOffset alone writes them a second time.
+  Seq(200L -> "above", 100L -> "at").foreach {
+    case (pendingOffset, where) =>
+      test(s"sweep does NOT enqueue a PendingState lock whose pendingOffset is $where the master offset") {
+        val tp              = Topic("topic1").withPartition(0)
+        val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
+        val si              = storageMockWithBump()
+        setupSweepMocks(si, tp, bucketAndPrefix)
+
+        val oldTime = Instant.now().minusSeconds(7200)
+        val pendingPath =
+          s"$indexesDirectoryName/${connectorTaskId.name}/.locks/${tp.topic}/${tp.partition}/pending-above.lock"
+        val pendingMeta  = TestFileMetadata(pendingPath, oldTime)
+        val listResponse = ListOfMetadataResponse("bucket", Some("prefix"), Seq(pendingMeta), pendingMeta)
+
+        org.mockito.Mockito.doReturn(Right(Some(listResponse))).when(si).listFileMetaRecursive(anyString(),
+                                                                                               any[Option[String]],
+        )
+
+        val pendingState =
+          PendingState(Offset(pendingOffset), NonEmptyList.one(DeleteOperation("bucket", "some/temp/path", "old-etag")))
+        when(
+          si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("pending-above.lock"))(
+            ArgumentMatchers.eq(indexFileDecoder),
+          ),
+        )
+          .thenReturn(
+            Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(50)), Some(pendingState)), "pending-etag")),
+          )
+        when(si.deleteFiles(anyString(), any[Seq[String]])).thenReturn(Right(()))
+
+        val im = createSweepTestManager(si)
+        try {
+          im.open(Set(tp))
+          im.sweepOrphanedLocks()
+          im.drainGcQueue()
+
+          verify(si, never).deleteFiles(anyString(), any[Seq[String]])
+        } finally im.close()
+      }
+  }
+
+  // Sets up a single aged granular lock under a master at offset 100 (see setupSweepMocks)
+  // and returns the storage mock plus the lock path. pendingOffset = None writes no PendingState.
+  private def setupPendingLockSweep(
+    tp:              TopicPartition,
+    committedOffset: Long,
+    pendingOffset:   Option[Long],
+  ): (StorageInterface[_], String) = {
+    val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
+    val si              = storageMockWithBump()
+    setupSweepMocks(si, tp, bucketAndPrefix)
+
+    val oldTime = Instant.now().minusSeconds(7200)
+    val pendingPath =
+      s"$indexesDirectoryName/${connectorTaskId.name}/.locks/${tp.topic}/${tp.partition}/pending-key.lock"
+    val pendingMeta  = TestFileMetadata(pendingPath, oldTime)
+    val listResponse = ListOfMetadataResponse("bucket", Some("prefix"), Seq(pendingMeta), pendingMeta)
+
+    org.mockito.Mockito.doReturn(Right(Some(listResponse))).when(si).listFileMetaRecursive(anyString(),
+                                                                                           any[Option[String]],
+    )
+
+    val pendingState = pendingOffset.map(po =>
+      PendingState(Offset(po), NonEmptyList.one(DeleteOperation("bucket", "some/temp/path", "old-etag"))),
+    )
+    when(
+      si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.contains("pending-key.lock"))(
+        ArgumentMatchers.eq(indexFileDecoder),
+      ),
+    )
+      .thenReturn(
+        Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(committedOffset)), pendingState), "pending-etag")),
+      )
+    when(si.deleteFiles(anyString(), any[Seq[String]])).thenReturn(Right(()))
+    (si, pendingPath)
+  }
+
+  // Pairs with the "at the master offset" case above: the threshold is strictly below the
+  // master, so the pending chain one record below it is never replayed and is safe to sweep.
+  test("sweep enqueues a PendingState lock whose pendingOffset is one below the master offset") {
+    val tp                = Topic("topic1").withPartition(0)
+    val (si, pendingPath) = setupPendingLockSweep(tp, committedOffset = 50, pendingOffset = Some(99L))
+
+    val im = createSweepTestManager(si)
+    try {
+      im.open(Set(tp))
+      im.sweepOrphanedLocks()
+      im.gcQueueSize shouldBe 1
+      im.drainGcQueue()
+
+      verify(si, times(1)).deleteFiles(anyString(), ArgumentMatchers.eq(Seq(pendingPath)))
+    } finally im.close()
+  }
+
+  // No PendingState here, so only the committedOffset guard decides. A PendingState variant cannot
+  // isolate that guard: a real chain has pendingOffset > committedOffset, which is already at or
+  // above the master, so the pendingOffset guard would reject the lock on its own.
+  Seq(100L -> "at", 150L -> "above").foreach {
+    case (committedOffset, where) =>
+      test(s"sweep does NOT enqueue a lock without PendingState whose committedOffset is $where the master offset") {
+        val tp      = Topic("topic1").withPartition(0)
+        val (si, _) = setupPendingLockSweep(tp, committedOffset = committedOffset, pendingOffset = None)
+
+        val im = createSweepTestManager(si)
+        try {
+          im.open(Set(tp))
+          im.sweepOrphanedLocks()
+          im.gcQueueSize shouldBe 0
+          im.drainGcQueue()
+
+          verify(si, never).deleteFiles(anyString(), any[Seq[String]])
+        } finally im.close()
+      }
+  }
+
+  // A lock retained because its pending chain reaches the master floor must not leak: once the
+  // master advances past pendingOffset the chain is no longer replayed and a later sweep removes it.
+  test("sweep removes a retained PendingState lock once the master offset advances past its pendingOffset") {
+    val tp                = Topic("topic1").withPartition(0)
+    val (si, pendingPath) = setupPendingLockSweep(tp, committedOffset = 50, pendingOffset = Some(200L))
+
+    val im = createSweepTestManager(si)
+    try {
+      im.open(Set(tp))
+      im.sweepOrphanedLocks()
+      im.gcQueueSize shouldBe 0
+      im.drainGcQueue()
+      verify(si, never).deleteFiles(anyString(), any[Seq[String]])
+
+      // The master lock stores globalSafeOffset - 1, so this moves the master offset to 201.
+      im.updateMasterLock(tp, Offset(202)) shouldBe Right(())
+
+      im.sweepOrphanedLocks()
+      im.gcQueueSize shouldBe 1
+      im.drainGcQueue()
+
+      verify(si, times(1)).deleteFiles(anyString(), ArgumentMatchers.eq(Seq(pendingPath)))
+    } finally im.close()
+  }
+
   test("sweep writes per-TP markers to each partition's bucket") {
     val tp1 = Topic("topic1").withPartition(0)
     val tp2 = Topic("topic2").withPartition(0)
@@ -3650,7 +3823,7 @@ class IndexManagerV2Test
     } finally im.close()
   }
 
-  test("open() clears stale seekedOffsets from revoked partitions after rebalance") {
+  test("closePartitions() clears seekedOffsets for exactly the revoked partitions; open() of new ones keeps the rest") {
     val tp0             = Topic("topic1").withPartition(0)
     val tp1             = Topic("topic1").withPartition(1)
     val tp2             = Topic("topic1").withPartition(2)
@@ -3679,18 +3852,19 @@ class IndexManagerV2Test
       im.getSeekedOffsetForTopicPartition(tp0) shouldBe Some(Offset(100))
       im.getSeekedOffsetForTopicPartition(tp1) shouldBe Some(Offset(100))
 
-      // Rebalance: tp0 revoked, tp2 added → new assignment {tp1, tp2}
-      im.open(Set(tp1, tp2))
+      // Cooperative rebalance: tp0 revoked (close receives only it), tp2 added (open receives only it)
+      im.closePartitions(Set(tp0))
+      im.open(Set(tp2))
 
-      // tp0 should have been pruned
+      // tp0 was cleared by its close
       im.getSeekedOffsetForTopicPartition(tp0) shouldBe None
-      // tp1 should still be present (re-opened)
+      // tp1 is still present (retained, neither closed nor re-opened)
       im.getSeekedOffsetForTopicPartition(tp1) shouldBe Some(Offset(100))
       // tp2 should be present (newly opened)
       im.getSeekedOffsetForTopicPartition(tp2) shouldBe Some(Offset(100))
 
       // Sweep should NOT process tp0 (no longer in seekedOffsets).
-      // After pruning, only tp1 and tp2 remain, so the sweep should list exactly 2 partitions.
+      // After the close, only tp1 and tp2 remain, so the sweep should list exactly 2 partitions.
       when(
         si.getBlobAsObject[IndexManagerV2.SweepMarker](
           anyString(),
@@ -3736,7 +3910,7 @@ class IndexManagerV2Test
     } finally im.close()
   }
 
-  test("open() clears granular cache entries for revoked partitions") {
+  test("closePartitions() clears granular cache entries for the revoked partitions") {
     val tp0             = Topic("topic1").withPartition(0)
     val tp1             = Topic("topic1").withPartition(1)
     val bucketAndPrefix = CloudLocation("bucket", "prefix".some)
@@ -3767,8 +3941,8 @@ class IndexManagerV2Test
       im.getSeekedOffsetForPartitionKey(tp0, "pk-a") shouldBe Right(Some(Offset(80)))
       im.granularCacheSize shouldBe 1
 
-      // Rebalance: tp0 revoked → new assignment {tp1}
-      im.open(Set(tp1))
+      // Rebalance: tp0 revoked
+      im.closePartitions(Set(tp0))
 
       // Granular cache for tp0 should be evicted
       im.granularCacheSize shouldBe 0
@@ -3802,8 +3976,9 @@ class IndexManagerV2Test
       im.open(Set(tp0, tp1))
       im.acceptingWork shouldBe true
 
-      // Simulate close() calling suspendBackgroundWork()
+      // Simulate an eager close of every partition: suspendBackgroundWork(), then release them all
       im.suspendBackgroundWork()
+      im.closePartitions(Set(tp0, tp1))
       im.acceptingWork shouldBe false
 
       // Set up sweep mocks -- these should NOT be called while suspended
@@ -3884,7 +4059,12 @@ class IndexManagerV2Test
       // deleteFiles must NOT have been called — the item is still in the queue
       verify(si, never).deleteFiles(anyString(), any[Seq[String]])
 
-      // Resume via open() and drain should now process the queued item
+      // Resume via open() and drain should now process the queued item. The master lock still
+      // carries the epoch this instance wrote (no other owner in between), so the queue is kept.
+      when(si.getBlobAsObject[IndexFile](anyString(), ArgumentMatchers.endsWith("0.lock"))(
+        ArgumentMatchers.eq(indexFileDecoder),
+      ))
+        .thenReturn(Right(ObjectWithETag(IndexFile("lockOwner", Some(Offset(100)), None, im.heldEpochOf(tp)), "etag")))
       im.open(Set(tp))
       im.acceptingWork shouldBe true
       when(si.deleteFiles(anyString(), any[Seq[String]])).thenReturn(Right(()))

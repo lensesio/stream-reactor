@@ -16,6 +16,14 @@
 package io.lenses.streamreactor.connect.cloud.common.sink.writer
 
 import cats.implicits.catsSyntaxEitherId
+import io.circe.Encoder
+import io.lenses.streamreactor.connect.cloud.common.sink.commit.CommitContext
+import io.lenses.streamreactor.connect.cloud.common.sink.config.PartitionField
+import io.lenses.streamreactor.connect.cloud.common.sink.config.PartitionNamePath
+import io.lenses.streamreactor.connect.cloud.common.sink.config.ValuePartitionField
+import io.lenses.streamreactor.connect.cloud.common.sink.conversion.StringSinkData
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.NoOverwriteExistingObject
+import io.lenses.streamreactor.connect.cloud.common.testing.InMemoryStorageInterface.FailWriteAt
 import io.lenses.streamreactor.common.config.base.intf.ConnectionConfig
 import io.lenses.streamreactor.common.errors._
 import io.lenses.streamreactor.common.errors.RetriableIntegrityException
@@ -34,7 +42,9 @@ import io.lenses.streamreactor.connect.cloud.common.sink.BatchCloudSinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.CloudSinkTask
 import io.lenses.streamreactor.connect.cloud.common.sink.FatalCloudSinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.NonFatalCloudSinkError
+import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.conversion.NullSinkData
+import io.lenses.streamreactor.connect.cloud.common.sink.metrics.ForcedWriteReason
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.CloudCommitPolicy
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.CommitPolicy
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.KeyNamer
@@ -43,6 +53,9 @@ import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexManager
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.NoIndexManager
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.PendingOperationsProcessors
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.PendingState
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexFile
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.TwoInstanceHarness
+import io.lenses.streamreactor.connect.cloud.common.testing.InMemoryStorageInterface.OnWriteAt
 import io.lenses.streamreactor.connect.cloud.common.model.UploadableFile
 import io.lenses.streamreactor.connect.cloud.common.storage.FileMoveError
 import io.lenses.streamreactor.connect.cloud.common.storage.UploadError
@@ -55,6 +68,7 @@ import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.connect.errors.RetriableException
 import org.mockito.ArgumentMatchersSugar
 import org.mockito.MockitoSugar
+import org.scalatest.Assertion
 import org.scalatest.EitherValues
 import org.scalatest.funsuite.AnyFunSuiteLike
 import org.scalatest.matchers.should.Matchers
@@ -284,6 +298,243 @@ class CloudSinkTaskTest
   ) {
     val thrown = runHandleErrors(ThrowErrorPolicy())
     thrown shouldBe a[RetriableIntegrityException]
+  }
+
+  // ── Granular-lock take-over failures at the error-policy boundary ─────────────────────────
+  //
+  // The errors below are produced by a real take-over between two index-manager instances that
+  // share storage, then driven through the production handleErrors -> handleTry -> policy chain.
+
+  /**
+   * A owns `key` under an older epoch, B opens the partition, and `beforeEachTakeOver` runs before
+   * each of B's take-over writes (`takeOverWrites` of them). Returns the error B's load ends with.
+   */
+  private def failedTakeOver(takeOverWrites: Int)(beforeEachTakeOver: TwoInstanceHarness => Int => Unit): SinkError = {
+    val h   = new TwoInstanceHarness()
+    val key = "date=2024-01-01"
+    try {
+      h.clock.set(1000L)
+      h.a.open(Set(tpA)).value
+      h.a.ensureGranularLock(tpA, key).value
+      h.a.updateForPartitionKey(tpA, key, Some(Offset(5)), None).value
+      h.b.open(Set(tpA)).value
+      (1 to takeOverWrites).foreach { n =>
+        val _ = h.storage.arm(
+          OnWriteAt(
+            h.bucket,
+            h.granularLockPath(tpA, key),
+            () => beforeEachTakeOver(h)(n),
+            { case idx: IndexFile => idx.owner == h.lockUuid(1); case _ => false },
+          ),
+        )
+      }
+      h.b.getSeekedOffsetForPartitionKey(tpA, key).left.value
+    } finally h.close()
+  }
+
+  private def runHandleErrorsWith(error: SinkError, policy: ErrorPolicy): Throwable = {
+    val task = new ConcreteTestSinkTask
+    task.initialize(5, policy)
+    task.writerManager   = buildMinimalWriterManager(stubWmIndexManager())
+    task.connectorTaskId = connectorTaskId
+    var thrown: Throwable = null
+    try {
+      task.handleTry(Try {
+        task.handleErrors(Left(error))
+      })
+    } catch { case t: Throwable => thrown = t }
+    thrown
+  }
+
+  test("a granular-lock take-over that runs out of attempts is re-delivered under error.policy=RETRY") {
+    val error = failedTakeOver(takeOverWrites = 3) { h => n =>
+      val _ = h.a.updateForPartitionKey(tpA, "date=2024-01-01", Some(Offset(5L + n)), None).value
+    }
+
+    runHandleErrorsWith(error, RetryErrorPolicy()) shouldBe a[RetriableException]
+  }
+
+  test("a granular-lock take-over whose re-read fails is re-delivered under error.policy=RETRY") {
+    val error = failedTakeOver(takeOverWrites = 1) { h => _ =>
+      val path = h.granularLockPath(tpA, "date=2024-01-01")
+      h.storage.deleteFile(h.bucket, path, "").value
+    }
+
+    runHandleErrorsWith(error, RetryErrorPolicy()) shouldBe a[RetriableException]
+  }
+
+  // ── Lock-load failures through a real WriterManager, delivered as Connect delivers ──────────
+  //
+  // One partition, PARTITIONBY on a single key. A previous owner left the master lock at 5 and the
+  // key's granular lock under an older epoch. Records are delivered one per put() through the real
+  // WriterManager / IndexManagerV2 and the production handleErrors -> handleTry -> policy chain,
+  // and each put is followed by a preCommit, as Connect does. Every record is flushed on its own,
+  // so each committed record has its own final object, named after its offset.
+
+  private val loadKey:        String                      = "K"
+  private val loadKeyField:   ValuePartitionField         = ValuePartitionField(PartitionNamePath("k"))
+  private val loadKeyValues:  Map[PartitionField, String] = Map(loadKeyField -> loadKey)
+  private def loadKeySegment: String                      = WriterManager.derivePartitionKey(loadKeyValues).get
+  private def finalObject(first: Long): String =
+    s"data/${tpA.topic.value}/${tpA.partition}/$loadKeySegment-$first.json"
+  private def finalObjects(h: TwoInstanceHarness): Set[String] =
+    h.storage.keysUnder(h.bucket, "data/").filter(_.endsWith(".json")).toSet
+
+  private def seedLock(h: TwoInstanceHarness, path: String, idx: IndexFile): Unit = {
+    implicit val enc: Encoder[IndexFile] = IndexFile.indexFileEncoder
+    val _ = h.storage.writeBlobToFile(h.bucket, path, NoOverwriteExistingObject(idx)).value
+  }
+
+  /** The previous owner's master lock: floor 5, epoch 500 (older than any instance's). */
+  private def seedPreviousOwner(h: TwoInstanceHarness): Unit =
+    seedLock(h, h.masterLockPath(tpA), IndexFile("previous-owner", Some(Offset(5)), None, Some(500L)))
+
+  /**
+   * Connect, reduced to one partition: delivers the next available offset at or after the
+   * consumer position in its own put(), then calls preCommit. A `RetriableException` re-delivers
+   * the same record to the same task. Any other exception fails the task: the next incarnation
+   * (the harness's next instance, sharing storage) opens the partition and the consumer resumes
+   * from the offset open() seeks to. `available` lists the offsets the topic still holds.
+   */
+  private final class ConnectLoop(h: TwoInstanceHarness, policy: ErrorPolicy, maxRetries: Int) {
+    val thrown:              scala.collection.mutable.Buffer[Throwable] = scala.collection.mutable.Buffer.empty
+    var incarnation:         Int                                        = -1
+    var lastCommittedOffset: Option[Long]                               = None
+
+    private var task: ConcreteTestSinkTask            = _
+    private var wm:   WriterManager[FakeFileMetadata] = _
+
+    private def startIncarnation(): Long = {
+      incarnation += 1
+      val im   = h.instances(incarnation)
+      val seek = im.open(Set(tpA)).value.get(tpA).flatten.map(_.value)
+      wm   = buildRealWriterManager(h, im)
+      task = new ConcreteTestSinkTask
+      task.initialize(maxRetries, policy)
+      task.writerManager   = wm
+      task.connectorTaskId = connectorTaskId
+      seek.orElse(lastCommittedOffset).getOrElse(0L)
+    }
+
+    def run(available: Seq[Long]): Unit = {
+      var position = startIncarnation()
+      var puts     = 0
+      while (available.exists(_ >= position)) {
+        puts += 1
+        require(puts <= 20, s"no progress after $puts puts; thrown=$thrown")
+        val record = available.filter(_ >= position).min
+        var error: Throwable = null
+        try {
+          val _ =
+            task.handleTry(Try(task.handleErrors(wm.write(tpA.withOffset(Offset(record)), loadKeyMessage(record)))))
+        } catch { case t: Throwable => error = t }
+        error match {
+          case null =>
+            position = record + 1
+            wm.preCommit(Map(tpA -> new OffsetAndMetadata(position))).get(tpA).foreach { om =>
+              lastCommittedOffset = Some(om.offset())
+            }
+          case retriable: RetriableException => thrown += retriable
+          case failed =>
+            thrown += failed
+            position = startIncarnation()
+        }
+      }
+    }
+  }
+
+  private def loadKeyMessage(offset: Long): MessageDetail =
+    MessageDetail(
+      key       = StringSinkData("k", None),
+      value     = StringSinkData("v", None),
+      headers   = Map.empty,
+      timestamp = None,
+      topic     = tpA.topic,
+      partition = tpA.partition,
+      offset    = Offset(offset),
+    )
+
+  /** A real WriterManager over `im`, flushing every record into its own final object. */
+  private def buildRealWriterManager(h: TwoInstanceHarness, im: IndexManager): WriterManager[FakeFileMetadata] = {
+    val keyNamer = mock[KeyNamer]
+    when(keyNamer.processPartitionValues(any[MessageDetail], any[TopicPartition]))
+      .thenReturn(loadKeyValues.asRight[SinkError])
+    val formatWriter = mock[FormatWriter]
+    when(formatWriter.write(any[MessageDetail])).thenReturn(().asRight)
+    when(formatWriter.complete()).thenReturn(().asRight)
+    when(formatWriter.rolloverFileOnSchemaChange()).thenReturn(false)
+    val flushEveryRecord = mock[CommitPolicy]
+    when(flushEveryRecord.shouldFlush(any[CommitContext])).thenReturn(true)
+
+    new WriterManager[FakeFileMetadata](
+      commitPolicyFn    = _ => flushEveryRecord.asRight,
+      bucketAndPrefixFn = h.bucketAndPrefix,
+      keyNamerFn        = _ => keyNamer.asRight,
+      stagingFilenameFn = (_, _) => makeTempFile("payload").asRight,
+      objKeyBuilderFn = (_, _) => {
+        val okb = mock[ObjectKeyBuilder]
+        when(okb.build(any[Offset], any[Offset], any[Long], any[Long], any[Long])).thenAnswer {
+          (first: Offset, _: Offset, _: Long, _: Long, _: Long) =>
+            CloudLocation(h.bucket, path = Some(finalObject(first.value))).asRight
+        }
+        okb
+      },
+      formatWriterFn              = (_, _) => formatWriter.asRight,
+      indexManager                = im,
+      transformerF                = Right(_),
+      schemaChangeDetector        = mock[SchemaChangeDetector],
+      skipNullValues              = false,
+      pendingOperationsProcessors = new PendingOperationsProcessors(h.storage),
+    )
+  }
+
+  /**
+   * Every one of the three take-over writes for the key fails transiently, then writes recover.
+   * Under RETRY with `maxRetries` the record that loaded the key is re-delivered to the same task,
+   * the next load takes the key over afresh, and each record is committed once.
+   */
+  private def spentTakeOverBudgetUnderRetry(maxRetries: Int): Assertion = {
+    val h = new TwoInstanceHarness(instanceCount = 3)
+    try {
+      seedPreviousOwner(h)
+      seedLock(h,
+               h.granularLockPath(tpA, loadKeySegment),
+               IndexFile("previous-owner", Some(Offset(5)), None, Some(500L)),
+      )
+      (1 to 3).foreach { _ =>
+        val _ = h.storage.arm(
+          FailWriteAt(
+            h.bucket,
+            h.granularLockPath(tpA, loadKeySegment),
+            Some(UploadFailedError(new java.net.SocketTimeoutException("Read timed out"), new File("lock"))),
+          ),
+        )
+      }
+
+      val connect = new ConnectLoop(h, RetryErrorPolicy(), maxRetries)
+      connect.run(available = Seq(6L, 7L))
+
+      connect.thrown.map(_.getClass) shouldBe Seq(classOf[RetriableException])
+      connect.incarnation shouldBe 0
+      h.metrics(0).getGranularLockOwnershipBumpRaces shouldBe 3L
+      h.metrics(0).getGranularLockOwnershipBumps shouldBe 1L
+      finalObjects(h) shouldBe Set(finalObject(6), finalObject(7))
+      connect.lastCommittedOffset shouldBe Some(8L)
+      h.readLock(h.granularLockPath(tpA, loadKeySegment)).value.wrappedObject shouldBe
+        IndexFile(h.lockUuid(0), Some(Offset(7)), None, Some(1000L))
+    } finally h.close()
+  }
+
+  test(
+    "a take-over whose writes all fail transiently is retried, not fatal, under error.policy=RETRY and commits once writes recover",
+  ) {
+    spentTakeOverBudgetUnderRetry(maxRetries = 5)
+  }
+
+  test(
+    "a take-over whose writes all fail transiently is retried under error.policy=RETRY with unlimited retries and commits once writes recover",
+  ) {
+    spentTakeOverBudgetUnderRetry(maxRetries = -1)
   }
 
   /**
@@ -924,6 +1175,100 @@ class CloudSinkTaskTest
     wm.writerCount shouldBe 0
     verify(im, times(1)).evictAllGranularLocks(tpA)
     val _ = tmpFile.delete()
+  }
+
+  // close(partitions) must hand the IndexManager exactly those partitions, so a batch temp sweep
+  // that is already mid-pass stops deleting under them, and nothing else is released.
+  test("close(partitions) releases exactly those partitions on the IndexManager") {
+    val im   = mock[IndexManager]
+    val task = new ConcreteTestSinkTask
+    task.connectorTaskId = connectorTaskId
+    task.indexManager    = im
+
+    task.close(java.util.Arrays.asList(tpA.toKafka, tpB.toKafka))
+
+    verify(im, times(1)).closePartitions(Set(tpA, tpB))
+  }
+
+  // ── a fenced partition fails the task on the next put() ─────────
+
+  private def fencedPut(
+    policy:     ErrorPolicy,
+    maxRetries: Int,
+    records:    java.util.Collection[org.apache.kafka.connect.sink.SinkRecord],
+  ): (Throwable, WriterManager[FakeFileMetadata], ConcreteTestSinkTask) = {
+    val task = new ConcreteTestSinkTask
+    task.initialize(maxRetries, policy)
+    val wm = mock[WriterManager[FakeFileMetadata]]
+    val im = mock[IndexManager]
+    when(im.fencedPartitions).thenReturn(Set(tpA))
+    when(im.fencingReason(tpA)).thenReturn(Some("lock k epoch 9 > held epoch 3"))
+    task.writerManager   = wm
+    task.indexManager    = im
+    task.connectorTaskId = connectorTaskId
+    (intercept[Throwable](task.put(records)), wm, task)
+  }
+
+  private val oneRecord: java.util.Collection[org.apache.kafka.connect.sink.SinkRecord] =
+    java.util.List.of(new org.apache.kafka.connect.sink.SinkRecord(tpA.topic.value, 0, null, null, null, "v", 7L))
+
+  // The fence check runs before `handleTry`, so no error policy ever sees the failure: NOOP would
+  // swallow it, RETRY would re-deliver it (forever with unlimited retries). The untouched retry
+  // count shows it never went through the policy. THROW is not listed: it rethrows either way.
+  Seq[(String, ErrorPolicy, Int, java.util.Collection[org.apache.kafka.connect.sink.SinkRecord])](
+    ("an empty put() under NOOP", NoopErrorPolicy(), 5, java.util.List.of[org.apache.kafka.connect.sink.SinkRecord]()),
+    ("a non-empty put() under NOOP", NoopErrorPolicy(), 5, oneRecord),
+    ("a non-empty put() under RETRY with unlimited retries", RetryErrorPolicy(), Int.MaxValue, oneRecord),
+  ).foreach {
+    case (name, policy, maxRetries, records) =>
+      test(s"$name on a fenced partition throws FatalConnectException before any work, bypassing the policy") {
+        val (thrown, wm, task) = fencedPut(policy, maxRetries, records)
+
+        thrown shouldBe a[FatalConnectException]
+        thrown should not be a[RetriableIntegrityException]
+        thrown.getMessage should include(tpA.toString)
+        thrown.getMessage should include("lock k epoch 9 > held epoch 3")
+        thrown.getMessage should include(connectorTaskId.lockUuid)
+        org.mockito.Mockito.verifyNoInteractions(wm)
+        task.getErrorTrackerRetries shouldBe maxRetries
+      }
+  }
+
+  test("put() on a task with no fenced partitions does not throw for fencing") {
+    val task = new ConcreteTestSinkTask
+    task.initialize(5, NoopErrorPolicy())
+    val wm = mock[WriterManager[FakeFileMetadata]]
+    val im = mock[IndexManager]
+    when(im.fencedPartitions).thenReturn(Set.empty[TopicPartition])
+    when(wm.recommitPending()).thenReturn(().asRight)
+    when(wm.commitFlushableWriters()).thenReturn(().asRight)
+    task.writerManager   = wm
+    task.indexManager    = im
+    task.connectorTaskId = connectorTaskId
+
+    task.put(java.util.List.of[org.apache.kafka.connect.sink.SinkRecord]())
+
+    verify(wm).recommitPending()
+  }
+
+  // ── close(partitions) is exception-safe (real-path close tests: CooperativeRevokeCloseTest) ─────────
+
+  test("close() still releases the closed partitions when closing the writers throws") {
+    val task = new ConcreteTestSinkTask
+    task.initialize(5, NoopErrorPolicy())
+    val wm = mock[WriterManager[FakeFileMetadata]]
+    val im = mock[IndexManager]
+    when(wm.close(any[Set[TopicPartition]], any[ForcedWriteReason])).thenThrow(new IllegalStateException(
+      "writer close failed",
+    ))
+    task.writerManager   = wm
+    task.indexManager    = im
+    task.connectorTaskId = connectorTaskId
+
+    intercept[IllegalStateException](task.close(java.util.List.of(tpB.toKafka)))
+
+    verify(wm).close(Set(tpB), ForcedWriteReason.Revoke)
+    verify(im).closePartitions(Set(tpB))
   }
 
   private class ConcreteTestSinkTask

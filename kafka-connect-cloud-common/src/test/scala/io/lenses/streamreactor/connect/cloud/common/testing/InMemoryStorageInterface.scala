@@ -44,7 +44,9 @@ import scala.jdk.CollectionConverters._
  *
  * Design points:
  *
- *  - Blobs are keyed by `(bucket, path)` and tracked with a fresh UUID `eTag` per write.
+ *  - Blobs are keyed by `(bucket, path)` and tracked with a fresh UUID `eTag` per write, or, with
+ *    `contentETags`, an eTag derived from the bytes (as S3 reports for a single-part PUT), so
+ *    rewriting identical bytes yields the same eTag.
  *  - Conditional writes (`NoOverwriteExistingObject`, `ObjectWithETag`) implement the same
  *    semantics the production S3/GCS/ADL backends use:
  *      - `NoOverwriteExistingObject` -> `If-None-Match: *`. Succeeds only when the key is
@@ -63,7 +65,8 @@ import scala.jdk.CollectionConverters._
  * next matching write/upload/move/delete and are then consumed. Hooks default to none, so
  * happy-path scenarios need no setup.
  */
-class InMemoryStorageInterface(systemName: String = "in-memory") extends StorageInterface[FakeFileMetadata] {
+class InMemoryStorageInterface(systemName: String = "in-memory", contentETags: Boolean = false)
+    extends StorageInterface[FakeFileMetadata] {
 
   private val store: ConcurrentHashMap[(String, String), StoredBlob] =
     new ConcurrentHashMap[(String, String), StoredBlob]()
@@ -73,6 +76,12 @@ class InMemoryStorageInterface(systemName: String = "in-memory") extends Storage
 
   // Counts uploadFile calls for DropUploadAfterCount.
   private val uploadCount = new AtomicInteger(0)
+
+  // Counts content reads per key (see `readCount`), for tests asserting a path was never read.
+  private val reads = new ConcurrentHashMap[(String, String), AtomicInteger]()
+
+  // Counts `writeBlobToFile` calls per key (see `writeCount`).
+  private val writes = new ConcurrentHashMap[(String, String), AtomicInteger]()
 
   // ---------- public test helpers ----------
 
@@ -112,6 +121,29 @@ class InMemoryStorageInterface(systemName: String = "in-memory") extends Storage
         true
       case None => false
     }
+
+  /**
+   * Store raw bytes at a path with a fresh eTag, bypassing every write path's validation. For
+   * seeding shapes the production writers can't produce, e.g. a 0-byte "poison" lock blob.
+   */
+  def putRaw(bucket: String, path: String, bytes: Array[Byte]): Unit = {
+    val _ = store.put((bucket, path), StoredBlob(bytes, freshETag(), Instant.now()))
+  }
+
+  /**
+   * How many times a key's content has been read: `getBlob`, `getBlobAsString` and
+   * `getBlobAsStringAndEtag` (and so `getBlobAsObject`), whether or not the key existed. Metadata,
+   * existence and listing calls (`getMetadata`, `pathExists`, `list*`) are not counted.
+   */
+  def readCount(bucket: String, path: String): Int =
+    Option(reads.get((bucket, path))).map(_.get()).getOrElse(0)
+
+  /**
+   * How many `writeBlobToFile` calls a key has received (lock writes), whether they succeeded,
+   * failed their precondition or were failed by a hook.
+   */
+  def writeCount(bucket: String, path: String): Int =
+    Option(writes.get((bucket, path))).map(_.get()).getOrElse(0)
 
   // ---------- StorageInterface methods used by the sink write-path ----------
 
@@ -183,23 +215,35 @@ class InMemoryStorageInterface(systemName: String = "in-memory") extends Storage
     lastModified.map(FakeFileMetadata(fileName, _))
       .orElse(Option(store.get((bucket, fileName))).map(b => FakeFileMetadata(fileName, b.lastModified)))
 
-  override def getBlob(bucket: String, path: String): Either[FileLoadError, InputStream] =
-    Option(store.get((bucket, path))) match {
+  override def getBlob(bucket: String, path: String): Either[FileLoadError, InputStream] = {
+    recordRead(bucket, path)
+    val read = Option(store.get((bucket, path)))
+    afterRead(bucket, path)
+    read match {
       case Some(blob) => Right(new ByteArrayInputStream(blob.bytes))
       case None       => Left(FileNotFoundError(new IOException(s"No such key: $bucket/$path"), path))
     }
+  }
 
-  override def getBlobAsString(bucket: String, path: String): Either[FileLoadError, String] =
-    Option(store.get((bucket, path))) match {
+  override def getBlobAsString(bucket: String, path: String): Either[FileLoadError, String] = {
+    recordRead(bucket, path)
+    val read = Option(store.get((bucket, path)))
+    afterRead(bucket, path)
+    read match {
       case Some(blob) => Right(new String(blob.bytes, StandardCharsets.UTF_8))
       case None       => Left(FileNotFoundError(new IOException(s"No such key: $bucket/$path"), path))
     }
+  }
 
-  override def getBlobAsStringAndEtag(bucket: String, path: String): Either[FileLoadError, (String, String)] =
-    Option(store.get((bucket, path))) match {
+  override def getBlobAsStringAndEtag(bucket: String, path: String): Either[FileLoadError, (String, String)] = {
+    recordRead(bucket, path)
+    val read = Option(store.get((bucket, path)))
+    afterRead(bucket, path)
+    read match {
       case Some(blob) => Right((new String(blob.bytes, StandardCharsets.UTF_8), blob.eTag))
       case None       => Left(FileNotFoundError(new IOException(s"No such key: $bucket/$path"), path))
     }
+  }
 
   override def writeBlobToFile[O](
     bucket:           String,
@@ -208,15 +252,27 @@ class InMemoryStorageInterface(systemName: String = "in-memory") extends Storage
   )(
     implicit
     encoder: Encoder[O],
-  ): Either[UploadError, ObjectWithETag[O]] =
+  ): Either[UploadError, ObjectWithETag[O]] = {
+    val _ = writes.computeIfAbsent((bucket, path), _ => new AtomicInteger(0)).incrementAndGet()
+    takeFirstHook {
+      case h: OnWriteAt if h.matches(bucket, path) && h.onlyIf(objectProtection.wrappedObject) => h
+    }.foreach(_.action())
     takeFirstHook { case h: FailWriteAt if h.matches(bucket, path) => h } match {
       case Some(h) => h.asUploadError(bucket, path).asLeft
-      case None    =>
-        // CorruptETag persists normally but reports a wrong eTag back to the caller.
-        val cachedOverride = takeFirstHook { case h: CorruptETag if h.matches(bucket, path) => h }
-          .map(_ => freshETag())
-        persist(bucket, path, objectProtection, freshETag(), cachedOverride)
+      case None =>
+        takeFirstHook { case h: LoseWriteResponseAt if h.matches(bucket, path) => h } match {
+          case Some(h) =>
+            // The write is applied, but the caller only sees an error (lost response).
+            persist(bucket, path, objectProtection, freshETag(), None)
+              .flatMap(_ => h.asUploadError(bucket, path).asLeft)
+          case None =>
+            // CorruptETag persists normally but reports a wrong eTag back to the caller.
+            val cachedOverride = takeFirstHook { case h: CorruptETag if h.matches(bucket, path) => h }
+              .map(_ => freshETag())
+            persist(bucket, path, objectProtection, freshETag(), cachedOverride)
+        }
     }
+  }
 
   override def getMetadata(bucket: String, path: String): Either[FileLoadError, ObjectMetadata] =
     Option(store.get((bucket, path))) match {
@@ -238,6 +294,7 @@ class InMemoryStorageInterface(systemName: String = "in-memory") extends Storage
 
   override def deleteFile(bucket: String, file: String, eTag: String): Either[FileDeleteError, Unit] = {
     val _ = eTag
+    takeFirstHook { case h: OnDeleteAt if h.matches(bucket, file) => h }.foreach(_.action())
     takeFirstHook { case h: FailDeleteAt if h.matches(bucket, file) => h } match {
       case Some(h) => h.asDeleteError(bucket, file).asLeft
       case None =>
@@ -320,6 +377,22 @@ class InMemoryStorageInterface(systemName: String = "in-memory") extends Storage
 
   private def freshETag(): String = UUID.randomUUID().toString
 
+  /** Counts the read, then runs an armed `OnReadAt` action before the caller sees the content. */
+  private def recordRead(bucket: String, path: String): Unit = {
+    val _ = reads.computeIfAbsent((bucket, path), _ => new AtomicInteger(0)).incrementAndGet()
+    takeFirstHook { case h: OnReadAt if h.matches(bucket, path) => h }.foreach(_.action())
+  }
+
+  /** Runs an armed `AfterReadAt` action once the read has taken the content, before the caller sees it. */
+  private def afterRead(bucket: String, path: String): Unit =
+    takeFirstHook { case h: AfterReadAt if h.matches(bucket, path) => h }.foreach(_.action())
+
+  /** The eTag a write of `bytes` gets: fresh per write, or the bytes' digest with `contentETags`. */
+  private def eTagFor(bytes: Array[Byte], fresh: String): String =
+    if (contentETags)
+      java.security.MessageDigest.getInstance("MD5").digest(bytes).map(b => f"${b & 0xff}%02x").mkString
+    else fresh
+
   private def persist[O](
     bucket:             String,
     path:               String,
@@ -333,9 +406,10 @@ class InMemoryStorageInterface(systemName: String = "in-memory") extends Storage
     val existing = Option(store.get((bucket, path)))
     objectProtection match {
       case NoOverwriteExistingObject(_) if existing.isDefined =>
-        FileCreateError(
+        // As every backend reports a lost create race: the recoverable "already exists" error.
+        NonOverwriteFileExistsError(
           new IllegalStateException(s"PreconditionFailed: $bucket/$path already exists"),
-          s"NoOverwrite on existing $path",
+          path,
         ).asLeft
       case ObjectWithETag(_, expected) =>
         existing match {
@@ -353,13 +427,15 @@ class InMemoryStorageInterface(systemName: String = "in-memory") extends Storage
             ).asLeft
           case _ =>
             val bytes = encodeBytes(objectProtection.wrappedObject)
-            store.put((bucket, path), StoredBlob(bytes, realETag, Instant.now()))
-            Right(ObjectWithETag(objectProtection.wrappedObject, cachedETagOverride.getOrElse(realETag)))
+            val eTag  = eTagFor(bytes, realETag)
+            store.put((bucket, path), StoredBlob(bytes, eTag, Instant.now()))
+            Right(ObjectWithETag(objectProtection.wrappedObject, cachedETagOverride.getOrElse(eTag)))
         }
       case _ =>
         val bytes = encodeBytes(objectProtection.wrappedObject)
-        store.put((bucket, path), StoredBlob(bytes, realETag, Instant.now()))
-        Right(ObjectWithETag(objectProtection.wrappedObject, cachedETagOverride.getOrElse(realETag)))
+        val eTag  = eTagFor(bytes, realETag)
+        store.put((bucket, path), StoredBlob(bytes, eTag, Instant.now()))
+        Right(ObjectWithETag(objectProtection.wrappedObject, cachedETagOverride.getOrElse(eTag)))
     }
   }
 
@@ -414,6 +490,15 @@ object InMemoryStorageInterface {
   }
 
   /** Fail the next deleteFile/deleteFiles entry at `(bucket, path)` with `err`. */
+  /**
+   * Run `action` on the next delete of `(bucket, path)`, before the delete (or an armed
+   * `FailDeleteAt`) is applied: a deterministic point to land another step while a delete is in
+   * flight.
+   */
+  final case class OnDeleteAt(bucket: String, path: String, action: () => Unit) extends Hook {
+    def matches(b: String, p: String): Boolean = b == bucket && p == path
+  }
+
   final case class FailDeleteAt(bucket: String, path: String, err: Option[FileDeleteError] = None) extends Hook {
     def matches(b:                String, p: String): Boolean         = b == bucket && p == path
     override def asDeleteError(b: String, p: String): FileDeleteError = err.getOrElse(super.asDeleteError(b, p))
@@ -425,6 +510,51 @@ object InMemoryStorageInterface {
    */
   final case class CorruptETag(bucket: String, path: String) extends Hook {
     def matches(b: String, p: String): Boolean = b == bucket && p == path
+  }
+
+  /**
+   * Run `action` on the next content read of `(bucket, path)`, before the read sees the store: a
+   * deterministic point to interleave another thread's step (e.g. a concurrent fence or close)
+   * between a caller's check and its use of what it read.
+   */
+  final case class OnReadAt(bucket: String, path: String, action: () => Unit) extends Hook {
+    def matches(b: String, p: String): Boolean = b == bucket && p == path
+  }
+
+  /**
+   * Run `action` on the next content read of `(bucket, path)`, after the read has taken the content
+   * and before the caller sees it: the caller then acts on what the store held before `action`, as
+   * when another thread's step lands between a read and the decision taken on it.
+   */
+  final case class AfterReadAt(bucket: String, path: String, action: () => Unit) extends Hook {
+    def matches(b: String, p: String): Boolean = b == bucket && p == path
+  }
+
+  /**
+   * Run `action` on the next `writeBlobToFile` to `(bucket, path)` whose object satisfies `onlyIf`,
+   * before the write is applied: a deterministic point to land another instance's write between a
+   * caller's read and its conditional write. `onlyIf` keeps the action's own writes to the same
+   * path from consuming the hook.
+   */
+  final case class OnWriteAt(
+    bucket: String,
+    path:   String,
+    action: () => Unit,
+    onlyIf: Any => Boolean = _ => true,
+  ) extends Hook {
+    def matches(b: String, p: String): Boolean = b == bucket && p == path
+  }
+
+  /**
+   * Apply the next `writeBlobToFile` to `(bucket, path)` (with its normal conditional-write
+   * semantics), then report a failure to the caller anyway: the write landed but its response
+   * was lost, e.g. a timeout whose SDK retry then fails its precondition against the object the
+   * first attempt already changed.
+   */
+  final case class LoseWriteResponseAt(bucket: String, path: String) extends Hook {
+    def matches(b:                String, p: String): Boolean = b == bucket && p == path
+    override def asUploadError(b: String, p: String): UploadError =
+      FileCreateError(new IllegalStateException(s"injected lost write response: $b/$p"), p)
   }
 
   /**

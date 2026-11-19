@@ -102,8 +102,11 @@ trait CloudSinkMetricsMBean {
   def getGcLocksSkippedReclaimed: Long
 
   /**
-   * Cumulative count of enqueued locks skipped because the topic-partition was revoked
-   * (rebalanced away) before the background drain ran. Expected during rebalances.
+   * Cumulative count of enqueued locks never deleted because the topic-partition was revoked or
+   * closed: dropped from the queue when the partition is closed (rebalance or shutdown), or skipped
+   * at drain time because the partition is no longer owned or this task is fenced on it (a newer
+   * owner holds it). The obsolete locks stay in storage for the orphan sweep. Expected during
+   * rebalances.
    */
   def getGcLocksSkippedRevoked: Long
 
@@ -137,6 +140,33 @@ trait CloudSinkMetricsMBean {
    * indicate a zombie task holding a conflicting eTag or cloud storage issues.
    */
   def getMasterLockFailures: Long
+
+  /**
+   * Cumulative fencing episodes: each time this task found itself fenced on a topic-partition (it
+   * read a lock written under a newer ownership epoch, or found another owner or a newer epoch on
+   * the master lock). A partition fenced, re-owned and fenced again counts twice. The task fails on
+   * its next `put()`; a restart re-takes ownership. Usually a stopped zombie (this task), but a
+   * large clock skew can also raise it; see docs/datalake-exactly-once-partitionby.md.
+   */
+  def getPartitionsFenced: Long
+
+  /**
+   * Cumulative granular-lock take-overs: a key whose lock was written under an older ownership
+   * epoch was rewritten with this task's epoch when it loaded the key, so tokens an older instance
+   * still holds for it stop being valid. Includes a take-over whose write landed but whose
+   * response was lost, confirmed by the re-read that follows it. At most one per loaded key per
+   * ownership episode, so it rises after each rebalance or restart as keys receive records again.
+   */
+  def getGranularLockOwnershipBumps: Long
+
+  /**
+   * Cumulative failed granular-lock take-over writes, of any cause: another instance wrote the key
+   * between this task's read and its take-over, the write landed but its response was lost, or a
+   * transient write error. Each is followed by a re-read and a fresh decision, within a small
+   * budget. Because transient write errors count too, a steady rate alone does not prove
+   * overlapping task instances.
+   */
+  def getGranularLockOwnershipBumpRaces: Long
 
   /**
    * Cumulative `preCommit` cycles where the dirty-flag gate suppressed the master-lock write
@@ -186,6 +216,15 @@ trait CloudSinkMetricsMBean {
    * have widened the dirty window beyond a single cycle.
    */
   def getMasterLockDirtyWindowCycles: Long
+
+  /**
+   * Cumulative `open()` calls that failed because another instance took the partition over
+   * between this task's first read of the master lock and its ownership write: the re-read after
+   * the lost write showed a different ownership epoch. The task fails and a restart re-opens above
+   * the newer epoch. Usually a rebalance that overlapped a slow open; repeated without overlapping
+   * instances, check for clock skew (see docs/datalake-exactly-once-partitionby.md).
+   */
+  def getMasterLockOpenOwnershipLost: Long
 
   /**
    * Point-in-time indicator: `true` iff at least one topic-partition was observed
@@ -431,6 +470,9 @@ class CloudSinkMetrics() extends CloudSinkMetricsMBean {
 
   private val masterLockUpdates                        = new LongAdder()
   private val masterLockFailures                       = new LongAdder()
+  private val partitionsFenced                         = new LongAdder()
+  private val granularLockOwnershipBumps               = new LongAdder()
+  private val granularLockOwnershipBumpRaces           = new LongAdder()
   private val masterLockWriteSkipped                   = new LongAdder()
   private val masterLockWriteForcedRevoke              = new LongAdder()
   private val masterLockWriteForcedStop                = new LongAdder()
@@ -439,6 +481,7 @@ class CloudSinkMetrics() extends CloudSinkMetricsMBean {
   private val masterLockWriteForcedStopFailures        = new LongAdder()
   private val masterLockWriteForcedPostCleanUpFailures = new LongAdder()
   private val masterLockDirtyWindowCycles              = new LongAdder()
+  private val masterLockOpenOwnershipLost              = new LongAdder()
   private val dirtyTopicPartitions =
     java.util.concurrent.ConcurrentHashMap.newKeySet[TopicPartition]()
 
@@ -521,6 +564,9 @@ class CloudSinkMetrics() extends CloudSinkMetricsMBean {
 
   override def getMasterLockUpdates:                        Long    = masterLockUpdates.sum()
   override def getMasterLockFailures:                       Long    = masterLockFailures.sum()
+  override def getPartitionsFenced:                         Long    = partitionsFenced.sum()
+  override def getGranularLockOwnershipBumps:               Long    = granularLockOwnershipBumps.sum()
+  override def getGranularLockOwnershipBumpRaces:           Long    = granularLockOwnershipBumpRaces.sum()
   override def getMasterLockWriteSkipped:                   Long    = masterLockWriteSkipped.sum()
   override def getMasterLockWriteForcedRevoke:              Long    = masterLockWriteForcedRevoke.sum()
   override def getMasterLockWriteForcedStop:                Long    = masterLockWriteForcedStop.sum()
@@ -529,6 +575,7 @@ class CloudSinkMetrics() extends CloudSinkMetricsMBean {
   override def getMasterLockWriteForcedStopFailures:        Long    = masterLockWriteForcedStopFailures.sum()
   override def getMasterLockWriteForcedPostCleanUpFailures: Long    = masterLockWriteForcedPostCleanUpFailures.sum()
   override def getMasterLockDirtyWindowCycles:              Long    = masterLockDirtyWindowCycles.sum()
+  override def getMasterLockOpenOwnershipLost:              Long    = masterLockOpenOwnershipLost.sum()
   override def getMasterLockDirty:                          Boolean = !dirtyTopicPartitions.isEmpty
 
   override def getSweepRuns:            Long = sweepRuns.sum()
@@ -617,11 +664,15 @@ class CloudSinkMetrics() extends CloudSinkMetricsMBean {
   def incrementGcLocksDeleted(count:  Long): Unit = gcLocksDeleted.add(count)
   def incrementGcLocksSkippedReclaimed(): Unit = gcLocksSkippedReclaimed.increment()
   def incrementGcLocksSkippedRevoked():   Unit = gcLocksSkippedRevoked.increment()
-  def incrementGcDeleteFailures():        Unit = gcDeleteFailures.increment()
+  def incrementGcLocksSkippedRevoked(count: Long): Unit = gcLocksSkippedRevoked.add(count)
+  def incrementGcDeleteFailures(): Unit = gcDeleteFailures.increment()
   def incrementGcDeleteRetries(count: Long): Unit = gcDeleteRetries.add(count)
 
-  def incrementMasterLockUpdates():  Unit = masterLockUpdates.increment()
-  def incrementMasterLockFailures(): Unit = masterLockFailures.increment()
+  def incrementMasterLockUpdates():              Unit = masterLockUpdates.increment()
+  def incrementMasterLockFailures():             Unit = masterLockFailures.increment()
+  def incrementPartitionsFenced():               Unit = partitionsFenced.increment()
+  def incrementGranularLockOwnershipBumps():     Unit = granularLockOwnershipBumps.increment()
+  def incrementGranularLockOwnershipBumpRaces(): Unit = granularLockOwnershipBumpRaces.increment()
 
   def incrementMasterLockWriteSkipped(): Unit = masterLockWriteSkipped.increment()
 
@@ -638,6 +689,8 @@ class CloudSinkMetrics() extends CloudSinkMetricsMBean {
   }
 
   def incrementMasterLockDirtyWindowCycle(): Unit = masterLockDirtyWindowCycles.increment()
+
+  def incrementMasterLockOpenOwnershipLost(): Unit = masterLockOpenOwnershipLost.increment()
 
   def markMasterLockDirty(tp: TopicPartition): Unit = { val _ = dirtyTopicPartitions.add(tp) }
   def clearMasterLockDirty(tp: TopicPartition): Unit = { val _ = dirtyTopicPartitions.remove(tp) }

@@ -64,4 +64,47 @@ class IndexModelTest extends AnyFunSuiteLike with Matchers with EitherValues {
     decodedIndexFile shouldEqual indexFile
   }
 
+  // Ownership epoch: optional, written only when set, so locks
+  // without an epoch stay byte-identical to the pre-epoch format, and older readers still decode.
+
+  test("an index file without an epoch encodes exactly as the pre-epoch format (no epoch key)") {
+    val indexFile = IndexFile("owner-1", Offset(7).some, None)
+
+    indexFile.asJson.noSpaces shouldBe """{"owner":"owner-1","committedOffset":7,"pendingState":null}"""
+  }
+
+  test("an index file with an epoch encodes it and round-trips") {
+    val indexFile = IndexFile("owner-1", Offset(7).some, None, epoch = Some(1731700000123L))
+    val json      = indexFile.asJson.noSpaces
+
+    json shouldBe """{"owner":"owner-1","committedOffset":7,"pendingState":null,"epoch":1731700000123}"""
+    decode[IndexFile](json).value shouldBe indexFile
+  }
+
+  test("a pre-epoch lock decodes with epoch = None") {
+    decode[IndexFile]("""{"owner":"old","committedOffset":3,"pendingState":null}""").value shouldBe
+      IndexFile("old", Offset(3).some, None, epoch = None)
+  }
+
+  test("an explicit null epoch decodes as None") {
+    decode[IndexFile]("""{"owner":"old","committedOffset":3,"pendingState":null,"epoch":null}""").value.epoch shouldBe
+      None
+  }
+
+  test("format compatibility: an older connector version's decoder still reads a lock that carries an epoch") {
+    // Not production code under test: this pins the rolling-upgrade assumption the epoch relies on.
+    // An older version decodes locks with the same derived decoder, minus the epoch field, and
+    // must ignore the new key rather than fail on it.
+    final case class PreEpochIndexFile(
+      owner:           String,
+      committedOffset: Option[Offset],
+      pendingState:    Option[PendingState],
+    )
+    val preEpochDecoder: io.circe.Decoder[PreEpochIndexFile] = io.circe.generic.semiauto.deriveDecoder
+
+    val json = IndexFile("new", Offset(9).some, None, epoch = Some(5L)).asJson.noSpaces
+
+    decode[PreEpochIndexFile](json)(preEpochDecoder).value shouldBe PreEpochIndexFile("new", Offset(9).some, None)
+  }
+
 }

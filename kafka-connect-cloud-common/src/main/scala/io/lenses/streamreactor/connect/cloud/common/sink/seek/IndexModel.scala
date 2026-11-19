@@ -112,11 +112,16 @@ case class PendingState(
  * @param owner           The owner of the index file.
  * @param committedOffset The last committed offset, if available.
  * @param pendingState    The optional state of pending operations, if any.
+ * @param epoch           The writer's ownership epoch for this topic-partition. `None` for
+ *                        locks written by versions that predate epochs. It is omitted from the JSON
+ *                        when `None`, so such locks stay byte-identical to the pre-epoch format, and
+ *                        older readers (circe ignores unknown fields) still decode locks that carry it.
  */
 case class IndexFile(
   owner:           String,
   committedOffset: Option[Offset],
   pendingState:    Option[PendingState],
+  epoch:           Option[Long] = None,
 )
 
 object IndexFile {
@@ -157,7 +162,12 @@ object IndexFile {
     }
   }
 
-  implicit val indexFileEncoder: Encoder[IndexFile] = deriveEncoder
+  // Drop only `epoch` when unset: the other fields keep their existing `null` encoding, so a lock
+  // without an epoch serialises exactly as before.
+  implicit val indexFileEncoder: Encoder[IndexFile] =
+    deriveEncoder[IndexFile].mapJsonObject { obj =>
+      if (obj("epoch").exists(_.isNull)) obj.remove("epoch") else obj
+    }
   implicit val indexFileDecoder: Decoder[IndexFile] = deriveDecoder
 
   implicit val pendingStateEncoder: Encoder[PendingState] = deriveEncoder

@@ -24,6 +24,7 @@ import io.lenses.streamreactor.connect.cloud.common.sink.seek.ObjectWithETag
 import io.lenses.streamreactor.connect.cloud.common.storage.FileCreateError
 import io.lenses.streamreactor.connect.cloud.common.storage.FileMoveError
 import io.lenses.streamreactor.connect.cloud.common.storage.FileNotFoundError
+import io.lenses.streamreactor.connect.cloud.common.storage.NonOverwriteFileExistsError
 import io.lenses.streamreactor.connect.cloud.common.testing.InMemoryStorageInterface._
 import org.scalatest.EitherValues
 import org.scalatest.funsuite.AnyFunSuiteLike
@@ -76,8 +77,9 @@ class InMemoryStorageInterfaceTest extends AnyFunSuiteLike with Matchers with Ei
     val ok   = fake.writeBlobToFile(Bucket, "lock", NoOverwriteExistingObject(Sample("a", 1))).value
     ok.eTag should not be empty
 
+    // Reported as every backend reports a lost create race: the recoverable "already exists".
     fake.writeBlobToFile(Bucket, "lock", NoOverwriteExistingObject(Sample("b", 2)))
-      .left.value shouldBe a[FileCreateError]
+      .left.value shouldBe a[NonOverwriteFileExistsError]
 
     // Original survived.
     fake.getBlobAsObject[Sample](Bucket, "lock").value.wrappedObject shouldBe Sample("a", 1)

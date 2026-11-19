@@ -34,6 +34,7 @@ import io.lenses.streamreactor.connect.cloud.common.sink.metrics.CloudSinkMetric
 import io.lenses.streamreactor.connect.cloud.common.sink.metrics.ForcedWriteReason
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.KeyNamer
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.ObjectKeyBuilder
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.BatchCommitLocks
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.CommitMode
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexManager
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.PendingOperationsProcessors
@@ -105,6 +106,7 @@ class WriterManager[SM <: FileMetadata](
   pendingOperationsProcessors:  PendingOperationsProcessors,
   private[sink] val commitMode: CommitMode       = CommitMode.Default,
   metrics:                      CloudSinkMetrics = new CloudSinkMetrics(),
+  batchCommitLocks:             BatchCommitLocks = BatchCommitLocks.NoOp,
 )(
   implicit
   connectorTaskId: ConnectorTaskId,
@@ -125,7 +127,14 @@ class WriterManager[SM <: FileMetadata](
   }
 
   private val writerCommitManager =
-    new WriterCommitManager[SM](writerSource, indexManager, pendingOperationsProcessors, commitMode, metrics)
+    new WriterCommitManager[SM](
+      writerSource,
+      indexManager,
+      pendingOperationsProcessors,
+      commitMode,
+      metrics,
+      batchCommitLocks,
+    )
 
   // Highest globalSafeOffset ever reported to Kafka Connect per TP. Prevents regression on
   // idle-writer eviction. See docs/datalake-exactly-once-partitionby.md ("globalSafeOffset regression").
@@ -205,6 +214,7 @@ class WriterManager[SM <: FileMetadata](
     lastReturnedSafeOffset.remove(topicPartition)
     forceWriteAfterCleanUp.remove(topicPartition)
     maxBufferedOffset.remove(topicPartition)
+    metrics.clearMasterLockDirty(topicPartition)
     // Materialise keys to a list so the map mutation does not invalidate the iterator.
     val keysToRemove = writers
       .view.filterKeys(_.topicPartition == topicPartition)
@@ -233,7 +243,14 @@ class WriterManager[SM <: FileMetadata](
   ): ForceWriteOutcome = {
     val firstBufferedOffsets = tpWriters.flatMap(_.getFirstBufferedOffset)
     val committedOffsets     = tpWriters.flatMap(_.getCommittedOffset)
-    if (committedOffsets.isEmpty) {
+    if (indexManager.isFenced(topicPartition)) {
+      // A newer owner holds this partition: its master lock is not ours to write, on close or revoke.
+      logger.warn(
+        s"[${connectorTaskId.show}] Force-${reason} skipped for $topicPartition: this instance is fenced " +
+          s"(a newer owner holds the partition).",
+      )
+      ForceWriteOutcome.NotNeeded
+    } else if (committedOffsets.isEmpty) {
       // No committed offsets yet — durable master-lock floor is already authoritative.
       logger.debug(
         s"[${connectorTaskId.show}] Force-${reason} skipped for $topicPartition: " +
@@ -314,8 +331,26 @@ class WriterManager[SM <: FileMetadata](
     )
 
   /**
-   * Rebalance / shutdown close: runs `closePartition` for every owned TP then bulk-clears
-   * all per-TP state. The default `Revoke` tag matches `CloudSinkTask.close(partitions)`.
+   * Partition-scoped close, used by `CloudSinkTask.close(partitions)`: runs `closePartition` for
+   * exactly `topicPartitions`, including a partition that has residual offset or force state but
+   * no current writer. Every other partition's writers, staging files, buffers, high watermarks,
+   * force flags and safe-offset barriers are left untouched: on a cooperative revoke Kafka Connect
+   * neither re-opens nor rewinds a retained partition, so anything discarded for it here would
+   * never be re-delivered.
+   */
+  def close(topicPartitions: Set[TopicPartition], reason: ForcedWriteReason): Unit = {
+    logger.debug(
+      s"[{}] Received call to WriterManager.close for {}",
+      connectorTaskId.show,
+      topicPartitions.mkString(","): Any,
+    )
+    topicPartitions.foreach(closePartition(_, reason))
+    metrics.setWriterCount(writers.size)
+  }
+
+  /**
+   * Whole-task close (task stop): runs `closePartition` for every TP with a writer, then
+   * bulk-clears all per-TP state, including TPs that have state but no current writer.
    */
   def close(reason: ForcedWriteReason = ForcedWriteReason.Revoke): Unit = {
     logger.debug(s"[{}] Received call to WriterManager.close", connectorTaskId.show)
@@ -519,6 +554,10 @@ class WriterManager[SM <: FileMetadata](
     val tpWriters = writersForTopicPartition(topicPartition)
     if (tpWriters.isEmpty) {
       None
+    } else if (indexManager.isFenced(topicPartition)) {
+      // A newer owner holds this partition: return no offset, whatever the master-lock decision
+      // would have been (a Skip would otherwise hand Connect an offset). The task fails on its next put().
+      None
     } else {
       val firstBufferedOffsets = tpWriters.flatMap(_.getFirstBufferedOffset)
       val committedOffsets     = tpWriters.flatMap(_.getCommittedOffset)
@@ -662,6 +701,9 @@ class WriterManager[SM <: FileMetadata](
             s"(forced=${forcedReason.map(_.toString).getOrElse("no")}): ${err.message()}. " +
             s"Returning no offset to prevent consumer advance.",
         )
+        // Tell a lost CAS against a newer owner apart from a transient failure: the former fences
+        // the partition (the task then fails fast instead of withholding offsets forever).
+        val _ = indexManager.confirmMasterFenced(topicPartition)
         false
       case Right(_) =>
         metrics.incrementMasterLockUpdates()
@@ -731,8 +773,9 @@ class WriterManager[SM <: FileMetadata](
     indexManager.evictAllGranularLocks(topicPartition)
     // `clearTopicPartitionState` is NOT called: the partition is still owned by this task,
     // the master lock in storage is unchanged, and clearing `seekedOffsets` / the master eTag
-    // would break the eTag fence on the next `updateMasterLock`. Only `IndexManagerV2.open()`
-    // (stalePartitions / failure-rollback branches) calls `clearTopicPartitionState`.
+    // would break the eTag fence on the next `updateMasterLock`. Only
+    // `IndexManager.closePartitions` (revoke) and a failed `IndexManagerV2.open()` rollback call
+    // `clearTopicPartitionState`.
   }
 
   private def evictIdleWriters(topicPartition: TopicPartition, exclude: Option[MapKey]): Unit = {
@@ -770,6 +813,12 @@ class WriterManager[SM <: FileMetadata](
   private[writer] def writerCount: Int = writers.size
 
   private[writer] def writerFor(key: MapKey): Option[Writer[SM]] = writers.get(key)
+
+  /** Every topic-partition this manager holds a writer or any per-partition state for. */
+  private[writer] def trackedTopicPartitions: Set[TopicPartition] =
+    writers.keySet.map(_.topicPartition).toSet ++ tpIndex.keySet ++ safeOffsetHighWatermarks.keySet ++
+      lastWrittenMasterSafeOffset.keySet ++ lastReturnedSafeOffset.keySet ++ forceWriteAfterCleanUp ++
+      maxBufferedOffset.keySet
 
   private[writer] def putWriter(key: MapKey, writer: Writer[SM]): Unit = {
     val _ = writers.put(key, writer)

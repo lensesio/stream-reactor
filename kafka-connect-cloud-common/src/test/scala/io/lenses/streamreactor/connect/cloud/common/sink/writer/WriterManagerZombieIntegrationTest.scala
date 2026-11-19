@@ -33,12 +33,14 @@ import io.lenses.streamreactor.connect.cloud.common.sink.config.ValuePartitionFi
 import io.lenses.streamreactor.connect.cloud.common.sink.metrics.CloudSinkMetrics
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.KeyNamer
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.ObjectKeyBuilder
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexFile
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexManagerV2
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.PendingOperationsProcessors
 import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
 import io.lenses.streamreactor.connect.cloud.common.testing.FakeFileMetadata
 import io.lenses.streamreactor.connect.cloud.common.testing.InMemoryStorageInterface
 import io.lenses.streamreactor.connect.cloud.common.testing.InMemoryStorageInterface.FailWriteAt
+import io.lenses.streamreactor.connect.cloud.common.testing.InMemoryStorageInterface.LoseWriteResponseAt
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.mockito.ArgumentMatchersSugar
 import org.mockito.MockitoSugar
@@ -249,6 +251,149 @@ class WriterManagerZombieIntegrationTest
 
     wm.close()
     im.close()
+  }
+
+  // ── a master write lost to a newer owner fences the partition ──
+
+  /** Same connector (same lock paths), new `ConnectorTaskId` object => a different `lockUuid`. */
+  private def buildOtherInstance(storage: StorageInterface[FakeFileMetadata]): IndexManagerV2 = {
+    implicit val si: StorageInterface[FakeFileMetadata] = storage
+    val other = ConnectorTaskId(connectorTaskId.name, connectorTaskId.maxTasks, connectorTaskId.taskNo)
+    new IndexManagerV2(
+      bucketAndPrefixFn           = bucketAndPrefix,
+      pendingOperationsProcessors = new PendingOperationsProcessors(storage)(other),
+      directoryFileName           = directoryName,
+      gcIntervalSeconds           = Int.MaxValue,
+      gcSweepIntervalSeconds      = Int.MaxValue,
+      gcSweepMinAgeSeconds        = Int.MaxValue,
+      gcSweepEnabled              = false,
+    )(si, other)
+  }
+
+  test("preCommit whose master write loses to a newer owner marks the partition fenced") {
+    val storage = new InMemoryStorageInterface()
+    val metrics = new CloudSinkMetrics()
+    // Shared metrics, as WriterManagerCreator wires them in production.
+    val im = new IndexManagerV2(
+      bucketAndPrefixFn           = bucketAndPrefix,
+      pendingOperationsProcessors = new PendingOperationsProcessors(storage),
+      directoryFileName           = directoryName,
+      gcIntervalSeconds           = Int.MaxValue,
+      gcSweepIntervalSeconds      = Int.MaxValue,
+      gcSweepMinAgeSeconds        = Int.MaxValue,
+      gcSweepEnabled              = false,
+      metrics                     = metrics,
+    )(storage, connectorTaskId)
+    im.open(Set(tp0)).value
+    val wm = buildWriterManager(im, storage, metrics)
+    wm.putWriter(MapKey(tp0, dateA), makeCommittedWriter(tp0, im, storage, committedOffset = Some(Offset(50))))
+
+    // A newer owner of the same partition opens (bumps the master and its epoch).
+    val newer = buildOtherInstance(storage)
+    newer.open(Set(tp0)).value
+
+    wm.preCommit(Map(tp0 -> new OffsetAndMetadata(200))).get(tp0) shouldBe None
+    im.fencedPartitions should contain(tp0)
+    metrics.getPartitionsFenced shouldBe 1L
+
+    wm.close()
+    im.close()
+    newer.close()
+  }
+
+  test("preCommit returns no offset for a fenced partition even when the master write would be skipped") {
+    val storage = new InMemoryStorageInterface()
+    val metrics = new CloudSinkMetrics()
+    val im      = buildIndexManager(storage)
+    im.open(Set(tp0)).value
+    val wm = buildWriterManager(im, storage, metrics)
+    wm.putWriter(MapKey(tp0, dateA), makeCommittedWriter(tp0, im, storage, committedOffset = Some(Offset(50))))
+    wm.preCommit(Map(tp0 -> new OffsetAndMetadata(200)))(tp0).offset() shouldBe 51L
+
+    // A newer owner opens and writes the key's granular lock; this instance then reloads it.
+    val pk    = WriterManager.derivePartitionKey(dateA).getOrElse(fail("no partition key"))
+    val newer = buildOtherInstance(storage)
+    newer.open(Set(tp0)).value
+    newer.ensureGranularLock(tp0, pk).value
+    im.evictGranularLock(tp0, pk)
+    im.getSeekedOffsetForPartitionKey(tp0, pk).isLeft shouldBe true
+    im.fencedPartitions should contain(tp0)
+
+    // Nothing changed since the last write, so the master-lock decision is Skip.
+    wm.preCommit(Map(tp0 -> new OffsetAndMetadata(200))).get(tp0) shouldBe None
+
+    wm.close()
+    im.close()
+    newer.close()
+  }
+
+  test("a transient master-write failure in preCommit does not fence the partition") {
+    val storage = new InMemoryStorageInterface()
+    val metrics = new CloudSinkMetrics()
+    val im      = buildIndexManager(storage)
+    im.open(Set(tp0)).value
+    val wm = buildWriterManager(im, storage, metrics)
+    wm.putWriter(MapKey(tp0, dateA), makeCommittedWriter(tp0, im, storage, committedOffset = Some(Offset(50))))
+    storage.arm(FailWriteAt(bucket, masterLockPath))
+
+    wm.preCommit(Map(tp0 -> new OffsetAndMetadata(200))).get(tp0) shouldBe None
+    im.fencedPartitions shouldBe empty
+    metrics.getPartitionsFenced shouldBe 0L
+
+    wm.preCommit(Map(tp0 -> new OffsetAndMetadata(200)))(tp0).offset() shouldBe 51L
+
+    wm.close()
+    im.close()
+  }
+
+  test("a master write in preCommit that landed but lost its response recovers on the next preCommit") {
+    val storage = new InMemoryStorageInterface()
+    val metrics = new CloudSinkMetrics()
+    val im      = buildIndexManager(storage)
+    im.open(Set(tp0)).value
+    val wm = buildWriterManager(im, storage, metrics)
+    wm.putWriter(MapKey(tp0, dateA), makeCommittedWriter(tp0, im, storage, committedOffset = Some(Offset(50))))
+    storage.arm(LoseWriteResponseAt(bucket, masterLockPath))
+
+    wm.preCommit(Map(tp0 -> new OffsetAndMetadata(200))).get(tp0) shouldBe None
+    im.fencedPartitions shouldBe empty
+    storage.getBlobAsObject[IndexFile](bucket, masterLockPath).value.wrappedObject.committedOffset shouldBe
+      Some(Offset(50))
+
+    // The writers move on; the following preCommits write the master lock again.
+    wm.putWriter(MapKey(tp0, dateA), makeCommittedWriter(tp0, im, storage, committedOffset = Some(Offset(100))))
+    val offsets = (1 to 3).map(_ => wm.preCommit(Map(tp0 -> new OffsetAndMetadata(200))).get(tp0).map(_.offset()))
+    offsets shouldBe Seq(Some(101L), Some(101L), Some(101L))
+    metrics.getMasterLockFailures shouldBe 1L
+    storage.getBlobAsObject[IndexFile](bucket, masterLockPath).value.wrappedObject.committedOffset shouldBe
+      Some(Offset(100))
+    im.getSeekedOffsetForTopicPartition(tp0) shouldBe Some(Offset(100))
+
+    wm.close()
+    im.close()
+  }
+
+  test("closing a fenced partition skips the forced master write") {
+    val storage = new InMemoryStorageInterface()
+    val metrics = new CloudSinkMetrics()
+    val im      = buildIndexManager(storage)
+    im.open(Set(tp0)).value
+    val wm = buildWriterManager(im, storage, metrics)
+    wm.putWriter(MapKey(tp0, dateA), makeCommittedWriter(tp0, im, storage, committedOffset = Some(Offset(50))))
+    val newer = buildOtherInstance(storage)
+    newer.open(Set(tp0)).value
+    wm.preCommit(Map(tp0 -> new OffsetAndMetadata(200)))
+    im.fencedPartitions should contain(tp0)
+    val failuresBefore = metrics.getMasterLockFailures
+    val masterBefore   = storage.getBlobAsStringAndEtag(bucket, masterLockPath).value
+
+    wm.close()
+
+    metrics.getMasterLockFailures shouldBe failuresBefore
+    storage.getBlobAsStringAndEtag(bucket, masterLockPath).value shouldBe masterBefore
+
+    im.close()
+    newer.close()
   }
 
   // ── (c) WriteForced(PostCleanUp) one-shot failure → routine dirty-flag retry ──────────
