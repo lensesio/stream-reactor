@@ -68,7 +68,7 @@ FROM   $TOPIC_NAME
 * To view how a sink connector (i.e. Cassandra) manage configuration options, refer to
 <a href="http://docs.datamountaineer.com/en/latest/connectors.html">documentation here</a>
 
-The *SELECT* mode is usefull for target systems that do not support the concept of <namespace> (i.e. a an in-memory
+The *SELECT* mode is useful for target systems that do not support the concept of <namespace> (i.e. a an in-memory
 Key-Value system does not have the concept of a <database>.<table>) and can also be utilized in the socket-streamer
 to peek into KAFKA via websockets and receive the payloads in real time.
 
