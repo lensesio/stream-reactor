@@ -52,12 +52,15 @@ class MqttManager(
   logger.info(s"Connecting to ${settings.connection}")
   client.connect(options)
   logger.info(s"Connected to ${settings.connection} as ${settings.clientId}")
-
-  override def close(): Unit = {
-    client.disconnect(5000)
-    client.close()
-  }
-
+      
+  override def close(): Unit =
+    try client.disconnect(5000)
+    finally client.close()
+  
+  def close() =
+    try client.disconnect()
+    finally client.close()
+  
   override def deliveryComplete(token: IMqttDeliveryToken): Unit = {}
 
   private def createMqttClient(): MqttClient = {
