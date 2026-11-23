@@ -200,17 +200,10 @@ abstract class HttpRequestSender(
     client.run(authenticatedRequest).use { response =>
       response.as[Option[String]].map {
         body =>
+          metrics.recordHttpResponseStatus(response.status.code)
           if (response.status.isSuccess) {
-            metrics.increment2xxCount()
             HttpResponseSuccess(response.status.code, body).asRight[HttpResponseFailure]
           } else {
-            if (response.status.code >= 400 && response.status.code < 500) {
-              metrics.increment4xxCount()
-            } else if (response.status.code >= 500 && response.status.code < 600) {
-              metrics.increment5xxCount()
-            } else {
-              metrics.incrementOtherErrorsCount()
-            }
             HttpResponseFailure(
               message         = "Request failed with error response",
               cause           = Option.empty,

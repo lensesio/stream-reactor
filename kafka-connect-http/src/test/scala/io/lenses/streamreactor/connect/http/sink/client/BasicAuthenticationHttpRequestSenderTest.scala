@@ -75,15 +75,18 @@ class BasicAuthenticationHttpRequestSenderTest extends AnyFunSuiteLike with Matc
     val mbs        = ManagementFactory.getPlatformMBeanServer
     val objectName = new ObjectName(MetricsRegistrar.NameTemplate.format(sinkName, 1))
     val mbean      = mbs.getMBeanInfo(objectName)
-    mbean.getAttributes.map(_.getName) should contain allElementsOf List("4xxCount",
-                                                                         "5xxCount",
-                                                                         "P50RequestTimeMs",
-                                                                         "P95RequestTimeMs",
-                                                                         "P99RequestTimeMs",
-                                                                         "OtherErrorsCount",
-                                                                         "2xxCount",
+    mbean.getAttributes.map(_.getName) should contain allElementsOf List(
+      "Http200Count",
+      "4xxCount",
+      "5xxCount",
+      "P50RequestTimeMs",
+      "P95RequestTimeMs",
+      "P99RequestTimeMs",
+      "OtherErrorsCount",
+      "2xxCount",
     )
     mbs.getAttribute(objectName, "2xxCount") shouldBe 1
+    mbs.getAttribute(objectName, "Http200Count") shouldBe 1
     mbs.getAttribute(objectName, "4xxCount") shouldBe 0
     mbs.getAttribute(objectName, "5xxCount") shouldBe 0
     mbs.getAttribute(objectName, "OtherErrorsCount") shouldBe 0
