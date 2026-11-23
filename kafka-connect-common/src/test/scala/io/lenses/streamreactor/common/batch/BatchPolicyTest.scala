@@ -48,7 +48,11 @@ class BatchPolicyTest extends AnyFlatSpec with Matchers {
     val intervalFirst = BatchPolicy(interval, count).shouldBatch(ctx)
     val intervalLast  = BatchPolicy(count, interval).shouldBatch(ctx)
 
-    val expected = BatchResult(fitsInBatch = true, triggerReached = false, greedyTriggerReached = true)
+    val expected = BatchResult(fitsInBatch = true,
+                               triggerReached       = false,
+                               greedyTriggerReached = true,
+                               triggeredConditions  = Set(interval),
+    )
     intervalFirst should be(expected)
     intervalLast should be(expected)
   }
@@ -60,7 +64,11 @@ class BatchPolicyTest extends AnyFlatSpec with Matchers {
     val fileSize = FileSize(10)
     val ctx      = context(recordCount = 1, bytes = 14, lastModifiedMillis = 0L)
 
-    val expected = BatchResult(fitsInBatch = false, triggerReached = true, greedyTriggerReached = false)
+    val expected = BatchResult(fitsInBatch = false,
+                               triggerReached       = true,
+                               greedyTriggerReached = false,
+                               triggeredConditions  = Set(fileSize),
+    )
     BatchPolicy(count, fileSize).shouldBatch(ctx) should be(expected)
     BatchPolicy(fileSize, count).shouldBatch(ctx) should be(expected)
   }
