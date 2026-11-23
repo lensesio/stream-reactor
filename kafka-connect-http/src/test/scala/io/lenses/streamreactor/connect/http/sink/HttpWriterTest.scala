@@ -570,7 +570,12 @@ class HttpWriterTest extends AsyncIOSpec with AsyncFunSuiteLike with Matchers wi
     }
   }
 
-  test("preCommit reports the offsets committed by a flush") {
+  // `committedOffsets` stores the offset of the last record sent, but a Kafka committed offset is
+  // "the next offset to consume", so `preCommit` must report that offset plus one. Returning the raw
+  // offset leaves a permanent lag of 1 per partition and makes the last record of each partition
+  // redelivered on every restart. record1/record2 sit at offsets 100 and 101, so the batch that
+  // flushes both must report 102.
+  test("preCommit reports the offset after the last one committed by a flush") {
     for {
       commitContextRef <- Ref.of[IO, HttpCommitContext](HttpCommitContext.default(sinkName))
       offsetMapRef     <- Ref.of[IO, Map[TopicPartition, Offset]](Map.empty)
@@ -583,7 +588,7 @@ class HttpWriterTest extends AsyncIOSpec with AsyncFunSuiteLike with Matchers wi
       _          <- fiber.cancel
       initial     = Map(topicPartition -> new org.apache.kafka.clients.consumer.OffsetAndMetadata(0L))
       offsets    <- writer.preCommit(initial)
-    } yield offsets.get(topicPartition).map(_.offset()) shouldBe Some(101L)
+    } yield offsets.get(topicPartition).map(_.offset()) shouldBe Some(102L)
   }
 
   // Time is fully controlled in these tests: the `Interval` condition reads a fixed `java.time.Clock`

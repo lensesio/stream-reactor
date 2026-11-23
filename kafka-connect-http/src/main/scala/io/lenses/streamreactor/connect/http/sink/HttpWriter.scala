@@ -432,6 +432,19 @@ class HttpWriter(
       _          <- reportResult(records, processed, httpResult)
     } yield processed
 
+  /**
+   * Reports, per topic-partition, the offset Kafka should resume from.
+   *
+   * `HttpCommitContext.committedOffsets` holds the offset of the last record actually sent (see
+   * `OffsetMergeUtils.maxOffsets`), but a Kafka committed offset means "the next offset to consume",
+   * which is why `WorkerSinkTask` builds its own view as `record.kafkaOffset() + 1`. Connect commits
+   * whatever this method returns verbatim, so the stored offset must be advanced by one here.
+   *
+   * Returning the raw offset instead would leave the group's committed offset one short of the log
+   * end: a permanent lag of 1 per partition that never drains, and -- because `open()` clears the
+   * dedup marks that `filterDuplicates` relies on -- the last record of each partition would be
+   * redelivered and re-sent on every restart or rebalance.
+   */
   def preCommit(
     initialOffsetAndMetaMap: Map[TopicPartition, OffsetAndMetadata],
   ): IO[Map[TopicPartition, OffsetAndMetadata]] =
@@ -442,7 +455,7 @@ class HttpWriter(
             for {
               initialOffsetAndMeta <- initialOffsetAndMetaMap.get(tp)
 
-            } yield tp -> new OffsetAndMetadata(offset.value,
+            } yield tp -> new OffsetAndMetadata(offset.value + 1L,
                                                 initialOffsetAndMeta.leaderEpoch(),
                                                 initialOffsetAndMeta.metadata(),
             )
