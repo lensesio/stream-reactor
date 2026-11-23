@@ -58,6 +58,8 @@ import scala.annotation.nowarn
  * @param partition The target partition; only used if the envelope does not contain a partition
  * @param location The cloud location of the object
  * @param lastModified The last modified date of the object
+ * @param topicFromEnvelope When true, the record is emitted to the original topic stored in the
+ *                          envelope metadata, falling back to `topic` when it is not present
  */
 class SchemalessEnvelopeConverter(
   watermarkPartition: java.util.Map[String, String],
@@ -66,6 +68,7 @@ class SchemalessEnvelopeConverter(
   location:           CloudLocation,
   lastModified:       Instant,
   instantF:           () => Instant = () => Instant.now(),
+  topicFromEnvelope:  Boolean       = false,
 ) extends Converter[String] {
   override def convert(envelope: String, index: Long, lastLine: Boolean): SourceRecord =
     //parse the json and then extract key,value, headers and metadata
@@ -84,10 +87,15 @@ class SchemalessEnvelopeConverter(
           _.asObject.getOrElse(throw new RuntimeException(s"Envelope [$envelope] does not contain metadata.")),
         )
 
+        val recordTopic =
+          if (topicFromEnvelope)
+            metadata.flatMap(j => j("topic")).flatMap(_.asString).getOrElse(topic.value)
+          else topic.value
+
         val sourceRecord = new SourceRecord(
           watermarkPartition,
           SourceWatermark.offset(location, index, lastModified, lastLine),
-          topic.value,
+          recordTopic,
           metadata.flatMap(j => j("partition").get.asNumber.flatMap(_.toInt).map(Integer.valueOf)).getOrElse(partition),
           key.map { _ =>
             if (!keyIsArray) Schema.OPTIONAL_STRING_SCHEMA

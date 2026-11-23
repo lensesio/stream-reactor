@@ -97,6 +97,7 @@ object ReaderManagerBuilder extends LazyLogging {
         connectorTaskId,
         storageInterface,
         sbo.hasEnvelope,
+        sbo.topicFromEnvelope,
       ),
       connectorTaskId,
       ref,
