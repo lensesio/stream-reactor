@@ -106,6 +106,7 @@ object HttpWriterManager extends StrictLogging {
         retriableClient,
         config.authentication,
         metrics,
+        config.compression,
       )
       batchPolicy = config.batch.toBatchPolicy
 
