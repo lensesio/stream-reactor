@@ -114,7 +114,8 @@ trait CloudSinkMetricsMBean {
    * Cumulative count of GC lock deletes the store refused because the lock is no longer at the
    * version GC selected: another writer (a newer owner of the partition, or this task reclaiming
    * the key) rewrote it after it was queued. The lock is left in place. Expected around
-   * rebalances; nothing to act on.
+   * rebalances. A count that keeps growing with no rebalances means the store refuses conditional
+   * deletes: GC drops every lock and the sweep re-queues it, so obsolete locks accumulate.
    */
   def getGcLocksSkippedChanged: Long
 

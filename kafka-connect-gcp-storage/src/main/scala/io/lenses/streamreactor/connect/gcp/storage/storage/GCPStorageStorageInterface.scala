@@ -519,9 +519,11 @@ class GCPStorageStorageInterface(
     DeletePreconditionFailedException.toDeleteFileResult(file, eTag, deleteBlobIfGenerationMatch(bucket, file, eTag))
 
   /**
-   * One `delete(blobId, ifGenerationMatch)` per object: `delete(BlobId...)` (the batch form
-   * `deleteFiles` uses) cannot carry a precondition. The token is the generation `getBlobAsObject`
-   * and `writeBlobToFile` report.
+   * One `delete(blobId, ifGenerationMatch)` per object. `delete(BlobId...)` (the form `deleteFiles`
+   * uses) cannot carry a precondition; a `StorageBatch` can, but one request per lock is deliberate:
+   * the GC drain re-checks the reclaim filter before every storage call (see
+   * `conditionalDeleteIsBatched`). The token is the generation `getBlobAsObject` and
+   * `writeBlobToFile` report.
    */
   override def deleteFilesIfMatch(bucket: String, files: Seq[ConditionalDelete]): Seq[DeleteOutcome] =
     files.map(f => deleteBlobIfGenerationMatch(bucket, f.path, f.eTag))

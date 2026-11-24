@@ -2394,7 +2394,8 @@ class IndexManagerV2(
    *     this filter: their path is distinct from the live `.lock`, and they are stale by definition.
    *     A reload that lands during the one delete call covering its key can still lose its
    *     lock: the key's next commit then fails its lock write before anything reaches a final path,
-   *     and the restarted task replays from the master floor. A `.lock` is deleted only while it is at
+   *     so the task fails; once restarted (Connect does not restart a FAILED task by itself), it
+   *     replays from the master floor. A `.lock` is deleted only while it is at
    *     the version GC selected (`deleteFilesIfMatch` with the item's token): a lock another
    *     writer rewrote since is left in place and the item dropped. That is what keeps a delete
    *     selected before a handover (or before this instance reclaimed the key, which the reclaim
